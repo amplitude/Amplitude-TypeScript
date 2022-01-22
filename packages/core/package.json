@@ -1,0 +1,34 @@
+{
+  "name": "@amplitude/core",
+  "version": "0.0.0",
+  "description": "",
+  "author": "Amplitude Inc",
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "module": "esm/index.js",
+  "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
+  },
+  "scripts": {
+    "build": "yarn build:es5 & yarn build:esm",
+    "build:es5": "tsc -p ./tsconfig.es5.json",
+    "build:esm": "tsc -p ./tsconfig.esm.json",
+    "fix": "yarn fix:eslint & yarn fix:prettier",
+    "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "lint": "yarn lint:eslint & yarn lint:prettier",
+    "lint:eslint": "eslint '{src,test}/**/*.ts'",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "test": "jest",
+    "typecheck": "tsc -p ./tsconfig.json"
+  },
+  "bugs": {
+    "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
+  }
+}

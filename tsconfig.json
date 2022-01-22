@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "alwaysStrict": false,
+    "declaration": true,
+    "declarationMap": true,
+    "downlevelIteration": true,
+    "inlineSources": true,
+    "importHelpers": true,
+    "lib": ["es6"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmitHelpers": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitUseStrict": true,
+    "noImplicitThis": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "pretty": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictBindCallApply": true,
+    "target": "es5",
+    "types": ["jest"],
+  }
+}
