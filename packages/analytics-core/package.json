@@ -1,13 +1,13 @@
 {
-  "name": "@amplitude/core",
+  "name": "@amplitude/analytics-core",
   "version": "0.0.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "license": "MIT",
-  "main": "dist/index.js",
-  "module": "esm/index.js",
-  "types": "dist/index.d.ts",
+  "main": "lib/cjs/index.js",
+  "module": "lib/es6/index.js",
+  "types": "lib/es6/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
