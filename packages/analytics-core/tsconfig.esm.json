@@ -2,9 +2,9 @@
   "extends": "./tsconfig.json",
   "include": ["src/**/*"],
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "es6",
     "noEmit": false,
-    "outDir": "dist",
+    "outDir": "lib/esm",
     "rootDir": "./src"
   }
 }
