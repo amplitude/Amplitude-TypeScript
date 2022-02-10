@@ -30,5 +30,8 @@
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
+  },
+  "dependencies": {
+    "@amplitude/analytics-types": "^0.0.0"
   }
 }
