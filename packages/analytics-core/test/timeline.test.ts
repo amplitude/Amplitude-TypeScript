@@ -1,11 +1,11 @@
 import { Event, Plugin, PluginType, Config } from '@amplitude/analytics-types';
 import * as ConfigFactory from '../src/config';
-import { register, deregister, plugins, push, flush } from '../src/timeline';
+import { register, deregister, plugins, push, apply } from '../src/timeline';
 
 describe('timeline', () => {
   test('should update event using before/enrichment plugin', async () => {
-    const beforeSetup = jest.fn().mockReturnValueOnce(Promise.resolve());
-    const beforeExecute = jest.fn().mockImplementationOnce((event: Event) =>
+    const beforeSetup = jest.fn().mockReturnValue(Promise.resolve());
+    const beforeExecute = jest.fn().mockImplementation((event: Event) =>
       Promise.resolve({
         ...event,
         event_id: '1',
@@ -17,8 +17,8 @@ describe('timeline', () => {
       setup: beforeSetup,
       execute: beforeExecute,
     };
-    const enrichmentSetup = jest.fn().mockReturnValueOnce(Promise.resolve());
-    const enrichmentExecute = jest.fn().mockImplementationOnce((event: Event) =>
+    const enrichmentSetup = jest.fn().mockReturnValue(Promise.resolve());
+    const enrichmentExecute = jest.fn().mockImplementation((event: Event) =>
       Promise.resolve({
         ...event,
         user_id: '2',
@@ -31,11 +31,21 @@ describe('timeline', () => {
       execute: enrichmentExecute,
     };
 
-    const destinationSetup = jest.fn().mockReturnValueOnce(Promise.resolve());
-    const destinationExecute = jest.fn().mockImplementationOnce((event: Event) => {
-      expect(event.event_id).toBe('1');
-      expect(event.user_id).toBe('2');
-    });
+    const destinationSetup = jest.fn().mockReturnValue(Promise.resolve());
+    const destinationExecute = jest
+      .fn()
+      // error once
+      .mockImplementationOnce((event: Event) => {
+        expect(event.event_id).toBe('1');
+        expect(event.user_id).toBe('2');
+        return Promise.reject();
+      })
+      // success for the rest
+      .mockImplementation((event: Event) => {
+        expect(event.event_id).toBe('1');
+        expect(event.user_id).toBe('2');
+        return Promise.resolve();
+      });
     const destination: Plugin = {
       name: 'plugin:destination',
       type: PluginType.DESTINATION,
@@ -76,7 +86,7 @@ describe('timeline', () => {
     expect(plugins.length).toBe(0);
   });
 
-  describe('flush', () => {
+  describe('apply', () => {
     test('should handle empty queue', async () => {
       const beforeSetup = jest.fn().mockReturnValueOnce(Promise.resolve());
       const beforeExecute = jest.fn().mockImplementationOnce((event: Event) =>
@@ -92,7 +102,7 @@ describe('timeline', () => {
         execute: beforeExecute,
       };
       await register(before);
-      await flush();
+      await apply();
       await deregister(before.name);
       expect(beforeExecute).toHaveBeenCalledTimes(0);
     });

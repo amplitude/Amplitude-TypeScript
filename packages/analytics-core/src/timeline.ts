@@ -12,7 +12,7 @@ import {
 
 export const queue: Context[] = [];
 export const plugins: Plugin[] = [];
-let flushing = false;
+let applying = false;
 
 export const register = async (plugin: Plugin) => {
   await plugin.setup();
@@ -35,24 +35,24 @@ export const push = (event: Event, config: Config) => {
       resolve,
     };
     queue.push(context);
-    schedule(0);
+    scheduleApply(0);
   });
 };
 
-export const schedule = (timeout: number) => {
-  if (flushing) return;
-  flushing = true;
+export const scheduleApply = (timeout: number) => {
+  if (applying) return;
+  applying = true;
   setTimeout(() => {
-    void flush().then(() => {
-      flushing = false;
+    void apply().then(() => {
+      applying = false;
       if (queue.length > 0) {
-        schedule(0);
+        scheduleApply(0);
       }
     });
   }, timeout);
 };
 
-export const flush = async () => {
+export const apply = async () => {
   const context = queue.shift();
 
   if (!context) {
@@ -81,9 +81,7 @@ export const flush = async () => {
     (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
   );
 
-  for (const plugin of destination) {
-    await plugin.execute(context.event);
-  }
+  await Promise.all(destination.map((plugin) => plugin.execute(context.event).catch(() => undefined)));
 
   return context.resolve({
     success: true,

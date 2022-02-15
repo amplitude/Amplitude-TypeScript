@@ -1,4 +1,4 @@
-export { BaseEvent } from './base-event';
+export { BaseEvent, EventOptions } from './base-event';
 export { Config } from './config';
 export { Context } from './context';
 export { Event, TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType } from './event';
