@@ -23,6 +23,6 @@
     "strict": true,
     "strictBindCallApply": true,
     "target": "es5",
-    "types": ["jest"],
+    "types": ["jest", "node"],
   }
 }

@@ -1,18 +1,13 @@
-export class Config {
-  private static instance: Record<string, Config | undefined> = {};
-  apiKey: string;
-  userId?: string;
+import { Config } from '@amplitude/analytics-types';
 
-  private constructor(apiKey: string, userId?: string) {
-    this.apiKey = apiKey;
-    this.userId = userId;
-  }
+const DEFAULT_INSTANCE = 'default';
+const instances: Record<string, Config> = {};
 
-  static create(apiKey: string, userId?: string) {
-    this.instance['default'] = new Config(apiKey, userId);
-  }
+export const createConfig = (apiKey: string, userId?: string): Config => {
+  instances[DEFAULT_INSTANCE] = { apiKey, userId };
+  return instances[DEFAULT_INSTANCE];
+};
 
-  static get() {
-    return this.instance['default'];
-  }
-}
+export const getConfig = (): Config => {
+  return instances[DEFAULT_INSTANCE];
+};

@@ -1,13 +1,13 @@
 {
-  "name": "@amplitude/analytics-core",
+  "name": "@amplitude/analytics-types",
   "version": "0.0.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "license": "MIT",
-  "main": "lib/cjs/index.js",
-  "module": "lib/es6/index.js",
-  "types": "lib/es6/index.d.ts",
+  "main": "lib/index.js",
+  "module": "lib/index.js",
+  "types": "lib/index.d.ts",
   "publishConfig": {
     "access": "public"
   },
@@ -16,22 +16,15 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn build:es5 & yarn build:esm",
-    "build:es5": "tsc -p ./tsconfig.es5.json",
-    "build:esm": "tsc -p ./tsconfig.esm.json",
+    "build": "tsc -p ./tsconfig.json",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
-    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "test": "jest",
-    "typecheck": "tsc -p ./tsconfig.json"
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\""
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
-  },
-  "dependencies": {
-    "@amplitude/analytics-types": "^0.0.0"
   }
 }
