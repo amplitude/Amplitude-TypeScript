@@ -1,4 +1,5 @@
 import { Event, Plugin, PluginType, Config } from '@amplitude/analytics-types';
+import { Result } from '../src/result';
 import * as ConfigFactory from '../src/config';
 import * as client from '../src/core-client';
 import * as timeline from '../src/timeline';
@@ -6,16 +7,8 @@ import * as timeline from '../src/timeline';
 describe('core-client', () => {
   const API_KEY = 'apikey';
   const USER_ID = 'userid';
-  const success = {
-    success: true,
-    code: 200,
-    message: 'success',
-  };
-  const failed = {
-    success: false,
-    code: 500,
-    message: 'failed',
-  };
+  const success = new Result(true, 200, 'success');
+  const failed = new Result(false, 0, 'failed');
 
   describe('init', () => {
     test('should call init', () => {
@@ -107,7 +100,7 @@ describe('core-client', () => {
     });
 
     test('should handle error', async () => {
-      const push = jest.spyOn(timeline, 'push').mockReturnValueOnce(Promise.reject());
+      const push = jest.spyOn(timeline, 'push').mockReturnValueOnce(Promise.reject('failed'));
       const event: Event = {
         event_type: 'event_type',
       };
