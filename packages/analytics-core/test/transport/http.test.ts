@@ -1,5 +1,6 @@
 import { Http } from '../../src/transports/http';
 import * as http from 'http';
+import { Status } from '@amplitude/analytics-types';
 
 describe('http transport', () => {
   test('should send to url', async () => {
@@ -30,7 +31,7 @@ describe('http transport', () => {
     });
 
     const response = await provider.send(url, payload);
-    expect(response.code).toBe(200);
+    expect(response?.statusCode).toBe(200);
     expect(request).toHaveBeenCalledTimes(1);
   });
 
@@ -56,12 +57,14 @@ describe('http transport', () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
-        on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
+        on: jest.fn(),
         end: jest.fn(),
       } as any;
     });
 
-    await expect(provider.send(url, payload)).rejects.toThrow();
+    const response = await provider.send(url, payload);
+    expect(response?.statusCode).toBe(400);
+    expect(response?.status).toBe(Status.Invalid);
     expect(request).toHaveBeenCalledTimes(1);
   });
 
@@ -87,12 +90,13 @@ describe('http transport', () => {
       });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return {
-        on: jest.fn().mockImplementation((_: string, cb: (error: Error) => void) => cb(new Error())),
+        on: jest.fn(),
         end: jest.fn(),
       } as any;
     });
 
-    await expect(provider.send(url, payload)).rejects.toThrow();
+    const response = await provider.send(url, payload);
+    expect(response).toBe(null);
     expect(request).toHaveBeenCalledTimes(1);
   });
 });

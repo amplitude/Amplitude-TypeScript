@@ -2,7 +2,7 @@ import { Event, Plugin, Config } from '@amplitude/analytics-types';
 import { createConfig, getConfig } from './config';
 import { createGroupIdentifyEvent, createIdentifyEvent, createTrackEvent } from './utils/event-builder';
 import { deregister, push, register } from './timeline';
-import { handleUnknownError } from './utils/result-builder';
+import { buildResult } from './utils/result-builder';
 
 export const init = (apiKey: string, userId?: string) => {
   createConfig(apiKey, userId);
@@ -46,8 +46,8 @@ export const remove = async (pluginNames: string[]) => {
 
 export const dispatch = async (event: Event, config: Config) => {
   try {
-    return await push(event, config);
-  } catch (error) {
-    return handleUnknownError(error);
+    return push(event, config);
+  } catch (_) {
+    return buildResult();
   }
 };

@@ -1,5 +1,6 @@
+import { Status } from './status';
+
 export interface Result {
-  success: boolean;
-  code: number;
-  message: string;
+  status: Status;
+  statusCode: number;
 }

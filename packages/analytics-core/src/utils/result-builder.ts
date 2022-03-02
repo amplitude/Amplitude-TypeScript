@@ -1,13 +1,5 @@
-import { Result } from '../../src/result';
+import { Result, Status } from '@amplitude/analytics-types';
 
-export const handleUnknownError = (error: unknown) => {
-  if (error instanceof Error) {
-    return new Result(false, 0, error.message);
-  }
-
-  if (typeof error === 'string') {
-    return new Result(false, 0, String(error));
-  }
-
-  return new Result(false, 0, JSON.stringify(error));
+export const buildResult = (statusCode = 0, status: Status = Status.Unknown): Result => {
+  return { statusCode, status };
 };

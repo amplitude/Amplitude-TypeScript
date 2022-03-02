@@ -1,63 +1,67 @@
-import {
-  HttpResponse,
-  TransportResponse,
-  HttpInvalidRequestError,
-  HttpPayloadTooLargeError,
-  HttpServerError,
-  HttpServiceUnavailableError,
-  HttpSuccessSummary,
-  HttpTooManyRequestsForDeviceError,
-} from '@amplitude/analytics-types';
-import {
-  InvalidRequestError,
-  PayloadTooLargeError,
-  ServerError,
-  ServiceUnavailableError,
-  SuccessSummary,
-  TooManyRequestsForDeviceError,
-  UnexpectedError,
-} from '../response';
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+import { Response, Status } from '@amplitude/analytics-types';
+import { buildStatus } from './status-builder';
 
-export const buildResponse = (response: HttpResponse): TransportResponse => {
-  if (is200(response)) {
-    return new SuccessSummary(response.events_ingested, response.payload_size_bytes, response.server_upload_time);
-  }
-  if (is400(response)) {
-    return new InvalidRequestError(
-      response.error,
-      response.missing_field,
-      response.events_with_invalid_fields,
-      response.events_with_missing_fields,
-    );
-  }
-  if (is413(response)) {
-    return new PayloadTooLargeError(response.error);
-  }
-  if (is429(response)) {
-    return new TooManyRequestsForDeviceError(
-      response.error,
-      response.eps_threshold,
-      response.throttled_devices,
-      response.throttled_users,
-      response.throttled_events,
-    );
-  }
-  if (is500(response) || is502(response) || is504(response)) {
-    return new ServerError();
+export const buildResponse = (responseJSON: Record<string, any>): Response | null => {
+  if (typeof responseJSON !== 'object') {
+    return null;
   }
 
-  if (is503(response)) {
-    return new ServiceUnavailableError();
-  }
+  const statusCode = responseJSON.code || 0;
+  const status = buildStatus(statusCode);
 
-  return new UnexpectedError(new Error(JSON.stringify(response)));
+  switch (status) {
+    case Status.Success:
+      return {
+        status,
+        statusCode,
+        body: {
+          eventsIngested: responseJSON.events_ingested ?? 0,
+          payloadSizeBytes: responseJSON.payload_size_bytes ?? 0,
+          serverUploadTime: responseJSON.server_upload_time ?? 0,
+        },
+      };
+
+    case Status.Invalid:
+      return {
+        status,
+        statusCode,
+        body: {
+          error: responseJSON.error ?? '',
+          missingField: responseJSON.missing_field ?? '',
+          eventsWithInvalidFields: responseJSON.events_with_invalid_fields ?? {},
+          eventsWithMissingFields: responseJSON.events_with_missing_fields ?? {},
+        },
+      };
+    case Status.PayloadTooLarge:
+      return {
+        status,
+        statusCode,
+        body: {
+          error: responseJSON.error ?? '',
+        },
+      };
+    case Status.RateLimit:
+      return {
+        status,
+        statusCode,
+        body: {
+          error: responseJSON.error ?? '',
+          epsThreshold: responseJSON.eps_threshold ?? 0,
+          throttledDevices: responseJSON.throttled_devices ?? {},
+          throttledUsers: responseJSON.throttled_users ?? {},
+          exceededDailyQuotaDevices: responseJSON.exceeded_daily_quota_devices ?? {},
+          exceededDailyQuotaUsers: responseJSON.exceeded_daily_quota_users ?? {},
+          throttledEvents: responseJSON.throttled_events ?? [],
+        },
+      };
+    case Status.Timeout:
+    default:
+      return {
+        status,
+        statusCode,
+      };
+  }
 };
-
-export const is200 = (response: HttpResponse): response is HttpSuccessSummary => response.code === 200;
-export const is400 = (response: HttpResponse): response is HttpInvalidRequestError => response.code === 400;
-export const is413 = (response: HttpResponse): response is HttpPayloadTooLargeError => response.code === 413;
-export const is429 = (response: HttpResponse): response is HttpTooManyRequestsForDeviceError => response.code === 429;
-export const is500 = (response: HttpResponse): response is HttpServerError => response.code === 500;
-export const is502 = (response: HttpResponse): response is HttpServerError => response.code === 502;
-export const is503 = (response: HttpResponse): response is HttpServiceUnavailableError => response.code === 503;
-export const is504 = (response: HttpResponse): response is HttpServerError => response.code === 504;

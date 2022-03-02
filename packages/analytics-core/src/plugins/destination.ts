@@ -4,18 +4,11 @@ import {
   DestinationPlugin,
   Event,
   PluginType,
+  Result,
+  Status,
   Transport,
 } from '@amplitude/analytics-types';
-import { Result } from '../../src/result';
-import {
-  BaseError,
-  InvalidRequestError,
-  PayloadTooLargeError,
-  ServerError,
-  ServiceUnavailableError,
-  TooManyRequestsForDeviceError,
-  UnexpectedError,
-} from '../response';
+import { buildResult } from '../../src/utils/result-builder';
 
 export class Destination implements DestinationPlugin {
   name: string;
@@ -81,67 +74,66 @@ export class Destination implements DestinationPlugin {
   }
 
   async send(list: Context[]) {
-    const drop: Context[] = [];
-    let result = new Result();
+    let dropQueue: Context[] = list;
+    let retryQueue: Context[] = [];
 
-    try {
-      if (!this.transportProvider) return;
-      const result = await this.transportProvider.send(this.serverUrl, list);
-      list.map((context) => context.callback(new Result(true, result.code, result.name)));
+    if (!this.transportProvider) return;
+
+    const response = await this.transportProvider.send(this.serverUrl, list);
+
+    if (response === null) {
+      dropQueue.map((context) => context.callback(buildResult(0, Status.Unknown)));
       return;
-    } catch (error) {
-      // unexpected error
-      if (!(error instanceof BaseError)) {
-        result = new Result(false, 0, String(error));
-        drop.push(...list);
-        return;
-      }
-
-      result = new Result(false, error.code, error.message);
-
-      // error 400
-      if (error instanceof InvalidRequestError) {
-        const dropIndex = [
-          ...Object.values(error.eventsWithInvalidFields),
-          ...Object.values(error.eventsWithMissingFields),
-        ].flat();
-        const dropIndexSet = new Set(dropIndex);
-        drop.push(...list.filter((_, index) => dropIndexSet.has(index)));
-        this.addToQueue(...list.filter((_, index) => !dropIndexSet.has(index)));
-      }
-
-      // error 413
-      if (error instanceof PayloadTooLargeError) {
-        if (list.length === 1) {
-          drop.push(list[0]);
-        } else {
-          this.flushQueueSize /= 2;
-          this.addToQueue(...list);
-        }
-      }
-
-      // error 429
-      if (error instanceof TooManyRequestsForDeviceError) {
-        const dropIndex = [...Object.values(error.throttledEvents)];
-        const dropIndexSet = new Set(dropIndex);
-        drop.push(...list.filter((_, index) => dropIndexSet.has(index)));
-        const retry = list.filter((_, index) => !dropIndexSet.has(index));
-        setTimeout(() => {
-          this.addToQueue(...retry);
-        }, this.backoff);
-      }
-
-      // error 5xx
-      if (
-        error instanceof ServerError ||
-        error instanceof ServiceUnavailableError ||
-        error instanceof UnexpectedError
-      ) {
-        drop.push(...list.filter((context) => context.attempts >= this.flushMaxRetries));
-        this.addToQueue(...list.filter((context) => context.attempts < this.flushMaxRetries));
-      }
-    } finally {
-      drop.map((context) => context.callback(result));
     }
+
+    const { status, statusCode } = response;
+
+    if (status === Status.Success) {
+      list.map((context) => context.callback(buildResult(statusCode, status)));
+      return;
+    }
+
+    // error 400
+    if (status === Status.Invalid) {
+      const dropIndex = [
+        ...Object.values(response.body.eventsWithInvalidFields),
+        ...Object.values(response.body.eventsWithMissingFields),
+      ].flat();
+      const dropIndexSet = new Set(dropIndex);
+
+      dropQueue = list.filter((_, index) => dropIndexSet.has(index));
+      retryQueue = list.filter((_, index) => !dropIndexSet.has(index));
+    }
+
+    // error 413
+    if (status === Status.PayloadTooLarge) {
+      if (list.length === 1) {
+        dropQueue = list;
+      } else {
+        this.flushQueueSize /= 2;
+        dropQueue = [];
+        retryQueue = list;
+      }
+    }
+
+    // error 429
+    if (status === Status.RateLimit) {
+      const dropIndex = [...Object.values(response.body.throttledEvents)];
+      const dropIndexSet = new Set(dropIndex);
+      dropQueue = list.filter((_, index) => dropIndexSet.has(index));
+      const retry = list.filter((_, index) => !dropIndexSet.has(index));
+      setTimeout(() => {
+        this.addToQueue(...retry);
+      }, this.backoff);
+    }
+
+    // error 5xx
+    if (status === Status.Failed) {
+      dropQueue = list.filter((context) => context.attempts >= this.flushMaxRetries);
+      retryQueue = list.filter((context) => context.attempts < this.flushMaxRetries);
+    }
+
+    dropQueue.map((context) => context.callback(buildResult(statusCode, status)));
+    this.addToQueue(...retryQueue);
   }
 }

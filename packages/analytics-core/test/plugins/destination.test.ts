@@ -1,15 +1,6 @@
-import {
-  InvalidRequestError,
-  PayloadTooLargeError,
-  ServerError,
-  ServiceUnavailableError,
-  SuccessSummary,
-  TooManyRequestsForDeviceError,
-} from '../../src/response';
 import { createConfig } from '../../src/config';
 import { Destination } from '../../src/plugins/destination';
-import { DestinationContext } from '@amplitude/analytics-types';
-import { Result } from '../../src/result';
+import { DestinationContext, Status } from '@amplitude/analytics-types';
 
 describe('destination', () => {
   describe('setup', () => {
@@ -33,7 +24,7 @@ describe('destination', () => {
     test('should execute plugin', async () => {
       const destination = new Destination('name');
       const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
-        context.callback(new Result(true));
+        context.callback({ statusCode: 200, status: Status.Success });
       });
       const event = {
         event_type: 'event_type',
@@ -135,10 +126,20 @@ describe('destination', () => {
   });
 
   describe('module level integration', () => {
+    const successResponse = {
+      status: Status.Success,
+      statusCode: 200,
+      body: {
+        eventsIngested: 1,
+        payloadSizeBytes: 1,
+        serverUploadTime: 1,
+      },
+    };
+
     test('should handle unexpected error', async () => {
       class Http {
         send = jest.fn().mockImplementationOnce(() => {
-          return Promise.reject(new Error());
+          return Promise.resolve(null);
         });
       }
       const transportProvider = new Http();
@@ -152,7 +153,8 @@ describe('destination', () => {
       const result = await destination.execute({
         event_type: 'event_type',
       });
-      expect(result.success).toBe(false);
+      expect(result.statusCode).toBe(0);
+      expect(result.status).toBe(Status.Unknown);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -161,10 +163,19 @@ describe('destination', () => {
         send = jest
           .fn()
           .mockImplementationOnce(() => {
-            return Promise.reject(new InvalidRequestError('error', 'key', { a: [] }, { b: [] }));
+            return Promise.resolve({
+              status: Status.Invalid,
+              statusCode: 400,
+              body: {
+                error: 'error',
+                missingField: 'key',
+                eventsWithInvalidFields: { a: [] },
+                eventsWithMissingFields: { b: [] },
+              },
+            });
           })
           .mockImplementationOnce(() => {
-            return Promise.resolve(new SuccessSummary());
+            return Promise.resolve(successResponse);
           });
       }
       const transportProvider = new Http();
@@ -189,7 +200,13 @@ describe('destination', () => {
     test('should handle retry for 413 error with flushQueueSize of 1', async () => {
       class Http {
         send = jest.fn().mockImplementationOnce(() => {
-          return Promise.reject(new PayloadTooLargeError('error'));
+          return Promise.resolve({
+            status: Status.PayloadTooLarge,
+            statusCode: 413,
+            body: {
+              error: 'error',
+            },
+          });
         });
       }
       const transportProvider = new Http();
@@ -204,9 +221,8 @@ describe('destination', () => {
         event_type: 'event_type',
       });
       expect(result).toEqual({
-        code: 413,
-        message: 'error',
-        success: false,
+        status: Status.PayloadTooLarge,
+        statusCode: 413,
       });
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
@@ -216,13 +232,19 @@ describe('destination', () => {
         send = jest
           .fn()
           .mockImplementationOnce(() => {
-            return Promise.reject(new PayloadTooLargeError('error'));
+            return Promise.resolve({
+              status: Status.PayloadTooLarge,
+              statusCode: 413,
+              body: {
+                error: 'error',
+              },
+            });
           })
           .mockImplementationOnce(() => {
-            return Promise.resolve(new SuccessSummary());
+            return Promise.resolve(successResponse);
           })
           .mockImplementationOnce(() => {
-            return Promise.resolve(new SuccessSummary());
+            return Promise.resolve(successResponse);
           });
       }
       const transportProvider = new Http();
@@ -249,10 +271,22 @@ describe('destination', () => {
         send = jest
           .fn()
           .mockImplementationOnce(() => {
-            return Promise.reject(new TooManyRequestsForDeviceError('error'));
+            return Promise.resolve({
+              status: Status.RateLimit,
+              statusCode: 429,
+              body: {
+                error: 'error',
+                epsThreshold: 1,
+                throttledDevices: {},
+                throttledUsers: {},
+                exceededDailyQuotaDevices: {},
+                exceededDailyQuotaUsers: {},
+                throttledEvents: [],
+              },
+            });
           })
           .mockImplementationOnce(() => {
-            return Promise.resolve(new SuccessSummary());
+            return Promise.resolve(successResponse);
           });
       }
       const transportProvider = new Http();
@@ -280,10 +314,13 @@ describe('destination', () => {
         send = jest
           .fn()
           .mockImplementationOnce(() => {
-            return Promise.reject(new ServerError());
+            return Promise.resolve({
+              statusCode: 500,
+              status: Status.Failed,
+            });
           })
           .mockImplementationOnce(() => {
-            return Promise.resolve(new SuccessSummary());
+            return Promise.resolve(successResponse);
           });
       }
       const transportProvider = new Http();
@@ -310,10 +347,13 @@ describe('destination', () => {
         send = jest
           .fn()
           .mockImplementationOnce(() => {
-            return Promise.reject(new ServiceUnavailableError());
+            return Promise.resolve({
+              statusCode: 500,
+              status: Status.Failed,
+            });
           })
           .mockImplementationOnce(() => {
-            return Promise.resolve(new SuccessSummary());
+            return Promise.resolve(successResponse);
           });
       }
       const transportProvider = new Http();

@@ -1,24 +1,16 @@
-import { handleUnknownError } from '../../src/utils/result-builder';
+import { Status } from '@amplitude/analytics-types';
+import { buildResult } from '../../src/utils/result-builder';
 
-describe('handleUnknownError', () => {
-  test('should handle error instance of Error', () => {
-    const result = handleUnknownError(new Error());
-    expect(result.code).toBe(0);
-    expect(result.message).toBe('');
-    expect(result.success).toBe(false);
+describe('buildResult', () => {
+  test('should return success', () => {
+    const result = buildResult(200, Status.Success);
+    expect(result.statusCode).toBe(200);
+    expect(result.status).toBe(Status.Success);
   });
 
-  test('should handle error as string', () => {
-    const result = handleUnknownError('error');
-    expect(result.code).toBe(0);
-    expect(result.message).toBe('error');
-    expect(result.success).toBe(false);
-  });
-
-  test('should handle error as other type', () => {
-    const result = handleUnknownError({ success: false });
-    expect(result.code).toBe(0);
-    expect(result.message).toBe(JSON.stringify({ success: false }));
-    expect(result.success).toBe(false);
+  test('should return default values', () => {
+    const result = buildResult();
+    expect(result.statusCode).toBe(0);
+    expect(result.status).toBe(Status.Unknown);
   });
 });

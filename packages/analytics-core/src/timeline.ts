@@ -7,9 +7,9 @@ import {
   EventCallback,
   Plugin,
   PluginType,
+  Result,
 } from '@amplitude/analytics-types';
-import { Result } from './result';
-import { handleUnknownError } from './utils/result-builder';
+import { buildResult } from './utils/result-builder';
 
 export const queue: [Event, EventCallback][] = [];
 export const plugins: Plugin[] = [];
@@ -79,7 +79,7 @@ export const apply = async () => {
     (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
   );
 
-  const executeDestinations = destination.map((plugin) => plugin.execute({ ...event }).catch(handleUnknownError));
+  const executeDestinations = destination.map((plugin) => plugin.execute({ ...event }).catch(() => buildResult()));
 
   void Promise.all(executeDestinations).then(([result]) => {
     resolve(result);
