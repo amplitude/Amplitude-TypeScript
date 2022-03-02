@@ -53,7 +53,7 @@ export const apply = async () => {
   const item = queue.shift();
 
   if (!item) {
-    return 0;
+    return;
   }
 
   let [event] = item;
