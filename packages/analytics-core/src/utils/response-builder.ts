@@ -33,6 +33,12 @@ export const buildResponse = (responseJSON: Record<string, any>): Response | nul
           missingField: responseJSON.missing_field ?? '',
           eventsWithInvalidFields: responseJSON.events_with_invalid_fields ?? {},
           eventsWithMissingFields: responseJSON.events_with_missing_fields ?? {},
+          epsThreshold: responseJSON.eps_threshold ?? 0,
+          exceededDailyQuotaDevices: responseJSON.exceeded_daily_quota_devices ?? {},
+          silencedDevices: responseJSON.silenced_devices ?? [],
+          silencedEvents: responseJSON.silenced_events ?? [],
+          throttledDevices: responseJSON.throttled_devices ?? {},
+          throttledEvents: responseJSON.throttled_events ?? [],
         },
       };
     case Status.PayloadTooLarge:
