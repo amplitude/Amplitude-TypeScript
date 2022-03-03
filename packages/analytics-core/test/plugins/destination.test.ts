@@ -168,9 +168,10 @@ describe('destination', () => {
               statusCode: 400,
               body: {
                 error: 'error',
-                missingField: 'key',
+                missingField: '',
                 eventsWithInvalidFields: { a: [] },
                 eventsWithMissingFields: { b: [] },
+                silencedEvents: [],
               },
             });
           })
@@ -186,7 +187,7 @@ describe('destination', () => {
         transportProvider,
       });
       await destination.setup(config);
-      await Promise.all([
+      const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
         }),
@@ -194,7 +195,46 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
+      expect(results[0].statusCode).toBe(200);
+      expect(results[1].statusCode).toBe(200);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
+    });
+
+    test('should handle retry for 400 error with missing body field', async () => {
+      class Http {
+        send = jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Invalid,
+            statusCode: 400,
+            body: {
+              error: 'error',
+              missingField: 'key',
+              eventsWithInvalidFields: {},
+              eventsWithMissingFields: {},
+              silencedEvents: [],
+            },
+          });
+        });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination('name');
+      const config = createConfig('apiKey', 'userId', {
+        flushQueueSize: 2,
+        flushIntervalMillis: 500,
+        transportProvider,
+      });
+      await destination.setup(config);
+      const results = await Promise.all([
+        destination.execute({
+          event_type: 'event_type',
+        }),
+        destination.execute({
+          event_type: 'event_type',
+        }),
+      ]);
+      expect(results[0].statusCode).toBe(400);
+      expect(results[1].statusCode).toBe(400);
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
     test('should handle retry for 413 error with flushQueueSize of 1', async () => {
@@ -279,11 +319,18 @@ describe('destination', () => {
                 epsThreshold: 1,
                 throttledDevices: {},
                 throttledUsers: {},
-                exceededDailyQuotaDevices: {},
-                exceededDailyQuotaUsers: {},
-                throttledEvents: [],
+                exceededDailyQuotaDevices: {
+                  '1': 1,
+                },
+                exceededDailyQuotaUsers: {
+                  '2': 1,
+                },
+                throttledEvents: [0],
               },
             });
+          })
+          .mockImplementationOnce(() => {
+            return Promise.resolve(successResponse);
           })
           .mockImplementationOnce(() => {
             return Promise.resolve(successResponse);
@@ -293,19 +340,41 @@ describe('destination', () => {
       const destination = new Destination('name');
       destination.backoff = 1;
       const config = createConfig('apiKey', 'userId', {
-        flushQueueSize: 2,
+        flushQueueSize: 4,
         flushIntervalMillis: 500,
         transportProvider,
       });
       await destination.setup(config);
-      await Promise.all([
+      const results = await Promise.all([
+        // throttled
         destination.execute({
           event_type: 'event_type',
+          user_id: '0',
+          device_id: '0',
         }),
+        // exceed daily device quota
         destination.execute({
           event_type: 'event_type',
+          user_id: '1',
+          device_id: '1',
+        }),
+        // exceed daily user quota
+        destination.execute({
+          event_type: 'event_type',
+          user_id: '2',
+          device_id: '2',
+        }),
+        // success
+        destination.execute({
+          event_type: 'event_type',
+          user_id: '3',
+          device_id: '3',
         }),
       ]);
+      expect(results[0].statusCode).toBe(200);
+      expect(results[1].statusCode).toBe(429);
+      expect(results[2].statusCode).toBe(429);
+      expect(results[3].statusCode).toBe(200);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 

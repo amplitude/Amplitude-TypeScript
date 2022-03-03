@@ -95,20 +95,29 @@ export class Destination implements DestinationPlugin {
 
     // error 400
     if (status === Status.Invalid) {
-      const dropIndex = [
-        ...Object.values(response.body.eventsWithInvalidFields),
-        ...Object.values(response.body.eventsWithMissingFields),
-      ].flat();
-      const dropIndexSet = new Set(dropIndex);
+      if (response.body.missingField) {
+        dropQueue = list;
+        retryQueue = [];
+      } else {
+        const dropIndex = [
+          ...Object.values(response.body.eventsWithInvalidFields),
+          ...Object.values(response.body.eventsWithMissingFields),
+          ...response.body.silencedEvents,
+        ]
+          .flat()
+          .concat(...response.body.silencedEvents);
+        const dropIndexSet = new Set(dropIndex);
 
-      dropQueue = list.filter((_, index) => dropIndexSet.has(index));
-      retryQueue = list.filter((_, index) => !dropIndexSet.has(index));
+        dropQueue = list.filter((_, index) => dropIndexSet.has(index));
+        retryQueue = list.filter((_, index) => !dropIndexSet.has(index));
+      }
     }
 
     // error 413
     if (status === Status.PayloadTooLarge) {
       if (list.length === 1) {
         dropQueue = list;
+        retryQueue = [];
       } else {
         this.flushQueueSize /= 2;
         dropQueue = [];
@@ -118,12 +127,34 @@ export class Destination implements DestinationPlugin {
 
     // error 429
     if (status === Status.RateLimit) {
-      const dropIndex = [...Object.values(response.body.throttledEvents)];
-      const dropIndexSet = new Set(dropIndex);
-      dropQueue = list.filter((_, index) => dropIndexSet.has(index));
-      const retry = list.filter((_, index) => !dropIndexSet.has(index));
+      const dropUserId = Object.keys(response.body.exceededDailyQuotaUsers);
+      const dropUserIdSet = new Set(dropUserId);
+      const dropDeviceId = Object.keys(response.body.exceededDailyQuotaDevices);
+      const dropDeviceIdSet = new Set(dropDeviceId);
+      const throttledIndex = response.body.throttledEvents;
+      const throttledIndexSet = new Set(throttledIndex);
+
+      const [drop, retryNow, retryLater] = list.reduce<[Context[], Context[], Context[]]>(
+        ([drop, retryNow, retryLater], curr, index) => {
+          if (
+            (curr.event.user_id && dropUserIdSet.has(curr.event.user_id)) ||
+            (curr.event.device_id && dropDeviceIdSet.has(curr.event.device_id))
+          ) {
+            drop.push(curr);
+          } else if (throttledIndexSet.has(index)) {
+            retryLater.push(curr);
+          } else {
+            retryNow.push(curr);
+          }
+          return [drop, retryNow, retryLater];
+        },
+        [[], [], []],
+      );
+
+      dropQueue = drop;
+      retryQueue = retryNow;
       setTimeout(() => {
-        this.addToQueue(...retry);
+        this.addToQueue(...retryLater);
       }, this.backoff);
     }
 

@@ -7,12 +7,18 @@ export interface SuccessBody {
   serverUploadTime: number;
 }
 
-/** A response body for a request that returned 413 (invalid request). */
+/** A response body for a request that returned 400 (invalid request). */
 export interface InvalidRequestBody {
   error: string;
   missingField: string;
   eventsWithInvalidFields: { [eventField: string]: number[] };
   eventsWithMissingFields: { [eventField: string]: number[] };
+  epsThreshold: 0;
+  exceededDailyQuotaDevices: { [deviceId: string]: number };
+  silencedDevices: string[];
+  silencedEvents: number[];
+  throttledDevices: { [deviceId: string]: number };
+  throttledEvents: number[];
 }
 
 /** A response body for a request that returned 413 (payload too large). */
