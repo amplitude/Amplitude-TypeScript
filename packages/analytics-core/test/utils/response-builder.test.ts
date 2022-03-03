@@ -53,6 +53,12 @@ describe('response-builder', () => {
         missing_field: 'field',
         events_with_invalid_fields: { a: 1 },
         events_with_missing_fields: { a: 2 },
+        eps_threshold: 1,
+        exceeded_daily_quota_devices: { a: 3 },
+        silenced_devices: ['a'],
+        silenced_events: [1],
+        throttled_devices: { a: 4 },
+        throttled_events: [1],
       });
       expect(response).toEqual({
         status: Status.Invalid,
@@ -62,6 +68,12 @@ describe('response-builder', () => {
           missingField: 'field',
           eventsWithInvalidFields: { a: 1 },
           eventsWithMissingFields: { a: 2 },
+          epsThreshold: 1,
+          exceededDailyQuotaDevices: { a: 3 },
+          silencedDevices: ['a'],
+          silencedEvents: [1],
+          throttledDevices: { a: 4 },
+          throttledEvents: [1],
         },
       });
     });
@@ -78,6 +90,12 @@ describe('response-builder', () => {
           missingField: '',
           eventsWithInvalidFields: {},
           eventsWithMissingFields: {},
+          epsThreshold: 0,
+          exceededDailyQuotaDevices: {},
+          silencedDevices: [],
+          silencedEvents: [],
+          throttledDevices: {},
+          throttledEvents: [],
         },
       });
     });
