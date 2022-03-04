@@ -3,11 +3,17 @@ import {
   DestinationContext as Context,
   DestinationPlugin,
   Event,
+  InvalidResponse,
+  PayloadTooLargeResponse,
   PluginType,
+  RateLimitResponse,
+  Response,
   Result,
   Status,
+  SuccessResponse,
   Transport,
 } from '@amplitude/analytics-types';
+import { chunk } from '../../src/utils/chunk';
 import { buildResult } from '../../src/utils/result-builder';
 
 export class Destination implements DestinationPlugin {
@@ -38,11 +44,11 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
-    return new Promise((resolve) => {
+    return new Promise((fulfillRequest) => {
       const context = {
         event,
         attempts: 0,
-        callback: (result: Result) => resolve(result),
+        callback: (result: Result) => fulfillRequest(result),
       };
       this.addToQueue(context);
     });
@@ -67,104 +73,134 @@ export class Destination implements DestinationPlugin {
     }, timeout);
   }
 
-  flush() {
-    const list = this.queue.slice(0, this.flushQueueSize);
-    this.queue = this.queue.slice(this.flushQueueSize);
-    return this.send(list);
+  async flush() {
+    const list = this.queue;
+    this.queue = [];
+    const batches = chunk(list, this.flushQueueSize);
+    await Promise.all(batches.map((batch) => this.send(batch)));
   }
 
   async send(list: Context[]) {
-    let dropQueue: Context[] = list;
-    let retryQueue: Context[] = [];
-
     if (!this.transportProvider) return;
 
-    const response = await this.transportProvider.send(this.serverUrl, list);
+    const res = await this.transportProvider.send(this.serverUrl, list);
 
-    if (response === null) {
-      dropQueue.map((context) => context.callback(buildResult(0, Status.Unknown)));
+    if (res === null) {
+      this.fulfillRequest(list, 0, Status.Unknown);
       return;
     }
 
-    const { status, statusCode } = response;
+    this.handleReponse(res, list);
+  }
 
-    if (status === Status.Success) {
-      list.map((context) => context.callback(buildResult(statusCode, status)));
+  handleReponse(res: Response, list: Context[]) {
+    const { status } = res;
+    switch (status) {
+      case Status.Success:
+        this.handleSuccessResponse(res, list);
+        break;
+
+      case Status.Invalid:
+        this.handleInvalidResponse(res, list);
+        break;
+
+      case Status.PayloadTooLarge:
+        this.handlePayloadTooLargeResponse(res, list);
+        break;
+
+      case Status.RateLimit:
+        this.handleRateLimitResponse(res, list);
+        break;
+
+      default:
+        this.handleOtherReponse(res, list);
+    }
+  }
+
+  handleSuccessResponse(res: SuccessResponse, list: Context[]) {
+    this.fulfillRequest(list, res.statusCode, res.status);
+  }
+
+  handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+    if (res.body.missingField) {
+      this.fulfillRequest(list, res.statusCode, res.status);
       return;
     }
 
-    // error 400
-    if (status === Status.Invalid) {
-      if (response.body.missingField) {
-        dropQueue = list;
-        retryQueue = [];
-      } else {
-        const dropIndex = [
-          ...Object.values(response.body.eventsWithInvalidFields),
-          ...Object.values(response.body.eventsWithMissingFields),
-          ...response.body.silencedEvents,
-        ]
-          .flat()
-          .concat(...response.body.silencedEvents);
-        const dropIndexSet = new Set(dropIndex);
+    const dropIndex = [
+      ...Object.values(res.body.eventsWithInvalidFields),
+      ...Object.values(res.body.eventsWithMissingFields),
+      ...res.body.silencedEvents,
+    ].flat();
+    const dropIndexSet = new Set(dropIndex);
 
-        dropQueue = list.filter((_, index) => dropIndexSet.has(index));
-        retryQueue = list.filter((_, index) => !dropIndexSet.has(index));
-      }
+    const [drop, retry] = list.reduce<[Context[], Context[]]>(
+      ([drop, retry], curr, index) => {
+        dropIndexSet.has(index) ? drop.push(curr) : retry.push(curr);
+        return [drop, retry];
+      },
+      [[], []],
+    );
+
+    this.fulfillRequest(drop, res.statusCode, res.status);
+    this.addToQueue(...retry);
+  }
+
+  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
+    if (list.length === 1) {
+      this.fulfillRequest(list, res.statusCode, res.status);
+      return;
     }
+    this.flushQueueSize /= 2;
+    this.addToQueue(...list);
+  }
 
-    // error 413
-    if (status === Status.PayloadTooLarge) {
-      if (list.length === 1) {
-        dropQueue = list;
-        retryQueue = [];
-      } else {
-        this.flushQueueSize /= 2;
-        dropQueue = [];
-        retryQueue = list;
-      }
-    }
+  handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
+    const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
+    const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
+    const throttledIndex = res.body.throttledEvents;
+    const dropUserIdsSet = new Set(dropUserIds);
+    const dropDeviceIdsSet = new Set(dropDeviceIds);
+    const throttledIndexSet = new Set(throttledIndex);
 
-    // error 429
-    if (status === Status.RateLimit) {
-      const dropUserId = Object.keys(response.body.exceededDailyQuotaUsers);
-      const dropUserIdSet = new Set(dropUserId);
-      const dropDeviceId = Object.keys(response.body.exceededDailyQuotaDevices);
-      const dropDeviceIdSet = new Set(dropDeviceId);
-      const throttledIndex = response.body.throttledEvents;
-      const throttledIndexSet = new Set(throttledIndex);
+    const [drop, retryNow, retryLater] = list.reduce<[Context[], Context[], Context[]]>(
+      ([drop, retryNow, retryLater], curr, index) => {
+        if (
+          (curr.event.user_id && dropUserIdsSet.has(curr.event.user_id)) ||
+          (curr.event.device_id && dropDeviceIdsSet.has(curr.event.device_id))
+        ) {
+          drop.push(curr);
+        } else if (throttledIndexSet.has(index)) {
+          retryLater.push(curr);
+        } else {
+          retryNow.push(curr);
+        }
+        return [drop, retryNow, retryLater];
+      },
+      [[], [], []],
+    );
 
-      const [drop, retryNow, retryLater] = list.reduce<[Context[], Context[], Context[]]>(
-        ([drop, retryNow, retryLater], curr, index) => {
-          if (
-            (curr.event.user_id && dropUserIdSet.has(curr.event.user_id)) ||
-            (curr.event.device_id && dropDeviceIdSet.has(curr.event.device_id))
-          ) {
-            drop.push(curr);
-          } else if (throttledIndexSet.has(index)) {
-            retryLater.push(curr);
-          } else {
-            retryNow.push(curr);
-          }
-          return [drop, retryNow, retryLater];
-        },
-        [[], [], []],
-      );
+    this.fulfillRequest(drop, res.statusCode, res.status);
+    this.addToQueue(...retryNow);
+    setTimeout(() => {
+      this.addToQueue(...retryLater);
+    }, this.backoff);
+  }
 
-      dropQueue = drop;
-      retryQueue = retryNow;
-      setTimeout(() => {
-        this.addToQueue(...retryLater);
-      }, this.backoff);
-    }
+  handleOtherReponse(res: Response, list: Context[]) {
+    const [drop, retry] = list.reduce<[Context[], Context[]]>(
+      ([drop, retry], curr) => {
+        curr.attempts > this.flushMaxRetries ? drop.push(curr) : retry.push(curr);
+        return [drop, retry];
+      },
+      [[], []],
+    );
 
-    // error 5xx
-    if (status === Status.Failed) {
-      dropQueue = list.filter((context) => context.attempts >= this.flushMaxRetries);
-      retryQueue = list.filter((context) => context.attempts < this.flushMaxRetries);
-    }
+    this.fulfillRequest(drop, res.statusCode, res.status);
+    this.addToQueue(...retry);
+  }
 
-    dropQueue.map((context) => context.callback(buildResult(statusCode, status)));
-    this.addToQueue(...retryQueue);
+  fulfillRequest(list: Context[], statusCode: number, status: Status) {
+    list.forEach((context) => context.callback(buildResult(statusCode, status)));
   }
 }

@@ -169,7 +169,7 @@ describe('destination', () => {
               body: {
                 error: 'error',
                 missingField: '',
-                eventsWithInvalidFields: { a: [] },
+                eventsWithInvalidFields: { a: [0] },
                 eventsWithMissingFields: { b: [] },
                 silencedEvents: [],
               },
@@ -195,7 +195,7 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
-      expect(results[0].statusCode).toBe(200);
+      expect(results[0].statusCode).toBe(400);
       expect(results[1].statusCode).toBe(200);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
@@ -422,18 +422,22 @@ describe('destination', () => {
             });
           })
           .mockImplementationOnce(() => {
-            return Promise.resolve(successResponse);
+            return Promise.resolve({
+              statusCode: 500,
+              status: Status.Failed,
+            });
           });
       }
       const transportProvider = new Http();
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
+        flushMaxRetries: 1,
         flushQueueSize: 2,
         flushIntervalMillis: 500,
         transportProvider,
       });
       await destination.setup(config);
-      await Promise.all([
+      const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
         }),
@@ -441,6 +445,8 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
+      expect(results[0].statusCode).toBe(500);
+      expect(results[1].statusCode).toBe(500);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
   });

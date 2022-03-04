@@ -42,38 +42,52 @@ export type StatusWithResponseBody = Status.Invalid | Status.PayloadTooLarge | S
 /** Represents additional data that is provided by the http v2 API */
 export type ResponseBody = SuccessBody | InvalidRequestBody | PayloadTooLargeBody | RateLimitBody;
 
+export type SuccessResponse = {
+  status: Status.Success;
+  statusCode: number;
+  body: SuccessBody;
+};
+
+export type InvalidResponse = {
+  status: Status.Invalid;
+  statusCode: number;
+  body: InvalidRequestBody;
+};
+
+export type PayloadTooLargeResponse = {
+  status: Status.PayloadTooLarge;
+  statusCode: number;
+  body: PayloadTooLargeBody;
+};
+
+export type RateLimitResponse = {
+  status: Status.RateLimit;
+  statusCode: number;
+  body: RateLimitBody;
+};
+
+export type TimeoutResponse = {
+  status: Status.Timeout;
+  statusCode: number;
+};
+
+export type SystemErrorResponse = {
+  status: Status.SystemError;
+  statusCode: 0;
+  error: NodeJS.ErrnoException;
+};
+
+export type OtherReponse = {
+  status: Exclude<Status, StatusWithResponseBody>;
+  statusCode: number;
+};
+
 /** JSDoc */
 export type Response =
-  | {
-      status: Status.Success;
-      statusCode: number;
-      body: SuccessBody;
-    }
-  | {
-      status: Status.Invalid;
-      statusCode: number;
-      body: InvalidRequestBody;
-    }
-  | {
-      status: Status.PayloadTooLarge;
-      statusCode: number;
-      body: PayloadTooLargeBody;
-    }
-  | {
-      status: Status.RateLimit;
-      statusCode: number;
-      body: RateLimitBody;
-    }
-  | {
-      status: Status.Timeout;
-      statusCode: number;
-    }
-  | {
-      status: Exclude<Status, StatusWithResponseBody>;
-      statusCode: number;
-    }
-  | {
-      status: Status.SystemError;
-      statusCode: 0;
-      error: NodeJS.ErrnoException;
-    };
+  | SuccessResponse
+  | InvalidResponse
+  | PayloadTooLargeResponse
+  | RateLimitResponse
+  | TimeoutResponse
+  | SystemErrorResponse
+  | OtherReponse;

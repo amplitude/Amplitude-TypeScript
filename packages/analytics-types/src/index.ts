@@ -5,6 +5,6 @@ export { Event, TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType 
 export { EventCallback } from './event-callback';
 export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
 export { Result } from './result';
-export { Response } from './response';
+export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { Status } from './status';
 export { Transport } from './transport';
