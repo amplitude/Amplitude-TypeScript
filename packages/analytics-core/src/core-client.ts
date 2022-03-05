@@ -1,7 +1,8 @@
 import { Event, Plugin, Config } from '@amplitude/analytics-types';
 import { createConfig, getConfig } from './config';
-import { createGroupIdentifyEvent, createIdentifyEvent, createTrackEvent } from './event-builder';
+import { createGroupIdentifyEvent, createIdentifyEvent, createTrackEvent } from './utils/event-builder';
 import { deregister, push, register } from './timeline';
+import { buildResult } from './utils/result-builder';
 
 export const init = (apiKey: string, userId?: string) => {
   createConfig(apiKey, userId);
@@ -33,7 +34,8 @@ export const revenue = () => {
 };
 
 export const add = async (plugins: Plugin[]) => {
-  const registrations = plugins.map((plugin) => register(plugin));
+  const config = getConfig();
+  const registrations = plugins.map((plugin) => register(plugin, config));
   await Promise.all(registrations);
 };
 
@@ -44,12 +46,8 @@ export const remove = async (pluginNames: string[]) => {
 
 export const dispatch = async (event: Event, config: Config) => {
   try {
-    return await push(event, config);
-  } catch (e) {
-    return {
-      success: false,
-      code: 500,
-      message: 'failed',
-    };
+    return push(event, config);
+  } catch (_) {
+    return buildResult();
   }
 };

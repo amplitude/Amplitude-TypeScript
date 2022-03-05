@@ -1,5 +1,6 @@
 import { Event, Plugin, PluginType, Config } from '@amplitude/analytics-types';
 import * as ConfigFactory from '../src/config';
+import { createConfig } from '../src/config';
 import { register, deregister, plugins, push, apply } from '../src/timeline';
 
 describe('timeline', () => {
@@ -38,7 +39,7 @@ describe('timeline', () => {
       .mockImplementationOnce((event: Event) => {
         expect(event.event_id).toBe('1');
         expect(event.user_id).toBe('2');
-        return Promise.reject();
+        return Promise.reject({});
       })
       // success for the rest
       .mockImplementation((event: Event) => {
@@ -54,9 +55,9 @@ describe('timeline', () => {
     };
 
     // register
-    await register(before);
-    await register(enrichment);
-    await register(destination);
+    await register(before, createConfig('apiKey'));
+    await register(enrichment, createConfig('apiKey'));
+    await register(destination, createConfig('apiKey'));
     expect(beforeSetup).toHaveBeenCalledTimes(1);
     expect(enrichmentSetup).toHaveBeenCalledTimes(1);
     expect(destinationSetup).toHaveBeenCalledTimes(1);
@@ -101,7 +102,7 @@ describe('timeline', () => {
         setup: beforeSetup,
         execute: beforeExecute,
       };
-      await register(before);
+      await register(before, createConfig('apiKey'));
       await apply();
       await deregister(before.name);
       expect(beforeExecute).toHaveBeenCalledTimes(0);

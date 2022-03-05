@@ -1,21 +1,22 @@
 import {
   BeforePlugin,
   Config,
-  Context,
   DestinationPlugin,
   EnrichmentPlugin,
   Event,
+  EventCallback,
   Plugin,
   PluginType,
   Result,
 } from '@amplitude/analytics-types';
+import { buildResult } from './utils/result-builder';
 
-export const queue: Context[] = [];
+export const queue: [Event, EventCallback][] = [];
 export const plugins: Plugin[] = [];
 let applying = false;
 
-export const register = async (plugin: Plugin) => {
-  await plugin.setup();
+export const register = async (plugin: Plugin, config: Config) => {
+  await plugin.setup(config);
   plugins.push(plugin);
 };
 
@@ -28,13 +29,9 @@ export const deregister = (pluginName: string) => {
 };
 
 export const push = (event: Event, config: Config) => {
+  config; // wink
   return new Promise<Result>((resolve) => {
-    const context = {
-      event,
-      config,
-      resolve,
-    };
-    queue.push(context);
+    queue.push([event, resolve]);
     scheduleApply(0);
   });
 };
@@ -53,19 +50,21 @@ export const scheduleApply = (timeout: number) => {
 };
 
 export const apply = async () => {
-  const context = queue.shift();
+  const item = queue.shift();
 
-  if (!context) {
+  if (!item) {
     return;
   }
+
+  let [event] = item;
+  const [, resolve] = item;
 
   const before = plugins.filter<BeforePlugin>(
     (plugin: Plugin): plugin is BeforePlugin => plugin.type === PluginType.BEFORE,
   );
 
   for (const plugin of before) {
-    const event = await plugin.execute({ ...context.event });
-    context.event = event;
+    event = await plugin.execute({ ...event });
   }
 
   const enrichment = plugins.filter<EnrichmentPlugin>(
@@ -73,19 +72,18 @@ export const apply = async () => {
   );
 
   for (const plugin of enrichment) {
-    const event = await plugin.execute({ ...context.event });
-    context.event = event;
+    event = await plugin.execute({ ...event });
   }
 
   const destination = plugins.filter<DestinationPlugin>(
     (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
   );
 
-  await Promise.all(destination.map((plugin) => plugin.execute(context.event).catch(() => undefined)));
+  const executeDestinations = destination.map((plugin) => plugin.execute({ ...event }).catch(() => buildResult()));
 
-  return context.resolve({
-    success: true,
-    code: 200,
-    message: 'success',
+  void Promise.all(executeDestinations).then(([result]) => {
+    resolve(result);
   });
+
+  return;
 };
