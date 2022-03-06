@@ -1,5 +1,5 @@
 export { BaseEvent, EventOptions } from './base-event';
-export { Config } from './config';
+export { BrowserConfig, Config, InitOptions } from './config';
 export { DestinationContext } from './destination-context';
 export { Event, TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType } from './event';
 export { EventCallback } from './event-callback';

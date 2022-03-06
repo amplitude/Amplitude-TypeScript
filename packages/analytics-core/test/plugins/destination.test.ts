@@ -1,12 +1,13 @@
 import { createConfig } from '../../src/config';
 import { Destination } from '../../src/plugins/destination';
 import { DestinationContext, Status } from '@amplitude/analytics-types';
+import { useDefaultConfig } from '../helpers/default';
 
 describe('destination', () => {
   describe('setup', () => {
     test('should setup plugin', async () => {
       const destination = new Destination('name');
-      const config = createConfig('apiKey');
+      const config = useDefaultConfig();
       config.serverUrl = 'url';
       config.flushMaxRetries = 0;
       config.flushQueueSize = 0;
