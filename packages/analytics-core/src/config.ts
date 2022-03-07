@@ -1,5 +1,4 @@
-import { Config } from '@amplitude/analytics-types';
-import { Http } from './transports/http';
+import { Config, InitOptions } from '@amplitude/analytics-types';
 
 const DEFAULT_INSTANCE = 'default';
 const instances: Record<string, Config> = {};
@@ -11,23 +10,22 @@ const defaultConfig = {
   flushQueueSize: 10,
   flushIntervalMillis: 1000,
   serverUrl: AMPLITUDE_SERVER_URL,
-  transportProvider: new Http(),
 };
 
-export const createConfig = (
+export const createConfig = <T extends Config>(
   apiKey: string,
-  userId?: string,
-  options?: Partial<Exclude<Config, 'apiKey' | 'userId'>>,
-): Config => {
+  userId: string | undefined,
+  options: InitOptions<T>,
+): T => {
   instances[DEFAULT_INSTANCE] = {
     apiKey,
     userId,
     ...defaultConfig,
     ...options,
   };
-  return instances[DEFAULT_INSTANCE];
+  return instances[DEFAULT_INSTANCE] as T;
 };
 
-export const getConfig = (): Config => {
-  return instances[DEFAULT_INSTANCE];
+export const getConfig = <T extends Config>(): T => {
+  return instances[DEFAULT_INSTANCE] as T;
 };

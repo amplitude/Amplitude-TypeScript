@@ -1,7 +1,6 @@
 import { Event, Plugin, PluginType, Config } from '@amplitude/analytics-types';
-import * as ConfigFactory from '../src/config';
-import { createConfig } from '../src/config';
 import { register, deregister, plugins, push, apply } from '../src/timeline';
+import { useDefaultConfig } from './helpers/default';
 
 describe('timeline', () => {
   test('should update event using before/enrichment plugin', async () => {
@@ -55,9 +54,9 @@ describe('timeline', () => {
     };
 
     // register
-    await register(before, createConfig('apiKey'));
-    await register(enrichment, createConfig('apiKey'));
-    await register(destination, createConfig('apiKey'));
+    await register(before, useDefaultConfig());
+    await register(enrichment, useDefaultConfig());
+    await register(destination, useDefaultConfig());
     expect(beforeSetup).toHaveBeenCalledTimes(1);
     expect(enrichmentSetup).toHaveBeenCalledTimes(1);
     expect(destinationSetup).toHaveBeenCalledTimes(1);
@@ -65,7 +64,7 @@ describe('timeline', () => {
     const event = (id: number): Event => ({
       event_type: `${id}:event_type`,
     });
-    const config: Config = ConfigFactory.createConfig('apikey', 'userid');
+    const config: Config = useDefaultConfig();
     await Promise.all([
       push(event(1), config).then(() => push(event(1.1), config)),
       push(event(2), config).then(() => Promise.all([push(event(2.1), config), push(event(2.2), config)])),
@@ -102,7 +101,7 @@ describe('timeline', () => {
         setup: beforeSetup,
         execute: beforeExecute,
       };
-      await register(before, createConfig('apiKey'));
+      await register(before, useDefaultConfig());
       await apply();
       await deregister(before.name);
       expect(beforeExecute).toHaveBeenCalledTimes(0);
