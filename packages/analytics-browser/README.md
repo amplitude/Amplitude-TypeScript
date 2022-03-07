@@ -1,0 +1,1 @@
+# @amplitude/analytics-browser
