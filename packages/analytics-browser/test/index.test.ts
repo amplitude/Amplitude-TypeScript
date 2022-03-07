@@ -1,7 +1,7 @@
 import { init } from '../src/index';
 
-describe('adf', () => {
-  test('sadf', () => {
+describe('index', () => {
+  test('should expose apis', () => {
     expect(typeof init).toBe('function');
   });
 });
