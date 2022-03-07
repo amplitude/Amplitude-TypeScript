@@ -16,7 +16,7 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "",
+    "build": "yarn bundle && yarn build:es5 & yarn build:esm",
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
@@ -26,7 +26,7 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "test": "",
+    "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json"
   },
   "bugs": {

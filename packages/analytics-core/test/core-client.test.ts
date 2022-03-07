@@ -2,17 +2,16 @@ import { Event, Plugin, PluginType, Config, Status } from '@amplitude/analytics-
 import * as ConfigFactory from '../src/config';
 import * as client from '../src/core-client';
 import * as timeline from '../src/timeline';
+import { API_KEY, USER_ID, DEFAULT_OPTIONS } from './helpers/default';
 
 describe('core-client', () => {
-  const API_KEY = 'apikey';
-  const USER_ID = 'userid';
   const success = { statusCode: 200, status: Status.Success };
   const failed = { statusCode: 0, status: Status.Unknown };
 
   describe('init', () => {
     test('should call init', () => {
       const create = jest.spyOn(ConfigFactory, 'createConfig');
-      client.init(API_KEY, USER_ID);
+      client.init(API_KEY, USER_ID, DEFAULT_OPTIONS);
       expect(create).toHaveBeenCalledTimes(1);
     });
   });
@@ -91,7 +90,7 @@ describe('core-client', () => {
       const event: Event = {
         event_type: 'event_type',
       };
-      const config: Config = ConfigFactory.createConfig('apikey', 'userid');
+      const config: Config = ConfigFactory.createConfig('apikey', 'userid', DEFAULT_OPTIONS);
 
       const result = await client.dispatch(event, config);
       expect(result).toBe(success);
@@ -105,7 +104,7 @@ describe('core-client', () => {
       const event: Event = {
         event_type: 'event_type',
       };
-      const config: Config = ConfigFactory.createConfig('apikey', 'userid');
+      const config: Config = ConfigFactory.createConfig('apikey', 'userid', DEFAULT_OPTIONS);
 
       const result = await client.dispatch(event, config);
       expect(result).toEqual(failed);
