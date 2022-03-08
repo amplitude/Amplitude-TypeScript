@@ -1,11 +1,116 @@
-import { getConfig } from '../src/config';
+import * as ConfigModule from '../src/config';
 import * as core from '@amplitude/analytics-core';
+import * as CookiesModule from '../src/storage/cookies';
+import * as LocalStorageModule from '../src/storage/local-storage';
+import * as MemoryModule from '../src/storage/memory';
+import { Fetch } from '../src/transport/fetch';
 
 describe('config', () => {
+  describe('createConfig', () => {
+    test('should create default config', () => {
+      jest.spyOn(ConfigModule, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.Memory());
+      jest.spyOn(ConfigModule, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.Memory());
+      const config = ConfigModule.createConfig();
+      expect(config).toEqual({
+        cookieStorage: new MemoryModule.Memory(),
+        cookieExpiration: 365,
+        cookieSameSite: 'Lax',
+        cookieSecure: false,
+        disableCookies: false,
+        domain: '',
+        transportProvider: new Fetch(),
+        storageProvider: new MemoryModule.Memory(),
+      });
+    });
+  });
+
+  describe('createCookieStorage', () => {
+    test('should return custom', () => {
+      const cookieStorage = {
+        options: {},
+        isEnabled: () => true,
+        get: () => '',
+        set: () => undefined,
+        remove: () => undefined,
+        reset: () => undefined,
+      };
+      const storage = ConfigModule.createCookieStorage(ConfigModule.defaultConfig, {
+        cookieStorage,
+      });
+      expect(storage).toBe(cookieStorage);
+    });
+
+    test('should return cookies', () => {
+      const storage = ConfigModule.createCookieStorage(ConfigModule.defaultConfig);
+      expect(storage).toBeInstanceOf(CookiesModule.Cookies);
+    });
+
+    test('should use return storage', () => {
+      const storage = ConfigModule.createCookieStorage(ConfigModule.defaultConfig, { disableCookies: true });
+      expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
+    });
+
+    test('should use memory', () => {
+      const cookiesConstructor = jest.spyOn(CookiesModule, 'Cookies').mockReturnValueOnce({
+        options: {},
+        isEnabled: () => false,
+        get: () => '',
+        set: () => undefined,
+        remove: () => undefined,
+        reset: () => undefined,
+      });
+      const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
+        isEnabled: () => false,
+        get: () => '',
+        set: () => undefined,
+        remove: () => undefined,
+        reset: () => undefined,
+      });
+      const storage = ConfigModule.createCookieStorage(ConfigModule.defaultConfig);
+      expect(storage).toBeInstanceOf(MemoryModule.Memory);
+      expect(cookiesConstructor).toHaveBeenCalledTimes(1);
+      expect(localStorageConstructor).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('createEventsStorage', () => {
+    test('should return custom', () => {
+      const storageProvider = {
+        isEnabled: () => true,
+        get: () => '',
+        set: () => undefined,
+        remove: () => undefined,
+        reset: () => undefined,
+      };
+      const storage = ConfigModule.createEventsStorage(ConfigModule.defaultConfig, {
+        storageProvider,
+      });
+      expect(storage).toBe(storageProvider);
+    });
+
+    test('should use return storage', () => {
+      const storage = ConfigModule.createEventsStorage(ConfigModule.defaultConfig);
+      expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
+    });
+
+    test('should use memory', () => {
+      const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
+        isEnabled: () => false,
+        get: () => '',
+        set: () => undefined,
+        remove: () => undefined,
+        reset: () => undefined,
+      });
+      const storage = ConfigModule.createEventsStorage(ConfigModule.defaultConfig);
+      expect(storage).toBeInstanceOf(MemoryModule.Memory);
+      expect(localStorageConstructor).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('getConfig', () => {
     test('should call core get config', () => {
       const _getConfig = jest.spyOn(core, 'getConfig');
-      const config = getConfig();
+      const config = ConfigModule.getConfig();
       expect(config).toBe(undefined);
       expect(_getConfig).toHaveBeenCalledTimes(1);
     });
