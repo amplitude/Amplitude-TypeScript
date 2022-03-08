@@ -10,4 +10,11 @@ export const DEFAULT_OPTIONS = {
   transportProvider: {
     send: () => Promise.resolve(null),
   },
+  storageProvider: {
+    isEnabled: () => true,
+    get: () => undefined,
+    set: () => undefined,
+    remove: () => undefined,
+    reset: () => undefined,
+  },
 };
