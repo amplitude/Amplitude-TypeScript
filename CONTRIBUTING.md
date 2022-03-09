@@ -10,7 +10,7 @@ If find issues while using this library or just reading through it, look to see 
 
 ### Solve an issue
 
-If you find any existing issues that you are intersted in fixing, you are welcome to open a PR and we will gladly review your changes.
+If you find any existing issues that you are interested in fixing, you are welcome to open a PR and we will gladly review your changes.
 
 ### Making Changes
 
