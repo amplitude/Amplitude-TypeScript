@@ -10,7 +10,7 @@ export class SendBeaconTransport implements Transport {
         typeof window.navigator === 'undefined' ||
         typeof window.navigator.sendBeacon === 'undefined'
       ) {
-        throw new Error('SendBeaconTransport is not supported.');
+        throw new Error('SendBeaconTransport is not supported');
       }
       try {
         const data = JSON.stringify(payload);

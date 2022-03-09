@@ -1,4 +1,4 @@
-import { SendBeaconTransport } from '../../src/transport/send-beacon';
+import { SendBeaconTransport } from '../../src/transports/send-beacon';
 import { Status } from '@amplitude/analytics-types';
 
 describe('beacon', () => {

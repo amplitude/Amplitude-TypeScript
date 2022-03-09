@@ -1,4 +1,4 @@
-import { FetchTransport } from './transport/fetch';
+import { FetchTransport } from './transports/fetch';
 import { getConfig as _getConfig } from '@amplitude/analytics-core';
 import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
 import { LocalStorage } from './storage/local-storage';

@@ -2,6 +2,10 @@ import { buildResponse } from '@amplitude/analytics-core';
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 
 export class XHRTransport implements Transport {
+  private state = {
+    done: 4,
+  };
+
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
     return new Promise((resolve, reject) => {
       /* istanbul ignore if */
@@ -11,8 +15,8 @@ export class XHRTransport implements Transport {
 
       const xhr = new XMLHttpRequest();
       xhr.open('POST', serverUrl, true);
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 4) {
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === this.state.done) {
           try {
             const responsePayload = xhr.responseText;
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment

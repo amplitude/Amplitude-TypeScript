@@ -5,7 +5,7 @@ export class FetchTransport implements Transport {
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
     /* istanbul ignore if */
     if (typeof fetch === 'undefined') {
-      throw new Error('FetchTransport is not supported.');
+      throw new Error('FetchTransport is not supported');
     }
     const options: RequestInit = {
       headers: {
@@ -16,8 +16,11 @@ export class FetchTransport implements Transport {
       method: 'POST',
     };
     const response = await fetch(serverUrl, options);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const responsePayload: Record<string, any> = await response.json();
-    return buildResponse(responsePayload);
+    if (response.ok) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const responsePayload: Record<string, any> = await response.json();
+      return buildResponse(responsePayload);
+    }
+    throw new Error('Server did not return a response');
   }
 }

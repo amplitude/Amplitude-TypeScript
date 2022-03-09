@@ -1,4 +1,4 @@
-import { XHRTransport } from '../../src/transport/xhr';
+import { XHRTransport } from '../../src/transports/xhr';
 import * as core from '@amplitude/analytics-core';
 import { Status } from '@amplitude/analytics-types';
 
