@@ -16,23 +16,23 @@ export const defaultConfig: InitOptions<BrowserConfig> = {
   storageProvider: new MemoryStorage(),
 };
 
-export const createConfig = (config?: Partial<InitOptions<BrowserConfig>>) => {
+export const createConfig = (overrides?: Partial<InitOptions<BrowserConfig>>) => {
   const options = {
     ...defaultConfig,
-    ...config,
-    cookieStorage: createCookieStorage(defaultConfig, config),
-    storageProvider: createEventsStorage(defaultConfig, config),
+    ...overrides,
+    cookieStorage: createCookieStorage(overrides),
+    storageProvider: createEventsStorage(overrides),
   };
 
   return options;
 };
 
 export const createCookieStorage = (
-  defaultConfig: InitOptions<BrowserConfig>,
-  config?: Partial<InitOptions<BrowserConfig>>,
+  overrides?: Partial<InitOptions<BrowserConfig>>,
+  baseConfig: InitOptions<BrowserConfig> = defaultConfig,
 ) => {
-  const options = { ...defaultConfig, ...config };
-  let cookieStorage = config?.cookieStorage;
+  const options = { ...baseConfig, ...overrides };
+  let cookieStorage = overrides?.cookieStorage;
   if (!cookieStorage || !cookieStorage.isEnabled()) {
     cookieStorage = new CookieStorage({
       domain: options.domain,
@@ -50,11 +50,8 @@ export const createCookieStorage = (
   return cookieStorage;
 };
 
-export const createEventsStorage = (
-  _defaultConfig: InitOptions<BrowserConfig>,
-  config?: Partial<InitOptions<BrowserConfig>>,
-) => {
-  let eventsStorage = config?.storageProvider;
+export const createEventsStorage = (overrides?: Partial<InitOptions<BrowserConfig>>) => {
+  let eventsStorage = overrides?.storageProvider;
   if (!eventsStorage || !eventsStorage.isEnabled()) {
     eventsStorage = new LocalStorage();
     if (!eventsStorage.isEnabled()) {
