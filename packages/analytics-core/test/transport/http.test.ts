@@ -6,7 +6,10 @@ describe('http transport', () => {
   test('should send to url', async () => {
     const provider = new Http();
     const url = 'http://localhost:3000';
-    const payload = {};
+    const payload = {
+      api_key: '',
+      events: [],
+    };
 
     const request = jest.spyOn(http, 'request').mockImplementation((_, cb) => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -38,7 +41,10 @@ describe('http transport', () => {
   test('should handle error', async () => {
     const provider = new Http();
     const url = 'http://localhost:3000';
-    const payload = {};
+    const payload = {
+      api_key: '',
+      events: [],
+    };
 
     const request = jest.spyOn(http, 'request').mockImplementation((_, cb) => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -71,7 +77,10 @@ describe('http transport', () => {
   test('should handle unexpected error', async () => {
     const provider = new Http();
     const url = 'http://localhost:3000';
-    const payload = {};
+    const payload = {
+      api_key: '',
+      events: [],
+    };
 
     const request = jest.spyOn(http, 'request').mockImplementation((_, cb) => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment

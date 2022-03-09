@@ -124,6 +124,30 @@ describe('destination', () => {
       const result = await destination.send([context]);
       expect(result).toBe(undefined);
     });
+
+    test('should handle unexpected error', async () => {
+      const destination = new Destination('name');
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+        },
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          throw new Error();
+        }),
+      };
+      await destination.setup(
+        createConfig('apiKey', undefined, {
+          transportProvider,
+        }),
+      );
+      await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('module level integration', () => {
