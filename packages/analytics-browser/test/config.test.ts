@@ -1,25 +1,25 @@
 import * as ConfigModule from '../src/config';
 import * as core from '@amplitude/analytics-core';
-import * as CookiesModule from '../src/storage/cookies';
+import * as CookiesModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as MemoryModule from '../src/storage/memory';
-import { Fetch } from '../src/transport/fetch';
+import { FetchTransport } from '../src/transport/fetch';
 
 describe('config', () => {
   describe('createConfig', () => {
     test('should create default config', () => {
-      jest.spyOn(ConfigModule, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.Memory());
-      jest.spyOn(ConfigModule, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.Memory());
+      jest.spyOn(ConfigModule, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(ConfigModule, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
       const config = ConfigModule.createConfig();
       expect(config).toEqual({
-        cookieStorage: new MemoryModule.Memory(),
+        cookieStorage: new MemoryModule.MemoryStorage(),
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
         disableCookies: false,
         domain: '',
-        transportProvider: new Fetch(),
-        storageProvider: new MemoryModule.Memory(),
+        transportProvider: new FetchTransport(),
+        storageProvider: new MemoryModule.MemoryStorage(),
       });
     });
   });
@@ -42,7 +42,7 @@ describe('config', () => {
 
     test('should return cookies', () => {
       const storage = ConfigModule.createCookieStorage(ConfigModule.defaultConfig);
-      expect(storage).toBeInstanceOf(CookiesModule.Cookies);
+      expect(storage).toBeInstanceOf(CookiesModule.CookieStorage);
     });
 
     test('should use return storage', () => {
@@ -51,7 +51,7 @@ describe('config', () => {
     });
 
     test('should use memory', () => {
-      const cookiesConstructor = jest.spyOn(CookiesModule, 'Cookies').mockReturnValueOnce({
+      const cookiesConstructor = jest.spyOn(CookiesModule, 'CookieStorage').mockReturnValueOnce({
         options: {},
         isEnabled: () => false,
         get: () => '',
@@ -67,7 +67,7 @@ describe('config', () => {
         reset: () => undefined,
       });
       const storage = ConfigModule.createCookieStorage(ConfigModule.defaultConfig);
-      expect(storage).toBeInstanceOf(MemoryModule.Memory);
+      expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);
       expect(cookiesConstructor).toHaveBeenCalledTimes(1);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
     });
@@ -102,7 +102,7 @@ describe('config', () => {
         reset: () => undefined,
       });
       const storage = ConfigModule.createEventsStorage(ConfigModule.defaultConfig);
-      expect(storage).toBeInstanceOf(MemoryModule.Memory);
+      expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
     });
   });

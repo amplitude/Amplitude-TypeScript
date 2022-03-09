@@ -5,3 +5,10 @@ export interface Storage {
   remove(key: string): void;
   reset(): void;
 }
+
+export interface CookieStorageOptions {
+  domain?: string;
+  expirationDays?: number;
+  sameSite?: string;
+  secure?: boolean;
+}

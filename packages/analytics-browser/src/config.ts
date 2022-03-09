@@ -1,19 +1,19 @@
-import { Fetch } from './transport/fetch';
+import { FetchTransport } from './transport/fetch';
 import { getConfig as _getConfig } from '@amplitude/analytics-core';
 import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
 import { LocalStorage } from './storage/local-storage';
-import { Cookies } from './storage/cookies';
-import { Memory } from './storage/memory';
+import { CookieStorage } from './storage/cookie';
+import { MemoryStorage } from './storage/memory';
 
 export const defaultConfig: InitOptions<BrowserConfig> = {
-  cookieStorage: new Memory(),
+  cookieStorage: new MemoryStorage(),
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
   cookieSecure: false,
   disableCookies: false,
   domain: '',
-  transportProvider: new Fetch(),
-  storageProvider: new Memory(),
+  transportProvider: new FetchTransport(),
+  storageProvider: new MemoryStorage(),
 };
 
 export const createConfig = (config?: Partial<InitOptions<BrowserConfig>>) => {
@@ -34,7 +34,7 @@ export const createCookieStorage = (
   const options = { ...defaultConfig, ...config };
   let cookieStorage = config?.cookieStorage;
   if (!cookieStorage || !cookieStorage.isEnabled()) {
-    cookieStorage = new Cookies({
+    cookieStorage = new CookieStorage({
       domain: options.domain,
       expirationDays: options.cookieExpiration,
       sameSite: options.cookieSameSite,
@@ -43,7 +43,7 @@ export const createCookieStorage = (
     if (options.disableCookies || !cookieStorage.isEnabled()) {
       cookieStorage = new LocalStorage();
       if (!cookieStorage.isEnabled()) {
-        cookieStorage = new Memory();
+        cookieStorage = new MemoryStorage();
       }
     }
   }
@@ -58,7 +58,7 @@ export const createEventsStorage = (
   if (!eventsStorage || !eventsStorage.isEnabled()) {
     eventsStorage = new LocalStorage();
     if (!eventsStorage.isEnabled()) {
-      eventsStorage = new Memory();
+      eventsStorage = new MemoryStorage();
     }
   }
   return eventsStorage;

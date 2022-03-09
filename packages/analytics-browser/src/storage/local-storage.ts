@@ -2,6 +2,11 @@ import { Storage } from '@amplitude/analytics-types';
 
 export class LocalStorage implements Storage {
   isEnabled(): boolean {
+    /* istanbul ignore if */
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
     const random = String(Date.now());
     try {
       this.set(random, random);

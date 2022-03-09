@@ -1,19 +1,18 @@
-import { Storage } from '@amplitude/analytics-types';
+import { Storage, CookieStorageOptions } from '@amplitude/analytics-types';
 
-interface CookieOptions {
-  domain?: string;
-  expirationDays?: number;
-  sameSite?: string;
-  secure?: boolean;
-}
-export class Cookies implements Storage {
-  options: CookieOptions;
+export class CookieStorage implements Storage {
+  options: CookieStorageOptions;
 
-  constructor(options?: CookieOptions) {
+  constructor(options?: CookieStorageOptions) {
     this.options = { ...options };
   }
 
   isEnabled() {
+    /* istanbul ignore if */
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
     const random = String(Date.now());
     try {
       this.set(random, random);
@@ -42,7 +41,7 @@ export class Cookies implements Storage {
     }
   }
 
-  set(key: string, value: string | null, options?: CookieOptions) {
+  set(key: string, value: string | null, options?: CookieStorageOptions) {
     try {
       const expires = value !== null ? options?.expirationDays : -1;
       let expireDate: Date | undefined = undefined;

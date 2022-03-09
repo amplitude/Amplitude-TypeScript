@@ -1,6 +1,6 @@
 import { Storage } from '@amplitude/analytics-types';
 
-export class Memory implements Storage {
+export class MemoryStorage implements Storage {
   memoryStorage: Map<string, any> = new Map();
 
   isEnabled(): boolean {
