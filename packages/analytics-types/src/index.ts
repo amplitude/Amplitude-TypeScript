@@ -1,7 +1,16 @@
 export { BaseEvent, EventOptions } from './base-event';
 export { BrowserConfig, Config, InitOptions } from './config';
 export { DestinationContext } from './destination-context';
-export { Event, TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType } from './event';
+export {
+  Event,
+  TrackEvent,
+  IdentifyEvent,
+  GroupIdentifyEvent,
+  SpecialEventType,
+  IdentifyOperation,
+  IdentifyUserProperties,
+  ValidPropertyType,
+} from './event';
 export { EventCallback } from './event-callback';
 export { Payload } from './payload';
 export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';

@@ -1,8 +1,10 @@
 import { Event, Plugin, PluginType, Config, Status } from '@amplitude/analytics-types';
+import { Identify } from '../src/index';
+
 import * as ConfigFactory from '../src/config';
 import * as client from '../src/core-client';
 import * as timeline from '../src/timeline';
-import { API_KEY, USER_ID, DEFAULT_OPTIONS } from './helpers/default';
+import { API_KEY, USER_ID, DEVICE_ID, DEFAULT_OPTIONS } from './helpers/default';
 
 describe('core-client', () => {
   const success = { statusCode: 200, status: Status.Success };
@@ -32,7 +34,8 @@ describe('core-client', () => {
     test('should call identify', async () => {
       const get = jest.spyOn(ConfigFactory, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
-      const response = await client.identify();
+      const identify: Identify = new Identify();
+      const response = await client.identify(USER_ID, DEVICE_ID, identify.add('testKey', 123));
       expect(response).toEqual(success);
       expect(get).toHaveBeenCalledTimes(1);
       expect(dispatch).toHaveBeenCalledTimes(1);

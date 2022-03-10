@@ -1,4 +1,5 @@
 import { TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType } from '@amplitude/analytics-types';
+import { Identify } from 'src/Identify';
 
 export const createTrackEvent = (eventType: string): TrackEvent => {
   // NOTE: placeholder
@@ -7,12 +8,18 @@ export const createTrackEvent = (eventType: string): TrackEvent => {
   };
 };
 
-export const createIdentifyEvent = (): IdentifyEvent => {
-  // NOTE: placeholder
-  return {
+export const createIdentifyEvent = (userId: string, deviceId: string, identify: Identify): IdentifyEvent => {
+  const identifyEvent: IdentifyEvent = {
     event_type: SpecialEventType.IDENTIFY,
-    user_properties: {},
+    user_properties: identify.getUserProperties(),
+    user_id: userId,
   };
+
+  if (deviceId !== null && deviceId.length > 0) {
+    identifyEvent.device_id = deviceId;
+  }
+
+  return identifyEvent;
 };
 
 export const createGroupIdentifyEvent = (): GroupIdentifyEvent => {
