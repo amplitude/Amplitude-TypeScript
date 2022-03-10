@@ -1,7 +1,7 @@
 import { createConfig } from '../../src/config';
 import { Destination } from '../../src/plugins/destination';
 import { DestinationContext, Status } from '@amplitude/analytics-types';
-import { useDefaultConfig } from '../helpers/default';
+import { DEFAULT_OPTIONS, useDefaultConfig } from '../helpers/default';
 
 describe('destination', () => {
   describe('setup', () => {
@@ -144,11 +144,13 @@ describe('destination', () => {
         });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
         flushQueueSize: 2,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       const result = await destination.execute({
@@ -181,11 +183,13 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
         flushQueueSize: 2,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       const results = await Promise.all([
@@ -218,11 +222,13 @@ describe('destination', () => {
         });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
         flushQueueSize: 2,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       const results = await Promise.all([
@@ -251,11 +257,13 @@ describe('destination', () => {
         });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
         flushQueueSize: 1,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       const result = await destination.execute({
@@ -289,11 +297,13 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
         flushQueueSize: 2,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       await Promise.all([
@@ -338,12 +348,14 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       destination.backoff = 1;
       const config = createConfig('apiKey', 'userId', {
         flushQueueSize: 4,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       const results = await Promise.all([
@@ -394,11 +406,13 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
         flushQueueSize: 2,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       await Promise.all([
@@ -430,12 +444,14 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       const destination = new Destination('name');
       const config = createConfig('apiKey', 'userId', {
         flushMaxRetries: 1,
         flushQueueSize: 2,
         flushIntervalMillis: 500,
         transportProvider,
+        storageProvider,
       });
       await destination.setup(config);
       const results = await Promise.all([

@@ -1,6 +1,6 @@
 import { Transport } from '@amplitude/analytics-types';
 
-export class Fetch implements Transport {
+export class FetchTransport implements Transport {
   send() {
     return Promise.resolve(null);
   }
