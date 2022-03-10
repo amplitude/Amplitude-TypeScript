@@ -1,4 +1,4 @@
-import { Event, Plugin, Config, InitOptions } from '@amplitude/analytics-types';
+import { Event, Plugin, Config, InitOptions, Identify } from '@amplitude/analytics-types';
 import { createConfig, getConfig } from './config';
 import { createGroupIdentifyEvent, createIdentifyEvent, createTrackEvent } from './utils/event-builder';
 import { deregister, push, register } from './timeline';
@@ -15,9 +15,9 @@ export const track = (eventType: string) => {
 };
 export const logEvent = track;
 
-export const identify = () => {
+export const identify = (identify: Identify, userId?: string, deviceId?: string) => {
   const config = getConfig();
-  const event = createIdentifyEvent();
+  const event = createIdentifyEvent(identify, userId, deviceId);
   return dispatch(event, config);
 };
 
