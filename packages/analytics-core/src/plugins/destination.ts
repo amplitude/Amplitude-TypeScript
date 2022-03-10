@@ -13,8 +13,8 @@ import {
   SuccessResponse,
   Transport,
 } from '@amplitude/analytics-types';
-import { chunk } from '../../src/utils/chunk';
-import { buildResult } from '../../src/utils/result-builder';
+import { chunk } from '../utils/chunk';
+import { buildResult } from '../utils/result-builder';
 
 export class Destination implements DestinationPlugin {
   name: string;
