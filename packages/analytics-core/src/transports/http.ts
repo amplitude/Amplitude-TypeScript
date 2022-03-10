@@ -1,9 +1,9 @@
-import { Response, Transport } from '@amplitude/analytics-types';
+import { Payload, Response, Transport } from '@amplitude/analytics-types';
 import * as http from 'http';
 import { buildResponse } from '../utils/response-builder';
 
 export class Http implements Transport {
-  send(serverUrl: string, payload: Record<string, any>): Promise<Response | null> {
+  send(serverUrl: string, payload: Payload): Promise<Response | null> {
     const url = new URL(serverUrl);
     const requestPayload = JSON.stringify(payload);
     const options = {

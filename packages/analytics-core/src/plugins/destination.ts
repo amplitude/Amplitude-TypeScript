@@ -13,8 +13,8 @@ import {
   SuccessResponse,
   Transport,
 } from '@amplitude/analytics-types';
-import { chunk } from '../../src/utils/chunk';
-import { buildResult } from '../../src/utils/result-builder';
+import { chunk } from '../utils/chunk';
+import { buildResult } from '../utils/result-builder';
 
 export class Destination implements DestinationPlugin {
   name: string;
@@ -23,32 +23,34 @@ export class Destination implements DestinationPlugin {
   queue: Context[] = [];
   scheduled = false;
 
-  transportProvider?: Transport;
-  serverUrl = '';
+  apiKey = '';
+  backoff = 30000;
   flushMaxRetries = 0;
   flushQueueSize = 0;
   flushIntervalMillis = 0;
-  backoff = 30000;
+  serverUrl = '';
+  transportProvider?: Transport;
 
   constructor(name: string) {
     this.name = name;
   }
 
   setup(config: Config) {
-    this.transportProvider = config.transportProvider;
-    this.serverUrl = config.serverUrl;
+    this.apiKey = config.apiKey;
     this.flushMaxRetries = config.flushMaxRetries;
     this.flushQueueSize = config.flushQueueSize;
     this.flushIntervalMillis = config.flushIntervalMillis;
+    this.serverUrl = config.serverUrl;
+    this.transportProvider = config.transportProvider;
     return Promise.resolve(undefined);
   }
 
   execute(event: Event): Promise<Result> {
-    return new Promise((fulfillRequest) => {
+    return new Promise((resolve) => {
       const context = {
         event,
         attempts: 0,
-        callback: (result: Result) => fulfillRequest(result),
+        callback: (result: Result) => resolve(result),
       };
       this.addToQueue(context);
     });
@@ -82,15 +84,21 @@ export class Destination implements DestinationPlugin {
 
   async send(list: Context[]) {
     if (!this.transportProvider) return;
+    const payload = {
+      api_key: this.apiKey,
+      events: list.map((context) => context.event),
+    };
 
-    const res = await this.transportProvider.send(this.serverUrl, list);
-
-    if (res === null) {
-      this.fulfillRequest(list, 0, Status.Unknown);
-      return;
+    try {
+      const res = await this.transportProvider.send(this.serverUrl, payload);
+      if (res === null) {
+        this.fulfillRequest(list, 0, Status.Unknown);
+        return;
+      }
+      this.handleReponse(res, list);
+    } catch (e) {
+      this.fulfillRequest(list, 0, Status.Failed);
     }
-
-    this.handleReponse(res, list);
   }
 
   handleReponse(res: Response, list: Context[]) {

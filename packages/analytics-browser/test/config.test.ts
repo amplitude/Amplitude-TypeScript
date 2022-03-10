@@ -3,7 +3,7 @@ import * as core from '@amplitude/analytics-core';
 import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as MemoryModule from '../src/storage/memory';
-import { FetchTransport } from '../src/transport/fetch';
+import { FetchTransport } from '../src/transports/fetch';
 
 describe('config', () => {
   describe('createConfig', () => {
