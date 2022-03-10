@@ -85,11 +85,7 @@ describe('Identify API', () => {
   test('should see user property when using pre-insert', () => {
     const identify = new Identify();
     identify.preInsert('PROPERTY_NAME', 'PROPERTY_VALUE');
-<<<<<<< HEAD
     const event = createIdentifyEvent(identify, USER_ID, DEVICE_ID);
-=======
-    const event = createIdentifyEvent(USER_ID, DEVICE_ID, identify);
->>>>>>> 3312148 (test: cover more test)
     const expectedProperties = {
       [IdentifyOperation.PREINSERT]: { PROPERTY_NAME: 'PROPERTY_VALUE' },
     };
