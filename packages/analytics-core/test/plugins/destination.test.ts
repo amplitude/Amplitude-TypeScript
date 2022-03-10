@@ -140,9 +140,11 @@ describe('destination', () => {
           throw new Error();
         }),
       };
+      const storageProvider = DEFAULT_OPTIONS.storageProvider;
       await destination.setup(
         createConfig('apiKey', undefined, {
           transportProvider,
+          storageProvider,
         }),
       );
       await destination.send([context]);
