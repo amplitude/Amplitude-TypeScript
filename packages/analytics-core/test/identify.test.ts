@@ -17,13 +17,13 @@ describe('Identify API', () => {
   test('should see user property when using set', () => {
     const identify = new Identify();
     identify.set('PROPERTY_NAME', 'PROPERTY_VALUE');
-    const event = createIdentifyEvent(USER_ID, DEVICE_ID, identify);
+    const properties = identify.getUserProperties();
 
     const expectedProperties = {
       [IdentifyOperation.SET]: { PROPERTY_NAME: 'PROPERTY_VALUE' },
     };
 
-    expect(event.user_properties).toStrictEqual(expectedProperties);
+    expect(properties).toStrictEqual(expectedProperties);
   });
 
   test('should see user property when using set once', () => {
@@ -84,10 +84,10 @@ describe('Identify API', () => {
 
   test('should see user property when using pre-insert', () => {
     const identify = new Identify();
-    identify.postInsert('PROPERTY_NAME', 'PROPERTY_VALUE');
+    identify.preInsert('PROPERTY_NAME', 'PROPERTY_VALUE');
     const event = createIdentifyEvent(USER_ID, DEVICE_ID, identify);
     const expectedProperties = {
-      [IdentifyOperation.POSTINSERT]: { PROPERTY_NAME: 'PROPERTY_VALUE' },
+      [IdentifyOperation.PREINSERT]: { PROPERTY_NAME: 'PROPERTY_VALUE' },
     };
 
     expect(event.user_properties).toStrictEqual(expectedProperties);

@@ -5,6 +5,7 @@ const _isValidObject = (properties: { [key: string]: any }): boolean => {
     return false;
   }
   for (const key in properties) {
+    /* istanbul ignore if */
     if (typeof key !== 'string') {
       return false;
     }
