@@ -1,35 +1,18 @@
-import { IdentifyOperation, IdentifyUserProperties, ValidPropertyType } from '@amplitude/analytics-types/lib/event';
-import { UNSET_VALUE, USER_IDENTIFY_OPERATIONS } from './constant';
+import {
+  IdentifyOperation,
+  IdentifyUserProperties,
+  ValidPropertyType,
+  Identify as IIdentify,
+} from '@amplitude/analytics-types';
+import { UNSET_VALUE } from './constant';
 import { isValidProperties } from './utils/valid-properties';
-
-interface IIdentify {
-  getUserProperties(): IdentifyUserProperties;
-  set(property: string, value: ValidPropertyType): Identify;
-  setOnce(property: string, value: ValidPropertyType): Identify;
-  append(property: string, value: ValidPropertyType): Identify;
-  prepend(property: string, value: ValidPropertyType): Identify;
-  postInsert(property: string, value: ValidPropertyType): Identify;
-  preInsert(property: string, value: ValidPropertyType): Identify;
-  remove(property: string, value: ValidPropertyType): Identify;
-  add(property: string, value: number): Identify;
-  unset(property: string): Identify;
-  clearAll(): Identify;
-}
 
 export class Identify implements IIdentify {
   protected readonly _propertySet: Set<string> = new Set<string>();
   protected _properties: IdentifyUserProperties = {};
 
   public getUserProperties(): IdentifyUserProperties {
-    const userPropertiesCopy: IdentifyUserProperties = {};
-    for (const field of USER_IDENTIFY_OPERATIONS) {
-      if (field in this._properties) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        userPropertiesCopy[field] = this._properties[field];
-      }
-    }
-
-    return userPropertiesCopy;
+    return { ...this._properties };
   }
 
   public set(property: string, value: ValidPropertyType): Identify {
@@ -107,10 +90,12 @@ export class Identify implements IIdentify {
 
   private _validate(operation: IdentifyOperation, property: string, value: ValidPropertyType): boolean {
     if (this._properties[IdentifyOperation.CLEAR_ALL] !== undefined) {
+      // clear all already set. Skipping operation;
       return false;
     }
 
     if (this._propertySet.has(property)) {
+      // Property already used. Skipping operation
       return false;
     }
 

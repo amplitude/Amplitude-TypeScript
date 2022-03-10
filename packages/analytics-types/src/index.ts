@@ -10,6 +10,7 @@ export {
   IdentifyOperation,
   IdentifyUserProperties,
   ValidPropertyType,
+  Identify,
 } from './event';
 export { EventCallback } from './event-callback';
 export { Payload } from './payload';

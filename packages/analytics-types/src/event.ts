@@ -1,5 +1,19 @@
 import { BaseEvent } from './base-event';
 
+export interface Identify {
+  getUserProperties(): IdentifyUserProperties;
+  set(property: string, value: ValidPropertyType): Identify;
+  setOnce(property: string, value: ValidPropertyType): Identify;
+  append(property: string, value: ValidPropertyType): Identify;
+  prepend(property: string, value: ValidPropertyType): Identify;
+  postInsert(property: string, value: ValidPropertyType): Identify;
+  preInsert(property: string, value: ValidPropertyType): Identify;
+  remove(property: string, value: ValidPropertyType): Identify;
+  add(property: string, value: number): Identify;
+  unset(property: string): Identify;
+  clearAll(): Identify;
+}
+
 export enum IdentifyOperation {
   // Base Operations to set values
   SET = '$set',

@@ -5,10 +5,6 @@ const _isValidObject = (properties: { [key: string]: any }): boolean => {
     return false;
   }
   for (const key in properties) {
-    /* istanbul ignore if */
-    if (typeof key !== 'string') {
-      return false;
-    }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const value = properties[key];
     if (!isValidProperties(key, value)) return false;

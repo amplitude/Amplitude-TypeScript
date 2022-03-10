@@ -35,7 +35,7 @@ describe('core-client', () => {
       const get = jest.spyOn(ConfigFactory, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify: Identify = new Identify();
-      const response = await client.identify(USER_ID, DEVICE_ID, identify.add('testKey', 123));
+      const response = await client.identify(identify, USER_ID, DEVICE_ID);
       expect(response).toEqual(success);
       expect(get).toHaveBeenCalledTimes(1);
       expect(dispatch).toHaveBeenCalledTimes(1);

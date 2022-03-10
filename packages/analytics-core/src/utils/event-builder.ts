@@ -1,5 +1,4 @@
-import { TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType } from '@amplitude/analytics-types';
-import { Identify } from 'src/Identify';
+import { TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType, Identify } from '@amplitude/analytics-types';
 
 export const createTrackEvent = (eventType: string): TrackEvent => {
   // NOTE: placeholder
@@ -8,14 +7,15 @@ export const createTrackEvent = (eventType: string): TrackEvent => {
   };
 };
 
-export const createIdentifyEvent = (userId: string, deviceId: string, identify: Identify): IdentifyEvent => {
+export const createIdentifyEvent = (identify: Identify, userId?: string, deviceId?: string): IdentifyEvent => {
   const identifyEvent: IdentifyEvent = {
     event_type: SpecialEventType.IDENTIFY,
+    /* eslint-disable-next-line */
     user_properties: identify.getUserProperties(),
     user_id: userId,
   };
 
-  if (deviceId !== null && deviceId.length > 0) {
+  if (deviceId !== undefined && deviceId.length > 0) {
     identifyEvent.device_id = deviceId;
   }
 
