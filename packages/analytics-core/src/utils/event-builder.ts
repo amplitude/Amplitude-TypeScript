@@ -10,7 +10,6 @@ export const createTrackEvent = (eventType: string): TrackEvent => {
 export const createIdentifyEvent = (identify: Identify, userId?: string, deviceId?: string): IdentifyEvent => {
   const identifyEvent: IdentifyEvent = {
     event_type: SpecialEventType.IDENTIFY,
-    /* eslint-disable-next-line */
     user_properties: identify.getUserProperties(),
     user_id: userId,
   };
