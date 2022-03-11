@@ -1,6 +1,6 @@
 const MAX_PROPERTY_KEYS = 1000;
 
-const _isValidObject = (properties: { [key: string]: any }): boolean => {
+export const isValidObject = (properties: { [key: string]: any }): boolean => {
   if (Object.keys(properties).length > MAX_PROPERTY_KEYS) {
     return false;
   }
@@ -19,15 +19,15 @@ export const isValidProperties = (property: string, value: any): boolean => {
       if (Array.isArray(valueElement)) {
         return false;
       } else if (typeof valueElement === 'object') {
-        return _isValidObject(value);
+        return isValidObject(value);
       } else if (!(typeof valueElement === 'number' || typeof valueElement === 'string')) {
         return false;
       }
     }
   } else if (typeof value === 'object') {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    return _isValidObject(value);
-  } else if (!(typeof value === 'number' || typeof value === 'string')) {
+    return isValidObject(value);
+  } else if (!(typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean')) {
     return false;
   }
   return true;

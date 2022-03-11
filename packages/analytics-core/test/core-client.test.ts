@@ -1,5 +1,5 @@
 import { Event, Plugin, PluginType, Config, Status } from '@amplitude/analytics-types';
-import { Identify } from '../src/index';
+import { Identify, Revenue } from '../src/index';
 
 import * as ConfigFactory from '../src/config';
 import * as client from '../src/core-client';
@@ -57,7 +57,8 @@ describe('core-client', () => {
     test('should call revenue', async () => {
       const get = jest.spyOn(ConfigFactory, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
-      const response = await client.revenue();
+      const revenue = new Revenue();
+      const response = await client.revenue(revenue);
       expect(response).toEqual(success);
       expect(get).toHaveBeenCalledTimes(1);
       expect(dispatch).toHaveBeenCalledTimes(1);

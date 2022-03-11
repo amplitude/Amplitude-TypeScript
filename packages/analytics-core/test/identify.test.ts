@@ -4,7 +4,7 @@ import { IdentifyOperation, SpecialEventType } from '@amplitude/analytics-types'
 import { Identify } from '../src/index';
 import { createIdentifyEvent } from '../src/utils/event-builder';
 
-describe('Identify API', () => {
+describe('Identify class', () => {
   test('should create an identify event with the correct top-level fields', () => {
     const identify = new Identify();
     const event = createIdentifyEvent(identify, USER_ID, DEVICE_ID);

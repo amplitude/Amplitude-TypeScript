@@ -64,6 +64,38 @@ export interface IdentifyUserProperties {
   [IdentifyOperation.REMOVE]?: BaseOperationConfig;
 }
 
+export interface Revenue {
+  getEventProperties(): RevenueEventProperties;
+  setProductId(productId: string): Revenue;
+  setQuantity(quantity: number): Revenue;
+  setPrice(price: number): Revenue;
+  setRevenueType(revenueType: string): Revenue;
+  setReceipt(receipt: string, receiptSig: string): Revenue;
+  setEventProperties(properties: { [key: string]: any }): Revenue;
+  setRevenue(revenue: number): Revenue;
+}
+
+export enum RevenueProperty {
+  REVENUE_PRODUCT_ID = '$productId',
+  REVENUE_QUANTITY = '$quantity',
+  REVENUE_PRICE = '$price',
+  REVENUE_TYPE = '$revenueType',
+  REVENUE_RECEIPT = '$receipt',
+  REVENUE_RECEIPT_SIG = '$receiptSig',
+  REVENUE = '$revenue',
+}
+
+export interface RevenueEventProperties {
+  [RevenueProperty.REVENUE_PRODUCT_ID]?: string;
+  [RevenueProperty.REVENUE_QUANTITY]?: number;
+  [RevenueProperty.REVENUE_PRICE]?: number;
+  [RevenueProperty.REVENUE_TYPE]?: string;
+  [RevenueProperty.REVENUE_TYPE]?: string;
+  [RevenueProperty.REVENUE_RECEIPT]?: string;
+  [RevenueProperty.REVENUE_RECEIPT_SIG]?: string;
+  [RevenueProperty.REVENUE]?: number;
+}
+
 /**
  * Strings that have special meaning when used as an event's type
  * and have different specifications.
@@ -71,6 +103,7 @@ export interface IdentifyUserProperties {
 export enum SpecialEventType {
   IDENTIFY = '$identify',
   GROUP_IDENTIFY = '$groupidentify',
+  REVENUE = 'revenue_amount',
 }
 
 export interface TrackEvent extends BaseEvent {
@@ -95,4 +128,13 @@ export interface GroupIdentifyEvent extends BaseEvent {
       };
 }
 
-export type Event = TrackEvent | IdentifyEvent | GroupIdentifyEvent;
+export interface RevenueEvent extends BaseEvent {
+  event_type: SpecialEventType.REVENUE;
+  event_properties:
+    | RevenueEventProperties
+    | {
+        [key: string]: any;
+      };
+}
+
+export type Event = TrackEvent | IdentifyEvent | GroupIdentifyEvent | RevenueEvent;

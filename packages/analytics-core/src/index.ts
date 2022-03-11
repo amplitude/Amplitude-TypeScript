@@ -2,3 +2,4 @@ export { init, track, logEvent, identify, groupIdentify, revenue } from './core-
 export { getConfig } from './config';
 export { buildResponse } from './utils/response-builder';
 export { Identify } from './Identify';
+export { Revenue } from './Revenue';
