@@ -11,6 +11,10 @@ export {
   IdentifyUserProperties,
   ValidPropertyType,
   Identify,
+  Revenue,
+  RevenueEvent,
+  RevenueProperty,
+  RevenueEventProperties,
 } from './event';
 export { EventCallback } from './event-callback';
 export { Payload } from './payload';

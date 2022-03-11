@@ -1,6 +1,11 @@
-import { Event, Plugin, Config, InitOptions, Identify } from '@amplitude/analytics-types';
+import { Event, Plugin, Config, InitOptions, Identify, Revenue } from '@amplitude/analytics-types';
 import { createConfig, getConfig } from './config';
-import { createGroupIdentifyEvent, createIdentifyEvent, createTrackEvent } from './utils/event-builder';
+import {
+  createGroupIdentifyEvent,
+  createIdentifyEvent,
+  createTrackEvent,
+  createRevenueEvent,
+} from './utils/event-builder';
 import { deregister, push, register } from './timeline';
 import { buildResult } from './utils/result-builder';
 
@@ -27,9 +32,9 @@ export const groupIdentify = () => {
   return dispatch(event, config);
 };
 
-export const revenue = () => {
+export const revenue = (revenue: Revenue) => {
   const config = getConfig();
-  const event = createTrackEvent('');
+  const event = createRevenueEvent(revenue);
   return dispatch(event, config);
 };
 
