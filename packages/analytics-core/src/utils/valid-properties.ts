@@ -20,14 +20,14 @@ export const isValidProperties = (property: string, value: any): boolean => {
         return false;
       } else if (typeof valueElement === 'object') {
         return isValidObject(value);
-      } else if (!(typeof valueElement === 'number' || typeof valueElement === 'string')) {
+      } else if (!['number', 'string'].includes(typeof valueElement)) {
         return false;
       }
     }
   } else if (typeof value === 'object') {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return isValidObject(value);
-  } else if (!(typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean')) {
+  } else if (!['number', 'string', 'boolean'].includes(typeof value)) {
     return false;
   }
   return true;
