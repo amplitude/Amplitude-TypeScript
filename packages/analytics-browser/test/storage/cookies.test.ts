@@ -2,14 +2,6 @@ import { CookieStorage } from '../../src/storage/cookie';
 
 describe('cookies', () => {
   describe('isEnabled', () => {
-    test('should return false', () => {
-      const cookies = new CookieStorage();
-      jest.spyOn(cookies, 'get').mockImplementationOnce(() => {
-        throw new Error();
-      });
-      expect(cookies.isEnabled()).toBe(false);
-    });
-
     test('should return true', () => {
       const cookies = new CookieStorage();
       expect(cookies.isEnabled()).toBe(true);
@@ -17,16 +9,23 @@ describe('cookies', () => {
   });
 
   describe('get', () => {
-    test('should return null for no cookie value', () => {
+    test('should return undefined for no cookie value', () => {
       const cookies = new CookieStorage();
-      expect(cookies.get('hello')).toBe(null);
+      expect(cookies.get('hello')).toBe(undefined);
     });
 
-    test('should return cookie value', () => {
-      const cookies = new CookieStorage();
-      cookies.set('hello', 'world');
-      expect(cookies.get('hello')).toBe('world');
-      cookies.set('hello', null);
+    test('should return cookie object value', () => {
+      const cookies = new CookieStorage<Record<string, number>>();
+      cookies.set('hello', { a: 1 });
+      expect(cookies.get('hello')).toEqual({ a: 1 });
+      cookies.remove('hello');
+    });
+
+    test('should return cookie array value', () => {
+      const cookies = new CookieStorage<number[]>();
+      cookies.set('hello', [1]);
+      expect(cookies.get('hello')).toEqual([1]);
+      cookies.remove('hello');
     });
   });
 
@@ -35,7 +34,7 @@ describe('cookies', () => {
       const cookies = new CookieStorage();
       cookies.set('hello', 'world');
       expect(cookies.get('hello')).toBe('world');
-      cookies.set('hello', null);
+      cookies.remove('hello');
     });
 
     test('should set cookie value with options', () => {
@@ -47,7 +46,7 @@ describe('cookies', () => {
         sameSite: 'Lax',
       });
       expect(cookies.get('hello')).toBe('world');
-      cookies.set('hello', null);
+      cookies.remove('hello');
     });
 
     test('should set restricted cookie value with options', () => {
@@ -58,8 +57,8 @@ describe('cookies', () => {
         secure: true,
         sameSite: 'Lax',
       });
-      expect(cookies.get('hello')).toBe(null);
-      cookies.set('hello', null);
+      expect(cookies.get('hello')).toBe(undefined);
+      cookies.remove('hello');
     });
   });
 

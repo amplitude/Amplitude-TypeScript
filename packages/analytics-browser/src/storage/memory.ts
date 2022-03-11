@@ -1,17 +1,17 @@
 import { Storage } from '@amplitude/analytics-types';
 
-export class MemoryStorage implements Storage {
-  memoryStorage: Map<string, any> = new Map();
+export class MemoryStorage<T> implements Storage<T> {
+  memoryStorage: Map<string, T> = new Map();
 
   isEnabled(): boolean {
     return true;
   }
 
-  get(key: string): any {
-    return this.memoryStorage.get(key) ?? null;
+  get(key: string): T | undefined {
+    return this.memoryStorage.get(key);
   }
 
-  set(key: string, value: string) {
+  set(key: string, value: T) {
     this.memoryStorage.set(key, value);
   }
 

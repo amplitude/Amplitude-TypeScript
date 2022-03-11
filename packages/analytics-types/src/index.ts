@@ -18,5 +18,5 @@ export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType }
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { Status } from './status';
-export { CookieStorageOptions, Storage } from './storage';
+export { CookieStorageOptions, Storage, UserSession } from './storage';
 export { Transport } from './transport';

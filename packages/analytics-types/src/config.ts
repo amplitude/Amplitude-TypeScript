@@ -1,4 +1,5 @@
-import { Storage } from './storage';
+import { Event } from './event';
+import { Storage, UserSession } from './storage';
 import { Transport } from './transport';
 
 export interface Config {
@@ -9,11 +10,11 @@ export interface Config {
   flushQueueSize: number;
   serverUrl: string;
   transportProvider: Transport;
-  storageProvider: Storage;
+  storageProvider: Storage<Event[]>;
 }
 
 export interface BrowserConfig extends Config {
-  cookieStorage: Storage;
+  cookieStorage: Storage<UserSession>;
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
@@ -25,5 +26,5 @@ export type InitOptions<T extends Config> =
   | Omit<Partial<Config>, 'apiKey' | 'userId'> &
       Omit<T, keyof Config> & {
         transportProvider: Transport;
-        storageProvider: Storage;
+        storageProvider: Storage<Event[]>;
       };

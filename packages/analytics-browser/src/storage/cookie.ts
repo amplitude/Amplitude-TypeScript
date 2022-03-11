@@ -1,6 +1,6 @@
 import { Storage, CookieStorageOptions } from '@amplitude/analytics-types';
 
-export class CookieStorage implements Storage {
+export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
 
   constructor(options?: CookieStorageOptions) {
@@ -14,17 +14,21 @@ export class CookieStorage implements Storage {
     }
 
     const random = String(Date.now());
+    const testStrorage = new CookieStorage<string>();
+    const testKey = 'AMP_TEST';
     try {
-      this.set(random, random);
-      return this.get(random) === random;
+      testStrorage.set(testKey, random);
+      const value = testStrorage.get(testKey);
+      return value === random;
     } catch {
+      /* istanbul ignore next */
       return false;
     } finally {
-      this.set(random, null);
+      testStrorage.remove(testKey);
     }
   }
 
-  get(key: string): string | null {
+  get(key: string): T | undefined {
     try {
       const cookie = window.document.cookie.split('; ');
       const match = cookie.find((c) => {
@@ -32,16 +36,18 @@ export class CookieStorage implements Storage {
         return start === 0;
       });
       if (!match) {
-        return null;
+        return undefined;
       }
-      return match.substring(key.length + 1);
+      const value = match.substring(key.length + 1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return JSON.parse(value);
     } catch {
       /* istanbul ignore next */
-      return null;
+      return undefined;
     }
   }
 
-  set(key: string, value: string | null, options?: CookieStorageOptions) {
+  set(key: string, value: T | null, options?: CookieStorageOptions) {
     try {
       const expires = value !== null ? options?.expirationDays : -1;
       let expireDate: Date | undefined = undefined;
@@ -50,7 +56,7 @@ export class CookieStorage implements Storage {
         date.setTime(date.getTime() + expires * 24 * 60 * 60 * 1000);
         expireDate = date;
       }
-      let str = `${key}=${String(value)}`;
+      let str = `${key}=${JSON.stringify(value)}`;
       if (expireDate) {
         str += `; expires=${expireDate.toUTCString()}`;
       }

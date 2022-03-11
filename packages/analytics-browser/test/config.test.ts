@@ -29,7 +29,7 @@ describe('config', () => {
       const cookieStorage = {
         options: {},
         isEnabled: () => true,
-        get: () => '',
+        get: () => ({}),
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,
@@ -77,7 +77,7 @@ describe('config', () => {
     test('should return custom', () => {
       const storageProvider = {
         isEnabled: () => true,
-        get: () => '',
+        get: () => [],
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,

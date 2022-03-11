@@ -11,7 +11,7 @@ describe('memory', () => {
   describe('get', () => {
     test('should return null if not set', () => {
       const memoryStorage = new MemoryStorage();
-      expect(memoryStorage.get('1')).toBe(null);
+      expect(memoryStorage.get('1')).toBe(undefined);
     });
 
     test('should return value', () => {
@@ -37,7 +37,7 @@ describe('memory', () => {
       expect(memoryStorage.get('1')).toBe('a');
       expect(memoryStorage.get('2')).toBe('b');
       memoryStorage.remove('1');
-      expect(memoryStorage.get('1')).toBe(null);
+      expect(memoryStorage.get('1')).toBe(undefined);
       expect(memoryStorage.get('2')).toBe('b');
     });
   });
@@ -50,8 +50,8 @@ describe('memory', () => {
       expect(memoryStorage.get('1')).toBe('a');
       expect(memoryStorage.get('2')).toBe('b');
       memoryStorage.reset();
-      expect(memoryStorage.get('1')).toBe(null);
-      expect(memoryStorage.get('2')).toBe(null);
+      expect(memoryStorage.get('1')).toBe(undefined);
+      expect(memoryStorage.get('2')).toBe(undefined);
     });
   });
 });
