@@ -70,7 +70,6 @@ export interface Revenue {
   setQuantity(quantity: number): Revenue;
   setPrice(price: number): Revenue;
   setRevenueType(revenueType: string): Revenue;
-  setReceipt(receipt: string, receiptSig: string): Revenue;
   setEventProperties(properties: { [key: string]: any }): Revenue;
   setRevenue(revenue: number): Revenue;
 }
@@ -80,8 +79,6 @@ export enum RevenueProperty {
   REVENUE_QUANTITY = '$quantity',
   REVENUE_PRICE = '$price',
   REVENUE_TYPE = '$revenueType',
-  REVENUE_RECEIPT = '$receipt',
-  REVENUE_RECEIPT_SIG = '$receiptSig',
   REVENUE = '$revenue',
 }
 
@@ -91,8 +88,6 @@ export interface RevenueEventProperties {
   [RevenueProperty.REVENUE_PRICE]?: number;
   [RevenueProperty.REVENUE_TYPE]?: string;
   [RevenueProperty.REVENUE_TYPE]?: string;
-  [RevenueProperty.REVENUE_RECEIPT]?: string;
-  [RevenueProperty.REVENUE_RECEIPT_SIG]?: string;
   [RevenueProperty.REVENUE]?: number;
 }
 

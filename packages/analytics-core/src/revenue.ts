@@ -11,8 +11,6 @@ export class Revenue implements IRevenue {
   private quantity: number;
   private price: number;
   private revenueType?: string;
-  private receiptSig?: string;
-  private receipt?: string;
   private properties?: { [key: string]: any };
   private revenue?: number;
 
@@ -26,24 +24,21 @@ export class Revenue implements IRevenue {
     this.productId = productId;
     return this;
   }
+
   setQuantity(quantity: number) {
     if (quantity > 0) {
       this.quantity = quantity;
     }
     return this;
   }
+
   setPrice(price: number) {
     this.price = price;
     return this;
   }
+
   setRevenueType(revenueType: string) {
     this.revenueType = revenueType;
-    return this;
-  }
-
-  setReceipt(receipt: string, receiptSig: string) {
-    this.receipt = receipt;
-    this.receiptSig = receiptSig;
     return this;
   }
 
@@ -65,8 +60,6 @@ export class Revenue implements IRevenue {
     eventProperties[RevenueProperty.REVENUE_QUANTITY] = this.quantity;
     eventProperties[RevenueProperty.REVENUE_PRICE] = this.price;
     eventProperties[RevenueProperty.REVENUE_TYPE] = this.revenueType;
-    eventProperties[RevenueProperty.REVENUE_RECEIPT] = this.receipt;
-    eventProperties[RevenueProperty.REVENUE_RECEIPT_SIG] = this.receiptSig;
     eventProperties[RevenueProperty.REVENUE] = this.revenue;
     return eventProperties;
   }
