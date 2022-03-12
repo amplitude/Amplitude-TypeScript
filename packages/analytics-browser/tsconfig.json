@@ -7,6 +7,5 @@
     "lib": ["dom"],
     "noEmit": true,
     "rootDir": ".",
-    "strictPropertyInitialization": false,
   }
 }

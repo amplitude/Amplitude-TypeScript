@@ -14,12 +14,13 @@ export class Context implements BeforePlugin {
 
   constructor(name: string) {
     this.name = name;
+    this.appVersion = '';
+    this.eventId = 0;
+    this.uaResult = new UAParser(navigator.userAgent).getResult();
   }
 
   setup(config: Config): Promise<undefined> {
     this.appVersion = config.version || '';
-    this.eventId = 0;
-    this.uaResult = new UAParser(navigator.userAgent).getResult();
     return Promise.resolve(undefined);
   }
 
