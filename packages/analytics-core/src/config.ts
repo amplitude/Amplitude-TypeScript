@@ -30,7 +30,6 @@ export const createConfig = <T extends Config>(
     ...baseConfig,
   };
   baseConfig.logger.enable(baseConfig.logLevel);
-  baseConfig.logger.error('hoy');
   return instances[DEFAULT_INSTANCE] as T;
 };
 
