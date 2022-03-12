@@ -1,6 +1,6 @@
 import UUID from '../../src/utils/uuid';
 
-describe('UUID', function () {
+describe('UUID', () => {
   test('should generate a valid UUID-4', () => {
     const uuid = UUID();
     expect(uuid.length).toEqual(36);
