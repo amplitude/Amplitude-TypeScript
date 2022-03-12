@@ -1,5 +1,6 @@
-import { Event } from './event';
 import { Storage, UserSession } from './storage';
+
+import { Event } from './event';
 import { Transport } from './transport';
 
 export interface Config {
@@ -11,6 +12,7 @@ export interface Config {
   serverUrl: string;
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;
+  version?: string;
 }
 
 export interface BrowserConfig extends Config {

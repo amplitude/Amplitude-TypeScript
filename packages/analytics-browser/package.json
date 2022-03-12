@@ -34,7 +34,9 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "^0.0.0",
-    "@amplitude/analytics-types": "^0.0.0"
+    "@amplitude/analytics-types": "^0.0.0",
+    "@amplitude/ua-parser-js": "^0.7.26",
+    "@types/ua-parser-js": "^0.7.36"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.0.2",
