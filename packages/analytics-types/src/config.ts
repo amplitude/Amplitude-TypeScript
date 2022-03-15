@@ -1,4 +1,5 @@
 import { Event } from './event';
+import { Logger, LogLevel } from './logger';
 import { Storage, UserSession } from './storage';
 import { Transport } from './transport';
 
@@ -8,6 +9,8 @@ export interface Config {
   flushIntervalMillis: number;
   flushMaxRetries: number;
   flushQueueSize: number;
+  logLevel: LogLevel;
+  logger: Logger;
   serverUrl: string;
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;

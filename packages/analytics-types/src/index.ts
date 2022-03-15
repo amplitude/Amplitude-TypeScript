@@ -17,6 +17,7 @@ export {
   RevenueEventProperties,
 } from './event';
 export { EventCallback } from './event-callback';
+export { Logger, LogLevel } from './logger';
 export { Payload } from './payload';
 export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
 export { Result } from './result';

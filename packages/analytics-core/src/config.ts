@@ -1,4 +1,5 @@
-import { Config, InitOptions } from '@amplitude/analytics-types';
+import { Config, InitOptions, LogLevel } from '@amplitude/analytics-types';
+import { Logger } from './logger';
 
 const DEFAULT_INSTANCE = 'default';
 const instances: Record<string, Config> = {};
@@ -10,19 +11,25 @@ const defaultConfig = {
   flushQueueSize: 10,
   flushIntervalMillis: 1000,
   serverUrl: AMPLITUDE_SERVER_URL,
+  logLevel: LogLevel.Warn,
+  logger: new Logger(),
 };
 
 export const createConfig = <T extends Config>(
   apiKey: string,
   userId: string | undefined,
-  options: InitOptions<T>,
+  overrides: InitOptions<T>,
 ): T => {
+  const baseConfig = {
+    ...defaultConfig,
+    ...overrides,
+  };
   instances[DEFAULT_INSTANCE] = {
     apiKey,
     userId,
-    ...defaultConfig,
-    ...options,
+    ...baseConfig,
   };
+  baseConfig.logger.enable(baseConfig.logLevel);
   return instances[DEFAULT_INSTANCE] as T;
 };
 
