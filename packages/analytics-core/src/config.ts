@@ -10,6 +10,21 @@ const defaultConfig = {
   flushQueueSize: 10,
   flushIntervalMillis: 1000,
   serverUrl: AMPLITUDE_SERVER_URL,
+  trackingOptions: {
+    city: true,
+    country: true,
+    carrier: true,
+    device_manufacturer: true,
+    device_model: true,
+    dma: true,
+    ip_address: true,
+    language: true,
+    os_name: true,
+    os_version: true,
+    platform: true,
+    region: true,
+    version_name: true,
+  },
 };
 
 export const createConfig = <T extends Config>(

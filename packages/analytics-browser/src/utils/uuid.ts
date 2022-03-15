@@ -6,7 +6,7 @@
  * Used to generate UUIDs for deviceIds.
  * @private
  */
-const uuid = function (a?: any): string {
+export const UUID = function (a?: any): string {
   return a // if the placeholder was passed, return
     ? // a random number from 0 to 15
       (
@@ -27,8 +27,6 @@ const uuid = function (a?: any): string {
         .replace(
           // replacing
           /[018]/g, // zeroes, ones, and eights with
-          uuid, // random hex digits
+          UUID, // random hex digits
         );
 };
-
-export default uuid;

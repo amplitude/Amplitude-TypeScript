@@ -1,9 +1,10 @@
-import { FetchTransport } from './transports/fetch';
-import { getConfig as _getConfig } from '@amplitude/analytics-core';
 import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
-import { LocalStorage } from './storage/local-storage';
+
 import { CookieStorage } from './storage/cookie';
+import { FetchTransport } from './transports/fetch';
+import { LocalStorage } from './storage/local-storage';
 import { MemoryStorage } from './storage/memory';
+import { getConfig as _getConfig } from '@amplitude/analytics-core';
 
 export const defaultConfig: InitOptions<BrowserConfig> = {
   cookieStorage: new MemoryStorage(),
@@ -12,8 +13,8 @@ export const defaultConfig: InitOptions<BrowserConfig> = {
   cookieSecure: false,
   disableCookies: false,
   domain: '',
-  transportProvider: new FetchTransport(),
   storageProvider: new MemoryStorage(),
+  transportProvider: new FetchTransport(),
 };
 
 export const createConfig = (overrides?: Partial<InitOptions<BrowserConfig>>) => {

@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 export const getLanguage = (): string => {
-  // navigator.userLanguage is to support IE browsers
-  return navigator?.languages?.[0] || navigator?.language || (navigator as any)?.userLanguage || '';
+  if (typeof navigator === 'undefined') return '';
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  const userLanguage = (navigator as any).userLanguage as string | undefined;
+
+  return navigator.languages?.[0] ?? navigator.language ?? userLanguage ?? '';
 };

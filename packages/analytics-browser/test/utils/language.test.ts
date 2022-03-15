@@ -2,7 +2,9 @@ import { getLanguage } from '../../src/utils/language';
 
 declare global {
   interface Navigator {
-    userLanguage: string;
+    language: string | undefined;
+    languages: string[] | undefined;
+    userLanguage: string | undefined;
   }
 }
 
@@ -15,10 +17,6 @@ if (!('userLanguage' in navigator)) {
 }
 
 describe('language', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   test('should return a language', () => {
     enableNavigatorLanguageProperties(['languages', 'language', 'userLanguage']);
     expect(getLanguage()).not.toBeNull();
@@ -43,14 +41,25 @@ describe('language', () => {
     enableNavigatorLanguageProperties([]);
     expect(getLanguage()).toBe('');
   });
+
+  test('should return empty string if navigator is not set', () => {
+    Object.defineProperty(window, 'navigator', {
+      get: () => undefined,
+      configurable: true,
+      enumerable: true,
+    });
+    expect(getLanguage()).toBe('');
+  });
 });
 
 function enableNavigatorLanguageProperties(properties: Array<'languages' | 'language' | 'userLanguage'>) {
   jest
     .spyOn(navigator, 'languages', 'get')
-    .mockReturnValue(properties.includes('languages') ? ['some-locale', 'some-other-locale'] : []);
-  jest.spyOn(navigator, 'language', 'get').mockReturnValue(properties.includes('language') ? 'some-second-locale' : '');
+    .mockReturnValue(properties.includes('languages') ? ['some-locale', 'some-other-locale'] : undefined);
+  jest
+    .spyOn(navigator, 'language', 'get')
+    .mockReturnValue(properties.includes('language') ? 'some-second-locale' : undefined);
   jest
     .spyOn(navigator, 'userLanguage', 'get')
-    .mockReturnValue(properties.includes('userLanguage') ? 'some-third-locale' : '');
+    .mockReturnValue(properties.includes('userLanguage') ? 'some-third-locale' : undefined);
 }

@@ -1,14 +1,23 @@
 import { Context } from '../../src/plugins/context';
-import { useDefaultConfig } from '@amplitude/analytics-core/test/helpers/default';
+import { useDefaultConfig } from '../helpers/default';
 
 describe('context', () => {
   describe('setup', () => {
     test('should setup plugin', async () => {
       const context = new Context('name');
       const config = useDefaultConfig();
-      config.version = '1.0.0';
+      config.appVersion = '1.0.0';
       await context.setup(config);
-      expect(context.appVersion).toBeDefined();
+      expect(context.appVersion).toEqual('1.0.0');
+      expect(context.eventId).toBeDefined();
+      expect(context.uaResult).toBeDefined();
+    });
+
+    test('should setup plugin without app version', async () => {
+      const context = new Context('name');
+      const config = useDefaultConfig();
+      await context.setup(config);
+      expect(context.appVersion).toEqual('');
       expect(context.eventId).toBeDefined();
       expect(context.uaResult).toBeDefined();
     });
@@ -18,7 +27,7 @@ describe('context', () => {
     test('should execute plugin', async () => {
       const context = new Context('name');
       const config = useDefaultConfig();
-      config.version = '1.0.0';
+      config.appVersion = '1.0.0';
       await context.setup(config);
 
       const event = {
@@ -29,6 +38,54 @@ describe('context', () => {
       expect(firstContextEvent.event_id).toEqual(0);
       expect(firstContextEvent.event_type).toEqual('event_type');
       expect(firstContextEvent.insert_id).toBeDefined();
+      expect(firstContextEvent.platform).toEqual('Web');
+      expect(firstContextEvent.os_name).toBeDefined();
+      expect(firstContextEvent.os_version).toBeDefined();
+      expect(firstContextEvent.language).toBeDefined();
+      expect(firstContextEvent.ip).toEqual('$remote');
+
+      const secondContextEvent = await context.execute(event);
+      expect(secondContextEvent.event_id).toEqual(1);
+    });
+
+    test('should not return the properties when the tracking options are false', async () => {
+      const context = new Context('name');
+      const config = useDefaultConfig({
+        trackingOptions: {
+          city: false,
+          country: false,
+          carrier: false,
+          device_manufacturer: false,
+          device_model: false,
+          dma: false,
+          ip_address: false,
+          language: false,
+          os_name: false,
+          os_version: false,
+          platform: false,
+          region: false,
+          version_name: false,
+        },
+      });
+      config.appVersion = '1.0.0';
+      await context.setup(config);
+
+      const event = {
+        event_type: 'event_type',
+      };
+      const firstContextEvent = await context.execute(event);
+      expect(firstContextEvent.app_version).toEqual('1.0.0');
+      expect(firstContextEvent.event_id).toEqual(0);
+      expect(firstContextEvent.event_type).toEqual('event_type');
+      expect(firstContextEvent.insert_id).toBeDefined();
+      expect(firstContextEvent.insert_id).toBeDefined();
+
+      // tracking options should not be included
+      expect(firstContextEvent.platform).toBeUndefined();
+      expect(firstContextEvent.os_name).toBeUndefined();
+      expect(firstContextEvent.os_version).toBeUndefined();
+      expect(firstContextEvent.language).toBeUndefined();
+      expect(firstContextEvent.ip).toBeUndefined();
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
