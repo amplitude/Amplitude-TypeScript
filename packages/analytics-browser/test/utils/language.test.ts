@@ -8,15 +8,21 @@ declare global {
   }
 }
 
-if (!('userLanguage' in navigator)) {
-  Object.defineProperty(navigator, 'userLanguage', {
-    get: () => '',
-    configurable: true,
-    enumerable: true,
-  });
-}
-
 describe('language', () => {
+  beforeAll(() => {
+    Object.defineProperty(navigator, 'userLanguage', {
+      get: () => '',
+      configurable: true,
+      enumerable: true,
+    });
+  });
+
+  afterAll(() => {
+    if (navigator?.userLanguage) {
+      delete navigator.userLanguage;
+    }
+  });
+
   test('should return a language', () => {
     enableNavigatorLanguageProperties(['languages', 'language', 'userLanguage']);
     expect(getLanguage()).not.toBeNull();
@@ -43,11 +49,7 @@ describe('language', () => {
   });
 
   test('should return empty string if navigator is not set', () => {
-    Object.defineProperty(window, 'navigator', {
-      get: () => undefined,
-      configurable: true,
-      enumerable: true,
-    });
+    jest.spyOn(window as any, 'navigator', 'get').mockReturnValue(undefined);
     expect(getLanguage()).toBe('');
   });
 });

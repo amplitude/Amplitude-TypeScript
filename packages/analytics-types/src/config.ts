@@ -12,7 +12,6 @@ export interface Config {
   flushQueueSize: number;
   serverUrl: string;
   storageProvider: Storage<Event[]>;
-  trackingOptions: TrackingOptions;
   transportProvider: Transport;
 }
 
@@ -23,6 +22,7 @@ export interface BrowserConfig extends Config {
   cookieSecure: boolean;
   disableCookies: boolean;
   domain: string;
+  trackingOptions: TrackingOptions;
 }
 
 export type InitOptions<T extends Config> =
