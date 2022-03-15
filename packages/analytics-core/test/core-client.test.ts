@@ -35,7 +35,7 @@ describe('core-client', () => {
       const get = jest.spyOn(ConfigFactory, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify: Identify = new Identify();
-      const response = await client.identify(identify, USER_ID, DEVICE_ID);
+      const response = await client.identify(USER_ID, DEVICE_ID, identify);
       expect(response).toEqual(success);
       expect(get).toHaveBeenCalledTimes(1);
       expect(dispatch).toHaveBeenCalledTimes(1);
@@ -46,7 +46,8 @@ describe('core-client', () => {
     test('should call groupIdentify', async () => {
       const get = jest.spyOn(ConfigFactory, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
-      const response = await client.groupIdentify();
+      const identify = new Identify();
+      const response = await client.groupIdentify(USER_ID, DEVICE_ID, 'groupType', 'groupName', identify);
       expect(response).toEqual(success);
       expect(get).toHaveBeenCalledTimes(1);
       expect(dispatch).toHaveBeenCalledTimes(1);
