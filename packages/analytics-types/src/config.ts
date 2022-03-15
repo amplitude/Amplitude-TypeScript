@@ -6,6 +6,8 @@ import { Transport } from './transport';
 export interface Config {
   apiKey: string;
   userId?: string;
+  deviceId?: string;
+  sessionId?: number;
   flushIntervalMillis: number;
   flushMaxRetries: number;
   flushQueueSize: number;
@@ -17,17 +19,21 @@ export interface Config {
 }
 
 export interface BrowserConfig extends Config {
-  cookieStorage: Storage<UserSession>;
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
+  cookieStorage: Storage<UserSession>;
   disableCookies: boolean;
   domain: string;
+  sessionTimeout: number;
 }
 
 export type InitOptions<T extends Config> =
-  | Omit<Partial<Config>, 'apiKey' | 'userId'> &
+  | Partial<Config> &
       Omit<T, keyof Config> & {
+        apiKey: string;
         transportProvider: Transport;
         storageProvider: Storage<Event[]>;
       };
+
+export type BrowserOptions = Omit<Partial<BrowserConfig>, 'apiKey' | 'userId'>;

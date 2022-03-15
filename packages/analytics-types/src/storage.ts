@@ -1,7 +1,8 @@
 export interface UserSession {
   userId?: string;
   deviceId?: string;
-  sessionId?: string;
+  sessionId?: number;
+  lastEventTime?: number;
 }
 
 export interface Storage<T> {
