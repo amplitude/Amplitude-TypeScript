@@ -4,6 +4,9 @@ import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '../utils/uuid';
 import { getLanguage } from '../utils/language';
 
+const BROWSER_PLATFORM = 'Web';
+const IP_ADDRESS = '$remote';
+
 export class Context implements BeforePlugin {
   name: string;
   type = PluginType.BEFORE as const;
@@ -36,13 +39,13 @@ export class Context implements BeforePlugin {
         ...context,
         time: new Date().getTime(),
         app_version: this.appVersion,
-        ...(this.trackingOptions.platform && { platform: 'Web' }),
+        ...(this.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
         ...(this.trackingOptions.os_name && { os_name: osName }),
         ...(this.trackingOptions.os_version && { os_version: osVersion }),
         ...(this.trackingOptions.device_manufacturer && { device_manufacturer: deviceVendor }),
         ...(this.trackingOptions.device_model && { device_model: deviceModel }),
         ...(this.trackingOptions.language && { language: getLanguage() }),
-        ...(this.trackingOptions.ip_address && { ip: '$remote' }),
+        ...(this.trackingOptions.ip_address && { ip: IP_ADDRESS }),
         event_id: this.eventId++,
         insert_id: UUID(),
       };
