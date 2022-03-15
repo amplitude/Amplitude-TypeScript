@@ -6,11 +6,11 @@ export class Logger implements ILogger {
   logLevel: LogLevel;
 
   constructor() {
-    this.logLevel = 0;
+    this.logLevel = LogLevel.None;
   }
 
   disable(): void {
-    this.logLevel = 0;
+    this.logLevel = LogLevel.None;
   }
 
   enable(logLevel: LogLevel = LogLevel.Warn): void {

@@ -5,15 +5,15 @@ jest.unmock('../src/logger');
 
 describe('logger', () => {
   describe('enable/disable', () => {
-    test('should set log level to 0', () => {
+    test('should set log level to NONE', () => {
       const logger = new Logger();
-      expect(logger.logLevel).toBe(0);
+      expect(logger.logLevel).toBe(LogLevel.None);
       logger.enable();
-      expect(logger.logLevel).toBe(2);
+      expect(logger.logLevel).toBe(LogLevel.Warn);
       logger.enable(LogLevel.Error);
-      expect(logger.logLevel).toBe(1);
+      expect(logger.logLevel).toBe(LogLevel.Error);
       logger.disable();
-      expect(logger.logLevel).toBe(0);
+      expect(logger.logLevel).toBe(LogLevel.None);
     });
   });
 
