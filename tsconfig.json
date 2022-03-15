@@ -1,5 +1,4 @@
 {
-  "exclude": ["**/__mocks__/*"],
   "compilerOptions": {
     "alwaysStrict": false,
     "declaration": true,
