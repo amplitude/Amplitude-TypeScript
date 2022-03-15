@@ -1,8 +1,9 @@
 import * as ConfigModule from '../src/config';
-import * as core from '@amplitude/analytics-core';
 import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as MemoryModule from '../src/storage/memory';
+import * as core from '@amplitude/analytics-core';
+
 import { FetchTransport } from '../src/transports/fetch';
 
 describe('config', () => {
@@ -18,8 +19,23 @@ describe('config', () => {
         cookieSecure: false,
         disableCookies: false,
         domain: '',
-        transportProvider: new FetchTransport(),
         storageProvider: new MemoryModule.MemoryStorage(),
+        trackingOptions: {
+          city: true,
+          country: true,
+          carrier: true,
+          device_manufacturer: true,
+          device_model: true,
+          dma: true,
+          ip_address: true,
+          language: true,
+          os_name: true,
+          os_version: true,
+          platform: true,
+          region: true,
+          version_name: true,
+        },
+        transportProvider: new FetchTransport(),
       });
     });
   });
