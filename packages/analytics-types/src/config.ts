@@ -1,7 +1,7 @@
-import { Event } from './event';
-import { Logger, LogLevel } from './logger';
+import { LogLevel, Logger } from './logger';
 import { Storage, UserSession } from './storage';
 
+import { Event } from './event';
 import { Transport } from './transport';
 
 export interface Config {
@@ -39,14 +39,14 @@ export type TrackingOptions = {
   city?: boolean;
   country?: boolean;
   carrier?: boolean;
-  device_manufacturer?: boolean;
-  device_model?: boolean;
+  deviceManufacturer?: boolean;
+  deviceModel?: boolean;
   dma?: boolean;
-  ip_address?: boolean;
+  ipAddress?: boolean;
   language?: boolean;
-  os_name?: boolean;
-  os_version?: boolean;
+  osName?: boolean;
+  osVersion?: boolean;
   platform?: boolean;
   region?: boolean;
-  version_name?: boolean;
+  versionName?: boolean;
 };

@@ -9,7 +9,7 @@ describe('context', () => {
       config.appVersion = '1.0.0';
       await context.setup(config);
       expect(context.appVersion).toEqual('1.0.0');
-      expect(context.eventId).toBeDefined();
+      expect(context.eventId).toEqual(0);
       expect(context.uaResult).toBeDefined();
     });
 
@@ -18,7 +18,7 @@ describe('context', () => {
       const config = useDefaultConfig();
       await context.setup(config);
       expect(context.appVersion).toEqual('');
-      expect(context.eventId).toBeDefined();
+      expect(context.eventId).toEqual(0);
       expect(context.uaResult).toBeDefined();
     });
   });
@@ -55,16 +55,16 @@ describe('context', () => {
           city: false,
           country: false,
           carrier: false,
-          device_manufacturer: false,
-          device_model: false,
+          deviceManufacturer: false,
+          deviceModel: false,
           dma: false,
-          ip_address: false,
+          ipAddress: false,
           language: false,
-          os_name: false,
-          os_version: false,
+          osName: false,
+          osVersion: false,
           platform: false,
           region: false,
-          version_name: false,
+          versionName: false,
         },
       });
       config.appVersion = '1.0.0';
