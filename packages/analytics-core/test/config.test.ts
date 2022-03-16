@@ -1,10 +1,24 @@
-import { getConfig, createConfig } from '../src/config';
-import { API_KEY, USER_ID, DEFAULT_OPTIONS } from './helpers/default';
+import { getConfig, createConfig, resetInstances } from '../src/config';
+import { useDefaultConfig } from './helpers/default';
 
 describe('config', () => {
+  afterEach(() => {
+    resetInstances();
+  });
+
   test('should create new config', () => {
     expect(getConfig()).toBeUndefined();
-    createConfig(API_KEY, USER_ID, DEFAULT_OPTIONS);
+    createConfig(useDefaultConfig());
+    expect(getConfig()).toBeDefined();
+  });
+
+  test('should create default config', () => {
+    expect(getConfig()).toBeUndefined();
+    createConfig({
+      apiKey: 'apiKey',
+      transportProvider: useDefaultConfig().transportProvider,
+      storageProvider: useDefaultConfig().storageProvider,
+    });
     expect(getConfig()).toBeDefined();
   });
 });

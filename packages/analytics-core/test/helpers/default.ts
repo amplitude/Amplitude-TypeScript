@@ -1,14 +1,9 @@
-import { createConfig } from '../../src/config';
+import { Config } from '@amplitude/analytics-types';
+import { defaultConfig } from '../../src/config';
 
-export const useDefaultConfig = () => createConfig(API_KEY, USER_ID, DEFAULT_OPTIONS);
-
-export const API_KEY = 'apiKey';
-
-export const USER_ID = 'userId';
-
-export const DEVICE_ID = 'deviceId';
-
-export const DEFAULT_OPTIONS = {
+export const useDefaultConfig = (): Config => ({
+  apiKey: API_KEY,
+  userId: USER_ID,
   transportProvider: {
     send: () => Promise.resolve(null),
   },
@@ -19,4 +14,11 @@ export const DEFAULT_OPTIONS = {
     remove: () => undefined,
     reset: () => undefined,
   },
-};
+  ...defaultConfig,
+});
+
+export const API_KEY = 'apiKey';
+
+export const USER_ID = 'userId';
+
+export const DEVICE_ID = 'deviceId';

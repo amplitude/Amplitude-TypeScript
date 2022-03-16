@@ -1,26 +1,30 @@
-import { Event, Plugin, PluginType, Config, Status } from '@amplitude/analytics-types';
+import { Event, Plugin, PluginType, Config as IConfig, Status } from '@amplitude/analytics-types';
 import { Identify, Revenue } from '../src/index';
 
-import * as ConfigFactory from '../src/config';
+import * as Config from '../src/config';
 import * as client from '../src/core-client';
 import * as timeline from '../src/timeline';
-import { API_KEY, USER_ID, DEVICE_ID, DEFAULT_OPTIONS } from './helpers/default';
+import { USER_ID, DEVICE_ID, useDefaultConfig } from './helpers/default';
 
 describe('core-client', () => {
   const success = { statusCode: 200, status: Status.Success };
   const failed = { statusCode: 0, status: Status.Unknown };
 
   describe('init', () => {
+    afterEach(() => {
+      Config.resetInstances();
+    });
+
     test('should call init', () => {
-      const create = jest.spyOn(ConfigFactory, 'createConfig');
-      client.init(API_KEY, USER_ID, DEFAULT_OPTIONS);
+      const create = jest.spyOn(Config, 'createConfig');
+      client.init(useDefaultConfig());
       expect(create).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('track', () => {
     test('should call track', async () => {
-      const get = jest.spyOn(ConfigFactory, 'getConfig');
+      const get = jest.spyOn(Config, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const eventType = 'eventType';
       const response = await client.track(eventType);
@@ -32,7 +36,7 @@ describe('core-client', () => {
 
   describe('identify', () => {
     test('should call identify', async () => {
-      const get = jest.spyOn(ConfigFactory, 'getConfig');
+      const get = jest.spyOn(Config, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify: Identify = new Identify();
       const response = await client.identify(USER_ID, DEVICE_ID, identify);
@@ -44,7 +48,7 @@ describe('core-client', () => {
 
   describe('groupIdentify', () => {
     test('should call groupIdentify', async () => {
-      const get = jest.spyOn(ConfigFactory, 'getConfig');
+      const get = jest.spyOn(Config, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify = new Identify();
       const response = await client.groupIdentify(USER_ID, DEVICE_ID, 'groupType', 'groupName', identify);
@@ -56,7 +60,7 @@ describe('core-client', () => {
 
   describe('revenue', () => {
     test('should call revenue', async () => {
-      const get = jest.spyOn(ConfigFactory, 'getConfig');
+      const get = jest.spyOn(Config, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const revenue = new Revenue();
       const response = await client.revenue(revenue);
@@ -95,7 +99,7 @@ describe('core-client', () => {
       const event: Event = {
         event_type: 'event_type',
       };
-      const config: Config = ConfigFactory.createConfig('apikey', 'userid', DEFAULT_OPTIONS);
+      const config: IConfig = useDefaultConfig();
 
       const result = await client.dispatch(event, config);
       expect(result).toBe(success);
@@ -109,7 +113,7 @@ describe('core-client', () => {
       const event: Event = {
         event_type: 'event_type',
       };
-      const config: Config = ConfigFactory.createConfig('apikey', 'userid', DEFAULT_OPTIONS);
+      const config: IConfig = useDefaultConfig();
 
       const result = await client.dispatch(event, config);
       expect(result).toEqual(failed);
