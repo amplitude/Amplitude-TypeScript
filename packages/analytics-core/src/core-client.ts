@@ -20,15 +20,21 @@ export const track = (eventType: string) => {
 };
 export const logEvent = track;
 
-export const identify = (identify: Identify, userId?: string, deviceId?: string) => {
+export const identify = (userId: string | undefined, deviceId: string | undefined, identify: Identify) => {
   const config = getConfig();
-  const event = createIdentifyEvent(identify, userId, deviceId);
+  const event = createIdentifyEvent(userId, deviceId, identify);
   return dispatch(event, config);
 };
 
-export const groupIdentify = () => {
+export const groupIdentify = (
+  userId: string | undefined,
+  deviceId: string | undefined,
+  groupType: string,
+  groupName: string | string[],
+  identify: Identify,
+) => {
   const config = getConfig();
-  const event = createGroupIdentifyEvent();
+  const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify);
   return dispatch(event, config);
 };
 

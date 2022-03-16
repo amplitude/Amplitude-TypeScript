@@ -15,7 +15,11 @@ export const createTrackEvent = (eventType: string): TrackEvent => {
   };
 };
 
-export const createIdentifyEvent = (identify: Identify, userId?: string, deviceId?: string): IdentifyEvent => {
+export const createIdentifyEvent = (
+  userId: string | undefined,
+  deviceId: string | undefined,
+  identify: Identify,
+): IdentifyEvent => {
   const identifyEvent: IdentifyEvent = {
     event_type: SpecialEventType.IDENTIFY,
     user_properties: identify.getUserProperties(),
@@ -29,12 +33,27 @@ export const createIdentifyEvent = (identify: Identify, userId?: string, deviceI
   return identifyEvent;
 };
 
-export const createGroupIdentifyEvent = (): GroupIdentifyEvent => {
-  // NOTE: placeholder
-  return {
+export const createGroupIdentifyEvent = (
+  userId: string | undefined,
+  deviceId: string | undefined,
+  groupType: string,
+  groupName: string | string[],
+  identify: Identify,
+): GroupIdentifyEvent => {
+  const groupIdentify: GroupIdentifyEvent = {
     event_type: SpecialEventType.GROUP_IDENTIFY,
-    group_properties: {},
+    group_properties: identify.getUserProperties(),
+    groups: {
+      [groupType]: groupName,
+    },
+    user_id: userId,
   };
+
+  if (deviceId !== undefined && deviceId.length > 0) {
+    groupIdentify.device_id = deviceId;
+  }
+
+  return groupIdentify;
 };
 
 export const createRevenueEvent = (revenue: Revenue): RevenueEvent => {
