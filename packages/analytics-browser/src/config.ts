@@ -18,11 +18,9 @@ export const defaultConfig = {
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
   cookieSecure: false,
-  cookieStorage: new MemoryStorage<UserSession>(),
   disableCookies: false,
   domain: '',
   sessionTimeout: 30 * 60 * 1000,
-  storageProvider: new MemoryStorage<Event[]>(),
   trackingOptions: {
     city: true,
     country: true,
