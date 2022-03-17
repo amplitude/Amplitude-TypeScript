@@ -1,12 +1,13 @@
 import {
-  Config as IConfig,
   Event,
-  InitOptions,
+  Config as IConfig,
   Logger as ILogger,
+  InitOptions,
   LogLevel,
   Storage,
   Transport,
 } from '@amplitude/analytics-types';
+
 import { Logger } from './logger';
 
 const DEFAULT_INSTANCE = 'default';
@@ -18,9 +19,9 @@ export const defaultConfig = {
   flushMaxRetries: 5,
   flushQueueSize: 10,
   flushIntervalMillis: 1000,
-  serverUrl: AMPLITUDE_SERVER_URL,
   logLevel: LogLevel.Warn,
   logger: new Logger(),
+  serverUrl: AMPLITUDE_SERVER_URL,
 };
 
 export class Config implements IConfig {

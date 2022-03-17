@@ -1,9 +1,11 @@
-import { Event } from './event';
-import { Logger, LogLevel } from './logger';
+import { LogLevel, Logger } from './logger';
 import { Storage, UserSession } from './storage';
+
+import { Event } from './event';
 import { Transport } from './transport';
 
 export interface Config {
+  appVersion?: string;
   apiKey: string;
   userId?: string;
   deviceId?: string;
@@ -14,8 +16,8 @@ export interface Config {
   logLevel: LogLevel;
   logger: Logger;
   serverUrl: string;
-  transportProvider: Transport;
   storageProvider: Storage<Event[]>;
+  transportProvider: Transport;
 }
 
 export interface BrowserConfig extends Config {
@@ -26,6 +28,7 @@ export interface BrowserConfig extends Config {
   disableCookies: boolean;
   domain: string;
   sessionTimeout: number;
+  trackingOptions: TrackingOptions;
 }
 
 export type InitOptions<T extends Config> =
@@ -36,4 +39,19 @@ export type InitOptions<T extends Config> =
         storageProvider: Storage<Event[]>;
       };
 
+export type TrackingOptions = {
+  city?: boolean;
+  country?: boolean;
+  carrier?: boolean;
+  deviceManufacturer?: boolean;
+  deviceModel?: boolean;
+  dma?: boolean;
+  ipAddress?: boolean;
+  language?: boolean;
+  osName?: boolean;
+  osVersion?: boolean;
+  platform?: boolean;
+  region?: boolean;
+  versionName?: boolean;
+};
 export type BrowserOptions = Omit<Partial<BrowserConfig>, 'apiKey' | 'userId'>;

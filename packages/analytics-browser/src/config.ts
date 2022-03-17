@@ -1,11 +1,18 @@
-import { FetchTransport } from './transports/fetch';
-import { getConfig as _getConfig, Config } from '@amplitude/analytics-core';
-import { BrowserConfig as IBrowserConfig, BrowserOptions, Storage, UserSession } from '@amplitude/analytics-types';
-import { LocalStorage } from './storage/local-storage';
+import {
+  BrowserOptions,
+  BrowserConfig as IBrowserConfig,
+  Storage,
+  TrackingOptions,
+  UserSession,
+} from '@amplitude/analytics-types';
+import { Config, getConfig as _getConfig } from '@amplitude/analytics-core';
+
 import { CookieStorage } from './storage/cookie';
+import { FetchTransport } from './transports/fetch';
+import { LocalStorage } from './storage/local-storage';
 import { MemoryStorage } from './storage/memory';
-import { getQueryParams } from './utils/query-params';
 import { getCookieName } from './session-manager';
+import { getQueryParams } from './utils/query-params';
 
 export const defaultConfig = {
   cookieExpiration: 365,
@@ -13,6 +20,22 @@ export const defaultConfig = {
   cookieSecure: false,
   disableCookies: false,
   domain: '',
+  storageProvider: new MemoryStorage(),
+  trackingOptions: {
+    city: true,
+    country: true,
+    carrier: true,
+    deviceManufacturer: true,
+    deviceModel: true,
+    dma: true,
+    ipAddress: true,
+    language: true,
+    osName: true,
+    osVersion: true,
+    platform: true,
+    region: true,
+    versionName: true,
+  },
   transportProvider: new FetchTransport(),
   sessionTimeout: 30 * 60 * 1000,
 };
@@ -25,13 +48,14 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   disableCookies: boolean;
   domain: string;
   sessionTimeout: number;
+  trackingOptions: TrackingOptions;
 
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
     const cookieStorage = createCookieStorage(options);
     const storageProvider = createEventsStorage(options);
     const transportProvider = options?.transportProvider || defaultConfig.transportProvider;
     const sessionTimeout = options?.sessionTimeout || defaultConfig.sessionTimeout;
-
+    const trackingOptions = options?.trackingOptions || defaultConfig.trackingOptions;
     const cookieName = getCookieName(apiKey);
     const cookies = cookieStorage.get(cookieName);
     const queryParams = getQueryParams();
@@ -53,6 +77,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.disableCookies = options?.disableCookies || defaultConfig.disableCookies;
     this.domain = options?.domain || defaultConfig.domain;
     this.sessionTimeout = sessionTimeout;
+    this.trackingOptions = trackingOptions;
   }
 }
 

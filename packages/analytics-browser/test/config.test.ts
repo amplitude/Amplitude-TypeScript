@@ -1,10 +1,12 @@
 import * as Config from '../src/config';
-import * as core from '@amplitude/analytics-core';
 import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as MemoryModule from '../src/storage/memory';
-import { FetchTransport } from '../src/transports/fetch';
+import * as core from '@amplitude/analytics-core';
+
 import { LogLevel, UserSession } from '@amplitude/analytics-types';
+
+import { FetchTransport } from '../src/transports/fetch';
 import { getCookieName } from '../src/session-manager';
 
 describe('config', () => {
@@ -35,10 +37,25 @@ describe('config', () => {
         logger: logger,
         logLevel: LogLevel.Warn,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
-        transportProvider: new FetchTransport(),
         sessionId: 0,
         sessionTimeout: 1800000,
         storageProvider: new MemoryModule.MemoryStorage(),
+        trackingOptions: {
+          city: true,
+          country: true,
+          carrier: true,
+          deviceManufacturer: true,
+          deviceModel: true,
+          dma: true,
+          ipAddress: true,
+          language: true,
+          osName: true,
+          osVersion: true,
+          platform: true,
+          region: true,
+          versionName: true,
+        },
+        transportProvider: new FetchTransport(),
         userId: undefined,
       });
     });
@@ -73,10 +90,25 @@ describe('config', () => {
         logger: logger,
         logLevel: LogLevel.Warn,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
-        transportProvider: new FetchTransport(),
         sessionId: 1,
         sessionTimeout: 1800000,
         storageProvider: new MemoryModule.MemoryStorage(),
+        trackingOptions: {
+          city: true,
+          country: true,
+          carrier: true,
+          deviceManufacturer: true,
+          deviceModel: true,
+          dma: true,
+          ipAddress: true,
+          language: true,
+          osName: true,
+          osVersion: true,
+          platform: true,
+          region: true,
+          versionName: true,
+        },
+        transportProvider: new FetchTransport(),
         userId: 'userIdFromCookies',
       });
     });
