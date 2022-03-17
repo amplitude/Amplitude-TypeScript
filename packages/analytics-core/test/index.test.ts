@@ -1,4 +1,18 @@
-import { init, track, logEvent, identify, groupIdentify, revenue, getConfig, buildResponse } from '../src/index';
+import {
+  init,
+  track,
+  logEvent,
+  identify,
+  groupIdentify,
+  revenue,
+  add,
+  remove,
+  getConfig,
+  buildResponse,
+  Destination,
+  Config,
+  Logger,
+} from '../src/index';
 
 describe('index', () => {
   test('should expose apis', () => {
@@ -8,7 +22,12 @@ describe('index', () => {
     expect(typeof identify).toBe('function');
     expect(typeof groupIdentify).toBe('function');
     expect(typeof revenue).toBe('function');
+    expect(typeof add).toBe('function');
+    expect(typeof remove).toBe('function');
     expect(typeof getConfig).toBe('function');
     expect(typeof buildResponse).toBe('function');
+    expect(typeof Destination).toBe('function');
+    expect(typeof Config).toBe('function');
+    expect(typeof Logger).toBe('function');
   });
 });

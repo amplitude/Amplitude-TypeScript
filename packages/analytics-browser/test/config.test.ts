@@ -1,24 +1,83 @@
-import * as ConfigModule from '../src/config';
+import * as Config from '../src/config';
 import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as MemoryModule from '../src/storage/memory';
 import * as core from '@amplitude/analytics-core';
 
+import { LogLevel, UserSession } from '@amplitude/analytics-types';
+
 import { FetchTransport } from '../src/transports/fetch';
+import { getCookieName } from '../src/session-manager';
 
 describe('config', () => {
+  const API_KEY = 'apiKey';
   describe('createConfig', () => {
     test('should create default config', () => {
-      jest.spyOn(ConfigModule, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
-      jest.spyOn(ConfigModule, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
-      const config = ConfigModule.createConfig();
+      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
+      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
+      const logger = new core.Logger();
+      logger.enable(LogLevel.Warn);
+      const config = Config.createConfig(API_KEY, undefined, {
+        deviceId: 'deviceId',
+      });
       expect(config).toEqual({
+        apiKey: API_KEY,
         cookieStorage: new MemoryModule.MemoryStorage(),
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
+        deviceId: 'deviceId',
         disableCookies: false,
         domain: '',
+        flushIntervalMillis: 1000,
+        flushMaxRetries: 5,
+        flushQueueSize: 10,
+        logger: logger,
+        logLevel: LogLevel.Warn,
+        serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        transportProvider: new FetchTransport(),
+        sessionId: 0,
+        sessionTimeout: 1800000,
+        storageProvider: new MemoryModule.MemoryStorage(),
+        userId: undefined,
+      });
+    });
+
+    test('should create using cookies', () => {
+      const cookieStorage = new MemoryModule.MemoryStorage<UserSession>();
+      cookieStorage.set(getCookieName(API_KEY), {
+        deviceId: 'deviceIdFromCookies',
+        lastEventTime: Date.now(),
+        sessionId: 1,
+        userId: 'userIdFromCookies',
+      });
+      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
+      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
+      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(1);
+      const logger = new core.Logger();
+      logger.enable(LogLevel.Warn);
+      const config = Config.createConfig(API_KEY);
+      expect(config).toEqual({
+        apiKey: API_KEY,
+        cookieStorage: cookieStorage,
+        cookieExpiration: 365,
+        cookieSameSite: 'Lax',
+        cookieSecure: false,
+        deviceId: 'deviceIdFromCookies',
+        disableCookies: false,
+        domain: '',
+        transportProvider: new FetchTransport(),
+        flushIntervalMillis: 1000,
+        flushMaxRetries: 5,
+        flushQueueSize: 10,
+        logger: logger,
+        logLevel: LogLevel.Warn,
+        serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        sessionId: 1,
+        sessionTimeout: 1800000,
         storageProvider: new MemoryModule.MemoryStorage(),
         trackingOptions: {
           city: true,
@@ -36,6 +95,7 @@ describe('config', () => {
           versionName: true,
         },
         transportProvider: new FetchTransport(),
+        userId: 'userIdFromCookies',
       });
     });
   });
@@ -50,19 +110,19 @@ describe('config', () => {
         remove: () => undefined,
         reset: () => undefined,
       };
-      const storage = ConfigModule.createCookieStorage({
+      const storage = Config.createCookieStorage({
         cookieStorage,
       });
       expect(storage).toBe(cookieStorage);
     });
 
     test('should return cookies', () => {
-      const storage = ConfigModule.createCookieStorage();
+      const storage = Config.createCookieStorage();
       expect(storage).toBeInstanceOf(CookieModule.CookieStorage);
     });
 
     test('should use return storage', () => {
-      const storage = ConfigModule.createCookieStorage({ disableCookies: true });
+      const storage = Config.createCookieStorage({ disableCookies: true });
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
@@ -82,7 +142,7 @@ describe('config', () => {
         remove: () => undefined,
         reset: () => undefined,
       });
-      const storage = ConfigModule.createCookieStorage();
+      const storage = Config.createCookieStorage();
       expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);
       expect(cookiesConstructor).toHaveBeenCalledTimes(1);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
@@ -98,14 +158,14 @@ describe('config', () => {
         remove: () => undefined,
         reset: () => undefined,
       };
-      const storage = ConfigModule.createEventsStorage({
+      const storage = Config.createEventsStorage({
         storageProvider,
       });
       expect(storage).toBe(storageProvider);
     });
 
     test('should use return storage', () => {
-      const storage = ConfigModule.createEventsStorage();
+      const storage = Config.createEventsStorage();
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
@@ -117,16 +177,53 @@ describe('config', () => {
         remove: () => undefined,
         reset: () => undefined,
       });
-      const storage = ConfigModule.createEventsStorage();
+      const storage = Config.createEventsStorage();
       expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('createDeviceId', () => {
+    test('should return device id from options', () => {
+      const deviceId = Config.createDeviceId('cookieDeviceId', 'optionsDeviceId', 'queryParamsDeviceId');
+      expect(deviceId).toBe('optionsDeviceId');
+    });
+
+    test('should return device id from query params', () => {
+      const deviceId = Config.createDeviceId('cookieDeviceId', undefined, 'queryParamsDeviceId');
+      expect(deviceId).toBe('queryParamsDeviceId');
+    });
+
+    test('should return device id from cookies', () => {
+      const deviceId = Config.createDeviceId('cookieDeviceId', undefined, undefined);
+      expect(deviceId).toBe('cookieDeviceId');
+    });
+  });
+
+  describe('createSessionId', () => {
+    test('should return session id from cookies', () => {
+      const now = Date.now();
+      const sessionId = Config.createSessionId(now + 1000, undefined, now - 1000, 60000);
+      expect(sessionId).toBe(now + 1000);
+    });
+
+    test('should return session id from options', () => {
+      const now = Date.now();
+      const sessionId = Config.createSessionId(undefined, now, undefined, 60000);
+      expect(sessionId).toBe(now);
+    });
+
+    test('should generate new session id', () => {
+      jest.spyOn(Date, 'now').mockReturnValueOnce(1);
+      const sessionId = Config.createSessionId(undefined, undefined, undefined, 60000);
+      expect(sessionId).toBe(1);
     });
   });
 
   describe('getConfig', () => {
     test('should call core get config', () => {
       const _getConfig = jest.spyOn(core, 'getConfig');
-      const config = ConfigModule.getConfig();
+      const config = Config.getConfig();
       expect(config).toBe(undefined);
       expect(_getConfig).toHaveBeenCalledTimes(1);
     });

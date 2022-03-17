@@ -1,7 +1,30 @@
-import { init as _init } from '@amplitude/analytics-core';
-import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
-import { createConfig } from './config';
+import { init as _init, track as _track } from '@amplitude/analytics-core';
+import { BrowserConfig, BrowserOptions } from '@amplitude/analytics-types';
+import { createConfig, getConfig } from './config';
+import { updateCookies } from './session-manager';
 
-export const init = (apiKey: string, userId?: string, options?: Partial<InitOptions<BrowserConfig>>) => {
-  _init<BrowserConfig>(apiKey, userId, createConfig(options));
+export const init = (apiKey: string, userId?: string, options?: BrowserOptions) => {
+  const browserOptions = createConfig(apiKey, userId, options);
+  const config = _init(browserOptions) as BrowserConfig;
+  updateCookies(config);
 };
+
+export const setUserId = (userId: string) => {
+  const config = getConfig();
+  config.userId = userId;
+  updateCookies(config);
+};
+
+export const setDeviceId = (deviceId: string) => {
+  const config = getConfig();
+  config.deviceId = deviceId;
+  updateCookies(config);
+};
+
+export const setSessionId = (sessionId: number) => {
+  const config = getConfig();
+  config.sessionId = sessionId;
+  updateCookies(config);
+};
+
+export const track = _track;

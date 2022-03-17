@@ -1,13 +1,14 @@
-import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
+import { BrowserOptions, BrowserConfig as IBrowserConfig, Storage, UserSession } from '@amplitude/analytics-types';
+import { Config, getConfig as _getConfig } from '@amplitude/analytics-core';
 
 import { CookieStorage } from './storage/cookie';
 import { FetchTransport } from './transports/fetch';
 import { LocalStorage } from './storage/local-storage';
 import { MemoryStorage } from './storage/memory';
-import { getConfig as _getConfig } from '@amplitude/analytics-core';
+import { getCookieName } from './session-manager';
+import { getQueryParams } from './utils/query-params';
 
-export const defaultConfig: InitOptions<BrowserConfig> = {
-  cookieStorage: new MemoryStorage(),
+export const defaultConfig = {
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
   cookieSecure: false,
@@ -30,23 +31,53 @@ export const defaultConfig: InitOptions<BrowserConfig> = {
     versionName: true,
   },
   transportProvider: new FetchTransport(),
+  sessionTimeout: 30 * 60 * 1000,
 };
 
-export const createConfig = (overrides?: Partial<InitOptions<BrowserConfig>>) => {
-  const options = {
-    ...defaultConfig,
-    ...overrides,
-    cookieStorage: createCookieStorage(overrides),
-    storageProvider: createEventsStorage(overrides),
-  };
+export class BrowserConfig extends Config implements IBrowserConfig {
+  cookieExpiration: number;
+  cookieSameSite: string;
+  cookieSecure: boolean;
+  cookieStorage: Storage<UserSession>;
+  disableCookies: boolean;
+  domain: string;
+  sessionTimeout: number;
 
-  return options;
+  constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
+    const cookieStorage = createCookieStorage(options);
+    const storageProvider = createEventsStorage(options);
+    const transportProvider = options?.transportProvider || defaultConfig.transportProvider;
+    const sessionTimeout = options?.sessionTimeout || defaultConfig.sessionTimeout;
+
+    const cookieName = getCookieName(apiKey);
+    const cookies = cookieStorage.get(cookieName);
+    const queryParams = getQueryParams();
+
+    super({
+      ...options,
+      apiKey,
+      storageProvider,
+      transportProvider,
+      userId: userId || cookies?.userId,
+      deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
+      sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
+    });
+
+    this.cookieExpiration = options?.cookieExpiration || defaultConfig.cookieExpiration;
+    this.cookieSameSite = options?.cookieSameSite || defaultConfig.cookieSameSite;
+    this.cookieSecure = options?.cookieSecure || defaultConfig.cookieSecure;
+    this.cookieStorage = cookieStorage;
+    this.disableCookies = options?.disableCookies || defaultConfig.disableCookies;
+    this.domain = options?.domain || defaultConfig.domain;
+    this.sessionTimeout = sessionTimeout;
+  }
+}
+
+export const createConfig = (apiKey: string, userId?: string, overrides?: BrowserOptions): IBrowserConfig => {
+  return new BrowserConfig(apiKey, userId, overrides);
 };
 
-export const createCookieStorage = (
-  overrides?: Partial<InitOptions<BrowserConfig>>,
-  baseConfig: InitOptions<BrowserConfig> = defaultConfig,
-) => {
+export const createCookieStorage = (overrides?: BrowserOptions, baseConfig = defaultConfig) => {
   const options = { ...baseConfig, ...overrides };
   let cookieStorage = overrides?.cookieStorage;
   if (!cookieStorage || !cookieStorage.isEnabled()) {
@@ -66,7 +97,7 @@ export const createCookieStorage = (
   return cookieStorage;
 };
 
-export const createEventsStorage = (overrides?: Partial<InitOptions<BrowserConfig>>) => {
+export const createEventsStorage = (overrides?: BrowserOptions) => {
   let eventsStorage = overrides?.storageProvider;
   if (!eventsStorage || !eventsStorage.isEnabled()) {
     eventsStorage = new LocalStorage();
@@ -77,6 +108,17 @@ export const createEventsStorage = (overrides?: Partial<InitOptions<BrowserConfi
   return eventsStorage;
 };
 
+export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, idFromQueryParams?: string) => {
+  return idFromOptions || idFromQueryParams || idFromCookies || Date.now().toString();
+};
+
+export const createSessionId = (idFromCookies = 0, idFromOptions = 0, lastEventTime = 0, sessionTimeout: number) => {
+  if (idFromCookies && Date.now() - lastEventTime < sessionTimeout) {
+    return idFromCookies;
+  }
+  return idFromOptions ? idFromOptions : Date.now();
+};
+
 export const getConfig = () => {
-  return _getConfig<BrowserConfig>();
+  return _getConfig() as BrowserConfig;
 };
