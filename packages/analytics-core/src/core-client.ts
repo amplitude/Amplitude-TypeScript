@@ -44,15 +44,13 @@ export const revenue = (revenue: Revenue) => {
   return dispatch(event, config);
 };
 
-export const add = async (plugins: Plugin[]) => {
+export const add = async (plugin: Plugin) => {
   const config = getConfig();
-  const registrations = plugins.map((plugin) => register(plugin, config));
-  await Promise.all(registrations);
+  return register(plugin, config);
 };
 
-export const remove = async (pluginNames: string[]) => {
-  const deregistrations = pluginNames.map((name) => deregister(name));
-  await Promise.all(deregistrations);
+export const remove = async (pluginName: string) => {
+  return deregister(pluginName);
 };
 
 export const dispatch = async (event: Event, config: Config) => {
