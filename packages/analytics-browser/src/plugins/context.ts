@@ -36,8 +36,11 @@ export class Context implements BeforePlugin {
 
       const contextEvent: Event = {
         ...context,
+        user_id: this.config.userId,
+        device_id: this.config.deviceId,
+        session_id: this.config.sessionId,
         time: new Date().getTime(),
-        app_version: this.config.appVersion,
+        ...(this.config.appVersion && { app_version: this.config.appVersion }),
         ...(this.config.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
         ...(this.config.trackingOptions.osName && { os_name: osName }),
         ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
