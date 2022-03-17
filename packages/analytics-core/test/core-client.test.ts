@@ -84,11 +84,11 @@ describe('core-client', () => {
       };
 
       // add
-      await client.add([plugin]);
+      await client.add(plugin);
       expect(register).toBeCalledTimes(1);
 
       // remove
-      await client.remove([plugin.name]);
+      await client.remove(plugin.name);
       expect(deregister).toBeCalledTimes(1);
     });
   });
