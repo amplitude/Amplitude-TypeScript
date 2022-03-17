@@ -21,7 +21,7 @@ export const defaultConfig = {
   cookieSecure: false,
   disableCookies: false,
   domain: '',
-  storageProvider: new MemoryStorage(),
+  sessionTimeout: 30 * 60 * 1000,
   trackingOptions: {
     city: true,
     country: true,
@@ -38,7 +38,6 @@ export const defaultConfig = {
     versionName: true,
   },
   transportProvider: new FetchTransport(),
-  sessionTimeout: 30 * 60 * 1000,
 };
 
 export class BrowserConfig extends Config implements IBrowserConfig {

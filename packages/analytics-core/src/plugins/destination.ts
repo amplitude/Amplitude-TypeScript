@@ -11,37 +11,24 @@ import {
   Result,
   Status,
   SuccessResponse,
-  Transport,
 } from '@amplitude/analytics-types';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 
 export class Destination implements DestinationPlugin {
-  name: string;
+  name = 'amplitude';
   type = PluginType.DESTINATION as const;
 
-  queue: Context[] = [];
-  scheduled = false;
-
-  apiKey = '';
   backoff = 30000;
-  flushMaxRetries = 0;
-  flushQueueSize = 0;
-  flushIntervalMillis = 0;
-  serverUrl = '';
-  transportProvider?: Transport;
-
-  constructor(name: string) {
-    this.name = name;
-  }
+  // this.config is defined in setup() which will always be called first
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  config: Config;
+  scheduled = false;
+  queue: Context[] = [];
 
   setup(config: Config) {
-    this.apiKey = config.apiKey;
-    this.flushMaxRetries = config.flushMaxRetries;
-    this.flushQueueSize = config.flushQueueSize;
-    this.flushIntervalMillis = config.flushIntervalMillis;
-    this.serverUrl = config.serverUrl;
-    this.transportProvider = config.transportProvider;
+    this.config = config;
     return Promise.resolve(undefined);
   }
 
@@ -59,7 +46,7 @@ export class Destination implements DestinationPlugin {
   addToQueue(...list: Context[]) {
     list.map((context) => (context.attempts += 1));
     this.queue = this.queue.concat(...list);
-    this.schedule(this.flushIntervalMillis);
+    this.schedule(this.config.flushIntervalMillis);
   }
 
   schedule(timeout: number) {
@@ -78,19 +65,18 @@ export class Destination implements DestinationPlugin {
   async flush() {
     const list = this.queue;
     this.queue = [];
-    const batches = chunk(list, this.flushQueueSize);
+    const batches = chunk(list, this.config.flushQueueSize);
     await Promise.all(batches.map((batch) => this.send(batch)));
   }
 
   async send(list: Context[]) {
-    if (!this.transportProvider) return;
     const payload = {
-      api_key: this.apiKey,
+      api_key: this.config.apiKey,
       events: list.map((context) => context.event),
     };
 
     try {
-      const res = await this.transportProvider.send(this.serverUrl, payload);
+      const res = await this.config.transportProvider.send(this.config.serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, Status.Unknown);
         return;
@@ -159,7 +145,7 @@ export class Destination implements DestinationPlugin {
       this.fulfillRequest(list, res.statusCode, res.status);
       return;
     }
-    this.flushQueueSize /= 2;
+    this.config.flushQueueSize /= 2;
     this.addToQueue(...list);
   }
 
@@ -198,7 +184,7 @@ export class Destination implements DestinationPlugin {
   handleOtherReponse(res: Response, list: Context[]) {
     const [drop, retry] = list.reduce<[Context[], Context[]]>(
       ([drop, retry], curr) => {
-        curr.attempts > this.flushMaxRetries ? drop.push(curr) : retry.push(curr);
+        curr.attempts > this.config.flushMaxRetries ? drop.push(curr) : retry.push(curr);
         return [drop, retry];
       },
       [[], []],

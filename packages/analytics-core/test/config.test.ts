@@ -1,4 +1,4 @@
-import { getConfig, createConfig, resetInstances } from '../src/config';
+import { getConfig, createConfig, resetInstances, Config } from '../src/config';
 import { useDefaultConfig } from './helpers/default';
 
 describe('config', () => {
@@ -6,19 +6,23 @@ describe('config', () => {
     resetInstances();
   });
 
-  test('should create new config', () => {
+  test('should create new config and keep existing reference', () => {
     expect(getConfig()).toBeUndefined();
-    createConfig(useDefaultConfig());
+    const first = createConfig(useDefaultConfig());
+    const second = createConfig(useDefaultConfig());
+    expect(first).toBe(second);
     expect(getConfig()).toBeDefined();
   });
 
   test('should create default config', () => {
     expect(getConfig()).toBeUndefined();
-    createConfig({
-      apiKey: 'apiKey',
-      transportProvider: useDefaultConfig().transportProvider,
-      storageProvider: useDefaultConfig().storageProvider,
-    });
+    createConfig(
+      new Config({
+        apiKey: 'apiKey',
+        transportProvider: useDefaultConfig().transportProvider,
+        storageProvider: useDefaultConfig().storageProvider,
+      }),
+    );
     expect(getConfig()).toBeDefined();
   });
 });

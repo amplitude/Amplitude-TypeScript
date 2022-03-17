@@ -2,8 +2,8 @@ import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
 
 import { createConfig } from '../../src/config';
 
-export const useDefaultConfig = (overrides?: Partial<InitOptions<BrowserConfig>>) =>
-  createConfig(API_KEY, USER_ID, { ...DEFAULT_OPTIONS, ...overrides });
+export const useDefaultConfig = (userId?: string, overrides?: Partial<InitOptions<BrowserConfig>>) =>
+  createConfig(API_KEY, userId || USER_ID, { ...DEFAULT_OPTIONS, ...overrides });
 
 export const API_KEY = 'apiKey';
 

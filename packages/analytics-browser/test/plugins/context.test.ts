@@ -4,20 +4,20 @@ import { useDefaultConfig } from '../helpers/default';
 describe('context', () => {
   describe('setup', () => {
     test('should setup plugin', async () => {
-      const context = new Context('name');
+      const context = new Context();
       const config = useDefaultConfig();
       config.appVersion = '1.0.0';
       await context.setup(config);
-      expect(context.appVersion).toEqual('1.0.0');
+      expect(context.config.appVersion).toEqual('1.0.0');
       expect(context.eventId).toEqual(0);
       expect(context.uaResult).toBeDefined();
     });
 
     test('should setup plugin without app version', async () => {
-      const context = new Context('name');
+      const context = new Context();
       const config = useDefaultConfig();
       await context.setup(config);
-      expect(context.appVersion).toEqual('');
+      expect(context.config.appVersion).toBeUndefined();
       expect(context.eventId).toEqual(0);
       expect(context.uaResult).toBeDefined();
     });
@@ -25,8 +25,11 @@ describe('context', () => {
 
   describe('execute', () => {
     test('should execute plugin', async () => {
-      const context = new Context('name');
-      const config = useDefaultConfig();
+      const context = new Context();
+      const config = useDefaultConfig('user@amplitude.com', {
+        deviceId: 'deviceId',
+        sessionId: 1,
+      });
       config.appVersion = '1.0.0';
       await context.setup(config);
 
@@ -43,14 +46,19 @@ describe('context', () => {
       expect(firstContextEvent.os_version).toBeDefined();
       expect(firstContextEvent.language).toBeDefined();
       expect(firstContextEvent.ip).toEqual('$remote');
+      expect(firstContextEvent.device_id).toEqual('deviceId');
+      expect(firstContextEvent.session_id).toEqual(1);
+      expect(firstContextEvent.user_id).toEqual('user@amplitude.com');
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
     });
 
     test('should not return the properties when the tracking options are false', async () => {
-      const context = new Context('name');
-      const config = useDefaultConfig({
+      const context = new Context();
+      const config = useDefaultConfig('user@amplitude.com', {
+        deviceId: 'deviceId',
+        sessionId: 1,
         trackingOptions: {
           city: false,
           country: false,
@@ -86,6 +94,9 @@ describe('context', () => {
       expect(firstContextEvent.os_version).toBeUndefined();
       expect(firstContextEvent.language).toBeUndefined();
       expect(firstContextEvent.ip).toBeUndefined();
+      expect(firstContextEvent.device_id).toEqual('deviceId');
+      expect(firstContextEvent.session_id).toEqual(1);
+      expect(firstContextEvent.user_id).toEqual('user@amplitude.com');
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
