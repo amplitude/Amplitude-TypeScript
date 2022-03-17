@@ -11,9 +11,9 @@ import { CookieStorage } from './storage/cookie';
 import { FetchTransport } from './transports/fetch';
 import { LocalStorage } from './storage/local-storage';
 import { MemoryStorage } from './storage/memory';
+import { UUID } from './utils/uuid';
 import { getCookieName } from './session-manager';
 import { getQueryParams } from './utils/query-params';
-import { UUID } from './utils/uuid';
 
 export const defaultConfig = {
   cookieExpiration: 365,
@@ -55,7 +55,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     const storageProvider = createEventsStorage(options);
     const transportProvider = options?.transportProvider || defaultConfig.transportProvider;
     const sessionTimeout = options?.sessionTimeout || defaultConfig.sessionTimeout;
-    const trackingOptions = options?.trackingOptions || defaultConfig.trackingOptions;
+    const trackingOptions = { ...defaultConfig.trackingOptions, ...options?.trackingOptions };
     const cookieName = getCookieName(apiKey);
     const cookies = cookieStorage.get(cookieName);
     const queryParams = getQueryParams();
