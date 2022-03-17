@@ -14,7 +14,7 @@ export interface Config {
   flushMaxRetries: number;
   flushQueueSize: number;
   logLevel: LogLevel;
-  logger: Logger;
+  loggerProvider: Logger;
   serverUrl: string;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;
