@@ -1,4 +1,10 @@
-import { BrowserOptions, BrowserConfig as IBrowserConfig, Storage, UserSession } from '@amplitude/analytics-types';
+import {
+  BrowserOptions,
+  BrowserConfig as IBrowserConfig,
+  Storage,
+  TrackingOptions,
+  UserSession,
+} from '@amplitude/analytics-types';
 import { Config, getConfig as _getConfig } from '@amplitude/analytics-core';
 
 import { CookieStorage } from './storage/cookie';
@@ -42,13 +48,14 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   disableCookies: boolean;
   domain: string;
   sessionTimeout: number;
+  trackingOptions: TrackingOptions;
 
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
     const cookieStorage = createCookieStorage(options);
     const storageProvider = createEventsStorage(options);
     const transportProvider = options?.transportProvider || defaultConfig.transportProvider;
     const sessionTimeout = options?.sessionTimeout || defaultConfig.sessionTimeout;
-
+    const trackingOptions = options?.trackingOptions || defaultConfig.trackingOptions;
     const cookieName = getCookieName(apiKey);
     const cookies = cookieStorage.get(cookieName);
     const queryParams = getQueryParams();
@@ -70,6 +77,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.disableCookies = options?.disableCookies || defaultConfig.disableCookies;
     this.domain = options?.domain || defaultConfig.domain;
     this.sessionTimeout = sessionTimeout;
+    this.trackingOptions = trackingOptions;
   }
 }
 

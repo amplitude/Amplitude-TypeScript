@@ -1,16 +1,16 @@
 import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
 
 import { createConfig } from '../../src/config';
-import { createConfig as createConfigCore } from '@amplitude/analytics-core/src/config';
 
 export const useDefaultConfig = (overrides?: Partial<InitOptions<BrowserConfig>>) =>
-  createConfigCore<BrowserConfig>(API_KEY, USER_ID, createConfig({ ...DEFAULT_OPTIONS, ...overrides }));
+  createConfig(API_KEY, USER_ID, { ...DEFAULT_OPTIONS, ...overrides });
 
 export const API_KEY = 'apiKey';
 
 export const USER_ID = 'userId';
 
 export const DEFAULT_OPTIONS: InitOptions<BrowserConfig> = {
+  apiKey: API_KEY,
   cookieStorage: {
     isEnabled: () => true,
     get: () => undefined,
@@ -48,4 +48,5 @@ export const DEFAULT_OPTIONS: InitOptions<BrowserConfig> = {
   transportProvider: {
     send: () => Promise.resolve(null),
   },
+  sessionTimeout: 30 * 60 * 1000,
 };
