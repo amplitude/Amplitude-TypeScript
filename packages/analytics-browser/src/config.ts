@@ -13,6 +13,7 @@ import { LocalStorage } from './storage/local-storage';
 import { MemoryStorage } from './storage/memory';
 import { getCookieName } from './session-manager';
 import { getQueryParams } from './utils/query-params';
+import { UUID } from './utils/uuid';
 
 export const defaultConfig = {
   cookieExpiration: 365,
@@ -117,7 +118,7 @@ export const createEventsStorage = (overrides?: BrowserOptions) => {
 };
 
 export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, idFromQueryParams?: string) => {
-  return idFromOptions || idFromQueryParams || idFromCookies || Date.now().toString();
+  return idFromOptions || idFromQueryParams || idFromCookies || UUID();
 };
 
 export const createSessionId = (idFromCookies = 0, idFromOptions = 0, lastEventTime = 0, sessionTimeout: number) => {

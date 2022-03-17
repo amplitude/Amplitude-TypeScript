@@ -212,6 +212,11 @@ describe('config', () => {
       const deviceId = Config.createDeviceId('cookieDeviceId', undefined, undefined);
       expect(deviceId).toBe('cookieDeviceId');
     });
+
+    test('should return uuid', () => {
+      const deviceId = Config.createDeviceId(undefined, undefined, undefined);
+      expect(deviceId.substring(14, 15)).toEqual('4');
+    });
   });
 
   describe('createSessionId', () => {
