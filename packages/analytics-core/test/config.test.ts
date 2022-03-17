@@ -6,9 +6,11 @@ describe('config', () => {
     resetInstances();
   });
 
-  test('should create new config', () => {
+  test('should create new config and keep existing reference', () => {
     expect(getConfig()).toBeUndefined();
-    createConfig(useDefaultConfig());
+    const first = createConfig(useDefaultConfig());
+    const second = createConfig(useDefaultConfig());
+    expect(first).toBe(second);
     expect(getConfig()).toBeDefined();
   });
 

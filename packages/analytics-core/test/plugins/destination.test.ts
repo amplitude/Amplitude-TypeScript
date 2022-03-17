@@ -5,24 +5,24 @@ import { useDefaultConfig } from '../helpers/default';
 describe('destination', () => {
   describe('setup', () => {
     test('should setup plugin', async () => {
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = useDefaultConfig();
       config.serverUrl = 'url';
       config.flushMaxRetries = 0;
       config.flushQueueSize = 0;
       config.flushIntervalMillis = 0;
       await destination.setup(config);
-      expect(destination.transportProvider).toBeDefined();
-      expect(destination.serverUrl).toBe('url');
-      expect(destination.flushMaxRetries).toBe(0);
-      expect(destination.flushQueueSize).toBe(0);
-      expect(destination.flushIntervalMillis).toBe(0);
+      expect(destination.config.transportProvider).toBeDefined();
+      expect(destination.config.serverUrl).toBe('url');
+      expect(destination.config.flushMaxRetries).toBe(0);
+      expect(destination.config.flushQueueSize).toBe(0);
+      expect(destination.config.flushIntervalMillis).toBe(0);
     });
   });
 
   describe('execute', () => {
     test('should execute plugin', async () => {
-      const destination = new Destination('name');
+      const destination = new Destination();
       const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
         context.callback({ statusCode: 200, status: Status.Success });
       });
@@ -36,7 +36,11 @@ describe('destination', () => {
 
   describe('addToQueue', () => {
     test('should add to queue and schedule a flush', () => {
-      const destination = new Destination('name');
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        flushIntervalMillis: 0,
+      };
       const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
       const event = {
         event_type: 'event_type',
@@ -62,7 +66,7 @@ describe('destination', () => {
     });
 
     test('should schedule a flush', async () => {
-      const destination = new Destination('name');
+      const destination = new Destination();
       destination.scheduled = false;
       destination.queue = [
         {
@@ -71,7 +75,10 @@ describe('destination', () => {
           callback: () => undefined,
         },
       ];
-      const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
+      const flush = jest
+        .spyOn(destination, 'flush')
+        .mockReturnValueOnce(Promise.resolve(undefined))
+        .mockReturnValueOnce(Promise.resolve(undefined));
       destination.schedule(0);
       // exhause first setTimeout
       jest.runAllTimers();
@@ -83,7 +90,7 @@ describe('destination', () => {
     });
 
     test('should not schedule if one is already in progress', () => {
-      const destination = new Destination('name');
+      const destination = new Destination();
       destination.scheduled = true;
       const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
       destination.schedule(0);
@@ -93,8 +100,11 @@ describe('destination', () => {
 
   describe('flush', () => {
     test('should get batch and call send', async () => {
-      const destination = new Destination('name');
-      destination.flushQueueSize = 1;
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 1,
+      };
       destination.queue = [
         {
           event: { event_type: 'event_type' },
@@ -111,21 +121,8 @@ describe('destination', () => {
   });
 
   describe('send', () => {
-    test('should handle no transport provider', async () => {
-      const destination = new Destination('name');
-      const context = {
-        attempts: 0,
-        callback: jest.fn(),
-        event: {
-          event_type: 'event_type',
-        },
-      };
-      const result = await destination.send([context]);
-      expect(result).toBe(undefined);
-    });
-
     test('should handle unexpected error', async () => {
-      const destination = new Destination('name');
+      const destination = new Destination();
       const callback = jest.fn();
       const context = {
         attempts: 0,
@@ -166,7 +163,7 @@ describe('destination', () => {
         });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -204,7 +201,7 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -242,7 +239,7 @@ describe('destination', () => {
         });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -276,7 +273,7 @@ describe('destination', () => {
         });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 1,
@@ -315,7 +312,7 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -365,7 +362,7 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       destination.backoff = 1;
       const config = {
         ...useDefaultConfig(),
@@ -422,7 +419,7 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -459,7 +456,7 @@ describe('destination', () => {
           });
       }
       const transportProvider = new Http();
-      const destination = new Destination('name');
+      const destination = new Destination();
       const config = {
         ...useDefaultConfig(),
         flushMaxRetries: 1,

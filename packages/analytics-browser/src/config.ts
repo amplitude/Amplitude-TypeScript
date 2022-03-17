@@ -18,9 +18,11 @@ export const defaultConfig = {
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
   cookieSecure: false,
+  cookieStorage: new MemoryStorage<UserSession>(),
   disableCookies: false,
   domain: '',
-  storageProvider: new MemoryStorage(),
+  sessionTimeout: 30 * 60 * 1000,
+  storageProvider: new MemoryStorage<Event[]>(),
   trackingOptions: {
     city: true,
     country: true,
@@ -37,7 +39,6 @@ export const defaultConfig = {
     versionName: true,
   },
   transportProvider: new FetchTransport(),
-  sessionTimeout: 30 * 60 * 1000,
 };
 
 export class BrowserConfig extends Config implements IBrowserConfig {

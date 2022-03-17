@@ -57,7 +57,12 @@ export class Config implements IConfig {
 }
 
 export const createConfig = (options: InitOptions<IConfig>) => {
-  instances[DEFAULT_INSTANCE] = new Config(options);
+  const config = new Config(options);
+  // If config for an instance already exists, perform Object.assign() to reuse reference
+  // to config object. This is useful when config object reference is used in plugins
+  instances[DEFAULT_INSTANCE] = instances[DEFAULT_INSTANCE]
+    ? Object.assign(instances[DEFAULT_INSTANCE], config)
+    : config;
   return instances[DEFAULT_INSTANCE];
 };
 
