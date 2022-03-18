@@ -55,7 +55,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     const storageProvider = createEventsStorage(options);
     const transportProvider = options?.transportProvider || defaultConfig.transportProvider;
     const sessionTimeout = options?.sessionTimeout || defaultConfig.sessionTimeout;
-    const trackingOptions = options?.trackingOptions || defaultConfig.trackingOptions;
+    const trackingOptions = { ...defaultConfig.trackingOptions, ...options?.trackingOptions };
     const cookieName = getCookieName(apiKey);
     const cookies = cookieStorage.get(cookieName);
     const queryParams = getQueryParams();
