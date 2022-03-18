@@ -25,3 +25,4 @@ export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, Ra
 export { Status } from './status';
 export { CookieStorageOptions, Storage, UserSession } from './storage';
 export { Transport } from './transport';
+export { UTMData } from './utm';

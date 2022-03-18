@@ -21,6 +21,10 @@ export const defaultConfig = {
   cookieSecure: false,
   disableCookies: false,
   domain: '',
+  includeGclid: true,
+  includeFbclid: true,
+  includeReferrer: true,
+  includeUtm: true,
   sessionTimeout: 30 * 60 * 1000,
   trackingOptions: {
     city: true,
@@ -47,14 +51,18 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieStorage: Storage<UserSession>;
   disableCookies: boolean;
   domain: string;
+  includeUtm: boolean;
+  includeReferrer: boolean;
+  includeGclid: boolean;
+  includeFbclid: boolean;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
 
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
     const cookieStorage = createCookieStorage(options);
     const storageProvider = createEventsStorage(options);
-    const transportProvider = options?.transportProvider || defaultConfig.transportProvider;
-    const sessionTimeout = options?.sessionTimeout || defaultConfig.sessionTimeout;
+    const transportProvider = options?.transportProvider ?? defaultConfig.transportProvider;
+    const sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     const trackingOptions = { ...defaultConfig.trackingOptions, ...options?.trackingOptions };
     const cookieName = getCookieName(apiKey);
     const cookies = cookieStorage.get(cookieName);
@@ -65,17 +73,21 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       apiKey,
       storageProvider,
       transportProvider,
-      userId: userId || cookies?.userId,
+      userId: userId ?? cookies?.userId,
       deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
       sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
     });
 
-    this.cookieExpiration = options?.cookieExpiration || defaultConfig.cookieExpiration;
-    this.cookieSameSite = options?.cookieSameSite || defaultConfig.cookieSameSite;
-    this.cookieSecure = options?.cookieSecure || defaultConfig.cookieSecure;
+    this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
+    this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
+    this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
     this.cookieStorage = cookieStorage;
-    this.disableCookies = options?.disableCookies || defaultConfig.disableCookies;
-    this.domain = options?.domain || defaultConfig.domain;
+    this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
+    this.domain = options?.domain ?? defaultConfig.domain;
+    this.includeGclid = options?.includeGclid ?? defaultConfig.includeGclid;
+    this.includeFbclid = options?.includeFbclid ?? defaultConfig.includeFbclid;
+    this.includeReferrer = options?.includeReferrer ?? defaultConfig.includeReferrer;
+    this.includeUtm = options?.includeUtm ?? defaultConfig.includeUtm;
     this.sessionTimeout = sessionTimeout;
     this.trackingOptions = trackingOptions;
   }

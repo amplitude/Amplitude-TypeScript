@@ -30,21 +30,22 @@ export class CookieStorage<T> implements Storage<T> {
 
   get(key: string): T | undefined {
     try {
-      const cookie = window.document.cookie.split('; ');
-      const match = cookie.find((c) => {
-        const start = c.indexOf(key + '=');
-        return start === 0;
-      });
-      if (!match) {
-        return undefined;
-      }
-      const value = match.substring(key.length + 1);
+      const value = this.findByKey(key);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return JSON.parse(value);
+      return value ? JSON.parse(value) : undefined;
     } catch {
       /* istanbul ignore next */
       return undefined;
     }
+  }
+
+  findByKey(key: string): string | undefined {
+    const cookie = window.document.cookie.split('; ');
+    const match = cookie.find((c) => c.indexOf(key + '=') === 0);
+    if (!match) {
+      return undefined;
+    }
+    return match.substring(key.length + 1);
   }
 
   set(key: string, value: T | null, options?: CookieStorageOptions) {
