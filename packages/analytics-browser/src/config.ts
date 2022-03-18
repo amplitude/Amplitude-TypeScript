@@ -11,9 +11,9 @@ import { CookieStorage } from './storage/cookie';
 import { FetchTransport } from './transports/fetch';
 import { LocalStorage } from './storage/local-storage';
 import { MemoryStorage } from './storage/memory';
-import { UUID } from './utils/uuid';
 import { getCookieName } from './session-manager';
 import { getQueryParams } from './utils/query-params';
+import { UUID } from './utils/uuid';
 
 export const defaultConfig = {
   cookieExpiration: 365,
