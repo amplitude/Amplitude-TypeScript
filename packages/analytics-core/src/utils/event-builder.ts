@@ -8,10 +8,10 @@ import {
   RevenueEvent,
 } from '@amplitude/analytics-types';
 
-export const createTrackEvent = (eventType: string): TrackEvent => {
-  // NOTE: placeholder
+export const createTrackEvent = (eventType: string, eventProperties?: Record<string, any>): TrackEvent => {
   return {
     event_type: eventType,
+    ...(eventProperties && { event_properties: eventProperties }),
   };
 };
 

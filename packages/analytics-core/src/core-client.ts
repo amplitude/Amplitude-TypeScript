@@ -13,9 +13,9 @@ export const init = (config: Config) => {
   return createConfig(config);
 };
 
-export const track = (eventType: string) => {
+export const track = (eventType: string, eventProperties?: Record<string, any>) => {
   const config = getConfig();
-  const event = createTrackEvent(eventType);
+  const event = createTrackEvent(eventType, eventProperties);
   return dispatch(event, config);
 };
 export const logEvent = track;
