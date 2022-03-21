@@ -23,6 +23,10 @@ export const DEFAULT_OPTIONS: InitOptions<BrowserConfig> = {
   cookieSecure: false,
   disableCookies: false,
   domain: '',
+  includeGclid: true,
+  includeFbclid: true,
+  includeReferrer: true,
+  includeUtm: true,
   storageProvider: {
     isEnabled: () => true,
     get: () => undefined,

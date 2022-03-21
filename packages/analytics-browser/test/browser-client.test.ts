@@ -2,6 +2,7 @@ import { init, setUserId, setDeviceId, setSessionId } from '../src/browser-clien
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
+import * as attribution from '../src/attribution';
 
 describe('browser-client', () => {
   const API_KEY = 'apiKey';
@@ -10,10 +11,14 @@ describe('browser-client', () => {
   describe('init', () => {
     test('should call core init', () => {
       const _init = jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY));
+      const _add = jest.spyOn(core, 'add').mockReturnValueOnce(Promise.resolve());
+      const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       init(API_KEY, USER_ID);
       expect(_init).toHaveBeenCalledTimes(1);
       expect(updateCookies).toHaveBeenCalledTimes(1);
+      expect(_add).toHaveBeenCalledTimes(2);
+      expect(trackAttributions).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -5,7 +5,7 @@ describe('query-params', () => {
     beforeEach(() => {
       Object.defineProperty(window, 'location', {
         value: {
-          search: '?a=1&b=2%20test&&c%24',
+          search: '?a=1&b=2%20test&&c%24=hello&d',
         },
       });
     });
@@ -21,7 +21,7 @@ describe('query-params', () => {
       expect(params).toEqual({
         a: '1',
         b: '2 test',
-        c$: '',
+        c$: 'hello',
       });
     });
   });

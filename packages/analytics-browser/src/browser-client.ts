@@ -1,5 +1,6 @@
 import { add, Destination, init as _init, track as _track } from '@amplitude/analytics-core';
 import { BrowserConfig, BrowserOptions } from '@amplitude/analytics-types';
+import { trackAttributions } from './attribution';
 import { createConfig, getConfig } from './config';
 import { Context } from './plugins/context';
 import { updateCookies } from './session-manager';
@@ -11,6 +12,7 @@ export const init = (apiKey: string, userId?: string, options?: BrowserOptions) 
 
   void add(new Context());
   void add(new Destination());
+  trackAttributions(config);
 };
 
 export const setUserId = (userId: string) => {
