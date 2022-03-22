@@ -76,6 +76,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       userId: userId ?? cookies?.userId,
       deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
       sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
+      optOut: Boolean(cookies?.optOut),
     });
 
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
