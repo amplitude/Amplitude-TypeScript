@@ -1,4 +1,4 @@
-import { init, setUserId, setDeviceId, setSessionId } from '../src/browser-client';
+import { init, setUserId, setDeviceId, setSessionId, setOptOut } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
@@ -23,7 +23,7 @@ describe('browser-client', () => {
   });
 
   describe('setUserId', () => {
-    test('shoud update user id', () => {
+    test('should update user id', () => {
       const config = Config.createConfig(API_KEY);
       const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
@@ -38,7 +38,7 @@ describe('browser-client', () => {
   });
 
   describe('setDeviceId', () => {
-    test('shoud update device id', () => {
+    test('should update device id', () => {
       const config = Config.createConfig(API_KEY);
       const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
@@ -53,7 +53,7 @@ describe('browser-client', () => {
   });
 
   describe('setSessionId', () => {
-    test('shoud update session id', () => {
+    test('should update session id', () => {
       const config = Config.createConfig(API_KEY);
       const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
@@ -63,6 +63,25 @@ describe('browser-client', () => {
       expect(updateCookies).toHaveBeenLastCalledWith({
         ...config,
         sessionId: 1,
+      });
+    });
+  });
+
+  describe('setOptOut', () => {
+    test('should update opt out config', () => {
+      const config = Config.createConfig(API_KEY);
+      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
+      const _setOptOut = jest.spyOn(core, 'setOptOut').mockImplementationOnce((optOut: boolean) => {
+        config.optOut = Boolean(optOut);
+      });
+      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
+      setOptOut(true);
+      expect(getConfig).toHaveBeenCalledTimes(1);
+      expect(_setOptOut).toHaveBeenCalledTimes(1);
+      expect(updateCookies).toHaveBeenCalledTimes(1);
+      expect(updateCookies).toHaveBeenLastCalledWith({
+        ...config,
+        optOut: true,
       });
     });
   });
