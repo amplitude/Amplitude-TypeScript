@@ -11,7 +11,10 @@ describe('browser-client', () => {
   describe('init', () => {
     test('should call core init', () => {
       const _init = jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY));
-      const _add = jest.spyOn(core, 'add').mockReturnValueOnce(Promise.resolve());
+      const _add = jest
+        .spyOn(core, 'add')
+        .mockReturnValueOnce(Promise.resolve())
+        .mockReturnValueOnce(Promise.resolve());
       const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       init(API_KEY, USER_ID);
