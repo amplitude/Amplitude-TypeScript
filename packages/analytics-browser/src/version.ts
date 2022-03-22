@@ -9,4 +9,4 @@
  *
  * WARNING: This file does not need to be updated and checked into git
  */
-export const VERSION = '0.0.0';
+export const VERSION = 'x.y.z';
