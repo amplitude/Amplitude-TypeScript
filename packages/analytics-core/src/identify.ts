@@ -4,7 +4,7 @@ import {
   ValidPropertyType,
   Identify as IIdentify,
 } from '@amplitude/analytics-types';
-import { UNSET_VALUE } from './constant';
+import { UNSET_VALUE } from './constants';
 import { isValidProperties } from './utils/valid-properties';
 
 export class Identify implements IIdentify {

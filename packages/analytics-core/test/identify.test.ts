@@ -1,4 +1,4 @@
-import { UNSET_VALUE } from '../src/constant';
+import { UNSET_VALUE } from '../src/constants';
 import { IdentifyOperation } from '@amplitude/analytics-types';
 import { Identify } from '../src/index';
 
