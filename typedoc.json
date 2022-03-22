@@ -1,0 +1,11 @@
+{
+  "entryPoints": [
+    "packages/analytics-browser",
+    "packages/analytics-types"
+  ],
+  "entryPointStrategy": "packages",
+  "logLevel": "Error",
+  "name": "Amplitude SDK",
+  "out": "docs",
+  "readme": "./README.md"
+}

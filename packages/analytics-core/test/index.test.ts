@@ -4,6 +4,7 @@ import {
   logEvent,
   identify,
   groupIdentify,
+  setOptOut,
   revenue,
   add,
   remove,
@@ -21,6 +22,7 @@ describe('index', () => {
     expect(typeof logEvent).toBe('function');
     expect(typeof identify).toBe('function');
     expect(typeof groupIdentify).toBe('function');
+    expect(typeof setOptOut).toBe('function');
     expect(typeof revenue).toBe('function');
     expect(typeof add).toBe('function');
     expect(typeof remove).toBe('function');

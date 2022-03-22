@@ -1,4 +1,4 @@
-import { add, Destination, init as _init, track as _track } from '@amplitude/analytics-core';
+import { add, Destination, init as _init, track as _track, setOptOut as _setOptOut } from '@amplitude/analytics-core';
 import { BrowserConfig, BrowserOptions } from '@amplitude/analytics-types';
 import { trackAttributions } from './attribution';
 import { createConfig, getConfig } from './config';
@@ -30,6 +30,12 @@ export const setDeviceId = (deviceId: string) => {
 export const setSessionId = (sessionId: number) => {
   const config = getConfig();
   config.sessionId = sessionId;
+  updateCookies(config);
+};
+
+export const setOptOut = (optOut: boolean) => {
+  _setOptOut(optOut);
+  const config = getConfig();
   updateCookies(config);
 };
 

@@ -5,6 +5,7 @@
   ],
   "scripts": {
     "build": "lerna run build --stream",
+    "docs": "typedoc",
     "fix": "lerna run fix --stream",
     "lint": "lerna run lint --stream",
     "lint:staged": "lint-staged",
@@ -27,6 +28,7 @@
     "lint-staged": "^12.2.2",
     "prettier": "^2.5.1",
     "ts-jest": "^27.1.3",
+    "typedoc": "^0.22.13",
     "typescript": "^4.5.5"
   },
   "lint-staged": {

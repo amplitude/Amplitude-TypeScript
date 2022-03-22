@@ -121,4 +121,14 @@ describe('core-client', () => {
       expect(push).toBeCalledTimes(1);
     });
   });
+
+  describe('setOptOut', () => {
+    test('should update opt out value', () => {
+      const config = useDefaultConfig();
+      const get = jest.spyOn(Config, 'getConfig').mockReturnValue(config);
+      client.setOptOut(true);
+      expect(get).toHaveBeenCalledTimes(1);
+      expect(config.optOut).toBe(true);
+    });
+  });
 });
