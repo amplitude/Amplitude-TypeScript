@@ -1,14 +1,4 @@
-import {
-  Config,
-  Event,
-  GroupIdentifyEvent,
-  Identify,
-  IdentifyEvent,
-  Plugin,
-  Revenue,
-  RevenueEvent,
-  TrackEvent,
-} from '@amplitude/analytics-types';
+import { Config, Event, EventOptions, Identify, Plugin, Revenue } from '@amplitude/analytics-types';
 import { createConfig, getConfig } from './config';
 import {
   createGroupIdentifyEvent,
@@ -23,7 +13,7 @@ export const init = (config: Config) => {
   return createConfig(config);
 };
 
-export const track = (eventType: string, eventProperties?: Record<string, any>, eventOptions?: Partial<TrackEvent>) => {
+export const track = (eventType: string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) => {
   const config = getConfig();
   const event = createTrackEvent(eventType, eventProperties, eventOptions);
   return dispatch(event, config);
@@ -34,7 +24,7 @@ export const identify = (
   userId: string | undefined,
   deviceId: string | undefined,
   identify: Identify,
-  eventOptions?: Partial<IdentifyEvent>,
+  eventOptions?: EventOptions,
 ) => {
   const config = getConfig();
   const event = createIdentifyEvent(userId, deviceId, identify, eventOptions);
@@ -47,14 +37,14 @@ export const groupIdentify = (
   groupType: string,
   groupName: string | string[],
   identify: Identify,
-  eventOptions?: Partial<GroupIdentifyEvent>,
+  eventOptions?: EventOptions,
 ) => {
   const config = getConfig();
   const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify, eventOptions);
   return dispatch(event, config);
 };
 
-export const revenue = (revenue: Revenue, eventOptions?: Partial<RevenueEvent>) => {
+export const revenue = (revenue: Revenue, eventOptions?: EventOptions) => {
   const config = getConfig();
   const event = createRevenueEvent(revenue, eventOptions);
   return dispatch(event, config);
