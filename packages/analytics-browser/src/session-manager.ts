@@ -8,6 +8,7 @@ export const updateCookies = (config: BrowserConfig) => {
     deviceId: config.deviceId,
     sessionId: config.sessionId,
     lastEventTime: config.cookieStorage.get(cookieName)?.lastEventTime,
+    optOut: Boolean(config.optOut),
   });
 };
 
@@ -18,6 +19,7 @@ export const updateLastEventTime = (config: BrowserConfig, lastEventTime: number
     deviceId: config.deviceId,
     sessionId: config.sessionId,
     lastEventTime: lastEventTime,
+    optOut: Boolean(config.optOut),
   });
 };
 

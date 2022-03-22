@@ -22,6 +22,7 @@ export const defaultConfig = {
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
   saveEvents: true,
+  optOut: false,
   serverUrl: AMPLITUDE_SERVER_URL,
 };
 
@@ -35,6 +36,7 @@ export class Config implements IConfig {
   flushQueueSize: number;
   loggerProvider: ILogger;
   logLevel: LogLevel;
+  optOut: boolean;
   saveEvents: boolean;
   serverUrl: string;
   transportProvider: Transport;
@@ -50,6 +52,7 @@ export class Config implements IConfig {
     this.flushQueueSize = options.flushQueueSize || defaultConfig.flushQueueSize;
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel || defaultConfig.logLevel;
+    this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
     this.serverUrl = options.serverUrl || AMPLITUDE_SERVER_URL;
     this.storageProvider = options.storageProvider;

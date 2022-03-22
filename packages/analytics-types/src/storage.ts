@@ -3,6 +3,7 @@ export interface UserSession {
   deviceId?: string;
   sessionId?: number;
   lastEventTime?: number;
+  optOut: boolean;
 }
 
 export interface Storage<T> {
