@@ -86,7 +86,6 @@ describe('context', () => {
       expect(firstContextEvent.event_id).toEqual(0);
       expect(firstContextEvent.event_type).toEqual('event_type');
       expect(firstContextEvent.insert_id).toBeDefined();
-      expect(firstContextEvent.insert_id).toBeDefined();
 
       // tracking options should not be included
       expect(firstContextEvent.platform).toBeUndefined();
@@ -101,5 +100,30 @@ describe('context', () => {
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
     });
+  });
+
+  test('should be overwritten by the context', async () => {
+    const context = new Context();
+    const config = useDefaultConfig('user@amplitude.com', {
+      deviceId: 'deviceId',
+      sessionId: 1,
+    });
+    config.appVersion = '1.0.0';
+    await context.setup(config);
+
+    const event = {
+      event_type: 'event_type',
+      device_id: 'new deviceId',
+    };
+    const firstContextEvent = await context.execute(event);
+    expect(firstContextEvent.app_version).toEqual('1.0.0');
+    expect(firstContextEvent.event_id).toEqual(0);
+    expect(firstContextEvent.event_type).toEqual('event_type');
+    expect(firstContextEvent.insert_id).toBeDefined();
+    expect(firstContextEvent.ip).toBeUndefined();
+    expect(firstContextEvent.device_id).toEqual('new deviceId');
+
+    const secondContextEvent = await context.execute(event);
+    expect(secondContextEvent.event_id).toEqual(1);
   });
 });
