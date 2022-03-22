@@ -8,8 +8,13 @@ import {
   RevenueEvent,
 } from '@amplitude/analytics-types';
 
-export const createTrackEvent = (eventType: string, eventProperties?: Record<string, any>): TrackEvent => {
+export const createTrackEvent = (
+  eventType: string,
+  eventProperties?: Record<string, any>,
+  eventOptions?: Partial<TrackEvent>,
+): TrackEvent => {
   return {
+    ...eventOptions,
     event_type: eventType,
     ...(eventProperties && { event_properties: eventProperties }),
   };
@@ -19,8 +24,10 @@ export const createIdentifyEvent = (
   userId: string | undefined,
   deviceId: string | undefined,
   identify: Identify,
+  eventOptions?: Partial<IdentifyEvent>,
 ): IdentifyEvent => {
   const identifyEvent: IdentifyEvent = {
+    ...eventOptions,
     event_type: SpecialEventType.IDENTIFY,
     user_properties: identify.getUserProperties(),
     user_id: userId,
@@ -39,8 +46,10 @@ export const createGroupIdentifyEvent = (
   groupType: string,
   groupName: string | string[],
   identify: Identify,
+  eventOptions?: Partial<GroupIdentifyEvent>,
 ): GroupIdentifyEvent => {
   const groupIdentify: GroupIdentifyEvent = {
+    ...eventOptions,
     event_type: SpecialEventType.GROUP_IDENTIFY,
     group_properties: identify.getUserProperties(),
     groups: {
@@ -56,8 +65,9 @@ export const createGroupIdentifyEvent = (
   return groupIdentify;
 };
 
-export const createRevenueEvent = (revenue: Revenue): RevenueEvent => {
+export const createRevenueEvent = (revenue: Revenue, eventOptions?: Partial<RevenueEvent>): RevenueEvent => {
   return {
+    ...eventOptions,
     event_type: SpecialEventType.REVENUE,
     event_properties: revenue.getEventProperties(),
   };

@@ -7,10 +7,12 @@ describe('event-builder', () => {
     test('should create event', () => {
       const eventType = 'track event';
       const eventProperties = { event: 'test' };
-      const event = createTrackEvent(eventType, eventProperties);
+      const eventOptions = { user_id: 'eventUserId' };
+      const event = createTrackEvent(eventType, eventProperties, eventOptions);
       expect(event).toEqual({
         event_properties: { event: 'test' },
         event_type: 'track event',
+        user_id: 'eventUserId',
       });
     });
 
@@ -28,7 +30,8 @@ describe('event-builder', () => {
       const userId = 'userId';
       const deviceId = 'deviceId';
       const identify = new Identify();
-      const event = createIdentifyEvent(userId, deviceId, identify);
+      const eventOptions = { user_id: 'eventUserId' };
+      const event = createIdentifyEvent(userId, deviceId, identify, eventOptions);
       expect(event).toEqual({
         event_type: SpecialEventType.IDENTIFY,
         user_properties: {},
@@ -57,7 +60,8 @@ describe('event-builder', () => {
       const groupType = 'groupType';
       const groupName = 'groupName';
       const identify = new Identify();
-      const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify);
+      const eventOptions = { user_id: 'eventUserId' };
+      const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify, eventOptions);
       expect(event).toEqual({
         event_type: SpecialEventType.GROUP_IDENTIFY,
         group_properties: {},
