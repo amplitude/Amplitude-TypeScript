@@ -120,7 +120,6 @@ describe('context', () => {
     expect(firstContextEvent.event_id).toEqual(0);
     expect(firstContextEvent.event_type).toEqual('event_type');
     expect(firstContextEvent.insert_id).toBeDefined();
-    expect(firstContextEvent.ip).toBeUndefined();
     expect(firstContextEvent.device_id).toEqual('new deviceId');
 
     const secondContextEvent = await context.execute(event);
