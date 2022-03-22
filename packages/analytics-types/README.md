@@ -1,1 +1,0 @@
-# @amplitude/analytics-types
