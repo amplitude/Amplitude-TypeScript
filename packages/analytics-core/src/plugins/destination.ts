@@ -194,7 +194,7 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...retry);
   }
 
-  fulfillRequest(list: Context[], statusCode: number, status: Status) {
-    list.forEach((context) => context.callback(buildResult(statusCode, status)));
+  fulfillRequest(list: Context[], code: number, status: Status) {
+    list.forEach((context) => context.callback(buildResult(context.event, code, status)));
   }
 }

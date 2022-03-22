@@ -7,8 +7,7 @@ import * as timeline from '../src/timeline';
 import { USER_ID, DEVICE_ID, useDefaultConfig } from './helpers/default';
 
 describe('core-client', () => {
-  const success = { statusCode: 200, status: Status.Success };
-  const failed = { statusCode: 0, status: Status.Unknown };
+  const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
 
   describe('init', () => {
     afterEach(() => {
@@ -116,7 +115,11 @@ describe('core-client', () => {
       const config: IConfig = useDefaultConfig();
 
       const result = await client.dispatch(event, config);
-      expect(result).toEqual(failed);
+      expect(result).toEqual({
+        event,
+        message: 'Error',
+        code: 0,
+      });
       expect(push).toBeCalledTimes(1);
     });
   });

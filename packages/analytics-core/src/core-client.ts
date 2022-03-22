@@ -56,7 +56,7 @@ export const remove = async (pluginName: string) => {
 export const dispatch = async (event: Event, config: Config) => {
   try {
     return push(event, config);
-  } catch (_) {
-    return buildResult();
+  } catch (e) {
+    return buildResult(event, 0, String(e));
   }
 };

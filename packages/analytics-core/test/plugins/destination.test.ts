@@ -23,12 +23,12 @@ describe('destination', () => {
   describe('execute', () => {
     test('should execute plugin', async () => {
       const destination = new Destination();
-      const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
-        context.callback({ statusCode: 200, status: Status.Success });
-      });
       const event = {
         event_type: 'event_type',
       };
+      const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
+        context.callback({ event, code: 200, message: Status.Success });
+      });
       await destination.execute(event);
       expect(addToQueue).toHaveBeenCalledTimes(1);
     });
@@ -174,8 +174,8 @@ describe('destination', () => {
       const result = await destination.execute({
         event_type: 'event_type',
       });
-      expect(result.statusCode).toBe(0);
-      expect(result.status).toBe(Status.Unknown);
+      expect(result.code).toBe(0);
+      expect(result.message).toBe(Status.Unknown);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -217,8 +217,8 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
-      expect(results[0].statusCode).toBe(400);
-      expect(results[1].statusCode).toBe(200);
+      expect(results[0].code).toBe(400);
+      expect(results[1].code).toBe(200);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -255,8 +255,8 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
-      expect(results[0].statusCode).toBe(400);
-      expect(results[1].statusCode).toBe(400);
+      expect(results[0].code).toBe(400);
+      expect(results[1].code).toBe(400);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -281,12 +281,14 @@ describe('destination', () => {
         transportProvider,
       };
       await destination.setup(config);
-      const result = await destination.execute({
+      const event = {
         event_type: 'event_type',
-      });
+      };
+      const result = await destination.execute(event);
       expect(result).toEqual({
-        status: Status.PayloadTooLarge,
-        statusCode: 413,
+        event,
+        message: Status.PayloadTooLarge,
+        code: 413,
       });
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
@@ -397,10 +399,10 @@ describe('destination', () => {
           device_id: '3',
         }),
       ]);
-      expect(results[0].statusCode).toBe(200);
-      expect(results[1].statusCode).toBe(429);
-      expect(results[2].statusCode).toBe(429);
-      expect(results[3].statusCode).toBe(200);
+      expect(results[0].code).toBe(200);
+      expect(results[1].code).toBe(429);
+      expect(results[2].code).toBe(429);
+      expect(results[3].code).toBe(200);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -473,8 +475,8 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
-      expect(results[0].statusCode).toBe(500);
-      expect(results[1].statusCode).toBe(500);
+      expect(results[0].code).toBe(500);
+      expect(results[1].code).toBe(500);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
   });
