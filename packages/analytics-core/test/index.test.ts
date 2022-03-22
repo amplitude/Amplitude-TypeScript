@@ -13,6 +13,7 @@ import {
   Destination,
   Config,
   Logger,
+  AMPLITUDE_PREFIX,
 } from '../src/index';
 
 describe('index', () => {
@@ -31,5 +32,6 @@ describe('index', () => {
     expect(typeof Destination).toBe('function');
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
+    expect(AMPLITUDE_PREFIX).toBe('AMP');
   });
 });

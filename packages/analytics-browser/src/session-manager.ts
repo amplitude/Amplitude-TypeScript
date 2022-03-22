@@ -1,5 +1,5 @@
 import { BrowserConfig } from '@amplitude/analytics-types';
-import { COOKIE_PREFIX } from './constants';
+import { AMPLITUDE_PREFIX } from '@amplitude/analytics-core';
 
 export const updateCookies = (config: BrowserConfig) => {
   const cookieName = getCookieName(config.apiKey);
@@ -24,5 +24,5 @@ export const updateLastEventTime = (config: BrowserConfig, lastEventTime: number
 };
 
 export const getCookieName = (apiKey: string) => {
-  return `${COOKIE_PREFIX}_${apiKey.substring(0, 10)}`;
+  return `${AMPLITUDE_PREFIX}_${apiKey.substring(0, 10)}`;
 };

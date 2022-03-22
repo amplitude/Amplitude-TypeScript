@@ -6,3 +6,4 @@ export { Revenue } from './revenue';
 export { Destination } from './plugins/destination';
 export { Config } from './config';
 export { Logger } from './logger';
+export { AMPLITUDE_PREFIX } from './constants';
