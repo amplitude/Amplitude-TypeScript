@@ -32,7 +32,7 @@ export const deregister = (pluginName: string) => {
 export const push = (event: Event, config: Config) => {
   return new Promise<Result>((resolve) => {
     if (config.optOut) {
-      resolve(buildResult(0, Status.Skipped));
+      resolve(buildResult(event, 0, Status.Skipped));
       return;
     }
     queue.push([event, resolve]);
@@ -83,7 +83,10 @@ export const apply = async () => {
     (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
   );
 
-  const executeDestinations = destination.map((plugin) => plugin.execute({ ...event }).catch(() => buildResult()));
+  const executeDestinations = destination.map((plugin) => {
+    const eventClone = { ...event };
+    return plugin.execute(eventClone).catch((e) => buildResult(eventClone, 0, String(e)));
+  });
 
   void Promise.all(executeDestinations).then(([result]) => {
     resolve(result);

@@ -206,11 +206,9 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...retry);
   }
 
-  fulfillRequest(list: Context[], statusCode: number, status: Status) {
+  fulfillRequest(list: Context[], code: number, status: Status) {
     this.removeFromBackup(...list.map((context) => context.event));
-    list.forEach((context) => {
-      context.callback(buildResult(statusCode, status));
-    });
+    list.forEach((context) => context.callback(buildResult(context.event, code, status)));
   }
 
   addToBackup(...events: Event[]) {

@@ -1,6 +1,7 @@
-import { Status } from './status';
+import { Event } from './event';
 
 export interface Result {
-  status: Status;
-  statusCode: number;
+  event: Event;
+  code: number;
+  message: string;
 }

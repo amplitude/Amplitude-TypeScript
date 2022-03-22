@@ -3,14 +3,21 @@ import { buildResult } from '../../src/utils/result-builder';
 
 describe('buildResult', () => {
   test('should return success', () => {
-    const result = buildResult(200, Status.Success);
-    expect(result.statusCode).toBe(200);
-    expect(result.status).toBe(Status.Success);
+    const event = {
+      event_type: 'hello',
+    };
+    const result = buildResult(event, 200, Status.Success);
+    expect(result.event).toBeDefined();
+    expect(result.code).toBe(200);
+    expect(result.message).toBe(Status.Success);
   });
 
   test('should return default values', () => {
-    const result = buildResult();
-    expect(result.statusCode).toBe(0);
-    expect(result.status).toBe(Status.Unknown);
+    const event = {
+      event_type: 'hello',
+    };
+    const result = buildResult(event);
+    expect(result.code).toBe(0);
+    expect(result.message).toBe(Status.Unknown);
   });
 });
