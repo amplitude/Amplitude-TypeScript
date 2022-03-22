@@ -36,7 +36,6 @@ export class Context implements BeforePlugin {
       const deviceVendor = this.uaResult.device.vendor;
 
       const contextEvent: Event = {
-        ...context,
         user_id: this.config.userId,
         device_id: this.config.deviceId,
         session_id: this.config.sessionId,
@@ -49,8 +48,9 @@ export class Context implements BeforePlugin {
         ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
         ...(this.config.trackingOptions.language && { language: getLanguage() }),
         ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
-        event_id: this.eventId++,
         insert_id: UUID(),
+        ...context,
+        event_id: this.eventId++,
         library: this.library,
       };
       return resolve(contextEvent);

@@ -1,4 +1,4 @@
-import { Event, Plugin, Config, Identify, Revenue } from '@amplitude/analytics-types';
+import { Config, Event, EventOptions, Identify, Plugin, Revenue } from '@amplitude/analytics-types';
 import { createConfig, getConfig } from './config';
 import {
   createGroupIdentifyEvent,
@@ -13,16 +13,21 @@ export const init = (config: Config) => {
   return createConfig(config);
 };
 
-export const track = (eventType: string) => {
+export const track = (eventType: string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) => {
   const config = getConfig();
-  const event = createTrackEvent(eventType);
+  const event = createTrackEvent(eventType, eventProperties, eventOptions);
   return dispatch(event, config);
 };
 export const logEvent = track;
 
-export const identify = (userId: string | undefined, deviceId: string | undefined, identify: Identify) => {
+export const identify = (
+  userId: string | undefined,
+  deviceId: string | undefined,
+  identify: Identify,
+  eventOptions?: EventOptions,
+) => {
   const config = getConfig();
-  const event = createIdentifyEvent(userId, deviceId, identify);
+  const event = createIdentifyEvent(userId, deviceId, identify, eventOptions);
   return dispatch(event, config);
 };
 
@@ -32,15 +37,16 @@ export const groupIdentify = (
   groupType: string,
   groupName: string | string[],
   identify: Identify,
+  eventOptions?: EventOptions,
 ) => {
   const config = getConfig();
-  const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify);
+  const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify, eventOptions);
   return dispatch(event, config);
 };
 
-export const revenue = (revenue: Revenue) => {
+export const revenue = (revenue: Revenue, eventOptions?: EventOptions) => {
   const config = getConfig();
-  const event = createRevenueEvent(revenue);
+  const event = createRevenueEvent(revenue, eventOptions);
   return dispatch(event, config);
 };
 

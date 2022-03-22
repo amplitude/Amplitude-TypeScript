@@ -26,7 +26,8 @@ describe('core-client', () => {
       const get = jest.spyOn(Config, 'getConfig');
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const eventType = 'eventType';
-      const response = await client.track(eventType);
+      const eventProperties = { event: 'test' };
+      const response = await client.track(eventType, eventProperties);
       expect(response).toEqual(success);
       expect(get).toHaveBeenCalledTimes(1);
       expect(dispatch).toHaveBeenCalledTimes(1);
