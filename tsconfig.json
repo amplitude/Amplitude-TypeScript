@@ -1,4 +1,5 @@
 {
+  "exclude": ["**/test/*"],
   "compilerOptions": {
     "alwaysStrict": false,
     "declaration": true,
