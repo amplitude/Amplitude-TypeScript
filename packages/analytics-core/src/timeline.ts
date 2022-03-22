@@ -8,6 +8,7 @@ import {
   Plugin,
   PluginType,
   Result,
+  Status,
 } from '@amplitude/analytics-types';
 import { buildResult } from './utils/result-builder';
 
@@ -29,8 +30,11 @@ export const deregister = (pluginName: string) => {
 };
 
 export const push = (event: Event, config: Config) => {
-  config; // wink
   return new Promise<Result>((resolve) => {
+    if (config.optOut) {
+      resolve(buildResult(event, 0, Status.Skipped));
+      return;
+    }
     queue.push([event, resolve]);
     scheduleApply(0);
   });

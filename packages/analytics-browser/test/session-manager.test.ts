@@ -28,6 +28,7 @@ describe('session-mananger', () => {
         deviceId: 'deviceId',
         sessionId: 0,
         lastEventTime: now,
+        optOut: false,
       });
     });
 
@@ -52,6 +53,7 @@ describe('session-mananger', () => {
         deviceId: 'deviceId',
         sessionId: 0,
         lastEventTime: undefined,
+        optOut: false,
       });
     });
   });
@@ -79,6 +81,7 @@ describe('session-mananger', () => {
         deviceId: 'deviceId',
         sessionId: 0,
         lastEventTime: now,
+        optOut: false,
       });
     });
   });

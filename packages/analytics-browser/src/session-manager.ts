@@ -1,5 +1,5 @@
 import { BrowserConfig } from '@amplitude/analytics-types';
-import { COOKIE_PREFIX } from './constants';
+import { AMPLITUDE_PREFIX } from '@amplitude/analytics-core';
 
 export const updateCookies = (config: BrowserConfig) => {
   const cookieName = getCookieName(config.apiKey);
@@ -8,6 +8,7 @@ export const updateCookies = (config: BrowserConfig) => {
     deviceId: config.deviceId,
     sessionId: config.sessionId,
     lastEventTime: config.cookieStorage.get(cookieName)?.lastEventTime,
+    optOut: Boolean(config.optOut),
   });
 };
 
@@ -18,9 +19,10 @@ export const updateLastEventTime = (config: BrowserConfig, lastEventTime: number
     deviceId: config.deviceId,
     sessionId: config.sessionId,
     lastEventTime: lastEventTime,
+    optOut: Boolean(config.optOut),
   });
 };
 
 export const getCookieName = (apiKey: string) => {
-  return `${COOKIE_PREFIX}_${apiKey.substring(0, 10)}`;
+  return `${AMPLITUDE_PREFIX}_${apiKey.substring(0, 10)}`;
 };

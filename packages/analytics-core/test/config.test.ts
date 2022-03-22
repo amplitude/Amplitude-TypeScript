@@ -25,4 +25,19 @@ describe('config', () => {
     );
     expect(getConfig()).toBeDefined();
   });
+
+  test('should overwrite config', () => {
+    expect(getConfig()).toBeUndefined();
+    createConfig(
+      new Config({
+        apiKey: 'apiKey',
+        transportProvider: useDefaultConfig().transportProvider,
+        storageProvider: useDefaultConfig().storageProvider,
+        saveEvents: false,
+        optOut: true,
+      }),
+    );
+    expect(getConfig().saveEvents).toBe(false);
+    expect(getConfig().optOut).toBe(true);
+  });
 });

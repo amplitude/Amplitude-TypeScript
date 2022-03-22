@@ -9,7 +9,7 @@
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
   "publishConfig": {
-    "access": "public"
+    "access": "restricted"
   },
   "repository": {
     "type": "git",
@@ -26,8 +26,10 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "prepublishOnly": "yarn vesion-file",
     "test": "jest",
-    "typecheck": "tsc -p ./tsconfig.json"
+    "typecheck": "tsc -p ./tsconfig.json",
+    "vesion-file": "node -p \"'export const VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts"
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"

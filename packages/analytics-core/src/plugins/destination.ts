@@ -12,6 +12,7 @@ import {
   Status,
   SuccessResponse,
 } from '@amplitude/analytics-types';
+import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 
@@ -20,6 +21,8 @@ export class Destination implements DestinationPlugin {
   type = PluginType.DESTINATION as const;
 
   backoff = 30000;
+  storageKey = '';
+  backup: Set<Event> = new Set();
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -29,6 +32,14 @@ export class Destination implements DestinationPlugin {
 
   setup(config: Config) {
     this.config = config;
+
+    this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
+    const unsent = this.config.storageProvider.get(this.storageKey);
+    this.snapshot(); // sets storage to '[]'
+    if (unsent && unsent.length > 0) {
+      void Promise.all(unsent.map((event) => this.execute(event))).catch();
+    }
+
     return Promise.resolve(undefined);
   }
 
@@ -44,7 +55,8 @@ export class Destination implements DestinationPlugin {
   }
 
   addToQueue(...list: Context[]) {
-    list.map((context) => (context.attempts += 1));
+    this.addToBackup(...list.map((context) => context.event));
+    list.forEach((context) => (context.attempts += 1));
     this.queue = this.queue.concat(...list);
     this.schedule(this.config.flushIntervalMillis);
   }
@@ -195,6 +207,25 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, status: Status) {
+    this.removeFromBackup(...list.map((context) => context.event));
     list.forEach((context) => context.callback(buildResult(context.event, code, status)));
+  }
+
+  addToBackup(...events: Event[]) {
+    if (!this.config.saveEvents) return;
+    events.forEach((event) => this.backup.add(event));
+    this.snapshot();
+  }
+
+  removeFromBackup(...events: Event[]) {
+    if (!this.config.saveEvents) return;
+    events.forEach((event) => this.backup.delete(event));
+    this.snapshot();
+  }
+
+  snapshot() {
+    if (!this.config.saveEvents) return;
+    const events = Array.from(this.backup);
+    this.config.storageProvider.set(this.storageKey, events);
   }
 }

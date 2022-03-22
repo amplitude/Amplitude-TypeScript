@@ -4,6 +4,7 @@ import {
   logEvent,
   identify,
   groupIdentify,
+  setOptOut,
   revenue,
   add,
   remove,
@@ -12,6 +13,7 @@ import {
   Destination,
   Config,
   Logger,
+  AMPLITUDE_PREFIX,
 } from '../src/index';
 
 describe('index', () => {
@@ -21,6 +23,7 @@ describe('index', () => {
     expect(typeof logEvent).toBe('function');
     expect(typeof identify).toBe('function');
     expect(typeof groupIdentify).toBe('function');
+    expect(typeof setOptOut).toBe('function');
     expect(typeof revenue).toBe('function');
     expect(typeof add).toBe('function');
     expect(typeof remove).toBe('function');
@@ -29,5 +32,6 @@ describe('index', () => {
     expect(typeof Destination).toBe('function');
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
+    expect(AMPLITUDE_PREFIX).toBe('AMP');
   });
 });

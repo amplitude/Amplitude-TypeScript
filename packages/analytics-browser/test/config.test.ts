@@ -40,6 +40,8 @@ describe('config', () => {
         includeFbclid: true,
         includeReferrer: true,
         includeUtm: true,
+        optOut: false,
+        saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         sessionId: 0,
         sessionTimeout: 1800000,
@@ -71,6 +73,7 @@ describe('config', () => {
         lastEventTime: Date.now(),
         sessionId: 1,
         userId: 'userIdFromCookies',
+        optOut: false,
       });
       jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
@@ -97,6 +100,8 @@ describe('config', () => {
         includeFbclid: true,
         includeReferrer: true,
         includeUtm: true,
+        optOut: false,
+        saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         sessionId: 1,
         sessionTimeout: 1800000,
@@ -127,7 +132,9 @@ describe('config', () => {
       const cookieStorage = {
         options: {},
         isEnabled: () => true,
-        get: () => ({}),
+        get: () => ({
+          optOut: false,
+        }),
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,

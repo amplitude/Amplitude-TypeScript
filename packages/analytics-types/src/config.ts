@@ -15,6 +15,8 @@ export interface Config {
   flushQueueSize: number;
   logLevel: LogLevel;
   loggerProvider: Logger;
+  optOut: boolean;
+  saveEvents: boolean;
   serverUrl: string;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;

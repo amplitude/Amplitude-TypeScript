@@ -60,3 +60,8 @@ export const dispatch = async (event: Event, config: Config) => {
     return buildResult(event, 0, String(e));
   }
 };
+
+export const setOptOut = (optOut: boolean) => {
+  const config = getConfig();
+  config.optOut = Boolean(optOut);
+};

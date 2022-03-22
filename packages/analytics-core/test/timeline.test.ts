@@ -1,4 +1,4 @@
-import { Event, Plugin, PluginType, Config } from '@amplitude/analytics-types';
+import { Event, Plugin, PluginType, Config, Status } from '@amplitude/analytics-types';
 import { register, deregister, plugins, push, apply } from '../src/timeline';
 import { useDefaultConfig } from './helpers/default';
 
@@ -84,6 +84,22 @@ describe('timeline', () => {
     await deregister(enrichment.name);
     await deregister(destination.name);
     expect(plugins.length).toBe(0);
+  });
+
+  describe('push', () => {
+    test('should handle opt out', async () => {
+      const event = {
+        event_type: 'hello',
+      };
+      const config = useDefaultConfig();
+      config.optOut = true;
+      const results = await push(event, config);
+      expect(results).toEqual({
+        event,
+        code: 0,
+        message: Status.Skipped,
+      });
+    });
   });
 
   describe('apply', () => {
