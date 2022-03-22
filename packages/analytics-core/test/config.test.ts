@@ -33,10 +33,11 @@ describe('config', () => {
         apiKey: 'apiKey',
         transportProvider: useDefaultConfig().transportProvider,
         storageProvider: useDefaultConfig().storageProvider,
+        saveEvents: false,
         optOut: true,
       }),
     );
-    expect(getConfig()).toBeDefined();
+    expect(getConfig().saveEvents).toBe(false);
     expect(getConfig().optOut).toBe(true);
   });
 });

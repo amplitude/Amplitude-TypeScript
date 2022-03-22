@@ -1,8 +1,8 @@
 import { BeforePlugin, BrowserConfig, Event, PluginType } from '@amplitude/analytics-types';
-
 import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '../utils/uuid';
 import { getLanguage } from '../utils/language';
+import { VERSION } from '../version';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
@@ -17,6 +17,7 @@ export class Context implements BeforePlugin {
   config: BrowserConfig;
   eventId = 0;
   uaResult: UAParser.IResult;
+  library = `amplitude-ts/${VERSION}`;
 
   constructor() {
     this.uaResult = new UAParser(navigator.userAgent).getResult();
@@ -50,6 +51,7 @@ export class Context implements BeforePlugin {
         insert_id: UUID(),
         ...context,
         event_id: this.eventId++,
+        library: this.library,
       };
       return resolve(contextEvent);
     });

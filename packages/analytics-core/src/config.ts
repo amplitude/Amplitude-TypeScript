@@ -21,6 +21,7 @@ export const defaultConfig = {
   flushIntervalMillis: 1000,
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
+  saveEvents: true,
   optOut: false,
   serverUrl: AMPLITUDE_SERVER_URL,
 };
@@ -36,6 +37,7 @@ export class Config implements IConfig {
   loggerProvider: ILogger;
   logLevel: LogLevel;
   optOut: boolean;
+  saveEvents: boolean;
   serverUrl: string;
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;
@@ -51,9 +53,10 @@ export class Config implements IConfig {
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel || defaultConfig.logLevel;
     this.optOut = options.optOut ?? defaultConfig.optOut;
+    this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
     this.serverUrl = options.serverUrl || AMPLITUDE_SERVER_URL;
-    this.transportProvider = options.transportProvider;
     this.storageProvider = options.storageProvider;
+    this.transportProvider = options.transportProvider;
 
     this.loggerProvider.enable(this.logLevel);
   }

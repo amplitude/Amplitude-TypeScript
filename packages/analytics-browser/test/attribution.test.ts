@@ -17,8 +17,11 @@ describe('attribution', () => {
       const getFbclid = jest.spyOn(attribution, 'getFbclid').mockReturnValueOnce({});
       const identify = jest.spyOn(core, 'identify').mockReturnValueOnce(
         Promise.resolve({
-          status: Status.Success,
-          statusCode: 200,
+          event: {
+            event_type: 'hello',
+          },
+          message: Status.Success,
+          code: 200,
         }),
       );
       const config = useDefaultConfig();
@@ -37,8 +40,11 @@ describe('attribution', () => {
       const getFbclid = jest.spyOn(attribution, 'getFbclid').mockReturnValueOnce({});
       const identify = jest.spyOn(core, 'identify').mockReturnValueOnce(
         Promise.resolve({
-          status: Status.Success,
-          statusCode: 200,
+          event: {
+            event_type: 'hello',
+          },
+          message: Status.Success,
+          code: 200,
         }),
       );
       const config = useDefaultConfig(undefined, {
@@ -62,8 +68,11 @@ describe('attribution', () => {
       const getFbclid = jest.spyOn(attribution, 'getFbclid').mockReturnValueOnce({});
       const identify = jest.spyOn(core, 'identify').mockReturnValueOnce(
         Promise.resolve({
-          status: Status.Success,
-          statusCode: 200,
+          event: {
+            event_type: 'hello',
+          },
+          message: Status.Success,
+          code: 200,
         }),
       );
       const config = useDefaultConfig();

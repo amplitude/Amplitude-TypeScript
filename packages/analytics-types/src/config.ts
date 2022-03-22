@@ -16,6 +16,7 @@ export interface Config {
   logLevel: LogLevel;
   loggerProvider: Logger;
   optOut: boolean;
+  saveEvents: boolean;
   serverUrl: string;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;

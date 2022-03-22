@@ -95,8 +95,9 @@ describe('timeline', () => {
       config.optOut = true;
       const results = await push(event, config);
       expect(results).toEqual({
-        statusCode: 0,
-        status: Status.Skipped,
+        event,
+        code: 0,
+        message: Status.Skipped,
       });
     });
   });
