@@ -41,6 +41,10 @@ jobs:
         run: |
           yarn build
 
+      - name: Build docs
+        run: |
+          yarn docs:check
+
       - name: Test all packages
         run: |
           yarn test

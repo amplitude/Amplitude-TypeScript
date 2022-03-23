@@ -1,8 +1,5 @@
 name: Generate Docs
-on:
-  push:
-    branches:
-      - main
+on: workflow_dispatch
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -12,7 +9,7 @@ jobs:
 
       - name: Setup
         run: |
-          yarn install
+          yarn
           yarn build
           yarn docs
 

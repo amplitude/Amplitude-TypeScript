@@ -1,16 +1,18 @@
 import { getLanguage } from '../../src/utils/language';
-
-declare global {
-  interface Navigator {
-    language: string | undefined;
-    languages: string[] | undefined;
-    userLanguage: string | undefined;
-  }
+interface Navigator {
+  language: string | undefined;
+  languages: string[] | undefined;
+  userLanguage: string | undefined;
 }
 
 describe('language', () => {
+  // Simulates other browser version
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const nav: Navigator = navigator;
+
   beforeAll(() => {
-    Object.defineProperty(navigator, 'userLanguage', {
+    Object.defineProperty(nav, 'userLanguage', {
       get: () => '',
       configurable: true,
       enumerable: true,
@@ -18,8 +20,8 @@ describe('language', () => {
   });
 
   afterAll(() => {
-    if (navigator?.userLanguage) {
-      delete navigator.userLanguage;
+    if (nav.userLanguage) {
+      delete nav.userLanguage;
     }
   });
 
@@ -52,16 +54,16 @@ describe('language', () => {
     jest.spyOn(window as any, 'navigator', 'get').mockReturnValue(undefined);
     expect(getLanguage()).toBe('');
   });
-});
 
-function enableNavigatorLanguageProperties(properties: Array<'languages' | 'language' | 'userLanguage'>) {
-  jest
-    .spyOn(navigator, 'languages', 'get')
-    .mockReturnValue(properties.includes('languages') ? ['some-locale', 'some-other-locale'] : undefined);
-  jest
-    .spyOn(navigator, 'language', 'get')
-    .mockReturnValue(properties.includes('language') ? 'some-second-locale' : undefined);
-  jest
-    .spyOn(navigator, 'userLanguage', 'get')
-    .mockReturnValue(properties.includes('userLanguage') ? 'some-third-locale' : undefined);
-}
+  function enableNavigatorLanguageProperties(properties: Array<'languages' | 'language' | 'userLanguage'>) {
+    jest
+      .spyOn(nav, 'languages', 'get')
+      .mockReturnValue(properties.includes('languages') ? ['some-locale', 'some-other-locale'] : undefined);
+    jest
+      .spyOn(nav, 'language', 'get')
+      .mockReturnValue(properties.includes('language') ? 'some-second-locale' : undefined);
+    jest
+      .spyOn(nav, 'userLanguage', 'get')
+      .mockReturnValue(properties.includes('userLanguage') ? 'some-third-locale' : undefined);
+  }
+});
