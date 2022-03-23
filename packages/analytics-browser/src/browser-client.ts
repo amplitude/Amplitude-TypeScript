@@ -4,6 +4,7 @@ import { trackAttributions } from './attribution';
 import { createConfig, getConfig } from './config';
 import { Context } from './plugins/context';
 import { updateCookies } from './session-manager';
+import { Amplitude } from './typings/browser-snippet';
 
 export const init = (apiKey: string, userId?: string, options?: BrowserOptions) => {
   const browserOptions = createConfig(apiKey, userId, options);
@@ -40,3 +41,15 @@ export const setOptOut = (optOut: boolean) => {
 };
 
 export const track = _track;
+
+export const runQueuedFunctions = function (amplitudeInstance: Amplitude) {
+  const queue = amplitudeInstance._q;
+  amplitudeInstance._q = [];
+
+  for (let i = 0; i < queue.length; i++) {
+    const fn = amplitudeInstance[queue[i][0]];
+    if (typeof fn === 'function') {
+      fn.apply(amplitudeInstance, queue[i][1]);
+    }
+  }
+};

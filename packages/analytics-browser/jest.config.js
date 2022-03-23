@@ -6,4 +6,5 @@ module.exports = {
   displayName: package.name,
   rootDir: '.',
   testEnvironment: 'jsdom',
+  coveragePathIgnorePatterns: ['browser-snippet.ts'],
 };

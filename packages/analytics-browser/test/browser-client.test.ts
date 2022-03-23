@@ -1,4 +1,5 @@
-import { init, setUserId, setDeviceId, setSessionId, setOptOut } from '../src/browser-client';
+import type { Amplitude } from 'src/typings/browser-snippet';
+import { init, setUserId, setDeviceId, setSessionId, setOptOut, runQueuedFunctions } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
@@ -86,6 +87,20 @@ describe('browser-client', () => {
         ...config,
         optOut: true,
       });
+    });
+  });
+
+  describe('runQueuedFunctions', () => {
+    test('should run queued functions', () => {
+      const amplitude = <Amplitude>(<unknown>{
+        init: jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY)),
+        _q: <Array<[string, []]>>[],
+      });
+      const functions = [['init', [API_KEY]]];
+      amplitude._q = <Array<[string, []]>>functions;
+      expect(amplitude._q.length).toEqual(1);
+      runQueuedFunctions(amplitude);
+      expect(amplitude.init).toHaveBeenCalledTimes(1);
     });
   });
 });

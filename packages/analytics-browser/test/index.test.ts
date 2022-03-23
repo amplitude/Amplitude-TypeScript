@@ -1,4 +1,4 @@
-import { init, track, setUserId, setDeviceId, setSessionId } from '../src/index';
+import { init, track, setUserId, setDeviceId, setSessionId, runQueuedFunctions } from '../src/index';
 
 describe('index', () => {
   test('should expose apis', () => {
@@ -7,5 +7,6 @@ describe('index', () => {
     expect(typeof setUserId).toBe('function');
     expect(typeof setDeviceId).toBe('function');
     expect(typeof setSessionId).toBe('function');
+    expect(typeof runQueuedFunctions).toBe('function');
   });
 });

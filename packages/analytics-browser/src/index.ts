@@ -1,1 +1,1 @@
-export { init, track, setUserId, setDeviceId, setSessionId } from './browser-client';
+export { init, track, setUserId, setDeviceId, setSessionId, runQueuedFunctions } from './browser-client';
