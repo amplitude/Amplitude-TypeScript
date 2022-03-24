@@ -7,8 +7,11 @@
   "useWorkspaces": true,
   "command": {
     "version": {
+      "allowBranch": "main",
       "conventionalCommits": true,
-      "createRelease": "github"
+      "createRelease": "github",
+      "message": "chore(release): publish",
+      "preid": "beta"
     }
   }
 }
