@@ -1,5 +1,12 @@
-import { add, Destination, init as _init, track as _track, setOptOut as _setOptOut } from '@amplitude/analytics-core';
-import { BrowserConfig, BrowserOptions } from '@amplitude/analytics-types';
+import {
+  add,
+  groupIdentify as _groupIdentify,
+  Destination,
+  identify as _identify,
+  init as _init,
+  setOptOut as _setOptOut,
+} from '@amplitude/analytics-core';
+import { BrowserConfig, BrowserOptions, EventOptions, Identify } from '@amplitude/analytics-types';
 import { trackAttributions } from './attribution';
 import { createConfig, getConfig } from './config';
 import { Context } from './plugins/context';
@@ -39,4 +46,15 @@ export const setOptOut = (optOut: boolean) => {
   updateCookies(config);
 };
 
-export const track = _track;
+export const identify = (identify: Identify, eventOptions?: EventOptions) => {
+  return _identify(undefined, undefined, identify, eventOptions);
+};
+
+export const groupIdentify = (
+  groupType: string,
+  groupName: string | string[],
+  identify: Identify,
+  eventOptions?: EventOptions,
+) => {
+  return _groupIdentify(undefined, undefined, groupType, groupName, identify, eventOptions);
+};

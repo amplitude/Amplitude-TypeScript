@@ -1,4 +1,4 @@
-import { init, setUserId, setDeviceId, setSessionId, setOptOut } from '../src/browser-client';
+import { init, groupIdentify, identify, setUserId, setDeviceId, setSessionId, setOptOut } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
@@ -86,6 +86,74 @@ describe('browser-client', () => {
         ...config,
         optOut: true,
       });
+    });
+  });
+
+  describe('identify', () => {
+    test('should call core identify', async () => {
+      const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = new core.Identify();
+      await identify(id);
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, undefined);
+    });
+
+    test('should allow event options', async () => {
+      const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = new core.Identify();
+      await identify(id, {});
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, {});
+    });
+  });
+
+  describe('groupIdentify', () => {
+    test('should call core groupIdentify', async () => {
+      const coreIdentify = jest.spyOn(core, 'groupIdentify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = new core.Identify();
+      await groupIdentify('type', 'name', id);
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, undefined);
+    });
+
+    test('should allow event options', async () => {
+      const coreIdentify = jest.spyOn(core, 'groupIdentify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = new core.Identify();
+      await groupIdentify('type', 'name', id, {});
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, {});
     });
   });
 });
