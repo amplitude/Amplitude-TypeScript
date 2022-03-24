@@ -20,6 +20,7 @@ export interface Config {
   serverUrl: string;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;
+  partnerId?: string;
 }
 
 export interface BrowserConfig extends Config {
