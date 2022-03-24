@@ -36,6 +36,7 @@ export class Config implements IConfig {
   flushQueueSize: number;
   loggerProvider: ILogger;
   logLevel: LogLevel;
+  partnerId?: string;
   optOut: boolean;
   saveEvents: boolean;
   serverUrl: string;
@@ -52,6 +53,7 @@ export class Config implements IConfig {
     this.flushQueueSize = options.flushQueueSize || defaultConfig.flushQueueSize;
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel || defaultConfig.logLevel;
+    this.partnerId = options.partnerId;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
     this.serverUrl = options.serverUrl || AMPLITUDE_SERVER_URL;
