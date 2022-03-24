@@ -43,4 +43,5 @@ export interface EventOptions {
   session_id?: number;
   insert_id?: string;
   plan?: Plan;
+  partner_id?: string;
 }
