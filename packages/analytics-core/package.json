@@ -33,5 +33,8 @@
   },
   "dependencies": {
     "@amplitude/analytics-types": "^0.0.0"
-  }
+  },
+  "files": [
+    "lib"
+  ]
 }
