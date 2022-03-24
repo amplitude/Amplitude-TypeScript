@@ -17,6 +17,7 @@
   },
   "scripts": {
     "build": "yarn bundle && yarn build:es5 & yarn build:esm",
+    "postbuild": "bash deploy/s3.sh 0.0.0",
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
@@ -45,6 +46,7 @@
     "@rollup/plugin-typescript": "^8.3.1",
     "@types/ua-parser-js": "^0.7.36",
     "isomorphic-fetch": "^3.0.0",
-    "rollup": "^2.69.0"
+    "rollup": "^2.69.0",
+    "rollup-plugin-terser": "^7.0.2"
   }
 }

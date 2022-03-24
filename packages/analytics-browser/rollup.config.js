@@ -1,13 +1,14 @@
 import typescript from '@rollup/plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
+import { terser } from 'rollup-plugin-terser';
 
 export default [
   {
     input: 'src/index.ts',
     output: {
       name: 'amplitude',
-      file: 'lib/umd/amplitude.umd.js',
+      file: 'lib/scripts/amplitude.umd.js',
       format: 'umd',
       sourcemap: true,
     },
@@ -28,7 +29,7 @@ export default [
     input: 'src/index.ts',
     output: {
       name: 'amplitude',
-      file: 'lib/snippet/amplitude.js',
+      file: 'lib/scripts/amplitude.js',
       format: 'iife',
       sourcemap: true,
     },
@@ -45,4 +46,18 @@ export default [
       commonjs(),
     ],
   },
+  {
+    input: 'lib/scripts/amplitude.umd.js',
+    output: {
+      file: 'lib/scripts/amplitude-min.umd.js',
+    },
+    plugins: [terser()],
+  },
+  {
+    input: 'lib/scripts/amplitude.js',
+    output: {
+      file: 'lib/scripts/amplitude-min.js',
+    },
+    plugins: [terser()],
+  }
 ];
