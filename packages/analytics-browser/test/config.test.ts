@@ -21,6 +21,7 @@ describe('config', () => {
       logger.enable(LogLevel.Warn);
       const config = Config.createConfig(API_KEY, undefined, {
         deviceId: 'deviceId',
+        partnerId: 'partnerId',
       });
       expect(config).toEqual({
         apiKey: API_KEY,
@@ -41,6 +42,7 @@ describe('config', () => {
         includeReferrer: true,
         includeUtm: true,
         optOut: false,
+        partnerId: 'partnerId',
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         sessionId: 0,

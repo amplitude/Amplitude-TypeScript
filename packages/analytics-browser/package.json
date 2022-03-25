@@ -48,5 +48,8 @@
     "handlebars": "^4.7.7",
     "isomorphic-fetch": "^3.0.0",
     "rollup": "^2.69.0"
-  }
+  },
+  "files": [
+    "lib"
+  ]
 }
