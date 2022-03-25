@@ -11,6 +11,7 @@
     "lint": "lerna run lint --stream",
     "lint:staged": "lint-staged",
     "postinstall": "husky install",
+    "publish": "lerna publish",
     "test": "lerna run test --stream"
   },
   "devDependencies": {

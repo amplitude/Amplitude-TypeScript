@@ -49,6 +49,7 @@ export class Context implements BeforePlugin {
         ...(this.config.trackingOptions.language && { language: getLanguage() }),
         ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
         insert_id: UUID(),
+        partner_id: this.config.partnerId,
         ...context,
         event_id: this.eventId++,
         library: this.library,
