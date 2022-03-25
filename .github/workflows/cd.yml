@@ -82,6 +82,10 @@ jobs:
         if: ${{ env.RELEASE_TYPE == 'prerelease'}}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- -y --conventional-prerelease
+        env:
+          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_KEVINP }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_KEVINP }}
 
       # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
       # 1.0.0-alpha.0 -> 1.0.1
@@ -89,6 +93,10 @@ jobs:
         if: ${{ env.RELEASE_TYPE == 'graduate'}}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- -y --conventional-graduate
+        env:
+          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_KEVINP }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_KEVINP }}
 
       # Use 'release' for the usual deployment
       # NOTE: You probably want this
@@ -96,9 +104,17 @@ jobs:
         if: ${{ env.RELEASE_TYPE == 'release'}}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- -y
+        env:
+          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_KEVINP }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_KEVINP }}
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         if: ${{ env.RELEASE_TYPE == 'from git'}}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- from-git -y
+        env:
+          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID_KEVINP }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY_KEVINP }}
