@@ -5,13 +5,13 @@
   ],
   "scripts": {
     "build": "lerna run build --stream",
+    "deploy": "lerna publish",
     "docs": "typedoc",
     "docs:check": "typedoc --emit none",
     "fix": "lerna run fix --stream",
     "lint": "lerna run lint --stream",
     "lint:staged": "lint-staged",
     "postinstall": "husky install",
-    "publish": "lerna publish",
     "test": "lerna run test --stream"
   },
   "devDependencies": {

@@ -81,24 +81,24 @@ jobs:
       - name: Publish Pre-release to NPM
         if: ${{ env.RELEASE_TYPE == 'prerelease'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run publish -- -y --conventional-prerelease
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- -y --conventional-prerelease
 
       # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
       # 1.0.0-alpha.0 -> 1.0.1
       - name: Publish Graduate to NPM
         if: ${{ env.RELEASE_TYPE == 'graduate'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run publish -- -y --conventional-graduate
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- -y --conventional-graduate
 
       # Use 'release' for the usual deployment
       # NOTE: You probably want this
       - name: Publish Release to NPM
         if: ${{ env.RELEASE_TYPE == 'release'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run publish -- -y
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- -y
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         if: ${{ env.RELEASE_TYPE == 'from git'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run publish -- from-git -y
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy -- from-git -y
