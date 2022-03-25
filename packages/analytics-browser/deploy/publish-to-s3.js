@@ -28,7 +28,7 @@ const promises = files.map((file) => {
     .catch(() => {
       console.log(`[Publish to AWS S3] ${key} does not exist in target bucket. Uploading to S3...`);
       const putObject = new PutObjectCommand({
-        // ACL: 'public-read',
+        ACL: 'public-read',
         Body: body,
         Bucket: bucket,
         CacheControl: 'max-age=31536000',
