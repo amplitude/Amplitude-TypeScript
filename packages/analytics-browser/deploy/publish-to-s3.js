@@ -12,7 +12,7 @@ let deployedCount = 0;
 console.log('[Publish to AWS S3] START');
 const promises = files.map((file) => {
   const body = fs.readFileSync(path.join(location, file));
-  const key = `libs/${file.replace('amplitude', `amplitude-${pkg.version}`)}`;
+  const key = `libs/${file.replace('amplitude', `amplitude-next-${pkg.version}`)}`;
   const client = new S3Client();
 
   const headObject = new HeadObjectCommand({
