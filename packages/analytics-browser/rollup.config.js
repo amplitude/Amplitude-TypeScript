@@ -2,8 +2,10 @@ import typescript from '@rollup/plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import { terser } from 'rollup-plugin-terser';
+import gzip from 'rollup-plugin-gzip';
 
-export default [
+const umd = [
+  // bundle
   {
     input: 'src/index.ts',
     output: {
@@ -20,11 +22,23 @@ export default [
         rootDir: 'src',
       }),
       resolve({
-        browser: true
+        browser: true,
       }),
       commonjs(),
     ],
   },
+  // minify and compress
+  {
+    input: 'lib/scripts/amplitude.umd.js',
+    output: {
+      file: 'lib/scripts/amplitude-min.umd.js',
+    },
+    plugins: [terser(), gzip()],
+  },
+];
+
+const iife = [
+  // bundle
   {
     input: 'src/index.ts',
     output: {
@@ -41,23 +55,19 @@ export default [
         rootDir: 'src',
       }),
       resolve({
-        browser: true
+        browser: true,
       }),
       commonjs(),
     ],
   },
-  {
-    input: 'lib/scripts/amplitude.umd.js',
-    output: {
-      file: 'lib/scripts/amplitude-min.umd.js',
-    },
-    plugins: [terser()],
-  },
+  // minify and compress
   {
     input: 'lib/scripts/amplitude.js',
     output: {
       file: 'lib/scripts/amplitude-min.js',
     },
-    plugins: [terser()],
-  }
+    plugins: [terser(), gzip()],
+  },
 ];
+
+export default [...umd, ...iife];
