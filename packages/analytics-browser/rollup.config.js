@@ -10,9 +10,8 @@ const umd = [
     input: 'src/index.ts',
     output: {
       name: 'amplitude',
-      file: 'lib/scripts/amplitude.umd.js',
+      file: 'lib/scripts/amplitude-min.umd.js',
       format: 'umd',
-      sourcemap: true,
     },
     plugins: [
       typescript({
@@ -25,27 +24,19 @@ const umd = [
         browser: true,
       }),
       commonjs(),
+      terser(),
+      gzip(),
     ],
-  },
-  // minify and compress
-  {
-    input: 'lib/scripts/amplitude.umd.js',
-    output: {
-      file: 'lib/scripts/amplitude-min.umd.js',
-    },
-    plugins: [terser(), gzip()],
   },
 ];
 
 const iife = [
-  // bundle
   {
     input: 'src/index.ts',
     output: {
       name: 'amplitude',
-      file: 'lib/scripts/amplitude.js',
+      file: 'lib/scripts/amplitude-min.js',
       format: 'iife',
-      sourcemap: true,
     },
     plugins: [
       typescript({
@@ -58,15 +49,9 @@ const iife = [
         browser: true,
       }),
       commonjs(),
+      terser(),
+      gzip(),
     ],
-  },
-  // minify and compress
-  {
-    input: 'lib/scripts/amplitude.js',
-    output: {
-      file: 'lib/scripts/amplitude-min.js',
-    },
-    plugins: [terser(), gzip()],
   },
 ];
 
