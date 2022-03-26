@@ -13,9 +13,11 @@ on:
           - from git
 
 jobs:
-  build:
-    name: Build
+  deploy:
+    name: Deploy
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
     strategy:
       matrix:
         node-version: [12.x]
@@ -53,17 +55,6 @@ jobs:
         run: |
           yarn lint
 
-  deploy:
-    name: Deploy
-    runs-on: ubuntu-latest
-    env:
-      RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
-    needs: [build]
-    strategy:
-      matrix:
-        node-version: [12.x]
-
-    steps:
       - name: Configure Git User
         run: |
           git config --global user.name amplitude-sdk-bot
