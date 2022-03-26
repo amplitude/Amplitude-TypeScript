@@ -12,7 +12,6 @@ import {
   setSessionId,
   setUserId,
   track,
-  runQueuedFunctions,
 } from '../src/index';
 
 describe('index', () => {
@@ -26,7 +25,6 @@ describe('index', () => {
     expect(typeof remove).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof revenue).toBe('function');
-    expect(typeof runQueuedFunctions).toBe('function');
     expect(typeof setDeviceId).toBe('function');
     expect(typeof setSessionId).toBe('function');
     expect(typeof setUserId).toBe('function');

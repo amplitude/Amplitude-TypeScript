@@ -25,7 +25,7 @@ export default [
     ],
   },
   {
-    input: 'src/index.ts',
+    input: 'src/snippet-index.ts',
     output: {
       name: 'amplitude',
       file: 'lib/snippet/amplitude.js',
@@ -37,27 +37,6 @@ export default [
         module: 'es6',
         noEmit: false,
         outDir: 'lib/script',
-        rootDir: 'src',
-      }),
-      resolve({
-        browser: true,
-      }),
-      commonjs(),
-    ],
-  },
-  {
-    input: 'src/browser-snippet.ts',
-    output: {
-      name: 'amplitude',
-      file: 'lib/snippet/amplitude-snippet.js',
-      format: 'iife',
-      sourcemap: true,
-    },
-    plugins: [
-      typescript({
-        module: 'es6',
-        noEmit: false,
-        outDir: 'lib/snippet',
         rootDir: 'src',
       }),
       resolve({

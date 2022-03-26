@@ -1,14 +1,17 @@
-import type { init, runQueuedFunctions } from '../index';
+import type * as Amplitude from '../index';
 
-type Amplitude = {
-  init?: typeof init;
-  runQueuedFunctions?: typeof runQueuedFunctions;
-  _q: Array<[string, []]>;
-  _iq: Record<string, Amplitude>;
-} & Record<string, () => void>;
+export type AmplitudeType = typeof Amplitude | Record<string, (...args: any[]) => any>;
+
+export interface SnippetProxy {
+  _q: Array<[string, ...Array<any>]>;
+}
+
+export interface AmplitudeProxy extends SnippetProxy {
+  invoked?: boolean;
+}
 
 declare global {
   interface Window {
-    amplitude: Amplitude;
+    amplitude: AmplitudeProxy | AmplitudeType;
   }
 }

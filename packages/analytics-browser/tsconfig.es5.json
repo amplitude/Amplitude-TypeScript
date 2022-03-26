@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "include": ["src/**/*"],
-  "exclude": ["src/browser-snippet.ts"],
   "compilerOptions": {
     "module": "commonjs",
     "noEmit": false,

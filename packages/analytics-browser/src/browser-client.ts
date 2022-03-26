@@ -3,15 +3,18 @@ import {
   groupIdentify as _groupIdentify,
   Destination,
   identify as _identify,
+  revenue as _revenue,
   init as _init,
   setOptOut as _setOptOut,
+  Identify,
+  Revenue,
 } from '@amplitude/analytics-core';
-import { BrowserConfig, BrowserOptions, EventOptions, Identify } from '@amplitude/analytics-types';
+import { BrowserConfig, BrowserOptions, EventOptions } from '@amplitude/analytics-types';
 import { trackAttributions } from './attribution';
 import { createConfig, getConfig } from './config';
 import { Context } from './plugins/context';
 import { updateCookies } from './session-manager';
-import { Amplitude } from './typings/browser-snippet';
+import { AmplitudeProxy, AmplitudeType, SnippetProxy } from './typings/browser-snippet';
 
 export const init = (apiKey: string, userId?: string, options?: BrowserOptions) => {
   const browserOptions = createConfig(apiKey, userId, options);
@@ -47,27 +50,54 @@ export const setOptOut = (optOut: boolean) => {
   updateCookies(config);
 };
 
-export const identify = (identify: Identify, eventOptions?: EventOptions) => {
-  return _identify(undefined, undefined, identify, eventOptions);
+export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions) => {
+  if (hasOwnProxyProperty(identify)) {
+    identify = <Identify>convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
+  }
+  return _identify(undefined, undefined, <Identify>identify, eventOptions);
 };
 
 export const groupIdentify = (
   groupType: string,
   groupName: string | string[],
-  identify: Identify,
+  identify: Identify | SnippetProxy,
   eventOptions?: EventOptions,
 ) => {
-  return _groupIdentify(undefined, undefined, groupType, groupName, identify, eventOptions);
+  if (hasOwnProxyProperty(identify)) {
+    identify = <Identify>convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
+  }
+  return _groupIdentify(undefined, undefined, groupType, groupName, <Identify>identify, eventOptions);
 };
 
-export const runQueuedFunctions = function (amplitudeInstance: Amplitude) {
-  const queue = amplitudeInstance._q;
-  amplitudeInstance._q = [];
+export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions) => {
+  if (hasOwnProxyProperty(revenue)) {
+    revenue = <Revenue>convertProxyObjectToRealObject(new Revenue(), <SnippetProxy>revenue);
+  }
+  return _revenue(<Revenue>revenue, eventOptions);
+};
+
+export const runQueuedFunctions = (amplitudeProxy: AmplitudeProxy) => {
+  convertProxyObjectToRealObject(window.amplitude as AmplitudeType, amplitudeProxy);
+};
+
+/**
+ * Applies the proxied functions on the proxied object to an instance of the real object.
+ * Used to convert proxied Identify and Revenue objects.
+ */
+const convertProxyObjectToRealObject = (instance: Identify | Revenue | AmplitudeType, proxy: SnippetProxy) => {
+  const queue = proxy._q;
+  proxy._q = [];
 
   for (let i = 0; i < queue.length; i++) {
-    const fn = amplitudeInstance[queue[i][0]];
+    const [functionName, ...args] = queue[i];
+    const fn = (<Record<string, (...args: any) => unknown>>instance)[functionName];
     if (typeof fn === 'function') {
-      fn.apply(amplitudeInstance, queue[i][1]);
+      fn.apply(instance, args);
     }
   }
+  return instance;
+};
+
+const hasOwnProxyProperty = (snippetProxy: object) => {
+  return typeof snippetProxy === 'object' && Object.prototype.hasOwnProperty.call(snippetProxy, '_q');
 };

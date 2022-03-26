@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*", "test/**/*", "template/browser-snippet.template.ts"],
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,
