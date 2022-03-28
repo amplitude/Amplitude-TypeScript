@@ -84,7 +84,7 @@ export const runQueuedFunctions = (amplitudeProxy: AmplitudeProxy) => {
  * Applies the proxied functions on the proxied object to an instance of the real object.
  * Used to convert proxied Identify and Revenue objects.
  */
-const convertProxyObjectToRealObject = (instance: Identify | Revenue | AmplitudeType, proxy: SnippetProxy) => {
+const convertProxyObjectToRealObject = <T>(instance: T, proxy: SnippetProxy): T => {
   const queue = proxy._q;
   proxy._q = [];
 
