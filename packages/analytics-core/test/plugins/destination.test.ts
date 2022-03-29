@@ -1,7 +1,7 @@
 import { Destination } from '../../src/plugins/destination';
 import { DestinationContext, Status } from '@amplitude/analytics-types';
 import { useDefaultConfig } from '../helpers/default';
-import { EVENT_TOO_LARGE_MESSAGE, MISSING_API_KEY_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../../src/messages';
+import { MISSING_API_KEY_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../../src/messages';
 
 describe('destination', () => {
   describe('setup', () => {
@@ -415,7 +415,7 @@ describe('destination', () => {
       const result = await destination.execute(event);
       expect(result).toEqual({
         event,
-        message: EVENT_TOO_LARGE_MESSAGE,
+        message: 'erorr',
         code: 413,
       });
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
