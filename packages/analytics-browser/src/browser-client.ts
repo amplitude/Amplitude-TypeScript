@@ -14,7 +14,7 @@ import { trackAttributions } from './attribution';
 import { createConfig, getConfig } from './config';
 import { Context } from './plugins/context';
 import { updateCookies } from './session-manager';
-import { AmplitudeProxy, AmplitudeType, SnippetProxy } from './typings/browser-snippet';
+import { AmplitudeProxy, SnippetProxy } from './typings/browser-snippet';
 
 export const init = (apiKey: string, userId?: string, options?: BrowserOptions) => {
   const browserOptions = createConfig(apiKey, userId, options);
@@ -52,7 +52,7 @@ export const setOptOut = (optOut: boolean) => {
 
 export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions) => {
   if (hasOwnProxyProperty(identify)) {
-    identify = <Identify>convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
+    identify = convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
   }
   return _identify(undefined, undefined, <Identify>identify, eventOptions);
 };
@@ -64,20 +64,20 @@ export const groupIdentify = (
   eventOptions?: EventOptions,
 ) => {
   if (hasOwnProxyProperty(identify)) {
-    identify = <Identify>convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
+    identify = convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
   }
   return _groupIdentify(undefined, undefined, groupType, groupName, <Identify>identify, eventOptions);
 };
 
 export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions) => {
   if (hasOwnProxyProperty(revenue)) {
-    revenue = <Revenue>convertProxyObjectToRealObject(new Revenue(), <SnippetProxy>revenue);
+    revenue = convertProxyObjectToRealObject(new Revenue(), <SnippetProxy>revenue);
   }
   return _revenue(<Revenue>revenue, eventOptions);
 };
 
 export const runQueuedFunctions = (amplitudeProxy: AmplitudeProxy) => {
-  convertProxyObjectToRealObject(window.amplitude as AmplitudeType, amplitudeProxy);
+  convertProxyObjectToRealObject(amplitudeProxy, amplitudeProxy);
 };
 
 /**
@@ -90,7 +90,7 @@ const convertProxyObjectToRealObject = <T>(instance: T, proxy: SnippetProxy): T 
 
   for (let i = 0; i < queue.length; i++) {
     const [functionName, ...args] = queue[i];
-    const fn = (<Record<string, (...args: any) => unknown>>instance)[functionName];
+    const fn = instance[functionName as keyof typeof instance];
     if (typeof fn === 'function') {
       fn.apply(instance, args);
     }

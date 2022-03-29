@@ -14,16 +14,13 @@ const headerTemplate = `/**
  * These are sent once real SDK loaded through another <script> tag
  */`;
 
-function replaceTextInFile(filepath) {
-  const filename = path.join(cwd, filepath);
+const filepath = path.join(dir, 'amplitude-snippet.js');
+const filename = path.join(cwd, filepath);
 
-  const sdkText = fs.readFileSync(path.join(src, 'amplitude.js'), 'utf-8');
-  const integrity = crypto.createHash('sha384').update(sdkText).digest('base64');
-  const outputText = snippet(integrity, version);
+const sdkText = fs.readFileSync(path.join(src, 'amplitude.js'), 'utf-8');
+const integrity = crypto.createHash('sha384').update(sdkText).digest('base64');
+const outputText = snippet(integrity, version);
 
-  fs.writeFileSync(filename, headerTemplate + outputText);
+fs.writeFileSync(filename, headerTemplate + outputText);
 
-  console.log(`Updated ${filepath} version: ${version}`);
-}
-
-replaceTextInFile(path.join(dir, 'amplitude-snippet.js'));
+console.log(`Updated ${filepath} version: ${version}`);

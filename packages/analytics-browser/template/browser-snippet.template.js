@@ -3,7 +3,7 @@ const snippet = (integrity, version) => `
   var amplitude = window.amplitude || { _q: [] };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.')
   else {
-    amplitude.invoked = !0;
+    amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
     as.integrity = '${integrity}';
@@ -25,7 +25,6 @@ const snippet = (integrity, version) => `
     }
     var Identify = function () {
       this._q = [];
-      amplitude._q.push(['Identify', this]);
       return this;
     };
     var identifyFuncs = [
@@ -47,7 +46,6 @@ const snippet = (integrity, version) => `
     amplitude.Identify = Identify;
     var Revenue = function () {
       this._q = [];
-      amplitude._q.push(['Revenue', this]);
       return this;
     };
     var revenueFuncs = [

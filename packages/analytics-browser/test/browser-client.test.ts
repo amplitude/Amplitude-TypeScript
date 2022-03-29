@@ -259,10 +259,10 @@ describe('browser-client', () => {
 
   describe('runQueuedFunctions', () => {
     test('should run queued functions', () => {
-      window.amplitude = { init };
-      const windowAmplitudeInit = jest.spyOn(window.amplitude, 'init');
+      const windowAmplitudeInit = jest.spyOn(core, 'init');
       const amplitude = <AmplitudeProxy>(<unknown>{
         _q: <Array<[string, []]>>[],
+        init: core.init,
       });
       const functions = [['init', API_KEY]];
       amplitude._q = <Array<[string, []]>>functions;

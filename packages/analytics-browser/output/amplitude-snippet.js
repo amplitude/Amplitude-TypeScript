@@ -8,13 +8,13 @@
   var amplitude = window.amplitude || { _q: [] };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.')
   else {
-    amplitude.invoked = !0;
+    amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'X4QcTTchVRPUaUhTCZttxOllZbEZcGLEoK+74eTGUg0NwZcmeVpug7Xq98Of7r1i';
+    as.integrity = 'EwD+hFWvuKJfNoOTSMfmeXZHjbc1FJMGfi7SSpO8NO78RiZK9BZXklTeUJ9e9vpu';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.0.0-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/amplitude-ts-0.0.0-min.gz.js';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -30,7 +30,6 @@
     }
     var Identify = function () {
       this._q = [];
-      amplitude._q.push(['Identify', this]);
       return this;
     };
     var identifyFuncs = [
@@ -52,7 +51,6 @@
     amplitude.Identify = Identify;
     var Revenue = function () {
       this._q = [];
-      amplitude._q.push(['Revenue', this]);
       return this;
     };
     var revenueFuncs = [
