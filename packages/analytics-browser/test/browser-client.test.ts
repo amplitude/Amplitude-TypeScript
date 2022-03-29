@@ -292,12 +292,11 @@ describe('browser-client', () => {
       const windowAmplitudeInit = jest.spyOn(core, 'init');
       const amplitude = <AmplitudeProxy>(<unknown>{
         _q: <Array<[string, []]>>[],
-        init: core.init,
       });
       const functions = [['init', API_KEY]];
       amplitude._q = <Array<[string, []]>>functions;
       expect(amplitude._q.length).toEqual(1);
-      runQueuedFunctions(amplitude);
+      runQueuedFunctions(core, amplitude);
       expect(windowAmplitudeInit).toHaveBeenCalledTimes(1);
     });
   });
