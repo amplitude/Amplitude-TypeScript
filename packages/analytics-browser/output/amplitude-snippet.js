@@ -14,7 +14,7 @@
     as.integrity = 'EwD+hFWvuKJfNoOTSMfmeXZHjbc1FJMGfi7SSpO8NO78RiZK9BZXklTeUJ9e9vpu';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/amplitude-ts-0.0.0-min.gz.js';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.0.0-min.gz.js';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
