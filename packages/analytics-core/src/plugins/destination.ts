@@ -13,12 +13,9 @@ import {
   SuccessResponse,
 } from '@amplitude/analytics-types';
 import {
-  EVENT_TOO_LARGE_MESSAGE,
-  INVALID_EVENT_MESSAGE,
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
-  THROTTED_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../messages';
 import { STORAGE_PREFIX } from '../constants';
@@ -142,7 +139,7 @@ export class Destination implements DestinationPlugin {
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
     if (res.body.missingField) {
-      this.fulfillRequest(list, res.statusCode, INVALID_EVENT_MESSAGE);
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -161,13 +158,13 @@ export class Destination implements DestinationPlugin {
       [[], []],
     );
 
-    this.fulfillRequest(drop, res.statusCode, INVALID_EVENT_MESSAGE);
+    this.fulfillRequest(drop, res.statusCode, res.body.error);
     this.addToQueue(...retry);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
-      this.fulfillRequest(list, res.statusCode, EVENT_TOO_LARGE_MESSAGE);
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
     this.config.flushQueueSize /= 2;
@@ -199,7 +196,7 @@ export class Destination implements DestinationPlugin {
       [[], [], []],
     );
 
-    this.fulfillRequest(drop, res.statusCode, THROTTED_MESSAGE);
+    this.fulfillRequest(drop, res.statusCode, res.body.error);
     this.addToQueue(...retryNow);
     setTimeout(() => {
       this.addToQueue(...retryLater);
