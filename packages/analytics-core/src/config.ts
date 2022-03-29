@@ -6,6 +6,7 @@ import {
   LogLevel,
   Storage,
   Transport,
+  Plugin,
 } from '@amplitude/analytics-types';
 
 import { Logger } from './logger';
@@ -37,6 +38,7 @@ export class Config implements IConfig {
   loggerProvider: ILogger;
   logLevel: LogLevel;
   partnerId?: string;
+  plugins: Plugin[];
   optOut: boolean;
   saveEvents: boolean;
   serverUrl: string;
@@ -54,6 +56,7 @@ export class Config implements IConfig {
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel || defaultConfig.logLevel;
     this.partnerId = options.partnerId;
+    this.plugins = [];
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
     this.serverUrl = options.serverUrl || AMPLITUDE_SERVER_URL;
