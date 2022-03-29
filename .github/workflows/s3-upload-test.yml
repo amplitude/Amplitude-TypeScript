@@ -36,3 +36,5 @@ jobs:
       - name: Publish to S3
         run: |
           cd packages/analytics-browser && yarn postpublish
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
