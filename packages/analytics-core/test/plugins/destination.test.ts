@@ -415,7 +415,7 @@ describe('destination', () => {
       const result = await destination.execute(event);
       expect(result).toEqual({
         event,
-        message: 'erorr',
+        message: 'error',
         code: 413,
       });
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
