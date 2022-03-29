@@ -1,0 +1,38 @@
+name: S3 Upload Test
+
+on: workflow_dispatch
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Build all packages
+        run: |
+          yarn build
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::358203115967:role/jenkins
+          aws-region: us-west-2
+
+      - name: Publish to S3
+        run: |
+          cd packages/analytics-browser && yarn postpublish
