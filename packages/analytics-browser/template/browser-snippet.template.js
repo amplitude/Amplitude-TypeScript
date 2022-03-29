@@ -9,7 +9,7 @@ const snippet = (integrity, version) => `
     as.integrity = '${integrity}';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/amplitude-ts-${version}-min.gz.js';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-${version}-min.gz.js';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');

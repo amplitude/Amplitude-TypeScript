@@ -1,5 +1,5 @@
 import * as amplitude from './index';
-import { runQueuedFunctions } from './browser-client';
+import { runQueuedFunctions } from './utils/snippet-helper';
 
 window.amplitude = Object.assign(window.amplitude, amplitude);
 

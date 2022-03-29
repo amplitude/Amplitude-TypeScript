@@ -4,7 +4,6 @@ import {
   groupIdentify,
   identify,
   revenue,
-  runQueuedFunctions,
   setUserId,
   setDeviceId,
   setSessionId,
@@ -17,6 +16,7 @@ import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
 import * as attribution from '../src/attribution';
+import { runQueuedFunctions } from '../src/utils/snippet-helper';
 
 describe('browser-client', () => {
   const API_KEY = 'apiKey';
