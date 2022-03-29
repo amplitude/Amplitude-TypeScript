@@ -124,9 +124,9 @@ export const setOptOut = (optOut: boolean) => {
  */
 export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions) => {
   if (hasOwnProxyProperty(identify)) {
-    identify = convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
+    identify = convertProxyObjectToRealObject(new Identify(), identify);
   }
-  return _identify(undefined, undefined, <Identify>identify, eventOptions);
+  return _identify(undefined, undefined, identify, eventOptions);
 };
 
 /**
@@ -146,9 +146,9 @@ export const groupIdentify = (
   eventOptions?: EventOptions,
 ) => {
   if (hasOwnProxyProperty(identify)) {
-    identify = convertProxyObjectToRealObject(new Identify(), <SnippetProxy>identify);
+    identify = convertProxyObjectToRealObject(new Identify(), identify);
   }
-  return _groupIdentify(undefined, undefined, groupType, groupName, <Identify>identify, eventOptions);
+  return _groupIdentify(undefined, undefined, groupType, groupName, identify, eventOptions);
 };
 
 /**
@@ -161,9 +161,9 @@ export const groupIdentify = (
  */
 export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions) => {
   if (hasOwnProxyProperty(revenue)) {
-    revenue = convertProxyObjectToRealObject(new Revenue(), <SnippetProxy>revenue);
+    revenue = convertProxyObjectToRealObject(new Revenue(), revenue);
   }
-  return _revenue(<Revenue>revenue, eventOptions);
+  return _revenue(revenue, eventOptions);
 };
 
 /**
@@ -191,6 +191,6 @@ const convertProxyObjectToRealObject = <T>(instance: T, proxy: SnippetProxy): T 
   return instance;
 };
 
-const hasOwnProxyProperty = (snippetProxy: object) => {
-  return typeof snippetProxy === 'object' && Object.prototype.hasOwnProperty.call(snippetProxy, '_q');
+const hasOwnProxyProperty = (snippetProxy: object): snippetProxy is SnippetProxy => {
+  return (snippetProxy as SnippetProxy)._q !== undefined;
 };
