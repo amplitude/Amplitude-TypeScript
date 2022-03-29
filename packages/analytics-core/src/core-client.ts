@@ -5,6 +5,7 @@ import {
   createIdentifyEvent,
   createTrackEvent,
   createRevenueEvent,
+  createGroupEvent,
 } from './utils/event-builder';
 import { deregister, push, register } from './timeline';
 import { buildResult } from './utils/result-builder';
@@ -41,6 +42,12 @@ export const groupIdentify = (
 ) => {
   const config = getConfig();
   const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify, eventOptions);
+  return dispatch(event, config);
+};
+
+export const setGroup = (groupType: string, groupName: string | string[]) => {
+  const config = getConfig();
+  const event = createGroupEvent(groupType, groupName);
   return dispatch(event, config);
 };
 
