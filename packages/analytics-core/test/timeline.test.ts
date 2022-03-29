@@ -1,5 +1,6 @@
-import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
 import { register, deregister, push, apply } from '../src/timeline';
+import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
+import { OPT_OUT_MESSAGE } from '../src/messages';
 import { useDefaultConfig } from './helpers/default';
 
 describe('timeline', () => {
@@ -96,7 +97,7 @@ describe('timeline', () => {
       expect(results).toEqual({
         event,
         code: 0,
-        message: Status.Skipped,
+        message: OPT_OUT_MESSAGE,
       });
     });
   });
