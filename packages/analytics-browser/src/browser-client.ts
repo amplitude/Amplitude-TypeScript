@@ -123,7 +123,7 @@ export const setOptOut = (optOut: boolean) => {
  * ```
  */
 export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions) => {
-  if (hasOwnProxyProperty(identify)) {
+  if (isSnippetProxy(identify)) {
     identify = convertProxyObjectToRealObject(new Identify(), identify);
   }
   return _identify(undefined, undefined, identify, eventOptions);
@@ -145,7 +145,7 @@ export const groupIdentify = (
   identify: Identify | SnippetProxy,
   eventOptions?: EventOptions,
 ) => {
-  if (hasOwnProxyProperty(identify)) {
+  if (isSnippetProxy(identify)) {
     identify = convertProxyObjectToRealObject(new Identify(), identify);
   }
   return _groupIdentify(undefined, undefined, groupType, groupName, identify, eventOptions);
@@ -160,7 +160,7 @@ export const groupIdentify = (
  * ```
  */
 export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions) => {
-  if (hasOwnProxyProperty(revenue)) {
+  if (isSnippetProxy(revenue)) {
     revenue = convertProxyObjectToRealObject(new Revenue(), revenue);
   }
   return _revenue(revenue, eventOptions);
@@ -191,6 +191,6 @@ const convertProxyObjectToRealObject = <T>(instance: T, proxy: SnippetProxy): T 
   return instance;
 };
 
-const hasOwnProxyProperty = (snippetProxy: object): snippetProxy is SnippetProxy => {
+const isSnippetProxy = (snippetProxy: object): snippetProxy is SnippetProxy => {
   return (snippetProxy as SnippetProxy)._q !== undefined;
 };
