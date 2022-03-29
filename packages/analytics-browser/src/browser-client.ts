@@ -169,8 +169,8 @@ export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOpt
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
  */
-export const runQueuedFunctions = (amplitudeProxy: AmplitudeProxy) => {
-  convertProxyObjectToRealObject(amplitudeProxy, amplitudeProxy);
+export const runQueuedFunctions = (instance: object, amplitudeProxy: AmplitudeProxy) => {
+  convertProxyObjectToRealObject(instance, amplitudeProxy);
 };
 
 /**
