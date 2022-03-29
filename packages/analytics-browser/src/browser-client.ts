@@ -12,14 +12,18 @@ import { createConfig, getConfig } from './config';
 import { Context } from './plugins/context';
 import { updateCookies } from './session-manager';
 
-export const init = (apiKey: string, userId?: string, options?: BrowserOptions) => {
+export const init = async (apiKey: string, userId?: string, options?: BrowserOptions) => {
   const browserOptions = createConfig(apiKey, userId, options);
   const config = _init(browserOptions) as BrowserConfig;
   updateCookies(config);
 
-  void add(new Context());
-  void add(new Destination());
+  await add(new Context());
+  await add(new Destination());
   trackAttributions(config);
+};
+
+export const getUserId = () => {
+  return getConfig().userId;
 };
 
 export const setUserId = (userId: string) => {
@@ -28,10 +32,18 @@ export const setUserId = (userId: string) => {
   updateCookies(config);
 };
 
+export const getDeviceId = () => {
+  return getConfig().deviceId;
+};
+
 export const setDeviceId = (deviceId: string) => {
   const config = getConfig();
   config.deviceId = deviceId;
   updateCookies(config);
+};
+
+export const getSessionId = () => {
+  return getConfig().sessionId;
 };
 
 export const setSessionId = (sessionId: number) => {

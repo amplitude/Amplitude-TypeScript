@@ -9,6 +9,7 @@ import {
   Revenue,
   revenue,
   setDeviceId,
+  setGroup,
   setSessionId,
   setUserId,
   track,
@@ -26,6 +27,7 @@ describe('index', () => {
     expect(typeof Revenue).toBe('function');
     expect(typeof revenue).toBe('function');
     expect(typeof setDeviceId).toBe('function');
+    expect(typeof setGroup).toBe('function');
     expect(typeof setSessionId).toBe('function');
     expect(typeof setUserId).toBe('function');
     expect(typeof track).toBe('function');

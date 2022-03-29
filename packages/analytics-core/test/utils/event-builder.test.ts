@@ -1,6 +1,11 @@
 import { SpecialEventType } from '@amplitude/analytics-types';
 import { Identify } from '../../src/identify';
-import { createTrackEvent, createIdentifyEvent, createGroupIdentifyEvent } from '../../src/utils/event-builder';
+import {
+  createTrackEvent,
+  createIdentifyEvent,
+  createGroupIdentifyEvent,
+  createGroupEvent,
+} from '../../src/utils/event-builder';
 
 describe('event-builder', () => {
   describe('createTrackEvent', () => {
@@ -49,6 +54,23 @@ describe('event-builder', () => {
         event_type: SpecialEventType.IDENTIFY,
         user_properties: {},
         user_id: undefined,
+      });
+    });
+  });
+
+  describe('createGroupEvent', () => {
+    test('should create group event', () => {
+      const event = createGroupEvent('a', 'b');
+      expect(event).toEqual({
+        event_type: SpecialEventType.IDENTIFY,
+        user_properties: {
+          $set: {
+            a: 'b',
+          },
+        },
+        groups: {
+          a: 'b',
+        },
       });
     });
   });

@@ -58,6 +58,17 @@ describe('core-client', () => {
     });
   });
 
+  describe('setGroup', () => {
+    test('should call setGroup', async () => {
+      const get = jest.spyOn(Config, 'getConfig');
+      const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
+      const response = await client.setGroup('groupType', 'groupName');
+      expect(response).toEqual(success);
+      expect(get).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('revenue', () => {
     test('should call revenue', async () => {
       const get = jest.spyOn(Config, 'getConfig');

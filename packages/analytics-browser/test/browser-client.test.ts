@@ -1,4 +1,15 @@
-import { init, groupIdentify, identify, setUserId, setDeviceId, setSessionId, setOptOut } from '../src/browser-client';
+import {
+  init,
+  groupIdentify,
+  identify,
+  setUserId,
+  setDeviceId,
+  setSessionId,
+  setOptOut,
+  getUserId,
+  getDeviceId,
+  getSessionId,
+} from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
@@ -9,7 +20,7 @@ describe('browser-client', () => {
   const USER_ID = 'userId';
 
   describe('init', () => {
-    test('should call core init', () => {
+    test('should call core init', async () => {
       const _init = jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY));
       const _add = jest
         .spyOn(core, 'add')
@@ -17,11 +28,20 @@ describe('browser-client', () => {
         .mockReturnValueOnce(Promise.resolve());
       const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      init(API_KEY, USER_ID);
+      await init(API_KEY, USER_ID);
       expect(_init).toHaveBeenCalledTimes(1);
       expect(updateCookies).toHaveBeenCalledTimes(1);
       expect(_add).toHaveBeenCalledTimes(2);
       expect(trackAttributions).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('getUserId', () => {
+    test('should return user id', () => {
+      const config = Config.createConfig(API_KEY, 'userId');
+      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
+      expect(getUserId()).toBe('userId');
+      expect(getConfig).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -40,6 +60,15 @@ describe('browser-client', () => {
     });
   });
 
+  describe('getDeviceId', () => {
+    test('should return user id', () => {
+      const config = Config.createConfig(API_KEY, '', { deviceId: 'deviceId' });
+      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
+      expect(getDeviceId()).toBe('deviceId');
+      expect(getConfig).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('setDeviceId', () => {
     test('should update device id', () => {
       const config = Config.createConfig(API_KEY);
@@ -52,6 +81,15 @@ describe('browser-client', () => {
         ...config,
         deviceId: 'deviceId',
       });
+    });
+  });
+
+  describe('getSessionId', () => {
+    test('should return user id', () => {
+      const config = Config.createConfig(API_KEY, '', { sessionId: 1 });
+      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
+      expect(getSessionId()).toBe(1);
+      expect(getConfig).toHaveBeenCalledTimes(1);
     });
   });
 

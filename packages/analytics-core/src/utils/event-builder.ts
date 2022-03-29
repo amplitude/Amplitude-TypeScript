@@ -3,11 +3,12 @@ import {
   IdentifyEvent,
   GroupIdentifyEvent,
   SpecialEventType,
-  Identify,
+  Identify as IIdentify,
   Revenue,
   RevenueEvent,
   EventOptions,
 } from '@amplitude/analytics-types';
+import { Identify } from '../identify';
 
 export const createTrackEvent = (
   eventType: string,
@@ -24,7 +25,7 @@ export const createTrackEvent = (
 export const createIdentifyEvent = (
   userId: string | undefined,
   deviceId: string | undefined,
-  identify: Identify,
+  identify: IIdentify,
   eventOptions?: EventOptions,
 ): IdentifyEvent => {
   const identifyEvent: IdentifyEvent = {
@@ -46,7 +47,7 @@ export const createGroupIdentifyEvent = (
   deviceId: string | undefined,
   groupType: string,
   groupName: string | string[],
-  identify: Identify,
+  identify: IIdentify,
   eventOptions?: EventOptions,
 ): GroupIdentifyEvent => {
   const groupIdentify: GroupIdentifyEvent = {
@@ -64,6 +65,20 @@ export const createGroupIdentifyEvent = (
   }
 
   return groupIdentify;
+};
+
+export const createGroupEvent = (groupType: string, groupName: string | string[]) => {
+  const identify = new Identify();
+  identify.set(groupType, groupName);
+
+  const groupEvent: IdentifyEvent = {
+    event_type: SpecialEventType.IDENTIFY,
+    user_properties: identify.getUserProperties(),
+    groups: {
+      [groupType]: groupName,
+    },
+  };
+  return groupEvent;
 };
 
 export const createRevenueEvent = (revenue: Revenue, eventOptions?: EventOptions): RevenueEvent => {
