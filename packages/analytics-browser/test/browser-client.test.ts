@@ -1,7 +1,9 @@
+import type { AmplitudeProxy } from 'src/typings/browser-snippet';
 import {
   init,
   groupIdentify,
   identify,
+  revenue,
   setUserId,
   setDeviceId,
   setSessionId,
@@ -14,6 +16,7 @@ import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
 import * as attribution from '../src/attribution';
+import { runQueuedFunctions } from '../src/utils/snippet-helper';
 
 describe('browser-client', () => {
   const API_KEY = 'apiKey';
@@ -159,6 +162,22 @@ describe('browser-client', () => {
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, {});
     });
+
+    test('should allow identify snippet proxy', async () => {
+      const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = { _q: [] };
+      await identify(id);
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, expect.any(core.Identify), undefined);
+    });
   });
 
   describe('groupIdentify', () => {
@@ -192,6 +211,93 @@ describe('browser-client', () => {
       await groupIdentify('type', 'name', id, {});
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, {});
+    });
+
+    test('should allow identify snippet proxy', async () => {
+      const coreIdentify = jest.spyOn(core, 'groupIdentify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = { _q: [] };
+      await groupIdentify('type', 'name', id);
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        'type',
+        'name',
+        expect.any(core.Identify),
+        undefined,
+      );
+    });
+  });
+
+  describe('revenue', () => {
+    test('should call core revenue', async () => {
+      const coreRevenue = jest.spyOn(core, 'revenue').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const revenueObj = new core.Revenue();
+      await revenue(revenueObj);
+      expect(coreRevenue).toHaveBeenCalledTimes(1);
+      expect(coreRevenue).toHaveBeenCalledWith(revenueObj, undefined);
+    });
+
+    test('should allow event options', async () => {
+      const coreRevenue = jest.spyOn(core, 'revenue').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const revenueObj = new core.Revenue();
+      await revenue(revenueObj, {});
+      expect(coreRevenue).toHaveBeenCalledTimes(1);
+      expect(coreRevenue).toHaveBeenCalledWith(revenueObj, {});
+    });
+
+    test('should allow revenue snippet proxy', async () => {
+      const coreRevenue = jest.spyOn(core, 'revenue').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const revenueObj = { _q: [] };
+      await revenue(revenueObj);
+      expect(coreRevenue).toHaveBeenCalledTimes(1);
+      expect(coreRevenue).toHaveBeenCalledWith(expect.any(core.Revenue), undefined);
+    });
+  });
+
+  describe('runQueuedFunctions', () => {
+    test('should run queued functions', () => {
+      const windowAmplitudeInit = jest.spyOn(core, 'init');
+      const amplitude = <AmplitudeProxy>(<unknown>{
+        _q: <Array<[string, []]>>[],
+      });
+      const functions = [['init', API_KEY]];
+      amplitude._q = <Array<[string, []]>>functions;
+      expect(amplitude._q.length).toEqual(1);
+      runQueuedFunctions(core, amplitude);
+      expect(windowAmplitudeInit).toHaveBeenCalledTimes(1);
     });
   });
 });

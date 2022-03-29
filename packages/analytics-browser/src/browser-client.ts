@@ -3,13 +3,18 @@ import {
   groupIdentify as _groupIdentify,
   Destination,
   identify as _identify,
+  revenue as _revenue,
   init as _init,
   setOptOut as _setOptOut,
+  Identify,
+  Revenue,
 } from '@amplitude/analytics-core';
-import { BrowserConfig, BrowserOptions, EventOptions, Identify } from '@amplitude/analytics-types';
-import { trackAttributions } from './attribution';
-import { createConfig, getConfig } from './config';
+import { BrowserConfig, BrowserOptions, EventOptions } from '@amplitude/analytics-types';
+import { convertProxyObjectToRealObject, isSnippetProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
+import { createConfig, getConfig } from './config';
+import { SnippetProxy } from './typings/browser-snippet';
+import { trackAttributions } from './attribution';
 import { updateCookies } from './session-manager';
 
 /**
@@ -118,7 +123,10 @@ export const setOptOut = (optOut: boolean) => {
  * await identify(id);
  * ```
  */
-export const identify = (identify: Identify, eventOptions?: EventOptions) => {
+export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions) => {
+  if (isSnippetProxy(identify)) {
+    identify = convertProxyObjectToRealObject(new Identify(), identify);
+  }
   return _identify(undefined, undefined, identify, eventOptions);
 };
 
@@ -135,8 +143,26 @@ export const identify = (identify: Identify, eventOptions?: EventOptions) => {
 export const groupIdentify = (
   groupType: string,
   groupName: string | string[],
-  identify: Identify,
+  identify: Identify | SnippetProxy,
   eventOptions?: EventOptions,
 ) => {
+  if (isSnippetProxy(identify)) {
+    identify = convertProxyObjectToRealObject(new Identify(), identify);
+  }
   return _groupIdentify(undefined, undefined, groupType, groupName, identify, eventOptions);
+};
+
+/**
+ * Sends a revenue call containing revenue property operations
+ * ```typescript
+ * const rev = new Revenue();
+ * rev.setRevenue(100);
+ * await revenue(rev);
+ * ```
+ */
+export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions) => {
+  if (isSnippetProxy(revenue)) {
+    revenue = convertProxyObjectToRealObject(new Revenue(), revenue);
+  }
+  return _revenue(revenue, eventOptions);
 };

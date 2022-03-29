@@ -32,7 +32,7 @@ const umd = [
 
 const iife = [
   {
-    input: 'src/index.ts',
+    input: 'src/snippet-index.ts',
     output: {
       name: 'amplitude',
       file: 'lib/scripts/amplitude-min.js',
