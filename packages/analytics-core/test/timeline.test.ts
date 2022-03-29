@@ -1,5 +1,5 @@
-import { Event, Plugin, PluginType, Config, Status } from '@amplitude/analytics-types';
-import { register, deregister, plugins, push, apply } from '../src/timeline';
+import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
+import { register, deregister, push, apply } from '../src/timeline';
 import { useDefaultConfig } from './helpers/default';
 
 describe('timeline', () => {
@@ -52,19 +52,18 @@ describe('timeline', () => {
       setup: destinationSetup,
       execute: destinationExecute,
     };
-
+    const config = useDefaultConfig();
     // register
-    await register(before, useDefaultConfig());
-    await register(enrichment, useDefaultConfig());
-    await register(destination, useDefaultConfig());
+    await register(before, config);
+    await register(enrichment, config);
+    await register(destination, config);
     expect(beforeSetup).toHaveBeenCalledTimes(1);
     expect(enrichmentSetup).toHaveBeenCalledTimes(1);
     expect(destinationSetup).toHaveBeenCalledTimes(1);
-    expect(plugins.length).toBe(3);
+    expect(config.plugins.length).toBe(3);
     const event = (id: number): Event => ({
       event_type: `${id}:event_type`,
     });
-    const config: Config = useDefaultConfig();
     await Promise.all([
       push(event(1), config).then(() => push(event(1.1), config)),
       push(event(2), config).then(() => Promise.all([push(event(2.1), config), push(event(2.2), config)])),
@@ -80,10 +79,10 @@ describe('timeline', () => {
     expect(destinationExecute).toHaveBeenCalledTimes(10);
 
     // deregister
-    await deregister(before.name);
-    await deregister(enrichment.name);
-    await deregister(destination.name);
-    expect(plugins.length).toBe(0);
+    await deregister(before.name, config);
+    await deregister(enrichment.name, config);
+    await deregister(destination.name, config);
+    expect(config.plugins.length).toBe(0);
   });
 
   describe('push', () => {
@@ -117,9 +116,10 @@ describe('timeline', () => {
         setup: beforeSetup,
         execute: beforeExecute,
       };
-      await register(before, useDefaultConfig());
+      const config = useDefaultConfig();
+      await register(before, config);
       await apply();
-      await deregister(before.name);
+      await deregister(before.name, config);
       expect(beforeExecute).toHaveBeenCalledTimes(0);
     });
   });

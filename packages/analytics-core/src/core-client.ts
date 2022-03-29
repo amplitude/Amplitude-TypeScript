@@ -63,7 +63,8 @@ export const add = async (plugin: Plugin) => {
 };
 
 export const remove = async (pluginName: string) => {
-  return deregister(pluginName);
+  const config = getConfig();
+  return deregister(pluginName, config);
 };
 
 export const dispatch = async (event: Event, config: Config) => {

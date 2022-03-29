@@ -14,6 +14,7 @@ export const useDefaultConfig = (): Config => ({
     remove: () => undefined,
     reset: () => undefined,
   },
+  plugins: [],
   ...defaultConfig,
 });
 

@@ -3,6 +3,7 @@ import { Storage, UserSession } from './storage';
 
 import { Event } from './event';
 import { Transport } from './transport';
+import { Plugin } from './plugin';
 
 export interface Config {
   appVersion?: string;
@@ -21,6 +22,7 @@ export interface Config {
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;
   partnerId?: string;
+  plugins: Plugin[];
 }
 
 export interface BrowserConfig extends Config {
@@ -61,4 +63,4 @@ export type TrackingOptions = {
   region?: boolean;
   versionName?: boolean;
 };
-export type BrowserOptions = Omit<Partial<BrowserConfig>, 'apiKey' | 'userId'>;
+export type BrowserOptions = Omit<Partial<BrowserConfig>, 'apiKey' | 'userId' | 'plugins'>;

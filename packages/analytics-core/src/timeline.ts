@@ -12,18 +12,17 @@ import {
 } from '@amplitude/analytics-types';
 import { buildResult } from './utils/result-builder';
 
-export const queue: [Event, EventCallback][] = [];
-export const plugins: Plugin[] = [];
+export const queue: [Event, EventCallback, Plugin[]][] = [];
 let applying = false;
 
 export const register = async (plugin: Plugin, config: Config) => {
   await plugin.setup(config);
-  plugins.push(plugin);
+  config.plugins.push(plugin);
 };
 
-export const deregister = (pluginName: string) => {
-  plugins.splice(
-    plugins.findIndex((plugin) => plugin.name === pluginName),
+export const deregister = (pluginName: string, config: Config) => {
+  config.plugins.splice(
+    config.plugins.findIndex((plugin) => plugin.name === pluginName),
     1,
   );
   return Promise.resolve();
@@ -35,7 +34,7 @@ export const push = (event: Event, config: Config) => {
       resolve(buildResult(event, 0, Status.Skipped));
       return;
     }
-    queue.push([event, resolve]);
+    queue.push([event, resolve, config.plugins]);
     scheduleApply(0);
   });
 };
@@ -61,7 +60,7 @@ export const apply = async () => {
   }
 
   let [event] = item;
-  const [, resolve] = item;
+  const [, resolve, plugins] = item;
 
   const before = plugins.filter<BeforePlugin>(
     (plugin: Plugin): plugin is BeforePlugin => plugin.type === PluginType.BEFORE,
