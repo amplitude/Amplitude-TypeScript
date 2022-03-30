@@ -13,7 +13,7 @@ import {
   remove as _remove,
 } from '@amplitude/analytics-core';
 import {
-  AmplitudePromise,
+  AmplitudeReturn,
   BrowserConfig,
   BrowserOptions,
   EventOptions,
@@ -35,7 +35,7 @@ import { updateCookies } from './session-manager';
  * await init(API_KEY, USER_ID, options).promise;
  * ```
  */
-export const init = (apiKey: string, userId?: string, options?: BrowserOptions): AmplitudePromise<void> => {
+export const init = (apiKey: string, userId?: string, options?: BrowserOptions): AmplitudeReturn<void> => {
   return {
     promise: (async () => {
       const browserOptions = createConfig(apiKey, userId, options);
@@ -57,7 +57,7 @@ export const init = (apiKey: string, userId?: string, options?: BrowserOptions):
  * amplitude.add(plugin);
  * ```
  */
-export const add = (plugin: Plugin): AmplitudePromise<void> => {
+export const add = (plugin: Plugin): AmplitudeReturn<void> => {
   return {
     promise: _add(plugin),
   };
@@ -70,7 +70,7 @@ export const add = (plugin: Plugin): AmplitudePromise<void> => {
  * amplitude.remove('myPlugin');
  * ```
  */
-export const remove = (pluginName: string): AmplitudePromise<void> => {
+export const remove = (pluginName: string): AmplitudeReturn<void> => {
   return {
     promise: _remove(pluginName),
   };
@@ -192,7 +192,7 @@ export const track = (
   eventType: string,
   eventProperties?: Record<string, any>,
   eventOptions?: EventOptions,
-): AmplitudePromise<Result> => {
+): AmplitudeReturn<Result> => {
   return {
     promise: _track(eventType, eventProperties, eventOptions),
   };
@@ -217,7 +217,7 @@ export const logEvent = track;
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions): AmplitudePromise<Result> => {
+export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
   if (isSnippetProxy(identify)) {
     identify = convertProxyObjectToRealObject(new Identify(), identify);
   }
@@ -248,7 +248,7 @@ export const groupIdentify = (
   groupName: string | string[],
   identify: Identify | SnippetProxy,
   eventOptions?: EventOptions,
-): AmplitudePromise<Result> => {
+): AmplitudeReturn<Result> => {
   if (isSnippetProxy(identify)) {
     identify = convertProxyObjectToRealObject(new Identify(), identify);
   }
@@ -257,7 +257,7 @@ export const groupIdentify = (
   };
 };
 
-export const setGroup = (groupType: string, groupName: string | string[]): AmplitudePromise<Result> => {
+export const setGroup = (groupType: string, groupName: string | string[]): AmplitudeReturn<Result> => {
   return {
     promise: _setGroup(groupType, groupName),
   };
@@ -278,7 +278,7 @@ export const setGroup = (groupType: string, groupName: string | string[]): Ampli
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions): AmplitudePromise<Result> => {
+export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
   if (isSnippetProxy(revenue)) {
     revenue = convertProxyObjectToRealObject(new Revenue(), revenue);
   }

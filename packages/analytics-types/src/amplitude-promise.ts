@@ -1,3 +1,3 @@
-export interface AmplitudePromise<T> {
+export interface AmplitudeReturn<T> {
   promise: Promise<T>;
 }
