@@ -629,6 +629,14 @@ describe('destination', () => {
       expect(destination.getApiHost()).toBe(AMPLITUDE_SERVER_URL);
     });
 
+    test('should return US server url if serverUrl does not exist and serverZone is not valid', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.serverUrl = undefined;
+      destination.config.serverZone = <ServerZone>'invalid server zone';
+      expect(destination.getApiHost()).toBe(AMPLITUDE_SERVER_URL);
+    });
+
     test('should return batch server url if serverUrl does not exist and useBatch is set', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
@@ -640,7 +648,7 @@ describe('destination', () => {
       expect(destination.getApiHost()).toBe(EU_AMPLITUDE_BATCH_SERVER_URL);
     });
 
-    test('should return EU server url if serverUrl does not exist and server zone is EU', () => {
+    test('should return EU server url if serverUrl does not exist and serverZone is EU', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.serverUrl = undefined;

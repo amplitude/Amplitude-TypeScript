@@ -9,6 +9,7 @@ import {
   RateLimitResponse,
   Response,
   Result,
+  ServerZone,
   Status,
   SuccessResponse,
 } from '@amplitude/analytics-types';
@@ -241,6 +242,17 @@ export class Destination implements DestinationPlugin {
   }
 
   getApiHost() {
-    return this.config.serverUrl ? this.config.serverUrl : serverUrls[this.config.serverZone](this.config.useBatch);
+    if (this.config.serverUrl) {
+      return this.config.serverUrl;
+    }
+
+    let { serverZone } = this.config;
+
+    // Log a warning if server zone is neither US nor EU
+    if (![ServerZone.US, ServerZone.EU].includes(serverZone)) {
+      this.config.loggerProvider.warn(`Unknown server zone "${serverZone}". Replaced with US server zone`);
+      serverZone = ServerZone.US;
+    }
+    return serverUrls[serverZone](this.config.useBatch);
   }
 }
