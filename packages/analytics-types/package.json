@@ -9,7 +9,7 @@
   "module": "lib/index.js",
   "types": "lib/index.d.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "repository": {
     "type": "git",
