@@ -8,6 +8,7 @@ import { USER_ID, DEVICE_ID, useDefaultConfig } from './helpers/default';
 
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
+  const badRequest = { event: { event_type: 'sample' }, code: 400, message: Status.Invalid };
 
   describe('init', () => {
     afterEach(() => {
@@ -117,7 +118,19 @@ describe('core-client', () => {
       expect(push).toBeCalledTimes(1);
     });
 
-    test('should handle error', async () => {
+    test('should handle non-200 error', async () => {
+      const push = jest.spyOn(timeline, 'push').mockReturnValueOnce(Promise.resolve(badRequest));
+      const event: Event = {
+        event_type: 'event_type',
+      };
+      const config: IConfig = useDefaultConfig();
+
+      const result = await client.dispatch(event, config);
+      expect(result).toBe(badRequest);
+      expect(push).toBeCalledTimes(1);
+    });
+
+    test('should handle unexpected error', async () => {
       const push = jest.spyOn(timeline, 'push').mockImplementation(() => {
         throw new Error();
       });
