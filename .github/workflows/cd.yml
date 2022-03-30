@@ -16,8 +16,13 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     env:
       RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
+      S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+      GITHUB_TOKEN: ${{ secrets.GH_PUBLISH_TOKEN }}
     strategy:
       matrix:
         node-version: [12.x]
@@ -79,9 +84,6 @@ jobs:
         if: ${{ env.RELEASE_TYPE == 'prerelease'}}
         run: |
           npm run deploy -- -y --conventional-prerelease
-        env:
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-          GITHUB_TOKEN: ${{ secrets.GH_PUBLISH_TOKEN }}
 
       # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
       # 1.0.0-alpha.0 -> 1.0.1
@@ -89,9 +91,6 @@ jobs:
         if: ${{ env.RELEASE_TYPE == 'graduate'}}
         run: |
           npm run deploy -- -y --conventional-graduate
-        env:
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-          GITHUB_TOKEN: ${{ secrets.GH_PUBLISH_TOKEN }}
 
       # Use 'release' for the usual deployment
       # NOTE: You probably want this
@@ -99,15 +98,9 @@ jobs:
         if: ${{ env.RELEASE_TYPE == 'release'}}
         run: |
           npm run deploy -- -y
-        env:
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-          GITHUB_TOKEN: ${{ secrets.GH_PUBLISH_TOKEN }}
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         if: ${{ env.RELEASE_TYPE == 'from git'}}
         run: |
           npm run deploy -- from-git -y
-        env:
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-          GITHUB_TOKEN: ${{ secrets.GH_PUBLISH_TOKEN }}
