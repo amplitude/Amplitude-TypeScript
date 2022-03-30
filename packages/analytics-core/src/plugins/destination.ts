@@ -9,7 +9,6 @@ import {
   RateLimitResponse,
   Response,
   Result,
-  ServerZone,
   Status,
   SuccessResponse,
 } from '@amplitude/analytics-types';
@@ -22,7 +21,7 @@ import {
 import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
-import { serverUrls } from '../config';
+import { getApiHost } from '../config';
 
 export class Destination implements DestinationPlugin {
   name = 'amplitude';
@@ -100,7 +99,7 @@ export class Destination implements DestinationPlugin {
     };
 
     try {
-      const res = await this.config.transportProvider.send(this.getApiHost(), payload);
+      const res = await this.config.transportProvider.send(getApiHost(this.config), payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
@@ -239,20 +238,5 @@ export class Destination implements DestinationPlugin {
     if (!this.config.saveEvents) return;
     const events = Array.from(this.backup);
     this.config.storageProvider.set(this.storageKey, events);
-  }
-
-  getApiHost() {
-    if (this.config.serverUrl) {
-      return this.config.serverUrl;
-    }
-
-    let { serverZone } = this.config;
-
-    // Log a warning if server zone is neither US nor EU
-    if (![ServerZone.US, ServerZone.EU].includes(serverZone)) {
-      this.config.loggerProvider.warn(`Unknown server zone "${serverZone}". Replaced with US server zone`);
-      serverZone = ServerZone.US;
-    }
-    return serverUrls[serverZone](this.config.useBatch);
   }
 }

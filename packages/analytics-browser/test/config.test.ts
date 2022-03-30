@@ -24,6 +24,7 @@ describe('config', () => {
         partnerId: 'partnerId',
       });
       expect(config).toEqual({
+        apiHost: 'https://api2.amplitude.com/2/httpapi',
         apiKey: API_KEY,
         cookieStorage: new MemoryModule.MemoryStorage(),
         cookieExpiration: 365,
@@ -88,6 +89,7 @@ describe('config', () => {
       logger.enable(LogLevel.Warn);
       const config = Config.createConfig(API_KEY);
       expect(config).toEqual({
+        apiHost: 'https://api2.amplitude.com/2/httpapi',
         apiKey: API_KEY,
         cookieStorage: cookieStorage,
         cookieExpiration: 365,
