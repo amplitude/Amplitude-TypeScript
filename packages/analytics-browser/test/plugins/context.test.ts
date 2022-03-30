@@ -1,3 +1,4 @@
+import * as SessionManager from '../../src/session-manager';
 import { Context } from '../../src/plugins/context';
 import { useDefaultConfig } from '../helpers/default';
 
@@ -36,6 +37,7 @@ describe('context', () => {
       const event = {
         event_type: 'event_type',
       };
+      const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
       expect(firstContextEvent.event_id).toEqual(0);
@@ -52,6 +54,7 @@ describe('context', () => {
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
+      expect(updateLastEventTime).toHaveBeenCalledTimes(2);
     });
 
     test('should not return the properties when the tracking options are false', async () => {
@@ -81,6 +84,7 @@ describe('context', () => {
       const event = {
         event_type: 'event_type',
       };
+      const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
       expect(firstContextEvent.event_id).toEqual(0);
@@ -99,6 +103,7 @@ describe('context', () => {
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
+      expect(updateLastEventTime).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -115,6 +120,7 @@ describe('context', () => {
       event_type: 'event_type',
       device_id: 'new deviceId',
     };
+    const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
     const firstContextEvent = await context.execute(event);
     expect(firstContextEvent.app_version).toEqual('1.0.0');
     expect(firstContextEvent.event_id).toEqual(0);
@@ -124,5 +130,6 @@ describe('context', () => {
 
     const secondContextEvent = await context.execute(event);
     expect(secondContextEvent.event_id).toEqual(1);
+    expect(updateLastEventTime).toHaveBeenCalledTimes(2);
   });
 });
