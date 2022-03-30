@@ -60,13 +60,16 @@ export const getUtmParam = (): UTMData => {
 };
 
 export const getReferrer = () => {
-  /* istanbul ignore next */
-  const referrer = typeof document !== undefined ? document.referrer : undefined;
-  const referringDomain = referrer?.split('/')[2] ?? undefined;
-
   const data: Record<string, string | undefined> = {};
-  if (referrer !== undefined) data.referrer = referrer;
-  if (referringDomain !== undefined) data.referring_domain = referringDomain;
+  try {
+    const referrer = document.referrer;
+    const referringDomain = referrer?.split('/')[2] ?? undefined;
+
+    if (referrer !== undefined) data.referrer = referrer;
+    if (referringDomain !== undefined) data.referring_domain = referringDomain;
+  } catch {
+    //
+  }
   return data;
 };
 
