@@ -75,6 +75,7 @@ describe('destination', () => {
         event,
         callback: () => undefined,
         attempts: 0,
+        delay: 0,
       };
       destination.addToQueue(context);
       expect(schedule).toHaveBeenCalledTimes(1);
@@ -99,6 +100,7 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
+          delay: 0,
         },
       ];
       const flush = jest
@@ -136,6 +138,7 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
+          delay: 0,
         },
       ];
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
@@ -157,6 +160,7 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
+        delay: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
@@ -186,6 +190,7 @@ describe('destination', () => {
         event: {
           event_type: 'event_type',
         },
+        delay: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
@@ -336,6 +341,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
+      destination.backoff = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -449,6 +455,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
+      destination.backoff = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -499,7 +506,8 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.backoff = 1;
+      destination.backoff = 10;
+      destination.throttle = 1;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 4,
@@ -556,6 +564,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
+      destination.backoff = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -593,6 +602,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
+      destination.backoff = 10;
       const config = {
         ...useDefaultConfig(),
         flushMaxRetries: 1,
