@@ -1,2 +1,16 @@
-export { init, groupIdentify, identify, revenue, setDeviceId, setSessionId, setUserId } from './browser-client';
-export { Identify, Revenue, track, logEvent, setGroup, add, remove } from '@amplitude/analytics-core';
+export {
+  add,
+  groupIdentify,
+  identify,
+  init,
+  logEvent,
+  remove,
+  revenue,
+  setDeviceId,
+  setGroup,
+  setSessionId,
+  setUserId,
+  track,
+} from './browser-client';
+export { Revenue, Identify } from '@amplitude/analytics-core';
+export * as Types from '@amplitude/analytics-types';

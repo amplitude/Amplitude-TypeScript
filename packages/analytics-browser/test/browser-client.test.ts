@@ -11,12 +11,17 @@ import {
   getUserId,
   getDeviceId,
   getSessionId,
+  add,
+  remove,
+  track,
+  setGroup,
 } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
 import * as attribution from '../src/attribution';
 import { runQueuedFunctions } from '../src/utils/snippet-helper';
+import { PluginType } from '@amplitude/analytics-types';
 
 describe('browser-client', () => {
   const API_KEY = 'apiKey';
@@ -31,11 +36,34 @@ describe('browser-client', () => {
         .mockReturnValueOnce(Promise.resolve());
       const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      await init(API_KEY, USER_ID);
+      await init(API_KEY, USER_ID).promise;
       expect(_init).toHaveBeenCalledTimes(1);
       expect(updateCookies).toHaveBeenCalledTimes(1);
       expect(_add).toHaveBeenCalledTimes(2);
       expect(trackAttributions).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('add', () => {
+    test('should call core.add', async () => {
+      const _add = jest.spyOn(core, 'add').mockReturnValueOnce(Promise.resolve());
+      const plugin = {
+        name: 'plugin',
+        type: PluginType.DESTINATION,
+        setup: jest.fn(),
+        execute: jest.fn(),
+      };
+      await add(plugin).promise;
+      expect(_add).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('remove', () => {
+    test('should call core.remove', async () => {
+      const _remove = jest.spyOn(core, 'remove').mockReturnValueOnce(Promise.resolve());
+      const pluginName = 'plugin';
+      await remove(pluginName).promise;
+      expect(_remove).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -130,6 +158,23 @@ describe('browser-client', () => {
     });
   });
 
+  describe('track', () => {
+    test('should call core.track', async () => {
+      const event = {
+        event_type: 'hello',
+      };
+      const _track = jest.spyOn(core, 'track').mockReturnValueOnce(
+        Promise.resolve({
+          event,
+          code: 200,
+          message: 'success',
+        }),
+      );
+      await track(event.event_type).promise;
+      expect(_track).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('identify', () => {
     test('should call core identify', async () => {
       const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
@@ -142,7 +187,7 @@ describe('browser-client', () => {
         }),
       );
       const id = new core.Identify();
-      await identify(id);
+      await identify(id).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, undefined);
     });
@@ -158,7 +203,7 @@ describe('browser-client', () => {
         }),
       );
       const id = new core.Identify();
-      await identify(id, {});
+      await identify(id, {}).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, {});
     });
@@ -174,7 +219,7 @@ describe('browser-client', () => {
         }),
       );
       const id = { _q: [] };
-      await identify(id);
+      await identify(id).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, expect.any(core.Identify), undefined);
     });
@@ -192,7 +237,7 @@ describe('browser-client', () => {
         }),
       );
       const id = new core.Identify();
-      await groupIdentify('type', 'name', id);
+      await groupIdentify('type', 'name', id).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, undefined);
     });
@@ -208,7 +253,7 @@ describe('browser-client', () => {
         }),
       );
       const id = new core.Identify();
-      await groupIdentify('type', 'name', id, {});
+      await groupIdentify('type', 'name', id, {}).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, {});
     });
@@ -224,7 +269,7 @@ describe('browser-client', () => {
         }),
       );
       const id = { _q: [] };
-      await groupIdentify('type', 'name', id);
+      await groupIdentify('type', 'name', id).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(
         undefined,
@@ -234,6 +279,23 @@ describe('browser-client', () => {
         expect.any(core.Identify),
         undefined,
       );
+    });
+  });
+
+  describe('setGroup', () => {
+    test('should call core.setGroup', async () => {
+      const event = {
+        event_type: 'hello',
+      };
+      const _setGroup = jest.spyOn(core, 'setGroup').mockReturnValueOnce(
+        Promise.resolve({
+          event,
+          code: 200,
+          message: 'success',
+        }),
+      );
+      await setGroup('groupType', 'groupname').promise;
+      expect(_setGroup).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -249,7 +311,7 @@ describe('browser-client', () => {
         }),
       );
       const revenueObj = new core.Revenue();
-      await revenue(revenueObj);
+      await revenue(revenueObj).promise;
       expect(coreRevenue).toHaveBeenCalledTimes(1);
       expect(coreRevenue).toHaveBeenCalledWith(revenueObj, undefined);
     });
@@ -265,7 +327,7 @@ describe('browser-client', () => {
         }),
       );
       const revenueObj = new core.Revenue();
-      await revenue(revenueObj, {});
+      await revenue(revenueObj, {}).promise;
       expect(coreRevenue).toHaveBeenCalledTimes(1);
       expect(coreRevenue).toHaveBeenCalledWith(revenueObj, {});
     });
@@ -281,7 +343,7 @@ describe('browser-client', () => {
         }),
       );
       const revenueObj = { _q: [] };
-      await revenue(revenueObj);
+      await revenue(revenueObj).promise;
       expect(coreRevenue).toHaveBeenCalledTimes(1);
       expect(coreRevenue).toHaveBeenCalledWith(expect.any(core.Revenue), undefined);
     });
