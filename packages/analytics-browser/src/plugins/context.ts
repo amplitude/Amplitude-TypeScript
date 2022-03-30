@@ -20,7 +20,12 @@ export class Context implements BeforePlugin {
   library = `amplitude-ts/${VERSION}`;
 
   constructor() {
-    this.uaResult = new UAParser(navigator.userAgent).getResult();
+    let agent: string | undefined;
+    /* istanbul ignore else */
+    if (typeof navigator !== 'undefined') {
+      agent = navigator.userAgent;
+    }
+    this.uaResult = new UAParser(agent).getResult();
   }
 
   setup(config: BrowserConfig): Promise<undefined> {
