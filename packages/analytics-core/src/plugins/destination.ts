@@ -60,7 +60,7 @@ export class Destination implements DestinationPlugin {
 
   addToQueue(...list: Context[]) {
     const tryable = list.filter((context) => {
-      if (context.attempts <= this.config.flushMaxRetries) {
+      if (context.attempts < this.config.flushMaxRetries) {
         return true;
       }
       this.fulfillRequest([context], 500, Status.Unknown);
