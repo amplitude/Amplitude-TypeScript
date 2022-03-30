@@ -621,7 +621,7 @@ describe('destination', () => {
       ]);
       expect(results[0].code).toBe(500);
       expect(results[1].code).toBe(500);
-      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
   });
 
