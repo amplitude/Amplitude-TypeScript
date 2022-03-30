@@ -37,6 +37,7 @@ describe('context', () => {
       const event = {
         event_type: 'event_type',
       };
+      const checkSessionExpiry = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
       const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
@@ -54,6 +55,7 @@ describe('context', () => {
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
+      expect(checkSessionExpiry).toHaveBeenCalledTimes(2);
       expect(updateLastEventTime).toHaveBeenCalledTimes(2);
     });
 
@@ -84,6 +86,7 @@ describe('context', () => {
       const event = {
         event_type: 'event_type',
       };
+      const checkSessionExpiry = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
       const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
@@ -103,6 +106,7 @@ describe('context', () => {
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
+      expect(checkSessionExpiry).toHaveBeenCalledTimes(2);
       expect(updateLastEventTime).toHaveBeenCalledTimes(2);
     });
   });
@@ -120,6 +124,7 @@ describe('context', () => {
       event_type: 'event_type',
       device_id: 'new deviceId',
     };
+    const checkSessionExpiry = jest.spyOn(SessionManager, 'checkSessionExpiry').mockReturnValueOnce(undefined);
     const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
     const firstContextEvent = await context.execute(event);
     expect(firstContextEvent.app_version).toEqual('1.0.0');
@@ -130,6 +135,7 @@ describe('context', () => {
 
     const secondContextEvent = await context.execute(event);
     expect(secondContextEvent.event_id).toEqual(1);
+    expect(checkSessionExpiry).toHaveBeenCalledTimes(2);
     expect(updateLastEventTime).toHaveBeenCalledTimes(2);
   });
 });

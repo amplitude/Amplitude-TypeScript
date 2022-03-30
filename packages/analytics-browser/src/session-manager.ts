@@ -23,6 +23,16 @@ export const updateLastEventTime = (config: BrowserConfig, lastEventTime: number
   });
 };
 
+export const checkSessionExpiry = (config: BrowserConfig) => {
+  const cookieName = getCookieName(config.apiKey);
+  const lastEventTime = config.cookieStorage.get(cookieName)?.lastEventTime;
+  const now = Date.now();
+  if (lastEventTime && now - lastEventTime >= config.cookieExpiration) {
+    config.sessionId = now;
+    updateCookies(config);
+  }
+};
+
 export const getCookieName = (apiKey: string) => {
   return `${AMPLITUDE_PREFIX}_${apiKey.substring(0, 10)}`;
 };
