@@ -5,6 +5,11 @@ import { Event } from './event';
 import { Transport } from './transport';
 import { Plugin } from './plugin';
 
+export enum ServerZone {
+  US = 'US',
+  EU = 'EU',
+}
+
 export interface Config {
   appVersion?: string;
   apiKey: string;
@@ -18,11 +23,13 @@ export interface Config {
   loggerProvider: Logger;
   optOut: boolean;
   saveEvents: boolean;
-  serverUrl: string;
+  serverUrl: string | undefined;
+  serverZone: ServerZone;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;
   partnerId?: string;
   plugins: Plugin[];
+  useBatch: boolean;
 }
 
 export interface BrowserConfig extends Config {

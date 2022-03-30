@@ -35,9 +35,11 @@ describe('config', () => {
         storageProvider: useDefaultConfig().storageProvider,
         saveEvents: false,
         optOut: true,
+        useBatch: true,
       }),
     );
     expect(getConfig().saveEvents).toBe(false);
     expect(getConfig().optOut).toBe(true);
+    expect(getConfig().useBatch).toBe(true);
   });
 });

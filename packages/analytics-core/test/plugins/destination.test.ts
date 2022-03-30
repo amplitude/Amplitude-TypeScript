@@ -1,6 +1,12 @@
 import { Destination } from '../../src/plugins/destination';
-import { DestinationContext, Status } from '@amplitude/analytics-types';
-import { useDefaultConfig } from '../helpers/default';
+import { DestinationContext, ServerZone, Status } from '@amplitude/analytics-types';
+import {
+  useDefaultConfig,
+  AMPLITUDE_SERVER_URL,
+  EU_AMPLITUDE_SERVER_URL,
+  AMPLITUDE_BATCH_SERVER_URL,
+  EU_AMPLITUDE_BATCH_SERVER_URL,
+} from '../helpers/default';
 import { MISSING_API_KEY_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../../src/messages';
 
 describe('destination', () => {
@@ -606,6 +612,40 @@ describe('destination', () => {
       expect(results[0].code).toBe(500);
       expect(results[1].code).toBe(500);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getApiHost', () => {
+    test('should return serverUrl if the value exists', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      expect(destination.getApiHost()).toBe(AMPLITUDE_SERVER_URL);
+    });
+
+    test('should return US server url if serverUrl does not exist', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.serverUrl = undefined;
+      expect(destination.getApiHost()).toBe(AMPLITUDE_SERVER_URL);
+    });
+
+    test('should return batch server url if serverUrl does not exist and useBatch is set', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.serverUrl = undefined;
+      destination.config.useBatch = true;
+      expect(destination.getApiHost()).toBe(AMPLITUDE_BATCH_SERVER_URL);
+
+      destination.config.serverZone = ServerZone.EU;
+      expect(destination.getApiHost()).toBe(EU_AMPLITUDE_BATCH_SERVER_URL);
+    });
+
+    test('should return EU server url if serverUrl does not exist and server zone is EU', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.serverUrl = undefined;
+      destination.config.serverZone = ServerZone.EU;
+      expect(destination.getApiHost()).toBe(EU_AMPLITUDE_SERVER_URL);
     });
   });
 });
