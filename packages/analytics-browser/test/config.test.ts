@@ -45,7 +45,8 @@ describe('config', () => {
         partnerId: 'partnerId',
         plugins: [],
         saveEvents: true,
-        serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        serverUrl: undefined,
+        serverZone: 'US',
         sessionId: 0,
         sessionTimeout: 1800000,
         storageProvider: new MemoryModule.MemoryStorage(),
@@ -66,6 +67,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         userId: undefined,
+        useBatch: false,
       });
     });
 
@@ -107,7 +109,8 @@ describe('config', () => {
         partnerId: undefined,
         plugins: [],
         saveEvents: true,
-        serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        serverUrl: undefined,
+        serverZone: 'US',
         sessionId: 1,
         sessionTimeout: 1800000,
         storageProvider: new MemoryModule.MemoryStorage(),
@@ -128,6 +131,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         userId: 'userIdFromCookies',
+        useBatch: false,
       });
     });
   });

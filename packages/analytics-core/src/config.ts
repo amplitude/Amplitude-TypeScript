@@ -7,6 +7,7 @@ import {
   Storage,
   Transport,
   Plugin,
+  ServerZone,
 } from '@amplitude/analytics-types';
 
 import { Logger } from './logger';
@@ -15,6 +16,14 @@ const DEFAULT_INSTANCE = 'default';
 const instances: Record<string, IConfig> = {};
 
 const AMPLITUDE_SERVER_URL = 'https://api2.amplitude.com/2/httpapi';
+const EU_AMPLITUDE_SERVER_URL = 'https://api.eu.amplitude.com/2/httpapi';
+const AMPLITUDE_BATCH_SERVER_URL = 'https://api2.amplitude.com/batch';
+const EU_AMPLITUDE_BATCH_SERVER_URL = 'https://api.eu.amplitude.com/batch';
+
+export const serverUrls = {
+  [ServerZone.US]: (useBatch: boolean) => (useBatch ? AMPLITUDE_BATCH_SERVER_URL : AMPLITUDE_SERVER_URL),
+  [ServerZone.EU]: (useBatch: boolean) => (useBatch ? EU_AMPLITUDE_BATCH_SERVER_URL : EU_AMPLITUDE_SERVER_URL),
+};
 
 export const defaultConfig = {
   flushMaxRetries: 5,
@@ -25,6 +34,8 @@ export const defaultConfig = {
   saveEvents: true,
   optOut: false,
   serverUrl: AMPLITUDE_SERVER_URL,
+  serverZone: ServerZone.US,
+  useBatch: false,
 };
 
 export class Config implements IConfig {
@@ -41,9 +52,11 @@ export class Config implements IConfig {
   plugins: Plugin[];
   optOut: boolean;
   saveEvents: boolean;
-  serverUrl: string;
+  serverUrl: string | undefined;
+  serverZone: ServerZone;
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;
+  useBatch: boolean;
 
   constructor(options: InitOptions<IConfig>) {
     this.apiKey = options.apiKey;
@@ -59,9 +72,11 @@ export class Config implements IConfig {
     this.plugins = [];
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
-    this.serverUrl = options.serverUrl || AMPLITUDE_SERVER_URL;
+    this.serverUrl = options.serverUrl;
+    this.serverZone = options.serverZone || defaultConfig.serverZone;
     this.storageProvider = options.storageProvider;
     this.transportProvider = options.transportProvider;
+    this.useBatch = options.useBatch ?? defaultConfig.useBatch;
 
     this.loggerProvider.enable(this.logLevel);
   }
