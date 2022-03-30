@@ -37,6 +37,7 @@ export const defaultConfig = {
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: ServerZone.US,
   useBatch: false,
+  apiHost: '',
 };
 
 export class Config implements IConfig {

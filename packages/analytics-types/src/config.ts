@@ -30,7 +30,7 @@ export interface Config {
   partnerId?: string;
   plugins: Plugin[];
   useBatch: boolean;
-  apiHost?: string;
+  apiHost: string;
 }
 
 export interface BrowserConfig extends Config {
