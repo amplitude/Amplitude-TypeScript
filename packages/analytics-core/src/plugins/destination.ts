@@ -12,6 +12,12 @@ import {
   Status,
   SuccessResponse,
 } from '@amplitude/analytics-types';
+import {
+  MAX_RETRIES_EXCEEDED_MESSAGE,
+  MISSING_API_KEY_MESSAGE,
+  SUCCESS_MESSAGE,
+  UNEXPECTED_ERROR_MESSAGE,
+} from '../messages';
 import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
@@ -82,6 +88,10 @@ export class Destination implements DestinationPlugin {
   }
 
   async send(list: Context[]) {
+    if (!this.config.apiKey) {
+      return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
+    }
+
     const payload = {
       api_key: this.config.apiKey,
       events: list.map((context) => context.event),
@@ -90,12 +100,12 @@ export class Destination implements DestinationPlugin {
     try {
       const res = await this.config.transportProvider.send(this.config.serverUrl, payload);
       if (res === null) {
-        this.fulfillRequest(list, 0, Status.Unknown);
+        this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
       this.handleReponse(res, list);
     } catch (e) {
-      this.fulfillRequest(list, 0, Status.Failed);
+      this.fulfillRequest(list, 0, String(e));
     }
   }
 
@@ -124,12 +134,12 @@ export class Destination implements DestinationPlugin {
   }
 
   handleSuccessResponse(res: SuccessResponse, list: Context[]) {
-    this.fulfillRequest(list, res.statusCode, res.status);
+    this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
     if (res.body.missingField) {
-      this.fulfillRequest(list, res.statusCode, res.status);
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -148,13 +158,13 @@ export class Destination implements DestinationPlugin {
       [[], []],
     );
 
-    this.fulfillRequest(drop, res.statusCode, res.status);
+    this.fulfillRequest(drop, res.statusCode, res.body.error);
     this.addToQueue(...retry);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
-      this.fulfillRequest(list, res.statusCode, res.status);
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
     this.config.flushQueueSize /= 2;
@@ -186,7 +196,7 @@ export class Destination implements DestinationPlugin {
       [[], [], []],
     );
 
-    this.fulfillRequest(drop, res.statusCode, res.status);
+    this.fulfillRequest(drop, res.statusCode, res.body.error);
     this.addToQueue(...retryNow);
     setTimeout(() => {
       this.addToQueue(...retryLater);
@@ -202,13 +212,13 @@ export class Destination implements DestinationPlugin {
       [[], []],
     );
 
-    this.fulfillRequest(drop, res.statusCode, res.status);
+    this.fulfillRequest(drop, res.statusCode, MAX_RETRIES_EXCEEDED_MESSAGE);
     this.addToQueue(...retry);
   }
 
-  fulfillRequest(list: Context[], code: number, status: Status) {
+  fulfillRequest(list: Context[], code: number, message: string) {
     this.removeFromBackup(...list.map((context) => context.event));
-    list.forEach((context) => context.callback(buildResult(context.event, code, status)));
+    list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
   addToBackup(...events: Event[]) {

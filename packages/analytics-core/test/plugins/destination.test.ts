@@ -1,6 +1,7 @@
 import { Destination } from '../../src/plugins/destination';
 import { DestinationContext, Status } from '@amplitude/analytics-types';
 import { useDefaultConfig } from '../helpers/default';
+import { MISSING_API_KEY_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../../src/messages';
 
 describe('destination', () => {
   describe('setup', () => {
@@ -140,6 +141,36 @@ describe('destination', () => {
   });
 
   describe('send', () => {
+    test('should handle no api key', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          throw new Error();
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: '',
+      });
+      await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 400,
+        message: MISSING_API_KEY_MESSAGE,
+      });
+    });
+
     test('should handle unexpected error', async () => {
       const destination = new Destination();
       const callback = jest.fn();
@@ -272,7 +303,7 @@ describe('destination', () => {
         event_type: 'event_type',
       });
       expect(result.code).toBe(0);
-      expect(result.message).toBe(Status.Unknown);
+      expect(result.message).toBe(UNEXPECTED_ERROR_MESSAGE);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -384,7 +415,7 @@ describe('destination', () => {
       const result = await destination.execute(event);
       expect(result).toEqual({
         event,
-        message: Status.PayloadTooLarge,
+        message: 'error',
         code: 413,
       });
       expect(transportProvider.send).toHaveBeenCalledTimes(1);

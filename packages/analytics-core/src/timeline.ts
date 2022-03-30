@@ -8,8 +8,8 @@ import {
   Plugin,
   PluginType,
   Result,
-  Status,
 } from '@amplitude/analytics-types';
+import { OPT_OUT_MESSAGE } from './messages';
 import { buildResult } from './utils/result-builder';
 
 export const queue: [Event, EventCallback, Plugin[]][] = [];
@@ -31,7 +31,7 @@ export const deregister = (pluginName: string, config: Config) => {
 export const push = (event: Event, config: Config) => {
   return new Promise<Result>((resolve) => {
     if (config.optOut) {
-      resolve(buildResult(event, 0, Status.Skipped));
+      resolve(buildResult(event, 0, OPT_OUT_MESSAGE));
       return;
     }
     queue.push([event, resolve, config.plugins]);

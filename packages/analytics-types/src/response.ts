@@ -19,7 +19,7 @@ export interface InvalidRequestBody {
   throttledEvents: number[];
 }
 export interface PayloadTooLargeBody {
-  error?: string;
+  error: string;
 }
 export interface RateLimitBody {
   error: string;

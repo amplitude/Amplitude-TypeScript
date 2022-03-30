@@ -69,9 +69,17 @@ export const remove = async (pluginName: string) => {
 
 export const dispatch = async (event: Event, config: Config) => {
   try {
-    return push(event, config);
+    const result = await push(event, config);
+    if (result.code === 200) {
+      config.loggerProvider.log(result.message);
+    } else {
+      config.loggerProvider.error(result.message);
+    }
+    return result;
   } catch (e) {
-    return buildResult(event, 0, String(e));
+    const message = String(e);
+    config.loggerProvider.error(message);
+    return buildResult(event, 0, message);
   }
 };
 
