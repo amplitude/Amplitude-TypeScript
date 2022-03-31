@@ -59,7 +59,6 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;
   useBatch: boolean;
-  apiHost = '';
 
   constructor(options: InitOptions<IConfig>) {
     this.apiKey = options.apiKey;
@@ -107,23 +106,17 @@ export const resetInstances = () => {
 };
 
 export const getApiHost = (config: Config | IConfig) => {
-  let apiHost = config.apiHost;
-  if (!apiHost) {
-    apiHost = configApiHost(config);
-  }
-  return apiHost;
+  return configApiHost(config);
 };
 
 const configApiHost = (config: Config | IConfig) => {
-  if (config.serverUrl) {
-    config.apiHost = config.serverUrl;
-  } else {
+  if (!config.serverUrl) {
     // Log a warning if server zone is neither US nor EU
     if (![ServerZone.US, ServerZone.EU].includes(config.serverZone)) {
       config.loggerProvider.warn(`Unknown server zone "${config.serverZone}". Replaced with US server zone`);
       config.serverZone = ServerZone.US;
     }
-    config.apiHost = serverUrls[config.serverZone](config.useBatch);
+    config.serverUrl = serverUrls[config.serverZone](config.useBatch);
   }
-  return config.apiHost;
+  return config.serverUrl;
 };
