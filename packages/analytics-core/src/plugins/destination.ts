@@ -12,12 +12,7 @@ import {
   Status,
   SuccessResponse,
 } from '@amplitude/analytics-types';
-import {
-  MAX_RETRIES_EXCEEDED_MESSAGE,
-  MISSING_API_KEY_MESSAGE,
-  SUCCESS_MESSAGE,
-  UNEXPECTED_ERROR_MESSAGE,
-} from '../messages';
+import { MISSING_API_KEY_MESSAGE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../messages';
 import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
@@ -27,7 +22,8 @@ export class Destination implements DestinationPlugin {
   name = 'amplitude';
   type = PluginType.DESTINATION as const;
 
-  backoff = 30000;
+  backoff = 1000;
+  throttle = 30000;
   storageKey = '';
   backup: Set<Event> = new Set();
   // this.config is defined in setup() which will always be called first
@@ -56,16 +52,36 @@ export class Destination implements DestinationPlugin {
         event,
         attempts: 0,
         callback: (result: Result) => resolve(result),
+        delay: 0,
       };
       this.addToQueue(context);
     });
   }
 
   addToQueue(...list: Context[]) {
-    this.addToBackup(...list.map((context) => context.event));
-    list.forEach((context) => (context.attempts += 1));
-    this.queue = this.queue.concat(...list);
-    this.schedule(this.config.flushIntervalMillis);
+    const tryable = list.filter((context) => {
+      if (context.attempts < this.config.flushMaxRetries) {
+        return true;
+      }
+      this.fulfillRequest([context], 500, Status.Unknown);
+      return false;
+    });
+
+    this.addToBackup(...tryable.map((context) => context.event));
+    tryable.forEach((context) => {
+      context.attempts += 1;
+      const delay = context.delay;
+      context.delay = 0;
+      if (context.attempts === 1 && !context.delay) {
+        this.queue = this.queue.concat(context);
+        this.schedule(this.config.flushIntervalMillis);
+        return;
+      }
+      setTimeout(() => {
+        this.queue = this.queue.concat(context);
+        this.schedule(this.config.flushIntervalMillis);
+      }, delay || context.attempts * this.backoff);
+    });
   }
 
   schedule(timeout: number) {
@@ -130,7 +146,7 @@ export class Destination implements DestinationPlugin {
         break;
 
       default:
-        this.handleOtherReponse(res, list);
+        this.handleOtherReponse(list);
     }
   }
 
@@ -151,15 +167,14 @@ export class Destination implements DestinationPlugin {
     ].flat();
     const dropIndexSet = new Set(dropIndex);
 
-    const [drop, retry] = list.reduce<[Context[], Context[]]>(
-      ([drop, retry], curr, index) => {
-        dropIndexSet.has(index) ? drop.push(curr) : retry.push(curr);
-        return [drop, retry];
-      },
-      [[], []],
-    );
+    const retry = list.filter((context, index) => {
+      if (dropIndexSet.has(index)) {
+        this.fulfillRequest([context], res.statusCode, res.status);
+        return;
+      }
+      return true;
+    });
 
-    this.fulfillRequest(drop, res.statusCode, res.body.error);
     this.addToQueue(...retry);
   }
 
@@ -180,41 +195,25 @@ export class Destination implements DestinationPlugin {
     const dropDeviceIdsSet = new Set(dropDeviceIds);
     const throttledIndexSet = new Set(throttledIndex);
 
-    const [drop, retryNow, retryLater] = list.reduce<[Context[], Context[], Context[]]>(
-      ([drop, retryNow, retryLater], curr, index) => {
-        if (
-          (curr.event.user_id && dropUserIdsSet.has(curr.event.user_id)) ||
-          (curr.event.device_id && dropDeviceIdsSet.has(curr.event.device_id))
-        ) {
-          drop.push(curr);
-        } else if (throttledIndexSet.has(index)) {
-          retryLater.push(curr);
-        } else {
-          retryNow.push(curr);
-        }
-        return [drop, retryNow, retryLater];
-      },
-      [[], [], []],
-    );
+    const retry = list.filter((context, index) => {
+      if (
+        (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
+        (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
+      ) {
+        this.fulfillRequest([context], res.statusCode, res.status);
+        return;
+      }
+      if (throttledIndexSet.has(index)) {
+        context.delay = this.throttle;
+      }
+      return true;
+    });
 
-    this.fulfillRequest(drop, res.statusCode, res.body.error);
-    this.addToQueue(...retryNow);
-    setTimeout(() => {
-      this.addToQueue(...retryLater);
-    }, this.backoff);
+    this.addToQueue(...retry);
   }
 
-  handleOtherReponse(res: Response, list: Context[]) {
-    const [drop, retry] = list.reduce<[Context[], Context[]]>(
-      ([drop, retry], curr) => {
-        curr.attempts > this.config.flushMaxRetries ? drop.push(curr) : retry.push(curr);
-        return [drop, retry];
-      },
-      [[], []],
-    );
-
-    this.fulfillRequest(drop, res.statusCode, MAX_RETRIES_EXCEEDED_MESSAGE);
-    this.addToQueue(...retry);
+  handleOtherReponse(list: Context[]) {
+    this.addToQueue(...list);
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {

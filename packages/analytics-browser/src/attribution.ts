@@ -62,7 +62,7 @@ export const getUtmParam = (): UTMData => {
 export const getReferrer = () => {
   const data: Record<string, string | undefined> = {};
   try {
-    const referrer = document.referrer;
+    const referrer = document.referrer || undefined;
     const referringDomain = referrer?.split('/')[2] ?? undefined;
 
     if (referrer !== undefined) data.referrer = referrer;

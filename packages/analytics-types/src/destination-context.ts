@@ -5,4 +5,5 @@ export interface DestinationContext {
   event: Event;
   attempts: number;
   callback: EventCallback;
+  delay: number;
 }

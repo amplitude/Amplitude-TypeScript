@@ -9,7 +9,7 @@
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
   "publishConfig": {
-    "access": "restricted"
+    "access": "public"
   },
   "repository": {
     "type": "git",
