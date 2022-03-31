@@ -205,6 +205,7 @@ export const logEvent = track;
 
 /**
  * Sends an identify event containing user property operations
+ *
  * ```typescript
  * const id = new Identify();
  * id.set('colors', ['rose', 'gold']);

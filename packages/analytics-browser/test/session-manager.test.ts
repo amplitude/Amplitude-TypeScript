@@ -1,6 +1,6 @@
 import { BrowserConfig } from '@amplitude/analytics-types';
 import { createConfig } from '../src/config';
-import { getCookieName, updateCookies, updateLastEventTime } from '../src/session-manager';
+import * as SessionManager from '../src/session-manager';
 
 describe('session-mananger', () => {
   describe('updateCookies', () => {
@@ -21,9 +21,9 @@ describe('session-mananger', () => {
         sessionId: 0,
         cookieStorage,
       };
-      updateCookies(config);
+      SessionManager.updateCookies(config);
       expect(cookieStorage.set).toHaveBeenCalledTimes(1);
-      expect(cookieStorage.set).toHaveBeenLastCalledWith(getCookieName('apiKey'), {
+      expect(cookieStorage.set).toHaveBeenLastCalledWith(SessionManager.getCookieName('apiKey'), {
         userId: 'userId',
         deviceId: 'deviceId',
         sessionId: 0,
@@ -46,9 +46,9 @@ describe('session-mananger', () => {
         sessionId: 0,
         cookieStorage,
       };
-      updateCookies(config);
+      SessionManager.updateCookies(config);
       expect(cookieStorage.set).toHaveBeenCalledTimes(1);
-      expect(cookieStorage.set).toHaveBeenLastCalledWith(getCookieName('apiKey'), {
+      expect(cookieStorage.set).toHaveBeenLastCalledWith(SessionManager.getCookieName('apiKey'), {
         userId: 'userId',
         deviceId: 'deviceId',
         sessionId: 0,
@@ -74,9 +74,9 @@ describe('session-mananger', () => {
         cookieStorage,
       };
       const now = Date.now();
-      updateLastEventTime(config, now);
+      SessionManager.updateLastEventTime(config, now);
       expect(cookieStorage.set).toHaveBeenCalledTimes(1);
-      expect(cookieStorage.set).toHaveBeenLastCalledWith(getCookieName('apiKey'), {
+      expect(cookieStorage.set).toHaveBeenLastCalledWith(SessionManager.getCookieName('apiKey'), {
         userId: 'userId',
         deviceId: 'deviceId',
         sessionId: 0,
@@ -86,9 +86,73 @@ describe('session-mananger', () => {
     });
   });
 
+  describe('checkSessionExpiry', () => {
+    test('should update session id', () => {
+      const lastEventTime = Date.now() - 1000;
+      const cookieStorage = {
+        isEnabled: () => true,
+        get: jest.fn().mockReturnValue({
+          userId: 'userId',
+          deviceId: 'deviceId',
+          sessionId: Date.now(),
+          lastEventTime,
+          optOut: false,
+        }),
+        set: jest.fn(),
+        remove: jest.fn(),
+        reset: jest.fn(),
+      };
+      const config: BrowserConfig = {
+        ...createConfig('apiKey', 'userId'),
+        deviceId: 'deviceId',
+        sessionId: 0,
+        cookieStorage,
+        sessionTimeout: 1,
+      };
+
+      SessionManager.checkSessionExpiry(config);
+      expect(cookieStorage.set).toHaveBeenCalledTimes(1);
+      expect(cookieStorage.set).toHaveBeenLastCalledWith(SessionManager.getCookieName('apiKey'), {
+        userId: 'userId',
+        deviceId: 'deviceId',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        sessionId: expect.any(Number), // Date.now()
+        lastEventTime,
+        optOut: false,
+      });
+    });
+
+    test('should not update session id', () => {
+      const lastEventTime = Date.now() - 1000;
+      const cookieStorage = {
+        isEnabled: () => true,
+        get: jest.fn().mockReturnValue({
+          userId: 'userId',
+          deviceId: 'deviceId',
+          sessionId: Date.now(),
+          lastEventTime,
+          optOut: false,
+        }),
+        set: jest.fn(),
+        remove: jest.fn(),
+        reset: jest.fn(),
+      };
+      const config: BrowserConfig = {
+        ...createConfig('apiKey', 'userId'),
+        deviceId: 'deviceId',
+        sessionId: 0,
+        cookieStorage,
+        sessionTimeout: 2000,
+      };
+
+      SessionManager.checkSessionExpiry(config);
+      expect(cookieStorage.set).toHaveBeenCalledTimes(0);
+    });
+  });
+
   describe('getCookieName', () => {
     test('should return cookie name', () => {
-      expect(getCookieName('apiKey')).toBe('AMP_apiKey');
+      expect(SessionManager.getCookieName('apiKey')).toBe('AMP_apiKey');
     });
   });
 });

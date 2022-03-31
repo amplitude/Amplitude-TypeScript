@@ -3,6 +3,7 @@ import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '../utils/uuid';
 import { getLanguage } from '../utils/language';
 import { VERSION } from '../version';
+import { checkSessionExpiry, updateLastEventTime } from '../session-manager';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
@@ -35,16 +36,19 @@ export class Context implements BeforePlugin {
 
   execute(context: Event): Promise<Event> {
     return new Promise((resolve) => {
+      const time = new Date().getTime();
       const osName = this.uaResult.browser.name;
       const osVersion = this.uaResult.browser.version;
       const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
       const deviceVendor = this.uaResult.device.vendor;
 
+      checkSessionExpiry(this.config);
+      updateLastEventTime(this.config, time);
       const contextEvent: Event = {
         user_id: this.config.userId,
         device_id: this.config.deviceId,
         session_id: this.config.sessionId,
-        time: new Date().getTime(),
+        time,
         ...(this.config.appVersion && { app_version: this.config.appVersion }),
         ...(this.config.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
         ...(this.config.trackingOptions.osName && { os_name: osName }),
