@@ -16,9 +16,6 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     env:
       RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
     strategy:
