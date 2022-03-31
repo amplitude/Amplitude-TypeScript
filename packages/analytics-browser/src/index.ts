@@ -13,6 +13,7 @@ export {
   setGroup,
   setOptOut,
   setSessionId,
+  setTransport,
   setUserId,
   track,
 } from './browser-client';

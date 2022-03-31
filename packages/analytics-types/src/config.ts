@@ -2,7 +2,7 @@ import { LogLevel, Logger } from './logger';
 import { Storage, UserSession } from './storage';
 
 import { Event } from './event';
-import { Transport } from './transport';
+import { Transport, TransportType } from './transport';
 import { Plugin } from './plugin';
 
 export enum ServerZone {
@@ -70,4 +70,12 @@ export type TrackingOptions = {
   region?: boolean;
   versionName?: boolean;
 };
-export type BrowserOptions = Omit<Partial<BrowserConfig>, 'apiKey' | 'userId' | 'plugins'>;
+
+export type BrowserOptions = Omit<
+  Partial<
+    BrowserConfig & {
+      transport: TransportType;
+    }
+  >,
+  'apiKey' | 'userId' | 'plugins'
+>;

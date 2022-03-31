@@ -3,11 +3,12 @@ import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as MemoryModule from '../src/storage/memory';
 import * as core from '@amplitude/analytics-core';
-
-import { LogLevel, UserSession } from '@amplitude/analytics-types';
-
+import { LogLevel, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
 import { getCookieName } from '../src/session-manager';
+import { XHRTransport } from '../src/transports/xhr';
+import { createTransport } from '../src/config';
+import { SendBeaconTransport } from '../src/transports/send-beacon';
 
 describe('config', () => {
   const API_KEY = 'apiKey';
@@ -261,6 +262,20 @@ describe('config', () => {
       jest.spyOn(Date, 'now').mockReturnValueOnce(1);
       const sessionId = Config.createSessionId(undefined, undefined, undefined, 60000);
       expect(sessionId).toBe(1);
+    });
+  });
+
+  describe('createTransport', () => {
+    test('should return xhr', () => {
+      expect(createTransport(TransportType.XHR)).toBeInstanceOf(XHRTransport);
+    });
+
+    test('should return beacon', () => {
+      expect(createTransport(TransportType.SendBeacon)).toBeInstanceOf(SendBeaconTransport);
+    });
+
+    test('should return fetch', () => {
+      expect(createTransport(TransportType.Fetch)).toBeInstanceOf(FetchTransport);
     });
   });
 

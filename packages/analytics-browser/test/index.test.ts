@@ -16,6 +16,7 @@ import {
   setGroup,
   setOptOut,
   setSessionId,
+  setTransport,
   setUserId,
   track,
 } from '../src/index';
@@ -39,6 +40,7 @@ describe('index', () => {
     expect(typeof setGroup).toBe('function');
     expect(typeof setOptOut).toBe('function');
     expect(typeof setSessionId).toBe('function');
+    expect(typeof setTransport).toBe('function');
     expect(typeof setUserId).toBe('function');
     expect(typeof track).toBe('function');
   });
