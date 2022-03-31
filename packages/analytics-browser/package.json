@@ -27,7 +27,7 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "prepublishOnly": "yarn vesion-file && yarn build",
+    "prepare": "yarn vesion-file && yarn build",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
     "vesion-file": "node -p \"'export const VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts"
