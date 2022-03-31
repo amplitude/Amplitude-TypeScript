@@ -19,6 +19,7 @@
     "build": "yarn build:es5 & yarn build:esm",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "deploy:prepublish": "exit 0",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",

@@ -5,7 +5,9 @@
   ],
   "scripts": {
     "build": "lerna run build --stream",
-    "deploy": "lerna publish",
+    "deploy:version": "lerna version",
+    "deploy:prepublish": "lerna run deploy:prepublish --stream",
+    "deploy:publish": "lerna publish",
     "docs": "typedoc",
     "docs:check": "typedoc --emit none",
     "fix": "lerna run fix --stream",

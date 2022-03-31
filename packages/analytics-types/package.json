@@ -17,6 +17,7 @@
   },
   "scripts": {
     "build": "tsc -p ./tsconfig.json",
+    "deploy:prepublish": "exit 0",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
