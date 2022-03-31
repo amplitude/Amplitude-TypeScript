@@ -11,10 +11,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'EwD+hFWvuKJfNoOTSMfmeXZHjbc1FJMGfi7SSpO8NO78RiZK9BZXklTeUJ9e9vpu';
+    as.integrity = 'sha384-Gjlda5lxbyLmoOoCznLnegtalfV+WQnOZokQpQt1JOVifnyiTKzS03crDwmEBy+y';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.0.0-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/amplitude-next-0.0.1-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -70,14 +70,19 @@
       'init',
       'track',
       'logEvent',
-      'add',
-      'remove',
       'identify',
       'groupIdentify',
       'revenue',
+      'setGroup',
+      'add',
+      'remove',
+      'getDeviceId',
       'setDeviceId',
+      'getSessionId',
       'setSessionId',
+      'getUserId',
       'setUserId',
+      'setOptOut',
     ];
     function setUpProxy(instance) {
       function proxyMain(fn) {
