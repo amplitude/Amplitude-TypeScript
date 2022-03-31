@@ -4,3 +4,9 @@ import { Response } from './response';
 export interface Transport {
   send(serverUrl: string, payload: Payload): Promise<Response | null>;
 }
+
+export enum TransportType {
+  XHR = 'xhr',
+  SendBeacon = 'send-beacon',
+  Fetch = 'fetch',
+}

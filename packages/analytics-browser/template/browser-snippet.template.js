@@ -1,7 +1,7 @@
 const snippet = (integrity, version) => `
 !(function (window, document) {
   var amplitude = window.amplitude || { _q: [] };
-  if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.')
+  if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
     var as = document.createElement('script');
@@ -78,6 +78,7 @@ const snippet = (integrity, version) => `
       'getUserId',
       'setUserId',
       'setOptOut',
+      'setTransport',
     ];
     function setUpProxy(instance) {
       function proxyMain(fn) {

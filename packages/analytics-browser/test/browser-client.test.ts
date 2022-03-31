@@ -15,13 +15,15 @@ import {
   remove,
   track,
   setGroup,
+  setTransport,
 } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
 import * as attribution from '../src/attribution';
 import { runQueuedFunctions } from '../src/utils/snippet-helper';
-import { PluginType } from '@amplitude/analytics-types';
+import { PluginType, TransportType } from '@amplitude/analytics-types';
+import { XHRTransport } from '../src/transports/xhr';
 
 describe('browser-client', () => {
   const API_KEY = 'apiKey';
@@ -155,6 +157,18 @@ describe('browser-client', () => {
         ...config,
         optOut: true,
       });
+    });
+  });
+
+  describe('setTransport', () => {
+    test('should set transport', () => {
+      const config = Config.createConfig(API_KEY);
+      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
+      const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(new XHRTransport());
+      setTransport(TransportType.XHR);
+      expect(getConfig).toHaveBeenCalledTimes(1);
+      expect(createTransport).toHaveBeenCalledTimes(1);
+      expect(config.transportProvider).toBeInstanceOf(XHRTransport);
     });
   });
 

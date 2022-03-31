@@ -19,10 +19,11 @@ import {
   EventOptions,
   Plugin,
   Result,
+  TransportType,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { createConfig, getConfig } from './config';
+import { createConfig, createTransport, getConfig } from './config';
 import { trackAttributions } from './attribution';
 import { updateCookies } from './session-manager';
 
@@ -165,6 +166,26 @@ export const setOptOut = (optOut: boolean) => {
   _setOptOut(optOut);
   const config = getConfig();
   updateCookies(config);
+};
+
+/**
+ *  Sets the network transport type for events.
+ *
+ * ```typescript
+ * // Use Fetch API
+ * setTransport('fetch');
+ *
+ * // Use XMLHttpRequest API
+ * setTransport('xhr');
+ *
+ * // Use navigator.sendBeacon API
+ * setTransport('beacon');
+ * ```
+ */
+export const setTransport = (transport: TransportType) => {
+  const config = getConfig();
+  const transportProvider = createTransport(transport);
+  config.transportProvider = transportProvider;
 };
 
 /**

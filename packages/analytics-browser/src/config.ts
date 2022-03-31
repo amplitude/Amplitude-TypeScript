@@ -3,6 +3,7 @@ import {
   BrowserConfig as IBrowserConfig,
   Storage,
   TrackingOptions,
+  TransportType,
   UserSession,
 } from '@amplitude/analytics-types';
 import { Config, getConfig as _getConfig } from '@amplitude/analytics-core';
@@ -14,6 +15,8 @@ import { MemoryStorage } from './storage/memory';
 import { getCookieName } from './session-manager';
 import { getQueryParams } from './utils/query-params';
 import { UUID } from './utils/uuid';
+import { XHRTransport } from './transports/xhr';
+import { SendBeaconTransport } from './transports/send-beacon';
 
 export const defaultConfig = {
   cookieExpiration: 365,
@@ -61,7 +64,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
     const cookieStorage = createCookieStorage(options);
     const storageProvider = createEventsStorage(options);
-    const transportProvider = options?.transportProvider ?? defaultConfig.transportProvider;
+    const transportProvider = options?.transportProvider ?? createTransport(options?.transport);
     const sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     const trackingOptions = { ...defaultConfig.trackingOptions, ...options?.trackingOptions };
     const cookieName = getCookieName(apiKey);
@@ -138,6 +141,16 @@ export const createSessionId = (idFromCookies = 0, idFromOptions = 0, lastEventT
     return idFromCookies;
   }
   return idFromOptions ? idFromOptions : Date.now();
+};
+
+export const createTransport = (transport?: TransportType) => {
+  if (transport === TransportType.XHR) {
+    return new XHRTransport();
+  }
+  if (transport === TransportType.SendBeacon) {
+    return new SendBeaconTransport();
+  }
+  return defaultConfig.transportProvider;
 };
 
 export const getConfig = () => {

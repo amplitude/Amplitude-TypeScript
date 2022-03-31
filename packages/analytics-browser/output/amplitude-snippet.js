@@ -11,7 +11,7 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-Gjlda5lxbyLmoOoCznLnegtalfV+WQnOZokQpQt1JOVifnyiTKzS03crDwmEBy+y';
+    as.integrity = 'sha384-N+LJLGyeVA76h4i1BsX/rCYacknOmnsNvsqxk751Ykx6RQiKtfx7JVz333j2YpVh';
     as.crossOrigin = 'anonymous';
     as.async = true;
     as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.0.0-min.js.gz';
@@ -83,6 +83,7 @@
       'getUserId',
       'setUserId',
       'setOptOut',
+      'setTransport',
     ];
     function setUpProxy(instance) {
       function proxyMain(fn) {
