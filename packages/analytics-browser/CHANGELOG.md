@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.1.0...@amplitude/analytics-browser@0.1.1) (2022-03-31)
+
+
+### Bug Fixes
+
+* add missing dependency ([6283f64](https://github.com/amplitude/Amplitude-TypeScript/commit/6283f64dc40b070d68a0243a93ab58d95d436664))
+* move src/version update to npm prepare ([2101ab9](https://github.com/amplitude/Amplitude-TypeScript/commit/2101ab92ee874dd1536071c65318dd9c6fac123f))
+
+
+
+
+
 # 0.1.0 (2022-03-31)
 
 
