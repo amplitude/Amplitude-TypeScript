@@ -1,8 +1,10 @@
 import * as amplitude from './index';
 import { runQueuedFunctions } from './utils/snippet-helper';
 
-window.amplitude = Object.assign(window.amplitude, amplitude);
+globalThis.amplitude = Object.assign(globalThis.amplitude || {}, amplitude);
 
-if (window.amplitude?.invoked) {
-  runQueuedFunctions(amplitude, window.amplitude);
+if (globalThis.amplitude.invoked) {
+  const queue = globalThis.amplitude._q;
+  globalThis.amplitude._q = [];
+  runQueuedFunctions(amplitude, queue);
 }

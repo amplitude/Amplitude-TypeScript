@@ -1,12 +1,11 @@
-export interface SnippetProxy {
-  _q: Array<[string, ...Array<any>]>;
-}
-export interface AmplitudeProxy extends SnippetProxy {
-  invoked?: boolean;
+export type QueueProxy = Array<[string, ...Array<any>]>;
+
+export interface InstanceProxy {
+  _q: QueueProxy;
 }
 
 declare global {
-  interface Window {
-    amplitude: AmplitudeProxy;
-  }
+  // globalThis only includes `var` declarations
+  // eslint-disable-next-line no-var
+  var amplitude: InstanceProxy & { invoked: boolean };
 }

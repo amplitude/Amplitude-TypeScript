@@ -20,10 +20,9 @@ import {
   Plugin,
   Result,
 } from '@amplitude/analytics-types';
-import { convertProxyObjectToRealObject, isSnippetProxy } from './utils/snippet-helper';
+import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { createConfig, getConfig } from './config';
-import { SnippetProxy } from './typings/browser-snippet';
 import { trackAttributions } from './attribution';
 import { updateCookies } from './session-manager';
 
@@ -218,9 +217,11 @@ export const logEvent = track;
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const identify = (identify: Identify | SnippetProxy, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
-  if (isSnippetProxy(identify)) {
-    identify = convertProxyObjectToRealObject(new Identify(), identify);
+export const identify = (identify: Identify, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
+  if (isInstanceProxy(identify)) {
+    const queue = identify._q;
+    identify._q = [];
+    identify = convertProxyObjectToRealObject(new Identify(), queue);
   }
   return {
     promise: _identify(undefined, undefined, identify, eventOptions),
@@ -247,11 +248,13 @@ export const identify = (identify: Identify | SnippetProxy, eventOptions?: Event
 export const groupIdentify = (
   groupType: string,
   groupName: string | string[],
-  identify: Identify | SnippetProxy,
+  identify: Identify,
   eventOptions?: EventOptions,
 ): AmplitudeReturn<Result> => {
-  if (isSnippetProxy(identify)) {
-    identify = convertProxyObjectToRealObject(new Identify(), identify);
+  if (isInstanceProxy(identify)) {
+    const queue = identify._q;
+    identify._q = [];
+    identify = convertProxyObjectToRealObject(new Identify(), queue);
   }
   return {
     promise: _groupIdentify(undefined, undefined, groupType, groupName, identify, eventOptions),
@@ -279,9 +282,11 @@ export const setGroup = (groupType: string, groupName: string | string[]): Ampli
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const revenue = (revenue: Revenue | SnippetProxy, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
-  if (isSnippetProxy(revenue)) {
-    revenue = convertProxyObjectToRealObject(new Revenue(), revenue);
+export const revenue = (revenue: Revenue, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
+  if (isInstanceProxy(revenue)) {
+    const queue = revenue._q;
+    revenue._q = [];
+    revenue = convertProxyObjectToRealObject(new Revenue(), queue);
   }
   return {
     promise: _revenue(revenue, eventOptions),

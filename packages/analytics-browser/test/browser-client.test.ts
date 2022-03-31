@@ -1,4 +1,4 @@
-import type { AmplitudeProxy } from 'src/typings/browser-snippet';
+import type { QueueProxy } from '../src/typings/browser-snippet';
 import {
   init,
   groupIdentify,
@@ -219,6 +219,9 @@ describe('browser-client', () => {
         }),
       );
       const id = { _q: [] };
+      // Allow to pass snippet stub
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await identify(id).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, expect.any(core.Identify), undefined);
@@ -269,6 +272,9 @@ describe('browser-client', () => {
         }),
       );
       const id = { _q: [] };
+      // Allow to pass snippet stub
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await groupIdentify('type', 'name', id).promise;
       expect(coreIdentify).toHaveBeenCalledTimes(1);
       expect(coreIdentify).toHaveBeenCalledWith(
@@ -343,6 +349,9 @@ describe('browser-client', () => {
         }),
       );
       const revenueObj = { _q: [] };
+      // Allow to pass snippet stub
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       await revenue(revenueObj).promise;
       expect(coreRevenue).toHaveBeenCalledTimes(1);
       expect(coreRevenue).toHaveBeenCalledWith(expect.any(core.Revenue), undefined);
@@ -352,13 +361,8 @@ describe('browser-client', () => {
   describe('runQueuedFunctions', () => {
     test('should run queued functions', () => {
       const windowAmplitudeInit = jest.spyOn(core, 'init');
-      const amplitude = <AmplitudeProxy>(<unknown>{
-        _q: <Array<[string, []]>>[],
-      });
-      const functions = [['init', API_KEY]];
-      amplitude._q = <Array<[string, []]>>functions;
-      expect(amplitude._q.length).toEqual(1);
-      runQueuedFunctions(core, amplitude);
+      const queue: QueueProxy = [['init', API_KEY]];
+      runQueuedFunctions(core, queue);
       expect(windowAmplitudeInit).toHaveBeenCalledTimes(1);
     });
   });
