@@ -104,7 +104,7 @@ const snippet = (integrity, version) => `
         proxyMain(funcs[k], false);
       }
       for (var l = 0; l < funcsWithPromise.length; l++) {
-        proxyMain(funcs[l], true);
+        proxyMain(funcsWithPromise[l], true);
       }
     }
     setUpProxy(amplitude);
