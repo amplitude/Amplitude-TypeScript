@@ -107,7 +107,7 @@ describe('session-mananger', () => {
         deviceId: 'deviceId',
         sessionId: 0,
         cookieStorage,
-        cookieExpiration: 1,
+        sessionTimeout: 1,
       };
 
       SessionManager.checkSessionExpiry(config);
@@ -120,6 +120,33 @@ describe('session-mananger', () => {
         lastEventTime,
         optOut: false,
       });
+    });
+
+    test('should not update session id', () => {
+      const lastEventTime = Date.now() - 1000;
+      const cookieStorage = {
+        isEnabled: () => true,
+        get: jest.fn().mockReturnValue({
+          userId: 'userId',
+          deviceId: 'deviceId',
+          sessionId: Date.now(),
+          lastEventTime,
+          optOut: false,
+        }),
+        set: jest.fn(),
+        remove: jest.fn(),
+        reset: jest.fn(),
+      };
+      const config: BrowserConfig = {
+        ...createConfig('apiKey', 'userId'),
+        deviceId: 'deviceId',
+        sessionId: 0,
+        cookieStorage,
+        sessionTimeout: 2000,
+      };
+
+      SessionManager.checkSessionExpiry(config);
+      expect(cookieStorage.set).toHaveBeenCalledTimes(0);
     });
   });
 

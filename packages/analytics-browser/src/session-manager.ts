@@ -27,7 +27,7 @@ export const checkSessionExpiry = (config: BrowserConfig) => {
   const cookieName = getCookieName(config.apiKey);
   const lastEventTime = config.cookieStorage.get(cookieName)?.lastEventTime;
   const now = Date.now();
-  if (lastEventTime && now - lastEventTime >= config.cookieExpiration) {
+  if (lastEventTime && now - lastEventTime >= config.sessionTimeout) {
     config.sessionId = now;
     updateCookies(config);
   }
