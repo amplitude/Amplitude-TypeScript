@@ -95,7 +95,7 @@ const snippet = (integrity, version) => `
                 args: Array.prototype.slice.call(arguments, 0),
                 resolve: resolve,
               });
-            });
+            }),
           }
           if (isPromise) return result;
         };
