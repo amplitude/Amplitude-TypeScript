@@ -104,11 +104,11 @@ export const resetInstances = () => {
   }
 };
 
-export const getApiHost = (config: Config | IConfig) => {
+export const getApiHost = (config: IConfig) => {
   return configApiHost(config);
 };
 
-const configApiHost = (config: Config | IConfig) => {
+const configApiHost = (config: IConfig) => {
   if (!config.serverUrl) {
     // Log a warning if server zone is neither US nor EU
     if (![ServerZone.US, ServerZone.EU].includes(config.serverZone)) {

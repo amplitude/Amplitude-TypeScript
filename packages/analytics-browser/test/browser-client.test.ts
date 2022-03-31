@@ -374,10 +374,138 @@ describe('browser-client', () => {
 
   describe('runQueuedFunctions', () => {
     test('should run queued functions', () => {
-      const windowAmplitudeInit = jest.spyOn(core, 'init');
-      const queue: QueueProxy = [['init', API_KEY]];
-      runQueuedFunctions(core, queue);
-      expect(windowAmplitudeInit).toHaveBeenCalledTimes(1);
+      const _init = jest.spyOn(core, 'init');
+      const proxyObj = { name: 'init', args: [API_KEY], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ init }, queue);
+      expect(_init).toHaveBeenCalledTimes(1);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call core.add', () => {
+      const _add = jest.spyOn(core, 'add').mockReturnValueOnce(Promise.resolve());
+      const plugin = {
+        name: 'plugin',
+        type: PluginType.DESTINATION,
+        setup: jest.fn(),
+        execute: jest.fn(),
+      };
+      const proxyObj = { name: 'add', args: [plugin], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ add }, queue);
+      expect(_add).toHaveBeenCalledTimes(1);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call core.remove', () => {
+      const _remove = jest.spyOn(core, 'remove').mockReturnValueOnce(Promise.resolve());
+      const pluginName = 'plugin';
+      const proxyObj = { name: 'remove', args: [pluginName], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ remove }, queue);
+      expect(_remove).toHaveBeenCalledTimes(1);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call core.track', () => {
+      const event = {
+        event_type: 'hello',
+      };
+      const _track = jest.spyOn(core, 'track').mockReturnValueOnce(
+        Promise.resolve({
+          event,
+          code: 200,
+          message: 'success',
+        }),
+      );
+      const proxyObj = { name: 'track', args: [event.event_type], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ track }, queue);
+      expect(_track).toHaveBeenCalledTimes(1);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call core.identify', () => {
+      const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = new core.Identify();
+      const proxyObj = { name: 'identify', args: [id], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ identify }, queue);
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, undefined);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call core.groupIdentify', () => {
+      const coreIdentify = jest.spyOn(core, 'groupIdentify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const id = new core.Identify();
+      const proxyObj = { name: 'groupIdentify', args: ['type', 'name', id], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ groupIdentify }, queue);
+      expect(coreIdentify).toHaveBeenCalledTimes(1);
+      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, undefined);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call core.setGroup', () => {
+      const event = {
+        event_type: 'hello',
+      };
+      const _setGroup = jest.spyOn(core, 'setGroup').mockReturnValueOnce(
+        Promise.resolve({
+          event,
+          code: 200,
+          message: 'success',
+        }),
+      );
+      const proxyObj = { name: 'setGroup', args: ['groupType', 'groupname'], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ setGroup }, queue);
+      expect(_setGroup).toHaveBeenCalledTimes(1);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call core.revenue', () => {
+      const coreRevenue = jest.spyOn(core, 'revenue').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'hello',
+          },
+          code: 200,
+          message: 'Success',
+        }),
+      );
+      const revenueObj = new core.Revenue();
+      const proxyObj = { name: 'revenue', args: [revenueObj], resolve: () => undefined };
+      const proxyResolve = jest.spyOn(proxyObj, 'resolve');
+      const queue: QueueProxy = [proxyObj];
+      runQueuedFunctions({ revenue }, queue);
+      expect(coreRevenue).toHaveBeenCalledTimes(1);
+      expect(coreRevenue).toHaveBeenCalledWith(revenueObj, undefined);
+      expect(proxyResolve).toHaveBeenCalledTimes(1);
     });
   });
 });
