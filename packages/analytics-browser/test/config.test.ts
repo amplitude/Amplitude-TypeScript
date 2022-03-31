@@ -24,7 +24,6 @@ describe('config', () => {
         partnerId: 'partnerId',
       });
       expect(config).toEqual({
-        apiHost: 'https://api2.amplitude.com/2/httpapi',
         apiKey: API_KEY,
         cookieStorage: new MemoryModule.MemoryStorage(),
         cookieExpiration: 365,
@@ -46,7 +45,7 @@ describe('config', () => {
         partnerId: 'partnerId',
         plugins: [],
         saveEvents: true,
-        serverUrl: undefined,
+        serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionId: 0,
         sessionTimeout: 1800000,
@@ -89,7 +88,6 @@ describe('config', () => {
       logger.enable(LogLevel.Warn);
       const config = Config.createConfig(API_KEY);
       expect(config).toEqual({
-        apiHost: 'https://api2.amplitude.com/2/httpapi',
         apiKey: API_KEY,
         cookieStorage: cookieStorage,
         cookieExpiration: 365,
@@ -111,7 +109,7 @@ describe('config', () => {
         partnerId: undefined,
         plugins: [],
         saveEvents: true,
-        serverUrl: undefined,
+        serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionId: 1,
         sessionTimeout: 1800000,
