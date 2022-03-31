@@ -1,23 +1,20 @@
-import { AmplitudeProxy, SnippetProxy } from '../typings/browser-snippet';
+import { QueueProxy, InstanceProxy } from '../typings/browser-snippet';
 
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
  */
-export const runQueuedFunctions = (instance: object, amplitudeProxy: AmplitudeProxy) => {
-  convertProxyObjectToRealObject(instance, amplitudeProxy);
+export const runQueuedFunctions = (instance: object, queue: QueueProxy) => {
+  convertProxyObjectToRealObject(instance, queue);
 };
 
 /**
  * Applies the proxied functions on the proxied object to an instance of the real object.
  * Used to convert proxied Identify and Revenue objects.
  */
-export const convertProxyObjectToRealObject = <T>(instance: T, proxy: SnippetProxy): T => {
-  const queue = proxy._q;
-  proxy._q = [];
-
+export const convertProxyObjectToRealObject = <T>(instance: T, queue: QueueProxy): T => {
   for (let i = 0; i < queue.length; i++) {
     const [functionName, ...args] = queue[i];
-    const fn = instance[functionName as keyof typeof instance];
+    const fn = instance && instance[functionName as keyof T];
     if (typeof fn === 'function') {
       fn.apply(instance, args);
     }
@@ -28,6 +25,7 @@ export const convertProxyObjectToRealObject = <T>(instance: T, proxy: SnippetPro
 /**
  * Check if the param is snippet proxy
  */
-export const isSnippetProxy = (snippetProxy: object): snippetProxy is SnippetProxy => {
-  return (snippetProxy as SnippetProxy)._q !== undefined;
+export const isInstanceProxy = (instance: unknown): instance is InstanceProxy => {
+  const instanceProxy = instance as InstanceProxy;
+  return instanceProxy && instanceProxy._q !== undefined;
 };

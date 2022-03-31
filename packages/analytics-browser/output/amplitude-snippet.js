@@ -6,7 +6,7 @@
  */
 !(function (window, document) {
   var amplitude = window.amplitude || { _q: [] };
-  if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.')
+  if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
     var as = document.createElement('script');
@@ -14,7 +14,7 @@
     as.integrity = 'EwD+hFWvuKJfNoOTSMfmeXZHjbc1FJMGfi7SSpO8NO78RiZK9BZXklTeUJ9e9vpu';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.0.0-min.gz.js';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.0.0-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
