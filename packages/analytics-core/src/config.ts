@@ -9,16 +9,17 @@ import {
   Plugin,
   ServerZone,
 } from '@amplitude/analytics-types';
+import {
+  AMPLITUDE_SERVER_URL,
+  AMPLITUDE_BATCH_SERVER_URL,
+  EU_AMPLITUDE_SERVER_URL,
+  EU_AMPLITUDE_BATCH_SERVER_URL,
+} from './constants';
 
 import { Logger } from './logger';
 
 const DEFAULT_INSTANCE = 'default';
 const instances: Record<string, IConfig> = {};
-
-const AMPLITUDE_SERVER_URL = 'https://api2.amplitude.com/2/httpapi';
-const EU_AMPLITUDE_SERVER_URL = 'https://api.eu.amplitude.com/2/httpapi';
-const AMPLITUDE_BATCH_SERVER_URL = 'https://api2.amplitude.com/batch';
-const EU_AMPLITUDE_BATCH_SERVER_URL = 'https://api.eu.amplitude.com/batch';
 
 export const serverUrls = {
   [ServerZone.US]: (useBatch: boolean) => (useBatch ? AMPLITUDE_BATCH_SERVER_URL : AMPLITUDE_SERVER_URL),
@@ -36,6 +37,7 @@ export const defaultConfig = {
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: ServerZone.US,
   useBatch: false,
+  apiHost: '',
 };
 
 export class Config implements IConfig {
@@ -57,6 +59,7 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;
   useBatch: boolean;
+  apiHost = '';
 
   constructor(options: InitOptions<IConfig>) {
     this.apiKey = options.apiKey;
@@ -79,10 +82,12 @@ export class Config implements IConfig {
     this.useBatch = options.useBatch ?? defaultConfig.useBatch;
 
     this.loggerProvider.enable(this.logLevel);
+
+    configApiHost(this);
   }
 }
 
-export const createConfig = (config: Config) => {
+export const createConfig = (config: IConfig) => {
   // If config for an instance already exists, perform Object.assign() to reuse reference
   // to config object. This is useful when config object reference is used in plugins
   instances[DEFAULT_INSTANCE] = instances[DEFAULT_INSTANCE]
@@ -99,4 +104,26 @@ export const resetInstances = () => {
   for (const name in instances) {
     delete instances[name];
   }
+};
+
+export const getApiHost = (config: Config | IConfig) => {
+  let apiHost = config.apiHost;
+  if (!apiHost) {
+    apiHost = configApiHost(config);
+  }
+  return apiHost;
+};
+
+const configApiHost = (config: Config | IConfig) => {
+  if (config.serverUrl) {
+    config.apiHost = config.serverUrl;
+  } else {
+    // Log a warning if server zone is neither US nor EU
+    if (![ServerZone.US, ServerZone.EU].includes(config.serverZone)) {
+      config.loggerProvider.warn(`Unknown server zone "${config.serverZone}". Replaced with US server zone`);
+      config.serverZone = ServerZone.US;
+    }
+    config.apiHost = serverUrls[config.serverZone](config.useBatch);
+  }
+  return config.apiHost;
 };
