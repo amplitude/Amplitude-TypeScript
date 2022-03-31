@@ -38,7 +38,8 @@
   "dependencies": {
     "@amplitude/analytics-core": "^0.1.0",
     "@amplitude/analytics-types": "^0.1.0",
-    "@amplitude/ua-parser-js": "^0.7.26"
+    "@amplitude/ua-parser-js": "^0.7.26",
+    "tslib": "^2.3.1"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.56.0",
