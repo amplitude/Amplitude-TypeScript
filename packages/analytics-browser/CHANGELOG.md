@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.1.1...@amplitude/analytics-browser@0.2.0) (2022-04-01)
+
+
+### Bug Fixes
+
+* context plugin library version ([8d29c6f](https://github.com/amplitude/Amplitude-TypeScript/commit/8d29c6f4a612510188d920ac243c0bdb116fe02c))
+
+
+### Features
+
+* add snippet promise support ([#64](https://github.com/amplitude/Amplitude-TypeScript/issues/64)) ([4d23c98](https://github.com/amplitude/Amplitude-TypeScript/commit/4d23c98c25c7caa4cd5e63b2a37398f711991288))
+
+
+
+
+
 ## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.1.0...@amplitude/analytics-browser@0.1.1) (2022-03-31)
 
 
