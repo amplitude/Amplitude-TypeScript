@@ -88,9 +88,9 @@ jobs:
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y
 
       - run: |
-        npm run deploy:prepublish
-        git commit -am "chore(release): build artifacts"
-        git push
+          npm run deploy:prepublish
+          git commit -am "chore(release): build artifacts"
+          git push
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
