@@ -6,7 +6,6 @@
   "scripts": {
     "build": "lerna run build --stream",
     "deploy:version": "lerna version",
-    "deploy:prepublish": "lerna run deploy:prepublish --stream",
     "deploy:publish": "lerna publish",
     "docs": "typedoc",
     "docs:check": "typedoc --emit none",
@@ -14,7 +13,8 @@
     "lint": "lerna run lint --stream",
     "lint:staged": "lint-staged",
     "postinstall": "husky install",
-    "test": "lerna run test --stream"
+    "test": "lerna run test --stream",
+    "version": "git add -A"
   },
   "devDependencies": {
     "@commitlint/cli": "^16.1.0",
