@@ -11,6 +11,7 @@
       "conventionalCommits": true,
       "createRelease": "github",
       "message": "chore(release): publish",
+      "noPush": true,
       "preid": "beta"
     }
   }

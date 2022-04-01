@@ -89,8 +89,8 @@ jobs:
 
       - run: |
           npm run deploy:prepublish
-          git commit -am "chore(release): build artifacts"
-          git push
+          git commit --amend --no-edit
+          git push --follow-tags
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
