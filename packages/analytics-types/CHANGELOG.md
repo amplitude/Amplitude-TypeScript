@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.1.1...@amplitude/analytics-types@0.1.2) (2022-04-01)
+
+**Note:** Version bump only for package @amplitude/analytics-types
+
+
+
+
+
 ## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.1.0...@amplitude/analytics-types@0.1.1) (2022-04-01)
 
 
