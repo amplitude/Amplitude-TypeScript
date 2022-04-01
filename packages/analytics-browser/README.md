@@ -1,4 +1,13 @@
+<p align="center">
+  <a href="https://amplitude.com" target="_blank" align="center">
+    <img src="https://static.amplitude.com/lightning/46c85bfd91905de8047f1ee65c7c93d6fa9ee6ea/static/media/amplitude-logo-with-text.4fb9e463.svg" width="280">
+  </a>
+  <br />
+</p>
+
 # @amplitude/analytics-browser
+
+Official Amplitude SDK for Web
 
 ## Installation
 
@@ -16,9 +25,39 @@ npm install @amplitude/analytics-browser
 yarn add @amplitude/analytics-browser
 ```
 
+### Using script loader
+
+Alternatively, the package is also distributed through a CDN. Copy and paste the script below to your html file.
+
+```html
+<script type="text/javascript">
+  !function(e,t){var r=e.amplitude||{_q:[]}
+  ;if(r.invoked)e.console&&console.error&&console.error("Amplitude snippet has been loaded.");else{r.invoked=!0
+  ;var n=t.createElement("script")
+  ;n.type="text/javascript",n.integrity="sha384-j7jlsM/oDXvvtXrgYcb78r39XZqUuAd5xGeZSVTubG6yiGgaHphmLrLif0fXZGdN",
+  n.crossOrigin="anonymous",n.async=!0,n.src="https://cdn.amplitude.com/libs/analytics-browser-0.2.1-min.js.gz",
+  n.onload=function(){e.amplitude.runQueuedFunctions||console.log("[Amplitude] Error: could not load SDK")}
+  ;var s=t.getElementsByTagName("script")[0];function o(e,t){e.prototype[t]=function(){return this._q.push({name:t,
+  args:Array.prototype.slice.call(arguments,0)}),this}}s.parentNode.insertBefore(n,s);for(var i=function(){
+  return this._q=[],this
+  },a=["add","append","clearAll","prepend","set","setOnce","unset","preInsert","postInsert","remove","getUserProperties"],u=0;u<a.length;u++)o(i,a[u])
+  ;r.Identify=i;for(var c=function(){return this._q=[],this
+  },p=["getEventProperties","setProductId","setQuantity","setPrice","setRevenue","setRevenueType","setEventProperties"],d=0;d<p.length;d++)o(c,p[d])
+  ;r.Revenue=c
+  ;var l=["getDeviceId","setDeviceId","getSessionId","setSessionId","getUserId","setUserId","setOptOut","setTransport"],v=["init","add","remove","track","logEvent","identify","groupIdentify","setGroup","revenue"]
+  ;!function(e){function t(t,r){e[t]=function(){var n={promise:new Promise((r=>{e._q.push({name:t,
+  args:Array.prototype.slice.call(arguments,0),resolve:r})}))};if(r)return n}}for(var r=0;r<l.length;r++)t(l[r],!1)
+  ;for(var n=0;n<v.length;n++)t(v[n],!0)}(r),e.amplitude=r}}(window,document);
+
+  amplitude.init('YOUR_API_KEY_HERE')
+</script>
+```
+
 ## Usage 
 
 ### Initializing SDK
+
+Initialization is necessary before any instrumentation is done. The API key for your Amplitude project is required. 
 
 ```typescript
 amplitude.init(API_KEY)
@@ -119,4 +158,23 @@ const event = new Revenue()
   .setQuantity(3);
 
 revenue(event);
+```
+
+### Callback
+
+All asynchronous API are optionally awaitable through a specific Promise interface. This also serves as callback interface.
+
+```typescript
+// Using async/await
+const results = await track('Button Clicked').promise;
+result.event; // {...} (The final event object sent to Amplitude)
+result.code; // 200 (The HTTP response status code of the request.
+result.message; // "Event tracked successfully" (The response message)
+
+// Using promises
+track('Button Clicked').promise.then((result) => {
+  result.event; // {...} (The final event object sent to Amplitude)
+  result.code; // 200 (The HTTP response status code of the request.
+  result.message; // "Event tracked successfully" (The response message)
+});
 ```
