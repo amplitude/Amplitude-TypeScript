@@ -18,8 +18,8 @@ export const convertProxyObjectToRealObject = <T>(instance: T, queue: QueueProxy
     const fn = instance && instance[name as keyof T];
     if (typeof fn === 'function') {
       const result = fn.apply(instance, args) as AmplitudeReturn<Result>;
-      if (typeof resolve === 'function' && result) {
-        resolve(result.promise);
+      if (typeof resolve === 'function') {
+        resolve(result?.promise);
       }
     }
   }
