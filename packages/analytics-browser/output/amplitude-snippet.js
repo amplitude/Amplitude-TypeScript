@@ -11,10 +11,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-N+LJLGyeVA76h4i1BsX/rCYacknOmnsNvsqxk751Ykx6RQiKtfx7JVz333j2YpVh';
+    as.integrity = 'sha384-lSU8uDXqRY8ExB52AYWjJq05MlPEn+AjDLrHpN1BBMrSMwv7LAWhi9pL6PS98wSf';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.0.0-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-0.1.1-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -24,7 +24,10 @@
     s.parentNode.insertBefore(as, s);
     function proxy(obj, fn) {
       obj.prototype[fn] = function () {
-        this._q.push([fn].concat(Array.prototype.slice.call(arguments, 0)));
+        this._q.push({
+          name: fn,
+          args: Array.prototype.slice.call(arguments, 0),
+        });
         return this;
       };
     }
@@ -67,15 +70,6 @@
     }
     amplitude.Revenue = Revenue;
     var funcs = [
-      'init',
-      'track',
-      'logEvent',
-      'identify',
-      'groupIdentify',
-      'revenue',
-      'setGroup',
-      'add',
-      'remove',
       'getDeviceId',
       'setDeviceId',
       'getSessionId',
@@ -85,14 +79,37 @@
       'setOptOut',
       'setTransport',
     ];
+    var funcsWithPromise = [
+      'init',
+      'add',
+      'remove',
+      'track',
+      'logEvent',
+      'identify',
+      'groupIdentify',
+      'setGroup',
+      'revenue',
+    ];
     function setUpProxy(instance) {
-      function proxyMain(fn) {
+      function proxyMain(fn, isPromise) {
         instance[fn] = function () {
-          instance._q.push([fn].concat(Array.prototype.slice.call(arguments, 0)));
+          var result = {
+            promise: new Promise((resolve) => {
+              instance._q.push({
+                name: fn,
+                args: Array.prototype.slice.call(arguments, 0),
+                resolve: resolve,
+              });
+            }),
+          }
+          if (isPromise) return result;
         };
       }
       for (var k = 0; k < funcs.length; k++) {
-        proxyMain(funcs[k]);
+        proxyMain(funcs[k], false);
+      }
+      for (var l = 0; l < funcsWithPromise.length; l++) {
+        proxyMain(funcsWithPromise[l], true);
       }
     }
     setUpProxy(amplitude);
