@@ -19,7 +19,10 @@ const snippet = (integrity, version) => `
     s.parentNode.insertBefore(as, s);
     function proxy(obj, fn) {
       obj.prototype[fn] = function () {
-        this._q.push([fn].concat(Array.prototype.slice.call(arguments, 0)));
+        this._q.push({
+          name: fn,
+          args: Array.prototype.slice.call(arguments, 0),
+        });
         return this;
       };
     }
@@ -62,15 +65,6 @@ const snippet = (integrity, version) => `
     }
     amplitude.Revenue = Revenue;
     var funcs = [
-      'init',
-      'track',
-      'logEvent',
-      'identify',
-      'groupIdentify',
-      'revenue',
-      'setGroup',
-      'add',
-      'remove',
       'getDeviceId',
       'setDeviceId',
       'getSessionId',
@@ -80,14 +74,37 @@ const snippet = (integrity, version) => `
       'setOptOut',
       'setTransport',
     ];
+    var funcsWithPromise = [
+      'init',
+      'add',
+      'remove',
+      'track',
+      'logEvent',
+      'identify',
+      'groupIdentify',
+      'setGroup',
+      'revenue',
+    ];
     function setUpProxy(instance) {
-      function proxyMain(fn) {
+      function proxyMain(fn, isPromise) {
         instance[fn] = function () {
-          instance._q.push([fn].concat(Array.prototype.slice.call(arguments, 0)));
+          var result = {
+            promise: new Promise((resolve) => {
+              instance._q.push({
+                name: fn,
+                args: Array.prototype.slice.call(arguments, 0),
+                resolve: resolve,
+              });
+            }),
+          }
+          if (isPromise) return result;
         };
       }
       for (var k = 0; k < funcs.length; k++) {
-        proxyMain(funcs[k]);
+        proxyMain(funcs[k], false);
+      }
+      for (var l = 0; l < funcsWithPromise.length; l++) {
+        proxyMain(funcsWithPromise[l], true);
       }
     }
     setUpProxy(amplitude);

@@ -1,4 +1,5 @@
 import { QueueProxy, InstanceProxy } from '../typings/browser-snippet';
+import { AmplitudeReturn, Result } from '@amplitude/analytics-types';
 
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
@@ -13,10 +14,13 @@ export const runQueuedFunctions = (instance: object, queue: QueueProxy) => {
  */
 export const convertProxyObjectToRealObject = <T>(instance: T, queue: QueueProxy): T => {
   for (let i = 0; i < queue.length; i++) {
-    const [functionName, ...args] = queue[i];
-    const fn = instance && instance[functionName as keyof T];
+    const { name, args, resolve } = queue[i];
+    const fn = instance && instance[name as keyof T];
     if (typeof fn === 'function') {
-      fn.apply(instance, args);
+      const result = fn.apply(instance, args) as AmplitudeReturn<Result>;
+      if (typeof resolve === 'function') {
+        resolve(result?.promise);
+      }
     }
   }
   return instance;
