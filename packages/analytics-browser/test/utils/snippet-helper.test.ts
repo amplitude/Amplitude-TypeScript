@@ -1,4 +1,4 @@
-import type { QueueProxy } from '../../src/typings/browser-snippet';
+import { QueueProxy } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from '../../src/utils/snippet-helper';
 
 describe('snippet-helper', () => {

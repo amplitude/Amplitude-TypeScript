@@ -1,4 +1,3 @@
-import type { QueueProxy } from '../src/typings/browser-snippet';
 import {
   init,
   groupIdentify,
@@ -22,7 +21,7 @@ import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
 import * as attribution from '../src/attribution';
 import { runQueuedFunctions } from '../src/utils/snippet-helper';
-import { PluginType, TransportType } from '@amplitude/analytics-types';
+import { PluginType, QueueProxy, TransportType } from '@amplitude/analytics-types';
 import { XHRTransport } from '../src/transports/xhr';
 
 describe('browser-client', () => {

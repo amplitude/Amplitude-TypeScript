@@ -1,5 +1,4 @@
-import { QueueProxy, InstanceProxy } from '../typings/browser-snippet';
-import { AmplitudeReturn, Result } from '@amplitude/analytics-types';
+import { AmplitudeReturn, InstanceProxy, QueueProxy, Result } from '@amplitude/analytics-types';
 
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.

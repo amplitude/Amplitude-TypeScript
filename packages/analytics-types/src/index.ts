@@ -23,6 +23,7 @@ export { Payload } from './payload';
 export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
+export { QueueProxy, InstanceProxy } from './proxy';
 export { Status } from './status';
 export { CookieStorageOptions, Storage, UserSession } from './storage';
 export { Transport, TransportType } from './transport';
