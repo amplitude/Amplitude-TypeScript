@@ -33,7 +33,7 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: arn:aws:iam::358203115967:role/jenkins
+          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
           aws-region: us-west-2
 
       - name: Publish to S3
