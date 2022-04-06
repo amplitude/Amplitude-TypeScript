@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: read
+      contents: write
     env:
       RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
     strategy:
