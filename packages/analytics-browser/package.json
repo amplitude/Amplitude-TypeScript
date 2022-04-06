@@ -27,6 +27,7 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "publish": "node deploy/publish-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
     "version": "yarn vesion-file && yarn build && node scripts/version.js",
