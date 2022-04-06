@@ -64,6 +64,12 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
           npm whoami
 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
+          aws-region: us-west-2
+
       # https://www.npmjs.com/package/@lerna/version#--conventional-prerelease
       # patch: 1.0.0 -> 1.0.1-alpha.0
       # minor: 1.0.0 -> 1.1.0-alpha.0
@@ -91,3 +97,5 @@ jobs:
       - name: Publish Release to NPM
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
