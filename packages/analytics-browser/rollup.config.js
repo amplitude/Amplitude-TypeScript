@@ -3,9 +3,24 @@ import commonjs from '@rollup/plugin-commonjs';
 import resolve from '@rollup/plugin-node-resolve';
 import { terser } from 'rollup-plugin-terser';
 import gzip from 'rollup-plugin-gzip';
+import execute from 'rollup-plugin-execute';
+import { exec } from 'child_process';
+
+const amplitudeSnippet = () => {
+  return {
+    name: 'amplitude-snippet',
+    options: (opt) => {
+      return new Promise((resolve) => {
+        exec('node scripts/version/create-snippet.js', () => {
+          opt.input = 'generated/amplitude-snippet.js';
+          resolve(opt);
+        });
+      });
+    },
+  };
+};
 
 const umd = [
-  // bundle
   {
     input: 'src/index.ts',
     output: {
@@ -55,4 +70,20 @@ const iife = [
   },
 ];
 
-export default [...umd, ...iife];
+const snippet = [
+  {
+    output: {
+      name: 'amplitude',
+      file: 'lib/scripts/amplitude-snippet-min.js',
+      format: 'iife',
+    },
+    plugins: [
+      amplitudeSnippet(),
+      terser(),
+      execute('node scripts/version/create-snippet-instructions.js'),
+      execute('node scripts/version/update-readme.js'),
+    ],
+  },
+];
+
+export default [...umd, ...iife, ...snippet];
