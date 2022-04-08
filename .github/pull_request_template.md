@@ -1,14 +1,14 @@
-# Description
+<!---
+Thanks for contributing to the Amplitude TypeScript repository! 🎉
 
-Please include a summary of the changes and the related issue. Please also include relevant motivation and context. List any dependencies that are required for this change.
+Please fill out the following sections to help us quickly review your pull request.
+--->
 
-Fixes # (issue)
+### Summary
 
-## Type of change
+<!-- What does the PR do? -->
 
-Please delete options that are not relevant.
+### Checklist
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] This change requires a documentation update
+* [ ] Does your PR title have the correct [title format](https://github.com/amplitude/Amplitude-TypeScript/blob/main/CONTRIBUTING.md#pr-commit-title-conventions)?
+* Does your PR have a breaking change?:  <!-- Yes or no -->
