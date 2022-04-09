@@ -169,7 +169,7 @@ export class Destination implements DestinationPlugin {
 
     const retry = list.filter((context, index) => {
       if (dropIndexSet.has(index)) {
-        this.fulfillRequest([context], res.statusCode, res.status);
+        this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
       return true;
@@ -200,7 +200,7 @@ export class Destination implements DestinationPlugin {
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
-        this.fulfillRequest([context], res.statusCode, res.status);
+        this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
       if (throttledIndexSet.has(index)) {

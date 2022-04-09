@@ -43,11 +43,13 @@ describe('config', () => {
         saveEvents: false,
         optOut: true,
         useBatch: true,
+        logLevel: 0,
       }),
     );
     expect(getConfig().saveEvents).toBe(false);
     expect(getConfig().optOut).toBe(true);
     expect(getConfig().useBatch).toBe(true);
+    expect(getConfig().logLevel).toBe(0);
   });
 
   test('should return serverUrl if the value exists', () => {
