@@ -16,22 +16,20 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
+    "build": "yarn vesion-file && yarn bundle && yarn build:es5 && yarn build:esm",
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
-    "build:snippet": "node scripts/version.js && rollup --config rollup-snippet.config.js && node scripts/create-snippet-instructions.js",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "publish": "yarn readme && node deploy/publish-to-s3.js",
-    "readme": "node scripts/readme.js",
+    "publish": "node scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn vesion-file && yarn build && yarn build:snippet",
+    "version": "yarn build",
     "vesion-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
@@ -51,6 +49,7 @@
     "@types/ua-parser-js": "^0.7.36",
     "isomorphic-fetch": "^3.0.0",
     "rollup": "^2.69.0",
+    "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.0.0",
     "rollup-plugin-terser": "^7.0.2"
   },
