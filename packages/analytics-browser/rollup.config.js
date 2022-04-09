@@ -11,11 +11,12 @@ const amplitudeSnippet = () => {
     name: 'amplitude-snippet',
     options: (opt) => {
       return new Promise((resolve) => {
+        opt.input = 'generated/amplitude-snippet.js';
+        if (process.env.GITHUB_WORKFLOW !== 'Continuous Deployment') return resolve(opt);
         exec('node scripts/version/create-snippet.js', (err) => {
           if (err) {
             throw err;
           }
-          opt.input = 'generated/amplitude-snippet.js';
           resolve(opt);
         });
       });
