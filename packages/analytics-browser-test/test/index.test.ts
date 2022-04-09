@@ -537,7 +537,7 @@ describe('integration', () => {
         insert_id: uuid,
         ip: '$remote',
         language: 'en-US',
-        library: 'amplitude-ts/0.2.4',
+        library: library,
         os_name: 'WebKit',
         os_version: '537.36',
         partner_id: undefined,
