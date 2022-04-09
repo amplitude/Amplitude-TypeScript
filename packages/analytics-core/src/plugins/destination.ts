@@ -163,6 +163,7 @@ export class Destination implements DestinationPlugin {
     const dropIndex = [
       ...Object.values(res.body.eventsWithInvalidFields),
       ...Object.values(res.body.eventsWithMissingFields),
+      ...Object.values(res.body.eventsWithInvalidIdLengths),
       ...res.body.silencedEvents,
     ].flat();
     const dropIndexSet = new Set(dropIndex);

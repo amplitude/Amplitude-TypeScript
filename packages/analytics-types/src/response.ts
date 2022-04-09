@@ -11,6 +11,7 @@ export interface InvalidRequestBody {
   missingField: string;
   eventsWithInvalidFields: { [eventField: string]: number[] };
   eventsWithMissingFields: { [eventField: string]: number[] };
+  eventsWithInvalidIdLengths: { [eventField: string]: number[] };
   epsThreshold: 0;
   exceededDailyQuotaDevices: { [deviceId: string]: number };
   silencedDevices: string[];

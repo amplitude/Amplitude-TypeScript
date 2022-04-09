@@ -325,6 +325,7 @@ describe('destination', () => {
                 missingField: '',
                 eventsWithInvalidFields: { a: [0] },
                 eventsWithMissingFields: { b: [] },
+                eventsWithInvalidIdLengths: {},
                 silencedEvents: [],
               },
             });
