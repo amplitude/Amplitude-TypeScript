@@ -1,0 +1,24 @@
+{
+  "name": "@amplitude/analytics-browser-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "author": "Amplitude Inc",
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
+  },
+  "scripts": {
+    "test": "jest -i"
+  },
+  "bugs": {
+    "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
+  },
+  "dependencies": {
+    "@amplitude/analytics-browser": "^0.3.1"
+  },
+  "devDependencies": {
+    "nock": "^13.2.4"
+  }
+}
