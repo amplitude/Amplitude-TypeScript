@@ -1,7 +1,11 @@
 {
   "name": "@amplitude/analytics-browser",
   "version": "0.3.1",
-  "description": "",
+  "description": "Official Amplitude SDK for Web",
+  "keywords": [
+    "analytics",
+    "amplitude"
+  ],
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "license": "MIT",
