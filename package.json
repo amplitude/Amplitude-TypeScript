@@ -14,6 +14,8 @@
     "lint:staged": "lint-staged",
     "postinstall": "husky install",
     "test": "lerna run test --stream",
+    "test:unit": "lerna run test --stream --ignore @amplitude/analytics-browser-test",
+    "test:e2e": "lerna run test --stream --scope @amplitude/analytics-browser-test",
     "version": "git add -A"
   },
   "devDependencies": {
