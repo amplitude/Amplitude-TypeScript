@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.2.4...@amplitude/analytics-browser@0.3.0) (2022-04-09)
+
+
+### Bug Fixes
+
+* fix error handling in fetch client ([#79](https://github.com/amplitude/Amplitude-TypeScript/issues/79)) ([749925f](https://github.com/amplitude/Amplitude-TypeScript/commit/749925f907ba72f0e67f3828da99151d00278e6b))
+
+
+### Features
+
+* minify snippet file and add script to update readme for minified snippet ([#77](https://github.com/amplitude/Amplitude-TypeScript/issues/77)) ([9917e44](https://github.com/amplitude/Amplitude-TypeScript/commit/9917e44738a62251abea328c83d98922450387ca))
+
+
+
+
+
 ## [0.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.2.3...@amplitude/analytics-browser@0.2.4) (2022-04-06)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

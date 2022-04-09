@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.2.3...@amplitude/analytics-core@0.2.4) (2022-04-09)
+
+
+### Bug Fixes
+
+* fix error handling in fetch client ([#79](https://github.com/amplitude/Amplitude-TypeScript/issues/79)) ([749925f](https://github.com/amplitude/Amplitude-TypeScript/commit/749925f907ba72f0e67f3828da99151d00278e6b))
+
+
+
+
+
 ## [0.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.2.2...@amplitude/analytics-core@0.2.3) (2022-04-02)
 
 **Note:** Version bump only for package @amplitude/analytics-core
