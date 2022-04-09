@@ -68,7 +68,7 @@ export class Config implements IConfig {
     this.flushMaxRetries = options.flushMaxRetries || defaultConfig.flushMaxRetries;
     this.flushQueueSize = options.flushQueueSize || defaultConfig.flushQueueSize;
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
-    this.logLevel = options.logLevel || defaultConfig.logLevel;
+    this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.partnerId = options.partnerId;
     this.plugins = [];
     this.optOut = options.optOut ?? defaultConfig.optOut;

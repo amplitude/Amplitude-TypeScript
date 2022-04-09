@@ -16,11 +16,8 @@ export class FetchTransport implements Transport {
       method: 'POST',
     };
     const response = await fetch(serverUrl, options);
-    if (response.ok) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const responsePayload: Record<string, any> = await response.json();
-      return buildResponse(responsePayload);
-    }
-    throw new Error('Server did not return a response');
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const responsePayload: Record<string, any> = await response.json();
+    return buildResponse(responsePayload);
   }
 }
