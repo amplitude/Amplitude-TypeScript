@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { version } = require('../../package');
-const { snippet } = require('../template/browser-snippet.template');
+const { snippet } = require('../templates/browser-snippet.template');
 
 const cwd = process.cwd();
 

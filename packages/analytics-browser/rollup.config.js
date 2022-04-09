@@ -11,7 +11,10 @@ const amplitudeSnippet = () => {
     name: 'amplitude-snippet',
     options: (opt) => {
       return new Promise((resolve) => {
-        exec('node scripts/version/create-snippet.js', () => {
+        exec('node scripts/version/create-snippet.js', (err) => {
+          if (err) {
+            throw err;
+          }
           opt.input = 'generated/amplitude-snippet.js';
           resolve(opt);
         });
