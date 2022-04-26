@@ -1,0 +1,12 @@
+{
+  "name": "Google Search Tracker",
+  "description": "Type 'g' plus a search term into the Omnibox to seach in google.com",
+  "version": "1.0",
+  "manifest_version": 3,
+  "background": {
+    "service_worker": "background.js"
+  },
+  "omnibox": {
+    "keyword": "g"
+  }
+}
