@@ -37,8 +37,8 @@ describe('context', () => {
       const event = {
         event_type: 'event_type',
       };
-      const checkSessionExpiry = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
-      const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
+      const checkSessionExpiry = jest.spyOn(SessionManager, 'checkSessionExpiry').mockReturnValueOnce(undefined);
+      const updateLastEventTime = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
       expect(firstContextEvent.event_id).toEqual(0);
@@ -86,8 +86,8 @@ describe('context', () => {
       const event = {
         event_type: 'event_type',
       };
-      const checkSessionExpiry = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
-      const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
+      const checkSessionExpiry = jest.spyOn(SessionManager, 'checkSessionExpiry').mockReturnValueOnce(undefined);
+      const updateLastEventTime = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
       expect(firstContextEvent.event_id).toEqual(0);
@@ -125,7 +125,7 @@ describe('context', () => {
       device_id: 'new deviceId',
     };
     const checkSessionExpiry = jest.spyOn(SessionManager, 'checkSessionExpiry').mockReturnValueOnce(undefined);
-    const updateLastEventTime = jest.spyOn(SessionManager, 'updateLastEventTime').mockReturnValueOnce(undefined);
+    const updateLastEventTime = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
     const firstContextEvent = await context.execute(event);
     expect(firstContextEvent.app_version).toEqual('1.0.0');
     expect(firstContextEvent.event_id).toEqual(0);

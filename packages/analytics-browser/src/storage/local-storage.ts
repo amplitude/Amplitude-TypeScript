@@ -24,7 +24,7 @@ export class LocalStorage<T> implements Storage<T> {
 
   get(key: string): T | undefined {
     try {
-      const value = window.localStorage.getItem(key);
+      const value = this.getRaw(key);
       if (!value) {
         return undefined;
       }
@@ -34,6 +34,10 @@ export class LocalStorage<T> implements Storage<T> {
       /* istanbul ignore next */
       return undefined;
     }
+  }
+
+  getRaw(key: string) {
+    return window.localStorage.getItem(key) || undefined;
   }
 
   set(key: string, value: T) {

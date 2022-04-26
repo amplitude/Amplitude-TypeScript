@@ -13,6 +13,7 @@ export const useDefaultConfig = (): Config => ({
     set: () => undefined,
     remove: () => undefined,
     reset: () => undefined,
+    getRaw: () => undefined,
   },
   plugins: [],
   ...defaultConfig,

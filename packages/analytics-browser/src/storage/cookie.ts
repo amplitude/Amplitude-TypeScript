@@ -29,17 +29,20 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   get(key: string): T | undefined {
+    const value = this.getRaw(key);
+    if (!value) {
+      return undefined;
+    }
     try {
-      const value = this.findByKey(key);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return value ? JSON.parse(value) : undefined;
+      return JSON.parse(value);
     } catch {
       /* istanbul ignore next */
       return undefined;
     }
   }
 
-  findByKey(key: string): string | undefined {
+  getRaw(key: string): string | undefined {
     const cookie = window.document.cookie.split('; ');
     const match = cookie.find((c) => c.indexOf(key + '=') === 0);
     if (!match) {

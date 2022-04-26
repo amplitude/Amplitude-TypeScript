@@ -17,6 +17,7 @@ export const DEFAULT_OPTIONS: InitOptions<BrowserConfig> = {
     set: () => undefined,
     remove: () => undefined,
     reset: () => undefined,
+    getRaw: () => undefined,
   },
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
@@ -33,6 +34,7 @@ export const DEFAULT_OPTIONS: InitOptions<BrowserConfig> = {
     set: () => undefined,
     remove: () => undefined,
     reset: () => undefined,
+    getRaw: () => undefined,
   },
   trackingOptions: {
     city: true,

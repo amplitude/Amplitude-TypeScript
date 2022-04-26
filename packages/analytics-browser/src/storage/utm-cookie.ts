@@ -3,7 +3,7 @@ import { CookieStorage } from './cookie';
 export class UTMCookie extends CookieStorage<Record<string, string | undefined>> {
   get(key: string) {
     try {
-      const value = this.findByKey(key);
+      const value = this.getRaw(key);
       if (!value) {
         return undefined;
       }
