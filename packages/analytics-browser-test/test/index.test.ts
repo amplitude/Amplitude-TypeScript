@@ -8,7 +8,7 @@ describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
   const library = expect.stringMatching(/^amplitude-ts\/.+/) as string;
   const number = expect.any(Number) as number;
-  const string = expect.any(String) as string;
+  const opts = { trackingOptions: { deviceModel: false } };
 
   afterEach(() => {
     // clean up cookies
@@ -19,7 +19,9 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      amplitude.init('API_KEY');
+      amplitude.init('API_KEY', undefined, {
+        ...opts,
+      });
       const response = await amplitude.track('test event', {
         mode: 'test',
       }).promise;
@@ -32,7 +34,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -55,6 +57,7 @@ describe('integration', () => {
       amplitude.init('API_KEY', 'sdk.dev@amplitude.com', {
         deviceId: 'deviceId',
         sessionId: 1,
+        ...opts,
       });
       const response = await amplitude.track('test event').promise;
       expect(response.event).toEqual({
@@ -66,7 +69,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -83,7 +86,9 @@ describe('integration', () => {
     test('should track event with event options', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      amplitude.init('API_KEY');
+      amplitude.init('API_KEY', undefined, {
+        ...opts,
+      });
       const response = await amplitude.track('test event', undefined, {
         user_id: 'sdk.dev@amplitude.com',
         device_id: 'deviceId',
@@ -98,7 +103,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -126,6 +131,7 @@ describe('integration', () => {
 
       amplitude.init('API_KEY', undefined, {
         logLevel: 0,
+        ...opts,
       });
       const response = await Promise.all([
         amplitude.track('test event 1').promise,
@@ -142,7 +148,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -162,7 +168,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -187,6 +193,7 @@ describe('integration', () => {
       amplitude.init('API_KEY', undefined, {
         logLevel: 0,
         flushQueueSize: 2,
+        ...opts,
       });
       const response = await Promise.all([
         amplitude.track('test event 1').promise,
@@ -201,7 +208,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -221,7 +228,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -250,6 +257,7 @@ describe('integration', () => {
 
       amplitude.init('API_KEY', undefined, {
         logLevel: 0,
+        ...opts,
       });
       const response = await Promise.all([
         amplitude.track('test event 1').promise,
@@ -266,7 +274,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -286,7 +294,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -309,6 +317,7 @@ describe('integration', () => {
 
       amplitude.init('API_KEY', undefined, {
         logLevel: 0,
+        ...opts,
       });
       const response = await Promise.all([
         amplitude.track('test event 1').promise,
@@ -323,7 +332,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -343,7 +352,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -366,6 +375,7 @@ describe('integration', () => {
       amplitude.init('API_KEY', undefined, {
         logLevel: 0,
         flushMaxRetries: 3,
+        ...opts,
       });
       const response = await amplitude.track('test event').promise;
       expect(response.event).toEqual({
@@ -377,7 +387,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -394,6 +404,7 @@ describe('integration', () => {
     test('should handle missing api key', async () => {
       amplitude.init('', undefined, {
         logLevel: 0,
+        ...opts,
       });
       const response = await amplitude.track('test event').promise;
       expect(response.code).toBe(400);
@@ -403,6 +414,7 @@ describe('integration', () => {
     test('should handle client opt out', async () => {
       amplitude.init('API_KEY', undefined, {
         logLevel: 0,
+        ...opts,
       });
       amplitude.setOptOut(true);
       const response = await amplitude.track('test event').promise;
@@ -415,7 +427,9 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      amplitude.init('API_KEY');
+      amplitude.init('API_KEY', undefined, {
+        ...opts,
+      });
       const id = new amplitude.Identify();
       id.set('org', 'amp');
       id.setOnce('initial_org', 'amp');
@@ -435,7 +449,7 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -480,7 +494,9 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      amplitude.init('API_KEY');
+      amplitude.init('API_KEY', undefined, {
+        ...opts,
+      });
       const rev = new amplitude.Revenue();
       rev.setProductId('1');
       rev.setQuantity(1);
@@ -491,7 +507,7 @@ describe('integration', () => {
       expect(response.event).toEqual({
         device_id: uuid,
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         event_id: 0,
         event_properties: {
           $price: 100,
@@ -523,12 +539,14 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      amplitude.init('API_KEY');
+      amplitude.init('API_KEY', undefined, {
+        ...opts,
+      });
       const response = await amplitude.setGroup('org', 'engineering').promise;
       expect(response.event).toEqual({
         device_id: uuid,
         device_manufacturer: undefined,
-        device_model: string,
+        device_model: undefined,
         event_id: 0,
         event_type: '$identify',
         groups: {
@@ -550,6 +568,48 @@ describe('integration', () => {
             org: 'engineering',
           },
         },
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      scope.done();
+    });
+  });
+
+  describe('cookie migration', () => {
+    test('should use old cookies', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+      const API_KEY = 'asdfasdf';
+      const timestamp = Date.now();
+      const time = timestamp.toString(32);
+      const userId = 'userId';
+      const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
+      document.cookie = `amp_${API_KEY.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
+      amplitude.init(API_KEY, undefined, {
+        ...opts,
+      });
+      const response = await amplitude.track('test event', {
+        mode: 'test',
+      }).promise;
+      expect(response.event).toEqual({
+        user_id: userId,
+        device_id: 'deviceId',
+        session_id: timestamp,
+        time: number,
+        platform: 'Web',
+        os_name: 'WebKit',
+        os_version: '537.36',
+        device_manufacturer: undefined,
+        device_model: undefined,
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 0,
+        event_properties: {
+          mode: 'test',
+        },
+        library: library,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
