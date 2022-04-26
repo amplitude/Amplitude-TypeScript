@@ -8,4 +8,6 @@ export interface Plan {
   source?: string;
   /** The tracking plan version e.g. "1", "15" */
   version?: string;
+  /** The tracking plan version Id e.g. "9ec23ba0-275f-468f-80d1-66b88bff9529" */
+  versionId?: string;
 }
