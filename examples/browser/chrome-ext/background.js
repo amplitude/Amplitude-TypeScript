@@ -14,7 +14,7 @@ importScripts('/amplitude-min.js');
  *
  * Optionally, a user id can be provided when calling init()
  * ```
- * amplitude.init(API_KEY, 'example.react.user@amplitude.com')
+ * amplitude.init(API_KEY, 'example.extension.user@amplitude.com')
  * ```
  *
  * Optionally, a config object can be provided. Refer to https://amplitude.github.io/Amplitude-TypeScript/interfaces/Types.BrowserConfig.html
