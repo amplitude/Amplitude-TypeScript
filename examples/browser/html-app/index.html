@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>HTML 5 Boilerplate</title>
+  </head>
+	<script>
+    /**
+     * Install Amplitude using script loader. Refer to: https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser#using-script-loader. 
+     */
+    !function(){"use strict";!function(e,t){var r=e.amplitude||{_q:[]};if(r.invoked)e.console&&console.error&&console.error("Amplitude snippet has been loaded.");else{r.invoked=!0;var n=t.createElement("script");n.type="text/javascript",n.integrity="sha384-TeoEVjqxsQrwhskzwWGK6epJC7EkYjvl7k4gmwunKlRBkUK9nT01H4FL9z4VPMSm",n.crossOrigin="anonymous",n.async=!0,n.src="https://cdn.amplitude.com/libs/analytics-browser-0.3.1-min.js.gz",n.onload=function(){e.amplitude.runQueuedFunctions||console.log("[Amplitude] Error: could not load SDK")};var s=t.getElementsByTagName("script")[0];function v(e,t){e.prototype[t]=function(){return this._q.push({name:t,args:Array.prototype.slice.call(arguments,0)}),this}}s.parentNode.insertBefore(n,s);for(var o=function(){return this._q=[],this},i=["add","append","clearAll","prepend","set","setOnce","unset","preInsert","postInsert","remove","getUserProperties"],a=0;a<i.length;a++)v(o,i[a]);r.Identify=o;for(var u=function(){return this._q=[],this},c=["getEventProperties","setProductId","setQuantity","setPrice","setRevenue","setRevenueType","setEventProperties"],p=0;p<c.length;p++)v(u,c[p]);r.Revenue=u;var l=["getDeviceId","setDeviceId","getSessionId","setSessionId","getUserId","setUserId","setOptOut","setTransport"],d=["init","add","remove","track","logEvent","identify","groupIdentify","setGroup","revenue"];function m(e){function t(t,r){e[t]=function(){var n={promise:new Promise((r=>{e._q.push({name:t,args:Array.prototype.slice.call(arguments,0),resolve:r})}))};if(r)return n}}for(var r=0;r<l.length;r++)t(l[r],!1);for(var n=0;n<d.length;n++)t(d[n],!0)}m(r),e.amplitude=r}}(window,document)}();
+    /**
+     * Start by calling amplitude.init(). This must be done before any event tracking
+     * preferrably in the root file of the project.
+     * 
+     * Calling init() requires an API key
+     * ```
+     * amplitude.init(API_KEY)
+     * ```
+     * 
+     * Optionally, a user id can be provided when calling init()
+     * ```
+     * amplitude.init(API_KEY, 'example.html.user@amplitude.com')
+     * ```
+     * 
+     * Optionally, a config object can be provided. Refer to https://amplitude.github.io/Amplitude-TypeScript/interfaces/Types.BrowserConfig.html
+     * for object properties.
+     */
+    amplitude.init('API_KEY', 'example.html.user@amplitude.com');
+  </script>
+  <body>
+    <h2>Amplitude Analytics Browser Example with HTML</h2>
+
+    <button onclick="amplitude.identify(new amplitude.Identify().set('role', 'engineer'))">
+      Identify
+    </button>
+
+    <button onclick="amplitude.setGroup('org', 'engineering')">
+      Group
+    </button>
+
+    <button onclick="amplitude.groupIdentify('org', 'engineering', new amplitude.Identify().set('technology', 'react.js'))">
+      Group Identify
+    </button>
+
+    <button onclick="amplitude.track('Button Click', { name: 'HTML' })">
+      Track
+    </button>
+  </body>
+</html>
