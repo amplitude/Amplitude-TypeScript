@@ -36,7 +36,9 @@ export const parseOldCookies = (apiKey: string, options?: BrowserOptions): UserS
 
 export const parseTime = (num: string) => {
   const integer = parseInt(num, 32);
-  if (isNaN(integer)) return undefined;
+  if (isNaN(integer)) {
+    return undefined;
+  }
   return integer;
 };
 
