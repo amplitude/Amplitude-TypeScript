@@ -20,7 +20,7 @@ importScripts('/amplitude-min.js');
  * Optionally, a config object can be provided. Refer to https://amplitude.github.io/Amplitude-TypeScript/interfaces/Types.BrowserConfig.html
  * for object properties.
  */
-amplitude.init('7e31488679ff2fe6bf65e880aab7c040', 'example.extension.user@amplitude.com');
+amplitude.init('API_KEY', 'example.extension.user@amplitude.com');
 
 chrome.omnibox.onInputEntered.addListener((text) => {
   amplitude.track('Input Entered', { value: text });
