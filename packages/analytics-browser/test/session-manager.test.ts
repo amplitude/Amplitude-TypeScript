@@ -14,6 +14,7 @@ describe('session-mananger', () => {
         set: jest.fn(),
         remove: jest.fn(),
         reset: jest.fn(),
+        getRaw: jest.fn(),
       };
       const config: BrowserConfig = {
         ...createConfig('apiKey', 'userId'),
@@ -39,6 +40,7 @@ describe('session-mananger', () => {
         set: jest.fn(),
         remove: jest.fn(),
         reset: jest.fn(),
+        getRaw: jest.fn(),
       };
       const config: BrowserConfig = {
         ...createConfig('apiKey', 'userId'),
@@ -53,34 +55,6 @@ describe('session-mananger', () => {
         deviceId: 'deviceId',
         sessionId: 0,
         lastEventTime: undefined,
-        optOut: false,
-      });
-    });
-  });
-
-  describe('updateLastEventTime', () => {
-    test('should update last event time', () => {
-      const cookieStorage = {
-        isEnabled: () => true,
-        get: jest.fn(),
-        set: jest.fn(),
-        remove: jest.fn(),
-        reset: jest.fn(),
-      };
-      const config: BrowserConfig = {
-        ...createConfig('apiKey', 'userId'),
-        deviceId: 'deviceId',
-        sessionId: 0,
-        cookieStorage,
-      };
-      const now = Date.now();
-      SessionManager.updateLastEventTime(config, now);
-      expect(cookieStorage.set).toHaveBeenCalledTimes(1);
-      expect(cookieStorage.set).toHaveBeenLastCalledWith(SessionManager.getCookieName('apiKey'), {
-        userId: 'userId',
-        deviceId: 'deviceId',
-        sessionId: 0,
-        lastEventTime: now,
         optOut: false,
       });
     });
@@ -101,6 +75,7 @@ describe('session-mananger', () => {
         set: jest.fn(),
         remove: jest.fn(),
         reset: jest.fn(),
+        getRaw: jest.fn(),
       };
       const config: BrowserConfig = {
         ...createConfig('apiKey', 'userId'),
@@ -136,6 +111,7 @@ describe('session-mananger', () => {
         set: jest.fn(),
         remove: jest.fn(),
         reset: jest.fn(),
+        getRaw: jest.fn(),
       };
       const config: BrowserConfig = {
         ...createConfig('apiKey', 'userId'),

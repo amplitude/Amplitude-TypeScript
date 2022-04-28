@@ -148,6 +148,7 @@ describe('config', () => {
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,
+        getRaw: () => undefined,
       };
       const storage = Config.createCookieStorage({
         cookieStorage,
@@ -170,7 +171,7 @@ describe('config', () => {
         options: {},
         isEnabled: () => false,
         get: () => '',
-        findByKey: () => '',
+        getRaw: () => '',
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,
@@ -181,6 +182,7 @@ describe('config', () => {
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,
+        getRaw: () => undefined,
       });
       const storage = Config.createCookieStorage();
       expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);
@@ -197,6 +199,7 @@ describe('config', () => {
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,
+        getRaw: () => undefined,
       };
       const storage = Config.createEventsStorage({
         storageProvider,
@@ -216,6 +219,7 @@ describe('config', () => {
         set: () => undefined,
         remove: () => undefined,
         reset: () => undefined,
+        getRaw: () => undefined,
       });
       const storage = Config.createEventsStorage();
       expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);

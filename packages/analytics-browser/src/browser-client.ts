@@ -26,6 +26,7 @@ import { Context } from './plugins/context';
 import { createConfig, createTransport, getConfig } from './config';
 import { trackAttributions } from './attribution';
 import { updateCookies } from './session-manager';
+import { parseOldCookies } from './cookie-migration';
 
 /**
  * Initializes the Amplitude SDK with your apiKey, userId and optional configurations.
@@ -38,9 +39,15 @@ import { updateCookies } from './session-manager';
 export const init = (apiKey: string, userId?: string, options?: BrowserOptions): AmplitudeReturn<void> => {
   return {
     promise: (async () => {
-      const browserOptions = createConfig(apiKey, userId, options);
+      const oldCookies = parseOldCookies(apiKey, options);
+      const browserOptions = createConfig(apiKey, userId || oldCookies.userId, {
+        ...options,
+        deviceId: oldCookies.deviceId ?? options?.deviceId,
+        sessionId: oldCookies.sessionId ?? options?.sessionId,
+        optOut: options?.optOut ?? oldCookies.optOut,
+      });
       const config = _init(browserOptions) as BrowserConfig;
-      updateCookies(config);
+      updateCookies(config, oldCookies.lastEventTime);
 
       await _add(new Context());
       await _add(new Destination());

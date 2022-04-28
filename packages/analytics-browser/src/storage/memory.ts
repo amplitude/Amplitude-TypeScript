@@ -11,6 +11,11 @@ export class MemoryStorage<T> implements Storage<T> {
     return this.memoryStorage.get(key);
   }
 
+  getRaw(key: string) {
+    const value = this.get(key);
+    return value ? JSON.stringify(value) : undefined;
+  }
+
   set(key: string, value: T) {
     this.memoryStorage.set(key, value);
   }

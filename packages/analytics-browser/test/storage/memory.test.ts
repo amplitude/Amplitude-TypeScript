@@ -21,6 +21,19 @@ describe('memory', () => {
     });
   });
 
+  describe('getRaw', () => {
+    test('should return null if not set', () => {
+      const memoryStorage = new MemoryStorage();
+      expect(memoryStorage.getRaw('1')).toBe(undefined);
+    });
+
+    test('should return value', () => {
+      const memoryStorage = new MemoryStorage();
+      memoryStorage.set('1', 'a');
+      expect(memoryStorage.getRaw('1')).toBe('"a"');
+    });
+  });
+
   describe('set', () => {
     test('should set value', () => {
       const memoryStorage = new MemoryStorage();
