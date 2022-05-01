@@ -226,7 +226,7 @@ export const track = (
 };
 
 /**
- * Alis for track()
+ * Alias for track()
  */
 export const logEvent = track;
 
