@@ -1,4 +1,13 @@
-import { Config, Event, BaseEvent, EventOptions, Identify, Plugin, Revenue } from '@amplitude/analytics-types';
+import {
+  CoreClient,
+  Config,
+  Event,
+  BaseEvent,
+  EventOptions,
+  Identify,
+  Plugin,
+  Revenue,
+} from '@amplitude/analytics-types';
 import {
   createGroupIdentifyEvent,
   createIdentifyEvent,
@@ -8,7 +17,7 @@ import {
 } from './utils/event-builder';
 import { deregister, flush, push, register } from './timeline';
 import { buildResult } from './utils/result-builder';
-export class AmplitudeCore<T extends Config> {
+export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
