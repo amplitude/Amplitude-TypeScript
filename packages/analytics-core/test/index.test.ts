@@ -1,39 +1,31 @@
 import {
-  init,
-  track,
-  logEvent,
-  identify,
-  groupIdentify,
-  setGroup,
-  setOptOut,
-  revenue,
-  add,
-  remove,
-  getConfig,
+  AmplitudeCore,
   buildResponse,
   Destination,
   Config,
   Logger,
   AMPLITUDE_PREFIX,
+  returnWrapper,
 } from '../src/index';
 
 describe('index', () => {
   test('should expose apis', () => {
-    expect(typeof init).toBe('function');
-    expect(typeof track).toBe('function');
-    expect(typeof logEvent).toBe('function');
-    expect(typeof identify).toBe('function');
-    expect(typeof groupIdentify).toBe('function');
-    expect(typeof setGroup).toBe('function');
-    expect(typeof setOptOut).toBe('function');
-    expect(typeof revenue).toBe('function');
-    expect(typeof add).toBe('function');
-    expect(typeof remove).toBe('function');
-    expect(typeof getConfig).toBe('function');
+    const client = new AmplitudeCore();
+    expect(typeof client.init).toBe('function');
+    expect(typeof client.track).toBe('function');
+    expect(typeof client.logEvent).toBe('function');
+    expect(typeof client.identify).toBe('function');
+    expect(typeof client.groupIdentify).toBe('function');
+    expect(typeof client.setGroup).toBe('function');
+    expect(typeof client.setOptOut).toBe('function');
+    expect(typeof client.revenue).toBe('function');
+    expect(typeof client.add).toBe('function');
+    expect(typeof client.remove).toBe('function');
     expect(typeof buildResponse).toBe('function');
     expect(typeof Destination).toBe('function');
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
+    expect(typeof returnWrapper).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
   });
 });

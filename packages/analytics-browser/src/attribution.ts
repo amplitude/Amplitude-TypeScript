@@ -1,4 +1,3 @@
-import { Identify, identify } from '@amplitude/analytics-core';
 import { BrowserConfig, UTMData } from '@amplitude/analytics-types';
 import {
   UTM_CAMPAIGN,
@@ -17,26 +16,15 @@ import {
 import { UTMCookie } from './storage/utm-cookie';
 import { getQueryParams } from './utils/query-params';
 
-export const trackAttributions = (config: BrowserConfig) => {
-  const attribution = {
+export const getAttributions = (config: BrowserConfig): Record<string, string> => {
+  const attributions = {
     ...(config.includeUtm && getUtmParam()),
     ...(config.includeReferrer && getReferrer()),
     ...(config.includeGclid && getGclid()),
     ...(config.includeFbclid && getFbclid()),
   };
 
-  if (Object.keys(attribution).length === 0) {
-    return;
-  }
-
-  const id = new Identify();
-  Object.entries(attribution).forEach(([key, value]: [string, string]) => {
-    if (value) {
-      id.setOnce(`initial_${key}`, value);
-      id.set(key, value);
-    }
-  });
-  void identify(undefined, undefined, id);
+  return attributions;
 };
 
 export const getUtmParam = (): UTMData => {

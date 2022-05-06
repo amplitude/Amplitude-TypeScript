@@ -1,5 +1,4 @@
-import { BrowserConfig } from '@amplitude/analytics-types';
-import { createConfig } from '../src/config';
+import { BrowserConfig } from '../src/config';
 import * as SessionManager from '../src/session-manager';
 
 describe('session-mananger', () => {
@@ -16,12 +15,11 @@ describe('session-mananger', () => {
         reset: jest.fn(),
         getRaw: jest.fn(),
       };
-      const config: BrowserConfig = {
-        ...createConfig('apiKey', 'userId'),
+      const config = new BrowserConfig('apiKey', 'userId', {
         deviceId: 'deviceId',
         sessionId: 0,
         cookieStorage,
-      };
+      });
       SessionManager.updateCookies(config);
       expect(cookieStorage.set).toHaveBeenCalledTimes(1);
       expect(cookieStorage.set).toHaveBeenLastCalledWith(SessionManager.getCookieName('apiKey'), {
@@ -42,12 +40,11 @@ describe('session-mananger', () => {
         reset: jest.fn(),
         getRaw: jest.fn(),
       };
-      const config: BrowserConfig = {
-        ...createConfig('apiKey', 'userId'),
+      const config = new BrowserConfig('apiKey', 'userId', {
         deviceId: 'deviceId',
         sessionId: 0,
         cookieStorage,
-      };
+      });
       SessionManager.updateCookies(config);
       expect(cookieStorage.set).toHaveBeenCalledTimes(1);
       expect(cookieStorage.set).toHaveBeenLastCalledWith(SessionManager.getCookieName('apiKey'), {
@@ -77,13 +74,12 @@ describe('session-mananger', () => {
         reset: jest.fn(),
         getRaw: jest.fn(),
       };
-      const config: BrowserConfig = {
-        ...createConfig('apiKey', 'userId'),
+      const config = new BrowserConfig('apiKey', 'userId', {
         deviceId: 'deviceId',
         sessionId: 0,
         cookieStorage,
         sessionTimeout: 1,
-      };
+      });
 
       SessionManager.checkSessionExpiry(config);
       expect(cookieStorage.set).toHaveBeenCalledTimes(1);
@@ -113,13 +109,12 @@ describe('session-mananger', () => {
         reset: jest.fn(),
         getRaw: jest.fn(),
       };
-      const config: BrowserConfig = {
-        ...createConfig('apiKey', 'userId'),
+      const config = new BrowserConfig('apiKey', 'userId', {
         deviceId: 'deviceId',
         sessionId: 0,
         cookieStorage,
         sessionTimeout: 2000,
-      };
+      });
 
       SessionManager.checkSessionExpiry(config);
       expect(cookieStorage.set).toHaveBeenCalledTimes(0);

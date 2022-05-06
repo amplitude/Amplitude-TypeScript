@@ -2,6 +2,7 @@ import { AmplitudeReturn, InstanceProxy, QueueProxy, Result } from '@amplitude/a
 
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
+ * @ignore
  */
 export const runQueuedFunctions = (instance: object, queue: QueueProxy) => {
   convertProxyObjectToRealObject(instance, queue);

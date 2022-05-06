@@ -1,15 +1,15 @@
-import { BrowserConfig, InitOptions } from '@amplitude/analytics-types';
+import { BrowserConfig as IBrowserConfig, InitOptions } from '@amplitude/analytics-types';
 
-import { createConfig } from '../../src/config';
+import { BrowserConfig } from '../../src/config';
 
 export const useDefaultConfig = (userId?: string, overrides?: Partial<InitOptions<BrowserConfig>>) =>
-  createConfig(API_KEY, userId || USER_ID, { ...DEFAULT_OPTIONS, ...overrides });
+  new BrowserConfig(API_KEY, userId || USER_ID, { ...DEFAULT_OPTIONS, ...overrides });
 
 export const API_KEY = 'apiKey';
 
 export const USER_ID = 'userId';
 
-export const DEFAULT_OPTIONS: InitOptions<BrowserConfig> = {
+export const DEFAULT_OPTIONS: InitOptions<IBrowserConfig> = {
   apiKey: API_KEY,
   cookieStorage: {
     isEnabled: () => true,

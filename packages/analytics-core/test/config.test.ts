@@ -1,163 +1,102 @@
-import { getConfig, createConfig, resetInstances, Config, getApiHost } from '../src/config';
-import { useDefaultConfig } from './helpers/default';
+import { LogLevel, ServerZone } from '@amplitude/analytics-types';
 import {
-  AMPLITUDE_SERVER_URL,
   AMPLITUDE_BATCH_SERVER_URL,
-  EU_AMPLITUDE_SERVER_URL,
+  AMPLITUDE_SERVER_URL,
   EU_AMPLITUDE_BATCH_SERVER_URL,
+  EU_AMPLITUDE_SERVER_URL,
 } from '../src/constants';
-import { ServerZone } from '@amplitude/analytics-types';
+import { Config, createServerConfig, getServerUrl } from '../src/config';
+import { Logger } from '../src/logger';
+import { API_KEY, useDefaultConfig } from './helpers/default';
 
 describe('config', () => {
-  afterEach(() => {
-    resetInstances();
-  });
-
-  test('should create new config and keep existing reference', () => {
-    expect(getConfig()).toBeUndefined();
-    const first = createConfig(useDefaultConfig());
-    const second = createConfig(useDefaultConfig());
-    expect(first).toBe(second);
-    expect(getConfig()).toBeDefined();
-  });
-
   test('should create default config', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-      }),
-    );
-    expect(getConfig()).toBeDefined();
+    const defaultConfig = useDefaultConfig();
+    const config = new Config({
+      apiKey: API_KEY,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+    });
+    expect(config).toEqual({
+      apiKey: 'apiKey',
+      appVersion: undefined,
+      deviceId: undefined,
+      flushIntervalMillis: 1000,
+      flushMaxRetries: 5,
+      flushQueueSize: 10,
+      logLevel: LogLevel.Warn,
+      loggerProvider: new Logger(),
+      optOut: false,
+      partnerId: undefined,
+      plugins: [],
+      saveEvents: true,
+      serverUrl: 'https://api2.amplitude.com/2/httpapi',
+      serverZone: 'US',
+      sessionId: undefined,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+      useBatch: false,
+      userId: undefined,
+    });
   });
 
-  test('should overwrite config', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-        saveEvents: false,
-        optOut: true,
-        useBatch: true,
-        logLevel: 0,
-      }),
-    );
-    expect(getConfig().saveEvents).toBe(false);
-    expect(getConfig().optOut).toBe(true);
-    expect(getConfig().useBatch).toBe(true);
-    expect(getConfig().logLevel).toBe(0);
+  test('should overwrite default config', () => {
+    const defaultConfig = useDefaultConfig();
+    const config = new Config({
+      apiKey: API_KEY,
+      logLevel: LogLevel.Verbose,
+      optOut: true,
+      saveEvents: false,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+      useBatch: true,
+    });
+    expect(config).toEqual({
+      apiKey: 'apiKey',
+      appVersion: undefined,
+      deviceId: undefined,
+      flushIntervalMillis: 1000,
+      flushMaxRetries: 5,
+      flushQueueSize: 10,
+      logLevel: LogLevel.Verbose,
+      loggerProvider: new Logger(),
+      optOut: true,
+      partnerId: undefined,
+      plugins: [],
+      saveEvents: false,
+      serverUrl: 'https://api2.amplitude.com/batch',
+      serverZone: 'US',
+      sessionId: undefined,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+      useBatch: true,
+      userId: undefined,
+    });
   });
 
-  test('should return serverUrl if the value exists', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-        saveEvents: false,
-        optOut: true,
-        serverUrl: 'url',
-      }),
-    );
-    expect(getConfig().saveEvents).toBe(false);
-    expect(getConfig().optOut).toBe(true);
-    expect(getApiHost(getConfig())).toBe('url');
+  describe('getServerUrl', () => {
+    test('should return eu batch url', () => {
+      expect(getServerUrl(ServerZone.EU, true)).toBe(EU_AMPLITUDE_BATCH_SERVER_URL);
+    });
+    test('should return eu http url', () => {
+      expect(getServerUrl(ServerZone.EU, false)).toBe(EU_AMPLITUDE_SERVER_URL);
+    });
+    test('should return us batch url', () => {
+      expect(getServerUrl(ServerZone.US, true)).toBe(AMPLITUDE_BATCH_SERVER_URL);
+    });
+    test('should return us http url', () => {
+      expect(getServerUrl(ServerZone.US, false)).toBe(AMPLITUDE_SERVER_URL);
+    });
   });
 
-  test('should return US server url if serverUrl does not exist', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-        saveEvents: false,
-        optOut: true,
-        serverUrl: undefined,
-      }),
-    );
-    expect(getConfig().saveEvents).toBe(false);
-    expect(getConfig().optOut).toBe(true);
-    expect(getApiHost(getConfig())).toBe(AMPLITUDE_SERVER_URL);
-  });
-
-  test('should return US server url if serverUrl does not exist and serverZone is not valid', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-        saveEvents: false,
-        optOut: true,
-        serverUrl: undefined,
-        serverZone: <ServerZone>'invalid server zone',
-      }),
-    );
-    expect(getConfig().saveEvents).toBe(false);
-    expect(getConfig().optOut).toBe(true);
-    expect(getApiHost(getConfig())).toBe(AMPLITUDE_SERVER_URL);
-  });
-
-  test('should return batch server url if serverUrl does not exist and useBatch is set', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-        saveEvents: false,
-        optOut: true,
-        useBatch: true,
-        serverUrl: undefined,
-      }),
-    );
-    expect(getConfig().saveEvents).toBe(false);
-    expect(getConfig().optOut).toBe(true);
-    expect(getConfig().useBatch).toBe(true);
-    expect(getApiHost(getConfig())).toBe(AMPLITUDE_BATCH_SERVER_URL);
-  });
-
-  test('should return EU server url if serverUrl does not exist and serverZone is EU', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-        saveEvents: false,
-        optOut: true,
-        serverUrl: undefined,
-        serverZone: ServerZone.EU,
-      }),
-    );
-    expect(getConfig().saveEvents).toBe(false);
-    expect(getConfig().optOut).toBe(true);
-    expect(getApiHost(getConfig())).toBe(EU_AMPLITUDE_SERVER_URL);
-  });
-
-  test('should return EU batch server url if serverUrl does not exist, serverZone is EU and useBatch is set', () => {
-    expect(getConfig()).toBeUndefined();
-    createConfig(
-      new Config({
-        apiKey: 'apiKey',
-        transportProvider: useDefaultConfig().transportProvider,
-        storageProvider: useDefaultConfig().storageProvider,
-        saveEvents: false,
-        optOut: true,
-        useBatch: true,
-        serverUrl: undefined,
-        serverZone: ServerZone.EU,
-      }),
-    );
-    expect(getConfig().saveEvents).toBe(false);
-    expect(getConfig().optOut).toBe(true);
-    expect(getConfig().useBatch).toBe(true);
-    expect(getApiHost(getConfig())).toBe(EU_AMPLITUDE_BATCH_SERVER_URL);
+  describe('createServerConfig', () => {
+    test('should return default', () => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore to test invalid values
+      expect(createServerConfig('', undefined)).toEqual({
+        serverZone: ServerZone.US,
+        serverUrl: AMPLITUDE_SERVER_URL,
+      });
+    });
   });
 });

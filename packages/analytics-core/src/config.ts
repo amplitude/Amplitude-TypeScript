@@ -18,15 +18,7 @@ import {
 
 import { Logger } from './logger';
 
-const DEFAULT_INSTANCE = 'default';
-const instances: Record<string, IConfig> = {};
-
-export const serverUrls = {
-  [ServerZone.US]: (useBatch: boolean) => (useBatch ? AMPLITUDE_BATCH_SERVER_URL : AMPLITUDE_SERVER_URL),
-  [ServerZone.EU]: (useBatch: boolean) => (useBatch ? EU_AMPLITUDE_BATCH_SERVER_URL : EU_AMPLITUDE_SERVER_URL),
-};
-
-export const defaultConfig = {
+export const getDefaultConfig = () => ({
   flushMaxRetries: 5,
   flushQueueSize: 10,
   flushIntervalMillis: 1000,
@@ -34,13 +26,15 @@ export const defaultConfig = {
   loggerProvider: new Logger(),
   saveEvents: true,
   optOut: false,
+  plugins: [],
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: ServerZone.US,
   useBatch: false,
-};
+});
 
 export class Config implements IConfig {
   apiKey: string;
+  appVersion?: string;
   userId?: string;
   deviceId?: string;
   sessionId?: number;
@@ -60,7 +54,9 @@ export class Config implements IConfig {
   useBatch: boolean;
 
   constructor(options: InitOptions<IConfig>) {
+    const defaultConfig = getDefaultConfig();
     this.apiKey = options.apiKey;
+    this.appVersion = options.appVersion;
     this.userId = options.userId;
     this.deviceId = options.deviceId;
     this.sessionId = options.sessionId;
@@ -70,7 +66,7 @@ export class Config implements IConfig {
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.partnerId = options.partnerId;
-    this.plugins = [];
+    this.plugins = defaultConfig.plugins;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
     this.serverUrl = options.serverUrl;
@@ -78,44 +74,28 @@ export class Config implements IConfig {
     this.storageProvider = options.storageProvider;
     this.transportProvider = options.transportProvider;
     this.useBatch = options.useBatch ?? defaultConfig.useBatch;
-
     this.loggerProvider.enable(this.logLevel);
 
-    configApiHost(this);
+    const serverConfig = createServerConfig(options.serverZone, options.useBatch);
+    this.serverZone = serverConfig.serverZone;
+    this.serverUrl = serverConfig.serverUrl;
   }
 }
 
-export const createConfig = (config: IConfig) => {
-  // If config for an instance already exists, perform Object.assign() to reuse reference
-  // to config object. This is useful when config object reference is used in plugins
-  instances[DEFAULT_INSTANCE] = instances[DEFAULT_INSTANCE]
-    ? Object.assign(instances[DEFAULT_INSTANCE], config)
-    : config;
-  return instances[DEFAULT_INSTANCE];
-};
-
-export const getConfig = () => {
-  return instances[DEFAULT_INSTANCE];
-};
-
-export const resetInstances = () => {
-  for (const name in instances) {
-    delete instances[name];
+export const getServerUrl = (serverZone: ServerZone, useBatch: boolean) => {
+  if (serverZone === ServerZone.EU) {
+    return useBatch ? EU_AMPLITUDE_BATCH_SERVER_URL : EU_AMPLITUDE_SERVER_URL;
   }
+  return useBatch ? AMPLITUDE_BATCH_SERVER_URL : AMPLITUDE_SERVER_URL;
 };
 
-export const getApiHost = (config: IConfig) => {
-  return configApiHost(config);
-};
-
-const configApiHost = (config: IConfig) => {
-  if (!config.serverUrl) {
-    // Log a warning if server zone is neither US nor EU
-    if (![ServerZone.US, ServerZone.EU].includes(config.serverZone)) {
-      config.loggerProvider.warn(`Unknown server zone "${config.serverZone}". Replaced with US server zone`);
-      config.serverZone = ServerZone.US;
-    }
-    config.serverUrl = serverUrls[config.serverZone](config.useBatch);
-  }
-  return config.serverUrl;
+export const createServerConfig = (
+  serverZone: ServerZone = getDefaultConfig().serverZone,
+  useBatch: boolean = getDefaultConfig().useBatch,
+) => {
+  const _serverZone = [ServerZone.US, ServerZone.EU].includes(serverZone) ? serverZone : getDefaultConfig().serverZone;
+  return {
+    serverZone: _serverZone,
+    serverUrl: getServerUrl(_serverZone, useBatch),
+  };
 };

@@ -1,32 +1,130 @@
+import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper } from '@amplitude/analytics-core';
 import {
-  add as _add,
-  groupIdentify as _groupIdentify,
-  Destination,
-  identify as _identify,
-  revenue as _revenue,
-  init as _init,
-  setOptOut as _setOptOut,
-  Identify,
-  Revenue,
-  track as _track,
-  setGroup as _setGroup,
-  remove as _remove,
-} from '@amplitude/analytics-core';
-import {
-  AmplitudeReturn,
   BrowserConfig,
   BrowserOptions,
   EventOptions,
-  Plugin,
+  Identify as IIdentify,
   Result,
+  Revenue as IRevenue,
   TransportType,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { createConfig, createTransport, getConfig } from './config';
-import { trackAttributions } from './attribution';
+import { useBrowserConfig, createTransport } from './config';
+import { getAttributions } from './attribution';
 import { updateCookies } from './session-manager';
 import { parseOldCookies } from './cookie-migration';
+
+export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
+  async init(apiKey: string, userId?: string, options?: BrowserOptions) {
+    // Step 1: Read cookies stored by old SDK
+    const oldCookies = parseOldCookies(apiKey, options);
+
+    // Step 2: Create browser config
+    const browserOptions = useBrowserConfig(apiKey, userId || oldCookies.userId, {
+      ...options,
+      deviceId: oldCookies.deviceId ?? options?.deviceId,
+      sessionId: oldCookies.sessionId ?? options?.sessionId,
+      optOut: options?.optOut ?? oldCookies.optOut,
+    });
+    await super.init(undefined, undefined, browserOptions);
+
+    // Step 3: Store user session in cookie storage
+    updateCookies(this.config, oldCookies.lastEventTime);
+
+    // Step 4: Install plugins
+    await this.add(new Context());
+    await this.add(new Destination());
+
+    // Step 4: Track attributions
+    void this.trackAttributions();
+  }
+
+  getUserId() {
+    return this.config.userId;
+  }
+
+  setUserId(userId: string) {
+    this.config.userId = userId;
+    updateCookies(this.config);
+  }
+
+  getDeviceId() {
+    return this.config.deviceId;
+  }
+
+  setDeviceId(deviceId: string) {
+    this.config.deviceId = deviceId;
+    updateCookies(this.config);
+  }
+
+  getSessionId() {
+    return this.config.sessionId;
+  }
+
+  setSessionId(sessionId: number) {
+    this.config.sessionId = sessionId;
+    updateCookies(this.config);
+  }
+
+  setOptOut(optOut: boolean) {
+    super.setOptOut(optOut);
+    updateCookies(this.config);
+  }
+
+  setTransport(transport: TransportType) {
+    this.config.transportProvider = createTransport(transport);
+  }
+
+  identify(identify: IIdentify, eventOptions?: EventOptions): Promise<Result> {
+    if (isInstanceProxy(identify)) {
+      const queue = identify._q;
+      identify._q = [];
+      identify = convertProxyObjectToRealObject(new Identify(), queue);
+    }
+    return super.identify(identify, eventOptions);
+  }
+
+  groupIdentify(
+    groupType: string,
+    groupName: string | string[],
+    identify: IIdentify,
+    eventOptions?: EventOptions,
+  ): Promise<Result> {
+    if (isInstanceProxy(identify)) {
+      const queue = identify._q;
+      identify._q = [];
+      identify = convertProxyObjectToRealObject(new Identify(), queue);
+    }
+    return super.groupIdentify(groupType, groupName, identify, eventOptions);
+  }
+
+  revenue(revenue: IRevenue, eventOptions?: EventOptions) {
+    if (isInstanceProxy(revenue)) {
+      const queue = revenue._q;
+      revenue._q = [];
+      revenue = convertProxyObjectToRealObject(new Revenue(), queue);
+    }
+    return super.revenue(revenue, eventOptions);
+  }
+
+  trackAttributions() {
+    const attributions = getAttributions(this.config);
+    if (Object.keys(attributions).length === 0) {
+      return;
+    }
+    const id = new Identify();
+    Object.entries(attributions).forEach(([key, value]: [string, string]) => {
+      if (value) {
+        id.setOnce(`initial_${key}`, value);
+        id.set(key, value);
+      }
+    });
+    return this.identify(id);
+  }
+}
+
+const client = new AmplitudeBrowser();
 
 /**
  * Initializes the Amplitude SDK with your apiKey, userId and optional configurations.
@@ -36,25 +134,7 @@ import { parseOldCookies } from './cookie-migration';
  * await init(API_KEY, USER_ID, options).promise;
  * ```
  */
-export const init = (apiKey: string, userId?: string, options?: BrowserOptions): AmplitudeReturn<void> => {
-  return {
-    promise: (async () => {
-      const oldCookies = parseOldCookies(apiKey, options);
-      const browserOptions = createConfig(apiKey, userId || oldCookies.userId, {
-        ...options,
-        deviceId: oldCookies.deviceId ?? options?.deviceId,
-        sessionId: oldCookies.sessionId ?? options?.sessionId,
-        optOut: options?.optOut ?? oldCookies.optOut,
-      });
-      const config = _init(browserOptions) as BrowserConfig;
-      updateCookies(config, oldCookies.lastEventTime);
-
-      await _add(new Context());
-      await _add(new Destination());
-      trackAttributions(config);
-    })(),
-  };
-};
+export const init = returnWrapper(client.init.bind(client));
 
 /**
  * Adds a new plugin.
@@ -64,11 +144,7 @@ export const init = (apiKey: string, userId?: string, options?: BrowserOptions):
  * amplitude.add(plugin);
  * ```
  */
-export const add = (plugin: Plugin): AmplitudeReturn<void> => {
-  return {
-    promise: _add(plugin),
-  };
-};
+export const add = returnWrapper(client.add.bind(client));
 
 /**
  * Removes a plugin.
@@ -77,123 +153,7 @@ export const add = (plugin: Plugin): AmplitudeReturn<void> => {
  * amplitude.remove('myPlugin');
  * ```
  */
-export const remove = (pluginName: string): AmplitudeReturn<void> => {
-  return {
-    promise: _remove(pluginName),
-  };
-};
-
-/**
- * Returns current user ID.
- *
- * ```typescript
- * const userId = getUserId();
- * ```
- */
-export const getUserId = () => {
-  return getConfig().userId;
-};
-
-/**
- * Sets a new user ID.
- *
- * ```typescript
- * setUserId('userId');
- * ```
- */
-export const setUserId = (userId: string) => {
-  const config = getConfig();
-  config.userId = userId;
-  updateCookies(config);
-};
-
-/**
- * Returns current device ID.
- *
- * ```typescript
- * const deviceId = getDeviceId();
- * ```
- */
-export const getDeviceId = () => {
-  return getConfig().deviceId;
-};
-
-/**
- * Sets a new device ID.
- * When setting a custom device ID, make sure the value is sufficiently unique.
- * A uuid is recommended.
- *
- * ```typescript
- * setDeviceId('deviceId');
- * ```
- */
-export const setDeviceId = (deviceId: string) => {
-  const config = getConfig();
-  config.deviceId = deviceId;
-  updateCookies(config);
-};
-
-/**
- * Returns current session ID.
- *
- * ```typescript
- * const sessionId = getSessionId();
- * ```
- */
-export const getSessionId = () => {
-  return getConfig().sessionId;
-};
-
-/**
- * Sets a new session ID.
- * When settign a custom session ID, make sure the value is in milliseconds since epoch (Unix Timestamp).
- *
- * ```typescript
- * setSessionId(Date.now());
- * ```
- */
-export const setSessionId = (sessionId: number) => {
-  const config = getConfig();
-  config.sessionId = sessionId;
-  updateCookies(config);
-};
-
-/**
- * Sets a new optOut config value. This toggles event tracking on/off.
- *
- *```typescript
- * // Stops tracking
- * setOptOut(true);
- *
- * // Starts/resumes tracking
- * setOptOut(false);
- * ```
- */
-export const setOptOut = (optOut: boolean) => {
-  _setOptOut(optOut);
-  const config = getConfig();
-  updateCookies(config);
-};
-
-/**
- *  Sets the network transport type for events.
- *
- * ```typescript
- * // Use Fetch API
- * setTransport('fetch');
- *
- * // Use XMLHttpRequest API
- * setTransport('xhr');
- *
- * // Use navigator.sendBeacon API
- * setTransport('beacon');
- * ```
- */
-export const setTransport = (transport: TransportType) => {
-  const config = getConfig();
-  const transportProvider = createTransport(transport);
-  config.transportProvider = transportProvider;
-};
+export const remove = returnWrapper(client.remove.bind(client));
 
 /**
  * Tracks user-defined event, with specified type, optional event properties and optional overwrites.
@@ -215,20 +175,12 @@ export const setTransport = (transport: TransportType) => {
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const track = (
-  eventType: string,
-  eventProperties?: Record<string, any>,
-  eventOptions?: EventOptions,
-): AmplitudeReturn<Result> => {
-  return {
-    promise: _track(eventType, eventProperties, eventOptions),
-  };
-};
+export const track = returnWrapper(client.track.bind(client));
 
 /**
  * Alias for track()
  */
-export const logEvent = track;
+export const logEvent = returnWrapper(client.logEvent.bind(client));
 
 /**
  * Sends an identify event containing user property operations
@@ -245,16 +197,7 @@ export const logEvent = track;
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const identify = (identify: Identify, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
-  if (isInstanceProxy(identify)) {
-    const queue = identify._q;
-    identify._q = [];
-    identify = convertProxyObjectToRealObject(new Identify(), queue);
-  }
-  return {
-    promise: _identify(undefined, undefined, identify, eventOptions),
-  };
-};
+export const identify = returnWrapper(client.identify.bind(client));
 
 /**
  * Sends a group identify event containing group property operations.
@@ -273,27 +216,8 @@ export const identify = (identify: Identify, eventOptions?: EventOptions): Ampli
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const groupIdentify = (
-  groupType: string,
-  groupName: string | string[],
-  identify: Identify,
-  eventOptions?: EventOptions,
-): AmplitudeReturn<Result> => {
-  if (isInstanceProxy(identify)) {
-    const queue = identify._q;
-    identify._q = [];
-    identify = convertProxyObjectToRealObject(new Identify(), queue);
-  }
-  return {
-    promise: _groupIdentify(undefined, undefined, groupType, groupName, identify, eventOptions),
-  };
-};
-
-export const setGroup = (groupType: string, groupName: string | string[]): AmplitudeReturn<Result> => {
-  return {
-    promise: _setGroup(groupType, groupName),
-  };
-};
+export const groupIdentify = returnWrapper(client.groupIdentify.bind(client));
+export const setGroup = returnWrapper(client.setGroup.bind(client));
 
 /**
  * Sends a revenue event containing revenue property operations.
@@ -310,13 +234,90 @@ export const setGroup = (groupType: string, groupName: string | string[]): Ampli
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const revenue = (revenue: Revenue, eventOptions?: EventOptions): AmplitudeReturn<Result> => {
-  if (isInstanceProxy(revenue)) {
-    const queue = revenue._q;
-    revenue._q = [];
-    revenue = convertProxyObjectToRealObject(new Revenue(), queue);
-  }
-  return {
-    promise: _revenue(revenue, eventOptions),
-  };
-};
+export const revenue = returnWrapper(client.revenue.bind(client));
+
+/**
+ * Returns current user ID.
+ *
+ * ```typescript
+ * const userId = getUserId();
+ * ```
+ */
+export const getUserId = client.getUserId.bind(client);
+
+/**
+ * Sets a new user ID.
+ *
+ * ```typescript
+ * setUserId('userId');
+ * ```
+ */
+export const setUserId = client.setUserId.bind(client);
+
+/**
+ * Returns current device ID.
+ *
+ * ```typescript
+ * const deviceId = getDeviceId();
+ * ```
+ */
+export const getDeviceId = client.getDeviceId.bind(client);
+
+/**
+ * Sets a new device ID.
+ * When setting a custom device ID, make sure the value is sufficiently unique.
+ * A uuid is recommended.
+ *
+ * ```typescript
+ * setDeviceId('deviceId');
+ * ```
+ */
+export const setDeviceId = client.setDeviceId.bind(client);
+
+/**
+ * Returns current session ID.
+ *
+ * ```typescript
+ * const sessionId = getSessionId();
+ * ```
+ */
+export const getSessionId = client.getSessionId.bind(client);
+
+/**
+ * Sets a new session ID.
+ * When settign a custom session ID, make sure the value is in milliseconds since epoch (Unix Timestamp).
+ *
+ * ```typescript
+ * setSessionId(Date.now());
+ * ```
+ */
+export const setSessionId = client.setSessionId.bind(client);
+
+/**
+ * Sets a new optOut config value. This toggles event tracking on/off.
+ *
+ *```typescript
+ * // Stops tracking
+ * setOptOut(true);
+ *
+ * // Starts/resumes tracking
+ * setOptOut(false);
+ * ```
+ */
+export const setOptOut = client.setOptOut.bind(client);
+
+/**
+ *  Sets the network transport type for events.
+ *
+ * ```typescript
+ * // Use Fetch API
+ * setTransport('fetch');
+ *
+ * // Use XMLHttpRequest API
+ * setTransport('xhr');
+ *
+ * // Use navigator.sendBeacon API
+ * setTransport('beacon');
+ * ```
+ */
+export const setTransport = client.setTransport.bind(client);

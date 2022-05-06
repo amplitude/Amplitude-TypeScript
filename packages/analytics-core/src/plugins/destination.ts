@@ -16,7 +16,7 @@ import { MISSING_API_KEY_MESSAGE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } fr
 import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
-import { getApiHost } from '../config';
+import { createServerConfig } from '../config';
 
 export class Destination implements DestinationPlugin {
   name = 'amplitude';
@@ -115,7 +115,8 @@ export class Destination implements DestinationPlugin {
     };
 
     try {
-      const res = await this.config.transportProvider.send(getApiHost(this.config), payload);
+      const { serverUrl } = createServerConfig(this.config.serverZone, this.config.useBatch);
+      const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
