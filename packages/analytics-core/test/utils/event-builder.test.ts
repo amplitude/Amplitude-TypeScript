@@ -21,6 +21,22 @@ describe('event-builder', () => {
       });
     });
 
+    test('should create with plain event', () => {
+      const plainEvent = {
+        event_type: 'track event',
+        groups: {
+          org: '15',
+        },
+      };
+      const event = createTrackEvent(plainEvent);
+      expect(event).toEqual({
+        event_type: 'track event',
+        groups: {
+          org: '15',
+        },
+      });
+    });
+
     test('should handle missing event properties', () => {
       const eventType = 'track event';
       const event = createTrackEvent(eventType);

@@ -1,4 +1,5 @@
 import {
+  BaseEvent,
   TrackEvent,
   IdentifyEvent,
   GroupIdentifyEvent,
@@ -11,13 +12,14 @@ import {
 import { Identify } from '../identify';
 
 export const createTrackEvent = (
-  eventType: string,
+  eventInput: BaseEvent | string,
   eventProperties?: Record<string, any>,
   eventOptions?: EventOptions,
 ): TrackEvent => {
+  const baseEvent: BaseEvent = typeof eventInput === 'string' ? { event_type: eventInput } : eventInput;
   return {
+    ...baseEvent,
     ...eventOptions,
-    event_type: eventType,
     ...(eventProperties && { event_properties: eventProperties }),
   };
 };

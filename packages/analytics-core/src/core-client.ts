@@ -1,4 +1,4 @@
-import { Config, Event, EventOptions, Identify, Plugin, Revenue } from '@amplitude/analytics-types';
+import { Config, Event, BaseEvent, EventOptions, Identify, Plugin, Revenue } from '@amplitude/analytics-types';
 import {
   createGroupIdentifyEvent,
   createIdentifyEvent,
@@ -24,8 +24,8 @@ export class AmplitudeCore<T extends Config> {
     return Promise.resolve();
   }
 
-  track(eventType: string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
-    const event = createTrackEvent(eventType, eventProperties, eventOptions);
+  track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
+    const event = createTrackEvent(eventInput, eventProperties, eventOptions);
     return this.dispatch(event);
   }
 
