@@ -1,440 +1,306 @@
-import {
-  init,
-  groupIdentify,
-  identify,
-  revenue,
-  setUserId,
-  setDeviceId,
-  setSessionId,
-  setOptOut,
-  getUserId,
-  getDeviceId,
-  getSessionId,
-  add,
-  remove,
-  track,
-  setGroup,
-  setTransport,
-} from '../src/browser-client';
+import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
 import * as CookieMigration from '../src/cookie-migration';
 import * as attribution from '../src/attribution';
-import { PluginType, TransportType } from '@amplitude/analytics-types';
-import { XHRTransport } from '../src/transports/xhr';
+import { Status, TransportType } from '@amplitude/analytics-types';
+import { FetchTransport } from '../src/transports/fetch';
+import * as SnippetHelper from '../src/utils/snippet-helper';
 
 describe('browser-client', () => {
-  const API_KEY = 'apiKey';
-  const USER_ID = 'userId';
+  const API_KEY = 'API_KEY';
+  const USER_ID = 'USER_ID';
+  const DEVICE_ID = 'DEVICE_ID';
+
+  afterEach(() => {
+    // clean up cookies
+    document.cookie = 'AMP_API_KEY=null; expires=-1';
+  });
 
   describe('init', () => {
-    test('should call core init', async () => {
-      const _init = jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY));
-      const parseOldCookie = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+    test('should return config', async () => {
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
         optOut: false,
       });
-      const _add = jest
-        .spyOn(core, 'add')
-        .mockReturnValueOnce(Promise.resolve())
-        .mockReturnValueOnce(Promise.resolve());
-      const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      await init(API_KEY, USER_ID).promise;
-      expect(_init).toHaveBeenCalledTimes(1);
-      expect(parseOldCookie).toHaveBeenCalledTimes(1);
+      const getAttributions = jest.spyOn(attribution, 'getAttributions').mockReturnValueOnce({
+        utm_source: 'utm_source',
+      });
+      const client = new AmplitudeBrowser();
+      jest.spyOn(client, 'identify').mockReturnValueOnce(
+        Promise.resolve({
+          event: {
+            event_type: 'event_type',
+          },
+          code: 200,
+          message: 'message',
+        }),
+      );
+      await client.init(API_KEY, USER_ID, {});
+      expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(_add).toHaveBeenCalledTimes(2);
-      expect(trackAttributions).toHaveBeenCalledTimes(1);
+      expect(getAttributions).toHaveBeenCalledTimes(1);
     });
 
-    test('should call core init with custom config', async () => {
-      const _init = jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY));
-      const parseOldCookie = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+    test('should read from cookies config', async () => {
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
         optOut: false,
-      });
-      const _add = jest
-        .spyOn(core, 'add')
-        .mockReturnValueOnce(Promise.resolve())
-        .mockReturnValueOnce(Promise.resolve());
-      const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      await init(API_KEY, USER_ID, {
-        deviceId: 'deviceId',
+        deviceId: DEVICE_ID,
         sessionId: 1,
-        optOut: false,
-      }).promise;
-      expect(_init).toHaveBeenCalledTimes(1);
-      expect(parseOldCookie).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(_add).toHaveBeenCalledTimes(2);
-      expect(trackAttributions).toHaveBeenCalledTimes(1);
-    });
-
-    test('should call core init with cookie config', async () => {
-      const _init = jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY));
-      const parseOldCookie = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
-        deviceId: 'deviceId',
-        sessionId: 1,
-        optOut: false,
       });
-      const _add = jest
-        .spyOn(core, 'add')
-        .mockReturnValueOnce(Promise.resolve())
-        .mockReturnValueOnce(Promise.resolve());
-      const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      await init(API_KEY, USER_ID).promise;
-      expect(_init).toHaveBeenCalledTimes(1);
-      expect(parseOldCookie).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(_add).toHaveBeenCalledTimes(2);
-      expect(trackAttributions).toHaveBeenCalledTimes(1);
-    });
-
-    test('should call core init with no user id', async () => {
-      const _init = jest.spyOn(core, 'init').mockReturnValueOnce(Config.createConfig(API_KEY));
-      const parseOldCookie = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
-        optOut: false,
+      const getAttributions = jest.spyOn(attribution, 'getAttributions').mockReturnValueOnce({});
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, USER_ID, {
+        optOut: true,
       });
-      const _add = jest
-        .spyOn(core, 'add')
-        .mockReturnValueOnce(Promise.resolve())
-        .mockReturnValueOnce(Promise.resolve());
-      const trackAttributions = jest.spyOn(attribution, 'trackAttributions').mockReturnValueOnce();
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      await init(API_KEY).promise;
-      expect(_init).toHaveBeenCalledTimes(1);
-      expect(parseOldCookie).toHaveBeenCalledTimes(1);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getSessionId()).toBe(1);
+      expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(_add).toHaveBeenCalledTimes(2);
-      expect(trackAttributions).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('add', () => {
-    test('should call core.add', async () => {
-      const _add = jest.spyOn(core, 'add').mockReturnValueOnce(Promise.resolve());
-      const plugin = {
-        name: 'plugin',
-        type: PluginType.DESTINATION,
-        setup: jest.fn(),
-        execute: jest.fn(),
-      };
-      await add(plugin).promise;
-      expect(_add).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('remove', () => {
-    test('should call core.remove', async () => {
-      const _remove = jest.spyOn(core, 'remove').mockReturnValueOnce(Promise.resolve());
-      const pluginName = 'plugin';
-      await remove(pluginName).promise;
-      expect(_remove).toHaveBeenCalledTimes(1);
+      expect(getAttributions).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('getUserId', () => {
-    test('should return user id', () => {
-      const config = Config.createConfig(API_KEY, 'userId');
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
-      expect(getUserId()).toBe('userId');
-      expect(getConfig).toHaveBeenCalledTimes(1);
+    test('should get user id', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, USER_ID);
+      expect(client.getUserId()).toBe(USER_ID);
     });
   });
 
   describe('setUserId', () => {
-    test('should update user id', () => {
-      const config = Config.createConfig(API_KEY);
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      setUserId('userId');
-      expect(getConfig).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenLastCalledWith({
-        ...config,
-        userId: 'userId',
-      });
+    test('should set user id', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY);
+      expect(client.getUserId()).toBe(undefined);
+      client.setUserId(USER_ID);
+      expect(client.getUserId()).toBe(USER_ID);
     });
   });
 
   describe('getDeviceId', () => {
-    test('should return user id', () => {
-      const config = Config.createConfig(API_KEY, '', { deviceId: 'deviceId' });
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
-      expect(getDeviceId()).toBe('deviceId');
-      expect(getConfig).toHaveBeenCalledTimes(1);
+    test('should get device id', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        deviceId: DEVICE_ID,
+      });
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
   });
 
   describe('setDeviceId', () => {
-    test('should update device id', () => {
-      const config = Config.createConfig(API_KEY);
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      setDeviceId('deviceId');
-      expect(getConfig).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenLastCalledWith({
-        ...config,
-        deviceId: 'deviceId',
-      });
+    test('should set device id config', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY);
+      client.setDeviceId(DEVICE_ID);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
   });
 
   describe('getSessionId', () => {
-    test('should return user id', () => {
-      const config = Config.createConfig(API_KEY, '', { sessionId: 1 });
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
-      expect(getSessionId()).toBe(1);
-      expect(getConfig).toHaveBeenCalledTimes(1);
+    test('should get session id', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        sessionId: 1,
+      });
+      expect(client.getSessionId()).toBe(1);
     });
   });
 
   describe('setSessionId', () => {
-    test('should update session id', () => {
-      const config = Config.createConfig(API_KEY);
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
+    test('should set session id', async () => {
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      setSessionId(1);
-      expect(getConfig).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenLastCalledWith({
-        ...config,
-        sessionId: 1,
-      });
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY);
+      client.setSessionId(1);
+      expect(client.getSessionId()).toBe(1);
+      expect(updateCookies).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('setOptOut', () => {
-    test('should update opt out config', () => {
-      const config = Config.createConfig(API_KEY);
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
-      const _setOptOut = jest.spyOn(core, 'setOptOut').mockImplementationOnce((optOut: boolean) => {
-        config.optOut = Boolean(optOut);
-      });
+    test('should set opt out', async () => {
       const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      setOptOut(true);
-      expect(getConfig).toHaveBeenCalledTimes(1);
-      expect(_setOptOut).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenLastCalledWith({
-        ...config,
-        optOut: true,
-      });
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY);
+      client.setOptOut(true);
+      expect(updateCookies).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('setTransport', () => {
-    test('should set transport', () => {
-      const config = Config.createConfig(API_KEY);
-      const getConfig = jest.spyOn(Config, 'getConfig').mockReturnValueOnce(config);
-      const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(new XHRTransport());
-      setTransport(TransportType.XHR);
-      expect(getConfig).toHaveBeenCalledTimes(1);
-      expect(createTransport).toHaveBeenCalledTimes(1);
-      expect(config.transportProvider).toBeInstanceOf(XHRTransport);
-    });
-  });
-
-  describe('track', () => {
-    test('should call core.track', async () => {
-      const event = {
-        event_type: 'hello',
-      };
-      const _track = jest.spyOn(core, 'track').mockReturnValueOnce(
-        Promise.resolve({
-          event,
-          code: 200,
-          message: 'success',
-        }),
-      );
-      await track(event.event_type).promise;
-      expect(_track).toHaveBeenCalledTimes(1);
+    test('should set transport', async () => {
+      const fetch = new FetchTransport();
+      const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY);
+      client.setTransport(TransportType.Fetch);
+      expect(createTransport).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('identify', () => {
-    test('should call core identify', async () => {
-      const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const id = new core.Identify();
-      await identify(id).promise;
-      expect(coreIdentify).toHaveBeenCalledTimes(1);
-      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, undefined);
+    test('should track identify', async () => {
+      const send = jest.fn().mockReturnValueOnce({
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      });
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        transportProvider: {
+          send,
+        },
+      });
+      const identifyObject = new core.Identify();
+      const result = await client.identify(identifyObject);
+      expect(result.code).toEqual(200);
+      expect(send).toHaveBeenCalledTimes(1);
     });
 
-    test('should allow event options', async () => {
-      const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const id = new core.Identify();
-      await identify(id, {}).promise;
-      expect(coreIdentify).toHaveBeenCalledTimes(1);
-      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, id, {});
-    });
-
-    test('should allow identify snippet proxy', async () => {
-      const coreIdentify = jest.spyOn(core, 'identify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const id = { _q: [] };
-      // Allow to pass snippet stub
+    test('should track identify using proxy', async () => {
+      const send = jest.fn().mockReturnValueOnce({
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      });
+      const convertProxyObjectToRealObject = jest
+        .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
+        .mockReturnValueOnce(new core.Identify());
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        transportProvider: {
+          send,
+        },
+      });
+      const identifyObject = {
+        _q: [],
+      };
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      await identify(id).promise;
-      expect(coreIdentify).toHaveBeenCalledTimes(1);
-      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, expect.any(core.Identify), undefined);
+      // @ts-ignore to verify behavior in snippet installation
+      const result = await client.identify(identifyObject);
+      expect(result.code).toEqual(200);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('groupIdentify', () => {
-    test('should call core groupIdentify', async () => {
-      const coreIdentify = jest.spyOn(core, 'groupIdentify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const id = new core.Identify();
-      await groupIdentify('type', 'name', id).promise;
-      expect(coreIdentify).toHaveBeenCalledTimes(1);
-      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, undefined);
+    test('should track group identify', async () => {
+      const send = jest.fn().mockReturnValueOnce({
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      });
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        transportProvider: {
+          send,
+        },
+      });
+      const identifyObject = new core.Identify();
+      const result = await client.groupIdentify('g', '1', identifyObject);
+      expect(result.code).toEqual(200);
+      expect(send).toHaveBeenCalledTimes(1);
     });
 
-    test('should allow event options', async () => {
-      const coreIdentify = jest.spyOn(core, 'groupIdentify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const id = new core.Identify();
-      await groupIdentify('type', 'name', id, {}).promise;
-      expect(coreIdentify).toHaveBeenCalledTimes(1);
-      expect(coreIdentify).toHaveBeenCalledWith(undefined, undefined, 'type', 'name', id, {});
-    });
-
-    test('should allow identify snippet proxy', async () => {
-      const coreIdentify = jest.spyOn(core, 'groupIdentify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const id = { _q: [] };
-      // Allow to pass snippet stub
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      await groupIdentify('type', 'name', id).promise;
-      expect(coreIdentify).toHaveBeenCalledTimes(1);
-      expect(coreIdentify).toHaveBeenCalledWith(
-        undefined,
-        undefined,
-        'type',
-        'name',
-        expect.any(core.Identify),
-        undefined,
-      );
-    });
-  });
-
-  describe('setGroup', () => {
-    test('should call core.setGroup', async () => {
-      const event = {
-        event_type: 'hello',
+    test('should track group identify using proxy', async () => {
+      const send = jest.fn().mockReturnValueOnce({
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      });
+      const convertProxyObjectToRealObject = jest
+        .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
+        .mockReturnValueOnce(new core.Identify());
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        transportProvider: {
+          send,
+        },
+      });
+      const identifyObject = {
+        _q: [],
       };
-      const _setGroup = jest.spyOn(core, 'setGroup').mockReturnValueOnce(
-        Promise.resolve({
-          event,
-          code: 200,
-          message: 'success',
-        }),
-      );
-      await setGroup('groupType', 'groupname').promise;
-      expect(_setGroup).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore to verify behavior in snippet installation
+      const result = await client.groupIdentify('g', '1', identifyObject);
+      expect(result.code).toEqual(200);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('revenue', () => {
-    test('should call core revenue', async () => {
-      const coreRevenue = jest.spyOn(core, 'revenue').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const revenueObj = new core.Revenue();
-      await revenue(revenueObj).promise;
-      expect(coreRevenue).toHaveBeenCalledTimes(1);
-      expect(coreRevenue).toHaveBeenCalledWith(revenueObj, undefined);
+    test('should track revenue', async () => {
+      const send = jest.fn().mockReturnValueOnce({
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      });
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        transportProvider: {
+          send,
+        },
+      });
+      const revenueObject = new core.Revenue();
+      const result = await client.revenue(revenueObject);
+      expect(result.code).toEqual(200);
+      expect(send).toHaveBeenCalledTimes(1);
     });
 
-    test('should allow event options', async () => {
-      const coreRevenue = jest.spyOn(core, 'revenue').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const revenueObj = new core.Revenue();
-      await revenue(revenueObj, {}).promise;
-      expect(coreRevenue).toHaveBeenCalledTimes(1);
-      expect(coreRevenue).toHaveBeenCalledWith(revenueObj, {});
-    });
-
-    test('should allow revenue snippet proxy', async () => {
-      const coreRevenue = jest.spyOn(core, 'revenue').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          code: 200,
-          message: 'Success',
-        }),
-      );
-      const revenueObj = { _q: [] };
-      // Allow to pass snippet stub
+    test('should track revenue using proxy', async () => {
+      const send = jest.fn().mockReturnValueOnce({
+        status: Status.Success,
+        statusCode: 200,
+        body: {
+          eventsIngested: 1,
+          payloadSizeBytes: 1,
+          serverUploadTime: 1,
+        },
+      });
+      const convertProxyObjectToRealObject = jest
+        .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
+        .mockReturnValueOnce(new core.Revenue());
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        transportProvider: {
+          send,
+        },
+      });
+      const revenueObject = {
+        _q: [],
+      };
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      await revenue(revenueObj).promise;
-      expect(coreRevenue).toHaveBeenCalledTimes(1);
-      expect(coreRevenue).toHaveBeenCalledWith(expect.any(core.Revenue), undefined);
+      // @ts-ignore to verify behavior in snippet installation
+      const result = await client.revenue(revenueObject);
+      expect(result.code).toEqual(200);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
     });
   });
 });

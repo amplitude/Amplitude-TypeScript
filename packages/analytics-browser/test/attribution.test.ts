@@ -1,12 +1,10 @@
-import * as core from '@amplitude/analytics-core';
-import { Status } from '@amplitude/analytics-types';
 import * as queryParams from '../src/utils/query-params';
 import * as attribution from '../src/attribution';
 import { useDefaultConfig } from './helpers/default';
 import * as UTMCookieModule from '../src/storage/utm-cookie';
 
 describe('attribution', () => {
-  describe('trackAttributions', () => {
+  describe('getAttributions', () => {
     test('should track attributions', () => {
       const getUtmParam = jest.spyOn(attribution, 'getUtmParam').mockReturnValueOnce({
         utm_source: 'marketing',
@@ -15,22 +13,15 @@ describe('attribution', () => {
       const getReferrer = jest.spyOn(attribution, 'getReferrer').mockReturnValueOnce({});
       const getGclid = jest.spyOn(attribution, 'getGclid').mockReturnValueOnce({});
       const getFbclid = jest.spyOn(attribution, 'getFbclid').mockReturnValueOnce({});
-      const identify = jest.spyOn(core, 'identify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          message: Status.Success,
-          code: 200,
-        }),
-      );
       const config = useDefaultConfig();
-      attribution.trackAttributions(config);
+      const attr = attribution.getAttributions(config);
+      expect(attr).toEqual({
+        utm_source: 'marketing',
+      });
       expect(getUtmParam).toHaveBeenCalledTimes(1);
       expect(getReferrer).toHaveBeenCalledTimes(1);
       expect(getGclid).toHaveBeenCalledTimes(1);
       expect(getFbclid).toHaveBeenCalledTimes(1);
-      expect(identify).toHaveBeenCalledTimes(1);
     });
 
     test('should not track due to config', () => {
@@ -38,27 +29,18 @@ describe('attribution', () => {
       const getReferrer = jest.spyOn(attribution, 'getReferrer').mockReturnValueOnce({});
       const getGclid = jest.spyOn(attribution, 'getGclid').mockReturnValueOnce({});
       const getFbclid = jest.spyOn(attribution, 'getFbclid').mockReturnValueOnce({});
-      const identify = jest.spyOn(core, 'identify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          message: Status.Success,
-          code: 200,
-        }),
-      );
       const config = useDefaultConfig(undefined, {
         includeUtm: false,
         includeReferrer: false,
         includeGclid: false,
         includeFbclid: false,
       });
-      attribution.trackAttributions(config);
+      const attr = attribution.getAttributions(config);
+      expect(attr).toEqual({});
       expect(getUtmParam).toHaveBeenCalledTimes(0);
       expect(getReferrer).toHaveBeenCalledTimes(0);
       expect(getGclid).toHaveBeenCalledTimes(0);
       expect(getFbclid).toHaveBeenCalledTimes(0);
-      expect(identify).toHaveBeenCalledTimes(0);
     });
 
     test('should handle no attributions', () => {
@@ -66,22 +48,13 @@ describe('attribution', () => {
       const getReferrer = jest.spyOn(attribution, 'getReferrer').mockReturnValueOnce({});
       const getGclid = jest.spyOn(attribution, 'getGclid').mockReturnValueOnce({});
       const getFbclid = jest.spyOn(attribution, 'getFbclid').mockReturnValueOnce({});
-      const identify = jest.spyOn(core, 'identify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'hello',
-          },
-          message: Status.Success,
-          code: 200,
-        }),
-      );
       const config = useDefaultConfig();
-      attribution.trackAttributions(config);
+      const attr = attribution.getAttributions(config);
+      expect(attr).toEqual({});
       expect(getUtmParam).toHaveBeenCalledTimes(1);
       expect(getReferrer).toHaveBeenCalledTimes(1);
       expect(getGclid).toHaveBeenCalledTimes(1);
       expect(getFbclid).toHaveBeenCalledTimes(1);
-      expect(identify).toHaveBeenCalledTimes(0);
     });
   });
 

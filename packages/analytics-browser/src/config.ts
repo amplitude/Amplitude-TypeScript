@@ -1,4 +1,5 @@
 import {
+  Event,
   BrowserOptions,
   BrowserConfig as IBrowserConfig,
   Storage,
@@ -6,7 +7,7 @@ import {
   TransportType,
   UserSession,
 } from '@amplitude/analytics-types';
-import { Config, getConfig as _getConfig } from '@amplitude/analytics-core';
+import { Config } from '@amplitude/analytics-core';
 
 import { CookieStorage } from './storage/cookie';
 import { FetchTransport } from './transports/fetch';
@@ -18,10 +19,11 @@ import { UUID } from './utils/uuid';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 
-export const defaultConfig = {
+export const getDefaultConfig = () => ({
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
   cookieSecure: false,
+  cookieStorage: new MemoryStorage<UserSession>(),
   disableCookies: false,
   domain: '',
   includeGclid: true,
@@ -29,6 +31,7 @@ export const defaultConfig = {
   includeReferrer: true,
   includeUtm: true,
   sessionTimeout: 30 * 60 * 1000,
+  storageProvider: new MemoryStorage<Event[]>(),
   trackingOptions: {
     city: true,
     country: true,
@@ -45,7 +48,7 @@ export const defaultConfig = {
     versionName: true,
   },
   transportProvider: new FetchTransport(),
-};
+});
 
 export class BrowserConfig extends Config implements IBrowserConfig {
   cookieExpiration: number;
@@ -54,54 +57,61 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieStorage: Storage<UserSession>;
   disableCookies: boolean;
   domain: string;
-  includeUtm: boolean;
-  includeReferrer: boolean;
   includeGclid: boolean;
   includeFbclid: boolean;
+  includeReferrer: boolean;
+  includeUtm: boolean;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
 
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
-    const cookieStorage = createCookieStorage(options);
-    const storageProvider = createEventsStorage(options);
-    const transportProvider = options?.transportProvider ?? createTransport(options?.transport);
-    const sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
-    const trackingOptions = { ...defaultConfig.trackingOptions, ...options?.trackingOptions };
-    const cookieName = getCookieName(apiKey);
-    const cookies = cookieStorage.get(cookieName);
-    const queryParams = getQueryParams();
-
+    const defaultConfig = getDefaultConfig();
     super({
       ...options,
       apiKey,
-      storageProvider,
-      transportProvider,
-      userId: userId ?? cookies?.userId,
-      deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
-      sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
-      optOut: Boolean(cookies?.optOut),
+      userId,
+      optOut: Boolean(options?.optOut),
+      storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,
+      transportProvider: options?.transportProvider ?? defaultConfig.transportProvider,
     });
 
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
-    this.cookieStorage = cookieStorage;
+    this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;
     this.includeGclid = options?.includeGclid ?? defaultConfig.includeGclid;
     this.includeFbclid = options?.includeFbclid ?? defaultConfig.includeFbclid;
     this.includeReferrer = options?.includeReferrer ?? defaultConfig.includeReferrer;
     this.includeUtm = options?.includeUtm ?? defaultConfig.includeUtm;
-    this.sessionTimeout = sessionTimeout;
-    this.trackingOptions = trackingOptions;
+    this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
+    this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
   }
 }
 
-export const createConfig = (apiKey: string, userId?: string, overrides?: BrowserOptions): IBrowserConfig => {
-  return new BrowserConfig(apiKey, userId, overrides);
+export const useBrowserConfig = (apiKey: string, userId?: string, options?: BrowserOptions): IBrowserConfig => {
+  const defaultConfig = getDefaultConfig();
+  const cookieStorage = createCookieStorage(options);
+  const cookieName = getCookieName(apiKey);
+  const cookies = cookieStorage.get(cookieName);
+  const queryParams = getQueryParams();
+  const sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
+
+  return new BrowserConfig(apiKey, userId ?? cookies?.userId, {
+    ...options,
+    cookieStorage,
+    sessionTimeout,
+    deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
+    optOut: options?.optOut ?? Boolean(cookies?.optOut),
+    sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
+    storageProvider: createEventsStorage(options),
+    trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
+    transportProvider: options?.transportProvider ?? createTransport(options?.transport),
+  });
 };
 
-export const createCookieStorage = (overrides?: BrowserOptions, baseConfig = defaultConfig) => {
+export const createCookieStorage = (overrides?: BrowserOptions, baseConfig = getDefaultConfig()) => {
   const options = { ...baseConfig, ...overrides };
   let cookieStorage = overrides?.cookieStorage;
   if (!cookieStorage || !cookieStorage.isEnabled()) {
@@ -150,9 +160,5 @@ export const createTransport = (transport?: TransportType) => {
   if (transport === TransportType.SendBeacon) {
     return new SendBeaconTransport();
   }
-  return defaultConfig.transportProvider;
-};
-
-export const getConfig = () => {
-  return _getConfig() as BrowserConfig;
+  return getDefaultConfig().transportProvider;
 };

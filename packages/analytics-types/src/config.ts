@@ -11,25 +11,25 @@ export enum ServerZone {
 }
 
 export interface Config {
-  appVersion?: string;
   apiKey: string;
-  userId?: string;
+  appVersion?: string;
   deviceId?: string;
-  sessionId?: number;
   flushIntervalMillis: number;
   flushMaxRetries: number;
   flushQueueSize: number;
   logLevel: LogLevel;
   loggerProvider: Logger;
   optOut: boolean;
+  partnerId?: string;
+  plugins: Plugin[];
   saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone: ServerZone;
+  sessionId?: number;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;
-  partnerId?: string;
-  plugins: Plugin[];
   useBatch: boolean;
+  userId?: string;
 }
 
 export interface BrowserConfig extends Config {

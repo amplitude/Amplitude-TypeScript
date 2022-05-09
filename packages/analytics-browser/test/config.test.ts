@@ -12,7 +12,67 @@ import { SendBeaconTransport } from '../src/transports/send-beacon';
 
 describe('config', () => {
   const API_KEY = 'apiKey';
-  describe('createConfig', () => {
+
+  describe('BrowserConfig', () => {
+    test('should create overwrite config', () => {
+      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
+      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
+      const logger = new core.Logger();
+      logger.enable(LogLevel.Warn);
+      const config = new Config.BrowserConfig(API_KEY);
+      expect(config).toEqual({
+        apiKey: API_KEY,
+        appVersion: undefined,
+        cookieStorage: new MemoryModule.MemoryStorage(),
+        cookieExpiration: 365,
+        cookieSameSite: 'Lax',
+        cookieSecure: false,
+        deviceId: undefined,
+        disableCookies: false,
+        domain: '',
+        flushIntervalMillis: 1000,
+        flushMaxRetries: 5,
+        flushQueueSize: 10,
+        loggerProvider: logger,
+        logLevel: LogLevel.Warn,
+        includeGclid: true,
+        includeFbclid: true,
+        includeReferrer: true,
+        includeUtm: true,
+        optOut: false,
+        partnerId: undefined,
+        plugins: [],
+        saveEvents: true,
+        serverUrl: 'https://api2.amplitude.com/2/httpapi',
+        serverZone: 'US',
+        sessionId: undefined,
+        sessionTimeout: 1800000,
+        storageProvider: new MemoryModule.MemoryStorage(),
+        trackingOptions: {
+          city: true,
+          country: true,
+          carrier: true,
+          deviceManufacturer: true,
+          deviceModel: true,
+          dma: true,
+          ipAddress: true,
+          language: true,
+          osName: true,
+          osVersion: true,
+          platform: true,
+          region: true,
+          versionName: true,
+        },
+        transportProvider: new FetchTransport(),
+        userId: undefined,
+        useBatch: false,
+      });
+    });
+  });
+
+  describe('useBrowserConfig', () => {
     test('should create default config', () => {
       jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
@@ -20,12 +80,10 @@ describe('config', () => {
       jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = Config.createConfig(API_KEY, undefined, {
-        deviceId: 'deviceId',
-        partnerId: 'partnerId',
-      });
+      const config = Config.useBrowserConfig(API_KEY, undefined);
       expect(config).toEqual({
         apiKey: API_KEY,
+        appVersion: undefined,
         cookieStorage: new MemoryModule.MemoryStorage(),
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
@@ -43,7 +101,7 @@ describe('config', () => {
         includeReferrer: true,
         includeUtm: true,
         optOut: false,
-        partnerId: 'partnerId',
+        partnerId: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
@@ -72,7 +130,7 @@ describe('config', () => {
       });
     });
 
-    test('should create using cookies', () => {
+    test('should create using cookies/overwrite', () => {
       const cookieStorage = new MemoryModule.MemoryStorage<UserSession>();
       cookieStorage.set(getCookieName(API_KEY), {
         deviceId: 'deviceIdFromCookies',
@@ -87,9 +145,13 @@ describe('config', () => {
       jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(1);
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = Config.createConfig(API_KEY);
+      const config = Config.useBrowserConfig(API_KEY, undefined, {
+        partnerId: 'partnerId',
+        sessionTimeout: 1,
+      });
       expect(config).toEqual({
         apiKey: API_KEY,
+        appVersion: undefined,
         cookieStorage: cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
@@ -107,13 +169,13 @@ describe('config', () => {
         includeReferrer: true,
         includeUtm: true,
         optOut: false,
-        partnerId: undefined,
+        partnerId: 'partnerId',
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionId: 1,
-        sessionTimeout: 1800000,
+        sessionTimeout: 1,
         storageProvider: new MemoryModule.MemoryStorage(),
         trackingOptions: {
           city: true,
@@ -280,15 +342,6 @@ describe('config', () => {
 
     test('should return fetch', () => {
       expect(createTransport(TransportType.Fetch)).toBeInstanceOf(FetchTransport);
-    });
-  });
-
-  describe('getConfig', () => {
-    test('should call core get config', () => {
-      const _getConfig = jest.spyOn(core, 'getConfig');
-      const config = Config.getConfig();
-      expect(config).toBe(undefined);
-      expect(_getConfig).toHaveBeenCalledTimes(1);
     });
   });
 });
