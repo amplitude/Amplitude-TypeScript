@@ -34,7 +34,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -69,7 +68,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -103,7 +101,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -111,6 +108,51 @@ describe('integration', () => {
         event_type: 'test event',
         event_id: 0,
         library: library,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      scope.done();
+    });
+
+    test('should track event with base event', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+
+      amplitude.init('API_KEY', undefined, {
+        ...opts,
+      });
+      const response = await amplitude.track(
+        {
+          event_type: 'test event',
+          groups: {
+            org: '15',
+          },
+        },
+        undefined,
+        {
+          user_id: 'sdk.dev@amplitude.com',
+          device_id: 'deviceId',
+          session_id: 1,
+        },
+      ).promise;
+      expect(response.event).toEqual({
+        user_id: 'sdk.dev@amplitude.com',
+        device_id: 'deviceId',
+        session_id: 1,
+        time: number,
+        platform: 'Web',
+        os_name: 'WebKit',
+        os_version: '537.36',
+        device_manufacturer: undefined,
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 0,
+        library: library,
+        groups: {
+          org: '15',
+        },
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -148,7 +190,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -168,7 +209,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -208,7 +248,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -228,7 +267,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -274,7 +312,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -294,7 +331,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -332,7 +368,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -352,7 +387,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -387,7 +421,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -449,7 +482,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
@@ -507,7 +539,6 @@ describe('integration', () => {
       expect(response.event).toEqual({
         device_id: uuid,
         device_manufacturer: undefined,
-        device_model: undefined,
         event_id: 0,
         event_properties: {
           $price: 100,
@@ -546,7 +577,6 @@ describe('integration', () => {
       expect(response.event).toEqual({
         device_id: uuid,
         device_manufacturer: undefined,
-        device_model: undefined,
         event_id: 0,
         event_type: '$identify',
         groups: {
@@ -599,7 +629,6 @@ describe('integration', () => {
         os_name: 'WebKit',
         os_version: '537.36',
         device_manufacturer: undefined,
-        device_model: undefined,
         language: 'en-US',
         ip: '$remote',
         insert_id: uuid,
