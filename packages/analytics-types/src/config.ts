@@ -47,6 +47,8 @@ export interface BrowserConfig extends Config {
   trackingOptions: TrackingOptions;
 }
 
+export type NodeConfig = Config;
+
 export type InitOptions<T extends Config> =
   | Partial<Config> &
       Omit<T, keyof Config> & {
@@ -79,3 +81,5 @@ export type BrowserOptions = Omit<
   >,
   'apiKey' | 'userId' | 'plugins'
 >;
+
+export type NodeOptions = Omit<Partial<NodeConfig>, 'apiKey' | 'userId' | 'plugins'>;

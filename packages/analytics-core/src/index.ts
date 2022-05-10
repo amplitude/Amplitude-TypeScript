@@ -7,3 +7,6 @@ export { Config } from './config';
 export { Logger } from './logger';
 export { AMPLITUDE_PREFIX } from './constants';
 export { returnWrapper } from './utils/return-wrapper';
+export { UUID } from './utils/uuid';
+export { MemoryStorage } from './storage/memory';
+export { Http } from './transports/http';

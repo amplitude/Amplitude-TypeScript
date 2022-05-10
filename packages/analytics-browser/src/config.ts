@@ -7,15 +7,13 @@ import {
   TransportType,
   UserSession,
 } from '@amplitude/analytics-types';
-import { Config } from '@amplitude/analytics-core';
+import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
 
 import { CookieStorage } from './storage/cookie';
 import { FetchTransport } from './transports/fetch';
 import { LocalStorage } from './storage/local-storage';
-import { MemoryStorage } from './storage/memory';
 import { getCookieName } from './session-manager';
 import { getQueryParams } from './utils/query-params';
-import { UUID } from './utils/uuid';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 

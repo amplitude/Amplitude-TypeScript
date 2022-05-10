@@ -1,9 +1,19 @@
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 import * as http from 'http';
+import * as https from 'https';
 import { buildResponse } from '../utils/response-builder';
 
 export class Http implements Transport {
   send(serverUrl: string, payload: Payload): Promise<Response | null> {
+    let protocol: typeof http | typeof https;
+    if (serverUrl.startsWith('http://')) {
+      protocol = http;
+    } else if (serverUrl.startsWith('https://')) {
+      protocol = https;
+    } else {
+      throw new Error('Invalid server url');
+    }
+
     const url = new URL(serverUrl);
     const requestPayload = JSON.stringify(payload);
     const options = {
@@ -18,7 +28,7 @@ export class Http implements Transport {
       protocol: url.protocol,
     };
     return new Promise((resolve) => {
-      const req = http.request(options, (res) => {
+      const req = protocol.request(options, (res) => {
         res.setEncoding('utf8');
         let responsePayload = '';
         res.on('data', (chunk: string) => {

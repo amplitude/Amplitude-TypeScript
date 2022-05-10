@@ -1,6 +1,6 @@
 import { BeforePlugin, BrowserConfig, Event, PluginType } from '@amplitude/analytics-types';
 import UAParser from '@amplitude/ua-parser-js';
-import { UUID } from '../utils/uuid';
+import { UUID } from '@amplitude/analytics-core';
 import { getLanguage } from '../utils/language';
 import { VERSION } from '../version';
 import { checkSessionExpiry, updateCookies } from '../session-manager';
