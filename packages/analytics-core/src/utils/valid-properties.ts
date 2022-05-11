@@ -20,7 +20,7 @@ export const isValidProperties = (property: string, value: any): boolean => {
       if (Array.isArray(valueElement)) {
         return false;
       } else if (typeof valueElement === 'object') {
-        isValid = isValid && isValidObject(value);
+        isValid = isValid && isValidObject(valueElement as object);
       } else if (!['number', 'string'].includes(typeof valueElement)) {
         return false;
       }
