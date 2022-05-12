@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.1.3...@amplitude/analytics-types@0.2.0) (2022-05-12)
+
+
+### Bug Fixes
+
+* handle 400 error with invalid id lengths ([#81](https://github.com/amplitude/Amplitude-TypeScript/issues/81)) ([fd1686f](https://github.com/amplitude/Amplitude-TypeScript/commit/fd1686fa427588d1dcb6d2125cb4d53647c699e8))
+* update plan type to include version id ([#83](https://github.com/amplitude/Amplitude-TypeScript/issues/83)) ([e6f05a5](https://github.com/amplitude/Amplitude-TypeScript/commit/e6f05a56ff9fc4810af8d73b6a0940c2900aa35e))
+
+
+### Features
+
+* parse old cookies and convert to new format ([#85](https://github.com/amplitude/Amplitude-TypeScript/issues/85)) ([bda78be](https://github.com/amplitude/Amplitude-TypeScript/commit/bda78be5d2de335e7b1ff6da413b20d3dc751aca))
+
+
+
+
+
 ## [0.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.1.2...@amplitude/analytics-types@0.1.3) (2022-04-02)
 
 

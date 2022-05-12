@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.2.4...@amplitude/analytics-core@0.3.0) (2022-05-12)
+
+
+### Bug Fixes
+
+* allow event level groups tracking ([#90](https://github.com/amplitude/Amplitude-TypeScript/issues/90)) ([3240660](https://github.com/amplitude/Amplitude-TypeScript/commit/3240660e94db9e5c5a1ce4280d07faced2b5fd4d))
+* fix early return if array element is a valid object ([#95](https://github.com/amplitude/Amplitude-TypeScript/issues/95)) ([2a82b37](https://github.com/amplitude/Amplitude-TypeScript/commit/2a82b37ec06573318703f3f89d72b44a10b7a392))
+* handle 400 error with invalid id lengths ([#81](https://github.com/amplitude/Amplitude-TypeScript/issues/81)) ([fd1686f](https://github.com/amplitude/Amplitude-TypeScript/commit/fd1686fa427588d1dcb6d2125cb4d53647c699e8))
+
+
+### Features
+
+* parse old cookies and convert to new format ([#85](https://github.com/amplitude/Amplitude-TypeScript/issues/85)) ([bda78be](https://github.com/amplitude/Amplitude-TypeScript/commit/bda78be5d2de335e7b1ff6da413b20d3dc751aca))
+
+
+
+
+
 ## [0.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.2.3...@amplitude/analytics-core@0.2.4) (2022-04-09)
 
 
