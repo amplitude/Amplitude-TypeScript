@@ -2,8 +2,8 @@ import { NodeConfig as INodeConfig, InitOptions } from '@amplitude/analytics-typ
 
 import { NodeConfig } from '../../src/config';
 
-export const useDefaultConfig = (userId?: string, overrides?: Partial<InitOptions<NodeConfig>>) =>
-  new NodeConfig(API_KEY, userId || USER_ID, { ...DEFAULT_OPTIONS, ...overrides });
+export const useDefaultConfig = (overrides?: Partial<InitOptions<NodeConfig>>) =>
+  new NodeConfig(API_KEY, { ...DEFAULT_OPTIONS, ...overrides });
 
 export const API_KEY = 'apiKey';
 
