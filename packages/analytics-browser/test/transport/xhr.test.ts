@@ -1,5 +1,4 @@
 import { XHRTransport } from '../../src/transports/xhr';
-import * as core from '@amplitude/analytics-core';
 import { Status } from '@amplitude/analytics-types';
 
 describe('xhr', () => {
@@ -33,7 +32,7 @@ describe('xhr', () => {
         responseText: '{}',
       };
       jest.spyOn(window, 'XMLHttpRequest').mockReturnValueOnce(mock);
-      jest.spyOn(core, 'buildResponse').mockReturnValueOnce(result);
+      jest.spyOn(transport, 'buildResponse').mockReturnValueOnce(result);
 
       const unresolvedResponse = transport.send(url, payload);
       expect(mock.onreadystatechange).toBeDefined();

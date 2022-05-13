@@ -1,7 +1,7 @@
-import { buildResponse } from '@amplitude/analytics-core';
+import { BaseTransport } from '@amplitude/analytics-core';
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 
-export class XHRTransport implements Transport {
+export class XHRTransport extends BaseTransport implements Transport {
   private state = {
     done: 4,
   };
@@ -21,7 +21,7 @@ export class XHRTransport implements Transport {
             const responsePayload = xhr.responseText;
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const parsedResponsePayload: Record<string, any> = JSON.parse(responsePayload);
-            const result = buildResponse(parsedResponsePayload);
+            const result = this.buildResponse(parsedResponsePayload);
             resolve(result);
           } catch (e) {
             reject(e);

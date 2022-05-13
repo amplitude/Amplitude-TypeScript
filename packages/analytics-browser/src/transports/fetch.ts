@@ -1,7 +1,7 @@
-import { buildResponse } from '@amplitude/analytics-core';
+import { BaseTransport } from '@amplitude/analytics-core';
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 
-export class FetchTransport implements Transport {
+export class FetchTransport extends BaseTransport implements Transport {
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
     /* istanbul ignore if */
     if (typeof fetch === 'undefined') {
@@ -18,6 +18,6 @@ export class FetchTransport implements Transport {
     const response = await fetch(serverUrl, options);
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const responsePayload: Record<string, any> = await response.json();
-    return buildResponse(responsePayload);
+    return this.buildResponse(responsePayload);
   }
 }
