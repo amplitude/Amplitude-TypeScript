@@ -1,7 +1,7 @@
-import { buildResponse } from '@amplitude/analytics-core';
+import { BaseTransport } from '@amplitude/analytics-core';
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 
-export class SendBeaconTransport implements Transport {
+export class SendBeaconTransport extends BaseTransport implements Transport {
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
     return new Promise((resolve, reject) => {
       /* istanbul ignore if */
@@ -17,7 +17,7 @@ export class SendBeaconTransport implements Transport {
         const success = window.navigator.sendBeacon(serverUrl, JSON.stringify(payload));
         if (success) {
           return resolve(
-            buildResponse({
+            this.buildResponse({
               code: 200,
               events_ingested: payload.events.length,
               payload_size_bytes: data.length,
@@ -25,7 +25,7 @@ export class SendBeaconTransport implements Transport {
             }),
           );
         }
-        return resolve(buildResponse({ code: 500 }));
+        return resolve(this.buildResponse({ code: 500 }));
       } catch (e) {
         reject(e);
       }
