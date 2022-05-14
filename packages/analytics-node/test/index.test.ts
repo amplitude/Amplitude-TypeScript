@@ -11,6 +11,7 @@ import {
   setGroup,
   setOptOut,
   track,
+  flush,
 } from '../src/index';
 
 describe('index', () => {
@@ -27,5 +28,6 @@ describe('index', () => {
     expect(typeof setGroup).toBe('function');
     expect(typeof setOptOut).toBe('function');
     expect(typeof track).toBe('function');
+    expect(typeof flush).toBe('function');
   });
 });

@@ -1,4 +1,4 @@
-import { register, deregister, push, apply } from '../src/timeline';
+import { register, deregister, push, apply, flush } from '../src/timeline';
 import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
 import { OPT_OUT_MESSAGE } from '../src/messages';
 import { useDefaultConfig } from './helpers/default';
@@ -47,11 +47,13 @@ describe('timeline', () => {
         expect(event.user_id).toBe('2');
         return Promise.resolve();
       });
+    const destinationFlush = jest.fn().mockReturnValue(Promise.resolve());
     const destination: Plugin = {
       name: 'plugin:destination',
       type: PluginType.DESTINATION,
       setup: destinationSetup,
       execute: destinationExecute,
+      flush: destinationFlush,
     };
     const config = useDefaultConfig();
     // register
@@ -122,6 +124,38 @@ describe('timeline', () => {
       await apply();
       await deregister(before.name, config);
       expect(beforeExecute).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('flush', () => {
+    test('should call destination flush method', async () => {
+      const destinationSetup = jest.fn().mockReturnValue(Promise.resolve());
+      const destinationExecute = jest
+        .fn()
+        // error once
+        .mockImplementationOnce((event: Event) => {
+          expect(event.event_id).toBe('1');
+          expect(event.user_id).toBe('2');
+          return Promise.reject({});
+        })
+        // success for the rest
+        .mockImplementation((event: Event) => {
+          expect(event.event_id).toBe('1');
+          expect(event.user_id).toBe('2');
+          return Promise.resolve();
+        });
+      const destinationFlush = jest.fn().mockReturnValue(Promise.resolve());
+      const destination: Plugin = {
+        name: 'plugin:destination',
+        type: PluginType.DESTINATION,
+        setup: destinationSetup,
+        execute: destinationExecute,
+        flush: destinationFlush,
+      };
+      const config = useDefaultConfig();
+      await register(destination, config);
+      await flush(config);
+      expect(destinationFlush).toHaveBeenCalledTimes(1);
     });
   });
 });

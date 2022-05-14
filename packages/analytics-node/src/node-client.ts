@@ -23,7 +23,7 @@ const client = new AmplitudeNode();
  * This method must be called before any other operations.
  *
  * ```typescript
- * await init(API_KEY, USER_ID, options).promise;
+ * await init(API_KEY, USER_ID, options);
  * ```
  */
 export const init = client.init.bind(client);
@@ -33,7 +33,7 @@ export const init = client.init.bind(client);
  *
  * ```typescript
  * const plugin = {...};
- * amplitude.add(plugin);
+ * await add(plugin);
  * ```
  */
 export const add = client.add.bind(client);
@@ -42,7 +42,7 @@ export const add = client.add.bind(client);
  * Removes a plugin.
  *
  * ```typescript
- * amplitude.remove('myPlugin');
+ * await remove('myPlugin');
  * ```
  */
 export const remove = client.remove.bind(client);
@@ -61,7 +61,7 @@ export const remove = client.remove.bind(client);
  * track('Page Load', { loadTime: 1000 }, { sessionId: -1 });
  *
  * // alternatively, this tracking method is awaitable
- * const result = await track('Page Load').promise;
+ * const result = await track('Page Load');
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
@@ -83,7 +83,7 @@ export const logEvent = client.logEvent.bind(client);
  * identify(id);
  *
  * // alternatively, this tracking method is awaitable
- * const result = await identify(id).promise;
+ * const result = await identify(id);
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
@@ -102,7 +102,7 @@ export const identify = client.identify.bind(client);
  * groupIdentify(groupType, groupName, id);
  *
  * // alternatively, this tracking method is awaitable
- * const result = await groupIdentify(groupType, groupName, id).promise;
+ * const result = await groupIdentify(groupType, groupName, id);
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
@@ -120,7 +120,7 @@ export const setGroup = client.setGroup.bind(client);
  * revenue(rev);
  *
  * // alternatively, this tracking method is awaitable
- * const result = await revenue(rev).promise;
+ * const result = await revenue(rev);
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
@@ -140,3 +140,13 @@ export const revenue = client.revenue.bind(client);
  * ```
  */
 export const setOptOut = client.setOptOut.bind(client);
+
+/**
+ * Flush and send all the events which haven't been sent.
+ *
+ *```typescript
+ * // Send all the unsent events
+ * flush();
+ * ```
+ */
+export const flush = client.flush.bind(client);

@@ -203,4 +203,14 @@ describe('response-builder', () => {
       });
     });
   });
+
+  describe('unknown error', () => {
+    test('should generic response', () => {
+      const response = buildResponse({});
+      expect(response).toEqual({
+        status: Status.Unknown,
+        statusCode: 0,
+      });
+    });
+  });
 });

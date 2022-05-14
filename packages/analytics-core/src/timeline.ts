@@ -93,3 +93,13 @@ export const apply = async () => {
 
   return;
 };
+
+export const flush = async (config: Config) => {
+  const destination = config.plugins.filter<DestinationPlugin>(
+    (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
+  );
+
+  const flushDestinations = destination.map((plugin) => plugin.flush());
+
+  await Promise.all(flushDestinations);
+};

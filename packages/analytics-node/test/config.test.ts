@@ -1,6 +1,7 @@
 import * as Config from '../src/config';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
+import { Http } from '../src/transports/http';
 
 describe('config', () => {
   const API_KEY = 'apiKey';
@@ -26,7 +27,7 @@ describe('config', () => {
         serverZone: 'US',
         sessionId: undefined,
         storageProvider: new core.MemoryStorage(),
-        transportProvider: new core.Http(),
+        transportProvider: new Http(),
         userId: undefined,
         useBatch: false,
       });
@@ -54,7 +55,7 @@ describe('config', () => {
         serverZone: 'US',
         sessionId: undefined,
         storageProvider: new core.MemoryStorage(),
-        transportProvider: new core.Http(),
+        transportProvider: new Http(),
         userId: undefined,
         useBatch: false,
       });

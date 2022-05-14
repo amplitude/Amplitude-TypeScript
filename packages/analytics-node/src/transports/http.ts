@@ -1,7 +1,7 @@
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
+import { buildResponse } from '@amplitude/analytics-core';
 import * as http from 'http';
 import * as https from 'https';
-import { buildResponse } from '../utils/response-builder';
 
 export class Http implements Transport {
   send(serverUrl: string, payload: Payload): Promise<Response | null> {

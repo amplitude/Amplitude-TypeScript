@@ -1,5 +1,6 @@
 import { NodeOptions, NodeConfig as INodeConfig, Event } from '@amplitude/analytics-types';
-import { Config, Http, MemoryStorage } from '@amplitude/analytics-core';
+import { Config, MemoryStorage } from '@amplitude/analytics-core';
+import { Http } from './transports/http';
 
 export class NodeConfig extends Config implements INodeConfig {
   constructor(apiKey: string, options?: NodeOptions) {

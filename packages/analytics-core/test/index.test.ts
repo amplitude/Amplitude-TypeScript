@@ -8,7 +8,6 @@ import {
   returnWrapper,
   UUID,
   MemoryStorage,
-  Http,
 } from '../src/index';
 
 describe('index', () => {
@@ -31,7 +30,6 @@ describe('index', () => {
     expect(typeof returnWrapper).toBe('function');
     expect(typeof UUID).toBe('function');
     expect(typeof MemoryStorage).toBe('function');
-    expect(typeof Http).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
   });
 });

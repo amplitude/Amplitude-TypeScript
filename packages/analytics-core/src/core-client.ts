@@ -6,7 +6,7 @@ import {
   createRevenueEvent,
   createGroupEvent,
 } from './utils/event-builder';
-import { deregister, push, register } from './timeline';
+import { deregister, flush, push, register } from './timeline';
 import { buildResult } from './utils/result-builder';
 export class AmplitudeCore<T extends Config> {
   name: string;
@@ -87,5 +87,10 @@ export class AmplitudeCore<T extends Config> {
   setOptOut(optOut: boolean) {
     const config = this.config;
     config.optOut = Boolean(optOut);
+  }
+
+  flush() {
+    const config = this.config;
+    return flush(config);
   }
 }
