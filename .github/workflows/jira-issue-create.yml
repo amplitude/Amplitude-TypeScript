@@ -1,5 +1,3 @@
-
-   
 # Creates jira tickets for new github issues to help triage
 name: Jira Issue Creator
 
@@ -27,14 +25,14 @@ jobs:
           project: ${{ secrets.JIRA_PROJECT }}
           issuetype: Task
           summary: |
-            [SDK - Kotlin] ${{ github.event.issue.title }}
+            [SDK - TS] ${{ github.event.issue.title }}
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{
             "customfield_10006": 1391,
             "customfield_11481": {"value": "Governance 🕵️"},
             "customfield_11200": {"value": "Developer Experience"},
-            "labels": ["kotlin"]
+            "labels": ["ts"]
           }' # sprint, pillar, pod, labels
 
       - name: Log created issue
