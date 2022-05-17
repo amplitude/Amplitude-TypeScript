@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.3.0...@amplitude/analytics-core@0.3.1) (2022-05-17)
+
+
+### Bug Fixes
+
+* allow min_id_length option in http payload ([#99](https://github.com/amplitude/Amplitude-TypeScript/issues/99)) ([85ec965](https://github.com/amplitude/Amplitude-TypeScript/commit/85ec965d1202f8ee68ca15fbc46015fba76ba3c9))
+* allow option.serverUrl to be used in destination plugin ([#104](https://github.com/amplitude/Amplitude-TypeScript/issues/104)) ([f353367](https://github.com/amplitude/Amplitude-TypeScript/commit/f353367b8b264f86b6ea15b15f30385f8d5b8ad5))
+
+
+
+
+
 # [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.2.4...@amplitude/analytics-core@0.3.0) (2022-05-12)
 
 
