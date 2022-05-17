@@ -3,7 +3,6 @@ import { getDefaultConfig } from '../../src/config';
 
 export const useDefaultConfig = (): Config => ({
   apiKey: API_KEY,
-  userId: USER_ID,
   transportProvider: {
     send: () => Promise.resolve(null),
   },

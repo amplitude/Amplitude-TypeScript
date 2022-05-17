@@ -19,8 +19,6 @@ describe('config', () => {
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
-      appVersion: undefined,
-      deviceId: undefined,
       flushIntervalMillis: 1000,
       flushMaxRetries: 5,
       flushQueueSize: 10,
@@ -32,11 +30,9 @@ describe('config', () => {
       saveEvents: true,
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
       serverZone: 'US',
-      sessionId: undefined,
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: false,
-      userId: undefined,
     });
   });
 
@@ -53,24 +49,19 @@ describe('config', () => {
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
-      appVersion: undefined,
-      deviceId: undefined,
       flushIntervalMillis: 1000,
       flushMaxRetries: 5,
       flushQueueSize: 10,
       logLevel: LogLevel.Verbose,
       loggerProvider: new Logger(),
       optOut: true,
-      partnerId: undefined,
       plugins: [],
       saveEvents: false,
       serverUrl: 'https://api2.amplitude.com/batch',
       serverZone: 'US',
-      sessionId: undefined,
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
-      userId: undefined,
     });
   });
 

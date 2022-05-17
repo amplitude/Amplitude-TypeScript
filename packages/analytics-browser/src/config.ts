@@ -49,42 +49,51 @@ export const getDefaultConfig = () => ({
 });
 
 export class BrowserConfig extends Config implements IBrowserConfig {
+  appVersion?: string;
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
   cookieStorage: Storage<UserSession>;
+  deviceId?: string;
   disableCookies: boolean;
   domain: string;
   includeGclid: boolean;
   includeFbclid: boolean;
   includeReferrer: boolean;
   includeUtm: boolean;
+  partnerId?: string;
+  sessionId?: number;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
+  userId?: string;
 
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
     const defaultConfig = getDefaultConfig();
     super({
       ...options,
       apiKey,
-      userId,
       optOut: Boolean(options?.optOut),
       storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,
       transportProvider: options?.transportProvider ?? defaultConfig.transportProvider,
     });
 
+    this.appVersion = options?.appVersion;
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
     this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
+    this.deviceId = options?.deviceId;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;
     this.includeGclid = options?.includeGclid ?? defaultConfig.includeGclid;
     this.includeFbclid = options?.includeFbclid ?? defaultConfig.includeFbclid;
     this.includeReferrer = options?.includeReferrer ?? defaultConfig.includeReferrer;
     this.includeUtm = options?.includeUtm ?? defaultConfig.includeUtm;
+    this.partnerId = options?.partnerId;
+    this.sessionId = options?.sessionId;
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
+    this.userId = userId;
   }
 }
 

@@ -34,17 +34,12 @@ export const getDefaultConfig = () => ({
 
 export class Config implements IConfig {
   apiKey: string;
-  appVersion?: string;
-  userId?: string;
-  deviceId?: string;
-  sessionId?: number;
   flushIntervalMillis: number;
   flushMaxRetries: number;
   flushQueueSize: number;
   loggerProvider: ILogger;
   logLevel: LogLevel;
   minIdLength?: number;
-  partnerId?: string;
   plugins: Plugin[];
   optOut: boolean;
   saveEvents: boolean;
@@ -57,17 +52,12 @@ export class Config implements IConfig {
   constructor(options: InitOptions<IConfig>) {
     const defaultConfig = getDefaultConfig();
     this.apiKey = options.apiKey;
-    this.appVersion = options.appVersion;
-    this.userId = options.userId;
-    this.deviceId = options.deviceId;
-    this.sessionId = options.sessionId;
     this.flushIntervalMillis = options.flushIntervalMillis || defaultConfig.flushIntervalMillis;
     this.flushMaxRetries = options.flushMaxRetries || defaultConfig.flushMaxRetries;
     this.flushQueueSize = options.flushQueueSize || defaultConfig.flushQueueSize;
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.minIdLength = options.minIdLength;
-    this.partnerId = options.partnerId;
     this.plugins = defaultConfig.plugins;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;

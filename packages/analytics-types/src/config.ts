@@ -12,8 +12,6 @@ export enum ServerZone {
 
 export interface Config {
   apiKey: string;
-  appVersion?: string;
-  deviceId?: string;
   flushIntervalMillis: number;
   flushMaxRetries: number;
   flushQueueSize: number;
@@ -21,19 +19,18 @@ export interface Config {
   loggerProvider: Logger;
   minIdLength?: number;
   optOut: boolean;
-  partnerId?: string;
   plugins: Plugin[];
   saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
-  sessionId?: number;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;
   useBatch: boolean;
-  userId?: string;
 }
 
 export interface BrowserConfig extends Config {
+  appVersion?: string;
+  deviceId?: string;
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
@@ -44,8 +41,11 @@ export interface BrowserConfig extends Config {
   includeFbclid: boolean;
   includeReferrer: boolean;
   includeUtm: boolean;
+  partnerId?: string;
+  sessionId?: number;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
+  userId?: string;
 }
 
 export type NodeConfig = Config;
