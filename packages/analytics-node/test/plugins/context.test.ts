@@ -14,7 +14,6 @@ describe('context', () => {
       const context = new Context();
       const config = useDefaultConfig();
       await context.setup(config);
-      expect(context.config.appVersion).toBeUndefined();
       expect(context.eventId).toEqual(0);
     });
   });
