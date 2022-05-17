@@ -49,7 +49,7 @@ export class Config implements IConfig {
   optOut: boolean;
   saveEvents: boolean;
   serverUrl: string | undefined;
-  serverZone: ServerZone;
+  serverZone?: ServerZone;
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;
   useBatch: boolean;
@@ -78,7 +78,7 @@ export class Config implements IConfig {
     this.useBatch = options.useBatch ?? defaultConfig.useBatch;
     this.loggerProvider.enable(this.logLevel);
 
-    const serverConfig = createServerConfig(options.serverZone, options.useBatch);
+    const serverConfig = createServerConfig(options.serverUrl, options.serverZone, options.useBatch);
     this.serverZone = serverConfig.serverZone;
     this.serverUrl = serverConfig.serverUrl;
   }
@@ -92,9 +92,13 @@ export const getServerUrl = (serverZone: ServerZone, useBatch: boolean) => {
 };
 
 export const createServerConfig = (
+  serverUrl = '',
   serverZone: ServerZone = getDefaultConfig().serverZone,
   useBatch: boolean = getDefaultConfig().useBatch,
 ) => {
+  if (serverUrl) {
+    return { serverUrl, serverZone: undefined };
+  }
   const _serverZone = [ServerZone.US, ServerZone.EU].includes(serverZone) ? serverZone : getDefaultConfig().serverZone;
   return {
     serverZone: _serverZone,

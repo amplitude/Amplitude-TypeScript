@@ -25,7 +25,7 @@ export interface Config {
   plugins: Plugin[];
   saveEvents: boolean;
   serverUrl: string | undefined;
-  serverZone: ServerZone;
+  serverZone?: ServerZone;
   sessionId?: number;
   storageProvider: Storage<Event[]>;
   transportProvider: Transport;

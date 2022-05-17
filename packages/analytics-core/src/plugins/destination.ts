@@ -118,7 +118,7 @@ export class Destination implements DestinationPlugin {
     };
 
     try {
-      const { serverUrl } = createServerConfig(this.config.serverZone, this.config.useBatch);
+      const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);

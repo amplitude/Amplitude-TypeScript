@@ -645,4 +645,39 @@ describe('integration', () => {
       scope.done();
     });
   });
+
+  describe('custom config', () => {
+    describe('serverUrl', () => {
+      test('should track event to custom serverUrl', async () => {
+        const serverUrl = 'https://domain.com';
+        const scope = nock(serverUrl).post(path).reply(200, success);
+
+        amplitude.init('API_KEY', undefined, {
+          ...opts,
+          serverUrl: serverUrl + path,
+        });
+        const response = await amplitude.track('test event').promise;
+        expect(response.event).toEqual({
+          user_id: undefined,
+          device_id: uuid,
+          session_id: number,
+          time: number,
+          platform: 'Web',
+          os_name: 'WebKit',
+          os_version: '537.36',
+          device_manufacturer: undefined,
+          language: 'en-US',
+          ip: '$remote',
+          insert_id: uuid,
+          partner_id: undefined,
+          event_type: 'test event',
+          event_id: 0,
+          library: library,
+        });
+        expect(response.code).toBe(200);
+        expect(response.message).toBe(SUCCESS_MESSAGE);
+        scope.done();
+      });
+    });
+  });
 });
