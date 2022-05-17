@@ -90,10 +90,17 @@ describe('config', () => {
   });
 
   describe('createServerConfig', () => {
+    test('should return custom server url', () => {
+      expect(createServerConfig('https://domain.com')).toEqual({
+        serverZone: undefined,
+        serverUrl: 'https://domain.com',
+      });
+    });
+
     test('should return default', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore to test invalid values
-      expect(createServerConfig('', undefined)).toEqual({
+      expect(createServerConfig('', '', undefined)).toEqual({
         serverZone: ServerZone.US,
         serverUrl: AMPLITUDE_SERVER_URL,
       });

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@1.1.0...@amplitude/analytics-browser-test@1.1.1) (2022-05-17)
+
+
+### Bug Fixes
+
+* allow option.serverUrl to be used in destination plugin ([#104](https://github.com/amplitude/Amplitude-TypeScript/issues/104)) ([f353367](https://github.com/amplitude/Amplitude-TypeScript/commit/f353367b8b264f86b6ea15b15f30385f8d5b8ad5))
+
+
+
+
+
 # 1.1.0 (2022-05-12)
 
 
