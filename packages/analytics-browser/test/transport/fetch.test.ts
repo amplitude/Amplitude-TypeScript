@@ -1,5 +1,4 @@
 import { FetchTransport } from '../../src/transports/fetch';
-import * as core from '@amplitude/analytics-core';
 import { Status } from '@amplitude/analytics-types';
 import 'isomorphic-fetch';
 
@@ -22,7 +21,7 @@ describe('fetch', () => {
         },
       };
       jest.spyOn(window, 'fetch').mockReturnValueOnce(Promise.resolve(new Response('{}')));
-      jest.spyOn(core, 'buildResponse').mockReturnValueOnce(result);
+      jest.spyOn(transport, 'buildResponse').mockReturnValueOnce(result);
       const response = await transport.send(url, payload);
       expect(response).toEqual(result);
     });

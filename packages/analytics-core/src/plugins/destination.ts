@@ -112,6 +112,9 @@ export class Destination implements DestinationPlugin {
     const payload = {
       api_key: this.config.apiKey,
       events: list.map((context) => context.event),
+      options: {
+        min_id_length: this.config.minIdLength,
+      },
     };
 
     try {

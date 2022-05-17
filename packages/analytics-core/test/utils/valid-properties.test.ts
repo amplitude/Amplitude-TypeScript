@@ -45,6 +45,11 @@ describe('validProperties', () => {
     expect(isValidProperties('property', inValidProperties)).toBe(false);
   });
 
+  test('should fail on invalid property with invalid object in array', () => {
+    const inValidProperties = [{ keyForString: 'stringValue' }, { keyForString: [['stringValue']] }, 15];
+    expect(isValidProperties('property', inValidProperties)).toBe(false);
+  });
+
   test('should fail when any key is not string', () => {
     const validProperties = {
       keyForString: 'stringValue',

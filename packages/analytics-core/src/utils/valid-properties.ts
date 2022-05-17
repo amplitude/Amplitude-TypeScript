@@ -15,12 +15,16 @@ export const isValidObject = (properties: { [key: string]: any }): boolean => {
 export const isValidProperties = (property: string, value: any): boolean => {
   if (typeof property !== 'string') return false;
   if (Array.isArray(value)) {
+    let isValid = true;
     for (const valueElement of value) {
       if (Array.isArray(valueElement)) {
         return false;
       } else if (typeof valueElement === 'object') {
-        return isValidObject(value);
+        isValid = isValid && isValidObject(valueElement as object);
       } else if (!['number', 'string'].includes(typeof valueElement)) {
+        return false;
+      }
+      if (!isValid) {
         return false;
       }
     }

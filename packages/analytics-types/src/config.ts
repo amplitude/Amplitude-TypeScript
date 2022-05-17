@@ -19,6 +19,7 @@ export interface Config {
   flushQueueSize: number;
   logLevel: LogLevel;
   loggerProvider: Logger;
+  minIdLength?: number;
   optOut: boolean;
   partnerId?: string;
   plugins: Plugin[];

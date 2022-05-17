@@ -51,9 +51,10 @@ export class CookieStorage<T> implements Storage<T> {
     return match.substring(key.length + 1);
   }
 
-  set(key: string, value: T | null, options?: CookieStorageOptions) {
+  set(key: string, value: T | null) {
     try {
-      const expires = value !== null ? options?.expirationDays : -1;
+      const expirationDays = this.options.expirationDays ?? 0;
+      const expires = value !== null ? expirationDays : -1;
       let expireDate: Date | undefined = undefined;
       if (expires) {
         const date = new Date();
@@ -65,14 +66,14 @@ export class CookieStorage<T> implements Storage<T> {
         str += `; expires=${expireDate.toUTCString()}`;
       }
       str += '; path=/';
-      if (options?.domain) {
-        str += `; domain=${options.domain}`;
+      if (this.options.domain) {
+        str += `; domain=${this.options.domain}`;
       }
-      if (options?.secure) {
+      if (this.options.secure) {
         str += '; Secure';
       }
-      if (options?.sameSite) {
-        str += `; SameSite=${options.sameSite}`;
+      if (this.options.sameSite) {
+        str += `; SameSite=${this.options.sameSite}`;
       }
       window.document.cookie = str;
     } catch {

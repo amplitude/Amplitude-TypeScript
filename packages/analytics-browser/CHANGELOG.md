@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.3.1...@amplitude/analytics-browser@0.4.0) (2022-05-12)
+
+
+### Bug Fixes
+
+* cookie expires prematurely due to incorrectly used option ([#91](https://github.com/amplitude/Amplitude-TypeScript/issues/91)) ([d6cbf49](https://github.com/amplitude/Amplitude-TypeScript/commit/d6cbf49ac044f32c8bd784079179bd76fa36b403))
+
+
+### Features
+
+* parse old cookies and convert to new format ([#85](https://github.com/amplitude/Amplitude-TypeScript/issues/85)) ([bda78be](https://github.com/amplitude/Amplitude-TypeScript/commit/bda78be5d2de335e7b1ff6da413b20d3dc751aca))
+
+
+
+
+
 ## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.3.0...@amplitude/analytics-browser@0.3.1) (2022-04-09)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

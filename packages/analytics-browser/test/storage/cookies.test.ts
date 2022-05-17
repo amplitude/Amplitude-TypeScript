@@ -38,25 +38,25 @@ describe('cookies', () => {
     });
 
     test('should set cookie value with options', () => {
-      const cookies = new CookieStorage();
-      cookies.set('hello', 'world', {
+      const cookies = new CookieStorage({
         expirationDays: 365,
         domain: '',
         secure: false,
         sameSite: 'Lax',
       });
+      cookies.set('hello', 'world');
       expect(cookies.get('hello')).toBe('world');
       cookies.remove('hello');
     });
 
     test('should set restricted cookie value with options', () => {
-      const cookies = new CookieStorage();
-      cookies.set('hello', 'world', {
+      const cookies = new CookieStorage({
         expirationDays: 365,
         domain: '.amplitude.com',
         secure: true,
         sameSite: 'Lax',
       });
+      cookies.set('hello', 'world');
       expect(cookies.get('hello')).toBe(undefined);
       cookies.remove('hello');
     });
