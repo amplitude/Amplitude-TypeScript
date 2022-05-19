@@ -1,4 +1,5 @@
-export {
+import client from './browser-client';
+export const {
   add,
   getDeviceId,
   getSessionId,
@@ -16,7 +17,8 @@ export {
   setTransport,
   setUserId,
   track,
-} from './browser-client';
+} = client;
+export { createInstance } from './browser-client';
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
 export * as Types from '@amplitude/analytics-types';

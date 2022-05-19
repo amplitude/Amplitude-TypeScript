@@ -1,4 +1,4 @@
-import { AmplitudeBrowser } from '../src/browser-client';
+import { AmplitudeBrowser, createInstance } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as SessionManager from '../src/session-manager';
@@ -301,6 +301,29 @@ describe('browser-client', () => {
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('createInstance', () => {
+    test('should return new instance', () => {
+      const instance = createInstance('amp');
+      expect(typeof instance.init).toBe('function');
+      expect(typeof instance.add).toBe('function');
+      expect(typeof instance.remove).toBe('function');
+      expect(typeof instance.track).toBe('function');
+      expect(typeof instance.logEvent).toBe('function');
+      expect(typeof instance.identify).toBe('function');
+      expect(typeof instance.groupIdentify).toBe('function');
+      expect(typeof instance.setGroup).toBe('function');
+      expect(typeof instance.revenue).toBe('function');
+      expect(typeof instance.getUserId).toBe('function');
+      expect(typeof instance.setUserId).toBe('function');
+      expect(typeof instance.getDeviceId).toBe('function');
+      expect(typeof instance.setDeviceId).toBe('function');
+      expect(typeof instance.getSessionId).toBe('function');
+      expect(typeof instance.setSessionId).toBe('function');
+      expect(typeof instance.setOptOut).toBe('function');
+      expect(typeof instance.setTransport).toBe('function');
     });
   });
 });

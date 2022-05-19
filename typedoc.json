@@ -6,5 +6,6 @@
   "logLevel": "Error",
   "name": "Amplitude SDK",
   "out": "docs",
-  "readme": "./README.md"
+  "readme": "./README.md",
+  "disableSources": true
 }

@@ -1,6 +1,6 @@
 const snippet = (integrity, version) => `
 !(function (window, document) {
-  var amplitude = window.amplitude || { _q: [] };
+  var amplitude = window.amplitude || { _q: [], _iq: [] };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
@@ -96,7 +96,7 @@ const snippet = (integrity, version) => `
                 resolve: resolve,
               });
             }),
-          }
+          };
           if (isPromise) return result;
         };
       }
@@ -108,6 +108,14 @@ const snippet = (integrity, version) => `
       }
     }
     setUpProxy(amplitude);
+    amplitude.createInstance = function (instance) {
+      if (typeof instance !== 'string' || instance.length === 0)) return undefined;
+      if (!Object.prototype.hasOwnProperty.call(amplitude._iq, instance)) {
+        amplitude._iq[instance] = { _q: [] };
+        setUpProxy(amplitude._iq[instance]);
+      }
+      return amplitude._iq[instance];
+    };
     window.amplitude = amplitude;
   }
 })(window, document);

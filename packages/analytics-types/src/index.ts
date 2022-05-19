@@ -1,5 +1,6 @@
 export { AmplitudeReturn } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
+export { BrowserClient, CoreClient, CreateBrowserInstance, CreateNodeInstance, NodeClient } from './client';
 export {
   BrowserConfig,
   BrowserOptions,
