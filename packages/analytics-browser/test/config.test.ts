@@ -1,7 +1,6 @@
 import * as Config from '../src/config';
 import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
-import * as MemoryModule from '../src/storage/memory';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
@@ -15,8 +14,8 @@ describe('config', () => {
 
   describe('BrowserConfig', () => {
     test('should create overwrite config', () => {
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
+      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
       jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
       const logger = new core.Logger();
@@ -25,7 +24,7 @@ describe('config', () => {
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: new MemoryModule.MemoryStorage(),
+        cookieStorage: new core.MemoryStorage(),
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
@@ -49,7 +48,7 @@ describe('config', () => {
         serverZone: 'US',
         sessionId: undefined,
         sessionTimeout: 1800000,
-        storageProvider: new MemoryModule.MemoryStorage(),
+        storageProvider: new core.MemoryStorage(),
         trackingOptions: {
           city: true,
           country: true,
@@ -74,8 +73,8 @@ describe('config', () => {
 
   describe('useBrowserConfig', () => {
     test('should create default config', () => {
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
+      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
       jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
       const logger = new core.Logger();
@@ -84,7 +83,7 @@ describe('config', () => {
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: new MemoryModule.MemoryStorage(),
+        cookieStorage: new core.MemoryStorage(),
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
@@ -108,7 +107,7 @@ describe('config', () => {
         serverZone: 'US',
         sessionId: 0,
         sessionTimeout: 1800000,
-        storageProvider: new MemoryModule.MemoryStorage(),
+        storageProvider: new core.MemoryStorage(),
         trackingOptions: {
           city: true,
           country: true,
@@ -131,7 +130,7 @@ describe('config', () => {
     });
 
     test('should create using cookies/overwrite', () => {
-      const cookieStorage = new MemoryModule.MemoryStorage<UserSession>();
+      const cookieStorage = new core.MemoryStorage<UserSession>();
       cookieStorage.set(getCookieName(API_KEY), {
         deviceId: 'deviceIdFromCookies',
         lastEventTime: Date.now(),
@@ -140,7 +139,7 @@ describe('config', () => {
         optOut: false,
       });
       jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new MemoryModule.MemoryStorage());
+      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
       jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(1);
       const logger = new core.Logger();
@@ -176,7 +175,7 @@ describe('config', () => {
         serverZone: 'US',
         sessionId: 1,
         sessionTimeout: 1,
-        storageProvider: new MemoryModule.MemoryStorage(),
+        storageProvider: new core.MemoryStorage(),
         trackingOptions: {
           city: true,
           country: true,
@@ -247,7 +246,7 @@ describe('config', () => {
         getRaw: () => undefined,
       });
       const storage = Config.createCookieStorage();
-      expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);
+      expect(storage).toBeInstanceOf(core.MemoryStorage);
       expect(cookiesConstructor).toHaveBeenCalledTimes(1);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
     });
@@ -284,7 +283,7 @@ describe('config', () => {
         getRaw: () => undefined,
       });
       const storage = Config.createEventsStorage();
-      expect(storage).toBeInstanceOf(MemoryModule.MemoryStorage);
+      expect(storage).toBeInstanceOf(core.MemoryStorage);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
     });
   });

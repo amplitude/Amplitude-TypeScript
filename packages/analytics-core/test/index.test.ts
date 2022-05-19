@@ -6,6 +6,8 @@ import {
   Logger,
   AMPLITUDE_PREFIX,
   returnWrapper,
+  UUID,
+  MemoryStorage,
 } from '../src/index';
 
 describe('index', () => {
@@ -26,6 +28,8 @@ describe('index', () => {
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
     expect(typeof returnWrapper).toBe('function');
+    expect(typeof UUID).toBe('function');
+    expect(typeof MemoryStorage).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
   });
 });

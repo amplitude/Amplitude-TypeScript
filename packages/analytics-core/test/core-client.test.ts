@@ -136,4 +136,24 @@ describe('core-client', () => {
       expect(client.config.optOut).toBe(true);
     });
   });
+
+  describe('flush', () => {
+    test('should call flush', async () => {
+      const flush = jest.spyOn(timeline, 'flush').mockReturnValueOnce(Promise.resolve());
+      const setup = jest.fn();
+      const execute = jest.fn();
+      const plugin: Plugin = {
+        name: 'plugin',
+        type: PluginType.DESTINATION,
+        setup: setup,
+        execute: execute,
+        flush: jest.fn(),
+      };
+
+      // add
+      await client.add(plugin);
+      await client.flush();
+      expect(flush).toBeCalledTimes(1);
+    });
+  });
 });

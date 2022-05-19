@@ -1,6 +1,15 @@
 export { AmplitudeReturn } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
-export { BrowserConfig, BrowserOptions, Config, InitOptions, TrackingOptions, ServerZone } from './config';
+export {
+  BrowserConfig,
+  BrowserOptions,
+  Config,
+  InitOptions,
+  NodeConfig,
+  NodeOptions,
+  TrackingOptions,
+  ServerZone,
+} from './config';
 export { DestinationContext } from './destination-context';
 export {
   Event,

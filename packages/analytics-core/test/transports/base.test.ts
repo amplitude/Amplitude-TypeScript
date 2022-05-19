@@ -226,6 +226,17 @@ describe('BaseTransport', () => {
         });
       });
     });
+
+    describe('other unknown error', () => {
+      test('should generic response', () => {
+        const transport = new BaseTransport();
+        const response = transport.buildResponse({});
+        expect(response).toEqual({
+          status: Status.Unknown,
+          statusCode: 0,
+        });
+      });
+    });
   });
 
   describe('buildStatus', () => {
