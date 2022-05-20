@@ -1,4 +1,4 @@
-import { AmplitudeNode } from '../src/node-client';
+import { AmplitudeNode, createInstance } from '../src/node-client';
 import * as core from '@amplitude/analytics-core';
 import { Status } from '@amplitude/analytics-types';
 
@@ -92,6 +92,23 @@ describe('node-client', () => {
       const result = await client.revenue(revenueObject);
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('createInstance', () => {
+    test('should return new instance', () => {
+      const instance = createInstance('amp');
+      expect(typeof instance.init).toBe('function');
+      expect(typeof instance.add).toBe('function');
+      expect(typeof instance.remove).toBe('function');
+      expect(typeof instance.track).toBe('function');
+      expect(typeof instance.logEvent).toBe('function');
+      expect(typeof instance.identify).toBe('function');
+      expect(typeof instance.groupIdentify).toBe('function');
+      expect(typeof instance.setGroup).toBe('function');
+      expect(typeof instance.revenue).toBe('function');
+      expect(typeof instance.setOptOut).toBe('function');
+      expect(typeof instance.flush).toBe('function');
     });
   });
 });
