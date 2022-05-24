@@ -42,6 +42,7 @@ export class Config implements IConfig {
   minIdLength?: number;
   plugins: Plugin[];
   optOut: boolean;
+  partnerId?: string;
   saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
@@ -58,6 +59,7 @@ export class Config implements IConfig {
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.minIdLength = options.minIdLength;
+    this.partnerId = options.partnerId;
     this.plugins = defaultConfig.plugins;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;

@@ -19,6 +19,7 @@ export interface Config {
   loggerProvider: Logger;
   minIdLength?: number;
   optOut: boolean;
+  partnerId?: string;
   plugins: Plugin[];
   saveEvents: boolean;
   serverUrl: string | undefined;
@@ -41,7 +42,6 @@ export interface BrowserConfig extends Config {
   includeFbclid: boolean;
   includeReferrer: boolean;
   includeUtm: boolean;
-  partnerId?: string;
   sessionId?: number;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;

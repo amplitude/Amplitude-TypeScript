@@ -99,7 +99,7 @@ export const flush = async (config: Config) => {
     (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
   );
 
-  const flushDestinations = destination.map((plugin) => plugin.flush());
+  const flushDestinations = destination.map((plugin) => plugin.flush(true));
 
   await Promise.all(flushDestinations);
 };

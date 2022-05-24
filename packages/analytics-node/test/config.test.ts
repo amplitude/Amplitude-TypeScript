@@ -13,22 +13,18 @@ describe('config', () => {
       const config = new Config.NodeConfig(API_KEY);
       expect(config).toEqual({
         apiKey: API_KEY,
-        deviceId: undefined,
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 10,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         optOut: false,
-        partnerId: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: undefined,
         storageProvider: new core.MemoryStorage(),
         transportProvider: new Http(),
-        userId: undefined,
         useBatch: false,
       });
     });
