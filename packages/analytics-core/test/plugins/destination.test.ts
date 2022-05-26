@@ -135,18 +135,18 @@ describe('destination', () => {
           delay: 0,
         },
       ];
-      destination.queueBuffer = [
+      destination.queueBuffer = new Set([
         {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
           delay: 0,
         },
-      ];
+      ]);
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       const result = await destination.flush();
       expect(destination.queue).toEqual([]);
-      expect(destination.queueBuffer.length).toEqual(1);
+      expect(destination.queueBuffer.size).toEqual(1);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -164,18 +164,18 @@ describe('destination', () => {
           delay: 0,
         },
       ];
-      destination.queueBuffer = [
+      destination.queueBuffer = new Set([
         {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
           delay: 0,
         },
-      ];
+      ]);
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       const result = await destination.flush(true);
       expect(destination.queue).toEqual([]);
-      expect(destination.queueBuffer).toEqual([]);
+      expect(destination.queueBuffer.size).toEqual(0);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });

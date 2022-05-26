@@ -12,10 +12,10 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY');
+      amplitude.init('API_KEY');
       const response = await amplitude.track('test event', {
         mode: 'test',
-      });
+      }).promise;
       expect(response.event).toEqual({
         time: number,
         insert_id: uuid,
@@ -35,11 +35,11 @@ describe('integration', () => {
     test('should track event with event options', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY');
+      amplitude.init('API_KEY');
       const response = await amplitude.track('test event', undefined, {
         user_id: 'sdk.dev@amplitude.com',
         device_id: 'deviceId',
-      });
+      }).promise;
       expect(response.event).toEqual({
         user_id: 'sdk.dev@amplitude.com',
         device_id: 'deviceId',
@@ -58,7 +58,7 @@ describe('integration', () => {
     test('should track event with base event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY');
+      amplitude.init('API_KEY');
       const response = await amplitude.track(
         {
           event_type: 'test event',
@@ -71,7 +71,7 @@ describe('integration', () => {
           user_id: 'sdk.dev@amplitude.com',
           device_id: 'deviceId',
         },
-      );
+      ).promise;
       expect(response.event).toEqual({
         user_id: 'sdk.dev@amplitude.com',
         device_id: 'deviceId',
@@ -102,14 +102,14 @@ describe('integration', () => {
         });
       const second = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      amplitude.init('API_KEY', undefined, {
         logLevel: 0,
       });
       const response = await Promise.all([
-        amplitude.track('test event 1'),
+        amplitude.track('test event 1').promise,
         amplitude.track('test event 2', undefined, {
           device_id: undefined,
-        }),
+        }).promise,
       ]);
       expect(response[0].event).toEqual({
         time: number,
@@ -144,11 +144,14 @@ describe('integration', () => {
       });
       const second = nock(url).post(path).times(2).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      amplitude.init('API_KEY', undefined, {
         logLevel: 0,
         flushQueueSize: 2,
       });
-      const response = await Promise.all([amplitude.track('test event 1'), amplitude.track('test event 2')]);
+      const response = await Promise.all([
+        amplitude.track('test event 1').promise,
+        amplitude.track('test event 2').promise,
+      ]);
       expect(response[0].event).toEqual({
         time: number,
         insert_id: uuid,
@@ -185,14 +188,14 @@ describe('integration', () => {
         });
       const second = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      amplitude.init('API_KEY', undefined, {
         logLevel: 0,
       });
       const response = await Promise.all([
-        amplitude.track('test event 1'),
+        amplitude.track('test event 1').promise,
         amplitude.track('test event 2', undefined, {
           device_id: 'throttled_device_id',
-        }),
+        }).promise,
       ]);
       expect(response[0].event).toEqual({
         time: number,
@@ -225,10 +228,13 @@ describe('integration', () => {
       });
       const second = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      amplitude.init('API_KEY', undefined, {
         logLevel: 0,
       });
-      const response = await Promise.all([amplitude.track('test event 1'), amplitude.track('test event 2')]);
+      const response = await Promise.all([
+        amplitude.track('test event 1').promise,
+        amplitude.track('test event 2').promise,
+      ]);
       expect(response[0].event).toEqual({
         time: number,
         insert_id: uuid,
@@ -258,11 +264,11 @@ describe('integration', () => {
         code: 500,
       });
 
-      await amplitude.init('API_KEY', undefined, {
+      amplitude.init('API_KEY', undefined, {
         logLevel: 0,
         flushMaxRetries: 3,
       });
-      const response = await amplitude.track('test event');
+      const response = await amplitude.track('test event').promise;
       expect(response.event).toEqual({
         time: number,
         insert_id: uuid,
@@ -277,20 +283,20 @@ describe('integration', () => {
     }, 10000);
 
     test('should handle missing api key', async () => {
-      await amplitude.init('', undefined, {
+      amplitude.init('', undefined, {
         logLevel: 0,
       });
-      const response = await amplitude.track('test event');
+      const response = await amplitude.track('test event').promise;
       expect(response.code).toBe(400);
       expect(response.message).toBe('Event rejected due to missing API key');
     });
 
     test('should handle client opt out', async () => {
-      await amplitude.init('API_KEY', undefined, {
+      amplitude.init('API_KEY', undefined, {
         logLevel: 0,
       });
       amplitude.setOptOut(true);
-      const response = await amplitude.track('test event');
+      const response = await amplitude.track('test event').promise;
       expect(response.code).toBe(0);
       expect(response.message).toBe('Event skipped due to optOut config');
     });
@@ -300,7 +306,7 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY');
+      amplitude.init('API_KEY');
       const id = new amplitude.Identify();
       id.set('org', 'amp');
       id.setOnce('initial_org', 'amp');
@@ -310,7 +316,7 @@ describe('integration', () => {
       id.preInsert('tasks_2', 'b');
       id.remove('company', 'x');
       id.add('employees', 1);
-      const response = await amplitude.identify(id);
+      const response = await amplitude.identify(id).promise;
       expect(response.event).toEqual({
         time: number,
         insert_id: uuid,
@@ -355,14 +361,14 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY');
+      amplitude.init('API_KEY');
       const rev = new amplitude.Revenue();
       rev.setProductId('1');
       rev.setQuantity(1);
       rev.setPrice(100);
       rev.setRevenueType('t');
       rev.setRevenue(200);
-      const response = await amplitude.revenue(rev);
+      const response = await amplitude.revenue(rev).promise;
       expect(response.event).toEqual({
         event_id: 0,
         event_properties: {
@@ -388,8 +394,8 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY');
-      const response = await amplitude.setGroup('org', 'engineering');
+      amplitude.init('API_KEY');
+      const response = await amplitude.setGroup('org', 'engineering').promise;
       expect(response.event).toEqual({
         event_id: 0,
         event_type: '$identify',
@@ -418,10 +424,10 @@ describe('integration', () => {
         const serverUrl = 'https://domain.com';
         const scope = nock(serverUrl).post(path).reply(200, success);
 
-        await amplitude.init('API_KEY', undefined, {
+        amplitude.init('API_KEY', undefined, {
           serverUrl: serverUrl + path,
         });
-        const response = await amplitude.track('test event');
+        const response = await amplitude.track('test event').promise;
         expect(response.event).toEqual({
           time: number,
           insert_id: uuid,
