@@ -4,6 +4,7 @@ export interface BaseEvent extends EventOptions {
   event_type: string;
   event_properties?: { [key: string]: any };
   user_properties?: { [key: string]: any };
+  group_properties?: { [key: string]: any };
   groups?: { [key: string]: any };
 }
 

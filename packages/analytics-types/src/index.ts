@@ -10,6 +10,7 @@ export {
   TrackingOptions,
   ServerZone,
 } from './config';
+export { CoreClient } from './core-client';
 export { DestinationContext } from './destination-context';
 export {
   Event,
@@ -27,6 +28,7 @@ export {
   RevenueEventProperties,
 } from './event';
 export { EventCallback } from './event-callback';
+export { EventBridge, EventBridgeChannel, EventBridgeContainer, EventBridgeReceiver } from './event-bridge';
 export { Logger, LogLevel } from './logger';
 export { Payload } from './payload';
 export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
