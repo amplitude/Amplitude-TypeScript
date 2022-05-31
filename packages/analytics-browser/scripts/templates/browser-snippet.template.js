@@ -67,6 +67,7 @@ const snippet = (integrity, version) => `
     var funcs = [
       'getDeviceId',
       'setDeviceId',
+      'regenerateDeviceId',
       'getSessionId',
       'setSessionId',
       'getUserId',
