@@ -10,7 +10,7 @@ import {
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport } from './config';
+import { useBrowserConfig, createTransport, createDeviceId } from './config';
 import { getAttributions } from './attribution';
 import { updateCookies } from './session-manager';
 import { parseOldCookies } from './cookie-migration';
@@ -56,6 +56,11 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   setDeviceId(deviceId: string) {
     this.config.deviceId = deviceId;
     updateCookies(this.config);
+  }
+
+  regenerateDeviceId() {
+    const deviceId = createDeviceId();
+    this.setDeviceId(deviceId);
   }
 
   getSessionId() {
@@ -273,6 +278,17 @@ export const getDeviceId = client.getDeviceId.bind(client);
  * ```
  */
 export const setDeviceId = client.setDeviceId.bind(client);
+
+/**
+ * Regenerates a new random deviceId for current user. Note: this is not recommended unless you know what you
+ * are doing. This can be used in conjunction with `setUserId(null)` to anonymize users after they log out.
+ * With a null userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
+ *
+ * ```typescript
+ * regenerateDeviceId();
+ * ```
+ */
+export const regenerateDeviceId = client.regenerateDeviceId.bind(client);
 
 /**
  * Returns current session ID.

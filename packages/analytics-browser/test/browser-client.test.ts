@@ -100,6 +100,17 @@ describe('browser-client', () => {
     });
   });
 
+  describe('regenerateDeviceId', () => {
+    test('should generate new device id config', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY);
+      client.setDeviceId(DEVICE_ID);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      client.regenerateDeviceId();
+      expect(client.getDeviceId()).not.toBe(DEVICE_ID);
+    });
+  });
+
   describe('getSessionId', () => {
     test('should get session id', async () => {
       const client = new AmplitudeBrowser();
