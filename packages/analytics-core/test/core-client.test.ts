@@ -147,7 +147,6 @@ describe('core-client', () => {
         type: PluginType.DESTINATION,
         setup: setup,
         execute: execute,
-        flush: jest.fn(),
       };
 
       // add

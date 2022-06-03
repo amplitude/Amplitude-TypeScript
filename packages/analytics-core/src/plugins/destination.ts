@@ -32,6 +32,7 @@ export class Destination implements DestinationPlugin {
   config: Config;
   scheduled = false;
   queue: Context[] = [];
+  queueBuffer: Set<Context> = new Set();
 
   setup(config: Config) {
     this.config = config;
@@ -77,9 +78,13 @@ export class Destination implements DestinationPlugin {
         this.schedule(this.config.flushIntervalMillis);
         return;
       }
+      this.queueBuffer.add(context);
       setTimeout(() => {
-        this.queue = this.queue.concat(context);
-        this.schedule(this.config.flushIntervalMillis);
+        if (this.queueBuffer.has(context)) {
+          this.queueBuffer.delete(context);
+          this.queue = this.queue.concat(context);
+          this.schedule(this.config.flushIntervalMillis);
+        }
       }, delay || context.attempts * this.backoff);
     });
   }
@@ -97,9 +102,14 @@ export class Destination implements DestinationPlugin {
     }, timeout);
   }
 
-  async flush() {
+  async flush(includeQueueBuffer = false) {
     const list = this.queue;
     this.queue = [];
+
+    if (includeQueueBuffer) {
+      list.push(...this.queueBuffer.values());
+      this.queueBuffer.clear();
+    }
     const batches = chunk(list, this.config.flushQueueSize);
     await Promise.all(batches.map((batch) => this.send(batch)));
   }

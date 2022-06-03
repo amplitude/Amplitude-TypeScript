@@ -11,7 +11,7 @@ export class Context implements BeforePlugin {
   // @ts-ignore
   config: NodeConfig;
   eventId = 0;
-  library = `amplitude-ts/${VERSION}`;
+  library = `amplitude-node-ts/${VERSION}`;
 
   setup(config: NodeConfig): Promise<undefined> {
     this.config = config;
