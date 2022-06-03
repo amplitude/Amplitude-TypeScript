@@ -24,8 +24,8 @@ describe('config', () => {
       flushQueueSize: 10,
       logLevel: LogLevel.Warn,
       loggerProvider: new Logger(),
-      optOut: false,
-      partnerId: undefined,
+      minIdLength: undefined,
+      _optOut: false, // private for `optOut` getter/setter
       plugins: [],
       saveEvents: true,
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
@@ -34,6 +34,7 @@ describe('config', () => {
       transportProvider: defaultConfig.transportProvider,
       useBatch: false,
     });
+    expect(config.optOut).toBe(false);
   });
 
   test('should overwrite default config', () => {
@@ -54,7 +55,8 @@ describe('config', () => {
       flushQueueSize: 10,
       logLevel: LogLevel.Verbose,
       loggerProvider: new Logger(),
-      optOut: true,
+      minIdLength: undefined,
+      _optOut: true,
       plugins: [],
       saveEvents: false,
       serverUrl: 'https://api2.amplitude.com/batch',

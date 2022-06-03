@@ -1,9 +1,10 @@
 import { LogLevel, Logger } from './logger';
-import { Storage, UserSession } from './storage';
+import { Storage } from './storage';
 
 import { Event } from './event';
 import { Transport, TransportType } from './transport';
 import { Plugin } from './plugin';
+import { UserSession } from './session-manager';
 
 export enum ServerZone {
   US = 'US',
@@ -41,6 +42,7 @@ export interface BrowserConfig extends Config {
   includeFbclid: boolean;
   includeReferrer: boolean;
   includeUtm: boolean;
+  lastEventTime?: number;
   partnerId?: string;
   sessionId?: number;
   sessionTimeout: number;
@@ -58,7 +60,7 @@ export type InitOptions<T extends Config> =
         storageProvider: Storage<Event[]>;
       };
 
-export type TrackingOptions = {
+export interface TrackingOptions {
   city?: boolean;
   country?: boolean;
   carrier?: boolean;
@@ -72,7 +74,17 @@ export type TrackingOptions = {
   platform?: boolean;
   region?: boolean;
   versionName?: boolean;
-};
+}
+
+export interface AdditionalBrowserOptions {
+  attribution?: {
+    disabled?: boolean;
+    excludeReferrer?: string[];
+    initialEmptyValue?: string;
+    startSessionOnNewCampaign?: boolean;
+    startSessionOnNewReferrer?: boolean;
+  };
+}
 
 export type BrowserOptions = Omit<
   Partial<
@@ -80,7 +92,7 @@ export type BrowserOptions = Omit<
       transport: TransportType;
     }
   >,
-  'apiKey' | 'userId' | 'plugins'
+  'apiKey' | 'plugins'
 >;
 
-export type NodeOptions = Omit<Partial<NodeConfig>, 'apiKey' | 'userId' | 'plugins'>;
+export type NodeOptions = Omit<Partial<NodeConfig>, 'apiKey' | 'userId' | 'plugins' | 'lastEventTime'>;

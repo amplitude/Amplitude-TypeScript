@@ -8,7 +8,12 @@ describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
   const library = expect.stringMatching(/^amplitude-ts\/.+/) as string;
   const number = expect.any(Number) as number;
-  const opts = { trackingOptions: { deviceModel: false } };
+  const opts = {
+    trackingOptions: { deviceModel: false },
+    attribution: {
+      disabled: true,
+    },
+  };
 
   afterEach(() => {
     // clean up cookies

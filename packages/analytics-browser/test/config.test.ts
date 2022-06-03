@@ -4,31 +4,39 @@ import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
-import { getCookieName } from '../src/session-manager';
+import { getCookieName } from '../src/utils/cookie-name';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
+import { SessionManager } from '../src/session-manager';
 
 describe('config', () => {
   const API_KEY = 'apiKey';
 
   describe('BrowserConfig', () => {
     test('should create overwrite config', () => {
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
-      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
+      const cookieStorage = new core.MemoryStorage<UserSession>();
+      cookieStorage.set(getCookieName(API_KEY), {
+        deviceId: undefined,
+        lastEventTime: undefined,
+        optOut: false,
+        sessionId: undefined,
+        userId: undefined,
+      });
+      const sessionManager = new SessionManager(cookieStorage, {
+        apiKey: API_KEY,
+        sessionTimeout: 1800000,
+      });
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = new Config.BrowserConfig(API_KEY);
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: new core.MemoryStorage(),
+        cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
-        deviceId: undefined,
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -40,13 +48,14 @@ describe('config', () => {
         includeFbclid: true,
         includeReferrer: true,
         includeUtm: true,
-        optOut: false,
+        minIdLength: undefined,
+        _optOut: false,
         partnerId: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: undefined,
+        sessionManager,
         sessionTimeout: 1800000,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -65,7 +74,6 @@ describe('config', () => {
           versionName: true,
         },
         transportProvider: new FetchTransport(),
-        userId: undefined,
         useBatch: false,
       });
     });
@@ -73,6 +81,18 @@ describe('config', () => {
 
   describe('useBrowserConfig', () => {
     test('should create default config', () => {
+      const cookieStorage = new core.MemoryStorage<UserSession>();
+      cookieStorage.set(getCookieName(API_KEY), {
+        deviceId: 'deviceId',
+        lastEventTime: undefined,
+        optOut: false,
+        sessionId: 0,
+        userId: undefined,
+      });
+      const sessionManager = new SessionManager(cookieStorage, {
+        apiKey: API_KEY,
+        sessionTimeout: 1800000,
+      });
       jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
@@ -83,11 +103,10 @@ describe('config', () => {
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: new core.MemoryStorage(),
+        cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
-        deviceId: 'deviceId',
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -99,13 +118,14 @@ describe('config', () => {
         includeFbclid: true,
         includeReferrer: true,
         includeUtm: true,
-        optOut: false,
+        minIdLength: undefined,
+        _optOut: false,
         partnerId: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: 0,
+        sessionManager,
         sessionTimeout: 1800000,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -124,7 +144,6 @@ describe('config', () => {
           versionName: true,
         },
         transportProvider: new FetchTransport(),
-        userId: undefined,
         useBatch: false,
       });
     });
@@ -137,6 +156,10 @@ describe('config', () => {
         sessionId: 1,
         userId: 'userIdFromCookies',
         optOut: false,
+      });
+      const sessionManager = new SessionManager(cookieStorage, {
+        apiKey: API_KEY,
+        sessionTimeout: 1,
       });
       jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
@@ -151,11 +174,10 @@ describe('config', () => {
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: cookieStorage,
+        cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
-        deviceId: 'deviceIdFromCookies',
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -167,13 +189,14 @@ describe('config', () => {
         includeFbclid: true,
         includeReferrer: true,
         includeUtm: true,
-        optOut: false,
+        minIdLength: undefined,
+        _optOut: false,
         partnerId: 'partnerId',
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: 1,
+        sessionManager,
         sessionTimeout: 1,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -192,7 +215,6 @@ describe('config', () => {
           versionName: true,
         },
         transportProvider: new FetchTransport(),
-        userId: 'userIdFromCookies',
         useBatch: false,
       });
     });

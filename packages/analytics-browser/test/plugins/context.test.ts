@@ -1,4 +1,3 @@
-import * as SessionManager from '../../src/session-manager';
 import { Context } from '../../src/plugins/context';
 import { useDefaultConfig } from '../helpers/default';
 
@@ -27,6 +26,7 @@ describe('context', () => {
   describe('execute', () => {
     test('should execute plugin', async () => {
       const context = new Context();
+      jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
       const config = useDefaultConfig('user@amplitude.com', {
         deviceId: 'deviceId',
         sessionId: 1,
@@ -37,8 +37,6 @@ describe('context', () => {
       const event = {
         event_type: 'event_type',
       };
-      const checkSessionExpiry = jest.spyOn(SessionManager, 'checkSessionExpiry').mockReturnValueOnce(undefined);
-      const updateLastEventTime = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
       expect(firstContextEvent.event_id).toEqual(0);
@@ -55,12 +53,11 @@ describe('context', () => {
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
-      expect(checkSessionExpiry).toHaveBeenCalledTimes(2);
-      expect(updateLastEventTime).toHaveBeenCalledTimes(2);
     });
 
     test('should not return the properties when the tracking options are false', async () => {
       const context = new Context();
+      jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
       const config = useDefaultConfig('user@amplitude.com', {
         deviceId: 'deviceId',
         sessionId: 1,
@@ -81,13 +78,12 @@ describe('context', () => {
         },
       });
       config.appVersion = '1.0.0';
+      console.log('config context plugin', config.sessionManager.getUserId());
       await context.setup(config);
 
       const event = {
         event_type: 'event_type',
       };
-      const checkSessionExpiry = jest.spyOn(SessionManager, 'checkSessionExpiry').mockReturnValueOnce(undefined);
-      const updateLastEventTime = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
       expect(firstContextEvent.event_id).toEqual(0);
@@ -106,36 +102,45 @@ describe('context', () => {
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
-      expect(checkSessionExpiry).toHaveBeenCalledTimes(2);
-      expect(updateLastEventTime).toHaveBeenCalledTimes(2);
     });
-  });
 
-  test('should be overwritten by the context', async () => {
-    const context = new Context();
-    const config = useDefaultConfig('user@amplitude.com', {
-      deviceId: 'deviceId',
-      sessionId: 1,
+    test('should be overwritten by the context', async () => {
+      const context = new Context();
+      jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
+      const config = useDefaultConfig('user@amplitude.com', {
+        deviceId: 'deviceId',
+        sessionId: 1,
+      });
+      config.appVersion = '1.0.0';
+      await context.setup(config);
+
+      const event = {
+        event_type: 'event_type',
+        device_id: 'new deviceId',
+      };
+      const firstContextEvent = await context.execute(event);
+      expect(firstContextEvent.app_version).toEqual('1.0.0');
+      expect(firstContextEvent.event_id).toEqual(0);
+      expect(firstContextEvent.event_type).toEqual('event_type');
+      expect(firstContextEvent.insert_id).toBeDefined();
+      expect(firstContextEvent.device_id).toEqual('new deviceId');
+
+      const secondContextEvent = await context.execute(event);
+      expect(secondContextEvent.event_id).toEqual(1);
     });
-    config.appVersion = '1.0.0';
-    await context.setup(config);
 
-    const event = {
-      event_type: 'event_type',
-      device_id: 'new deviceId',
-    };
-    const checkSessionExpiry = jest.spyOn(SessionManager, 'checkSessionExpiry').mockReturnValueOnce(undefined);
-    const updateLastEventTime = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-    const firstContextEvent = await context.execute(event);
-    expect(firstContextEvent.app_version).toEqual('1.0.0');
-    expect(firstContextEvent.event_id).toEqual(0);
-    expect(firstContextEvent.event_type).toEqual('event_type');
-    expect(firstContextEvent.insert_id).toBeDefined();
-    expect(firstContextEvent.device_id).toEqual('new deviceId');
-
-    const secondContextEvent = await context.execute(event);
-    expect(secondContextEvent.event_id).toEqual(1);
-    expect(checkSessionExpiry).toHaveBeenCalledTimes(2);
-    expect(updateLastEventTime).toHaveBeenCalledTimes(2);
+    test('should create new session', async () => {
+      const plugin = new Context();
+      jest.spyOn(plugin, 'isSessionValid').mockReturnValue(false);
+      const config = useDefaultConfig('user@amplitude.com', {
+        sessionId: 1,
+      });
+      await plugin.setup(config);
+      const context = {
+        event_type: 'event_type',
+      };
+      const event = await plugin.execute(context);
+      expect(event.session_id).not.toBe(1);
+    });
   });
 });

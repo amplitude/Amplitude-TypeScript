@@ -1,7 +1,9 @@
 import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper } from '@amplitude/analytics-core';
 import {
+  AdditionalBrowserOptions,
   BrowserConfig,
   BrowserOptions,
+  Campaign,
   EventOptions,
   Identify as IIdentify,
   Result,
@@ -10,13 +12,12 @@ import {
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport, createDeviceId } from './config';
-import { getAttributions } from './attribution';
-import { updateCookies } from './session-manager';
+import { useBrowserConfig, createTransport, createDeviceId, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
+import { CampaignTracker } from './attribution/campaign-tracker';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
-  async init(apiKey: string, userId?: string, options?: BrowserOptions) {
+  async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
     // Step 1: Read cookies stored by old SDK
     const oldCookies = parseOldCookies(apiKey, options);
 
@@ -26,18 +27,32 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       deviceId: oldCookies.deviceId ?? options?.deviceId,
       sessionId: oldCookies.sessionId ?? options?.sessionId,
       optOut: options?.optOut ?? oldCookies.optOut,
+      lastEventTime: oldCookies.lastEventTime,
     });
     await super.init(undefined, undefined, browserOptions);
 
-    // Step 3: Store user session in cookie storage
-    updateCookies(this.config, oldCookies.lastEventTime);
-
-    // Step 4: Install plugins
+    // Step 3: Install plugins
     await this.add(new Context());
     await this.add(new Destination());
 
     // Step 4: Track attributions
-    void this.trackAttributions();
+    if (!options?.attribution?.disabled) {
+      await this.trackCampaign(options?.attribution?.excludeReferrer, options?.attribution?.initialEmptyValue);
+    }
+  }
+
+  async trackCampaign(excludeReferrers?: string[], initialEmptyValue?: string) {
+    const tracker = this.track.bind(this);
+    const onNewCampaign = this.setSessionId.bind(this, Date.now());
+    const campaignStorage = createFlexibleStorage<Campaign>(this.config);
+    const campaignTracker = new CampaignTracker(campaignStorage, {
+      apiKey: this.config.apiKey,
+      tracker,
+      excludeReferrers,
+      initialEmptyValue,
+      onNewCampaign,
+    });
+    await campaignTracker.trackCampaign();
   }
 
   getUserId() {
@@ -46,7 +61,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
   setUserId(userId: string) {
     this.config.userId = userId;
-    updateCookies(this.config);
   }
 
   getDeviceId() {
@@ -55,7 +69,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
   setDeviceId(deviceId: string) {
     this.config.deviceId = deviceId;
-    updateCookies(this.config);
   }
 
   regenerateDeviceId() {
@@ -69,12 +82,10 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
   setSessionId(sessionId: number) {
     this.config.sessionId = sessionId;
-    updateCookies(this.config);
   }
 
   setOptOut(optOut: boolean) {
-    super.setOptOut(optOut);
-    updateCookies(this.config);
+    this.config.optOut = optOut;
   }
 
   setTransport(transport: TransportType) {
@@ -111,21 +122,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       revenue = convertProxyObjectToRealObject(new Revenue(), queue);
     }
     return super.revenue(revenue, eventOptions);
-  }
-
-  trackAttributions() {
-    const attributions = getAttributions(this.config);
-    if (Object.keys(attributions).length === 0) {
-      return;
-    }
-    const id = new Identify();
-    Object.entries(attributions).forEach(([key, value]: [string, string]) => {
-      if (value) {
-        id.setOnce(`initial_${key}`, value);
-        id.set(key, value);
-      }
-    });
-    return this.identify(id);
   }
 }
 

@@ -1,3 +1,4 @@
+import { MemoryStorage } from '@amplitude/analytics-core';
 import { BrowserConfig as IBrowserConfig, InitOptions } from '@amplitude/analytics-types';
 
 import { BrowserConfig } from '../../src/config';
@@ -11,14 +12,7 @@ export const USER_ID = 'userId';
 
 export const DEFAULT_OPTIONS: InitOptions<IBrowserConfig> = {
   apiKey: API_KEY,
-  cookieStorage: {
-    isEnabled: () => true,
-    get: () => undefined,
-    set: () => undefined,
-    remove: () => undefined,
-    reset: () => undefined,
-    getRaw: () => undefined,
-  },
+  cookieStorage: new MemoryStorage(),
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
   cookieSecure: false,
@@ -55,4 +49,16 @@ export const DEFAULT_OPTIONS: InitOptions<IBrowserConfig> = {
     send: () => Promise.resolve(null),
   },
   sessionTimeout: 30 * 60 * 1000,
+};
+
+export const BASE_CAMPAIGN = {
+  utm_source: undefined,
+  utm_medium: undefined,
+  utm_campaign: undefined,
+  utm_term: undefined,
+  utm_content: undefined,
+  referrer: undefined,
+  referring_domain: undefined,
+  gclid: undefined,
+  fbclid: undefined,
 };

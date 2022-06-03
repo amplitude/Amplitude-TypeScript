@@ -12,3 +12,5 @@ export const UTMZ_CONTENT = 'utmcct';
 
 export const GCLID = 'gclid';
 export const FBCLID = 'fbclid';
+
+export const EMPTY_VALUE = 'EMPTY';

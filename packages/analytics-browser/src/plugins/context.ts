@@ -3,7 +3,6 @@ import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '@amplitude/analytics-core';
 import { getLanguage } from '../utils/language';
 import { VERSION } from '../version';
-import { checkSessionExpiry, updateCookies } from '../session-manager';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
@@ -31,39 +30,51 @@ export class Context implements BeforePlugin {
 
   setup(config: BrowserConfig): Promise<undefined> {
     this.config = config;
+
     return Promise.resolve(undefined);
   }
 
   execute(context: Event): Promise<Event> {
-    return new Promise((resolve) => {
-      const time = new Date().getTime();
-      const osName = this.uaResult.browser.name;
-      const osVersion = this.uaResult.browser.version;
-      const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
-      const deviceVendor = this.uaResult.device.vendor;
+    /**
+     * Manages user session triggered by new events
+     */
+    if (!this.isSessionValid()) {
+      // Creates new session
+      this.config.sessionId = Date.now();
+    } // else use previously creates session
+    // Updates last event time to extend time-based session
+    this.config.lastEventTime = Date.now();
+    const time = new Date().getTime();
+    const osName = this.uaResult.browser.name;
+    const osVersion = this.uaResult.browser.version;
+    const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
+    const deviceVendor = this.uaResult.device.vendor;
+    const event: Event = {
+      user_id: this.config.userId,
+      device_id: this.config.deviceId,
+      session_id: this.config.sessionId,
+      time,
+      ...(this.config.appVersion && { app_version: this.config.appVersion }),
+      ...(this.config.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
+      ...(this.config.trackingOptions.osName && { os_name: osName }),
+      ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
+      ...(this.config.trackingOptions.deviceManufacturer && { device_manufacturer: deviceVendor }),
+      ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
+      ...(this.config.trackingOptions.language && { language: getLanguage() }),
+      ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
+      insert_id: UUID(),
+      partner_id: this.config.partnerId,
+      ...context,
+      event_id: this.eventId++,
+      library: this.library,
+    };
 
-      checkSessionExpiry(this.config);
-      updateCookies(this.config, time);
-      const contextEvent: Event = {
-        user_id: this.config.userId,
-        device_id: this.config.deviceId,
-        session_id: this.config.sessionId,
-        time,
-        ...(this.config.appVersion && { app_version: this.config.appVersion }),
-        ...(this.config.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
-        ...(this.config.trackingOptions.osName && { os_name: osName }),
-        ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
-        ...(this.config.trackingOptions.deviceManufacturer && { device_manufacturer: deviceVendor }),
-        ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
-        ...(this.config.trackingOptions.language && { language: getLanguage() }),
-        ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
-        insert_id: UUID(),
-        partner_id: this.config.partnerId,
-        ...context,
-        event_id: this.eventId++,
-        library: this.library,
-      };
-      return resolve(contextEvent);
-    });
+    return Promise.resolve(event);
+  }
+
+  isSessionValid() {
+    const lastEventTime = this.config.lastEventTime || Date.now();
+    const timeSinceLastEvent = Date.now() - lastEventTime;
+    return timeSinceLastEvent < this.config.sessionTimeout;
   }
 }

@@ -1,9 +1,7 @@
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
-import * as SessionManager from '../src/session-manager';
 import * as CookieMigration from '../src/cookie-migration';
-import * as attribution from '../src/attribution';
 import { Status, TransportType } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
 import * as SnippetHelper from '../src/utils/snippet-helper';
@@ -12,6 +10,11 @@ describe('browser-client', () => {
   const API_KEY = 'API_KEY';
   const USER_ID = 'USER_ID';
   const DEVICE_ID = 'DEVICE_ID';
+  const attributionConfig = {
+    attribution: {
+      disabled: true,
+    },
+  };
 
   afterEach(() => {
     // clean up cookies
@@ -19,28 +22,15 @@ describe('browser-client', () => {
   });
 
   describe('init', () => {
-    test('should return config', async () => {
+    test('should initialize client', async () => {
       const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
         optOut: false,
       });
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      const getAttributions = jest.spyOn(attribution, 'getAttributions').mockReturnValueOnce({
-        utm_source: 'utm_source',
-      });
       const client = new AmplitudeBrowser();
-      jest.spyOn(client, 'identify').mockReturnValueOnce(
-        Promise.resolve({
-          event: {
-            event_type: 'event_type',
-          },
-          code: 200,
-          message: 'message',
-        }),
-      );
-      await client.init(API_KEY, USER_ID, {});
+      await client.init(API_KEY, USER_ID, {
+        ...attributionConfig,
+      });
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(getAttributions).toHaveBeenCalledTimes(1);
     });
 
     test('should read from cookies config', async () => {
@@ -49,24 +39,73 @@ describe('browser-client', () => {
         deviceId: DEVICE_ID,
         sessionId: 1,
       });
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
-      const getAttributions = jest.spyOn(attribution, 'getAttributions').mockReturnValueOnce({});
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         optOut: true,
+        ...attributionConfig,
       });
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
-      expect(updateCookies).toHaveBeenCalledTimes(1);
-      expect(getAttributions).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track attributions', async () => {
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeBrowser();
+      const trackCampaign = jest.spyOn(client, 'trackCampaign').mockReturnValueOnce(Promise.resolve(undefined));
+      await client.init(API_KEY, USER_ID);
+      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(trackCampaign).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track attributions with config', async () => {
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeBrowser();
+      const trackCampaign = jest.spyOn(client, 'trackCampaign').mockReturnValueOnce(Promise.resolve(undefined));
+      await client.init(API_KEY, USER_ID, {
+        attribution: {
+          excludeReferrer: [],
+          initialEmptyValue: '',
+        },
+      });
+      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(trackCampaign).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('trackCampaign', () => {
+    test('should track campaign', async () => {
+      const client = new AmplitudeBrowser();
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      await client.init(API_KEY, USER_ID, {
+        attribution: {
+          disabled: true,
+        },
+      });
+      const result = await client.trackCampaign();
+      expect(result).toBe(undefined);
+      expect(track).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('getUserId', () => {
     test('should get user id', async () => {
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID);
+      await client.init(API_KEY, USER_ID, {
+        ...attributionConfig,
+      });
       expect(client.getUserId()).toBe(USER_ID);
     });
   });
@@ -74,7 +113,9 @@ describe('browser-client', () => {
   describe('setUserId', () => {
     test('should set user id', async () => {
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY);
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      });
       expect(client.getUserId()).toBe(undefined);
       client.setUserId(USER_ID);
       expect(client.getUserId()).toBe(USER_ID);
@@ -86,6 +127,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         deviceId: DEVICE_ID,
+        ...attributionConfig,
       });
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
@@ -94,7 +136,9 @@ describe('browser-client', () => {
   describe('setDeviceId', () => {
     test('should set device id config', async () => {
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY);
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      });
       client.setDeviceId(DEVICE_ID);
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
@@ -116,6 +160,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         sessionId: 1,
+        ...attributionConfig,
       });
       expect(client.getSessionId()).toBe(1);
     });
@@ -123,22 +168,23 @@ describe('browser-client', () => {
 
   describe('setSessionId', () => {
     test('should set session id', async () => {
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY);
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      });
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
-      expect(updateCookies).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('setOptOut', () => {
     test('should set opt out', async () => {
-      const updateCookies = jest.spyOn(SessionManager, 'updateCookies').mockReturnValueOnce(undefined);
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY);
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      });
       client.setOptOut(true);
-      expect(updateCookies).toHaveBeenCalledTimes(2);
+      expect(client.config.optOut).toBe(true);
     });
   });
 
@@ -147,7 +193,9 @@ describe('browser-client', () => {
       const fetch = new FetchTransport();
       const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY);
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      });
       client.setTransport(TransportType.Fetch);
       expect(createTransport).toHaveBeenCalledTimes(2);
     });
@@ -169,6 +217,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
+        ...attributionConfig,
       });
       const identifyObject = new core.Identify();
       const result = await client.identify(identifyObject);
@@ -194,6 +243,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
+        ...attributionConfig,
       });
       const identifyObject = {
         _q: [],
@@ -223,6 +273,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
+        ...attributionConfig,
       });
       const identifyObject = new core.Identify();
       const result = await client.groupIdentify('g', '1', identifyObject);
@@ -248,6 +299,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
+        ...attributionConfig,
       });
       const identifyObject = {
         _q: [],
@@ -277,6 +329,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
+        ...attributionConfig,
       });
       const revenueObject = new core.Revenue();
       const result = await client.revenue(revenueObject);
@@ -302,6 +355,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
+        ...attributionConfig,
       });
       const revenueObject = {
         _q: [],

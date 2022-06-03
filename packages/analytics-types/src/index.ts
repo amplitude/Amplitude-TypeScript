@@ -1,6 +1,17 @@
 export { AmplitudeReturn } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
 export {
+  Campaign,
+  CampaignParser,
+  CampaignTracker,
+  CampaignTrackerOptions,
+  CampaignTrackerFunction,
+  ClickIdParameters,
+  ReferrerParameters,
+  UTMParameters,
+} from './campaign';
+export {
+  AdditionalBrowserOptions,
   BrowserConfig,
   BrowserOptions,
   Config,
@@ -35,7 +46,8 @@ export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType }
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { QueueProxy, InstanceProxy } from './proxy';
+export { SessionManager, SessionManagerOptions, UserSession } from './session-manager';
 export { Status } from './status';
-export { CookieStorageOptions, Storage, UserSession } from './storage';
+export { CookieStorageOptions, Storage } from './storage';
 export { Transport, TransportType } from './transport';
 export { UTMData } from './utm';
