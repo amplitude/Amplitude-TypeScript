@@ -1,4 +1,5 @@
 import {
+  AmplitudeDestinationPlugin,
   BeforePlugin,
   Config,
   DestinationPlugin,
@@ -95,11 +96,11 @@ export const apply = async () => {
 };
 
 export const flush = async (config: Config) => {
-  const destination = config.plugins.filter<DestinationPlugin>(
-    (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
+  const destination = config.plugins.filter<AmplitudeDestinationPlugin>(
+    (plugin: Plugin): plugin is AmplitudeDestinationPlugin => plugin.type === PluginType.DESTINATION,
   );
 
-  const flushDestinations = destination.map((plugin) => plugin.flush());
+  const flushDestinations = destination.map((plugin) => plugin.flush && plugin.flush(true));
 
   await Promise.all(flushDestinations);
 };

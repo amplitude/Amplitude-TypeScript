@@ -1,4 +1,4 @@
-import { AmplitudeCore, Destination } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, returnWrapper } from '@amplitude/analytics-core';
 import { NodeConfig, NodeOptions } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useNodeConfig } from './config';
@@ -19,33 +19,39 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
 const client = new AmplitudeNode();
 
 /**
- * Initializes the Amplitude SDK with your apiKey, userId and optional configurations.
+ * Initializes the Amplitude SDK with your apiKey and optional configurations.
  * This method must be called before any other operations.
  *
  * ```typescript
- * await init(API_KEY, USER_ID, options);
+ * await init(API_KEY, USER_ID, options).promise;
  * ```
  */
-export const init = client.init.bind(client);
+export const init = returnWrapper(client.init.bind(client));
 
 /**
  * Adds a new plugin.
  *
  * ```typescript
  * const plugin = {...};
- * await add(plugin);
+ * add(plugin);
+ *
+ * // alternatively, this tracking method is awaitable
+ * await add(plugin).promise;
  * ```
  */
-export const add = client.add.bind(client);
+export const add = returnWrapper(client.add.bind(client));
 
 /**
  * Removes a plugin.
  *
  * ```typescript
- * await remove('myPlugin');
+ * remove('myPlugin');
+ *
+ * // alternatively, this tracking method is awaitable
+ * await remove('myPlugin').promise;
  * ```
  */
-export const remove = client.remove.bind(client);
+export const remove = returnWrapper(client.remove.bind(client));
 
 /**
  * Tracks user-defined event, with specified type, optional event properties and optional overwrites.
@@ -61,18 +67,18 @@ export const remove = client.remove.bind(client);
  * track('Page Load', { loadTime: 1000 }, { sessionId: -1 });
  *
  * // alternatively, this tracking method is awaitable
- * const result = await track('Page Load');
+ * const result = await track('Page Load').promise;
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const track = client.track.bind(client);
+export const track = returnWrapper(client.track.bind(client));
 
 /**
  * Alias for track()
  */
-export const logEvent = client.logEvent.bind(client);
+export const logEvent = returnWrapper(client.logEvent.bind(client));
 
 /**
  * Sends an identify event containing user property operations
@@ -83,13 +89,13 @@ export const logEvent = client.logEvent.bind(client);
  * identify(id);
  *
  * // alternatively, this tracking method is awaitable
- * const result = await identify(id);
+ * const result = await identify(id).promise;
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const identify = client.identify.bind(client);
+export const identify = returnWrapper(client.identify.bind(client));
 
 /**
  * Sends a group identify event containing group property operations.
@@ -102,14 +108,14 @@ export const identify = client.identify.bind(client);
  * groupIdentify(groupType, groupName, id);
  *
  * // alternatively, this tracking method is awaitable
- * const result = await groupIdentify(groupType, groupName, id);
+ * const result = await groupIdentify(groupType, groupName, id).promise;
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const groupIdentify = client.groupIdentify.bind(client);
-export const setGroup = client.setGroup.bind(client);
+export const groupIdentify = returnWrapper(client.groupIdentify.bind(client));
+export const setGroup = returnWrapper(client.setGroup.bind(client));
 
 /**
  * Sends a revenue event containing revenue property operations.
@@ -120,13 +126,13 @@ export const setGroup = client.setGroup.bind(client);
  * revenue(rev);
  *
  * // alternatively, this tracking method is awaitable
- * const result = await revenue(rev);
+ * const result = await revenue(rev).promise;
  * console.log(result.event); // {...}
  * console.log(result.code); // 200
  * console.log(result.message); // "Event tracked successfully"
  * ```
  */
-export const revenue = client.revenue.bind(client);
+export const revenue = returnWrapper(client.revenue.bind(client));
 
 /**
  * Sets a new optOut config value. This toggles event tracking on/off.
@@ -147,6 +153,9 @@ export const setOptOut = client.setOptOut.bind(client);
  *```typescript
  * // Send all the unsent events
  * flush();
+ *
+ * // alternatively, this tracking method is awaitable
+ * await flush().promise;
  * ```
  */
-export const flush = client.flush.bind(client);
+export const flush = returnWrapper(client.flush.bind(client));

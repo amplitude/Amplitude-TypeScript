@@ -31,7 +31,14 @@ export { EventCallback } from './event-callback';
 export { EventBridge, EventBridgeChannel, EventBridgeContainer, EventBridgeReceiver } from './event-bridge';
 export { Logger, LogLevel } from './logger';
 export { Payload } from './payload';
-export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
+export {
+  Plugin,
+  BeforePlugin,
+  EnrichmentPlugin,
+  DestinationPlugin,
+  AmplitudeDestinationPlugin,
+  PluginType,
+} from './plugin';
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { QueueProxy, InstanceProxy } from './proxy';
