@@ -1,4 +1,5 @@
 import { BrowserConfig, EnrichmentPlugin, Event, PluginType } from '@amplitude/analytics-types';
+import { track } from '../../../../packages/analytics-browser/src';
 
 const YoutubePlayerState = {
     BUFFERING: 3,
@@ -61,10 +62,32 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
 
   onPlaybackQualityChange(youtubeEvent: any) {
     console.log(youtubeEvent)
+    const player = youtubeEvent.target;
+    var eventProperties = {
+        currentTime: player.getCurrentTime(),
+        duration: player.getDuration(),
+        mediaReferenceTime: player.getMediaReferenceTime(),
+        quality: youtubeEvent.data,
+        rate: player.getPlaybackRate(),
+        url: player.getVideoUrl(),
+        volume: player.getVolume(),
+    }
+    amplitude.track("Video Quality Updated", eventProperties);
   }
 
   onPlaybackRateChange(youtubeEvent: any) {
     console.log(youtubeEvent)
+    const player = youtubeEvent.target;
+    var eventProperties = {
+        currentTime: player.getCurrentTime(),
+        duration: player.getDuration(),
+        mediaReferenceTime: player.getMediaReferenceTime(),
+        quality: player.getPlaybackQuality(),
+        rate: youtubeEvent.data,
+        url: player.getVideoUrl(),
+        volume: player.getVolume(),
+    }
+    amplitude.track("Video Playback Rate Updated", eventProperties);
   }
   
   /**
