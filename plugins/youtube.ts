@@ -1,4 +1,4 @@
-import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Amplitude } from '@amplitude/analytics-types';
+import { BrowserConfig, EnrichmentPlugin, Event, PluginType } from '@amplitude/analytics-types';
 import { init, track, add} from '@amplitude/analytics-browser';
 
 
@@ -6,26 +6,28 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
   name = 'youtube-analytics';
   type = PluginType.ENRICHMENT as const;
   currentId = 100;
+  config!: BrowserConfig;
 
-  constructor(player) {
-      player.addEventListener('onStateChange', function(ytEvent) {
+  constructor(player: any) {
+      player.addEventListener('onStateChange', function(ytEvent: any) {
           // Convert Youtube Event Data to Our Event, don't have to use the function though
           console.log(ytEvent)
-          event = this.convertYoutubeEventToAmplitudeEvent(ytEvent)
-          track(event)
+        //   event = this.convertYoutubeEventToAmplitudeEvent(ytEvent)
+        //   track(event)
       })
   }
 
   // function to convert youtube data to our BaseEvent
-  convertYoutubeEventToAmplitudeEvent(youtubeEvent) : Event {
+//   convertYoutubeEventToAmplitudeEvent(youtubeEvent) : Event {
 
-  }
+//   }
   
   /**
    * setup() is called on plugin installation
    */
   setup(config: BrowserConfig): Promise<undefined> {
      this.config = config;
+     return Promise.resolve(undefined);
   }
    
   /**
@@ -33,18 +35,8 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
    */
   execute(event: Event): Promise<Event> {
     // no-op for now
-    return event;
+    return new Promise((resolve) => {
+        return resolve(event);
+    });
   }
 }
-
-// Sample Usage
-var player;
-      function onYouTubeIframeAPIReady() {
-              player = new YT.Player('player', {
-              height: '390',
-              width: '640',
-              videoId: 'M7lc1UVf-VE'
-        });
-init(API_KEY);
-add(new YouTubeAnalytics(player));
-
