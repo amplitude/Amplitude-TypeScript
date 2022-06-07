@@ -43,8 +43,11 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
     const player = youtubeEvent.target;
     var eventProperties = {
         currentTime: this.timecode(player.getCurrentTime()),
+        currentTimeInSec: player.getCurrentTime(),
         duration: this.timecode(player.getDuration()),
+        durationInSec: player.getDuration(),
         mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
+        mediaReferenceTimeInSec: player.getMediaReferenceTime(),
         quality: VideoQuality[player.getPlaybackQuality()],
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
@@ -83,8 +86,11 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
     const player = youtubeEvent.target;
     var eventProperties = {
         currentTime: this.timecode(player.getCurrentTime()),
+        currentTimeInSec: player.getCurrentTime(),
         duration: this.timecode(player.getDuration()),
+        durationInSec: player.getDuration(),
         mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
+        mediaReferenceTimeInSec: player.getMediaReferenceTime(),
         quality: VideoQuality[youtubeEvent.data],
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
@@ -101,8 +107,11 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
     const player = youtubeEvent.target;
     var eventProperties = {
         currentTime: this.timecode(player.getCurrentTime()),
+        currentTimeInSec: player.getCurrentTime(),
         duration: this.timecode(player.getDuration()),
+        durationInSec: player.getDuration(),
         mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
+        mediaReferenceTimeInSec: player.getMediaReferenceTime(),
         quality: VideoQuality[player.getPlaybackQuality()],
         rate: youtubeEvent.data,
         url: player.getVideoUrl(),
