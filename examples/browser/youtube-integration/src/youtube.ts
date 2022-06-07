@@ -34,8 +34,12 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
         quality: player.getPlaybackQuality(),
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
-        volume: player.getVolume()
+        volume: player.getVolume(),
+        author: player.getVideoData().author,
+        title: player.getVideoData().title,
+        video_id: player.getVideoData().video_id
     }
+    console.log(player.getVideoData())
     console.log(eventProperties);
     switch (youtubeEvent.data) {
         case YoutubePlayerState.UNSTARTED:
@@ -71,6 +75,9 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
         volume: player.getVolume(),
+        author: player.getVideoData().author,
+        title: player.getVideoData().title,
+        video_id: player.getVideoData().video_id
     }
     amplitude.track("Video Quality Updated", eventProperties);
   }
@@ -86,6 +93,9 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
         rate: youtubeEvent.data,
         url: player.getVideoUrl(),
         volume: player.getVolume(),
+        author: player.getVideoData().author,
+        title: player.getVideoData().title,
+        video_id: player.getVideoData().video_id
     }
     amplitude.track("Video Playback Rate Updated", eventProperties);
   }
