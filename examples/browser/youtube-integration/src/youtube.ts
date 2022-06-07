@@ -18,6 +18,10 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
 
   constructor(player: any, amplitude: any) {
       console.log(player);
+      this.onVideoStateChange = this.onVideoStateChange.bind(this);
+      this.onPlaybackQualityChange = this.onPlaybackQualityChange.bind(this);
+      this.onPlaybackRateChange = this.onPlaybackRateChange.bind(this);
+
       player.addEventListener('onStateChange', this.onVideoStateChange);
       player.addEventListener('onPlaybackQualityChange', this.onPlaybackQualityChange)
       player.addEventListener('onPlaybackRateChange', this.onPlaybackRateChange)
@@ -28,9 +32,9 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
     console.log(youtubeEvent)
     const player = youtubeEvent.target;
     var eventProperties = {
-        currentTime: player.getCurrentTime(),
-        duration: player.getDuration(),
-        mediaReferenceTime: player.getMediaReferenceTime(),
+        currentTime: this.timecode(player.getCurrentTime()),
+        duration: this.timecode(player.getDuration()),
+        mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
         quality: player.getPlaybackQuality(),
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
@@ -68,9 +72,9 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
     console.log(youtubeEvent)
     const player = youtubeEvent.target;
     var eventProperties = {
-        currentTime: player.getCurrentTime(),
-        duration: player.getDuration(),
-        mediaReferenceTime: player.getMediaReferenceTime(),
+        currentTime: this.timecode(player.getCurrentTime()),
+        duration: this.timecode(player.getDuration()),
+        mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
         quality: youtubeEvent.data,
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
@@ -86,9 +90,9 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
     console.log(youtubeEvent)
     const player = youtubeEvent.target;
     var eventProperties = {
-        currentTime: player.getCurrentTime(),
-        duration: player.getDuration(),
-        mediaReferenceTime: player.getMediaReferenceTime(),
+        currentTime: this.timecode(player.getCurrentTime()),
+        duration: this.timecode(player.getDuration()),
+        mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
         quality: player.getPlaybackQuality(),
         rate: youtubeEvent.data,
         url: player.getVideoUrl(),
@@ -98,6 +102,20 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
         video_id: player.getVideoData().video_id
     }
     amplitude.track("Video Playback Rate Updated", eventProperties);
+  }
+
+  /** 
+   * Convert time from seconds to the timecode format xx:xx:xx
+   */
+  timecode(time: number): string {
+      console.log(time);
+      var h = Math.floor(time / 3600);
+      var m = Math.floor(time % 3600 / 60);
+      var s = Math.floor(time % 3600 % 60);
+      var hDisplay = h > 0 ? (("0" + h).slice(-2) + ":") : "";
+      var mDisplay = m >= 0 ? (("0" + m).slice(-2) + ":") : "";
+      var sDisplay = s >= 0 ? ("0" + s).slice(-2) : "";
+      return hDisplay + mDisplay + sDisplay;
   }
   
   /**
