@@ -10,6 +10,16 @@ const YoutubePlayerState = {
     UNSTARTED: -1
 }
 
+const VideoQuality:{[key: string] : any} = {
+    "tiny" : "144p",
+    "small" : "240p",
+    "medium" : "360p",
+    "large" : "480p",
+    "hd720" : "720p",
+    "hd1080" : "1080p",
+    "highres" : "highres"
+}
+
 export class YouTubeAnalytics implements EnrichmentPlugin {
   name = 'youtube-analytics';
   type = PluginType.ENRICHMENT as const;
@@ -35,7 +45,7 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
         currentTime: this.timecode(player.getCurrentTime()),
         duration: this.timecode(player.getDuration()),
         mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
-        quality: player.getPlaybackQuality(),
+        quality: VideoQuality[player.getPlaybackQuality()],
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
         volume: player.getVolume(),
@@ -75,7 +85,7 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
         currentTime: this.timecode(player.getCurrentTime()),
         duration: this.timecode(player.getDuration()),
         mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
-        quality: youtubeEvent.data,
+        quality: VideoQuality[youtubeEvent.data],
         rate: player.getPlaybackRate(),
         url: player.getVideoUrl(),
         volume: player.getVolume(),
@@ -93,7 +103,7 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
         currentTime: this.timecode(player.getCurrentTime()),
         duration: this.timecode(player.getDuration()),
         mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
-        quality: player.getPlaybackQuality(),
+        quality: VideoQuality[player.getPlaybackQuality()],
         rate: youtubeEvent.data,
         url: player.getVideoUrl(),
         volume: player.getVolume(),
