@@ -10,6 +10,8 @@ const YoutubePlayerState = {
     UNSTARTED: -1
 }
 
+const YoutubePlayerStateRevMapping = Object.fromEntries(Object.entries(YoutubePlayerState).map(([k, v]) => [v, k]));
+
 const VideoQuality:{[key: string] : any} = {
     "tiny" : "144p",
     "small" : "240p",
@@ -26,38 +28,61 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
   currentId = 100;
   config!: BrowserConfig;
 
+  private playerState: any;
+
   constructor(player: any, amplitude: any) {
-      console.log(player);
-      this.onVideoStateChange = this.onVideoStateChange.bind(this);
-      this.onPlaybackQualityChange = this.onPlaybackQualityChange.bind(this);
-      this.onPlaybackRateChange = this.onPlaybackRateChange.bind(this);
+    console.log(player);
+    this.onReady = this.onReady.bind(this);
+    this.onVideoStateChange = this.onVideoStateChange.bind(this);
+    this.onPlaybackQualityChange = this.onPlaybackQualityChange.bind(this);
+    this.onPlaybackRateChange = this.onPlaybackRateChange.bind(this);
 
-      player.addEventListener('onStateChange', this.onVideoStateChange);
-      player.addEventListener('onPlaybackQualityChange', this.onPlaybackQualityChange)
-      player.addEventListener('onPlaybackRateChange', this.onPlaybackRateChange)
+    player.addEventListener('onReady', this.onReady);
+    player.addEventListener('onStateChange', this.onVideoStateChange);
+    player.addEventListener('onPlaybackQualityChange', this.onPlaybackQualityChange)
+    player.addEventListener('onPlaybackRateChange', this.onPlaybackRateChange)
 
+    this.setPlayerState(player);
+  }
+
+  onReady(event: any) {
+    // reset global state trackers
+    const player = event.target;
+    this.setPlayerState(player);
+  }
+
+  setPlayerState(player: any) {
+    this.playerState = {
+      state: player?.getPlayerState?.(),
+      rate: player?.getPlaybackRate?.(),
+      quality: VideoQuality?.[player?.getPlaybackQuality?.()],
+      currentTime: player?.getCurrentTime?.(),
+    };
   }
 
   onVideoStateChange(youtubeEvent: any) {
     console.log(youtubeEvent)
     const player = youtubeEvent.target;
     var eventProperties = {
-        currentTime: this.timecode(player.getCurrentTime()),
-        currentTimeInSec: player.getCurrentTime(),
-        duration: this.timecode(player.getDuration()),
-        durationInSec: player.getDuration(),
-        mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
-        mediaReferenceTimeInSec: player.getMediaReferenceTime(),
-        quality: VideoQuality[player.getPlaybackQuality()],
-        rate: player.getPlaybackRate(),
-        url: player.getVideoUrl(),
-        volume: player.getVolume(),
-        author: player.getVideoData().author,
-        title: player.getVideoData().title,
-        video_id: player.getVideoData().video_id
+      currentTime: this.timecode(player.getCurrentTime()),
+      currentTimeInSec: player.getCurrentTime(),
+      duration: this.timecode(player.getDuration()),
+      durationInSec: player.getDuration(),
+      mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
+      mediaReferenceTimeInSec: player.getMediaReferenceTime(),
+      quality: VideoQuality[player.getPlaybackQuality()],
+      rate: player.getPlaybackRate(),
+      url: player.getVideoUrl(),
+      volume: player.getVolume(),
+      author: player.getVideoData().author,
+      title: player.getVideoData().title,
+      video_id: player.getVideoData().video_id,
+      prevPlayerState: YoutubePlayerStateRevMapping?.[this.playerState.state],
+      prevPlayerRate: this.playerState.rate,
+      prevPlayerQuality: this.playerState.Quality,
+      prevCurrentTime: this.timecode?.(this.playerState.currentTime),
+      prevCurrentTimeInSec: this.playerState.currentTime,
     }
-    console.log(player.getVideoData())
-    console.log(eventProperties);
     switch (youtubeEvent.data) {
         case YoutubePlayerState.UNSTARTED:
             amplitude.track("Video UNSTARTED", eventProperties);
@@ -78,49 +103,61 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
             amplitude.track("Video Cued", eventProperties);
             break;
     }
-
+    this.setPlayerState(player);
   }
 
   onPlaybackQualityChange(youtubeEvent: any) {
     console.log(youtubeEvent)
     const player = youtubeEvent.target;
     var eventProperties = {
-        currentTime: this.timecode(player.getCurrentTime()),
-        currentTimeInSec: player.getCurrentTime(),
-        duration: this.timecode(player.getDuration()),
-        durationInSec: player.getDuration(),
-        mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
-        mediaReferenceTimeInSec: player.getMediaReferenceTime(),
-        quality: VideoQuality[youtubeEvent.data],
-        rate: player.getPlaybackRate(),
-        url: player.getVideoUrl(),
-        volume: player.getVolume(),
-        author: player.getVideoData().author,
-        title: player.getVideoData().title,
-        video_id: player.getVideoData().video_id
+      currentTime: this.timecode(player.getCurrentTime()),
+      currentTimeInSec: player.getCurrentTime(),
+      duration: this.timecode(player.getDuration()),
+      durationInSec: player.getDuration(),
+      mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
+      mediaReferenceTimeInSec: player.getMediaReferenceTime(),
+      quality: VideoQuality[youtubeEvent.data],
+      rate: player.getPlaybackRate(),
+      url: player.getVideoUrl(),
+      volume: player.getVolume(),
+      author: player.getVideoData().author,
+      title: player.getVideoData().title,
+      video_id: player.getVideoData().video_id,
+      prevPlayerState: YoutubePlayerStateRevMapping?.[this.playerState.state],
+      prevPlayerRate: this.playerState.rate,
+      prevPlayerQuality: this.playerState.Quality,
+      prevCurrentTime: this.timecode?.(this.playerState.currentTime),
+      prevCurrentTimeInSec: this.playerState.currentTime,
     }
     amplitude.track("Video Quality Updated", eventProperties);
+    this.setPlayerState(player);
   }
 
   onPlaybackRateChange(youtubeEvent: any) {
     console.log(youtubeEvent)
     const player = youtubeEvent.target;
     var eventProperties = {
-        currentTime: this.timecode(player.getCurrentTime()),
-        currentTimeInSec: player.getCurrentTime(),
-        duration: this.timecode(player.getDuration()),
-        durationInSec: player.getDuration(),
-        mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
-        mediaReferenceTimeInSec: player.getMediaReferenceTime(),
-        quality: VideoQuality[player.getPlaybackQuality()],
-        rate: youtubeEvent.data,
-        url: player.getVideoUrl(),
-        volume: player.getVolume(),
-        author: player.getVideoData().author,
-        title: player.getVideoData().title,
-        video_id: player.getVideoData().video_id
+      currentTime: this.timecode(player.getCurrentTime()),
+      currentTimeInSec: player.getCurrentTime(),
+      duration: this.timecode(player.getDuration()),
+      durationInSec: player.getDuration(),
+      mediaReferenceTime: this.timecode(player.getMediaReferenceTime()),
+      mediaReferenceTimeInSec: player.getMediaReferenceTime(),
+      quality: VideoQuality[player.getPlaybackQuality()],
+      rate: youtubeEvent.data,
+      url: player.getVideoUrl(),
+      volume: player.getVolume(),
+      author: player.getVideoData().author,
+      title: player.getVideoData().title,
+      video_id: player.getVideoData().video_id,
+      prevPlayerState: YoutubePlayerStateRevMapping?.[this.playerState.state],
+      prevPlayerRate: this.playerState.rate,
+      prevPlayerQuality: this.playerState.Quality,
+      prevCurrentTime: this.timecode?.(this.playerState.currentTime),
+      prevCurrentTimeInSec: this.playerState.currentTime,
     }
     amplitude.track("Video Playback Rate Updated", eventProperties);
+    this.setPlayerState(player);
   }
 
   /** 
