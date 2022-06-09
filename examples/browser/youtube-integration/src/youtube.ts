@@ -22,6 +22,8 @@ const VideoQuality:{[key: string] : any} = {
     "highres" : "highres"
 }
 
+var eventSequence: number[] = [];
+
 export class YouTubeAnalytics implements EnrichmentPlugin {
   name = 'youtube-analytics';
   type = PluginType.ENRICHMENT as const;
@@ -39,8 +41,8 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
 
     player.addEventListener('onReady', this.onReady);
     player.addEventListener('onStateChange', this.onVideoStateChange);
-    player.addEventListener('onPlaybackQualityChange', this.onPlaybackQualityChange)
-    player.addEventListener('onPlaybackRateChange', this.onPlaybackRateChange)
+    player.addEventListener('onPlaybackQualityChange', this.onPlaybackQualityChange);
+    player.addEventListener('onPlaybackRateChange', this.onPlaybackRateChange);
 
     this.setPlayerState(player);
   }
@@ -91,18 +93,30 @@ export class YouTubeAnalytics implements EnrichmentPlugin {
             amplitude.track("Video Completed", eventProperties);
             break;
         case YoutubePlayerState.PLAYING:
-            amplitude.track("Video Resumed", eventProperties);
-            break;
+          if (eventProperties.currentTimeInSec < 0.1) {
+              amplitude.track("Video Started", eventProperties);
+              break;
+          } else if (eventSequence[eventSequence.length - 1] === 3
+              && eventSequence[eventSequence.length - 2] !== -1) {
+              // SEEK (mouse): 2, 3, 1    OR    SEEK (arrow key): 3, 1
+              // ignoring unstarted -> buffer -> play (-1 -> 3 -> 1) sequence at beginning
+              amplitude.track("Video Sought", eventProperties);
+          }
+          amplitude.track("Video Resumed", eventProperties);
+          break;
+
         case YoutubePlayerState.PAUSED:
             amplitude.track("Video Paused", eventProperties);
             break;
         case YoutubePlayerState.BUFFERING:
-            amplitude.track("Video Beffering", eventProperties);
+            amplitude.track("Video Buffering", eventProperties);
             break;
         case YoutubePlayerState.CUED:
             amplitude.track("Video Cued", eventProperties);
             break;
     }
+    eventSequence.push(youtubeEvent.data); // record sequence of events fired
+    console.log(eventSequence);
     this.setPlayerState(player);
   }
 
