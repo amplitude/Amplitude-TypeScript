@@ -44,7 +44,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     return this.config.userId;
   }
 
-  setUserId(userId: string) {
+  setUserId(userId: string | undefined) {
     this.config.userId = userId;
     updateCookies(this.config);
   }
