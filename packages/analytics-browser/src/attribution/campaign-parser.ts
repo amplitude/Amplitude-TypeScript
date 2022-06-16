@@ -13,6 +13,7 @@ import {
   UTMZ_CONTENT,
   GCLID,
   FBCLID,
+  BASE_CAMPAIGN,
 } from './constants';
 import {
   Campaign,
@@ -27,6 +28,7 @@ export class CampaignParser implements ICampaignParser {
 
   parse(): Campaign {
     return {
+      ...BASE_CAMPAIGN,
       ...this.getUtmParam(),
       ...this.getReferrer(),
       ...this.getClickIds(),

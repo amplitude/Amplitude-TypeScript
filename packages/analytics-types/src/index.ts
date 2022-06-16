@@ -5,13 +5,14 @@ export {
   CampaignParser,
   CampaignTracker,
   CampaignTrackerOptions,
-  CampaignTrackerFunction,
+  CampaignTrackFunction,
   ClickIdParameters,
   ReferrerParameters,
   UTMParameters,
 } from './campaign';
 export {
   AdditionalBrowserOptions,
+  AttributionBrowserOptions,
   BrowserConfig,
   BrowserOptions,
   Config,

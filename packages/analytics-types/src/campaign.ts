@@ -1,4 +1,6 @@
 import { BaseEvent } from './base-event';
+import { AttributionBrowserOptions } from './config';
+import { Storage } from './storage';
 
 export interface UTMParameters extends Record<string, string | undefined> {
   utm_source: string | undefined;
@@ -24,18 +26,14 @@ export interface CampaignParser {
   parse(): Campaign;
 }
 
-export interface CampaignTrackerOptions {
-  apiKey: string;
-  tracker?: CampaignTrackerFunction;
-  excludeReferrers?: string[];
-  initialEmptyValue?: string;
-  onNewCampaign?: (campaign: Campaign) => unknown;
+export interface CampaignTrackerOptions extends AttributionBrowserOptions {
+  storage: Storage<Campaign>;
+  track: CampaignTrackFunction;
+  onNewCampaign: (campaign: Campaign) => unknown;
 }
 
-export interface CampaignTracker {
-  onNewCampaign?: (campaign: Campaign) => unknown;
-  isNewCampaign(prev: Campaign, current: Campaign): boolean;
-  trackCampaign(): Promise<void>;
+export interface CampaignTracker extends CampaignTrackerOptions {
+  send(force: boolean): Promise<void>;
 }
 
-export type CampaignTrackerFunction = (event: BaseEvent) => Promise<unknown>;
+export type CampaignTrackFunction = (event: BaseEvent) => Promise<unknown>;

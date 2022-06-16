@@ -156,7 +156,6 @@ export const useBrowserConfig = (apiKey: string, userId?: string, options?: Brow
     sessionTimeout,
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
-    sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
     storageProvider: createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
@@ -201,13 +200,6 @@ export const createEventsStorage = (overrides?: BrowserOptions) => {
 
 export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, idFromQueryParams?: string) => {
   return idFromOptions || idFromQueryParams || idFromCookies || UUID();
-};
-
-export const createSessionId = (idFromCookies = 0, idFromOptions = 0, lastEventTime = 0, sessionTimeout: number) => {
-  if (idFromCookies && Date.now() - lastEventTime < sessionTimeout) {
-    return idFromCookies;
-  }
-  return idFromOptions ? idFromOptions : Date.now();
 };
 
 export const createTransport = (transport?: TransportType) => {

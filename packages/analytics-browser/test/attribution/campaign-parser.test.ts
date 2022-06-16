@@ -1,4 +1,4 @@
-import { BASE_CAMPAIGN } from '../helpers/default';
+import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import { CampaignParser } from '../../src/attribution/campaign-parser';
 import * as queryParams from '../../src/utils/query-params';
 

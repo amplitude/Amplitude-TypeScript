@@ -1,6 +1,7 @@
 import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper } from '@amplitude/analytics-core';
 import {
   AdditionalBrowserOptions,
+  AttributionBrowserOptions,
   BrowserConfig,
   BrowserOptions,
   Campaign,
@@ -15,6 +16,7 @@ import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport, createDeviceId, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
+import { getCookieName } from './utils/cookie-name';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
@@ -25,34 +27,49 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     const browserOptions = useBrowserConfig(apiKey, userId || oldCookies.userId, {
       ...options,
       deviceId: oldCookies.deviceId ?? options?.deviceId,
-      sessionId: oldCookies.sessionId ?? options?.sessionId,
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
     });
     await super.init(undefined, undefined, browserOptions);
 
-    // Step 3: Install plugins
+    // Step 3: Manage session
+    const newCookies = this.config.cookieStorage.get(getCookieName(apiKey));
+    const previousSessionId = newCookies?.sessionId ?? oldCookies.sessionId ?? options?.sessionId;
+    let nextSessionId = previousSessionId;
+    if (
+      !previousSessionId ||
+      (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
+    ) {
+      // Either
+      // 1) No previous session; or
+      // 2) Previous session expired
+      nextSessionId = Date.now();
+    }
+    this.config.sessionId = nextSessionId;
+    const isNewSession = previousSessionId !== nextSessionId;
+
+    // Step 4: Install plugins
+    // Do not track any events before this
     await this.add(new Context());
     await this.add(new Destination());
 
-    // Step 4: Track attributions
-    if (!options?.attribution?.disabled) {
-      await this.trackCampaign(options?.attribution?.excludeReferrer, options?.attribution?.initialEmptyValue);
-    }
+    // Step 5: Track attributions
+    await this.runAttributionStrategy(options?.attribution, isNewSession);
   }
 
-  async trackCampaign(excludeReferrers?: string[], initialEmptyValue?: string) {
-    const tracker = this.track.bind(this);
+  async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, force = false) {
+    const track = this.track.bind(this);
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
-    const campaignStorage = createFlexibleStorage<Campaign>(this.config);
-    const campaignTracker = new CampaignTracker(campaignStorage, {
-      apiKey: this.config.apiKey,
-      tracker,
-      excludeReferrers,
-      initialEmptyValue,
+
+    const storage = createFlexibleStorage<Campaign>(this.config);
+    const campaignTracker = new CampaignTracker(this.config.apiKey, {
+      ...attributionConfig,
+      storage,
+      track,
       onNewCampaign,
     });
-    await campaignTracker.trackCampaign();
+
+    await campaignTracker.send(force);
   }
 
   getUserId() {

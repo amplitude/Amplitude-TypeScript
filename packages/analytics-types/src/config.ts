@@ -77,13 +77,14 @@ export interface TrackingOptions {
 }
 
 export interface AdditionalBrowserOptions {
-  attribution?: {
-    disabled?: boolean;
-    excludeReferrer?: string[];
-    initialEmptyValue?: string;
-    startSessionOnNewCampaign?: boolean;
-    startSessionOnNewReferrer?: boolean;
-  };
+  attribution?: AttributionBrowserOptions;
+}
+
+export interface AttributionBrowserOptions {
+  disabled?: boolean;
+  excludeReferrers?: string[];
+  initialEmptyValue?: string;
+  trackNewCampaigns?: boolean;
 }
 
 export type BrowserOptions = Omit<

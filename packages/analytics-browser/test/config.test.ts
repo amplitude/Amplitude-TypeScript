@@ -86,7 +86,7 @@ describe('config', () => {
         deviceId: 'deviceId',
         lastEventTime: undefined,
         optOut: false,
-        sessionId: 0,
+        sessionId: undefined,
         userId: undefined,
       });
       const sessionManager = new SessionManager(cookieStorage, {
@@ -96,7 +96,6 @@ describe('config', () => {
       jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
-      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = Config.useBrowserConfig(API_KEY, undefined);
@@ -153,7 +152,7 @@ describe('config', () => {
       cookieStorage.set(getCookieName(API_KEY), {
         deviceId: 'deviceIdFromCookies',
         lastEventTime: Date.now(),
-        sessionId: 1,
+        sessionId: undefined,
         userId: 'userIdFromCookies',
         optOut: false,
       });
@@ -164,7 +163,6 @@ describe('config', () => {
       jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
-      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(1);
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = Config.useBrowserConfig(API_KEY, undefined, {
@@ -329,26 +327,6 @@ describe('config', () => {
     test('should return uuid', () => {
       const deviceId = Config.createDeviceId(undefined, undefined, undefined);
       expect(deviceId.substring(14, 15)).toEqual('4');
-    });
-  });
-
-  describe('createSessionId', () => {
-    test('should return session id from cookies', () => {
-      const now = Date.now();
-      const sessionId = Config.createSessionId(now + 1000, undefined, now - 1000, 60000);
-      expect(sessionId).toBe(now + 1000);
-    });
-
-    test('should return session id from options', () => {
-      const now = Date.now();
-      const sessionId = Config.createSessionId(undefined, now, undefined, 60000);
-      expect(sessionId).toBe(now);
-    });
-
-    test('should generate new session id', () => {
-      jest.spyOn(Date, 'now').mockReturnValueOnce(1);
-      const sessionId = Config.createSessionId(undefined, undefined, undefined, 60000);
-      expect(sessionId).toBe(1);
     });
   });
 

@@ -78,7 +78,6 @@ describe('context', () => {
         },
       });
       config.appVersion = '1.0.0';
-      console.log('config context plugin', config.sessionManager.getUserId());
       await context.setup(config);
 
       const event = {

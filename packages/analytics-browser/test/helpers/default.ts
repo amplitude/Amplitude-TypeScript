@@ -50,15 +50,3 @@ export const DEFAULT_OPTIONS: InitOptions<IBrowserConfig> = {
   },
   sessionTimeout: 30 * 60 * 1000,
 };
-
-export const BASE_CAMPAIGN = {
-  utm_source: undefined,
-  utm_medium: undefined,
-  utm_campaign: undefined,
-  utm_term: undefined,
-  utm_content: undefined,
-  referrer: undefined,
-  referring_domain: undefined,
-  gclid: undefined,
-  fbclid: undefined,
-};
