@@ -5,7 +5,6 @@ import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
 import * as SnippetHelper from '../src/utils/snippet-helper';
-import { useDefaultConfig } from './helpers/default';
 
 describe('browser-client', () => {
   const API_KEY = 'API_KEY';
@@ -35,12 +34,6 @@ describe('browser-client', () => {
     });
 
     test('should read from old cookies config', async () => {
-      jest.spyOn(Config, 'useBrowserConfig').mockReturnValueOnce(
-        useDefaultConfig(undefined, {
-          deviceId: DEVICE_ID,
-          lastEventTime: Date.now() - 1000,
-        }),
-      );
       const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
         optOut: false,
         deviceId: DEVICE_ID,
@@ -48,15 +41,6 @@ describe('browser-client', () => {
         lastEventTime: Date.now() - 1000,
       });
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      jest
-        .spyOn(cookieStorage, 'get')
-        .mockReturnValueOnce(undefined)
-        .mockReturnValueOnce({
-          optOut: false,
-          deviceId: DEVICE_ID,
-          sessionId: 1,
-          lastEventTime: Date.now() - 1000,
-        });
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         optOut: false,

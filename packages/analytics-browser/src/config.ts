@@ -156,6 +156,7 @@ export const useBrowserConfig = (apiKey: string, userId?: string, options?: Brow
     sessionTimeout,
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
+    sessionId: cookieStorage.get(cookieName)?.sessionId ?? options?.sessionId,
     storageProvider: createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),

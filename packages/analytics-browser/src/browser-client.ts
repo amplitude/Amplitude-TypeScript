@@ -16,7 +16,6 @@ import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport, createDeviceId, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
-import { getCookieName } from './utils/cookie-name';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
@@ -27,26 +26,24 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     const browserOptions = useBrowserConfig(apiKey, userId || oldCookies.userId, {
       ...options,
       deviceId: oldCookies.deviceId ?? options?.deviceId,
+      sessionId: oldCookies.sessionId ?? options?.sessionId,
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
     });
     await super.init(undefined, undefined, browserOptions);
 
     // Step 3: Manage session
-    const newCookies = this.config.cookieStorage.get(getCookieName(apiKey));
-    const previousSessionId = newCookies?.sessionId ?? oldCookies.sessionId ?? options?.sessionId;
-    let nextSessionId = previousSessionId;
+    let isNewSession = false;
     if (
-      !previousSessionId ||
+      !this.config.sessionId ||
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
     ) {
       // Either
       // 1) No previous session; or
       // 2) Previous session expired
-      nextSessionId = Date.now();
+      this.config.sessionId = Date.now();
+      isNewSession = true;
     }
-    this.config.sessionId = nextSessionId;
-    const isNewSession = previousSessionId !== nextSessionId;
 
     // Step 4: Install plugins
     // Do not track any events before this

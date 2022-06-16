@@ -6,6 +6,7 @@ import {
   CampaignTracker as ICampaignTracker,
   CampaignTrackFunction,
   CampaignTrackerOptions,
+  BaseEvent,
 } from '@amplitude/analytics-types';
 import { getCookieName as getStorageKey } from '../utils/cookie-name';
 import { CampaignParser } from './campaign-parser';
@@ -62,7 +63,7 @@ export class CampaignTracker implements ICampaignTracker {
     return this.storage.get(this.storageKey) || { ...BASE_CAMPAIGN };
   }
 
-  convertCampaignToEvent(campaign: Campaign) {
+  createCampaignEvent(campaign: Campaign) {
     const campaignParameters: Campaign = {
       // This object definition allows undefined keys to be iterated on
       // in .reduce() to build indentify object
@@ -76,7 +77,19 @@ export class CampaignTracker implements ICampaignTracker {
       }
       return identify.unset(key);
     }, new Identify());
-    return createIdentifyEvent(undefined, undefined, identifyEvent);
+
+    const pageViewEvent: BaseEvent = {
+      event_type: 'Page View',
+      event_properties: {
+        page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+        page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
+        page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
+      },
+    };
+    return {
+      ...createIdentifyEvent(undefined, undefined, identifyEvent),
+      ...pageViewEvent,
+    };
   }
 
   async send(force: boolean) {
@@ -91,7 +104,7 @@ export class CampaignTracker implements ICampaignTracker {
       }
       this.onNewCampaign(currentCampaign);
     }
-    await this.track(this.convertCampaignToEvent(currentCampaign));
+    await this.track(this.createCampaignEvent(currentCampaign));
     this.saveCampaignToStorage(currentCampaign);
   }
 }
