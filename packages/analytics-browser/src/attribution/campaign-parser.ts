@@ -63,7 +63,7 @@ export class CampaignParser implements ICampaignParser {
       data.referrer = document.referrer || undefined;
       data.referring_domain = data.referrer?.split('/')[2] ?? undefined;
     } catch {
-      //
+      // nothing to track
     }
     return data;
   }
