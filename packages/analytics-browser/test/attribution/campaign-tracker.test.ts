@@ -96,7 +96,7 @@ describe('CampaignTracker', () => {
   });
 
   describe('createCampaignEvent', () => {
-    test('should return identify event', () => {
+    test('should return event', () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
         track: jest.fn(),
@@ -144,12 +144,13 @@ describe('CampaignTracker', () => {
       });
     });
 
-    test('should return identify event with custom empty value', () => {
+    test('should return event with custom empty value', () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
         track: jest.fn(),
         onNewCampaign: jest.fn(),
         initialEmptyValue: '(none)',
+        trackPageViews: false,
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const campaignEvent = campaignTracker.createCampaignEvent({
@@ -157,12 +158,7 @@ describe('CampaignTracker', () => {
         utm_campaign: 'utm_campaign',
       });
       expect(campaignEvent).toEqual({
-        event_type: 'Page View',
-        event_properties: {
-          page_location: 'http://localhost/',
-          page_path: '/',
-          page_title: '',
-        },
+        event_type: '$identify',
         user_id: undefined,
         user_properties: {
           $set: {

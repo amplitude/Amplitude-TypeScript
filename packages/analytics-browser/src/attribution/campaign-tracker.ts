@@ -21,6 +21,7 @@ export class CampaignTracker implements ICampaignTracker {
 
   disabled: boolean;
   trackNewCampaigns: boolean;
+  trackPageViews: boolean;
   excludeReferrers: string[];
   initialEmptyValue: string;
 
@@ -33,6 +34,7 @@ export class CampaignTracker implements ICampaignTracker {
 
     this.disabled = Boolean(options.disabled);
     this.trackNewCampaigns = Boolean(options.trackNewCampaigns);
+    this.trackPageViews = options.trackPageViews === undefined || Boolean(options.trackPageViews);
     this.excludeReferrers = options.excludeReferrers ?? [];
     if (typeof location !== 'undefined') {
       this.excludeReferrers.unshift(location.hostname);
@@ -88,17 +90,17 @@ export class CampaignTracker implements ICampaignTracker {
     };
     return {
       ...createIdentifyEvent(undefined, undefined, identifyEvent),
-      ...pageViewEvent,
+      ...(this.trackPageViews && pageViewEvent),
     };
   }
 
-  async send(force: boolean) {
+  async send(isNewSession: boolean) {
     if (this.disabled) {
       return;
     }
     const currentCampaign = this.parser.parse();
     const previousCampaign = this.getCampaignFromStorage();
-    if (!force) {
+    if (!isNewSession) {
       if (!this.trackNewCampaigns || !this.isNewCampaign(currentCampaign, previousCampaign)) {
         return;
       }

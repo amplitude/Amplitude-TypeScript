@@ -54,7 +54,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await this.runAttributionStrategy(options?.attribution, isNewSession);
   }
 
-  async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, force = false) {
+  async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, isNewSession = false) {
     const track = this.track.bind(this);
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
 
@@ -66,7 +66,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       onNewCampaign,
     });
 
-    await campaignTracker.send(force);
+    await campaignTracker.send(isNewSession);
   }
 
   getUserId() {

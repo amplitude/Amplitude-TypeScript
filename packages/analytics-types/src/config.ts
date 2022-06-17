@@ -85,6 +85,7 @@ export interface AttributionBrowserOptions {
   excludeReferrers?: string[];
   initialEmptyValue?: string;
   trackNewCampaigns?: boolean;
+  trackPageViews?: boolean;
 }
 
 export type BrowserOptions = Omit<
