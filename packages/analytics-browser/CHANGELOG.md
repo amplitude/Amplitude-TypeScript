@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.4.1...@amplitude/analytics-browser@0.5.0) (2022-06-17)
+
+
+### Bug Fixes
+
+* allow setting undefined user id via setUserId() ([#116](https://github.com/amplitude/Amplitude-TypeScript/issues/116)) ([46f63b5](https://github.com/amplitude/Amplitude-TypeScript/commit/46f63b549fda76fb84cddb8fb26c5671bba7df82))
+* upgrade to @amplitude/ua-parser-js@0.7.31 ([#108](https://github.com/amplitude/Amplitude-TypeScript/issues/108)) ([91ab888](https://github.com/amplitude/Amplitude-TypeScript/commit/91ab888dcf55eb8b8e4cc65ff28493ad84fad350))
+
+
+### Features
+
+* add Plan option to config ([#117](https://github.com/amplitude/Amplitude-TypeScript/issues/117)) ([194d7e6](https://github.com/amplitude/Amplitude-TypeScript/commit/194d7e66af0209cb8155cf6aa0b05a5dcb170f9d))
+* add regenerateDeviceId method ([#111](https://github.com/amplitude/Amplitude-TypeScript/issues/111)) ([8980233](https://github.com/amplitude/Amplitude-TypeScript/commit/89802339bedaf682845271c1c1edca68e37eb5ec))
+* introduce NodeJS package ([#92](https://github.com/amplitude/Amplitude-TypeScript/issues/92)) ([476fb44](https://github.com/amplitude/Amplitude-TypeScript/commit/476fb44efcf2dfcd84af6f0ef45e141ad87dac43))
+
+
+
+
+
 ## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.4.0...@amplitude/analytics-browser@0.4.1) (2022-05-17)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

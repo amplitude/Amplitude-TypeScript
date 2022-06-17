@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.3.1...@amplitude/analytics-core@0.4.0) (2022-06-17)
+
+
+### Features
+
+* add event bridge components ([#93](https://github.com/amplitude/Amplitude-TypeScript/issues/93)) ([64452fc](https://github.com/amplitude/Amplitude-TypeScript/commit/64452fcfeee66e10367220da023137232b2ea112))
+* add Plan option to config ([#117](https://github.com/amplitude/Amplitude-TypeScript/issues/117)) ([194d7e6](https://github.com/amplitude/Amplitude-TypeScript/commit/194d7e66af0209cb8155cf6aa0b05a5dcb170f9d))
+* introduce NodeJS package ([#92](https://github.com/amplitude/Amplitude-TypeScript/issues/92)) ([476fb44](https://github.com/amplitude/Amplitude-TypeScript/commit/476fb44efcf2dfcd84af6f0ef45e141ad87dac43))
+
+
+
+
+
 ## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.3.0...@amplitude/analytics-core@0.3.1) (2022-05-17)
 
 
