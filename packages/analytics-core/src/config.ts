@@ -31,7 +31,6 @@ export const getDefaultConfig = () => ({
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: ServerZone.US,
   useBatch: false,
-  plan: undefined,
 });
 
 export class Config implements IConfig {
