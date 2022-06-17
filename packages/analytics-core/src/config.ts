@@ -6,10 +6,10 @@ import {
   LogLevel,
   Storage,
   Transport,
+  Plan,
   Plugin,
   ServerZone,
 } from '@amplitude/analytics-types';
-import { Plan } from '@amplitude/analytics-types/lib/plan';
 import {
   AMPLITUDE_SERVER_URL,
   AMPLITUDE_BATCH_SERVER_URL,
