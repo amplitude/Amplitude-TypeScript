@@ -9,6 +9,7 @@ import {
   Plugin,
   ServerZone,
 } from '@amplitude/analytics-types';
+import { Plan } from '@amplitude/analytics-types/lib/plan';
 import {
   AMPLITUDE_SERVER_URL,
   AMPLITUDE_BATCH_SERVER_URL,
@@ -30,6 +31,7 @@ export const getDefaultConfig = () => ({
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: ServerZone.US,
   useBatch: false,
+  plan: undefined,
 });
 
 export class Config implements IConfig {
@@ -40,6 +42,7 @@ export class Config implements IConfig {
   loggerProvider: ILogger;
   logLevel: LogLevel;
   minIdLength?: number;
+  plan: Plan | undefined;
   plugins: Plugin[];
   optOut: boolean;
   saveEvents: boolean;
@@ -58,6 +61,7 @@ export class Config implements IConfig {
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.minIdLength = options.minIdLength;
+    this.plan = options.plan ?? defaultConfig.plan;
     this.plugins = defaultConfig.plugins;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
