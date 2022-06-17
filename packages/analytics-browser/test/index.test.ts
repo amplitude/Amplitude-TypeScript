@@ -8,6 +8,7 @@ import {
   identify,
   init,
   logEvent,
+  regenerateDeviceId,
   remove,
   Revenue,
   revenue,
@@ -32,6 +33,7 @@ describe('index', () => {
     expect(typeof identify).toBe('function');
     expect(typeof init).toBe('function');
     expect(typeof logEvent).toBe('function');
+    expect(typeof regenerateDeviceId).toBe('function');
     expect(typeof remove).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof revenue).toBe('function');

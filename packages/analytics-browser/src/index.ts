@@ -7,6 +7,7 @@ export {
   identify,
   init,
   logEvent,
+  regenerateDeviceId,
   remove,
   revenue,
   setDeviceId,
