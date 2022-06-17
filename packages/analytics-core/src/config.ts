@@ -42,7 +42,7 @@ export class Config implements IConfig {
   loggerProvider: ILogger;
   logLevel: LogLevel;
   minIdLength?: number;
-  plan: Plan | undefined;
+  plan?: Plan;
   plugins: Plugin[];
   optOut: boolean;
   saveEvents: boolean;
