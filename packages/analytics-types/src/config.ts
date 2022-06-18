@@ -38,10 +38,6 @@ export interface BrowserConfig extends Config {
   cookieStorage: Storage<UserSession>;
   disableCookies: boolean;
   domain: string;
-  includeGclid: boolean;
-  includeFbclid: boolean;
-  includeReferrer: boolean;
-  includeUtm: boolean;
   lastEventTime?: number;
   partnerId?: string;
   sessionId?: number;

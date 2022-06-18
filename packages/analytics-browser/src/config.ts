@@ -26,10 +26,6 @@ export const getDefaultConfig = () => ({
   cookieStorage: new MemoryStorage<UserSession>(),
   disableCookies: false,
   domain: '',
-  includeGclid: true,
-  includeFbclid: true,
-  includeReferrer: true,
-  includeUtm: true,
   sessionTimeout: 30 * 60 * 1000,
   storageProvider: new MemoryStorage<Event[]>(),
   trackingOptions: {
@@ -58,10 +54,6 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieStorage: Storage<UserSession>;
   disableCookies: boolean;
   domain: string;
-  includeGclid: boolean;
-  includeFbclid: boolean;
-  includeReferrer: boolean;
-  includeUtm: boolean;
   partnerId?: string;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
@@ -89,10 +81,6 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.deviceId = options?.deviceId;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;
-    this.includeGclid = options?.includeGclid ?? defaultConfig.includeGclid;
-    this.includeFbclid = options?.includeFbclid ?? defaultConfig.includeFbclid;
-    this.includeReferrer = options?.includeReferrer ?? defaultConfig.includeReferrer;
-    this.includeUtm = options?.includeUtm ?? defaultConfig.includeUtm;
     this.lastEventTime = this.lastEventTime ?? options?.lastEventTime;
     this.optOut = Boolean(options?.optOut);
     this.partnerId = options?.partnerId;
