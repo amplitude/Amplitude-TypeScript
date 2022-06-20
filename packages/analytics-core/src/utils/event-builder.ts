@@ -24,29 +24,17 @@ export const createTrackEvent = (
   };
 };
 
-export const createIdentifyEvent = (
-  userId: string | undefined,
-  deviceId: string | undefined,
-  identify: IIdentify,
-  eventOptions?: EventOptions,
-): IdentifyEvent => {
+export const createIdentifyEvent = (identify: IIdentify, eventOptions?: EventOptions): IdentifyEvent => {
   const identifyEvent: IdentifyEvent = {
     ...eventOptions,
     event_type: SpecialEventType.IDENTIFY,
     user_properties: identify.getUserProperties(),
-    user_id: userId,
   };
-
-  if (deviceId !== undefined && deviceId.length > 0) {
-    identifyEvent.device_id = deviceId;
-  }
 
   return identifyEvent;
 };
 
 export const createGroupIdentifyEvent = (
-  userId: string | undefined,
-  deviceId: string | undefined,
   groupType: string,
   groupName: string | string[],
   identify: IIdentify,
@@ -59,12 +47,7 @@ export const createGroupIdentifyEvent = (
     groups: {
       [groupType]: groupName,
     },
-    user_id: userId,
   };
-
-  if (deviceId !== undefined && deviceId.length > 0) {
-    groupIdentify.device_id = deviceId;
-  }
 
   return groupIdentify;
 };

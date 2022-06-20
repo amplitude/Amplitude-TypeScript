@@ -171,7 +171,7 @@ describe('browser-client', () => {
         },
       });
       const identifyObject = new core.Identify();
-      const result = await client.identify(identifyObject);
+      const result = await client.identify(identifyObject, { user_id: '123' });
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });

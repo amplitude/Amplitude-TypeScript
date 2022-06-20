@@ -48,11 +48,9 @@ describe('event-builder', () => {
 
   describe('createIdentifyEvent', () => {
     test('should create event', () => {
-      const userId = 'userId';
-      const deviceId = 'deviceId';
       const identify = new Identify();
-      const eventOptions = { user_id: 'eventUserId' };
-      const event = createIdentifyEvent(userId, deviceId, identify, eventOptions);
+      const eventOptions = { user_id: 'userId', device_id: 'deviceId' };
+      const event = createIdentifyEvent(identify, eventOptions);
       expect(event).toEqual({
         event_type: SpecialEventType.IDENTIFY,
         user_properties: {},
@@ -62,14 +60,11 @@ describe('event-builder', () => {
     });
 
     test('should handle missing deviceId', () => {
-      const userId = undefined;
-      const deviceId = undefined;
       const identify = new Identify();
-      const event = createIdentifyEvent(userId, deviceId, identify);
+      const event = createIdentifyEvent(identify);
       expect(event).toEqual({
         event_type: SpecialEventType.IDENTIFY,
         user_properties: {},
-        user_id: undefined,
       });
     });
   });
@@ -93,13 +88,11 @@ describe('event-builder', () => {
 
   describe('createGroupIdentifyEvent', () => {
     test('should create event', () => {
-      const userId = 'userId';
-      const deviceId = 'deviceId';
       const groupType = 'groupType';
       const groupName = 'groupName';
       const identify = new Identify();
-      const eventOptions = { user_id: 'eventUserId' };
-      const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify, eventOptions);
+      const eventOptions = { user_id: 'userId', device_id: 'deviceId' };
+      const event = createGroupIdentifyEvent(groupType, groupName, identify, eventOptions);
       expect(event).toEqual({
         event_type: SpecialEventType.GROUP_IDENTIFY,
         group_properties: {},
@@ -112,19 +105,16 @@ describe('event-builder', () => {
     });
 
     test('should handle missing deviceId', () => {
-      const userId = undefined;
-      const deviceId = undefined;
       const groupType = 'groupType';
       const groupName = 'groupName';
       const identify = new Identify();
-      const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify);
+      const event = createGroupIdentifyEvent(groupType, groupName, identify);
       expect(event).toEqual({
         event_type: SpecialEventType.GROUP_IDENTIFY,
         group_properties: {},
         groups: {
           groupType: 'groupName',
         },
-        user_id: undefined,
       });
     });
   });

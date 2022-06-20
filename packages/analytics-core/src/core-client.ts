@@ -40,20 +40,13 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   logEvent = this.track.bind(this);
 
-  identify(identify: Identify, eventOptions?: EventOptions, userId?: string, deviceId?: string) {
-    const event = createIdentifyEvent(userId, deviceId, identify, eventOptions);
+  identify(identify: Identify, eventOptions?: EventOptions) {
+    const event = createIdentifyEvent(identify, eventOptions);
     return this.dispatch(event);
   }
 
-  groupIdentify(
-    groupType: string,
-    groupName: string | string[],
-    identify: Identify,
-    eventOptions?: EventOptions,
-    userId?: string,
-    deviceId?: string,
-  ) {
-    const event = createGroupIdentifyEvent(userId, deviceId, groupType, groupName, identify, eventOptions);
+  groupIdentify(groupType: string, groupName: string | string[], identify: Identify, eventOptions?: EventOptions) {
+    const event = createGroupIdentifyEvent(groupType, groupName, identify, eventOptions);
     return this.dispatch(event);
   }
 
