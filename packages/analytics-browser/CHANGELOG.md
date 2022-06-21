@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.5.0...@amplitude/analytics-browser@0.5.1) (2022-06-21)
+
+
+### Bug Fixes
+
+* remove userId and deviceId from createIdentifyEvent and createGroupIdentifyEvent ([#119](https://github.com/amplitude/Amplitude-TypeScript/issues/119)) ([e7726bb](https://github.com/amplitude/Amplitude-TypeScript/commit/e7726bb9ba16c390638b51042169ede9e083e331))
+
+
+
+
+
 # [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.4.1...@amplitude/analytics-browser@0.5.0) (2022-06-17)
 
 
