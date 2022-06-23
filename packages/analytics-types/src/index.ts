@@ -43,6 +43,7 @@ export { EventCallback } from './event-callback';
 export { EventBridge, EventBridgeChannel, EventBridgeContainer, EventBridgeReceiver } from './event-bridge';
 export { Logger, LogLevel } from './logger';
 export { Payload } from './payload';
+export { Plan } from './plan';
 export {
   Plugin,
   BeforePlugin,

@@ -1,7 +1,7 @@
 import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
 import * as timeline from '../src/timeline';
-import { USER_ID, DEVICE_ID, useDefaultConfig } from './helpers/default';
+import { useDefaultConfig } from './helpers/default';
 
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
@@ -31,7 +31,7 @@ describe('core-client', () => {
     test('should call identify', async () => {
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify: Identify = new Identify();
-      const response = await client.identify(identify, undefined, USER_ID, DEVICE_ID);
+      const response = await client.identify(identify, undefined);
       expect(response).toEqual(success);
       expect(dispatch).toHaveBeenCalledTimes(1);
     });
@@ -41,7 +41,7 @@ describe('core-client', () => {
     test('should call groupIdentify', async () => {
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify = new Identify();
-      const response = await client.groupIdentify('groupType', 'groupName', identify, undefined, USER_ID, DEVICE_ID);
+      const response = await client.groupIdentify('groupType', 'groupName', identify, undefined);
       expect(response).toEqual(success);
       expect(dispatch).toHaveBeenCalledTimes(1);
     });

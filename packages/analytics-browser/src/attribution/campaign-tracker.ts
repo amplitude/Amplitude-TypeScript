@@ -89,7 +89,7 @@ export class CampaignTracker implements ICampaignTracker {
       },
     };
     return {
-      ...createIdentifyEvent(undefined, undefined, identifyEvent),
+      ...createIdentifyEvent(identifyEvent),
       ...(this.trackPageViews && pageViewEvent),
     };
   }

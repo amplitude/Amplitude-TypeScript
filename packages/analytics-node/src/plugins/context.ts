@@ -25,6 +25,7 @@ export class Context implements BeforePlugin {
       const contextEvent: Event = {
         time,
         insert_id: UUID(),
+        plan: this.config.plan,
         ...context,
         event_id: this.eventId++,
         library: this.library,

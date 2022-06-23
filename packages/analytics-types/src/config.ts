@@ -3,6 +3,7 @@ import { Storage } from './storage';
 
 import { Event } from './event';
 import { Transport, TransportType } from './transport';
+import { Plan } from './plan';
 import { Plugin } from './plugin';
 import { UserSession } from './session-manager';
 
@@ -20,6 +21,7 @@ export interface Config {
   loggerProvider: Logger;
   minIdLength?: number;
   optOut: boolean;
+  plan?: Plan;
   plugins: Plugin[];
   saveEvents: boolean;
   serverUrl: string | undefined;

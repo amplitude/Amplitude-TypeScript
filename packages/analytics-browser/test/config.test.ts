@@ -47,6 +47,7 @@ describe('config', () => {
         minIdLength: undefined,
         _optOut: false,
         partnerId: undefined,
+        plan: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
@@ -112,6 +113,7 @@ describe('config', () => {
         minIdLength: undefined,
         _optOut: false,
         partnerId: undefined,
+        plan: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
@@ -159,6 +161,9 @@ describe('config', () => {
       logger.enable(LogLevel.Warn);
       const config = Config.useBrowserConfig(API_KEY, undefined, {
         partnerId: 'partnerId',
+        plan: {
+          version: '0',
+        },
         sessionTimeout: 1,
       });
       expect(config).toEqual({
@@ -178,6 +183,9 @@ describe('config', () => {
         minIdLength: undefined,
         _optOut: false,
         partnerId: 'partnerId',
+        plan: {
+          version: '0',
+        },
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',

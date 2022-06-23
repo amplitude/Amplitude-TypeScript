@@ -26,6 +26,8 @@ describe('config', () => {
       loggerProvider: new Logger(),
       minIdLength: undefined,
       _optOut: false, // private for `optOut` getter/setter
+      partnerId: undefined,
+      plan: undefined,
       plugins: [],
       saveEvents: true,
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
@@ -43,6 +45,7 @@ describe('config', () => {
       apiKey: API_KEY,
       logLevel: LogLevel.Verbose,
       optOut: true,
+      plan: { version: '0' },
       saveEvents: false,
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
@@ -57,6 +60,9 @@ describe('config', () => {
       loggerProvider: new Logger(),
       minIdLength: undefined,
       _optOut: true,
+      plan: {
+        version: '0',
+      },
       plugins: [],
       saveEvents: false,
       serverUrl: 'https://api2.amplitude.com/batch',
