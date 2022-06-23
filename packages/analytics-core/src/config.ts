@@ -43,13 +43,20 @@ export class Config implements IConfig {
   minIdLength?: number;
   plan?: Plan;
   plugins: Plugin[];
-  optOut: boolean;
   saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
   transportProvider: Transport;
   storageProvider: Storage<Event[]>;
   useBatch: boolean;
+
+  private _optOut = false;
+  get optOut() {
+    return this._optOut;
+  }
+  set optOut(optOut: boolean) {
+    this._optOut = optOut;
+  }
 
   constructor(options: InitOptions<IConfig>) {
     const defaultConfig = getDefaultConfig();

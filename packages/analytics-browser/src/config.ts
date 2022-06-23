@@ -6,16 +6,18 @@ import {
   TrackingOptions,
   TransportType,
   UserSession,
+  SessionManager as ISessionManager,
 } from '@amplitude/analytics-types';
 import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
 
 import { CookieStorage } from './storage/cookie';
 import { FetchTransport } from './transports/fetch';
 import { LocalStorage } from './storage/local-storage';
-import { getCookieName } from './session-manager';
+import { getCookieName } from './utils/cookie-name';
 import { getQueryParams } from './utils/query-params';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
+import { SessionManager } from './session-manager';
 
 export const getDefaultConfig = () => ({
   cookieExpiration: 365,
@@ -24,10 +26,6 @@ export const getDefaultConfig = () => ({
   cookieStorage: new MemoryStorage<UserSession>(),
   disableCookies: false,
   domain: '',
-  includeGclid: true,
-  includeFbclid: true,
-  includeReferrer: true,
-  includeUtm: true,
   sessionTimeout: 30 * 60 * 1000,
   storageProvider: new MemoryStorage<Event[]>(),
   trackingOptions: {
@@ -54,46 +52,81 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieSameSite: string;
   cookieSecure: boolean;
   cookieStorage: Storage<UserSession>;
-  deviceId?: string;
   disableCookies: boolean;
   domain: string;
-  includeGclid: boolean;
-  includeFbclid: boolean;
-  includeReferrer: boolean;
-  includeUtm: boolean;
   partnerId?: string;
-  sessionId?: number;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
-  userId?: string;
+  sessionManager: ISessionManager;
 
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
     const defaultConfig = getDefaultConfig();
     super({
       ...options,
       apiKey,
-      optOut: Boolean(options?.optOut),
       storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,
       transportProvider: options?.transportProvider ?? defaultConfig.transportProvider,
+    });
+    this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
+    this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
+    this.sessionManager = new SessionManager(this.cookieStorage, {
+      apiKey,
+      sessionTimeout: this.sessionTimeout,
     });
 
     this.appVersion = options?.appVersion;
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
-    this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
     this.deviceId = options?.deviceId;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;
-    this.includeGclid = options?.includeGclid ?? defaultConfig.includeGclid;
-    this.includeFbclid = options?.includeFbclid ?? defaultConfig.includeFbclid;
-    this.includeReferrer = options?.includeReferrer ?? defaultConfig.includeReferrer;
-    this.includeUtm = options?.includeUtm ?? defaultConfig.includeUtm;
+    this.lastEventTime = this.lastEventTime ?? options?.lastEventTime;
+    this.optOut = Boolean(options?.optOut);
     this.partnerId = options?.partnerId;
     this.sessionId = options?.sessionId;
-    this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.userId = userId;
+  }
+
+  get deviceId() {
+    return this.sessionManager.getDeviceId();
+  }
+
+  set deviceId(deviceId: string | undefined) {
+    this.sessionManager.setDeviceId(deviceId);
+  }
+
+  get userId() {
+    return this.sessionManager.getUserId();
+  }
+
+  set userId(userId: string | undefined) {
+    this.sessionManager.setUserId(userId);
+  }
+
+  get sessionId() {
+    return this.sessionManager.getSessionId();
+  }
+
+  set sessionId(sessionId: number | undefined) {
+    this.sessionManager.setSessionId(sessionId);
+  }
+
+  get optOut() {
+    return this.sessionManager.getOptOut();
+  }
+
+  set optOut(optOut: boolean) {
+    this.sessionManager?.setOptOut(Boolean(optOut));
+  }
+
+  get lastEventTime() {
+    return this.sessionManager.getLastEventTime();
+  }
+
+  set lastEventTime(lastEventTime: number | undefined) {
+    this.sessionManager.setLastEventTime(lastEventTime);
   }
 }
 
@@ -111,7 +144,7 @@ export const useBrowserConfig = (apiKey: string, userId?: string, options?: Brow
     sessionTimeout,
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
-    sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
+    sessionId: cookieStorage.get(cookieName)?.sessionId ?? options?.sessionId,
     storageProvider: createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
@@ -120,22 +153,27 @@ export const useBrowserConfig = (apiKey: string, userId?: string, options?: Brow
 
 export const createCookieStorage = (overrides?: BrowserOptions, baseConfig = getDefaultConfig()) => {
   const options = { ...baseConfig, ...overrides };
-  let cookieStorage = overrides?.cookieStorage;
+  const cookieStorage = overrides?.cookieStorage;
   if (!cookieStorage || !cookieStorage.isEnabled()) {
-    cookieStorage = new CookieStorage({
-      domain: options.domain,
-      expirationDays: options.cookieExpiration,
-      sameSite: options.cookieSameSite,
-      secure: options.cookieSecure,
-    });
-    if (options.disableCookies || !cookieStorage.isEnabled()) {
-      cookieStorage = new LocalStorage();
-      if (!cookieStorage.isEnabled()) {
-        cookieStorage = new MemoryStorage();
-      }
-    }
+    return createFlexibleStorage<UserSession>(options);
   }
   return cookieStorage;
+};
+
+export const createFlexibleStorage = <T>(options: BrowserOptions): Storage<T> => {
+  let storage: Storage<T> = new CookieStorage({
+    domain: options.domain,
+    expirationDays: options.cookieExpiration,
+    sameSite: options.cookieSameSite,
+    secure: options.cookieSecure,
+  });
+  if (options.disableCookies || !storage.isEnabled()) {
+    storage = new LocalStorage();
+    if (!storage.isEnabled()) {
+      storage = new MemoryStorage();
+    }
+  }
+  return storage;
 };
 
 export const createEventsStorage = (overrides?: BrowserOptions) => {
@@ -151,13 +189,6 @@ export const createEventsStorage = (overrides?: BrowserOptions) => {
 
 export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, idFromQueryParams?: string) => {
   return idFromOptions || idFromQueryParams || idFromCookies || UUID();
-};
-
-export const createSessionId = (idFromCookies = 0, idFromOptions = 0, lastEventTime = 0, sessionTimeout: number) => {
-  if (idFromCookies && Date.now() - lastEventTime < sessionTimeout) {
-    return idFromCookies;
-  }
-  return idFromOptions ? idFromOptions : Date.now();
 };
 
 export const createTransport = (transport?: TransportType) => {

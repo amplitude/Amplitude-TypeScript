@@ -24,7 +24,8 @@ describe('config', () => {
       flushQueueSize: 10,
       logLevel: LogLevel.Warn,
       loggerProvider: new Logger(),
-      optOut: false,
+      minIdLength: undefined,
+      _optOut: false, // private for `optOut` getter/setter
       partnerId: undefined,
       plan: undefined,
       plugins: [],
@@ -35,6 +36,7 @@ describe('config', () => {
       transportProvider: defaultConfig.transportProvider,
       useBatch: false,
     });
+    expect(config.optOut).toBe(false);
   });
 
   test('should overwrite default config', () => {
@@ -56,7 +58,8 @@ describe('config', () => {
       flushQueueSize: 10,
       logLevel: LogLevel.Verbose,
       loggerProvider: new Logger(),
-      optOut: true,
+      minIdLength: undefined,
+      _optOut: true,
       plan: {
         version: '0',
       },

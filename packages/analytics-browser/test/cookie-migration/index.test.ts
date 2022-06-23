@@ -1,4 +1,4 @@
-import { getOldCookieName } from '../../src/session-manager';
+import { getOldCookieName } from '../../src/utils/cookie-name';
 import { decode, parseOldCookies, parseTime } from '../../src/cookie-migration';
 import * as LocalStorageModule from '../../src/storage/local-storage';
 
