@@ -18,10 +18,10 @@ import { parseOldCookies } from './cookie-migration';
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions) {
     // Step 1: Read cookies stored by old SDK
-    const oldCookies = parseOldCookies(apiKey, options);
+    const oldCookies = await parseOldCookies(apiKey, options);
 
     // Step 2: Create browser config
-    const browserOptions = useBrowserConfig(apiKey, userId || oldCookies.userId, {
+    const browserOptions = await useBrowserConfig(apiKey, userId || oldCookies.userId, {
       ...options,
       deviceId: oldCookies.deviceId ?? options?.deviceId,
       sessionId: oldCookies.sessionId ?? options?.sessionId,
@@ -30,14 +30,14 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await super.init(undefined, undefined, browserOptions);
 
     // Step 3: Store user session in cookie storage
-    updateCookies(this.config, oldCookies.lastEventTime);
+    await updateCookies(this.config, oldCookies.lastEventTime);
 
     // Step 4: Install plugins
     await this.add(new Context());
     await this.add(new Destination());
 
     // Step 4: Track attributions
-    void this.trackAttributions();
+    void (await this.trackAttributions());
   }
 
   getUserId() {
@@ -46,7 +46,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
   setUserId(userId: string | undefined) {
     this.config.userId = userId;
-    updateCookies(this.config);
+    void updateCookies(this.config);
   }
 
   getDeviceId() {
@@ -55,7 +55,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
   setDeviceId(deviceId: string) {
     this.config.deviceId = deviceId;
-    updateCookies(this.config);
+    void updateCookies(this.config);
   }
 
   regenerateDeviceId() {
@@ -69,12 +69,12 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
   setSessionId(sessionId: number) {
     this.config.sessionId = sessionId;
-    updateCookies(this.config);
+    void updateCookies(this.config);
   }
 
   setOptOut(optOut: boolean) {
     super.setOptOut(optOut);
-    updateCookies(this.config);
+    void updateCookies(this.config);
   }
 
   setTransport(transport: TransportType) {
@@ -113,7 +113,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     return super.revenue(revenue, eventOptions);
   }
 
-  trackAttributions() {
+  async trackAttributions(): Promise<Result | undefined> {
     const attributions = getAttributions(this.config);
     if (Object.keys(attributions).length === 0) {
       return;

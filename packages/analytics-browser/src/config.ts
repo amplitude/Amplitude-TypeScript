@@ -97,11 +97,15 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 }
 
-export const useBrowserConfig = (apiKey: string, userId?: string, options?: BrowserOptions): IBrowserConfig => {
+export const useBrowserConfig = async (
+  apiKey: string,
+  userId?: string,
+  options?: BrowserOptions,
+): Promise<IBrowserConfig> => {
   const defaultConfig = getDefaultConfig();
-  const cookieStorage = createCookieStorage(options);
+  const cookieStorage = await createCookieStorage(options);
   const cookieName = getCookieName(apiKey);
-  const cookies = cookieStorage.get(cookieName);
+  const cookies = await cookieStorage.get(cookieName);
   const queryParams = getQueryParams();
   const sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
 
@@ -112,25 +116,28 @@ export const useBrowserConfig = (apiKey: string, userId?: string, options?: Brow
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
     sessionId: createSessionId(cookies?.sessionId, options?.sessionId, cookies?.lastEventTime, sessionTimeout),
-    storageProvider: createEventsStorage(options),
+    storageProvider: await createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
   });
 };
 
-export const createCookieStorage = (overrides?: BrowserOptions, baseConfig = getDefaultConfig()) => {
+export const createCookieStorage = async (
+  overrides?: BrowserOptions,
+  baseConfig = getDefaultConfig(),
+): Promise<Storage<UserSession>> => {
   const options = { ...baseConfig, ...overrides };
   let cookieStorage = overrides?.cookieStorage;
-  if (!cookieStorage || !cookieStorage.isEnabled()) {
+  if (!cookieStorage || !(await cookieStorage.isEnabled())) {
     cookieStorage = new CookieStorage({
       domain: options.domain,
       expirationDays: options.cookieExpiration,
       sameSite: options.cookieSameSite,
       secure: options.cookieSecure,
     });
-    if (options.disableCookies || !cookieStorage.isEnabled()) {
+    if (options.disableCookies || !(await cookieStorage.isEnabled())) {
       cookieStorage = new LocalStorage();
-      if (!cookieStorage.isEnabled()) {
+      if (!(await cookieStorage.isEnabled())) {
         cookieStorage = new MemoryStorage();
       }
     }
@@ -138,11 +145,11 @@ export const createCookieStorage = (overrides?: BrowserOptions, baseConfig = get
   return cookieStorage;
 };
 
-export const createEventsStorage = (overrides?: BrowserOptions) => {
+export const createEventsStorage = async (overrides?: BrowserOptions): Promise<Storage<Event[]>> => {
   let eventsStorage = overrides?.storageProvider;
-  if (!eventsStorage || !eventsStorage.isEnabled()) {
+  if (!eventsStorage || !(await eventsStorage.isEnabled())) {
     eventsStorage = new LocalStorage();
-    if (!eventsStorage.isEnabled()) {
+    if (!(await eventsStorage.isEnabled())) {
       eventsStorage = new MemoryStorage();
     }
   }

@@ -1,9 +1,9 @@
 import { CookieStorage } from './cookie';
 
 export class UTMCookie extends CookieStorage<Record<string, string | undefined>> {
-  get(key: string) {
+  async get(key: string): Promise<Record<string, string | undefined> | undefined> {
     try {
-      const value = this.getRaw(key);
+      const value = await this.getRaw(key);
       if (!value) {
         return undefined;
       }
@@ -21,7 +21,7 @@ export class UTMCookie extends CookieStorage<Record<string, string | undefined>>
     }
   }
 
-  set() {
+  async set(): Promise<void> {
     return undefined;
   }
 }

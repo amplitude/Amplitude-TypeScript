@@ -3,19 +3,19 @@ import { getOldCookieName } from '../session-manager';
 import { LocalStorage } from '../storage/local-storage';
 import { CookieStorage } from '../storage/cookie';
 
-export const parseOldCookies = (apiKey: string, options?: BrowserOptions): UserSession => {
+export const parseOldCookies = async (apiKey: string, options?: BrowserOptions): Promise<UserSession> => {
   let storage: Storage<string> = new CookieStorage<string>();
-  if (!storage.isEnabled() || options?.disableCookies) {
+  if (!(await storage.isEnabled()) || options?.disableCookies) {
     storage = new LocalStorage<string>();
   }
-  if (!storage.isEnabled()) {
+  if (!(await storage.isEnabled())) {
     return {
       optOut: false,
     };
   }
 
   const oldCookieName = getOldCookieName(apiKey);
-  const cookies = storage.getRaw(oldCookieName);
+  const cookies = await storage.getRaw(oldCookieName);
 
   if (!cookies) {
     return {
@@ -23,7 +23,7 @@ export const parseOldCookies = (apiKey: string, options?: BrowserOptions): UserS
     };
   }
 
-  storage.remove(oldCookieName);
+  await storage.remove(oldCookieName);
   const [deviceId, userId, optOut, sessionId, lastEventTime] = cookies.split('.');
   return {
     deviceId,

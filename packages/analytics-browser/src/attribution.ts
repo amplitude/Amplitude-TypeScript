@@ -16,9 +16,9 @@ import {
 import { UTMCookie } from './storage/utm-cookie';
 import { getQueryParams } from './utils/query-params';
 
-export const getAttributions = (config: BrowserConfig): Record<string, string> => {
+export const getAttributions = async (config: BrowserConfig): Promise<Record<string, string>> => {
   const attributions = {
-    ...(config.includeUtm && getUtmParam()),
+    ...(config.includeUtm && (await getUtmParam())),
     ...(config.includeReferrer && getReferrer()),
     ...(config.includeGclid && getGclid()),
     ...(config.includeFbclid && getFbclid()),
@@ -27,10 +27,10 @@ export const getAttributions = (config: BrowserConfig): Record<string, string> =
   return attributions;
 };
 
-export const getUtmParam = (): UTMData => {
+export const getUtmParam = async (): Promise<UTMData> => {
   const params = getQueryParams();
   const utmStorage = new UTMCookie();
-  const cookies = (utmStorage.isEnabled() && utmStorage.get('__utmz')) || {};
+  const cookies = ((await utmStorage.isEnabled()) && (await utmStorage.get('__utmz'))) || {};
 
   const utmSource = params[UTM_SOURCE] || cookies[UTMZ_SOURCE];
   const utmMedium = params[UTM_MEDIUM] || cookies[UTMZ_MEDIUM];

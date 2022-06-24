@@ -1,24 +1,24 @@
 import { BrowserConfig } from '@amplitude/analytics-types';
 import { AMPLITUDE_PREFIX } from '@amplitude/analytics-core';
 
-export const updateCookies = (config: BrowserConfig, lastEventTime?: number) => {
+export const updateCookies = async (config: BrowserConfig, lastEventTime?: number): Promise<void> => {
   const cookieName = getCookieName(config.apiKey);
-  config.cookieStorage.set(cookieName, {
+  await config.cookieStorage.set(cookieName, {
     userId: config.userId,
     deviceId: config.deviceId,
     sessionId: config.sessionId,
-    lastEventTime: lastEventTime ?? config.cookieStorage.get(cookieName)?.lastEventTime,
+    lastEventTime: lastEventTime ?? (await config.cookieStorage.get(cookieName))?.lastEventTime,
     optOut: Boolean(config.optOut),
   });
 };
 
-export const checkSessionExpiry = (config: BrowserConfig) => {
+export const checkSessionExpiry = async (config: BrowserConfig): Promise<void> => {
   const cookieName = getCookieName(config.apiKey);
-  const lastEventTime = config.cookieStorage.get(cookieName)?.lastEventTime;
+  const lastEventTime = (await config.cookieStorage.get(cookieName))?.lastEventTime;
   const now = Date.now();
   if (lastEventTime && now - lastEventTime >= config.sessionTimeout) {
     config.sessionId = now;
-    updateCookies(config);
+    await updateCookies(config);
   }
 };
 

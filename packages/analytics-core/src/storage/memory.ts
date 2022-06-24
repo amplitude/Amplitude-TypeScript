@@ -3,28 +3,28 @@ import { Storage } from '@amplitude/analytics-types';
 export class MemoryStorage<T> implements Storage<T> {
   memoryStorage: Map<string, T> = new Map();
 
-  isEnabled(): boolean {
+  async isEnabled(): Promise<boolean> {
     return true;
   }
 
-  get(key: string): T | undefined {
+  async get(key: string): Promise<T | undefined> {
     return this.memoryStorage.get(key);
   }
 
-  getRaw(key: string) {
-    const value = this.get(key);
+  async getRaw(key: string): Promise<string | undefined> {
+    const value = await this.get(key);
     return value ? JSON.stringify(value) : undefined;
   }
 
-  set(key: string, value: T) {
+  async set(key: string, value: T): Promise<void> {
     this.memoryStorage.set(key, value);
   }
 
-  remove(key: string) {
+  async remove(key: string): Promise<void> {
     this.memoryStorage.delete(key);
   }
 
-  reset() {
+  async reset(): Promise<void> {
     this.memoryStorage.clear();
   }
 }

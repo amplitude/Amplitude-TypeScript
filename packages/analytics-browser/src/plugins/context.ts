@@ -34,37 +34,35 @@ export class Context implements BeforePlugin {
     return Promise.resolve(undefined);
   }
 
-  execute(context: Event): Promise<Event> {
-    return new Promise((resolve) => {
-      const time = new Date().getTime();
-      const osName = this.uaResult.browser.name;
-      const osVersion = this.uaResult.browser.version;
-      const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
-      const deviceVendor = this.uaResult.device.vendor;
+  async execute(context: Event): Promise<Event> {
+    const time = new Date().getTime();
+    const osName = this.uaResult.browser.name;
+    const osVersion = this.uaResult.browser.version;
+    const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
+    const deviceVendor = this.uaResult.device.vendor;
 
-      checkSessionExpiry(this.config);
-      updateCookies(this.config, time);
-      const contextEvent: Event = {
-        user_id: this.config.userId,
-        device_id: this.config.deviceId,
-        session_id: this.config.sessionId,
-        time,
-        ...(this.config.appVersion && { app_version: this.config.appVersion }),
-        ...(this.config.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
-        ...(this.config.trackingOptions.osName && { os_name: osName }),
-        ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
-        ...(this.config.trackingOptions.deviceManufacturer && { device_manufacturer: deviceVendor }),
-        ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
-        ...(this.config.trackingOptions.language && { language: getLanguage() }),
-        ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
-        insert_id: UUID(),
-        partner_id: this.config.partnerId,
-        plan: this.config.plan,
-        ...context,
-        event_id: this.eventId++,
-        library: this.library,
-      };
-      return resolve(contextEvent);
-    });
+    await checkSessionExpiry(this.config);
+    await updateCookies(this.config, time);
+    const contextEvent: Event = {
+      user_id: this.config.userId,
+      device_id: this.config.deviceId,
+      session_id: this.config.sessionId,
+      time,
+      ...(this.config.appVersion && { app_version: this.config.appVersion }),
+      ...(this.config.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
+      ...(this.config.trackingOptions.osName && { os_name: osName }),
+      ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
+      ...(this.config.trackingOptions.deviceManufacturer && { device_manufacturer: deviceVendor }),
+      ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
+      ...(this.config.trackingOptions.language && { language: getLanguage() }),
+      ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
+      insert_id: UUID(),
+      partner_id: this.config.partnerId,
+      plan: this.config.plan,
+      ...context,
+      event_id: this.eventId++,
+      library: this.library,
+    };
+    return contextEvent;
   }
 }

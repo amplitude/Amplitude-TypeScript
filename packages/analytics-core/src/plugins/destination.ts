@@ -34,12 +34,12 @@ export class Destination implements DestinationPlugin {
   queue: Context[] = [];
   queueBuffer: Set<Context> = new Set();
 
-  setup(config: Config) {
+  async setup(config: Config): Promise<undefined> {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
-    const unsent = this.config.storageProvider.get(this.storageKey);
-    this.snapshot(); // sets storage to '[]'
+    const unsent = await this.config.storageProvider.get(this.storageKey);
+    await this.snapshot(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
@@ -55,20 +55,20 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         delay: 0,
       };
-      this.addToQueue(context);
+      void this.addToQueue(context);
     });
   }
 
-  addToQueue(...list: Context[]) {
-    const tryable = list.filter((context) => {
+  async addToQueue(...list: Context[]): Promise<void> {
+    const tryable = list.filter(async (context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         return true;
       }
-      this.fulfillRequest([context], 500, Status.Unknown);
+      await this.fulfillRequest([context], 500, Status.Unknown);
       return false;
     });
 
-    this.addToBackup(...tryable.map((context) => context.event));
+    await this.addToBackup(...tryable.map((context) => context.event));
     tryable.forEach((context) => {
       context.attempts += 1;
       const delay = context.delay;
@@ -131,46 +131,46 @@ export class Destination implements DestinationPlugin {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
-        this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
+        await this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
-      this.handleReponse(res, list);
+      await this.handleReponse(res, list);
     } catch (e) {
-      this.fulfillRequest(list, 0, String(e));
+      await this.fulfillRequest(list, 0, String(e));
     }
   }
 
-  handleReponse(res: Response, list: Context[]) {
+  async handleReponse(res: Response, list: Context[]): Promise<void> {
     const { status } = res;
     switch (status) {
       case Status.Success:
-        this.handleSuccessResponse(res, list);
+        await this.handleSuccessResponse(res, list);
         break;
 
       case Status.Invalid:
-        this.handleInvalidResponse(res, list);
+        await this.handleInvalidResponse(res, list);
         break;
 
       case Status.PayloadTooLarge:
-        this.handlePayloadTooLargeResponse(res, list);
+        await this.handlePayloadTooLargeResponse(res, list);
         break;
 
       case Status.RateLimit:
-        this.handleRateLimitResponse(res, list);
+        await this.handleRateLimitResponse(res, list);
         break;
 
       default:
-        this.handleOtherReponse(list);
+        await this.handleOtherReponse(list);
     }
   }
 
-  handleSuccessResponse(res: SuccessResponse, list: Context[]) {
-    this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
+  async handleSuccessResponse(res: SuccessResponse, list: Context[]): Promise<void> {
+    await this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
-  handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+  async handleInvalidResponse(res: InvalidResponse, list: Context[]): Promise<void> {
     if (res.body.missingField) {
-      this.fulfillRequest(list, res.statusCode, res.body.error);
+      await this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -182,27 +182,27 @@ export class Destination implements DestinationPlugin {
     ].flat();
     const dropIndexSet = new Set(dropIndex);
 
-    const retry = list.filter((context, index) => {
+    const retry = list.filter(async (context, index) => {
       if (dropIndexSet.has(index)) {
-        this.fulfillRequest([context], res.statusCode, res.body.error);
+        await this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
       return true;
     });
 
-    this.addToQueue(...retry);
+    await this.addToQueue(...retry);
   }
 
-  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
+  async handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]): Promise<void> {
     if (list.length === 1) {
-      this.fulfillRequest(list, res.statusCode, res.body.error);
+      await this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
     this.config.flushQueueSize /= 2;
-    this.addToQueue(...list);
+    await this.addToQueue(...list);
   }
 
-  handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
+  async handleRateLimitResponse(res: RateLimitResponse, list: Context[]): Promise<void> {
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     const throttledIndex = res.body.throttledEvents;
@@ -210,12 +210,12 @@ export class Destination implements DestinationPlugin {
     const dropDeviceIdsSet = new Set(dropDeviceIds);
     const throttledIndexSet = new Set(throttledIndex);
 
-    const retry = list.filter((context, index) => {
+    const retry = list.filter(async (context, index) => {
       if (
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
-        this.fulfillRequest([context], res.statusCode, res.body.error);
+        await this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
       if (throttledIndexSet.has(index)) {
@@ -224,33 +224,33 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
-    this.addToQueue(...retry);
+    await this.addToQueue(...retry);
   }
 
-  handleOtherReponse(list: Context[]) {
-    this.addToQueue(...list);
+  async handleOtherReponse(list: Context[]): Promise<void> {
+    await this.addToQueue(...list);
   }
 
-  fulfillRequest(list: Context[], code: number, message: string) {
-    this.removeFromBackup(...list.map((context) => context.event));
+  async fulfillRequest(list: Context[], code: number, message: string): Promise<void> {
+    await this.removeFromBackup(...list.map((context) => context.event));
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
-  addToBackup(...events: Event[]) {
+  async addToBackup(...events: Event[]): Promise<void> {
     if (!this.config.saveEvents) return;
     events.forEach((event) => this.backup.add(event));
-    this.snapshot();
+    await this.snapshot();
   }
 
-  removeFromBackup(...events: Event[]) {
+  async removeFromBackup(...events: Event[]): Promise<void> {
     if (!this.config.saveEvents) return;
     events.forEach((event) => this.backup.delete(event));
-    this.snapshot();
+    await this.snapshot();
   }
 
-  snapshot() {
+  async snapshot(): Promise<void> {
     if (!this.config.saveEvents) return;
     const events = Array.from(this.backup);
-    this.config.storageProvider.set(this.storageKey, events);
+    await this.config.storageProvider.set(this.storageKey, events);
   }
 }
