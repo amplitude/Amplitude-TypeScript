@@ -34,7 +34,7 @@ export class CampaignTracker implements ICampaignTracker {
 
     this.disabled = Boolean(options.disabled);
     this.trackNewCampaigns = Boolean(options.trackNewCampaigns);
-    this.trackPageViews = options.trackPageViews === undefined || Boolean(options.trackPageViews);
+    this.trackPageViews = Boolean(options.trackPageViews);
     this.excludeReferrers = options.excludeReferrers ?? [];
     if (typeof location !== 'undefined') {
       this.excludeReferrers.unshift(location.hostname);
