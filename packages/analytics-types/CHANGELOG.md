@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.3.0...@amplitude/analytics-types@0.4.0) (2022-06-24)
+
+
+### Features
+
+* add marketing campaign tracking ([#112](https://github.com/amplitude/Amplitude-TypeScript/issues/112)) ([bca73ed](https://github.com/amplitude/Amplitude-TypeScript/commit/bca73ede308ecb1663986a99600657732969d60c))
+
+
+
+
+
 # [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.2.1...@amplitude/analytics-types@0.3.0) (2022-06-17)
 
 
