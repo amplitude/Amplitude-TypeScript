@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@1.1.3...@amplitude/analytics-browser-test@1.2.0) (2022-06-24)
+
+
+### Features
+
+* add marketing campaign tracking ([#112](https://github.com/amplitude/Amplitude-TypeScript/issues/112)) ([bca73ed](https://github.com/amplitude/Amplitude-TypeScript/commit/bca73ede308ecb1663986a99600657732969d60c))
+
+
+
+
+
 ## [1.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@1.1.2...@amplitude/analytics-browser-test@1.1.3) (2022-06-21)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test

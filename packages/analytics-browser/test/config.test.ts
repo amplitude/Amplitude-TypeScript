@@ -4,31 +4,39 @@ import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
-import { getCookieName } from '../src/session-manager';
+import { getCookieName } from '../src/utils/cookie-name';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
+import { SessionManager } from '../src/session-manager';
 
 describe('config', () => {
   const API_KEY = 'apiKey';
 
   describe('BrowserConfig', () => {
-    test('should create overwrite config', () => {
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
-      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
+    test('should create overwrite config', async () => {
+      const cookieStorage = new core.MemoryStorage<UserSession>();
+      await cookieStorage.set(getCookieName(API_KEY), {
+        deviceId: undefined,
+        lastEventTime: undefined,
+        optOut: false,
+        sessionId: undefined,
+        userId: undefined,
+      });
+      const sessionManager = new SessionManager(cookieStorage, {
+        apiKey: API_KEY,
+        sessionTimeout: 1800000,
+      });
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = new Config.BrowserConfig(API_KEY);
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: new core.MemoryStorage(),
+        cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
-        deviceId: undefined,
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -36,18 +44,15 @@ describe('config', () => {
         flushQueueSize: 10,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
-        includeGclid: true,
-        includeFbclid: true,
-        includeReferrer: true,
-        includeUtm: true,
-        optOut: false,
+        minIdLength: undefined,
+        _optOut: false,
         partnerId: undefined,
         plan: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: undefined,
+        sessionManager,
         sessionTimeout: 1800000,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -66,29 +71,38 @@ describe('config', () => {
           versionName: true,
         },
         transportProvider: new FetchTransport(),
-        userId: undefined,
         useBatch: false,
       });
     });
   });
 
   describe('useBrowserConfig', () => {
-    test('should create default config', () => {
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
+    test('should create default config', async () => {
+      const cookieStorage = new core.MemoryStorage<UserSession>();
+      await cookieStorage.set(getCookieName(API_KEY), {
+        deviceId: 'deviceId',
+        lastEventTime: undefined,
+        optOut: false,
+        sessionId: undefined,
+        userId: undefined,
+      });
+      const sessionManager = new SessionManager(cookieStorage, {
+        apiKey: API_KEY,
+        sessionTimeout: 1800000,
+      });
+      jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(new core.MemoryStorage());
+      jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
-      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(0);
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = Config.useBrowserConfig(API_KEY, undefined);
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: new core.MemoryStorage(),
+        cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
-        deviceId: 'deviceId',
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -96,18 +110,15 @@ describe('config', () => {
         flushQueueSize: 10,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
-        includeGclid: true,
-        includeFbclid: true,
-        includeReferrer: true,
-        includeUtm: true,
-        optOut: false,
+        minIdLength: undefined,
+        _optOut: false,
         partnerId: undefined,
         plan: undefined,
         plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: 0,
+        sessionManager,
         sessionTimeout: 1800000,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -126,24 +137,26 @@ describe('config', () => {
           versionName: true,
         },
         transportProvider: new FetchTransport(),
-        userId: undefined,
         useBatch: false,
       });
     });
 
-    test('should create using cookies/overwrite', () => {
+    test('should create using cookies/overwrite', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      cookieStorage.set(getCookieName(API_KEY), {
+      await cookieStorage.set(getCookieName(API_KEY), {
         deviceId: 'deviceIdFromCookies',
         lastEventTime: Date.now(),
-        sessionId: 1,
+        sessionId: undefined,
         userId: 'userIdFromCookies',
         optOut: false,
       });
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
+      const sessionManager = new SessionManager(cookieStorage, {
+        apiKey: API_KEY,
+        sessionTimeout: 1,
+      });
+      jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(cookieStorage);
+      jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
-      jest.spyOn(Config, 'createSessionId').mockReturnValueOnce(1);
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = Config.useBrowserConfig(API_KEY, undefined, {
@@ -156,11 +169,10 @@ describe('config', () => {
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage: cookieStorage,
+        cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
-        deviceId: 'deviceIdFromCookies',
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -168,11 +180,8 @@ describe('config', () => {
         flushQueueSize: 10,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
-        includeGclid: true,
-        includeFbclid: true,
-        includeReferrer: true,
-        includeUtm: true,
-        optOut: false,
+        minIdLength: undefined,
+        _optOut: false,
         partnerId: 'partnerId',
         plan: {
           version: '0',
@@ -181,7 +190,7 @@ describe('config', () => {
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: 1,
+        sessionManager,
         sessionTimeout: 1,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -200,7 +209,6 @@ describe('config', () => {
           versionName: true,
         },
         transportProvider: new FetchTransport(),
-        userId: 'userIdFromCookies',
         useBatch: false,
       });
     });
@@ -210,14 +218,14 @@ describe('config', () => {
     test('should return custom', () => {
       const cookieStorage = {
         options: {},
-        isEnabled: () => true,
-        get: () => ({
+        isEnabled: async () => true,
+        get: async () => ({
           optOut: false,
         }),
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       };
       const storage = Config.createCookieStorage({
         cookieStorage,
@@ -238,20 +246,20 @@ describe('config', () => {
     test('should use memory', () => {
       const cookiesConstructor = jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
         options: {},
-        isEnabled: () => false,
-        get: () => '',
-        getRaw: () => '',
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
+        isEnabled: async () => false,
+        get: async () => '',
+        getRaw: async () => '',
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
       });
       const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
-        isEnabled: () => false,
-        get: () => '',
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        isEnabled: async () => false,
+        get: async () => '',
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       });
       const storage = Config.createCookieStorage();
       expect(storage).toBeInstanceOf(core.MemoryStorage);
@@ -263,12 +271,12 @@ describe('config', () => {
   describe('createEventsStorage', () => {
     test('should return custom', () => {
       const storageProvider = {
-        isEnabled: () => true,
-        get: () => [],
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        isEnabled: async () => true,
+        get: async () => [],
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       };
       const storage = Config.createEventsStorage({
         storageProvider,
@@ -283,12 +291,12 @@ describe('config', () => {
 
     test('should use memory', () => {
       const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
-        isEnabled: () => false,
-        get: () => '',
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        isEnabled: async () => false,
+        get: async () => '',
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       });
       const storage = Config.createEventsStorage();
       expect(storage).toBeInstanceOf(core.MemoryStorage);
@@ -315,26 +323,6 @@ describe('config', () => {
     test('should return uuid', () => {
       const deviceId = Config.createDeviceId(undefined, undefined, undefined);
       expect(deviceId.substring(14, 15)).toEqual('4');
-    });
-  });
-
-  describe('createSessionId', () => {
-    test('should return session id from cookies', () => {
-      const now = Date.now();
-      const sessionId = Config.createSessionId(now + 1000, undefined, now - 1000, 60000);
-      expect(sessionId).toBe(now + 1000);
-    });
-
-    test('should return session id from options', () => {
-      const now = Date.now();
-      const sessionId = Config.createSessionId(undefined, now, undefined, 60000);
-      expect(sessionId).toBe(now);
-    });
-
-    test('should generate new session id', () => {
-      jest.spyOn(Date, 'now').mockReturnValueOnce(1);
-      const sessionId = Config.createSessionId(undefined, undefined, undefined, 60000);
-      expect(sessionId).toBe(1);
     });
   });
 

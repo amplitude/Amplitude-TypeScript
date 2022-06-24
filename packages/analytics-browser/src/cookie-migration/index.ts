@@ -1,5 +1,5 @@
 import { BrowserOptions, Storage, UserSession } from '@amplitude/analytics-types';
-import { getOldCookieName } from '../session-manager';
+import { getOldCookieName } from '../utils/cookie-name';
 import { LocalStorage } from '../storage/local-storage';
 import { CookieStorage } from '../storage/cookie';
 

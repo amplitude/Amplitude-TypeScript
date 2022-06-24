@@ -1,11 +1,3 @@
-export interface UserSession {
-  userId?: string;
-  deviceId?: string;
-  sessionId?: number;
-  lastEventTime?: number;
-  optOut: boolean;
-}
-
 export interface Storage<T> {
   isEnabled(): Promise<boolean>;
   get(key: string): Promise<T | undefined>;

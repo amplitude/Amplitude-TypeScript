@@ -3,7 +3,6 @@ import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '@amplitude/analytics-core';
 import { getLanguage } from '../utils/language';
 import { VERSION } from '../version';
-import { checkSessionExpiry, updateCookies } from '../session-manager';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
@@ -31,19 +30,27 @@ export class Context implements BeforePlugin {
 
   setup(config: BrowserConfig): Promise<undefined> {
     this.config = config;
+
     return Promise.resolve(undefined);
   }
 
   async execute(context: Event): Promise<Event> {
+    /**
+     * Manages user session triggered by new events
+     */
+    if (!this.isSessionValid()) {
+      // Creates new session
+      this.config.sessionId = Date.now();
+    } // else use previously creates session
+    // Updates last event time to extend time-based session
+    this.config.lastEventTime = Date.now();
     const time = new Date().getTime();
     const osName = this.uaResult.browser.name;
     const osVersion = this.uaResult.browser.version;
     const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
     const deviceVendor = this.uaResult.device.vendor;
 
-    await checkSessionExpiry(this.config);
-    await updateCookies(this.config, time);
-    const contextEvent: Event = {
+    const event: Event = {
       user_id: this.config.userId,
       device_id: this.config.deviceId,
       session_id: this.config.sessionId,
@@ -63,6 +70,12 @@ export class Context implements BeforePlugin {
       event_id: this.eventId++,
       library: this.library,
     };
-    return contextEvent;
+    return event;
+  }
+
+  isSessionValid() {
+    const lastEventTime = this.config.lastEventTime || Date.now();
+    const timeSinceLastEvent = Date.now() - lastEventTime;
+    return timeSinceLastEvent < this.config.sessionTimeout;
   }
 }
