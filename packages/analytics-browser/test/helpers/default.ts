@@ -19,12 +19,12 @@ export const DEFAULT_OPTIONS: InitOptions<IBrowserConfig> = {
   disableCookies: false,
   domain: '',
   storageProvider: {
-    isEnabled: () => true,
-    get: () => undefined,
-    set: () => undefined,
-    remove: () => undefined,
-    reset: () => undefined,
-    getRaw: () => undefined,
+    isEnabled: async () => true,
+    get: async () => undefined,
+    set: async () => undefined,
+    remove: async () => undefined,
+    reset: async () => undefined,
+    getRaw: async () => undefined,
   },
   trackingOptions: {
     city: true,

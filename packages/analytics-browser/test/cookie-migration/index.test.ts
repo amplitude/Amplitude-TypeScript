@@ -19,12 +19,12 @@ describe('cookie-migration', () => {
 
     test('should handle non-persistent storage', () => {
       jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
-        isEnabled: () => false,
-        get: () => ({}),
-        getRaw: () => '',
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
+        isEnabled: async () => false,
+        get: async () => ({}),
+        getRaw: async () => '',
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
       });
       const cookies = parseOldCookies(API_KEY, { disableCookies: true });
       expect(cookies).toEqual({
