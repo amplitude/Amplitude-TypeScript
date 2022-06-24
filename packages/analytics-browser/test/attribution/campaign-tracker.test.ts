@@ -101,6 +101,7 @@ describe('CampaignTracker', () => {
         storage: new MemoryStorage<Campaign>(),
         track: jest.fn(),
         onNewCampaign: jest.fn(),
+        trackPageViews: true,
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const campaignEvent = campaignTracker.createCampaignEvent({
@@ -150,7 +151,6 @@ describe('CampaignTracker', () => {
         track: jest.fn(),
         onNewCampaign: jest.fn(),
         initialEmptyValue: '(none)',
-        trackPageViews: false,
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const campaignEvent = campaignTracker.createCampaignEvent({
