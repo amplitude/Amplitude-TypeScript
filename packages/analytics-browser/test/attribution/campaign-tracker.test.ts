@@ -80,7 +80,7 @@ describe('CampaignTracker', () => {
   });
 
   describe('getCampaignFromStorage', () => {
-    test('should get campaign', () => {
+    test('should get campaign', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
         track: jest.fn(),
@@ -88,7 +88,7 @@ describe('CampaignTracker', () => {
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const get = jest.spyOn(campaignTracker.storage, 'get');
-      expect(campaignTracker.getCampaignFromStorage()).toEqual({
+      expect(await campaignTracker.getCampaignFromStorage()).toEqual({
         ...BASE_CAMPAIGN,
       });
       expect(get).toHaveBeenCalledTimes(1);

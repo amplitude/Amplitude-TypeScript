@@ -2,29 +2,29 @@ import { CookieStorage } from '../../src/storage/cookie';
 
 describe('cookies', () => {
   describe('isEnabled', () => {
-    test('should return true', () => {
+    test('should return true', async () => {
       const cookies = new CookieStorage();
-      expect(cookies.isEnabled()).toBe(true);
+      expect(await cookies.isEnabled()).toBe(true);
     });
   });
 
   describe('get', () => {
-    test('should return undefined for no cookie value', () => {
+    test('should return undefined for no cookie value', async () => {
       const cookies = new CookieStorage();
-      expect(cookies.get('hello')).toBe(undefined);
+      expect(await cookies.get('hello')).toBe(undefined);
     });
 
     test('should return cookie object value', async () => {
       const cookies = new CookieStorage<Record<string, number>>();
       await cookies.set('hello', { a: 1 });
-      expect(cookies.get('hello')).toEqual({ a: 1 });
+      expect(await cookies.get('hello')).toEqual({ a: 1 });
       await cookies.remove('hello');
     });
 
     test('should return cookie array value', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
-      expect(cookies.get('hello')).toEqual([1]);
+      expect(await cookies.get('hello')).toEqual([1]);
       await cookies.remove('hello');
     });
   });
@@ -33,7 +33,7 @@ describe('cookies', () => {
     test('should set cookie value', async () => {
       const cookies = new CookieStorage();
       await cookies.set('hello', 'world');
-      expect(cookies.get('hello')).toBe('world');
+      expect(await cookies.get('hello')).toBe('world');
       await cookies.remove('hello');
     });
 
@@ -45,7 +45,7 @@ describe('cookies', () => {
         sameSite: 'Lax',
       });
       await cookies.set('hello', 'world');
-      expect(cookies.get('hello')).toBe('world');
+      expect(await cookies.get('hello')).toBe('world');
       await cookies.remove('hello');
     });
 
@@ -57,7 +57,7 @@ describe('cookies', () => {
         sameSite: 'Lax',
       });
       await cookies.set('hello', 'world');
-      expect(cookies.get('hello')).toBe(undefined);
+      expect(await cookies.get('hello')).toBe(undefined);
       await cookies.remove('hello');
     });
   });
@@ -72,9 +72,9 @@ describe('cookies', () => {
   });
 
   describe('reset', () => {
-    test('should return undefined', () => {
+    test('should return undefined', async () => {
       const cookies = new CookieStorage();
-      expect(cookies.reset()).toBe(undefined);
+      expect(await cookies.reset()).toBe(undefined);
     });
   });
 });

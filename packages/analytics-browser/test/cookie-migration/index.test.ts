@@ -10,14 +10,14 @@ describe('cookie-migration', () => {
   });
 
   describe('parseOldCookies', () => {
-    test('should return default values', () => {
-      const cookies = parseOldCookies(API_KEY, { disableCookies: true });
+    test('should return default values', async () => {
+      const cookies = await parseOldCookies(API_KEY, { disableCookies: true });
       expect(cookies).toEqual({
         optOut: false,
       });
     });
 
-    test('should handle non-persistent storage', () => {
+    test('should handle non-persistent storage', async () => {
       jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
         isEnabled: async () => false,
         get: async () => ({}),
@@ -26,19 +26,19 @@ describe('cookie-migration', () => {
         remove: async () => undefined,
         reset: async () => undefined,
       });
-      const cookies = parseOldCookies(API_KEY, { disableCookies: true });
+      const cookies = await parseOldCookies(API_KEY, { disableCookies: true });
       expect(cookies).toEqual({
         optOut: false,
       });
     });
 
-    test('should old cookies', () => {
+    test('should old cookies', async () => {
       const timestamp = 1650949309508;
       const time = timestamp.toString(32);
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       document.cookie = `${getOldCookieName(API_KEY)}=deviceId.${encodedUserId}..${time}.${time}`;
-      const cookies = parseOldCookies(API_KEY);
+      const cookies = await parseOldCookies(API_KEY);
       expect(cookies).toEqual({
         deviceId: 'deviceId',
         userId: 'userId',

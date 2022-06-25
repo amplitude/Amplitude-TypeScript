@@ -30,6 +30,9 @@ describe('config', () => {
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = new Config.BrowserConfig(API_KEY);
+      // Hack: wait for session managers to load
+      await sessionManager.ready;
+      await (config.sessionManager as SessionManager).ready;
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
@@ -90,12 +93,13 @@ describe('config', () => {
         apiKey: API_KEY,
         sessionTimeout: 1800000,
       });
+      await sessionManager.ready;
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = Config.useBrowserConfig(API_KEY, undefined);
+      const config = await Config.useBrowserConfig(API_KEY, undefined);
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
@@ -154,12 +158,13 @@ describe('config', () => {
         apiKey: API_KEY,
         sessionTimeout: 1,
       });
+      await sessionManager.ready;
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = Config.useBrowserConfig(API_KEY, undefined, {
+      const config = await Config.useBrowserConfig(API_KEY, undefined, {
         partnerId: 'partnerId',
         plan: {
           version: '0',
@@ -215,7 +220,7 @@ describe('config', () => {
   });
 
   describe('createCookieStorage', () => {
-    test('should return custom', () => {
+    test('should return custom', async () => {
       const cookieStorage = {
         options: {},
         isEnabled: async () => true,
@@ -227,23 +232,23 @@ describe('config', () => {
         reset: async () => undefined,
         getRaw: async () => undefined,
       };
-      const storage = Config.createCookieStorage({
+      const storage = await Config.createCookieStorage({
         cookieStorage,
       });
       expect(storage).toBe(cookieStorage);
     });
 
-    test('should return cookies', () => {
-      const storage = Config.createCookieStorage();
+    test('should return cookies', async () => {
+      const storage = await Config.createCookieStorage();
       expect(storage).toBeInstanceOf(CookieModule.CookieStorage);
     });
 
-    test('should use return storage', () => {
-      const storage = Config.createCookieStorage({ disableCookies: true });
+    test('should use return storage', async () => {
+      const storage = await Config.createCookieStorage({ disableCookies: true });
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
-    test('should use memory', () => {
+    test('should use memory', async () => {
       const cookiesConstructor = jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
         options: {},
         isEnabled: async () => false,
@@ -261,7 +266,7 @@ describe('config', () => {
         reset: async () => undefined,
         getRaw: async () => undefined,
       });
-      const storage = Config.createCookieStorage();
+      const storage = await Config.createCookieStorage();
       expect(storage).toBeInstanceOf(core.MemoryStorage);
       expect(cookiesConstructor).toHaveBeenCalledTimes(1);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
@@ -269,7 +274,7 @@ describe('config', () => {
   });
 
   describe('createEventsStorage', () => {
-    test('should return custom', () => {
+    test('should return custom', async () => {
       const storageProvider = {
         isEnabled: async () => true,
         get: async () => [],
@@ -278,18 +283,18 @@ describe('config', () => {
         reset: async () => undefined,
         getRaw: async () => undefined,
       };
-      const storage = Config.createEventsStorage({
+      const storage = await Config.createEventsStorage({
         storageProvider,
       });
       expect(storage).toBe(storageProvider);
     });
 
-    test('should use return storage', () => {
-      const storage = Config.createEventsStorage();
+    test('should use return storage', async () => {
+      const storage = await Config.createEventsStorage();
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
-    test('should use memory', () => {
+    test('should use memory', async () => {
       const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
         isEnabled: async () => false,
         get: async () => '',
@@ -298,7 +303,7 @@ describe('config', () => {
         reset: async () => undefined,
         getRaw: async () => undefined,
       });
-      const storage = Config.createEventsStorage();
+      const storage = await Config.createEventsStorage();
       expect(storage).toBeInstanceOf(core.MemoryStorage);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
     });

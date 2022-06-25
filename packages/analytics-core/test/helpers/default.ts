@@ -7,12 +7,12 @@ export const useDefaultConfig = (): Config => ({
     send: () => Promise.resolve(null),
   },
   storageProvider: {
-    isEnabled: () => true,
-    get: () => undefined,
-    set: () => undefined,
-    remove: () => undefined,
-    reset: () => undefined,
-    getRaw: () => undefined,
+    isEnabled: async () => true,
+    get: async () => undefined,
+    set: async () => undefined,
+    remove: async () => undefined,
+    reset: async () => undefined,
+    getRaw: async () => undefined,
   },
   ...getDefaultConfig(),
 });

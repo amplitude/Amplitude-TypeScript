@@ -2,69 +2,69 @@ import { MemoryStorage } from '../../src/storage/memory';
 
 describe('memory', () => {
   describe('isEnabled', () => {
-    test('should return true', () => {
+    test('should return true', async () => {
       const memoryStorage = new MemoryStorage();
-      expect(memoryStorage.isEnabled()).toBe(true);
+      expect(await memoryStorage.isEnabled()).toBe(true);
     });
   });
 
   describe('get', () => {
-    test('should return null if not set', () => {
+    test('should return null if not set', async () => {
       const memoryStorage = new MemoryStorage();
-      expect(memoryStorage.get('1')).toBe(undefined);
+      expect(await memoryStorage.get('1')).toBe(undefined);
     });
 
-    test('should return value', () => {
+    test('should return value', async () => {
       const memoryStorage = new MemoryStorage();
-      memoryStorage.set('1', 'a');
-      expect(memoryStorage.get('1')).toBe('a');
+      await memoryStorage.set('1', 'a');
+      expect(await memoryStorage.get('1')).toBe('a');
     });
   });
 
   describe('getRaw', () => {
-    test('should return null if not set', () => {
+    test('should return null if not set', async () => {
       const memoryStorage = new MemoryStorage();
-      expect(memoryStorage.getRaw('1')).toBe(undefined);
+      expect(await memoryStorage.getRaw('1')).toBe(undefined);
     });
 
-    test('should return value', () => {
+    test('should return value', async () => {
       const memoryStorage = new MemoryStorage();
-      memoryStorage.set('1', 'a');
-      expect(memoryStorage.getRaw('1')).toBe('"a"');
+      await memoryStorage.set('1', 'a');
+      expect(await memoryStorage.getRaw('1')).toBe('"a"');
     });
   });
 
   describe('set', () => {
-    test('should set value', () => {
+    test('should set value', async () => {
       const memoryStorage = new MemoryStorage();
-      memoryStorage.set('1', 'a');
-      expect(memoryStorage.get('1')).toBe('a');
+      await memoryStorage.set('1', 'a');
+      expect(await memoryStorage.get('1')).toBe('a');
     });
   });
 
   describe('remove', () => {
-    test('should remove value of key', () => {
+    test('should remove value of key', async () => {
       const memoryStorage = new MemoryStorage();
-      memoryStorage.set('1', 'a');
-      memoryStorage.set('2', 'b');
-      expect(memoryStorage.get('1')).toBe('a');
-      expect(memoryStorage.get('2')).toBe('b');
-      memoryStorage.remove('1');
-      expect(memoryStorage.get('1')).toBe(undefined);
-      expect(memoryStorage.get('2')).toBe('b');
+      await memoryStorage.set('1', 'a');
+      await memoryStorage.set('2', 'b');
+      expect(await memoryStorage.get('1')).toBe('a');
+      expect(await memoryStorage.get('2')).toBe('b');
+      await memoryStorage.remove('1');
+      expect(await memoryStorage.get('1')).toBe(undefined);
+      expect(await memoryStorage.get('2')).toBe('b');
     });
   });
 
   describe('reset', () => {
-    test('should remove all values', () => {
+    test('should remove all values', async () => {
       const memoryStorage = new MemoryStorage();
-      memoryStorage.set('1', 'a');
-      memoryStorage.set('2', 'b');
-      expect(memoryStorage.get('1')).toBe('a');
-      expect(memoryStorage.get('2')).toBe('b');
-      memoryStorage.reset();
-      expect(memoryStorage.get('1')).toBe(undefined);
-      expect(memoryStorage.get('2')).toBe(undefined);
+      await memoryStorage.set('1', 'a');
+      await memoryStorage.set('2', 'b');
+      expect(await memoryStorage.get('1')).toBe('a');
+      expect(await memoryStorage.get('2')).toBe('b');
+      await memoryStorage.reset();
+      expect(await memoryStorage.get('1')).toBe(undefined);
+      expect(await memoryStorage.get('2')).toBe(undefined);
     });
   });
 });

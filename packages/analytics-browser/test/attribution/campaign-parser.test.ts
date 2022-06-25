@@ -4,7 +4,7 @@ import * as queryParams from '../../src/utils/query-params';
 
 describe('campaign-parser', () => {
   describe('parse', () => {
-    test('should return parameters', () => {
+    test('should return parameters', async () => {
       const parser = new CampaignParser();
       jest.spyOn(parser, 'getUtmParam').mockResolvedValue({
         utm_campaign: 'utm_campaign',
@@ -24,7 +24,7 @@ describe('campaign-parser', () => {
         fbclid: undefined,
       });
 
-      const campaign = parser.parse();
+      const campaign = await parser.parse();
       expect(campaign).toEqual({
         ...BASE_CAMPAIGN,
         utm_campaign: 'utm_campaign',
@@ -35,7 +35,7 @@ describe('campaign-parser', () => {
   });
 
   describe('getUtmParam', () => {
-    test('should return utm param from query params', () => {
+    test('should return utm param from query params', async () => {
       const parser = new CampaignParser();
       const getQueryParams = jest.spyOn(queryParams, 'getQueryParams').mockReturnValueOnce({
         utm_source: 'utm_source',
@@ -44,7 +44,7 @@ describe('campaign-parser', () => {
         utm_term: 'utm_term',
         utm_content: 'utm_content',
       });
-      const utmParam = parser.getUtmParam();
+      const utmParam = await parser.getUtmParam();
       expect(utmParam).toEqual({
         utm_source: 'utm_source',
         utm_medium: 'utm_medium',
@@ -55,7 +55,7 @@ describe('campaign-parser', () => {
       expect(getQueryParams).toHaveBeenCalledTimes(1);
     });
 
-    test('should return utm param from from cookies', () => {
+    test('should return utm param from from cookies', async () => {
       const parser = new CampaignParser();
       const getQueryParams = jest.spyOn(queryParams, 'getQueryParams').mockReturnValueOnce({});
       jest.spyOn(parser.utmCookieStorage, 'isEnabled').mockResolvedValueOnce(true);
@@ -66,7 +66,7 @@ describe('campaign-parser', () => {
         utmctr: 'utmctr',
         utmcct: 'utmcct',
       });
-      const utmParam = parser.getUtmParam();
+      const utmParam = await parser.getUtmParam();
       expect(utmParam).toEqual({
         utm_source: 'utmcsr',
         utm_medium: 'utmcmd',

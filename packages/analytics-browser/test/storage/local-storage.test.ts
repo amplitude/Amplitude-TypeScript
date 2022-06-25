@@ -2,28 +2,28 @@ import { LocalStorage } from '../../src/storage/local-storage';
 
 describe('local-storage', () => {
   describe('isEnabled', () => {
-    test('should return true', () => {
+    test('should return true', async () => {
       const localStorage = new LocalStorage();
-      expect(localStorage.isEnabled()).toBe(true);
+      expect(await localStorage.isEnabled()).toBe(true);
     });
   });
 
   describe('get', () => {
-    test('should return undefined if not set', () => {
+    test('should return undefined if not set', async () => {
       const localStorage = new LocalStorage();
-      expect(localStorage.get('1')).toBe(undefined);
+      expect(await localStorage.get('1')).toBe(undefined);
     });
 
     test('should return object', async () => {
       const localStorage = new LocalStorage<Record<string, number>>();
       await localStorage.set('1', { a: 1 });
-      expect(localStorage.get('1')).toEqual({ a: 1 });
+      expect(await localStorage.get('1')).toEqual({ a: 1 });
     });
 
     test('should return array', async () => {
       const localStorage = new LocalStorage<number[]>();
       await localStorage.set('1', [1]);
-      expect(localStorage.get('1')).toEqual([1]);
+      expect(await localStorage.get('1')).toEqual([1]);
     });
   });
 
@@ -31,7 +31,7 @@ describe('local-storage', () => {
     test('should set value', async () => {
       const localStorage = new LocalStorage();
       await localStorage.set('1', 'a');
-      expect(localStorage.get('1')).toBe('a');
+      expect(await localStorage.get('1')).toBe('a');
     });
   });
 
@@ -40,11 +40,11 @@ describe('local-storage', () => {
       const localStorage = new LocalStorage();
       await localStorage.set('1', 'a');
       await localStorage.set('2', 'b');
-      expect(localStorage.get('1')).toBe('a');
-      expect(localStorage.get('2')).toBe('b');
+      expect(await localStorage.get('1')).toBe('a');
+      expect(await localStorage.get('2')).toBe('b');
       await localStorage.remove('1');
-      expect(localStorage.get('1')).toBe(undefined);
-      expect(localStorage.get('2')).toBe('b');
+      expect(await localStorage.get('1')).toBe(undefined);
+      expect(await localStorage.get('2')).toBe('b');
     });
   });
 
@@ -53,11 +53,11 @@ describe('local-storage', () => {
       const localStorage = new LocalStorage();
       await localStorage.set('1', 'a');
       await localStorage.set('2', 'b');
-      expect(localStorage.get('1')).toBe('a');
-      expect(localStorage.get('2')).toBe('b');
+      expect(await localStorage.get('1')).toBe('a');
+      expect(await localStorage.get('2')).toBe('b');
       await localStorage.reset();
-      expect(localStorage.get('1')).toBe(undefined);
-      expect(localStorage.get('2')).toBe(undefined);
+      expect(await localStorage.get('1')).toBe(undefined);
+      expect(await localStorage.get('2')).toBe(undefined);
     });
   });
 });

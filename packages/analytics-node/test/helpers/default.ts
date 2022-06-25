@@ -12,12 +12,12 @@ export const USER_ID = 'userId';
 export const DEFAULT_OPTIONS: InitOptions<INodeConfig> = {
   apiKey: API_KEY,
   storageProvider: {
-    isEnabled: () => true,
-    get: () => undefined,
-    set: () => undefined,
-    remove: () => undefined,
-    reset: () => undefined,
-    getRaw: () => undefined,
+    isEnabled: async () => true,
+    get: async () => undefined,
+    set: async () => undefined,
+    remove: async () => undefined,
+    reset: async () => undefined,
+    getRaw: async () => undefined,
   },
   transportProvider: {
     send: () => Promise.resolve(null),

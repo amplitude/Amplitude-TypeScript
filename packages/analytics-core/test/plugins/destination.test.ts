@@ -26,7 +26,7 @@ describe('destination', () => {
       const event = {
         event_type: 'hello',
       };
-      const get = jest.spyOn(config.storageProvider, 'get').mockReturnValueOnce([event]);
+      const get = jest.spyOn(config.storageProvider, 'get').mockResolvedValueOnce([event]);
       const execute = jest.spyOn(destination, 'execute').mockReturnValueOnce(
         Promise.resolve({
           event,
@@ -46,16 +46,18 @@ describe('destination', () => {
       const event = {
         event_type: 'event_type',
       };
-      const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
-        context.callback({ event, code: 200, message: Status.Success });
-      });
+      const addToQueue = jest
+        .spyOn(destination, 'addToQueue')
+        .mockImplementation(async (context: DestinationContext) => {
+          context.callback({ event, code: 200, message: Status.Success });
+        });
       await destination.execute(event);
       expect(addToQueue).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('addToQueue', () => {
-    test('should add to queue and schedule a flush', () => {
+    test('should add to queue and schedule a flush', async () => {
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
@@ -71,7 +73,7 @@ describe('destination', () => {
         attempts: 0,
         delay: 0,
       };
-      destination.addToQueue(context);
+      await destination.addToQueue(context);
       expect(schedule).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
     });
@@ -280,35 +282,35 @@ describe('destination', () => {
   });
 
   describe('addToBackup', () => {
-    test('should add to back up and take snapshot', () => {
+    test('should add to back up and take snapshot', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = true;
       const event = {
         event_type: 'hello',
       };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.addToBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
+      await destination.addToBackup(event);
       expect(destination.backup.size).toBe(1);
       expect(snapshot).toHaveBeenCalledTimes(1);
     });
 
-    test('should not take snapshot', () => {
+    test('should not take snapshot', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = false;
       const event = {
         event_type: 'hello',
       };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.addToBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
+      await destination.addToBackup(event);
       expect(destination.backup.size).toBe(0);
       expect(snapshot).toHaveBeenCalledTimes(0);
     });
   });
 
   describe('removeFromBackup', () => {
-    test('should remove from back up and take snapshot', () => {
+    test('should remove from back up and take snapshot', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = true;
@@ -317,42 +319,42 @@ describe('destination', () => {
       };
       destination.backup.add(event);
       expect(destination.backup.size).toBe(1);
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.removeFromBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
+      await destination.removeFromBackup(event);
       expect(destination.backup.size).toBe(0);
       expect(snapshot).toHaveBeenCalledTimes(1);
     });
 
-    test('should not take snapshot', () => {
+    test('should not take snapshot', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = false;
       const event = {
         event_type: 'hello',
       };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.removeFromBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
+      await destination.removeFromBackup(event);
       expect(destination.backup.size).toBe(0);
       expect(snapshot).toHaveBeenCalledTimes(0);
     });
   });
 
   describe('snapshot', () => {
-    test('should save to storage provider', () => {
+    test('should save to storage provider', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = true;
-      const set = jest.spyOn(destination.config.storageProvider, 'set').mockReturnValueOnce(undefined);
-      destination.snapshot();
+      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
+      await destination.snapshot();
       expect(set).toHaveBeenCalledTimes(1);
     });
 
-    test('should not save to storage provider', () => {
+    test('should not save to storage provider', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = false;
-      const set = jest.spyOn(destination.config.storageProvider, 'set').mockReturnValueOnce(undefined);
-      destination.snapshot();
+      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
+      await destination.snapshot();
       expect(set).toHaveBeenCalledTimes(0);
     });
   });
