@@ -16,25 +16,20 @@ describe('config', () => {
   describe('BrowserConfig', () => {
     test('should create overwrite config', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      await cookieStorage.set(getCookieName(API_KEY), {
+      await cookieStorage.set(getCookieName(''), {
         deviceId: undefined,
         lastEventTime: undefined,
         optOut: false,
         sessionId: undefined,
         userId: undefined,
       });
-      const sessionManager = new SessionManager(cookieStorage, {
-        apiKey: API_KEY,
-        sessionTimeout: 1800000,
-      });
+      const sessionManager = await new SessionManager(cookieStorage, '').load();
+      sessionManager.isSessionCacheValid = false;
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = new Config.BrowserConfig(API_KEY);
-      // Hack: wait for session managers to load
-      await sessionManager.ready;
-      await (config.sessionManager as SessionManager).ready;
+      const config = new Config.BrowserConfig('', undefined);
       expect(config).toEqual({
-        apiKey: API_KEY,
+        apiKey: '',
         appVersion: undefined,
         cookieStorage,
         cookieExpiration: 365,
@@ -89,11 +84,8 @@ describe('config', () => {
         sessionId: undefined,
         userId: undefined,
       });
-      const sessionManager = new SessionManager(cookieStorage, {
-        apiKey: API_KEY,
-        sessionTimeout: 1800000,
-      });
-      await sessionManager.ready;
+      const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
+      sessionManager.isSessionCacheValid = false;
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
@@ -154,11 +146,8 @@ describe('config', () => {
         userId: 'userIdFromCookies',
         optOut: false,
       });
-      const sessionManager = new SessionManager(cookieStorage, {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
-      await sessionManager.ready;
+      const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
+      sessionManager.isSessionCacheValid = false;
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');

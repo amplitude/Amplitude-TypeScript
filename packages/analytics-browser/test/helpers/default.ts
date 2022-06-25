@@ -1,5 +1,6 @@
 import { MemoryStorage } from '@amplitude/analytics-core';
-import { BrowserConfig as IBrowserConfig, InitOptions } from '@amplitude/analytics-types';
+import { BrowserConfig as IBrowserConfig, InitOptions, UserSession } from '@amplitude/analytics-types';
+import { SessionManager } from '../../src/session-manager';
 
 import { BrowserConfig } from '../../src/config';
 
@@ -10,9 +11,11 @@ export const API_KEY = 'apiKey';
 
 export const USER_ID = 'userId';
 
+const cookieStorage = new MemoryStorage<UserSession>();
+
 export const DEFAULT_OPTIONS: InitOptions<IBrowserConfig> = {
   apiKey: API_KEY,
-  cookieStorage: new MemoryStorage(),
+  cookieStorage,
   cookieExpiration: 365,
   cookieSameSite: 'Lax',
   cookieSecure: false,
@@ -44,5 +47,6 @@ export const DEFAULT_OPTIONS: InitOptions<IBrowserConfig> = {
   transportProvider: {
     send: () => Promise.resolve(null),
   },
+  sessionManager: new SessionManager(cookieStorage, API_KEY),
   sessionTimeout: 30 * 60 * 1000,
 };
