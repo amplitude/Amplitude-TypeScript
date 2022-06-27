@@ -48,6 +48,8 @@ export interface BrowserConfig extends Config {
   userId?: string;
 }
 
+export type ReactNativeConfig = BrowserConfig;
+
 export type NodeConfig = Config;
 
 export type InitOptions<T extends Config> =
@@ -89,6 +91,21 @@ export interface AttributionBrowserOptions {
 export type BrowserOptions = Omit<
   Partial<
     BrowserConfig & {
+      transport: TransportType;
+    }
+  >,
+  'apiKey' | 'plugins'
+>;
+
+export interface AdditionalReactNativeOptions {
+  attribution?: AttributionReactNativeOptions;
+}
+
+export type AttributionReactNativeOptions = AttributionBrowserOptions;
+
+export type ReactNativeOptions = Omit<
+  Partial<
+    ReactNativeConfig & {
       transport: TransportType;
     }
   >,

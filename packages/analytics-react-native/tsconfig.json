@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@amplitude/analytics-react-native": ["./src/index"],
+    },
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react",
+    "lib": ["esnext", "dom"],
+    "module": "esnext",
+    "moduleResolution": "node",
+    "noImplicitUseStrict": false,
+    "noStrictGenericChecks": false,
+    "skipLibCheck": true,
+    "target": "esnext"
+  }
+}
