@@ -46,18 +46,16 @@ describe('destination', () => {
       const event = {
         event_type: 'event_type',
       };
-      const addToQueue = jest
-        .spyOn(destination, 'addToQueue')
-        .mockImplementation(async (context: DestinationContext) => {
-          context.callback({ event, code: 200, message: Status.Success });
-        });
+      const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
+        context.callback({ event, code: 200, message: Status.Success });
+      });
       await destination.execute(event);
       expect(addToQueue).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('addToQueue', () => {
-    test('should add to queue and schedule a flush', async () => {
+    test('should add to queue and schedule a flush', () => {
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
@@ -73,7 +71,7 @@ describe('destination', () => {
         attempts: 0,
         delay: 0,
       };
-      await destination.addToQueue(context);
+      destination.addToQueue(context);
       expect(schedule).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
     });
@@ -289,8 +287,8 @@ describe('destination', () => {
       const event = {
         event_type: 'hello',
       };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
-      await destination.addToBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
+      destination.addToBackup(event);
       expect(destination.backup.size).toBe(1);
       expect(snapshot).toHaveBeenCalledTimes(1);
     });
@@ -302,8 +300,8 @@ describe('destination', () => {
       const event = {
         event_type: 'hello',
       };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
-      await destination.addToBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
+      destination.addToBackup(event);
       expect(destination.backup.size).toBe(0);
       expect(snapshot).toHaveBeenCalledTimes(0);
     });
@@ -319,8 +317,8 @@ describe('destination', () => {
       };
       destination.backup.add(event);
       expect(destination.backup.size).toBe(1);
-      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
-      await destination.removeFromBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
+      destination.removeFromBackup(event);
       expect(destination.backup.size).toBe(0);
       expect(snapshot).toHaveBeenCalledTimes(1);
     });
@@ -332,29 +330,29 @@ describe('destination', () => {
       const event = {
         event_type: 'hello',
       };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockResolvedValueOnce(undefined);
-      await destination.removeFromBackup(event);
+      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
+      destination.removeFromBackup(event);
       expect(destination.backup.size).toBe(0);
       expect(snapshot).toHaveBeenCalledTimes(0);
     });
   });
 
   describe('snapshot', () => {
-    test('should save to storage provider', async () => {
+    test('should save to storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = true;
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      await destination.snapshot();
+      destination.snapshot();
       expect(set).toHaveBeenCalledTimes(1);
     });
 
-    test('should not save to storage provider', async () => {
+    test('should not save to storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = false;
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      await destination.snapshot();
+      destination.snapshot();
       expect(set).toHaveBeenCalledTimes(0);
     });
   });

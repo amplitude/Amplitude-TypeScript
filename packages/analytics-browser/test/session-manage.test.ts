@@ -5,13 +5,10 @@ import { API_KEY } from './helpers/default';
 
 describe('session-manager', () => {
   describe('setSession', () => {
-    test('should set session', () => {
+    test('should set session', async () => {
       const storage = new MemoryStorage<UserSession>();
       const set = jest.spyOn(storage, 'set');
-      const sessionManager = new SessionManager(storage, {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
+      const sessionManager = await new SessionManager(storage, API_KEY).load();
       sessionManager.setSession({ sessionId: 1 });
       expect(set).toHaveBeenCalledTimes(1);
       expect(sessionManager.cache.sessionId).toBe(1);
@@ -19,11 +16,8 @@ describe('session-manager', () => {
   });
 
   describe('setSessionId/getSessionId', () => {
-    test('should set/get session id', () => {
-      const sessionManager = new SessionManager(new MemoryStorage(), {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
+    test('should set/get session id', async () => {
+      const sessionManager = await new SessionManager(new MemoryStorage(), API_KEY).load();
       expect(sessionManager.getSessionId()).toBe(undefined);
       sessionManager.setSessionId(1);
       expect(sessionManager.getSessionId()).toBe(1);
@@ -31,33 +25,24 @@ describe('session-manager', () => {
   });
 
   describe('setDeviceId/getDeviceId', () => {
-    test('should set/get device id', () => {
-      const sessionManager = new SessionManager(new MemoryStorage(), {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
+    test('should set/get device id', async () => {
+      const sessionManager = await new SessionManager(new MemoryStorage(), API_KEY).load();
       sessionManager.setDeviceId('deviceId');
       expect(sessionManager.getDeviceId()).toBe('deviceId');
     });
   });
 
   describe('setUserId/getUserId', () => {
-    test('should set/get user id', () => {
-      const sessionManager = new SessionManager(new MemoryStorage(), {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
+    test('should set/get user id', async () => {
+      const sessionManager = await new SessionManager(new MemoryStorage(), API_KEY).load();
       sessionManager.setUserId('userId');
       expect(sessionManager.getUserId()).toBe('userId');
     });
   });
 
   describe('setLastEventTime/getLastEventTime', () => {
-    test('should set/get last event time', () => {
-      const sessionManager = new SessionManager(new MemoryStorage(), {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
+    test('should set/get last event time', async () => {
+      const sessionManager = await new SessionManager(new MemoryStorage(), API_KEY).load();
       const time = Date.now();
       sessionManager.setLastEventTime(time);
       expect(sessionManager.getLastEventTime()).toBe(time);
@@ -65,11 +50,8 @@ describe('session-manager', () => {
   });
 
   describe('setOptOut/getOptOut', () => {
-    test('should set/get last event time', () => {
-      const sessionManager = new SessionManager(new MemoryStorage(), {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
+    test('should set/get last event time', async () => {
+      const sessionManager = await new SessionManager(new MemoryStorage(), API_KEY).load();
       sessionManager.setOptOut(true);
       expect(sessionManager.getOptOut()).toBe(true);
     });
