@@ -95,7 +95,7 @@ export type BrowserOptions = Omit<
       transport: TransportType;
     }
   >,
-  'apiKey' | 'plugins' | 'sessionManager'
+  'apiKey' | 'plugins'
 >;
 
 export interface AdditionalReactNativeOptions {

@@ -1,4 +1,9 @@
+import { isNative } from './platform';
+
 export const getQueryParams = (): Record<string, string | undefined> => {
+  if (isNative()) {
+    return {};
+  }
   /* istanbul ignore if */
   if (typeof window === 'undefined') {
     return {};

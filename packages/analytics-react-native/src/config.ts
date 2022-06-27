@@ -19,32 +19,36 @@ import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { SessionManager } from './session-manager';
 
-export const getDefaultConfig = () => ({
-  cookieExpiration: 365,
-  cookieSameSite: 'Lax',
-  cookieSecure: false,
-  cookieStorage: new MemoryStorage<UserSession>(),
-  disableCookies: false,
-  domain: '',
-  sessionTimeout: 30 * 60 * 1000,
-  storageProvider: new MemoryStorage<Event[]>(),
-  trackingOptions: {
-    city: true,
-    country: true,
-    carrier: true,
-    deviceManufacturer: true,
-    deviceModel: true,
-    dma: true,
-    ipAddress: true,
-    language: true,
-    osName: true,
-    osVersion: true,
-    platform: true,
-    region: true,
-    versionName: true,
-  },
-  transportProvider: new FetchTransport(),
-});
+export const getDefaultConfig = () => {
+  const cookieStorage = new MemoryStorage<UserSession>();
+  return {
+    cookieExpiration: 365,
+    cookieSameSite: 'Lax',
+    cookieSecure: false,
+    cookieStorage,
+    disableCookies: false,
+    domain: '',
+    sessionManager: new SessionManager(cookieStorage, ''),
+    sessionTimeout: 30 * 60 * 1000,
+    storageProvider: new MemoryStorage<Event[]>(),
+    trackingOptions: {
+      city: true,
+      country: true,
+      carrier: true,
+      deviceManufacturer: true,
+      deviceModel: true,
+      dma: true,
+      ipAddress: true,
+      language: true,
+      osName: true,
+      osVersion: true,
+      platform: true,
+      region: true,
+      versionName: true,
+    },
+    transportProvider: new FetchTransport(),
+  };
+};
 
 export class ReactNativeConfig extends Config implements IReactNativeConfig {
   appVersion?: string;
@@ -68,11 +72,8 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
       transportProvider: options?.transportProvider ?? defaultConfig.transportProvider,
     });
     this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
+    this.sessionManager = options?.sessionManager ?? defaultConfig.sessionManager;
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
-    this.sessionManager = new SessionManager(this.cookieStorage, {
-      apiKey,
-      sessionTimeout: this.sessionTimeout,
-    });
 
     this.appVersion = options?.appVersion;
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
@@ -140,12 +141,12 @@ export const useReactNativeConfig = async (
   const cookieName = getCookieName(apiKey);
   const cookies = await cookieStorage.get(cookieName);
   const queryParams = getQueryParams();
-  const sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
+  const sessionManager = await new SessionManager(cookieStorage, apiKey).load();
 
   return new ReactNativeConfig(apiKey, userId ?? cookies?.userId, {
     ...options,
     cookieStorage,
-    sessionTimeout,
+    sessionManager,
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
     sessionId: (await cookieStorage.get(cookieName))?.sessionId ?? options?.sessionId,

@@ -1,34 +1,28 @@
-import {
-  UserSession,
-  Storage,
-  SessionManager as ISessionManager,
-  SessionManagerOptions,
-} from '@amplitude/analytics-types';
+import { UserSession, Storage, SessionManager as ISessionManager } from '@amplitude/analytics-types';
 import { getCookieName as getStorageKey } from './utils/cookie-name';
 
 export class SessionManager implements ISessionManager {
   storageKey: string;
-  sessionTimeout: number;
   cache: UserSession;
-  // Used for testing
-  ready: Promise<void>;
+  isSessionCacheValid = true;
 
-  constructor(private storage: Storage<UserSession>, options: SessionManagerOptions) {
-    this.storageKey = getStorageKey(options.apiKey);
-    this.sessionTimeout = options.sessionTimeout;
-    this.cache = {} as UserSession;
-    // Load the cache asynchronously. Values set before the cache loads are
-    // preferred over storage.
-    this.ready = this.storage.get(this.storageKey).then((userSession) => {
-      // Strip existing but undefined fields from cache, otherwise spreading
-      // will overwrite a value with undefined.
-      Object.keys(this.cache).forEach((key) => {
-        if (typeof this.cache[key as keyof UserSession] === 'undefined') {
-          delete this.cache[key as keyof UserSession];
-        }
-      });
-      this.cache = { ...userSession, ...this.cache } ?? { optOut: false };
-    });
+  constructor(private storage: Storage<UserSession>, apiKey: string) {
+    this.storageKey = getStorageKey(apiKey);
+    this.cache = { optOut: false };
+  }
+
+  /**
+   * load() must be called immediately after instantation
+   *
+   * ```ts
+   * await new SessionManager(...).load();
+   * ```
+   */
+  async load() {
+    this.cache = (await this.storage.get(this.storageKey)) ?? {
+      optOut: false,
+    };
+    return this;
   }
 
   setSession(session: Partial<UserSession>) {
@@ -37,8 +31,10 @@ export class SessionManager implements ISessionManager {
   }
 
   getSessionId() {
+    this.isSessionCacheValid = true;
     void this.storage.get(this.storageKey).then((userSession) => {
-      if (this.cache) {
+      // Checks if session id has been set since the last get
+      if (this.isSessionCacheValid) {
         this.cache.sessionId = userSession?.sessionId;
       }
     });
@@ -46,6 +42,8 @@ export class SessionManager implements ISessionManager {
   }
 
   setSessionId(sessionId: number) {
+    // Flags session id has been set
+    this.isSessionCacheValid = false;
     this.setSession({ sessionId });
   }
 

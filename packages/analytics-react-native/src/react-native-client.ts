@@ -1,6 +1,5 @@
 import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper } from '@amplitude/analytics-core';
 import {
-  AttributionBrowserOptions,
   ReactNativeConfig,
   Campaign,
   EventOptions,
@@ -10,6 +9,7 @@ import {
   TransportType,
   ReactNativeOptions,
   AdditionalReactNativeOptions,
+  AttributionReactNativeOptions,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -17,12 +17,12 @@ import { useReactNativeConfig, createTransport, createDeviceId, createFlexibleSt
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
 
-export class AmplitudeBrowser extends AmplitudeCore<ReactNativeConfig> {
+export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   async init(apiKey: string, userId?: string, options?: ReactNativeOptions & AdditionalReactNativeOptions) {
     // Step 1: Read cookies stored by old SDK
     const oldCookies = await parseOldCookies(apiKey, options);
 
-    // Step 2: Create browser config
+    // Step 2: Create react native config
     const reactNativeOptions = await useReactNativeConfig(apiKey, userId || oldCookies.userId, {
       ...options,
       deviceId: oldCookies.deviceId ?? options?.deviceId,
@@ -54,7 +54,7 @@ export class AmplitudeBrowser extends AmplitudeCore<ReactNativeConfig> {
     await this.runAttributionStrategy(options?.attribution, isNewSession);
   }
 
-  async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, isNewSession = false) {
+  async runAttributionStrategy(attributionConfig?: AttributionReactNativeOptions, isNewSession = false) {
     const track = this.track.bind(this);
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
 
@@ -139,7 +139,7 @@ export class AmplitudeBrowser extends AmplitudeCore<ReactNativeConfig> {
   }
 }
 
-const client = new AmplitudeBrowser();
+const client = new AmplitudeReactNative();
 
 /**
  * Initializes the Amplitude SDK with your apiKey, userId and optional configurations.
