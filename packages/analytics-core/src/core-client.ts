@@ -15,13 +15,16 @@ import {
   createRevenueEvent,
   createGroupEvent,
 } from './utils/event-builder';
-import { deregister, flush, push, register } from './timeline';
+import { Timeline } from './timeline';
 import { buildResult } from './utils/result-builder';
 export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: T;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  timeline: Timeline;
 
   constructor(name = '$default') {
     this.name = name;
@@ -30,6 +33,7 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   // NOTE: Do not use `_apiKey` and `_userId` here
   init(_apiKey: string | undefined, _userId: string | undefined, config: T) {
     this.config = config;
+    this.timeline = new Timeline();
     return Promise.resolve();
   }
 
@@ -62,17 +66,16 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   async add(plugin: Plugin) {
     const config = this.config;
-    return register(plugin, config);
+    return this.timeline.register(plugin, config);
   }
 
   async remove(pluginName: string) {
-    const config = this.config;
-    return deregister(pluginName, config);
+    return this.timeline.deregister(pluginName);
   }
 
   async dispatch(event: Event) {
     try {
-      const result = await push(event, this.config);
+      const result = await this.timeline.push(event, this.config);
       if (result.code === 200) {
         this.config.loggerProvider.log(result.message);
       } else {
@@ -92,7 +95,6 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   }
 
   flush() {
-    const config = this.config;
-    return flush(config);
+    return this.timeline.flush();
   }
 }
