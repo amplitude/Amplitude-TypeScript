@@ -5,7 +5,7 @@ import { Event } from './event';
 import { Transport, TransportType } from './transport';
 import { Plan } from './plan';
 import { Plugin } from './plugin';
-import { UserSession } from './session-manager';
+import { SessionManager, UserSession } from './session-manager';
 
 export enum ServerZone {
   US = 'US',
@@ -43,6 +43,7 @@ export interface BrowserConfig extends Config {
   lastEventTime?: number;
   partnerId?: string;
   sessionId?: number;
+  sessionManager: SessionManager;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
   userId?: string;
@@ -94,7 +95,7 @@ export type BrowserOptions = Omit<
       transport: TransportType;
     }
   >,
-  'apiKey' | 'plugins'
+  'apiKey' | 'plugins' | 'sessionManager'
 >;
 
 export interface AdditionalReactNativeOptions {

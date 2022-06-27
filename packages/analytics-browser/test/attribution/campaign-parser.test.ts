@@ -37,6 +37,7 @@ describe('campaign-parser', () => {
   describe('getUtmParam', () => {
     test('should return utm param from query params', async () => {
       const parser = new CampaignParser();
+      jest.spyOn(parser.utmCookieStorage, 'isEnabled').mockReturnValueOnce(Promise.resolve(false));
       const getQueryParams = jest.spyOn(queryParams, 'getQueryParams').mockReturnValueOnce({
         utm_source: 'utm_source',
         utm_medium: 'utm_medium',
