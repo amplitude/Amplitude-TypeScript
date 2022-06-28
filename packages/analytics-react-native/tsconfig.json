@@ -15,6 +15,6 @@
     "noImplicitUseStrict": false,
     "noStrictGenericChecks": false,
     "skipLibCheck": true,
-    "target": "esnext"
+    "target": "es6"
   }
 }
