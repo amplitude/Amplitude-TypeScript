@@ -45,7 +45,7 @@
     "src",
     "lib",
     "android",
-    "ios",
+    "ios_old",
     "amplitude-react-native.podspec",
     "!lib/typescript/example",
     "!android/build",

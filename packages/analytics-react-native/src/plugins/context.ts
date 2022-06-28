@@ -20,7 +20,7 @@ type NativeContext = {
   carrier: string;
 };
 
-interface AmplitudeReactNative {
+export interface AmplitudeReactNative {
   getApplicationContext(): Promise<NativeContext>;
 }
 

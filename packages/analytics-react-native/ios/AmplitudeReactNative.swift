@@ -1,7 +1,7 @@
 import Foundation
 
-@objc(ExperimentReactNativeClient)
-class ExperimentReactNativeClient: NSObject {
+@objc(AmplitudeReactNative)
+class ReactNative: NSObject {
 
     private let appleContextProvider = AppleContextProvider()
 
@@ -15,11 +15,12 @@ class ExperimentReactNativeClient: NSObject {
         _ resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
-        let applicationContext = [
+        let applicationContext: [String: String?] = [
             "version": appleContextProvider.version,
             "platform": appleContextProvider.platform,
             "language": appleContextProvider.language,
-            "os": appleContextProvider.os,
+            "os_name": appleContextProvider.osName,
+            "os_version": appleContextProvider.osVersion,
             "device_manufacturer": appleContextProvider.deviceManufacturer,
             "device_model": appleContextProvider.deviceModel,
         ]

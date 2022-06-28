@@ -1,5 +1,6 @@
 package com.amplitude.reactnative
 
+import com.facebook.react.bridge.Promise
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -19,16 +20,17 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     }
 
     @ReactMethod
-    private fun getApplicationContext(): ReadableMap {
-        return WritableNativeMap().apply {
-          putString("version", androidContextProvider.versionName)
-          putString("platform", androidContextProvider.osName)
-          putString("language", androidContextProvider.language)
-          putString("os", androidContextProvider.osName + " "  + androidContextProvider.osVersion)
-          putString("device_brand", androidContextProvider.brand)
-          putString("device_manufacturer", androidContextProvider.manufacturer)
-          putString("device_model", androidContextProvider.model)
-          putString("carrier", androidContextProvider.carrier)
-        }
+    private fun getApplicationContext(promise: Promise) {
+        promise.resolve(WritableNativeMap().apply {
+            putString("version", androidContextProvider.versionName)
+            putString("platform", androidContextProvider.osName)
+            putString("language", androidContextProvider.language)
+            putString("os_name", androidContextProvider.osName)
+            putString("os_version", androidContextProvider.osVersion)
+            putString("device_brand", androidContextProvider.brand)
+            putString("device_manufacturer", androidContextProvider.manufacturer)
+            putString("device_model", androidContextProvider.model)
+            putString("carrier", androidContextProvider.carrier)
+        })
     }
 }

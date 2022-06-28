@@ -7,9 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5E555C0D2413F4C50049A1A2 /* ExperimentReactNativeClient.m in Sources */ = {isa = PBXBuildFile; fileRef = B3E7B5891CC2AC0600A0062D /* ExperimentReactNativeClient.m */; };
-		F4FF95D7245B92E800C19C63 /* ExperimentReactNativeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FF95D6245B92E800C19C63 /* ExperimentReactNativeClient.swift */; };
-		2646B18E06A6417189417F8B /* libRNCAsyncStorage.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C7C9EF8E036F4D4BAF43E65D /* libRNCAsyncStorage.a */; };
+
+		5E555C0D2413F4C50049A1A2 /* AmplitudeReactNative.m in Sources */ = {isa = PBXBuildFile; fileRef = B3E7B5891CC2AC0600A0062D /* AmplitudeReactNative.m */; };
+		F4FF95D7245B92E800C19C63 /*  AmplitudeReactNative.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4FF95D6245B92E800C19C63 /*  AmplitudeReactNative.swift */; };
+
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,12 +26,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		134814201AA4EA6300B7C361 /* libExperimentReactNativeClient.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libExperimentReactNativeClient.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		B3E7B5891CC2AC0600A0062D /* ExperimentReactNativeClient.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ExperimentReactNativeClient.m; sourceTree = "<group>"; };
-		F4FF95D5245B92E700C19C63 /* ExperimentReactNativeClient-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ExperimentReactNativeClient-Bridging-Header.h"; sourceTree = "<group>"; };
-		F4FF95D6245B92E800C19C63 /* ExperimentReactNativeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExperimentReactNativeClient.swift; sourceTree = "<group>"; };
-		FC49439450BB498E87A3D554 /* RNCAsyncStorage.xcodeproj */ = {isa = PBXFileReference; name = "RNCAsyncStorage.xcodeproj"; path = "../node_modules/@react-native-community/async-storage/ios/RNCAsyncStorage.xcodeproj"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = wrapper.pb-project; explicitFileType = undefined; includeInIndex = 0; };
-		C7C9EF8E036F4D4BAF43E65D /* libRNCAsyncStorage.a */ = {isa = PBXFileReference; name = "libRNCAsyncStorage.a"; path = "libRNCAsyncStorage.a"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = archive.ar; explicitFileType = undefined; includeInIndex = 0; };
+		134814201AA4EA6300B7C361 /* libAmplitudeReactNative.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAmplitudeReactNative.a; sourceTree = BUILT_PRODUCTS_DIR; };
+
+		B3E7B5891CC2AC0600A0062D /* AmplitudeReactNative.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AmplitudeReactNative.m; sourceTree = "<group>"; };
+		F4FF95D5245B92E700C19C63 /* AmplitudeReactNative-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "AmplitudeReactNative-Bridging-Header.h"; sourceTree = "<group>"; };
+		F4FF95D6245B92E800C19C63 /* AmplitudeReactNative.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmplitudeReactNative.swift; sourceTree = "<group>"; };
+
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,7 +39,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2646B18E06A6417189417F8B /* libRNCAsyncStorage.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -48,7 +48,7 @@
 		134814211AA4EA7D00B7C361 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				134814201AA4EA6300B7C361 /* libExperimentReactNativeClient.a */,
+				134814201AA4EA6300B7C361 /* libAmplitudeReactNative.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -56,29 +56,21 @@
 		58B511D21A9E6C8500147676 = {
 			isa = PBXGroup;
 			children = (
-				F4FF95D6245B92E800C19C63 /* ExperimentReactNativeClient.swift */,
-				B3E7B5891CC2AC0600A0062D /* ExperimentReactNativeClient.m */,
-				F4FF95D5245B92E700C19C63 /* ExperimentReactNativeClient-Bridging-Header.h */,
+
+				F4FF95D6245B92E800C19C63 /* AmplitudeReactNative.swift */,
+				B3E7B5891CC2AC0600A0062D /* AmplitudeReactNative.m */,
+				F4FF95D5245B92E700C19C63 /* AmplitudeReactNative-Bridging-Header.h */,
+
 				134814211AA4EA7D00B7C361 /* Products */,
-				7060755C45464EB38D305143 /* Libraries */,
 			);
 			sourceTree = "<group>";
-		};
-		7060755C45464EB38D305143 /* Libraries */ = {
-			isa = "PBXGroup";
-			children = (
-				FC49439450BB498E87A3D554 /* RNCAsyncStorage.xcodeproj */,
-			);
-			name = Libraries;
-			sourceTree = "<group>";
-			path = "";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		58B511DA1A9E6C8500147676 /* ExperimentReactNativeClient */ = {
+		58B511DA1A9E6C8500147676 /* ReactNative */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 58B511EF1A9E6C8500147676 /* Build configuration list for PBXNativeTarget "ExperimentReactNativeClient" */;
+			buildConfigurationList = 58B511EF1A9E6C8500147676 /* Build configuration list for PBXNativeTarget "ReactNative" */;
 			buildPhases = (
 				58B511D71A9E6C8500147676 /* Sources */,
 				58B511D81A9E6C8500147676 /* Frameworks */,
@@ -88,9 +80,9 @@
 			);
 			dependencies = (
 			);
-			name = ExperimentReactNativeClient;
+			name = ReactNative;
 			productName = RCTDataManager;
-			productReference = 134814201AA4EA6300B7C361 /* libExperimentReactNativeClient.a */;
+			productReference = 134814201AA4EA6300B7C361 /* libAmplitudeReactNative.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -99,7 +91,7 @@
 		58B511D31A9E6C8500147676 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 920;
+				LastUpgradeCheck = 0920;
 				ORGANIZATIONNAME = Facebook;
 				TargetAttributes = {
 					58B511DA1A9E6C8500147676 = {
@@ -107,7 +99,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 58B511D61A9E6C8500147676 /* Build configuration list for PBXProject "ExperimentReactNativeClient" */;
+			buildConfigurationList = 58B511D61A9E6C8500147676 /* Build configuration list for PBXProject "ReactNative" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -120,7 +112,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				58B511DA1A9E6C8500147676 /* ExperimentReactNativeClient */,
+				58B511DA1A9E6C8500147676 /* ReactNative */,
 			);
 		};
 /* End PBXProject section */
@@ -130,8 +122,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F4FF95D7245B92E800C19C63 /* ExperimentReactNativeClient.swift in Sources */,
-				B3E7B58A1CC2AC0600A0062D /* ExperimentReactNativeClient.m in Sources */,
+
+				F4FF95D7245B92E800C19C63 /* AmplitudeReactNative.swift in Sources */,
+				B3E7B58A1CC2AC0600A0062D /* AmplitudeReactNative.m in Sources */,
+
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,16 +234,15 @@
 					"$(SRCROOT)/../../../React/**",
 					"$(SRCROOT)/../../react-native/React/**",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/ExperimentReactNativeClient\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = ExperimentReactNativeClient;
+				PRODUCT_NAME = ReactNative;
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "ExperimentReactNativeClient-Bridging-Header.h";
+
+				SWIFT_OBJC_BRIDGING_HEADER = "AmplitudeReactNative-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
+
 			};
 			name = Debug;
 		};
@@ -262,22 +255,21 @@
 					"$(SRCROOT)/../../../React/**",
 					"$(SRCROOT)/../../react-native/React/**",
 				);
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"\"$(SRCROOT)/ExperimentReactNativeClient\"",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				OTHER_LDFLAGS = "-ObjC";
-				PRODUCT_NAME = ExperimentReactNativeClient;
+				PRODUCT_NAME = ReactNative;
 				SKIP_INSTALL = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "ExperimentReactNativeClient-Bridging-Header.h";
+
+				SWIFT_OBJC_BRIDGING_HEADER = "AmplitudeReactNative-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
+
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		58B511D61A9E6C8500147676 /* Build configuration list for PBXProject "ExperimentReactNativeClient" */ = {
+		58B511D61A9E6C8500147676 /* Build configuration list for PBXProject "ReactNative" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				58B511ED1A9E6C8500147676 /* Debug */,
@@ -286,7 +278,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		58B511EF1A9E6C8500147676 /* Build configuration list for PBXNativeTarget "ExperimentReactNativeClient" */ = {
+		58B511EF1A9E6C8500147676 /* Build configuration list for PBXNativeTarget "ReactNative" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				58B511F01A9E6C8500147676 /* Debug */,

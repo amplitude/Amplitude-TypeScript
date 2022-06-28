@@ -5,7 +5,8 @@ import Foundation
     public let version: String? = AppleContextProvider.getVersion()
     public let language: String? = AppleContextProvider.getLanguage()
     public let platform: String = AppleContextProvider.getPlatform()
-    public let os: String = AppleContextProvider.getOs()
+    public let osName: String = AppleContextProvider.getOsName()
+    public let osVersion: String = AppleContextProvider.getOsVersion()
     public let deviceManufacturer: String = AppleContextProvider.getDeviceManufacturer()
     public let deviceModel: String = AppleContextProvider.getDeviceModel()
 
@@ -21,10 +22,13 @@ import Foundation
         return "iOS"
     }
 
-    private static func getOs() -> String {
+    private static func getOsName() -> String {
+        return "ios"
+    }
+
+    private static func getOsVersion() -> String {
         let systemVersion = ProcessInfo.processInfo.operatingSystemVersion
-        let os = "ios \(systemVersion.majorVersion).\(systemVersion.minorVersion).\(systemVersion.patchVersion)."
-        return os
+        return "\(systemVersion.majorVersion).\(systemVersion.minorVersion).\(systemVersion.patchVersion)."
     }
 
     private static func getDeviceManufacturer() -> String {

@@ -1,6 +1,6 @@
 #import <React/RCTBridgeModule.h>
 
-@interface RCT_EXTERN_MODULE(ExperimentReactNativeClient, NSObject)
+@interface RCT_EXTERN_MODULE(AmplitudeReactNative, NSObject)
 
 RCT_EXTERN_METHOD(getApplicationContext: (RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 
