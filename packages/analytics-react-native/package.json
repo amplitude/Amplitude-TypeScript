@@ -31,7 +31,9 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "test": "jest",
+    "test": "yarn test:web && yarn test:mobile",
+    "test:web": "jest --setupFiles './test/mock/setup-web.ts'",
+    "test:mobile": "jest --setupFiles './test/mock/setup-mobile.ts'",
     "typecheck": "tsc -p ./tsconfig.json",
     "version": "yarn build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
@@ -45,7 +47,7 @@
     "src",
     "lib",
     "android",
-    "ios_old",
+    "ios",
     "amplitude-react-native.podspec",
     "!lib/typescript/example",
     "!android/build",
@@ -74,20 +76,6 @@
     "react": "*",
     "react-native": "*"
   },
-  "jest": {
-    "preset": "react-native",
-    "modulePathIgnorePatterns": [
-      "<rootDir>/example/node_modules",
-      "<rootDir>/lib/"
-    ],
-    "setupFiles": [
-      "./__mocks__/setup.ts"
-    ]
-  },
-  "eslintIgnore": [
-    "node_modules/",
-    "lib/"
-  ],
   "react-native-builder-bob": {
     "source": "src",
     "output": "lib",
