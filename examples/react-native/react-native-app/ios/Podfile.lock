@@ -252,7 +252,7 @@ PODS:
   - Yoga (1.14.0)
 
 DEPENDENCIES:
-  - amplitude-react-native (from `../..`)
+  - amplitude-react-native (from `../../../../packages/analytics-react-native/`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/Libraries/FBReactNativeSpec`)
@@ -289,7 +289,7 @@ SPEC REPOS:
 
 EXTERNAL SOURCES:
   amplitude-react-native:
-    :path: "../.."
+    :path: "../../../../packages/analytics-react-native/"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
   FBLazyVector:
@@ -376,6 +376,6 @@ SPEC CHECKSUMS:
   RNCAsyncStorage: d81ee5c3db1060afd49ea7045ad460eff82d2b7d
   Yoga: 4bd86afe9883422a7c4028c00e34790f560923d6
 
-PODFILE CHECKSUM: 3f0c746ff115ec9587bcc50ef2e55b9e7fd15fcf
+PODFILE CHECKSUM: 57302f934de0359330b08b1adc7b62c8c37bf8db
 
 COCOAPODS: 1.11.3

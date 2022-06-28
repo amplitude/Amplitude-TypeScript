@@ -8,5 +8,5 @@ target "ReactNativeExample" do
 
   use_react_native!(:path => config["reactNativePath"])
 
-  pod "amplitude-react-native", :path => "../.."
+  pod "amplitude-react-native", :path => "../../../../packages/analytics-react-native/"
 end
