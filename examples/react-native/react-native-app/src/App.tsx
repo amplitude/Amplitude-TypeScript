@@ -4,8 +4,8 @@ import { init, track } from '@amplitude/analytics-react-native';
 
 const test = async () => {
   try {
-    await init('a6dd847b9d2f03c816d4f3f8458cdc1d', 'brian').promise;
-    await track('test event baby').promise;
+    await init('API_KEY').promise;
+    await track('test event').promise;
   } catch (e) {
     console.error('error: ', e);
   }
