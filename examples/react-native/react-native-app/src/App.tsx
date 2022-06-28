@@ -19,9 +19,9 @@ export default function App() {
   }, []);
 
   return (
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    <View style={styles.container}><Text>Hello World!</Text></View>
+    <View style={styles.container}>
+      <Text>Hello World!</Text>
+    </View>
   );
 }
 
