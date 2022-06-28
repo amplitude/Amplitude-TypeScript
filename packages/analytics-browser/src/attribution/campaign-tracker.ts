@@ -57,12 +57,12 @@ export class CampaignTracker implements ICampaignTracker {
     return !isReferrerExcluded && (hasNewUtm || hasNewReferrer);
   }
 
-  saveCampaignToStorage(campaign: Campaign) {
-    this.storage.set(this.storageKey, campaign);
+  async saveCampaignToStorage(campaign: Campaign): Promise<void> {
+    await this.storage.set(this.storageKey, campaign);
   }
 
-  getCampaignFromStorage(): Campaign {
-    return this.storage.get(this.storageKey) || { ...BASE_CAMPAIGN };
+  async getCampaignFromStorage(): Promise<Campaign> {
+    return (await this.storage.get(this.storageKey)) || { ...BASE_CAMPAIGN };
   }
 
   createCampaignEvent(campaign: Campaign) {
@@ -98,8 +98,8 @@ export class CampaignTracker implements ICampaignTracker {
     if (this.disabled) {
       return;
     }
-    const currentCampaign = this.parser.parse();
-    const previousCampaign = this.getCampaignFromStorage();
+    const currentCampaign = await this.parser.parse();
+    const previousCampaign = await this.getCampaignFromStorage();
     if (!isNewSession) {
       if (!this.trackNewCampaigns || !this.isNewCampaign(currentCampaign, previousCampaign)) {
         return;
@@ -107,6 +107,6 @@ export class CampaignTracker implements ICampaignTracker {
       this.onNewCampaign(currentCampaign);
     }
     await this.track(this.createCampaignEvent(currentCampaign));
-    this.saveCampaignToStorage(currentCampaign);
+    await this.saveCampaignToStorage(currentCampaign);
   }
 }

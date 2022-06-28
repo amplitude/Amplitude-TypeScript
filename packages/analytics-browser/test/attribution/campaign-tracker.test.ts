@@ -63,7 +63,7 @@ describe('CampaignTracker', () => {
   });
 
   describe('saveCampaignToStorage', () => {
-    test('should save campaign', () => {
+    test('should save campaign', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
         track: jest.fn(),
@@ -71,7 +71,7 @@ describe('CampaignTracker', () => {
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const set = jest.spyOn(campaignTracker.storage, 'set');
-      campaignTracker.saveCampaignToStorage({
+      await campaignTracker.saveCampaignToStorage({
         ...BASE_CAMPAIGN,
         utm_campaign: 'utm_campaign',
       });
@@ -80,7 +80,7 @@ describe('CampaignTracker', () => {
   });
 
   describe('getCampaignFromStorage', () => {
-    test('should get campaign', () => {
+    test('should get campaign', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
         track: jest.fn(),
@@ -88,7 +88,7 @@ describe('CampaignTracker', () => {
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const get = jest.spyOn(campaignTracker.storage, 'get');
-      expect(campaignTracker.getCampaignFromStorage()).toEqual({
+      expect(await campaignTracker.getCampaignFromStorage()).toEqual({
         ...BASE_CAMPAIGN,
       });
       expect(get).toHaveBeenCalledTimes(1);
@@ -199,7 +199,9 @@ describe('CampaignTracker', () => {
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest.spyOn(campaignTracker, 'saveCampaignToStorage').mockReturnValueOnce(undefined);
+      const saveCampaignToStorage = jest
+        .spyOn(campaignTracker, 'saveCampaignToStorage')
+        .mockResolvedValueOnce(undefined);
       await campaignTracker.send(true);
       expect(track).toHaveBeenCalledTimes(1);
       expect(saveCampaignToStorage).toHaveBeenCalledTimes(1);
@@ -216,7 +218,9 @@ describe('CampaignTracker', () => {
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const isNewCampaign = jest.spyOn(campaignTracker, 'isNewCampaign').mockReturnValueOnce(true);
       const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest.spyOn(campaignTracker, 'saveCampaignToStorage').mockReturnValueOnce(undefined);
+      const saveCampaignToStorage = jest
+        .spyOn(campaignTracker, 'saveCampaignToStorage')
+        .mockResolvedValueOnce(undefined);
       await campaignTracker.send(false);
       expect(onNewCampaign).toHaveBeenCalledTimes(1);
       expect(isNewCampaign).toHaveBeenCalledTimes(1);
@@ -235,7 +239,9 @@ describe('CampaignTracker', () => {
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const isNewCampaign = jest.spyOn(campaignTracker, 'isNewCampaign').mockReturnValueOnce(false);
       const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest.spyOn(campaignTracker, 'saveCampaignToStorage').mockReturnValueOnce(undefined);
+      const saveCampaignToStorage = jest
+        .spyOn(campaignTracker, 'saveCampaignToStorage')
+        .mockResolvedValueOnce(undefined);
       await campaignTracker.send(false);
       expect(onNewCampaign).toHaveBeenCalledTimes(0);
       expect(isNewCampaign).toHaveBeenCalledTimes(1);
@@ -253,7 +259,9 @@ describe('CampaignTracker', () => {
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest.spyOn(campaignTracker, 'saveCampaignToStorage').mockReturnValueOnce(undefined);
+      const saveCampaignToStorage = jest
+        .spyOn(campaignTracker, 'saveCampaignToStorage')
+        .mockResolvedValueOnce(undefined);
       await campaignTracker.send(false);
       expect(onNewCampaign).toHaveBeenCalledTimes(0);
       expect(track).toHaveBeenCalledTimes(0);

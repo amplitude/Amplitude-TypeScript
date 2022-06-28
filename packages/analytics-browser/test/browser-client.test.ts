@@ -23,7 +23,7 @@ describe('browser-client', () => {
 
   describe('init', () => {
     test('should initialize client', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const client = new AmplitudeBrowser();
@@ -34,7 +34,7 @@ describe('browser-client', () => {
     });
 
     test('should read from old cookies config', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
         deviceId: DEVICE_ID,
         sessionId: 1,
@@ -53,11 +53,11 @@ describe('browser-client', () => {
     });
 
     test('should read from new cookies config', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      jest.spyOn(cookieStorage, 'get').mockReturnValue({
+      jest.spyOn(cookieStorage, 'get').mockResolvedValue({
         sessionId: 1,
         deviceId: DEVICE_ID,
         optOut: false,
@@ -74,7 +74,7 @@ describe('browser-client', () => {
     });
 
     test('should track attributions', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const client = new AmplitudeBrowser();
@@ -87,7 +87,7 @@ describe('browser-client', () => {
     });
 
     test('should track attributions with config', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockReturnValueOnce({
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const client = new AmplitudeBrowser();

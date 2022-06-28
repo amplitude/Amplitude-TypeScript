@@ -19,32 +19,36 @@ import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { SessionManager } from './session-manager';
 
-export const getDefaultConfig = () => ({
-  cookieExpiration: 365,
-  cookieSameSite: 'Lax',
-  cookieSecure: false,
-  cookieStorage: new MemoryStorage<UserSession>(),
-  disableCookies: false,
-  domain: '',
-  sessionTimeout: 30 * 60 * 1000,
-  storageProvider: new MemoryStorage<Event[]>(),
-  trackingOptions: {
-    city: true,
-    country: true,
-    carrier: true,
-    deviceManufacturer: true,
-    deviceModel: true,
-    dma: true,
-    ipAddress: true,
-    language: true,
-    osName: true,
-    osVersion: true,
-    platform: true,
-    region: true,
-    versionName: true,
-  },
-  transportProvider: new FetchTransport(),
-});
+export const getDefaultConfig = () => {
+  const cookieStorage = new MemoryStorage<UserSession>();
+  return {
+    cookieExpiration: 365,
+    cookieSameSite: 'Lax',
+    cookieSecure: false,
+    cookieStorage,
+    disableCookies: false,
+    domain: '',
+    sessionManager: new SessionManager(cookieStorage, ''),
+    sessionTimeout: 30 * 60 * 1000,
+    storageProvider: new MemoryStorage<Event[]>(),
+    trackingOptions: {
+      city: true,
+      country: true,
+      carrier: true,
+      deviceManufacturer: true,
+      deviceModel: true,
+      dma: true,
+      ipAddress: true,
+      language: true,
+      osName: true,
+      osVersion: true,
+      platform: true,
+      region: true,
+      versionName: true,
+    },
+    transportProvider: new FetchTransport(),
+  };
+};
 
 export class BrowserConfig extends Config implements IBrowserConfig {
   appVersion?: string;
@@ -68,11 +72,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       transportProvider: options?.transportProvider ?? defaultConfig.transportProvider,
     });
     this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
+    this.sessionManager = options?.sessionManager ?? defaultConfig.sessionManager;
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
-    this.sessionManager = new SessionManager(this.cookieStorage, {
-      apiKey,
-      sessionTimeout: this.sessionTimeout,
-    });
 
     this.appVersion = options?.appVersion;
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
@@ -130,57 +131,64 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 }
 
-export const useBrowserConfig = (apiKey: string, userId?: string, options?: BrowserOptions): IBrowserConfig => {
+export const useBrowserConfig = async (
+  apiKey: string,
+  userId?: string,
+  options?: BrowserOptions,
+): Promise<IBrowserConfig> => {
   const defaultConfig = getDefaultConfig();
-  const cookieStorage = createCookieStorage(options);
+  const cookieStorage = await createCookieStorage(options);
   const cookieName = getCookieName(apiKey);
-  const cookies = cookieStorage.get(cookieName);
+  const cookies = await cookieStorage.get(cookieName);
   const queryParams = getQueryParams();
-  const sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
+  const sessionManager = await new SessionManager(cookieStorage, apiKey).load();
 
   return new BrowserConfig(apiKey, userId ?? cookies?.userId, {
     ...options,
     cookieStorage,
-    sessionTimeout,
+    sessionManager,
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
-    sessionId: cookieStorage.get(cookieName)?.sessionId ?? options?.sessionId,
-    storageProvider: createEventsStorage(options),
+    sessionId: (await cookieStorage.get(cookieName))?.sessionId ?? options?.sessionId,
+    storageProvider: await createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
   });
 };
 
-export const createCookieStorage = (overrides?: BrowserOptions, baseConfig = getDefaultConfig()) => {
+export const createCookieStorage = async (
+  overrides?: BrowserOptions,
+  baseConfig = getDefaultConfig(),
+): Promise<Storage<UserSession>> => {
   const options = { ...baseConfig, ...overrides };
   const cookieStorage = overrides?.cookieStorage;
-  if (!cookieStorage || !cookieStorage.isEnabled()) {
+  if (!cookieStorage || !(await cookieStorage.isEnabled())) {
     return createFlexibleStorage<UserSession>(options);
   }
   return cookieStorage;
 };
 
-export const createFlexibleStorage = <T>(options: BrowserOptions): Storage<T> => {
+export const createFlexibleStorage = async <T>(options: BrowserOptions): Promise<Storage<T>> => {
   let storage: Storage<T> = new CookieStorage({
     domain: options.domain,
     expirationDays: options.cookieExpiration,
     sameSite: options.cookieSameSite,
     secure: options.cookieSecure,
   });
-  if (options.disableCookies || !storage.isEnabled()) {
+  if (options.disableCookies || !(await storage.isEnabled())) {
     storage = new LocalStorage();
-    if (!storage.isEnabled()) {
+    if (!(await storage.isEnabled())) {
       storage = new MemoryStorage();
     }
   }
   return storage;
 };
 
-export const createEventsStorage = (overrides?: BrowserOptions) => {
+export const createEventsStorage = async (overrides?: BrowserOptions): Promise<Storage<Event[]>> => {
   let eventsStorage = overrides?.storageProvider;
-  if (!eventsStorage || !eventsStorage.isEnabled()) {
+  if (!eventsStorage || !(await eventsStorage.isEnabled())) {
     eventsStorage = new LocalStorage();
-    if (!eventsStorage.isEnabled()) {
+    if (!(await eventsStorage.isEnabled())) {
       eventsStorage = new MemoryStorage();
     }
   }

@@ -7,7 +7,7 @@ export class CookieStorage<T> implements Storage<T> {
     this.options = { ...options };
   }
 
-  isEnabled() {
+  async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (typeof window === 'undefined') {
       return false;
@@ -17,19 +17,19 @@ export class CookieStorage<T> implements Storage<T> {
     const testStrorage = new CookieStorage<string>();
     const testKey = 'AMP_TEST';
     try {
-      testStrorage.set(testKey, random);
-      const value = testStrorage.get(testKey);
+      await testStrorage.set(testKey, random);
+      const value = await testStrorage.get(testKey);
       return value === random;
     } catch {
       /* istanbul ignore next */
       return false;
     } finally {
-      testStrorage.remove(testKey);
+      await testStrorage.remove(testKey);
     }
   }
 
-  get(key: string): T | undefined {
-    const value = this.getRaw(key);
+  async get(key: string): Promise<T | undefined> {
+    const value = await this.getRaw(key);
     if (!value) {
       return undefined;
     }
@@ -42,7 +42,7 @@ export class CookieStorage<T> implements Storage<T> {
     }
   }
 
-  getRaw(key: string): string | undefined {
+  async getRaw(key: string): Promise<string | undefined> {
     const cookie = window.document.cookie.split('; ');
     const match = cookie.find((c) => c.indexOf(key + '=') === 0);
     if (!match) {
@@ -51,7 +51,7 @@ export class CookieStorage<T> implements Storage<T> {
     return match.substring(key.length + 1);
   }
 
-  set(key: string, value: T | null) {
+  async set(key: string, value: T | null): Promise<void> {
     try {
       const expirationDays = this.options.expirationDays ?? 0;
       const expires = value !== null ? expirationDays : -1;
@@ -81,11 +81,11 @@ export class CookieStorage<T> implements Storage<T> {
     }
   }
 
-  remove(key: string) {
-    this.set(key, null);
+  async remove(key: string): Promise<void> {
+    await this.set(key, null);
   }
 
-  reset() {
+  async reset(): Promise<void> {
     return;
   }
 }

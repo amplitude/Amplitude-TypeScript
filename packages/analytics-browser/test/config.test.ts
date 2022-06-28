@@ -14,24 +14,22 @@ describe('config', () => {
   const API_KEY = 'apiKey';
 
   describe('BrowserConfig', () => {
-    test('should create overwrite config', () => {
+    test('should create overwrite config', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      cookieStorage.set(getCookieName(API_KEY), {
+      await cookieStorage.set(getCookieName(''), {
         deviceId: undefined,
         lastEventTime: undefined,
         optOut: false,
         sessionId: undefined,
         userId: undefined,
       });
-      const sessionManager = new SessionManager(cookieStorage, {
-        apiKey: API_KEY,
-        sessionTimeout: 1800000,
-      });
+      const sessionManager = await new SessionManager(cookieStorage, '').load();
+      sessionManager.isSessionCacheValid = false;
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = new Config.BrowserConfig(API_KEY);
+      const config = new Config.BrowserConfig('', undefined);
       expect(config).toEqual({
-        apiKey: API_KEY,
+        apiKey: '',
         appVersion: undefined,
         cookieStorage,
         cookieExpiration: 365,
@@ -77,25 +75,23 @@ describe('config', () => {
   });
 
   describe('useBrowserConfig', () => {
-    test('should create default config', () => {
+    test('should create default config', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      cookieStorage.set(getCookieName(API_KEY), {
+      await cookieStorage.set(getCookieName(API_KEY), {
         deviceId: 'deviceId',
         lastEventTime: undefined,
         optOut: false,
         sessionId: undefined,
         userId: undefined,
       });
-      const sessionManager = new SessionManager(cookieStorage, {
-        apiKey: API_KEY,
-        sessionTimeout: 1800000,
-      });
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
+      const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
+      sessionManager.isSessionCacheValid = false;
+      jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(new core.MemoryStorage());
+      jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = Config.useBrowserConfig(API_KEY, undefined);
+      const config = await Config.useBrowserConfig(API_KEY, undefined);
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
@@ -141,25 +137,23 @@ describe('config', () => {
       });
     });
 
-    test('should create using cookies/overwrite', () => {
+    test('should create using cookies/overwrite', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      cookieStorage.set(getCookieName(API_KEY), {
+      await cookieStorage.set(getCookieName(API_KEY), {
         deviceId: 'deviceIdFromCookies',
         lastEventTime: Date.now(),
         sessionId: undefined,
         userId: 'userIdFromCookies',
         optOut: false,
       });
-      const sessionManager = new SessionManager(cookieStorage, {
-        apiKey: API_KEY,
-        sessionTimeout: 1,
-      });
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
-      jest.spyOn(Config, 'createEventsStorage').mockReturnValueOnce(new core.MemoryStorage());
+      const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
+      sessionManager.isSessionCacheValid = false;
+      jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(cookieStorage);
+      jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = Config.useBrowserConfig(API_KEY, undefined, {
+      const config = await Config.useBrowserConfig(API_KEY, undefined, {
         partnerId: 'partnerId',
         plan: {
           version: '0',
@@ -215,53 +209,53 @@ describe('config', () => {
   });
 
   describe('createCookieStorage', () => {
-    test('should return custom', () => {
+    test('should return custom', async () => {
       const cookieStorage = {
         options: {},
-        isEnabled: () => true,
-        get: () => ({
+        isEnabled: async () => true,
+        get: async () => ({
           optOut: false,
         }),
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       };
-      const storage = Config.createCookieStorage({
+      const storage = await Config.createCookieStorage({
         cookieStorage,
       });
       expect(storage).toBe(cookieStorage);
     });
 
-    test('should return cookies', () => {
-      const storage = Config.createCookieStorage();
+    test('should return cookies', async () => {
+      const storage = await Config.createCookieStorage();
       expect(storage).toBeInstanceOf(CookieModule.CookieStorage);
     });
 
-    test('should use return storage', () => {
-      const storage = Config.createCookieStorage({ disableCookies: true });
+    test('should use return storage', async () => {
+      const storage = await Config.createCookieStorage({ disableCookies: true });
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
-    test('should use memory', () => {
+    test('should use memory', async () => {
       const cookiesConstructor = jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
         options: {},
-        isEnabled: () => false,
-        get: () => '',
-        getRaw: () => '',
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
+        isEnabled: async () => false,
+        get: async () => '',
+        getRaw: async () => '',
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
       });
       const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
-        isEnabled: () => false,
-        get: () => '',
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        isEnabled: async () => false,
+        get: async () => '',
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       });
-      const storage = Config.createCookieStorage();
+      const storage = await Config.createCookieStorage();
       expect(storage).toBeInstanceOf(core.MemoryStorage);
       expect(cookiesConstructor).toHaveBeenCalledTimes(1);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
@@ -269,36 +263,36 @@ describe('config', () => {
   });
 
   describe('createEventsStorage', () => {
-    test('should return custom', () => {
+    test('should return custom', async () => {
       const storageProvider = {
-        isEnabled: () => true,
-        get: () => [],
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        isEnabled: async () => true,
+        get: async () => [],
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       };
-      const storage = Config.createEventsStorage({
+      const storage = await Config.createEventsStorage({
         storageProvider,
       });
       expect(storage).toBe(storageProvider);
     });
 
-    test('should use return storage', () => {
-      const storage = Config.createEventsStorage();
+    test('should use return storage', async () => {
+      const storage = await Config.createEventsStorage();
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
-    test('should use memory', () => {
+    test('should use memory', async () => {
       const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
-        isEnabled: () => false,
-        get: () => '',
-        set: () => undefined,
-        remove: () => undefined,
-        reset: () => undefined,
-        getRaw: () => undefined,
+        isEnabled: async () => false,
+        get: async () => '',
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
       });
-      const storage = Config.createEventsStorage();
+      const storage = await Config.createEventsStorage();
       expect(storage).toBeInstanceOf(core.MemoryStorage);
       expect(localStorageConstructor).toHaveBeenCalledTimes(1);
     });

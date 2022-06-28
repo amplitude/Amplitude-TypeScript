@@ -34,7 +34,7 @@ export class Context implements BeforePlugin {
     return Promise.resolve(undefined);
   }
 
-  execute(context: Event): Promise<Event> {
+  async execute(context: Event): Promise<Event> {
     /**
      * Manages user session triggered by new events
      */
@@ -49,6 +49,7 @@ export class Context implements BeforePlugin {
     const osVersion = this.uaResult.browser.version;
     const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
     const deviceVendor = this.uaResult.device.vendor;
+
     const event: Event = {
       user_id: this.config.userId,
       device_id: this.config.deviceId,
@@ -69,8 +70,7 @@ export class Context implements BeforePlugin {
       event_id: this.eventId++,
       library: this.library,
     };
-
-    return Promise.resolve(event);
+    return event;
   }
 
   isSessionValid() {

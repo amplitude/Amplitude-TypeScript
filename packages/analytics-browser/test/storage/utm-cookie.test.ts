@@ -2,17 +2,17 @@ import { UTMCookie } from '../../src/storage/utm-cookie';
 
 describe('UTMCookie', () => {
   describe('get', () => {
-    test('should return utm cookies', () => {
+    test('should return utm cookies', async () => {
       const utm = new UTMCookie();
       const __utmz =
         '57446972.1366152253.9.2.utmgclid=TestAbc%20123|utmcsr=TestAbc%20123|utmccn=TestAbc%20123|utmcmd=TestAbc%20123|utmctr=|utmcct';
-      jest.spyOn(utm, 'getRaw').mockImplementationOnce((key: string) => {
+      jest.spyOn(utm, 'getRaw').mockImplementationOnce(async (key: string) => {
         if (key === '__utmz') {
           return __utmz;
         }
         return;
       });
-      const data = utm.get('__utmz');
+      const data = await utm.get('__utmz');
       expect(data).toEqual({
         utmgclid: 'TestAbc 123',
         utmcsr: 'TestAbc 123',
@@ -21,20 +21,20 @@ describe('UTMCookie', () => {
       });
     });
 
-    test('should return undefined', () => {
+    test('should return undefined', async () => {
       const utm = new UTMCookie();
-      jest.spyOn(utm, 'getRaw').mockImplementationOnce(() => {
+      jest.spyOn(utm, 'getRaw').mockImplementationOnce(async () => {
         throw new Error();
       });
-      const data = utm.get('__utmz');
+      const data = await utm.get('__utmz');
       expect(data).toEqual(undefined);
     });
   });
 
   describe('set', () => {
-    test('should do nothing', () => {
+    test('should do nothing', async () => {
       const utm = new UTMCookie();
-      expect(utm.set()).toBeUndefined();
+      expect(await utm.set()).toBeUndefined();
     });
   });
 });

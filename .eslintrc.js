@@ -28,6 +28,7 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 0,
     '@typescript-eslint/semi': 0,
     '@typescript-eslint/space-before-function-paren': 0,
+    '@typescript-eslint/require-await': 0,
     'comma-dangle': 0,
     'new-cap': 0,
     'eol-last': [2, "always"],

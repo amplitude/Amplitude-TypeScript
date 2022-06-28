@@ -34,11 +34,11 @@ export class Destination implements DestinationPlugin {
   queue: Context[] = [];
   queueBuffer: Set<Context> = new Set();
 
-  setup(config: Config) {
+  async setup(config: Config): Promise<undefined> {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
-    const unsent = this.config.storageProvider.get(this.storageKey);
+    const unsent = await this.config.storageProvider.get(this.storageKey);
     this.snapshot(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
@@ -55,7 +55,7 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         delay: 0,
       };
-      this.addToQueue(context);
+      void this.addToQueue(context);
     });
   }
 
@@ -64,7 +64,7 @@ export class Destination implements DestinationPlugin {
       if (context.attempts < this.config.flushMaxRetries) {
         return true;
       }
-      this.fulfillRequest([context], 500, Status.Unknown);
+      void this.fulfillRequest([context], 500, Status.Unknown);
       return false;
     });
 
@@ -251,6 +251,6 @@ export class Destination implements DestinationPlugin {
   snapshot() {
     if (!this.config.saveEvents) return;
     const events = Array.from(this.backup);
-    this.config.storageProvider.set(this.storageKey, events);
+    void this.config.storageProvider.set(this.storageKey, events);
   }
 }

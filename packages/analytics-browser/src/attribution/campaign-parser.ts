@@ -26,18 +26,18 @@ import {
 export class CampaignParser implements ICampaignParser {
   utmCookieStorage = new UTMCookie();
 
-  parse(): Campaign {
+  async parse(): Promise<Campaign> {
     return {
       ...BASE_CAMPAIGN,
-      ...this.getUtmParam(),
+      ...(await this.getUtmParam()),
       ...this.getReferrer(),
       ...this.getClickIds(),
-    };
+    } as Campaign;
   }
 
-  getUtmParam(): UTMParameters {
+  async getUtmParam(): Promise<UTMParameters> {
     const params = getQueryParams();
-    const cookies = (this.utmCookieStorage.isEnabled() && this.utmCookieStorage.get('__utmz')) || {};
+    const cookies = ((await this.utmCookieStorage.isEnabled()) && (await this.utmCookieStorage.get('__utmz'))) || {};
 
     const utmSource = params[UTM_SOURCE] || cookies[UTMZ_SOURCE];
     const utmMedium = params[UTM_MEDIUM] || cookies[UTMZ_MEDIUM];

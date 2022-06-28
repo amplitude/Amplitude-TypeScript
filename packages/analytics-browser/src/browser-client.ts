@@ -20,10 +20,10 @@ import { CampaignTracker } from './attribution/campaign-tracker';
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
     // Step 1: Read cookies stored by old SDK
-    const oldCookies = parseOldCookies(apiKey, options);
+    const oldCookies = await parseOldCookies(apiKey, options);
 
     // Step 2: Create browser config
-    const browserOptions = useBrowserConfig(apiKey, userId || oldCookies.userId, {
+    const browserOptions = await useBrowserConfig(apiKey, userId || oldCookies.userId, {
       ...options,
       deviceId: oldCookies.deviceId ?? options?.deviceId,
       sessionId: oldCookies.sessionId ?? options?.sessionId,
@@ -58,7 +58,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     const track = this.track.bind(this);
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
 
-    const storage = createFlexibleStorage<Campaign>(this.config);
+    const storage = await createFlexibleStorage<Campaign>(this.config);
     const campaignTracker = new CampaignTracker(this.config.apiKey, {
       ...attributionConfig,
       storage,

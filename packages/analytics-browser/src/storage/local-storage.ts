@@ -1,30 +1,30 @@
 import { Storage } from '@amplitude/analytics-types';
 
 export class LocalStorage<T> implements Storage<T> {
-  isEnabled(): boolean {
+  async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (typeof window === 'undefined') {
       return false;
     }
 
     const random = String(Date.now());
-    const testStrorage = new LocalStorage<string>();
+    const testStorage = new LocalStorage<string>();
     const testKey = 'AMP_TEST';
     try {
-      testStrorage.set(testKey, random);
-      const value = testStrorage.get(testKey);
+      await testStorage.set(testKey, random);
+      const value = await testStorage.get(testKey);
       return value === random;
     } catch {
       /* istanbul ignore next */
       return false;
     } finally {
-      testStrorage.remove(testKey);
+      await testStorage.remove(testKey);
     }
   }
 
-  get(key: string): T | undefined {
+  async get(key: string): Promise<T | undefined> {
     try {
-      const value = this.getRaw(key);
+      const value = await this.getRaw(key);
       if (!value) {
         return undefined;
       }
@@ -36,11 +36,11 @@ export class LocalStorage<T> implements Storage<T> {
     }
   }
 
-  getRaw(key: string) {
+  async getRaw(key: string): Promise<string | undefined> {
     return window.localStorage.getItem(key) || undefined;
   }
 
-  set(key: string, value: T) {
+  async set(key: string, value: T): Promise<void> {
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
     } catch {
@@ -48,7 +48,7 @@ export class LocalStorage<T> implements Storage<T> {
     }
   }
 
-  remove(key: string) {
+  async remove(key: string): Promise<void> {
     try {
       window.localStorage.removeItem(key);
     } catch {
@@ -56,7 +56,7 @@ export class LocalStorage<T> implements Storage<T> {
     }
   }
 
-  reset() {
+  async reset(): Promise<void> {
     try {
       window.localStorage.clear();
     } catch {

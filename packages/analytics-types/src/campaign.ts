@@ -23,7 +23,7 @@ export interface ClickIdParameters extends Record<string, string | undefined> {
 export interface Campaign extends UTMParameters, ReferrerParameters, ClickIdParameters {}
 
 export interface CampaignParser {
-  parse(): Campaign;
+  parse(): Promise<Campaign>;
 }
 
 export interface CampaignTrackerOptions extends AttributionBrowserOptions {
