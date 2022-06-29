@@ -29,11 +29,16 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async get(key: string): Promise<T | undefined> {
-    const value = await this.getRaw(key);
+    let value = await this.getRaw(key);
     if (!value) {
       return undefined;
     }
     try {
+      try {
+        value = decodeURIComponent(atob(value));
+      } catch {
+        // value not encoded
+      }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return JSON.parse(value);
     } catch {
@@ -61,7 +66,7 @@ export class CookieStorage<T> implements Storage<T> {
         date.setTime(date.getTime() + expires * 24 * 60 * 60 * 1000);
         expireDate = date;
       }
-      let str = `${key}=${JSON.stringify(value)}`;
+      let str = `${key}=${btoa(encodeURIComponent(JSON.stringify(value)))}`;
       if (expireDate) {
         str += `; expires=${expireDate.toUTCString()}`;
       }
