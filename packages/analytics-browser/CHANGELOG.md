@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.7.0...@amplitude/analytics-browser@0.7.1) (2022-06-29)
+
+
+### Bug Fixes
+
+* encode cookies and set top level domain ([#130](https://github.com/amplitude/Amplitude-TypeScript/issues/130)) ([0276dc4](https://github.com/amplitude/Amplitude-TypeScript/commit/0276dc4b3a24f96612cac94d742e7382ceed32bf))
+* remove Awaited type to support older versions of typescript ([#121](https://github.com/amplitude/Amplitude-TypeScript/issues/121)) ([23d36f8](https://github.com/amplitude/Amplitude-TypeScript/commit/23d36f8aade258b995132dafd725ada00e400916))
+
+
+
+
+
 # [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@0.6.1...@amplitude/analytics-browser@0.7.0) (2022-06-29)
 
 

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.5.0...@amplitude/analytics-types@0.5.1) (2022-06-29)
+
+
+### Bug Fixes
+
+* remove Awaited type to support older versions of typescript ([#121](https://github.com/amplitude/Amplitude-TypeScript/issues/121)) ([23d36f8](https://github.com/amplitude/Amplitude-TypeScript/commit/23d36f8aade258b995132dafd725ada00e400916))
+
+
+
+
+
 # [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.4.0...@amplitude/analytics-types@0.5.0) (2022-06-29)
 
 
