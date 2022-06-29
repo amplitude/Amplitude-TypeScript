@@ -2,7 +2,7 @@ import * as Config from '../src/config';
 import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, TransportType, UserSession } from '@amplitude/analytics-types';
+import { LogLevel, Storage, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
 import { getCookieName } from '../src/utils/cookie-name';
 import { XHRTransport } from '../src/transports/xhr';
@@ -328,6 +328,61 @@ describe('config', () => {
 
     test('should return fetch', () => {
       expect(createTransport(TransportType.Fetch)).toBeInstanceOf(FetchTransport);
+    });
+  });
+
+  describe('getTopLevelDomain', () => {
+    test('should return empty string for localhost', async () => {
+      // jest env hostname is localhost
+      const domain = await Config.getTopLevelDomain();
+      expect(domain).toBe('');
+    });
+
+    test('should return empty string if no access to cookies', async () => {
+      const testCookieStorage: Storage<number> = {
+        isEnabled: () => Promise.resolve(false),
+        get: jest.fn().mockResolvedValueOnce(Promise.resolve(1)),
+        getRaw: jest.fn().mockResolvedValueOnce(Promise.resolve(1)),
+        set: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
+        remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
+        reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
+      };
+      jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
+        ...testCookieStorage,
+        options: {},
+      });
+      const domain = await Config.getTopLevelDomain();
+      expect(domain).toBe('');
+    });
+
+    test('should return top level domain', async () => {
+      const testCookieStorage: Storage<number> = {
+        isEnabled: () => Promise.resolve(true),
+        get: jest.fn().mockResolvedValueOnce(Promise.resolve(1)),
+        getRaw: jest.fn().mockResolvedValueOnce(Promise.resolve(1)),
+        set: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
+        remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
+        reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
+      };
+      const actualCookieStorage: Storage<number> = {
+        isEnabled: () => Promise.resolve(true),
+        get: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
+        getRaw: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)).mockResolvedValueOnce(Promise.resolve(1)),
+        set: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
+        remove: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
+        reset: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
+      };
+      jest
+        .spyOn(CookieModule, 'CookieStorage')
+        .mockReturnValueOnce({
+          ...testCookieStorage,
+          options: {},
+        })
+        .mockReturnValue({
+          ...actualCookieStorage,
+          options: {},
+        });
+      expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
   });
 });
