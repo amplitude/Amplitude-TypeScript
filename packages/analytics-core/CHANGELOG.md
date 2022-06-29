@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.5.0...@amplitude/analytics-core@0.6.0) (2022-06-29)
+
+
+### Features
+
+* add flush() api to send all events immediately ([#125](https://github.com/amplitude/Amplitude-TypeScript/issues/125)) ([b5dbcbb](https://github.com/amplitude/Amplitude-TypeScript/commit/b5dbcbb803c76ee5ade7ea85f76fbea50d8bab49))
+* make storage interface async to enable react-native ([#122](https://github.com/amplitude/Amplitude-TypeScript/issues/122)) ([42bb39c](https://github.com/amplitude/Amplitude-TypeScript/commit/42bb39c967db015d5899487618d066f3540c9f18))
+
+
+
+
+
 # [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.4.1...@amplitude/analytics-core@0.5.0) (2022-06-24)
 
 
