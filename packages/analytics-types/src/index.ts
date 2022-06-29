@@ -44,14 +44,7 @@ export { EventBridge, EventBridgeChannel, EventBridgeContainer, EventBridgeRecei
 export { Logger, LogLevel } from './logger';
 export { Payload } from './payload';
 export { Plan } from './plan';
-export {
-  Plugin,
-  BeforePlugin,
-  EnrichmentPlugin,
-  DestinationPlugin,
-  AmplitudeDestinationPlugin,
-  PluginType,
-} from './plugin';
+export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { QueueProxy, InstanceProxy } from './proxy';

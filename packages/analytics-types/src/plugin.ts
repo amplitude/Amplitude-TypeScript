@@ -27,10 +27,7 @@ export interface DestinationPlugin {
   type: PluginType.DESTINATION;
   setup(config: Config): Promise<undefined>;
   execute(context: Event): Promise<Result>;
-}
-
-export interface AmplitudeDestinationPlugin extends DestinationPlugin {
-  flush(includeQueueBuffer?: boolean): Promise<void>;
+  flush?(): Promise<void>;
 }
 
 export type Plugin = BeforePlugin | EnrichmentPlugin | DestinationPlugin;

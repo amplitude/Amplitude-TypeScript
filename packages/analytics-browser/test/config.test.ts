@@ -46,7 +46,6 @@ describe('config', () => {
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
-        plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
@@ -110,7 +109,6 @@ describe('config', () => {
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
-        plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
@@ -180,7 +178,6 @@ describe('config', () => {
         plan: {
           version: '0',
         },
-        plugins: [],
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
