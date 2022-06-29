@@ -2,19 +2,15 @@ import * as React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { init, track } from '@amplitude/analytics-react-native';
 
-const test = async () => {
-  try {
-    await init('API_KEY').promise;
-    await track('test event').promise;
-  } catch (e) {
-    console.error('error: ', e);
-  }
-}
-
 export default function App() {
   React.useEffect(() => {
     (async () => {
-      await test();
+      try {
+        await init('API_KEY').promise;
+        await track('test event').promise;
+      } catch (e) {
+        console.error('error: ', e);
+      }
     })();
   }, []);
 
