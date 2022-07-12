@@ -351,3 +351,16 @@ export const setOptOut = client.setOptOut.bind(client);
  * ```
  */
 export const setTransport = client.setTransport.bind(client);
+
+/**
+ * Flush and send all the events which haven't been sent.
+ *
+ *```typescript
+ * // Send all the unsent events
+ * flush();
+ *
+ * // alternatively, this tracking method is awaitable
+ * await flush().promise;
+ * ```
+ */
+export const flush = returnWrapper(client.flush.bind(client));

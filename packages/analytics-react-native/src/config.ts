@@ -137,7 +137,8 @@ export const useReactNativeConfig = async (
   options?: ReactNativeOptions,
 ): Promise<IReactNativeConfig> => {
   const defaultConfig = getDefaultConfig();
-  const cookieStorage = await createCookieStorage(options);
+  const domain = options?.domain ?? (await getTopLevelDomain());
+  const cookieStorage = await createCookieStorage({ ...options, domain });
   const cookieName = getCookieName(apiKey);
   const cookies = await cookieStorage.get(cookieName);
   const queryParams = getQueryParams();
@@ -148,6 +149,7 @@ export const useReactNativeConfig = async (
     cookieStorage,
     sessionManager,
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
+    domain,
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
     sessionId: (await cookieStorage.get(cookieName))?.sessionId ?? options?.sessionId,
     storageProvider: await createEventsStorage(options),
@@ -207,4 +209,32 @@ export const createTransport = (transport?: TransportType) => {
     return new SendBeaconTransport();
   }
   return getDefaultConfig().transportProvider;
+};
+
+export const getTopLevelDomain = async (url?: string) => {
+  if (!(await new CookieStorage<string>().isEnabled()) || (!url && typeof location === 'undefined')) {
+    return '';
+  }
+
+  const host = url ?? location.hostname;
+  const parts = host.split('.');
+  const levels = [];
+  const storageKey = 'AMP_TLDTEST';
+
+  for (let i = parts.length - 2; i >= 0; --i) {
+    levels.push(parts.slice(i).join('.'));
+  }
+  for (let i = 0; i < levels.length; i++) {
+    const domain = levels[i];
+    const options = { domain: '.' + domain };
+    const storage = new CookieStorage<number>(options);
+    await storage.set(storageKey, 1);
+    const value = await storage.get(storageKey);
+    if (value) {
+      await storage.remove(storageKey);
+      return '.' + domain;
+    }
+  }
+
+  return '';
 };

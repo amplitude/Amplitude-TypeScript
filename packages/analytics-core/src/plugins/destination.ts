@@ -22,24 +22,22 @@ export class Destination implements DestinationPlugin {
   name = 'amplitude';
   type = PluginType.DESTINATION as const;
 
-  backoff = 1000;
-  throttle = 30000;
+  retryTimeout = 1000;
+  throttleTimeout = 30000;
   storageKey = '';
-  backup: Set<Event> = new Set();
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: Config;
   scheduled = false;
   queue: Context[] = [];
-  queueBuffer: Set<Context> = new Set();
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider.get(this.storageKey);
-    this.snapshot(); // sets storage to '[]'
+    this.saveEvents(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
@@ -53,7 +51,7 @@ export class Destination implements DestinationPlugin {
         event,
         attempts: 0,
         callback: (result: Result) => resolve(result),
-        delay: 0,
+        timeout: 0,
       };
       void this.addToQueue(context);
     });
@@ -62,38 +60,34 @@ export class Destination implements DestinationPlugin {
   addToQueue(...list: Context[]) {
     const tryable = list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
+        context.attempts += 1;
         return true;
       }
       void this.fulfillRequest([context], 500, Status.Unknown);
       return false;
     });
 
-    this.addToBackup(...tryable.map((context) => context.event));
     tryable.forEach((context) => {
-      context.attempts += 1;
-      const delay = context.delay;
-      context.delay = 0;
-      if (context.attempts === 1 && !context.delay) {
-        this.queue = this.queue.concat(context);
+      this.queue = this.queue.concat(context);
+      if (context.timeout === 0) {
         this.schedule(this.config.flushIntervalMillis);
         return;
       }
-      this.queueBuffer.add(context);
+
       setTimeout(() => {
-        if (this.queueBuffer.has(context)) {
-          this.queueBuffer.delete(context);
-          this.queue = this.queue.concat(context);
-          this.schedule(this.config.flushIntervalMillis);
-        }
-      }, delay || context.attempts * this.backoff);
+        context.timeout = 0;
+        this.schedule(0);
+      }, context.timeout);
     });
+
+    this.saveEvents();
   }
 
   schedule(timeout: number) {
     if (this.scheduled) return;
     this.scheduled = true;
     setTimeout(() => {
-      void this.flush().then(() => {
+      void this.flush(true).then(() => {
         this.scheduled = false;
         if (this.queue.length > 0) {
           this.schedule(timeout);
@@ -102,19 +96,17 @@ export class Destination implements DestinationPlugin {
     }, timeout);
   }
 
-  async flush(includeQueueBuffer = false) {
-    const list = this.queue;
-    this.queue = [];
+  async flush(useRetry = false) {
+    const list: Context[] = [];
+    const later: Context[] = [];
+    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
+    this.queue = later;
 
-    if (includeQueueBuffer) {
-      list.push(...this.queueBuffer.values());
-      this.queueBuffer.clear();
-    }
     const batches = chunk(list, this.config.flushQueueSize);
-    await Promise.all(batches.map((batch) => this.send(batch)));
+    await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
   }
 
-  async send(list: Context[]) {
+  async send(list: Context[], useRetry = true) {
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
@@ -132,6 +124,10 @@ export class Destination implements DestinationPlugin {
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
+        return;
+      }
+      if (!useRetry) {
+        this.fulfillRequest(list, res.statusCode, res.status);
         return;
       }
       this.handleReponse(res, list);
@@ -219,7 +215,7 @@ export class Destination implements DestinationPlugin {
         return;
       }
       if (throttledIndexSet.has(index)) {
-        context.delay = this.throttle;
+        context.timeout = this.throttleTimeout;
       }
       return true;
     });
@@ -228,29 +224,30 @@ export class Destination implements DestinationPlugin {
   }
 
   handleOtherReponse(list: Context[]) {
-    this.addToQueue(...list);
+    this.addToQueue(
+      ...list.map((context) => {
+        context.timeout = context.attempts * this.retryTimeout;
+        return context;
+      }),
+    );
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    this.removeFromBackup(...list.map((context) => context.event));
+    this.saveEvents();
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
-  addToBackup(...events: Event[]) {
-    if (!this.config.saveEvents) return;
-    events.forEach((event) => this.backup.add(event));
-    this.snapshot();
-  }
-
-  removeFromBackup(...events: Event[]) {
-    if (!this.config.saveEvents) return;
-    events.forEach((event) => this.backup.delete(event));
-    this.snapshot();
-  }
-
-  snapshot() {
-    if (!this.config.saveEvents) return;
-    const events = Array.from(this.backup);
+  /**
+   * Saves events to storage
+   * This is called on
+   * 1) new events are added to queue; or
+   * 2) response comes back for a request
+   */
+  saveEvents() {
+    if (!this.config.saveEvents) {
+      return;
+    }
+    const events = Array.from(this.queue.map((context) => context.event));
     void this.config.storageProvider.set(this.storageKey, events);
   }
 }

@@ -1,5 +1,4 @@
 import {
-  AmplitudeDestinationPlugin,
   BeforePlugin,
   Config,
   DestinationPlugin,
@@ -13,94 +12,103 @@ import {
 import { OPT_OUT_MESSAGE } from './messages';
 import { buildResult } from './utils/result-builder';
 
-export const queue: [Event, EventCallback, Plugin[]][] = [];
-let applying = false;
+export class Timeline {
+  queue: [Event, EventCallback][] = [];
+  applying = false;
+  flushing = false;
+  plugins: Plugin[] = [];
 
-export const register = async (plugin: Plugin, config: Config) => {
-  await plugin.setup(config);
-  config.plugins.push(plugin);
-};
+  async register(plugin: Plugin, config: Config) {
+    await plugin.setup(config);
+    this.plugins.push(plugin);
+  }
 
-export const deregister = (pluginName: string, config: Config) => {
-  config.plugins.splice(
-    config.plugins.findIndex((plugin) => plugin.name === pluginName),
-    1,
-  );
-  return Promise.resolve();
-};
+  deregister(pluginName: string) {
+    this.plugins.splice(
+      this.plugins.findIndex((plugin) => plugin.name === pluginName),
+      1,
+    );
+    return Promise.resolve();
+  }
 
-export const push = (event: Event, config: Config) => {
-  return new Promise<Result>((resolve) => {
-    if (config.optOut) {
-      resolve(buildResult(event, 0, OPT_OUT_MESSAGE));
+  push(event: Event, config: Config) {
+    return new Promise<Result>((resolve) => {
+      if (config.optOut) {
+        resolve(buildResult(event, 0, OPT_OUT_MESSAGE));
+        return;
+      }
+      this.queue.push([event, resolve]);
+      this.scheduleApply(0);
+    });
+  }
+
+  scheduleApply(timeout: number) {
+    if (this.applying) return;
+    this.applying = true;
+    setTimeout(() => {
+      void this.apply(this.queue.shift()).then(() => {
+        this.applying = false;
+        if (this.queue.length > 0) {
+          this.scheduleApply(0);
+        }
+      });
+    }, timeout);
+  }
+
+  async apply(item: [Event, EventCallback] | undefined) {
+    if (!item) {
       return;
     }
-    queue.push([event, resolve, config.plugins]);
-    scheduleApply(0);
-  });
-};
 
-export const scheduleApply = (timeout: number) => {
-  if (applying) return;
-  applying = true;
-  setTimeout(() => {
-    void apply().then(() => {
-      applying = false;
-      if (queue.length > 0) {
-        scheduleApply(0);
-      }
+    let [event] = item;
+    const [, resolve] = item;
+
+    const before = this.plugins.filter<BeforePlugin>(
+      (plugin: Plugin): plugin is BeforePlugin => plugin.type === PluginType.BEFORE,
+    );
+
+    for (const plugin of before) {
+      event = await plugin.execute({ ...event });
+    }
+
+    const enrichment = this.plugins.filter<EnrichmentPlugin>(
+      (plugin: Plugin): plugin is EnrichmentPlugin => plugin.type === PluginType.ENRICHMENT,
+    );
+
+    for (const plugin of enrichment) {
+      event = await plugin.execute({ ...event });
+    }
+
+    const destination = this.plugins.filter<DestinationPlugin>(
+      (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
+    );
+
+    const executeDestinations = destination.map((plugin) => {
+      const eventClone = { ...event };
+      return plugin.execute(eventClone).catch((e) => buildResult(eventClone, 0, String(e)));
     });
-  }, timeout);
-};
 
-export const apply = async () => {
-  const item = queue.shift();
+    void Promise.all(executeDestinations).then(([result]) => {
+      resolve(result);
+    });
 
-  if (!item) {
     return;
   }
 
-  let [event] = item;
-  const [, resolve, plugins] = item;
+  async flush() {
+    const queue = this.queue;
+    this.queue = [];
 
-  const before = plugins.filter<BeforePlugin>(
-    (plugin: Plugin): plugin is BeforePlugin => plugin.type === PluginType.BEFORE,
-  );
+    await Promise.all(queue.map((item) => this.apply(item)));
 
-  for (const plugin of before) {
-    event = await plugin.execute({ ...event });
+    const destination = this.plugins.filter<DestinationPlugin>(
+      (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
+    );
+
+    const executeDestinations = destination.map((plugin) => {
+      return plugin.flush && plugin.flush();
+    });
+
+    await Promise.all(executeDestinations);
   }
-
-  const enrichment = plugins.filter<EnrichmentPlugin>(
-    (plugin: Plugin): plugin is EnrichmentPlugin => plugin.type === PluginType.ENRICHMENT,
-  );
-
-  for (const plugin of enrichment) {
-    event = await plugin.execute({ ...event });
-  }
-
-  const destination = plugins.filter<DestinationPlugin>(
-    (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
-  );
-
-  const executeDestinations = destination.map((plugin) => {
-    const eventClone = { ...event };
-    return plugin.execute(eventClone).catch((e) => buildResult(eventClone, 0, String(e)));
-  });
-
-  void Promise.all(executeDestinations).then(([result]) => {
-    resolve(result);
-  });
-
-  return;
-};
-
-export const flush = async (config: Config) => {
-  const destination = config.plugins.filter<AmplitudeDestinationPlugin>(
-    (plugin: Plugin): plugin is AmplitudeDestinationPlugin => plugin.type === PluginType.DESTINATION,
-  );
-
-  const flushDestinations = destination.map((plugin) => plugin.flush && plugin.flush(true));
-
-  await Promise.all(flushDestinations);
-};
+}

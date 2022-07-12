@@ -69,7 +69,7 @@ describe('destination', () => {
         event,
         callback: () => undefined,
         attempts: 0,
-        delay: 0,
+        timeout: 0,
       };
       destination.addToQueue(context);
       expect(schedule).toHaveBeenCalledTimes(1);
@@ -94,7 +94,7 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          delay: 0,
+          timeout: 0,
         },
       ];
       const flush = jest
@@ -132,21 +132,12 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          delay: 0,
+          timeout: 0,
         },
       ];
-      destination.queueBuffer = new Set([
-        {
-          event: { event_type: 'event_type' },
-          attempts: 0,
-          callback: () => undefined,
-          delay: 0,
-        },
-      ]);
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       const result = await destination.flush();
       expect(destination.queue).toEqual([]);
-      expect(destination.queueBuffer.size).toEqual(1);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -161,23 +152,42 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          delay: 0,
+          timeout: 0,
         },
       ];
-      destination.queueBuffer = new Set([
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const result = await destination.flush();
+      expect(destination.queue).toEqual([]);
+      expect(result).toBe(undefined);
+      expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    test('should send later', async () => {
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+      };
+      destination.queue = [
         {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          delay: 0,
+          timeout: 1000,
+        },
+      ];
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const result = await destination.flush();
+      expect(destination.queue).toEqual([
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          callback: expect.any(Function),
+          timeout: 1000,
         },
       ]);
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
-      const result = await destination.flush(true);
-      expect(destination.queue).toEqual([]);
-      expect(destination.queueBuffer.size).toEqual(0);
       expect(result).toBe(undefined);
-      expect(send).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -192,7 +202,7 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        delay: 0,
+        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
@@ -223,6 +233,40 @@ describe('destination', () => {
       });
     });
 
+    test('should not retry', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Failed,
+            statusCode: 500,
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+      });
+      await destination.send([context], false);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 500,
+        message: Status.Failed,
+      });
+    });
+
     test('should handle no api key', async () => {
       const destination = new Destination();
       const callback = jest.fn();
@@ -233,7 +277,7 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        delay: 0,
+        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
@@ -263,7 +307,7 @@ describe('destination', () => {
         event: {
           event_type: 'event_type',
         },
-        delay: 0,
+        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
@@ -279,71 +323,13 @@ describe('destination', () => {
     });
   });
 
-  describe('addToBackup', () => {
-    test('should add to back up and take snapshot', async () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.saveEvents = true;
-      const event = {
-        event_type: 'hello',
-      };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.addToBackup(event);
-      expect(destination.backup.size).toBe(1);
-      expect(snapshot).toHaveBeenCalledTimes(1);
-    });
-
-    test('should not take snapshot', async () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.saveEvents = false;
-      const event = {
-        event_type: 'hello',
-      };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.addToBackup(event);
-      expect(destination.backup.size).toBe(0);
-      expect(snapshot).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  describe('removeFromBackup', () => {
-    test('should remove from back up and take snapshot', async () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.saveEvents = true;
-      const event = {
-        event_type: 'hello',
-      };
-      destination.backup.add(event);
-      expect(destination.backup.size).toBe(1);
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.removeFromBackup(event);
-      expect(destination.backup.size).toBe(0);
-      expect(snapshot).toHaveBeenCalledTimes(1);
-    });
-
-    test('should not take snapshot', async () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.saveEvents = false;
-      const event = {
-        event_type: 'hello',
-      };
-      const snapshot = jest.spyOn(destination, 'snapshot').mockReturnValueOnce(undefined);
-      destination.removeFromBackup(event);
-      expect(destination.backup.size).toBe(0);
-      expect(snapshot).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  describe('snapshot', () => {
+  describe('saveEvents', () => {
     test('should save to storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = true;
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      destination.snapshot();
+      destination.saveEvents();
       expect(set).toHaveBeenCalledTimes(1);
     });
 
@@ -352,7 +338,7 @@ describe('destination', () => {
       destination.config = useDefaultConfig();
       destination.config.saveEvents = false;
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      destination.snapshot();
+      destination.saveEvents();
       expect(set).toHaveBeenCalledTimes(0);
     });
   });
@@ -415,7 +401,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.backoff = 10;
+      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -529,7 +515,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.backoff = 10;
+      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -580,8 +566,8 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.backoff = 10;
-      destination.throttle = 1;
+      destination.retryTimeout = 10;
+      destination.throttleTimeout = 1;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 4,
@@ -638,7 +624,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.backoff = 10;
+      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -676,7 +662,7 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.backoff = 10;
+      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushMaxRetries: 1,

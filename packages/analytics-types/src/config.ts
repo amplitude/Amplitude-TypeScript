@@ -4,7 +4,6 @@ import { Storage } from './storage';
 import { Event } from './event';
 import { Transport, TransportType } from './transport';
 import { Plan } from './plan';
-import { Plugin } from './plugin';
 import { SessionManager, UserSession } from './session-manager';
 
 export enum ServerZone {
@@ -22,7 +21,6 @@ export interface Config {
   minIdLength?: number;
   optOut: boolean;
   plan?: Plan;
-  plugins: Plugin[];
   saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
@@ -95,7 +93,7 @@ export type BrowserOptions = Omit<
       transport: TransportType;
     }
   >,
-  'apiKey' | 'plugins'
+  'apiKey'
 >;
 
 export interface AdditionalReactNativeOptions {
@@ -110,7 +108,7 @@ export type ReactNativeOptions = Omit<
       transport: TransportType;
     }
   >,
-  'apiKey' | 'plugins'
+  'apiKey'
 >;
 
-export type NodeOptions = Omit<Partial<NodeConfig>, 'apiKey' | 'userId' | 'plugins' | 'lastEventTime'>;
+export type NodeOptions = Omit<Partial<NodeConfig>, 'apiKey'>;
