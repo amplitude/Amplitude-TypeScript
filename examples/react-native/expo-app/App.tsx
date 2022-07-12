@@ -6,7 +6,7 @@ import { init, track } from '@amplitude/analytics-react-native';
 export default function App() {
   useEffect(() => {
     (async () => {
-        await init('', 'briang2').promise;
+        await init('', 'briang3').promise;
         track('test');
     })();
   }, []);

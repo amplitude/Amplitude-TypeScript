@@ -9,30 +9,30 @@
   dependencies:
     "@amplitude/ua-parser-js" "0.7.31"
 
-"@amplitude/analytics-core@^0.5.0":
-  version "0.5.0"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-core/-/analytics-core-0.5.0.tgz#2254d68ddd935358403bc52eb5ca87c9a916f62f"
-  integrity sha512-EkmbgSmF3cCrsl5OxKU2WvrDw/gwCMh20I5mfMl16jOcb0md2w5dj3EwlCWXid8LcdhwegEROdNpOWzG+GbfQg==
+"@amplitude/analytics-core@^0.6.1":
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-core/-/analytics-core-0.6.1.tgz#91a7430515f93789180c9f5ef4af173037c2f426"
+  integrity sha512-CpWQNejb7Kfnu6QYaZIeoU8xrGhUBVYtc243BH4LVi2pqiS4ATb/IkJfFdaerE8HEJyjXXzKGRnT6ouagZYmBA==
   dependencies:
-    "@amplitude/analytics-types" "^0.4.0"
+    "@amplitude/analytics-types" "^0.5.1"
     tslib "^2.3.1"
 
-"@amplitude/analytics-react-native@0.0.1-dev.0":
-  version "0.0.1-dev.0"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-react-native/-/analytics-react-native-0.0.1-dev.0.tgz#302ed00c8c55d3cf83025cd9c573ed4244769e0f"
-  integrity sha512-RSEx+tqgoTPZbitBV2XdNyl+6cWIXHZPnp7D6lmGwgm3F3yBa0ESVGXlLCYdhp6PtkrEIyZ/VgOLJNuk1ZQ6ag==
+"@amplitude/analytics-react-native@0.0.1-dev.1":
+  version "0.0.1-dev.1"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-react-native/-/analytics-react-native-0.0.1-dev.1.tgz#f29e4e57b7ad857bab4ddd92997b42edb9427c6f"
+  integrity sha512-htc6SpeL/YVYfaZBy0UzKTc273FddKSzrKXSuUOpw1V2j8xaaWgZiN8EEVUibpF0fd4dULg+T0OINQyghMRxLQ==
   dependencies:
     "@amplitude/analytics-connector" "1.4.4"
-    "@amplitude/analytics-core" "^0.5.0"
-    "@amplitude/analytics-types" "^0.4.0"
+    "@amplitude/analytics-core" "^0.6.1"
+    "@amplitude/analytics-types" "^0.5.1"
     "@amplitude/ua-parser-js" "^0.7.31"
     "@react-native-async-storage/async-storage" "^1.17.7"
     tslib "^2.3.1"
 
-"@amplitude/analytics-types@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-0.4.0.tgz#cfc50a8e706c4e3b7063201909a77feed4eab614"
-  integrity sha512-PO1uLO8JhZS+m9uW4hP59qkk1Oqg7nTG8WKk3IR7hSK41u9v1aEaBYbXJs6ESimTIFo6+O0MZxr7biOrxDkbWw==
+"@amplitude/analytics-types@^0.5.1":
+  version "0.5.1"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-0.5.1.tgz#6a25750c175bd86ccd8cb5e45a5b390bf9fd9ef1"
+  integrity sha512-/42ffX8qQbmxGTtBqmuHWKP/FkxrJ2/n9hBgikdrYd8T5Qg1IG9gfpP/Up7FNMV3md2sIaklpG7ou04C818rxg==
 
 "@amplitude/ua-parser-js@0.7.31", "@amplitude/ua-parser-js@^0.7.31":
   version "0.7.31"
