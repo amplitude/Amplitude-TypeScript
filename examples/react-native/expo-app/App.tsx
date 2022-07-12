@@ -2,12 +2,15 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { useEffect } from 'react';
 import { init, track } from '@amplitude/analytics-react-native';
+import { Platform, NativeModules } from 'react-native';
 
 export default function App() {
   useEffect(() => {
     (async () => {
-        await init('', 'briang3').promise;
-        track('test');
+        console.info(Platform);
+        console.info(NativeModules.AmplitudeReactNative);
+        await init('a6dd847b9d2f03c816d4f3f8458cdc1d', 'briang666').promise;
+        await track('test').promise;
     })();
   }, []);
   return (
