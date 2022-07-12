@@ -8,7 +8,7 @@ import * as SnippetHelper from '../src/utils/snippet-helper';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-describe('browser-client', () => {
+describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
   const USER_ID = 'USER_ID';
   const DEVICE_ID = 'DEVICE_ID';
@@ -117,28 +117,30 @@ describe('browser-client', () => {
     });
   });
 
-  describe('trackCampaign', () => {
-    test('should track campaign', async () => {
-      const client = new AmplitudeReactNative();
-      const track = jest.spyOn(client, 'track').mockReturnValueOnce(
-        Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: 'event_type',
+  if (isWeb()) {
+    describe('trackCampaign', () => {
+      test('should track campaign', async () => {
+        const client = new AmplitudeReactNative();
+        const track = jest.spyOn(client, 'track').mockReturnValueOnce(
+          Promise.resolve({
+            code: 200,
+            message: '',
+            event: {
+              event_type: 'event_type',
+            },
+          }),
+        );
+        await client.init(API_KEY, USER_ID, {
+          attribution: {
+            disabled: false,
           },
-        }),
-      );
-      await client.init(API_KEY, USER_ID, {
-        attribution: {
-          disabled: false,
-        },
+        });
+        const result = await client.runAttributionStrategy();
+        expect(result).toBe(undefined);
+        expect(track).toHaveBeenCalledTimes(1);
       });
-      const result = await client.runAttributionStrategy();
-      expect(result).toBe(undefined);
-      expect(track).toHaveBeenCalledTimes(1);
     });
-  });
+  }
 
   describe('getUserId', () => {
     test('should get user id', async () => {

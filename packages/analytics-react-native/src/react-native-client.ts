@@ -16,6 +16,7 @@ import { Context } from './plugins/context';
 import { useReactNativeConfig, createTransport, createDeviceId, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
+import { isNative } from './utils/platform';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   async init(apiKey: string, userId?: string, options?: ReactNativeOptions & AdditionalReactNativeOptions) {
@@ -55,6 +56,9 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionReactNativeOptions, isNewSession = false) {
+    if (isNative()) {
+      return;
+    }
     const track = this.track.bind(this);
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
 
@@ -347,3 +351,16 @@ export const setOptOut = client.setOptOut.bind(client);
  * ```
  */
 export const setTransport = client.setTransport.bind(client);
+
+/**
+ * Flush and send all the events which haven't been sent.
+ *
+ *```typescript
+ * // Send all the unsent events
+ * flush();
+ *
+ * // alternatively, this tracking method is awaitable
+ * await flush().promise;
+ * ```
+ */
+export const flush = returnWrapper(client.flush.bind(client));

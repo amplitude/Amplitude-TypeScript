@@ -20,6 +20,13 @@ describe('cookies', () => {
       expect(await cookies.get('hello')).toBe(undefined);
     });
 
+    test('should return non-encoded value', async () => {
+      const cookies = new CookieStorage();
+      document.cookie = 'hello=world';
+      expect(await cookies.get('hello')).toBe(undefined);
+      await cookies.remove('world');
+    });
+
     test('should return cookie object value', async () => {
       const cookies = new CookieStorage<Record<string, number>>();
       await cookies.set('hello', { a: 1 });

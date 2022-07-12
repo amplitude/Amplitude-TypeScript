@@ -28,7 +28,7 @@ import Foundation
 
     private static func getOsVersion() -> String {
         let systemVersion = ProcessInfo.processInfo.operatingSystemVersion
-        return "\(systemVersion.majorVersion).\(systemVersion.minorVersion).\(systemVersion.patchVersion)."
+        return "\(systemVersion.majorVersion).\(systemVersion.minorVersion).\(systemVersion.patchVersion)"
     }
 
     private static func getDeviceManufacturer() -> String {

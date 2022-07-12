@@ -1,5 +1,6 @@
 export {
   add,
+  flush,
   getDeviceId,
   getSessionId,
   getUserId,

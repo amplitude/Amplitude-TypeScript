@@ -1,6 +1,5 @@
 import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import * as timeline from '../src/timeline';
 import { useDefaultConfig } from './helpers/default';
 
 describe('core-client', () => {
@@ -68,8 +67,8 @@ describe('core-client', () => {
 
   describe('add/remove', () => {
     test('should call add', async () => {
-      const register = jest.spyOn(timeline, 'register').mockReturnValueOnce(Promise.resolve());
-      const deregister = jest.spyOn(timeline, 'deregister').mockReturnValueOnce(Promise.resolve());
+      const register = jest.spyOn(client.timeline, 'register').mockReturnValueOnce(Promise.resolve());
+      const deregister = jest.spyOn(client.timeline, 'deregister').mockReturnValueOnce(Promise.resolve());
       const setup = jest.fn();
       const execute = jest.fn();
       const plugin: Plugin = {
@@ -91,7 +90,7 @@ describe('core-client', () => {
 
   describe('dispatch', () => {
     test('should handle success', async () => {
-      const push = jest.spyOn(timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
       const event: Event = {
         event_type: 'event_type',
       };
@@ -102,7 +101,7 @@ describe('core-client', () => {
     });
 
     test('should handle non-200 error', async () => {
-      const push = jest.spyOn(timeline, 'push').mockReturnValueOnce(Promise.resolve(badRequest));
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(badRequest));
       const event: Event = {
         event_type: 'event_type',
       };
@@ -113,7 +112,7 @@ describe('core-client', () => {
     });
 
     test('should handle unexpected error', async () => {
-      const push = jest.spyOn(timeline, 'push').mockImplementation(() => {
+      const push = jest.spyOn(client.timeline, 'push').mockImplementation(() => {
         throw new Error();
       });
       const event: Event = {
@@ -139,7 +138,7 @@ describe('core-client', () => {
 
   describe('flush', () => {
     test('should call flush', async () => {
-      const flush = jest.spyOn(timeline, 'flush').mockReturnValueOnce(Promise.resolve());
+      const flush = jest.spyOn(client.timeline, 'flush').mockReturnValueOnce(Promise.resolve());
       const setup = jest.fn();
       const execute = jest.fn();
       const plugin: Plugin = {
