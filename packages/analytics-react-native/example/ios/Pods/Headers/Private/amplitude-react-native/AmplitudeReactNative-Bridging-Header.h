@@ -1,0 +1,1 @@
+../../../../../../ios/AmplitudeReactNative-Bridging-Header.h

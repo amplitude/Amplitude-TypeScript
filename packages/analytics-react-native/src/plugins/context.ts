@@ -37,7 +37,7 @@ export class Context implements BeforePlugin {
   nativeModule: AmplitudeReactNative | undefined = NativeModules.AmplitudeReactNative as
     | AmplitudeReactNative
     | undefined;
-  library = `amplitude-ts/${VERSION}`;
+  library = `amplitude-react-native-ts/${VERSION}`;
 
   constructor() {
     let agent: string | undefined;
