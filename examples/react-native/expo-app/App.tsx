@@ -8,8 +8,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
         console.info(Platform);
-        console.info(NativeModules.AmplitudeReactNative);
-        await init('a6dd847b9d2f03c816d4f3f8458cdc1d', 'briang666').promise;
+        await init('a6dd847b9d2f03c816d4f3f8458cdc1d', 'briang777').promise;
         await track('test').promise;
     })();
   }, []);

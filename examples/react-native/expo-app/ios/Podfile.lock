@@ -1,5 +1,5 @@
 PODS:
-  - amplitude-react-native (0.0.1-dev.2):
+  - amplitude-react-native (0.0.1-dev.4):
     - React-Core
   - boost (1.76.0)
   - DoubleConversion (1.1.6)
@@ -441,7 +441,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  amplitude-react-native: fabb627135c1d379c6285e59727a1b0ee5243df0
+  amplitude-react-native: e90cb23e9dec0389036e248b2ac4fc629fb365fc
   boost: a7c83b31436843459a1961bfd74b96033dc77234
   DoubleConversion: 831926d9b8bf8166fd87886c4abab286c2422662
   EXApplication: d6562af1204162e0ac46d341a7d4e5dc720b33de
