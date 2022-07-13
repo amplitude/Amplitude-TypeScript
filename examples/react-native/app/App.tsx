@@ -1,5 +1,5 @@
 import {StyleSheet, Text, View} from 'react-native';
-import {useEffect} from 'react';
+import React, {useEffect} from 'react';
 import {init, track} from '@amplitude/analytics-react-native';
 
 export default function App() {
