@@ -28,6 +28,8 @@ export const isValidProperties = (property: string, value: any): boolean => {
         return false;
       }
     }
+  } else if (value === null || value === undefined) {
+    return false;
   } else if (typeof value === 'object') {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return isValidObject(value);
