@@ -11,18 +11,16 @@ Official Amplitude SDK for React Native (Beta)
 
 ## Installation
 
-To get started with using Amplitude React Native SDK, install the package to your project via NPM or script loader.
-
-### Using Node package
-
-This package is published on NPM registry and is available to be installed using npm and yarn.
+To get started with using Amplitude React Native SDK, install the package to your project via NPM. In addition, this package relies on `@react-native-async-storage/async-storage`, which must also be installed.
 
 ```sh
 # npm
 npm install @amplitude/analytics-react-native
+npm install @react-native-async-storage/async-storage
 
 # yarn
 yarn add @amplitude/analytics-react-native
+yarn add @react-native-async-storage/async-storage
 ```
 
 ## Usage
