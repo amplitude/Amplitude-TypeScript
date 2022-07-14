@@ -12,7 +12,6 @@ import {
   remove,
   Revenue,
   revenue,
-  runQueuedFunctions,
   setDeviceId,
   setGroup,
   setOptOut,
@@ -37,7 +36,6 @@ describe('index', () => {
     expect(typeof remove).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof revenue).toBe('function');
-    expect(typeof runQueuedFunctions).toBe('function');
     expect(typeof setDeviceId).toBe('function');
     expect(typeof setGroup).toBe('function');
     expect(typeof setOptOut).toBe('function');

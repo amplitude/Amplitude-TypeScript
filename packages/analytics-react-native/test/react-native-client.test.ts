@@ -4,7 +4,6 @@ import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
-import * as SnippetHelper from '../src/utils/snippet-helper';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -266,37 +265,6 @@ describe('react-native-client', () => {
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
-
-    test('should track identify using proxy', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
-      const convertProxyObjectToRealObject = jest
-        .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
-        .mockReturnValueOnce(new core.Identify());
-      const client = new AmplitudeReactNative();
-      await client.init(API_KEY, undefined, {
-        transportProvider: {
-          send,
-        },
-        ...attributionConfig,
-      });
-      const identifyObject = {
-        _q: [],
-      };
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore to verify behavior in snippet installation
-      const result = await client.identify(identifyObject);
-      expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
-      expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('groupIdentify', () => {
@@ -322,37 +290,6 @@ describe('react-native-client', () => {
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
-
-    test('should track group identify using proxy', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
-      const convertProxyObjectToRealObject = jest
-        .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
-        .mockReturnValueOnce(new core.Identify());
-      const client = new AmplitudeReactNative();
-      await client.init(API_KEY, undefined, {
-        transportProvider: {
-          send,
-        },
-        ...attributionConfig,
-      });
-      const identifyObject = {
-        _q: [],
-      };
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore to verify behavior in snippet installation
-      const result = await client.groupIdentify('g', '1', identifyObject);
-      expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
-      expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('revenue', () => {
@@ -377,37 +314,6 @@ describe('react-native-client', () => {
       const result = await client.revenue(revenueObject);
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
-    });
-
-    test('should track revenue using proxy', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
-      const convertProxyObjectToRealObject = jest
-        .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
-        .mockReturnValueOnce(new core.Revenue());
-      const client = new AmplitudeReactNative();
-      await client.init(API_KEY, undefined, {
-        transportProvider: {
-          send,
-        },
-        ...attributionConfig,
-      });
-      const revenueObject = {
-        _q: [],
-      };
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore to verify behavior in snippet installation
-      const result = await client.revenue(revenueObject);
-      expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
-      expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
     });
   });
 });

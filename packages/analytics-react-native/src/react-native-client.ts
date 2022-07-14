@@ -1,17 +1,12 @@
-import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, returnWrapper } from '@amplitude/analytics-core';
 import {
   ReactNativeConfig,
   Campaign,
-  EventOptions,
-  Identify as IIdentify,
-  Result,
-  Revenue as IRevenue,
   TransportType,
   ReactNativeOptions,
   AdditionalReactNativeOptions,
   AttributionReactNativeOptions,
 } from '@amplitude/analytics-types';
-import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useReactNativeConfig, createTransport, createDeviceId, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
@@ -108,38 +103,6 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
   setTransport(transport: TransportType) {
     this.config.transportProvider = createTransport(transport);
-  }
-
-  identify(identify: IIdentify, eventOptions?: EventOptions): Promise<Result> {
-    if (isInstanceProxy(identify)) {
-      const queue = identify._q;
-      identify._q = [];
-      identify = convertProxyObjectToRealObject(new Identify(), queue);
-    }
-    return super.identify(identify, eventOptions);
-  }
-
-  groupIdentify(
-    groupType: string,
-    groupName: string | string[],
-    identify: IIdentify,
-    eventOptions?: EventOptions,
-  ): Promise<Result> {
-    if (isInstanceProxy(identify)) {
-      const queue = identify._q;
-      identify._q = [];
-      identify = convertProxyObjectToRealObject(new Identify(), queue);
-    }
-    return super.groupIdentify(groupType, groupName, identify, eventOptions);
-  }
-
-  revenue(revenue: IRevenue, eventOptions?: EventOptions) {
-    if (isInstanceProxy(revenue)) {
-      const queue = revenue._q;
-      revenue._q = [];
-      revenue = convertProxyObjectToRealObject(new Revenue(), queue);
-    }
-    return super.revenue(revenue, eventOptions);
   }
 }
 

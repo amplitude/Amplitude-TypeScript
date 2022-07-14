@@ -44,7 +44,6 @@
   },
   "source": "src/index",
   "files": [
-    "src",
     "lib",
     "android",
     "ios",
