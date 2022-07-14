@@ -166,4 +166,24 @@ describe('Identify class', () => {
 
     expect(identify.getUserProperties()).toStrictEqual(expectedProperties);
   });
+
+  test('should not allow to set a key to null', () => {
+    const identify = new Identify();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore bypassing ts rules to test unexpected input
+    identify.set('PROPERTY_NAME', null);
+    const expectedProperties = {};
+
+    expect(identify.getUserProperties()).toStrictEqual(expectedProperties);
+  });
+
+  test('should not allow to set a key to undefined', () => {
+    const identify = new Identify();
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore bypassing ts rules to test unexpected input
+    identify.set('PROPERTY_NAME', undefined);
+    const expectedProperties = {};
+
+    expect(identify.getUserProperties()).toStrictEqual(expectedProperties);
+  });
 });
