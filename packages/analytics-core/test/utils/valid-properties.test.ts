@@ -1,6 +1,6 @@
 import { isValidProperties } from '../../src/utils/valid-properties';
 
-describe('validProperties', () => {
+describe('isValidProperties', () => {
   test('should pass on valid properties', () => {
     const validProperties = {
       keyForString: 'stringValue',
@@ -63,5 +63,13 @@ describe('validProperties', () => {
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     expect(isValidProperties(1 as any, validProperties)).toBe(false);
+  });
+
+  test('should return false for null value', () => {
+    expect(isValidProperties('key', null)).toBe(false);
+  });
+
+  test('should return false for undefined value', () => {
+    expect(isValidProperties('key', undefined)).toBe(false);
   });
 });

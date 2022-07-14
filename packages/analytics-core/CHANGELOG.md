@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.6.1...@amplitude/analytics-core@0.6.2) (2022-07-13)
+
+
+### Bug Fixes
+
+* handle error gracefully when identify is set with null ([#138](https://github.com/amplitude/Amplitude-TypeScript/issues/138)) ([e0458d1](https://github.com/amplitude/Amplitude-TypeScript/commit/e0458d1256d2a96195bc8029c3df0d6ac257a588))
+
+
+
+
+
 ## [0.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.6.0...@amplitude/analytics-core@0.6.1) (2022-06-29)
 
 

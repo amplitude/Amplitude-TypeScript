@@ -85,6 +85,7 @@ const snippet = (integrity, version) => `
       'groupIdentify',
       'setGroup',
       'revenue',
+      'flush',
     ];
     function setUpProxy(instance) {
       function proxyMain(fn, isPromise) {
