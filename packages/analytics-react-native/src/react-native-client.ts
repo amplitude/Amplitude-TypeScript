@@ -12,6 +12,10 @@ import { useReactNativeConfig, createTransport, createDeviceId, createFlexibleSt
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
 import { isNative } from './utils/platform';
+import { AnalyticsConnector } from '@amplitude/analytics-connector';
+import { IdentityEventSender } from './plugins/identity';
+
+const DEFAULT_INSTANCE_NAME = '$default_instance';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   async init(apiKey: string, userId?: string, options?: ReactNativeOptions & AdditionalReactNativeOptions) {
@@ -41,9 +45,19 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       isNewSession = true;
     }
 
+    const connector = AnalyticsConnector.getInstance(DEFAULT_INSTANCE_NAME);
+    connector.eventBridge.setEventReceiver((event) => {
+      void this.track(event.eventType, event.eventProperties);
+    });
+    connector.identityStore.setIdentity({
+      userId: this.config.userId,
+      deviceId: this.config.deviceId,
+    });
+
     // Step 4: Install plugins
     // Do not track any events before this
     await this.add(new Context());
+    await this.add(new IdentityEventSender());
     await this.add(new Destination());
 
     // Step 5: Track attributions
@@ -74,6 +88,12 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
   setUserId(userId: string | undefined) {
     this.config.userId = userId;
+    AnalyticsConnector.getInstance(DEFAULT_INSTANCE_NAME)
+      .identityStore// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      .editIdentity()
+      .setUserId(userId)
+      .commit();
   }
 
   getDeviceId() {
@@ -82,6 +102,12 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
   setDeviceId(deviceId: string) {
     this.config.deviceId = deviceId;
+    AnalyticsConnector.getInstance(DEFAULT_INSTANCE_NAME)
+      .identityStore// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      .editIdentity()
+      .setDeviceId(deviceId)
+      .commit();
   }
 
   regenerateDeviceId() {
