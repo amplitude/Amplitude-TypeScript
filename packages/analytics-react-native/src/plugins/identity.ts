@@ -1,11 +1,11 @@
 import { BeforePlugin, PluginType, Event, Config } from '@amplitude/analytics-types';
-import { AnalyticsConnector } from '@amplitude/analytics-connector';
+import { getAnalyticsConnector } from '../utils/analytics-connector';
 
 export class IdentityEventSender implements BeforePlugin {
   name = 'identity';
   type = PluginType.BEFORE as const;
 
-  identityStore = AnalyticsConnector.getInstance('$default_instance').identityStore;
+  identityStore = getAnalyticsConnector().identityStore;
 
   async execute(context: Event): Promise<Event> {
     const userProperties = context.user_properties as Record<string, any>;

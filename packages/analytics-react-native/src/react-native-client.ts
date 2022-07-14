@@ -12,10 +12,8 @@ import { useReactNativeConfig, createTransport, createDeviceId, createFlexibleSt
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
 import { isNative } from './utils/platform';
-import { AnalyticsConnector } from '@amplitude/analytics-connector';
 import { IdentityEventSender } from './plugins/identity';
-
-const DEFAULT_INSTANCE_NAME = '$default_instance';
+import { getAnalyticsConnector } from './utils/analytics-connector';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   async init(apiKey: string, userId?: string, options?: ReactNativeOptions & AdditionalReactNativeOptions) {
@@ -45,7 +43,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       isNewSession = true;
     }
 
-    const connector = AnalyticsConnector.getInstance(DEFAULT_INSTANCE_NAME);
+    const connector = getAnalyticsConnector();
     connector.eventBridge.setEventReceiver((event) => {
       void this.track(event.eventType, event.eventProperties);
     });
@@ -88,10 +86,10 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
   setUserId(userId: string | undefined) {
     this.config.userId = userId;
-    AnalyticsConnector.getInstance(DEFAULT_INSTANCE_NAME)
-      .identityStore// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    getAnalyticsConnector()
+      .identityStore.editIdentity()
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      .editIdentity()
       .setUserId(userId)
       .commit();
   }
@@ -102,10 +100,10 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
   setDeviceId(deviceId: string) {
     this.config.deviceId = deviceId;
-    AnalyticsConnector.getInstance(DEFAULT_INSTANCE_NAME)
-      .identityStore// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    getAnalyticsConnector()
+      .identityStore.editIdentity()
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      .editIdentity()
       .setDeviceId(deviceId)
       .commit();
   }
