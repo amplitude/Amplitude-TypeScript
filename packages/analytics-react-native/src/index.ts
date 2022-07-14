@@ -18,7 +18,5 @@ export {
   setUserId,
   track,
 } from './react-native-client';
-export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
-import * as Types from '@amplitude/analytics-types';
-export { Types };
+export * as Types from '@amplitude/analytics-types';

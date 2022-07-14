@@ -12,11 +12,11 @@ type NativeContext = {
   version: string;
   platform: string;
   language: string;
-  os_name: string;
-  os_version: string;
-  device_brand: string;
-  device_manufacturer: string;
-  device_model: string;
+  osName: string;
+  osVersion: string;
+  deviceBrand: string;
+  deviceManufacturer: string;
+  deviceModel: string;
   carrier: string;
 };
 
@@ -67,10 +67,10 @@ export class Context implements BeforePlugin {
     const nativeContext = await this.nativeModule?.getApplicationContext();
     const appVersion = nativeContext?.version || this.config.appVersion;
     const platform = nativeContext?.platform || BROWSER_PLATFORM;
-    const osName = nativeContext?.os_name || this.uaResult.browser.name;
-    const osVersion = nativeContext?.os_version || this.uaResult.browser.version;
-    const deviceVendor = nativeContext?.device_manufacturer || this.uaResult.device.vendor;
-    const deviceModel = nativeContext?.device_model || this.uaResult.device.model || this.uaResult.os.name;
+    const osName = nativeContext?.osName || this.uaResult.browser.name;
+    const osVersion = nativeContext?.osVersion || this.uaResult.browser.version;
+    const deviceVendor = nativeContext?.deviceManufacturer || this.uaResult.device.vendor;
+    const deviceModel = nativeContext?.deviceModel || this.uaResult.device.model || this.uaResult.os.name;
     const language = nativeContext?.language || getLanguage();
     const carrier = nativeContext?.carrier;
 

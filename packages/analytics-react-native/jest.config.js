@@ -7,9 +7,7 @@ module.exports = {
   rootDir: '.',
   preset: 'react-native',
   testEnvironment: 'jsdom',
-  coveragePathIgnorePatterns: ['snippet-index.ts'],
   modulePathIgnorePatterns: [
-    "<rootDir>/example/node_modules",
     "<rootDir>/lib/"
   ],
   // TODO: get full coverage

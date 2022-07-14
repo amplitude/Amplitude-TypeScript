@@ -1,11 +1,8 @@
 import { isNative } from './platform';
 
 export const getQueryParams = (): Record<string, string | undefined> => {
-  if (isNative()) {
-    return {};
-  }
   /* istanbul ignore if */
-  if (typeof window === 'undefined') {
+  if (isNative() || typeof window === 'undefined') {
     return {};
   }
   const pairs = window.location.search.substring(1).split('&').filter(Boolean);

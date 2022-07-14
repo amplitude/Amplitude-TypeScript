@@ -9,11 +9,8 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async isEnabled(): Promise<boolean> {
-    if (isNative()) {
-      return false;
-    }
     /* istanbul ignore if */
-    if (typeof window === 'undefined') {
+    if (isNative() || typeof window === 'undefined') {
       return false;
     }
 

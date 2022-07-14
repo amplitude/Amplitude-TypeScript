@@ -20,10 +20,10 @@ class ReactNative: NSObject {
             "version": appleContextProvider.version,
             "platform": appleContextProvider.platform,
             "language": appleContextProvider.language,
-            "os_name": appleContextProvider.osName,
-            "os_version": appleContextProvider.osVersion,
-            "device_manufacturer": appleContextProvider.deviceManufacturer,
-            "device_model": appleContextProvider.deviceModel,
+            "osName": appleContextProvider.osName,
+            "osVersion": appleContextProvider.osVersion,
+            "deviceManufacturer": appleContextProvider.deviceManufacturer,
+            "deviceModel": appleContextProvider.deviceModel,
         ]
         resolve(applicationContext)
     }
