@@ -2,12 +2,9 @@ import * as Config from '../src/config';
 import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, TransportType, UserSession } from '@amplitude/analytics-types';
+import { LogLevel, Storage, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
 import { getCookieName } from '../src/utils/cookie-name';
-import { XHRTransport } from '../src/transports/xhr';
-import { createTransport } from '../src/config';
-import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { SessionManager } from '../src/session-manager';
 import { isWeb } from '../src/utils/platform';
 
@@ -320,20 +317,6 @@ describe('config', () => {
     test('should return uuid', () => {
       const deviceId = Config.createDeviceId(undefined, undefined, undefined);
       expect(deviceId.substring(14, 15)).toEqual('4');
-    });
-  });
-
-  describe('createTransport', () => {
-    test('should return xhr', () => {
-      expect(createTransport(TransportType.XHR)).toBeInstanceOf(XHRTransport);
-    });
-
-    test('should return beacon', () => {
-      expect(createTransport(TransportType.SendBeacon)).toBeInstanceOf(SendBeaconTransport);
-    });
-
-    test('should return fetch', () => {
-      expect(createTransport(TransportType.Fetch)).toBeInstanceOf(FetchTransport);
     });
   });
 

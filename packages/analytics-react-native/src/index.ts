@@ -14,7 +14,6 @@ export {
   setGroup,
   setOptOut,
   setSessionId,
-  setTransport,
   setUserId,
   track,
 } from './react-native-client';

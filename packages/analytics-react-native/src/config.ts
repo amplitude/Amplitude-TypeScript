@@ -4,7 +4,6 @@ import {
   ReactNativeConfig as IReactNativeConfig,
   Storage,
   TrackingOptions,
-  TransportType,
   UserSession,
   SessionManager as ISessionManager,
 } from '@amplitude/analytics-types';
@@ -15,8 +14,6 @@ import { FetchTransport } from './transports/fetch';
 import { LocalStorage } from './storage/local-storage';
 import { getCookieName } from './utils/cookie-name';
 import { getQueryParams } from './utils/query-params';
-import { XHRTransport } from './transports/xhr';
-import { SendBeaconTransport } from './transports/send-beacon';
 import { SessionManager } from './session-manager';
 
 export const getDefaultConfig = () => {
@@ -154,7 +151,7 @@ export const useReactNativeConfig = async (
     sessionId: (await cookieStorage.get(cookieName))?.sessionId ?? options?.sessionId,
     storageProvider: await createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
-    transportProvider: options?.transportProvider ?? createTransport(options?.transport),
+    transportProvider: options?.transportProvider ?? new FetchTransport(),
   });
 };
 
@@ -199,16 +196,6 @@ export const createEventsStorage = async (overrides?: ReactNativeOptions): Promi
 
 export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, idFromQueryParams?: string) => {
   return idFromOptions || idFromQueryParams || idFromCookies || UUID();
-};
-
-export const createTransport = (transport?: TransportType) => {
-  if (transport === TransportType.XHR) {
-    return new XHRTransport();
-  }
-  if (transport === TransportType.SendBeacon) {
-    return new SendBeaconTransport();
-  }
-  return getDefaultConfig().transportProvider;
 };
 
 export const getTopLevelDomain = async (url?: string) => {

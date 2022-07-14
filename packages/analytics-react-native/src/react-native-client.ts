@@ -2,13 +2,12 @@ import { AmplitudeCore, Destination, returnWrapper } from '@amplitude/analytics-
 import {
   ReactNativeConfig,
   Campaign,
-  TransportType,
   ReactNativeOptions,
   AdditionalReactNativeOptions,
   AttributionReactNativeOptions,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
-import { useReactNativeConfig, createTransport, createDeviceId, createFlexibleStorage } from './config';
+import { useReactNativeConfig, createDeviceId, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
 import { isNative } from './utils/platform';
@@ -99,10 +98,6 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
   setOptOut(optOut: boolean) {
     this.config.optOut = optOut;
-  }
-
-  setTransport(transport: TransportType) {
-    this.config.transportProvider = createTransport(transport);
   }
 }
 
@@ -298,22 +293,6 @@ export const setSessionId = client.setSessionId.bind(client);
  * ```
  */
 export const setOptOut = client.setOptOut.bind(client);
-
-/**
- *  Sets the network transport type for events.
- *
- * ```typescript
- * // Use Fetch API
- * setTransport('fetch');
- *
- * // Use XMLHttpRequest API
- * setTransport('xhr');
- *
- * // Use navigator.sendBeacon API
- * setTransport('beacon');
- * ```
- */
-export const setTransport = client.setTransport.bind(client);
 
 /**
  * Flush and send all the events which haven't been sent.
