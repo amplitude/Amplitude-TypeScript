@@ -18,4 +18,7 @@ export {
   track,
 } from './react-native-client';
 export { Revenue, Identify } from '@amplitude/analytics-core';
-export * as Types from '@amplitude/analytics-types';
+// Hack - react-native apps have trouble with:
+// export * as Types from '@amplitude/analytics-types
+import * as Types from '@amplitude/analytics-types';
+export { Types };
