@@ -10,7 +10,7 @@ export class IdentityEventSender implements BeforePlugin {
   async execute(context: Event): Promise<Event> {
     const userProperties = context.user_properties as Record<string, any>;
     if (userProperties) {
-      this.identityStore.editIdentity().setUserProperties(userProperties).commit();
+      this.identityStore.editIdentity().updateUserProperties(userProperties).commit();
     }
     return context;
   }
