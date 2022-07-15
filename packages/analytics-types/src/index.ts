@@ -12,13 +12,17 @@ export {
 } from './campaign';
 export {
   AdditionalBrowserOptions,
+  AdditionalReactNativeOptions,
   AttributionBrowserOptions,
+  AttributionReactNativeOptions,
   BrowserConfig,
   BrowserOptions,
   Config,
   InitOptions,
   NodeConfig,
   NodeOptions,
+  ReactNativeConfig,
+  ReactNativeOptions,
   TrackingOptions,
   ServerZone,
 } from './config';
