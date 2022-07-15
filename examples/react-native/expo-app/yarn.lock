@@ -2,6 +2,13 @@
 # yarn lockfile v1
 
 
+"@amplitude/analytics-connector@1.4.3":
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-connector/-/analytics-connector-1.4.3.tgz#cb9098cb8adfbd39b2c71ad71a7c758504a745a7"
+  integrity sha512-Ghu1UJn55Rn9eglF+ED7yOGXaeX3KY2qkQi9W9yqC02ItPvKfrybeVndweI1XtsiW0LvRpdA3uQEjuZEGunyLw==
+  dependencies:
+    "@amplitude/ua-parser-js" "0.7.31"
+
 "@amplitude/analytics-connector@1.4.4":
   version "1.4.4"
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-connector/-/analytics-connector-1.4.4.tgz#3bed72b0b3190a4426a529473ced962892706116"
@@ -17,10 +24,10 @@
     "@amplitude/analytics-types" "^0.5.1"
     tslib "^2.3.1"
 
-"@amplitude/analytics-react-native@0.0.1-dev.6":
-  version "0.0.1-dev.6"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-react-native/-/analytics-react-native-0.0.1-dev.6.tgz#b9ad93a67872105960ed9b00071be0948e13b6d8"
-  integrity sha512-DlqKZRaX+yq6vVvLRabJ0rWBQjGTza00qcX3hFOwrt1Wqw5SKKo1JXfltbnzgVoIeSznbBNojWjKLpPZdVnf+Q==
+"@amplitude/analytics-react-native@0.0.1-dev.10":
+  version "0.0.1-dev.10"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-react-native/-/analytics-react-native-0.0.1-dev.10.tgz#98c2a25e285c66a0bab93ea17b3c48535ef9b0b1"
+  integrity sha512-yVgjrNfb1JGC7RfRvXFrsQx6D+aOShzGN+XwgX4c61KopszVhnyM9SDiFAk/+pmJirIVhSyf9oXaumLUv/yqGA==
   dependencies:
     "@amplitude/analytics-connector" "1.4.4"
     "@amplitude/analytics-core" "^0.6.1"
@@ -33,6 +40,21 @@
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-0.5.1.tgz#6a25750c175bd86ccd8cb5e45a5b390bf9fd9ef1"
   integrity sha512-/42ffX8qQbmxGTtBqmuHWKP/FkxrJ2/n9hBgikdrYd8T5Qg1IG9gfpP/Up7FNMV3md2sIaklpG7ou04C818rxg==
+
+"@amplitude/experiment-react-native-client@1.0.0-beta.10":
+  version "1.0.0-beta.10"
+  resolved "https://registry.yarnpkg.com/@amplitude/experiment-react-native-client/-/experiment-react-native-client-1.0.0-beta.10.tgz#46c78e53a30510d602f523e5f1c8d60378dd7ec4"
+  integrity sha512-6HeIiCvkkXOw6Uu5O+deYl75TDDmZAV6A2Npnwrf5QeymWELpvOBM7dWn+b94iHtxwISeWLcbAuyBBNKWWK3NQ==
+  dependencies:
+    "@amplitude/analytics-connector" "1.4.3"
+    "@amplitude/experiment-react-native-client" "^0.7.2"
+    "@react-native-async-storage/async-storage" "1.17.6"
+    unfetch "4.2.0"
+
+"@amplitude/experiment-react-native-client@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@amplitude/experiment-react-native-client/-/experiment-react-native-client-0.7.2.tgz#9f1c4e5a548df72b92755e7a15978e559c92741a"
+  integrity sha512-WXUhWpdrvl3KpCyxsHsECSrZmhV3tkYdWF4mxig7oRbXzWIKLsXdbdarPLpFnRp7E3rWbJl3yvuAaSw/LV1U9w==
 
 "@amplitude/ua-parser-js@0.7.31", "@amplitude/ua-parser-js@^0.7.31":
   version "0.7.31"
@@ -1534,6 +1556,13 @@
   dependencies:
     mkdirp "^1.0.4"
     rimraf "^3.0.2"
+
+"@react-native-async-storage/async-storage@1.17.6":
+  version "1.17.6"
+  resolved "https://registry.yarnpkg.com/@react-native-async-storage/async-storage/-/async-storage-1.17.6.tgz#ddb3520d051f71698c8a0e79e8959a7bf6d9f43b"
+  integrity sha512-XXnoheQI3vQTQmjphdXNLTmtiKZeRqvI8kPQ25X5Eae7nZjdYEEGN+0z8N2qyelbUIQwKgmW0aagJk56q7DyNg==
+  dependencies:
+    merge-options "^3.0.4"
 
 "@react-native-async-storage/async-storage@^1.17.7":
   version "1.17.7"
@@ -6491,6 +6520,11 @@ uglify-es@^3.1.9:
   dependencies:
     commander "~2.13.0"
     source-map "~0.6.1"
+
+unfetch@4.2.0:
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/unfetch/-/unfetch-4.2.0.tgz#7e21b0ef7d363d8d9af0fb929a5555f6ef97a3be"
+  integrity sha512-F9p7yYCn6cIW9El1zi0HI6vqpeIvBsr3dSuRO6Xuppb1u5rXpCPmMvLSyECLhybr9isec8Ohl0hPekMVrEinDA==
 
 unicode-canonical-property-names-ecmascript@^2.0.0:
   version "2.0.0"
