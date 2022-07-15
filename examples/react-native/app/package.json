@@ -12,8 +12,8 @@
   "dependencies": {
     "react": "18.0.0",
     "react-native": "0.69.1",
-    "@amplitude/analytics-react-native": "0.0.1-dev.8",
-    "@amplitude/experiment-react-native-client": "1.0.0-beta.6",
+    "@amplitude/analytics-react-native": "0.0.1-dev.9",
+    "@amplitude/experiment-react-native-client": "1.0.0-beta.7",
     "@react-native-async-storage/async-storage": "1.17.7"
   },
   "devDependencies": {

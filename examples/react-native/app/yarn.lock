@@ -24,10 +24,10 @@
     "@amplitude/analytics-types" "^0.5.1"
     tslib "^2.3.1"
 
-"@amplitude/analytics-react-native@0.0.1-dev.8":
-  version "0.0.1-dev.8"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-react-native/-/analytics-react-native-0.0.1-dev.8.tgz#7bc845f05c405fc15364306dacb2d27e6a1aba63"
-  integrity sha512-lyk7EAYf9Y7Ijii+MgIAIpafrhZ3q3/3vtFYQxuWaZLe8vY+V39Qlwy6L3PGhFCfpktC2ViJmx6Awh4CUngF/g==
+"@amplitude/analytics-react-native@0.0.1-dev.9":
+  version "0.0.1-dev.9"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-react-native/-/analytics-react-native-0.0.1-dev.9.tgz#46ee368b28cc4c622f482574a3ce3c1605182302"
+  integrity sha512-6VL04bQ3QBKtGXTCh+RX90p6mciI7RqtwuMPlOmTG6oG5vcyA0sEJzycor+lwL4F1q1uL6geC6pH/GhDiXzG5A==
   dependencies:
     "@amplitude/analytics-connector" "1.4.4"
     "@amplitude/analytics-core" "^0.6.1"
@@ -41,10 +41,10 @@
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-0.5.1.tgz#6a25750c175bd86ccd8cb5e45a5b390bf9fd9ef1"
   integrity sha512-/42ffX8qQbmxGTtBqmuHWKP/FkxrJ2/n9hBgikdrYd8T5Qg1IG9gfpP/Up7FNMV3md2sIaklpG7ou04C818rxg==
 
-"@amplitude/experiment-react-native-client@1.0.0-beta.6":
-  version "1.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@amplitude/experiment-react-native-client/-/experiment-react-native-client-1.0.0-beta.6.tgz#c4272ceadc85dd51fb9da89860afa5fe0ab334a6"
-  integrity sha512-MsAF43zsA5nHmLn8HL8yAPT0MAP/hoEfmq/IbGePHf+jqekLCAsAbAkrSCFZKTZ+/hv5TiWO/UUWCzwaEbpHLg==
+"@amplitude/experiment-react-native-client@1.0.0-beta.7":
+  version "1.0.0-beta.7"
+  resolved "https://registry.yarnpkg.com/@amplitude/experiment-react-native-client/-/experiment-react-native-client-1.0.0-beta.7.tgz#bf37a37b0c1dd2fe0f1ae5256d346511f0d306cd"
+  integrity sha512-CCuDAAUGCcXvAJNRbWc4lee/jRR56KwMbBHW+WYJf+2aQ8jAPoDhyQl6gE5FXJxYd7qO/e2uHU784s9ismkvKg==
   dependencies:
     "@amplitude/analytics-connector" "1.4.3"
     "@amplitude/experiment-react-native-client" "^0.7.2"
