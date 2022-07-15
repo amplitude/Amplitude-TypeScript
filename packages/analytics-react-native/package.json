@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "0.0.1-dev.6",
+  "version": "0.0.1-dev.8",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
@@ -48,7 +48,6 @@
     "android",
     "ios",
     "amplitude-react-native.podspec",
-    "!lib/typescript/example",
     "!android/build",
     "!ios/build",
     "!**/test"

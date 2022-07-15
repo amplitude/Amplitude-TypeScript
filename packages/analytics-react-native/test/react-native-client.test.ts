@@ -1,9 +1,7 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
-import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport } from '../src/transports/fetch';
+import { Status, UserSession } from '@amplitude/analytics-types';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -226,19 +224,6 @@ describe('react-native-client', () => {
       });
       client.setOptOut(true);
       expect(client.config.optOut).toBe(true);
-    });
-  });
-
-  describe('setTransport', () => {
-    test('should set transport', async () => {
-      const fetch = new FetchTransport();
-      const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
-      const client = new AmplitudeReactNative();
-      await client.init(API_KEY, undefined, {
-        ...attributionConfig,
-      });
-      client.setTransport(TransportType.Fetch);
-      expect(createTransport).toHaveBeenCalledTimes(2);
     });
   });
 
