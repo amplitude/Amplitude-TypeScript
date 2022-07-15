@@ -1,9 +1,11 @@
 PODS:
-  - amplitude-react-native (0.0.1-dev.6):
+  - amplitude-react-native (0.0.1-dev.8):
     - React-Core
   - boost (1.76.0)
   - CocoaAsyncSocket (7.6.5)
   - DoubleConversion (1.1.6)
+  - experiment-react-native-client (1.0.0-beta.6):
+    - React-Core
   - FBLazyVector (0.69.1)
   - FBReactNativeSpec (0.69.1):
     - RCT-Folly (= 2021.06.28.00-v2)
@@ -363,6 +365,7 @@ DEPENDENCIES:
   - "amplitude-react-native (from `../node_modules/@amplitude/analytics-react-native`)"
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
+  - "experiment-react-native-client (from `../node_modules/@amplitude/experiment-react-native-client`)"
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
   - Flipper (= 0.125.0)
@@ -444,6 +447,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
   DoubleConversion:
     :podspec: "../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec"
+  experiment-react-native-client:
+    :path: "../node_modules/@amplitude/experiment-react-native-client"
   FBLazyVector:
     :path: "../node_modules/react-native/Libraries/FBLazyVector"
   FBReactNativeSpec:
@@ -508,10 +513,11 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  amplitude-react-native: f93f5302986d80d503b09c77b6f8175e4954515d
+  amplitude-react-native: 17f98f62a6baefaa28e50bc6fd40bedc05f323cc
   boost: a7c83b31436843459a1961bfd74b96033dc77234
   CocoaAsyncSocket: 065fd1e645c7abab64f7a6a2007a48038fdc6a99
   DoubleConversion: 5189b271737e1565bdce30deb4a08d647e3f5f54
+  experiment-react-native-client: 1ff4d418ce74b44fa6843891f074e94967e16932
   FBLazyVector: 068141206af867f72854753423d0117c4bf53419
   FBReactNativeSpec: 546a637adc797fa436dd51d1c63c580f820de31c
   Flipper: 26fc4b7382499f1281eb8cb921e5c3ad6de91fe0
