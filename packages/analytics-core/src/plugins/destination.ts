@@ -36,7 +36,7 @@ export class Destination implements DestinationPlugin {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
-    const unsent = await this.config.storageProvider.get(this.storageKey);
+    const unsent = await this.config.storageProvider?.get(this.storageKey);
     this.saveEvents(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
@@ -248,6 +248,6 @@ export class Destination implements DestinationPlugin {
       return;
     }
     const events = Array.from(this.queue.map((context) => context.event));
-    void this.config.storageProvider.set(this.storageKey, events);
+    void this.config.storageProvider?.set(this.storageKey, events);
   }
 }

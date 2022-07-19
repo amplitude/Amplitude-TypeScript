@@ -23,7 +23,7 @@ describe('config', () => {
         saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        storageProvider: new core.MemoryStorage(),
+        storageProvider: undefined,
         transportProvider: new Http(),
         useBatch: false,
       });
@@ -50,7 +50,7 @@ describe('config', () => {
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionId: undefined,
-        storageProvider: new core.MemoryStorage(),
+        storageProvider: undefined,
         transportProvider: new Http(),
         userId: undefined,
         useBatch: false,
