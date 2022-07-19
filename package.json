@@ -5,7 +5,7 @@
   ],
   "scripts": {
     "build": "lerna run build --stream",
-    "clean": "lerna run clean --stream",
+    "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
     "deploy:publish": "lerna publish",
     "docs": "typedoc",
