@@ -24,6 +24,7 @@
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",

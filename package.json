@@ -5,6 +5,7 @@
   ],
   "scripts": {
     "build": "lerna run build --stream",
+    "clean": "lerna run clean --stream",
     "deploy:version": "lerna version",
     "deploy:publish": "lerna publish",
     "docs": "typedoc",
@@ -33,6 +34,7 @@
     "lerna": "^4.0.0",
     "lint-staged": "^12.2.2",
     "prettier": "^2.5.1",
+    "rimraf": "^3.0.2",
     "ts-jest": "^27.1.3",
     "typedoc": "^0.22.13",
     "typescript": "^4.5.5"
