@@ -31,13 +31,20 @@ export class Timeline {
     return Promise.resolve();
   }
 
+  reset() {
+    this.plugins = [];
+  }
+
   push(event: Event, config: Config) {
     return new Promise<Result>((resolve) => {
-      if (config.optOut) {
+      if (config?.optOut) {
         resolve(buildResult(event, 0, OPT_OUT_MESSAGE));
         return;
       }
       this.queue.push([event, resolve]);
+      if (!config) {
+        return;
+      }
       this.scheduleApply(0);
     });
   }

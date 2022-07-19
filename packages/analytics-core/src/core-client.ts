@@ -27,13 +27,14 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   timeline: Timeline;
 
   constructor(name = '$default') {
+    this.timeline = new Timeline();
     this.name = name;
   }
 
   // NOTE: Do not use `_apiKey` and `_userId` here
   init(_apiKey: string | undefined, _userId: string | undefined, config: T) {
     this.config = config;
-    this.timeline = new Timeline();
+    this.timeline.reset();
     return Promise.resolve();
   }
 
@@ -75,6 +76,10 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   async dispatch(event: Event) {
     try {
+      // if not init yet, only #push the events, #apply will be skipped in timeline
+      if (!this.config) {
+        return this.timeline.push(event, this.config);
+      }
       const result = await this.timeline.push(event, this.config);
       if (result.code === 200) {
         this.config.loggerProvider.log(result.message);

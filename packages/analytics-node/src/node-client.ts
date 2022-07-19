@@ -13,6 +13,10 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
 
     await this.add(new Context());
     await this.add(new Destination());
+
+    // Flush existing events, which might be collected by track before init
+    // This flush needs to run after plugin installation to gain the correct attributes
+    await this.timeline.flush();
   }
 }
 

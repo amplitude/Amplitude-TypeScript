@@ -59,6 +59,10 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
     // Step 5: Track attributions
     await this.runAttributionStrategy(options?.attribution, isNewSession);
+
+    // Step 6: Flush existing events, which might be collected by track before init
+    // This flush needs to run after plugin installation to gain the correct attributes
+    await this.timeline.flush();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionReactNativeOptions, isNewSession = false) {
