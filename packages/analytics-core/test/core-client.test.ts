@@ -1,6 +1,7 @@
 import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import { useDefaultConfig } from './helpers/default';
+import { useDefaultConfig, promiseState } from './helpers/default';
+import { OPT_OUT_MESSAGE } from '../src/messages';
 
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
@@ -126,6 +127,35 @@ describe('core-client', () => {
         code: 0,
       });
       expect(push).toBeCalledTimes(1);
+    });
+
+    test('should handle opt out', async () => {
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
+      const event: Event = {
+        event_type: 'event_type',
+      };
+
+      client.setOptOut(true);
+      const result = await client.dispatch(event);
+      expect(result).toEqual({
+        event,
+        message: OPT_OUT_MESSAGE,
+        code: 0,
+      });
+      expect(push).toBeCalledTimes(0);
+    });
+
+    test('should handle config is null', async () => {
+      const configWithoutInit = new AmplitudeCore();
+      const push = jest.spyOn(configWithoutInit.timeline, 'push').mockReturnValueOnce(new Promise(() => undefined));
+      const event: Event = {
+        event_type: 'event_type',
+      };
+
+      const result = configWithoutInit.dispatch(event);
+      expect(await promiseState(result)).toEqual('pending');
+      expect(push).toBeCalledTimes(1);
+      expect(push).toBeCalledWith(event, null);
     });
   });
 

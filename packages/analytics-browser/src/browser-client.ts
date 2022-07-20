@@ -50,10 +50,13 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await this.add(new Context());
     await this.add(new Destination());
 
-    // Step 5: Track attributions
+    // Step 5: Set timeline ready for processing events
+    this.timeline.isReady = true;
+
+    // Step 6: Track attributions
     await this.runAttributionStrategy(options?.attribution, isNewSession);
 
-    // Step 6: Flush existing events, which might be collected by track before init
+    // Step 7: Flush existing events, which might be collected by track before init
     // This flush needs to run after plugin installation to gain the correct attributes
     await this.timeline.flush();
   }

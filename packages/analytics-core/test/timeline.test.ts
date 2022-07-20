@@ -1,7 +1,6 @@
 import { Timeline } from '../src/timeline';
 import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
-import { OPT_OUT_MESSAGE } from '../src/messages';
-import { useDefaultConfig } from './helpers/default';
+import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
 
 describe('timeline', () => {
@@ -65,6 +64,8 @@ describe('timeline', () => {
     await timeline.register(before, config);
     await timeline.register(enrichment, config);
     await timeline.register(destination, config);
+    timeline.isReady = true;
+
     expect(beforeSetup).toHaveBeenCalledTimes(1);
     expect(enrichmentSetup).toHaveBeenCalledTimes(1);
     expect(destinationSetup).toHaveBeenCalledTimes(1);
@@ -100,18 +101,14 @@ describe('timeline', () => {
   });
 
   describe('push', () => {
-    test('should handle opt out', async () => {
+    test('should skip event processing when config is missing', async () => {
       const event = {
         event_type: 'hello',
       };
-      const config = useDefaultConfig();
-      config.optOut = true;
-      const results = await timeline.push(event, config);
-      expect(results).toEqual({
-        event,
-        code: 0,
-        message: OPT_OUT_MESSAGE,
-      });
+      const config = null;
+      const result = timeline.push(event, config);
+      expect(await promiseState(result)).toEqual('pending');
+      expect(timeline.queue.length).toBe(1);
     });
   });
 

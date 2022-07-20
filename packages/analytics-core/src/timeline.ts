@@ -9,13 +9,15 @@ import {
   PluginType,
   Result,
 } from '@amplitude/analytics-types';
-import { OPT_OUT_MESSAGE } from './messages';
 import { buildResult } from './utils/result-builder';
 
 export class Timeline {
   queue: [Event, EventCallback][] = [];
+  // Flag to guarantee one schedule apply is running
   applying = false;
-  flushing = false;
+  // Flag indicates whether timeline is ready to process event
+  // Events collected before timeline is ready will stay in the queue to be processed later
+  isReady = false;
   plugins: Plugin[] = [];
 
   async register(plugin: Plugin, config: Config) {
@@ -32,17 +34,15 @@ export class Timeline {
   }
 
   reset() {
+    this.applying = false;
+    this.isReady = false;
     this.plugins = [];
   }
 
-  push(event: Event, config: Config) {
+  push(event: Event, config: Config | null) {
     return new Promise<Result>((resolve) => {
-      if (config?.optOut) {
-        resolve(buildResult(event, 0, OPT_OUT_MESSAGE));
-        return;
-      }
       this.queue.push([event, resolve]);
-      if (!config) {
+      if (config === null) {
         return;
       }
       this.scheduleApply(0);
@@ -50,7 +50,7 @@ export class Timeline {
   }
 
   scheduleApply(timeout: number) {
-    if (this.applying) return;
+    if (this.applying && this.isReady) return;
     this.applying = true;
     setTimeout(() => {
       void this.apply(this.queue.shift()).then(() => {
@@ -113,7 +113,7 @@ export class Timeline {
     );
 
     const executeDestinations = destination.map((plugin) => {
-      return plugin.flush && plugin.flush();
+      return plugin.flush && plugin.flush(true);
     });
 
     await Promise.all(executeDestinations);

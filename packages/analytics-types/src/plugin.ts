@@ -27,7 +27,7 @@ export interface DestinationPlugin {
   type: PluginType.DESTINATION;
   setup(config: Config): Promise<undefined>;
   execute(context: Event): Promise<Result>;
-  flush?(): Promise<void>;
+  flush?(useRetry?: boolean): Promise<void>;
 }
 
 export type Plugin = BeforePlugin | EnrichmentPlugin | DestinationPlugin;

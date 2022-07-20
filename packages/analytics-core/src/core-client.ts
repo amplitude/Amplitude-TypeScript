@@ -17,6 +17,8 @@ import {
 } from './utils/event-builder';
 import { Timeline } from './timeline';
 import { buildResult } from './utils/result-builder';
+import { OPT_OUT_MESSAGE } from './messages';
+
 export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -76,9 +78,13 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   async dispatch(event: Event) {
     try {
+      // skip event processing if opt out
+      if (this.config?.optOut) {
+        return buildResult(event, 0, OPT_OUT_MESSAGE);
+      }
       // if not init yet, only #push the events, #apply will be skipped in timeline
       if (!this.config) {
-        return this.timeline.push(event, this.config);
+        return this.timeline.push(event, null);
       }
       const result = await this.timeline.push(event, this.config);
       if (result.code === 200) {
