@@ -46,12 +46,12 @@ amplitude.init("YOUR_API_KEY_HERE");
 Initialization is necessary before any instrumentation is done. The API key for your Amplitude project is required.
 
 ```typescript
-amplitude.init(API_KEY)
+amplitude.init(API_KEY);
 ```
 
 ### Tracking an Event
 
-Events represent how users interact with your application. For example, “Button Clicked” may be an action you want to note.
+Events represent how users interact with your application. For example, "Button Clicked" may be an action you want to note.
 
 ```typescript
 import { track } from '@amplitude/analytics-browser';
@@ -104,7 +104,7 @@ identify(event);
 
 ### User Groups
 
-```
+```typescript
 import { setGroup } from '@amplitude/analytics-browser';
 
 // set group with single group name
