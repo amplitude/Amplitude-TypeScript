@@ -82,10 +82,6 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
       if (this.config?.optOut) {
         return buildResult(event, 0, OPT_OUT_MESSAGE);
       }
-      // if not init yet, only #push the events, #apply will be skipped in timeline
-      if (!this.config) {
-        return this.timeline.push(event);
-      }
       const result = await this.timeline.push(event);
       if (result.code === 200) {
         this.config.loggerProvider.log(result.message);
