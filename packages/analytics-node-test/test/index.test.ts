@@ -55,6 +55,30 @@ describe('integration', () => {
       scope.done();
     });
 
+    test('should track event when init is called after', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+
+      const pendingResponse = amplitude.track('test event', undefined, {
+        user_id: 'sdk.dev@amplitude.com',
+        device_id: 'deviceId',
+      }).promise;
+      await amplitude.init('API_KEY').promise;
+      const response = await pendingResponse;
+      expect(response.event).toEqual({
+        user_id: 'sdk.dev@amplitude.com',
+        device_id: 'deviceId',
+        time: number,
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 0,
+        library: library,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      scope.done();
+    });
+
     test('should track event with base event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 

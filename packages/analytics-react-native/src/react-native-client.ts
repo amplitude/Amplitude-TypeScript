@@ -57,7 +57,14 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await this.add(new IdentityEventSender());
     await this.add(new Destination());
 
-    // Step 5: Track attributions
+    // Step 5: Set timeline ready for processing events
+    // Send existing events, which might be collected by track before init
+    this.timeline.isReady = true;
+    if (!this.config.optOut) {
+      this.timeline.scheduleApply(0);
+    }
+
+    // Step 6: Track attributions
     await this.runAttributionStrategy(options?.attribution, isNewSession);
   }
 
