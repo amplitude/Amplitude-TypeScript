@@ -21,7 +21,6 @@ export interface Config {
   minIdLength?: number;
   optOut: boolean;
   plan?: Plan;
-  saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
   storageProvider?: Storage<Event[]>;

@@ -44,7 +44,6 @@ describe('config', () => {
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
-        saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
@@ -107,7 +106,6 @@ describe('config', () => {
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
-        saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
@@ -176,7 +174,6 @@ describe('config', () => {
         plan: {
           version: '0',
         },
-        saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
@@ -283,18 +280,11 @@ describe('config', () => {
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
-    test('should use memory', async () => {
-      const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
-        isEnabled: async () => false,
-        get: async () => '',
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-        getRaw: async () => undefined,
+    test('should return undefined storage', async () => {
+      const storage = await Config.createEventsStorage({
+        storageProvider: undefined,
       });
-      const storage = await Config.createEventsStorage();
-      expect(storage).toBeInstanceOf(core.MemoryStorage);
-      expect(localStorageConstructor).toHaveBeenCalledTimes(1);
+      expect(storage).toBe(undefined);
     });
   });
 

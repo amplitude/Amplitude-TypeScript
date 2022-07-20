@@ -28,7 +28,6 @@ describe('config', () => {
       _optOut: false, // private for `optOut` getter/setter
       partnerId: undefined,
       plan: undefined,
-      saveEvents: true,
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
@@ -45,7 +44,6 @@ describe('config', () => {
       logLevel: LogLevel.Verbose,
       optOut: true,
       plan: { version: '0' },
-      saveEvents: false,
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
@@ -62,7 +60,6 @@ describe('config', () => {
       plan: {
         version: '0',
       },
-      saveEvents: false,
       serverUrl: 'https://api2.amplitude.com/batch',
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
