@@ -44,7 +44,7 @@ export class Config implements IConfig {
   serverUrl: string | undefined;
   serverZone?: ServerZone;
   transportProvider: Transport;
-  storageProvider: Storage<Event[]>;
+  storageProvider?: Storage<Event[]>;
   useBatch: boolean;
 
   private _optOut = false;

@@ -26,6 +26,14 @@ describe('destination', () => {
       const event = {
         event_type: 'hello',
       };
+      config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
       const get = jest.spyOn(config.storageProvider, 'get').mockResolvedValueOnce([event]);
       const execute = jest.spyOn(destination, 'execute').mockReturnValueOnce(
         Promise.resolve({
@@ -37,6 +45,15 @@ describe('destination', () => {
       await destination.setup(config);
       expect(get).toHaveBeenCalledTimes(1);
       expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    test('should be ok with undefined storage', async () => {
+      const destination = new Destination();
+      const config = useDefaultConfig();
+      config.storageProvider = undefined;
+      const execute = jest.spyOn(destination, 'execute');
+      await destination.setup(config);
+      expect(execute).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -328,6 +345,14 @@ describe('destination', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = true;
+      destination.config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
       destination.saveEvents();
       expect(set).toHaveBeenCalledTimes(1);
@@ -337,9 +362,25 @@ describe('destination', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.saveEvents = false;
+      destination.config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
       destination.saveEvents();
       expect(set).toHaveBeenCalledTimes(0);
+    });
+
+    test('should be ok with no storage provider', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.saveEvents = false;
+      destination.config.storageProvider = undefined;
+      expect(destination.saveEvents()).toBe(undefined);
     });
   });
 
