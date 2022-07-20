@@ -15,11 +15,11 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
     await this.add(new Destination());
 
     // Set timeline ready for processing events
+    // Send existing events, which might be collected by track before init
     this.timeline.isReady = true;
-
-    // Flush existing events, which might be collected by track before init
-    // This flush needs to run after plugin installation to gain the correct attributes
-    await this.timeline.flush();
+    if (!this.config.optOut) {
+      this.timeline.scheduleApply(0);
+    }
   }
 }
 

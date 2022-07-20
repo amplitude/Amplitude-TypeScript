@@ -145,17 +145,17 @@ describe('core-client', () => {
       expect(push).toBeCalledTimes(0);
     });
 
-    test('should handle config is null', async () => {
-      const configWithoutInit = new AmplitudeCore();
-      const push = jest.spyOn(configWithoutInit.timeline, 'push').mockReturnValueOnce(new Promise(() => undefined));
+    test('should handle timeline is not ready', async () => {
+      const clientWithoutInit = new AmplitudeCore();
+      const push = jest.spyOn(clientWithoutInit.timeline, 'push').mockReturnValueOnce(new Promise(() => undefined));
       const event: Event = {
         event_type: 'event_type',
       };
 
-      const result = configWithoutInit.dispatch(event);
+      const result = clientWithoutInit.dispatch(event);
       expect(await promiseState(result)).toEqual('pending');
       expect(push).toBeCalledTimes(1);
-      expect(push).toBeCalledWith(event, null);
+      expect(push).toBeCalledWith(event);
     });
   });
 

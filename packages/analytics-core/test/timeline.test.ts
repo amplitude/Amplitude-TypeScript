@@ -74,18 +74,14 @@ describe('timeline', () => {
       event_type: `${id}:event_type`,
     });
     await Promise.all([
-      timeline.push(event(1), config).then(() => timeline.push(event(1.1), config)),
+      timeline.push(event(1)).then(() => timeline.push(event(1.1))),
+      timeline.push(event(2)).then(() => Promise.all([timeline.push(event(2.1)), timeline.push(event(2.2))])),
       timeline
-        .push(event(2), config)
-        .then(() => Promise.all([timeline.push(event(2.1), config), timeline.push(event(2.2), config)])),
-      timeline
-        .push(event(3), config)
+        .push(event(3))
         .then(() =>
           Promise.all([
-            timeline
-              .push(event(3.1), config)
-              .then(() => Promise.all([timeline.push(event(3.11), config), timeline.push(event(3.12), config)])),
-            timeline.push(event(3.2), config),
+            timeline.push(event(3.1)).then(() => Promise.all([timeline.push(event(3.11)), timeline.push(event(3.12))])),
+            timeline.push(event(3.2)),
           ]),
         ),
     ]);
@@ -105,8 +101,7 @@ describe('timeline', () => {
       const event = {
         event_type: 'hello',
       };
-      const config = null;
-      const result = timeline.push(event, config);
+      const result = timeline.push(event);
       expect(await promiseState(result)).toEqual('pending');
       expect(timeline.queue.length).toBe(1);
     });
@@ -149,10 +144,10 @@ describe('timeline', () => {
       };
       const config = useDefaultConfig();
       await timeline.register(plugin, config);
-      void timeline.push(createTrackEvent('a'), config);
-      void timeline.push(createTrackEvent('b'), config);
-      void timeline.push(createTrackEvent('c'), config);
-      void timeline.push(createTrackEvent('d'), config);
+      void timeline.push(createTrackEvent('a'));
+      void timeline.push(createTrackEvent('b'));
+      void timeline.push(createTrackEvent('c'));
+      void timeline.push(createTrackEvent('d'));
       expect(timeline.queue.length).toBe(4);
       await timeline.flush();
       expect(timeline.queue.length).toBe(0);

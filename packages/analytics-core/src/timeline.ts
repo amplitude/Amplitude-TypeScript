@@ -39,12 +39,9 @@ export class Timeline {
     this.plugins = [];
   }
 
-  push(event: Event, config: Config | null) {
+  push(event: Event) {
     return new Promise<Result>((resolve) => {
       this.queue.push([event, resolve]);
-      if (config === null) {
-        return;
-      }
       this.scheduleApply(0);
     });
   }
@@ -113,7 +110,7 @@ export class Timeline {
     );
 
     const executeDestinations = destination.map((plugin) => {
-      return plugin.flush && plugin.flush(true);
+      return plugin.flush && plugin.flush();
     });
 
     await Promise.all(executeDestinations);
