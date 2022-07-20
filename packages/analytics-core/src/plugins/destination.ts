@@ -244,10 +244,10 @@ export class Destination implements DestinationPlugin {
    * 2) response comes back for a request
    */
   saveEvents() {
-    if (!this.config.saveEvents) {
+    if (!this.config.storageProvider) {
       return;
     }
     const events = Array.from(this.queue.map((context) => context.event));
-    void this.config.storageProvider?.set(this.storageKey, events);
+    void this.config.storageProvider.set(this.storageKey, events);
   }
 }

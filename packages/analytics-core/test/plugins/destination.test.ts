@@ -344,7 +344,6 @@ describe('destination', () => {
     test('should save to storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
-      destination.config.saveEvents = true;
       destination.config.storageProvider = {
         isEnabled: async () => true,
         get: async () => undefined,
@@ -358,27 +357,9 @@ describe('destination', () => {
       expect(set).toHaveBeenCalledTimes(1);
     });
 
-    test('should not save to storage provider', () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.saveEvents = false;
-      destination.config.storageProvider = {
-        isEnabled: async () => true,
-        get: async () => undefined,
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-        getRaw: async () => undefined,
-      };
-      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      destination.saveEvents();
-      expect(set).toHaveBeenCalledTimes(0);
-    });
-
     test('should be ok with no storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
-      destination.config.saveEvents = false;
       destination.config.storageProvider = undefined;
       expect(destination.saveEvents()).toBe(undefined);
     });

@@ -24,7 +24,6 @@ export const getDefaultConfig = () => ({
   flushIntervalMillis: 1000,
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
-  saveEvents: true,
   optOut: false,
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: ServerZone.US,
@@ -40,7 +39,6 @@ export class Config implements IConfig {
   logLevel: LogLevel;
   minIdLength?: number;
   plan?: Plan;
-  saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
   transportProvider: Transport;
@@ -66,7 +64,6 @@ export class Config implements IConfig {
     this.minIdLength = options.minIdLength;
     this.plan = options.plan;
     this.optOut = options.optOut ?? defaultConfig.optOut;
-    this.saveEvents = options.saveEvents ?? defaultConfig.saveEvents;
     this.serverUrl = options.serverUrl;
     this.serverZone = options.serverZone || defaultConfig.serverZone;
     this.storageProvider = options.storageProvider;
