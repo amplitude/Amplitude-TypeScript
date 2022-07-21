@@ -63,6 +63,9 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   constructor(apiKey: string, userId?: string, options?: ReactNativeOptions) {
     const defaultConfig = getDefaultConfig();
     super({
+      flushIntervalMillis: 1000,
+      flushMaxRetries: 5,
+      flushQueueSize: 30,
       ...options,
       apiKey,
       storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,

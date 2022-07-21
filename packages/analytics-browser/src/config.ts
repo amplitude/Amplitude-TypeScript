@@ -66,6 +66,9 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
     const defaultConfig = getDefaultConfig();
     super({
+      flushIntervalMillis: 1000,
+      flushMaxRetries: 5,
+      flushQueueSize: 30,
       ...options,
       apiKey,
       storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,

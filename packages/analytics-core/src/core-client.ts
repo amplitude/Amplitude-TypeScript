@@ -33,8 +33,7 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
     this.name = name;
   }
 
-  // NOTE: Do not use `_apiKey` and `_userId` here
-  init(_apiKey: string | undefined, _userId: string | undefined, config: T) {
+  _init(config: T) {
     this.config = config;
     this.timeline.reset();
     return Promise.resolve();

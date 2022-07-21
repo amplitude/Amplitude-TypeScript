@@ -19,9 +19,9 @@ import {
 import { Logger } from './logger';
 
 export const getDefaultConfig = () => ({
-  flushMaxRetries: 5,
-  flushQueueSize: 10,
-  flushIntervalMillis: 1000,
+  flushMaxRetries: 12,
+  flushQueueSize: 200,
+  flushIntervalMillis: 10000,
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
   optOut: false,

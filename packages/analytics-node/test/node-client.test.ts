@@ -4,12 +4,13 @@ import { Status } from '@amplitude/analytics-types';
 
 describe('node-client', () => {
   const API_KEY = 'API_KEY';
-  const USER_ID = 'USER_ID';
 
   describe('init', () => {
     test('should return config', async () => {
       const client = new AmplitudeNode();
-      await client.init(API_KEY, USER_ID, {});
+      await client.init(API_KEY, {
+        flushIntervalMillis: 1000,
+      });
       expect(client.config).toBeDefined();
     });
   });
@@ -35,7 +36,8 @@ describe('node-client', () => {
         },
       });
       const client = new AmplitudeNode();
-      await client.init(API_KEY, undefined, {
+      await client.init(API_KEY, {
+        flushIntervalMillis: 1000,
         transportProvider: {
           send,
         },
@@ -59,7 +61,8 @@ describe('node-client', () => {
         },
       });
       const client = new AmplitudeNode();
-      await client.init(API_KEY, undefined, {
+      await client.init(API_KEY, {
+        flushIntervalMillis: 1000,
         transportProvider: {
           send,
         },
@@ -83,7 +86,8 @@ describe('node-client', () => {
         },
       });
       const client = new AmplitudeNode();
-      await client.init(API_KEY, undefined, {
+      await client.init(API_KEY, {
+        flushIntervalMillis: 1000,
         transportProvider: {
           send,
         },

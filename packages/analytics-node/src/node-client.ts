@@ -4,12 +4,12 @@ import { Context } from './plugins/context';
 import { useNodeConfig } from './config';
 
 export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
-  async init(apiKey: string, _userId?: string | undefined, options?: NodeOptions) {
+  async init(apiKey: string, options?: NodeOptions) {
     const nodeOptions = useNodeConfig(apiKey, {
       ...options,
     });
 
-    await super.init(undefined, undefined, nodeOptions);
+    await super._init(nodeOptions);
 
     await this.add(new Context());
     await this.add(new Destination());
