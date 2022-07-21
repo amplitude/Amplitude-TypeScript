@@ -13,9 +13,9 @@ describe('config', () => {
       const config = new Config.NodeConfig(API_KEY);
       expect(config).toEqual({
         apiKey: API_KEY,
-        flushIntervalMillis: 1000,
-        flushMaxRetries: 5,
-        flushQueueSize: 10,
+        flushIntervalMillis: 10000,
+        flushMaxRetries: 12,
+        flushQueueSize: 200,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         _optOut: false,
@@ -37,9 +37,9 @@ describe('config', () => {
       expect(config).toEqual({
         apiKey: API_KEY,
         deviceId: undefined,
-        flushIntervalMillis: 1000,
-        flushMaxRetries: 5,
-        flushQueueSize: 10,
+        flushIntervalMillis: 10000,
+        flushMaxRetries: 12,
+        flushQueueSize: 200,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         _optOut: false,

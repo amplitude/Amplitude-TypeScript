@@ -19,9 +19,9 @@ describe('config', () => {
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
-      flushIntervalMillis: 1000,
-      flushMaxRetries: 5,
-      flushQueueSize: 10,
+      flushIntervalMillis: 10000,
+      flushMaxRetries: 12,
+      flushQueueSize: 200,
       logLevel: LogLevel.Warn,
       loggerProvider: new Logger(),
       minIdLength: undefined,
@@ -50,9 +50,9 @@ describe('config', () => {
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
-      flushIntervalMillis: 1000,
-      flushMaxRetries: 5,
-      flushQueueSize: 10,
+      flushIntervalMillis: 10000,
+      flushMaxRetries: 12,
+      flushQueueSize: 200,
       logLevel: LogLevel.Verbose,
       loggerProvider: new Logger(),
       minIdLength: undefined,

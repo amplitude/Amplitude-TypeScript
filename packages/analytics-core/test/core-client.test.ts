@@ -11,7 +11,7 @@ describe('core-client', () => {
   describe('init', () => {
     test('should call init', async () => {
       expect(client.config).toBeUndefined();
-      await client.init('', '', useDefaultConfig());
+      await client._init(useDefaultConfig());
       expect(client.config).toBeDefined();
     });
   });

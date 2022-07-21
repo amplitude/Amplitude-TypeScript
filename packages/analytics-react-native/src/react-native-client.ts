@@ -27,7 +27,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
     });
-    await super.init(undefined, undefined, reactNativeOptions);
+    await super._init(reactNativeOptions);
 
     // Step 3: Manage session
     let isNewSession = false;

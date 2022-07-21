@@ -30,7 +30,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
     });
-    await super.init(undefined, undefined, browserOptions);
+    await super._init(browserOptions);
 
     // Step 3: Manage session
     let isNewSession = false;
