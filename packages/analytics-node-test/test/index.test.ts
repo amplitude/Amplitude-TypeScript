@@ -310,7 +310,7 @@ describe('integration', () => {
         library: library,
       });
       expect(response.code).toBe(500);
-      expect(response.message).toBe('Invalid API key');
+      expect(response.message).toBe('Event rejected due to exceeded retry count');
       scope.done();
     }, 10000);
 
