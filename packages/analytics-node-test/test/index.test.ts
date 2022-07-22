@@ -310,7 +310,7 @@ describe('integration', () => {
         library: library,
       });
       expect(response.code).toBe(500);
-      expect(response.message).toBe('unknown');
+      expect(response.message).toBe('Invalid API key');
       scope.done();
     }, 10000);
 
