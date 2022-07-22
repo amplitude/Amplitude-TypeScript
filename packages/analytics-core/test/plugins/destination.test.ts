@@ -1,7 +1,12 @@
 import { Destination } from '../../src/plugins/destination';
 import { DestinationContext, Payload, Status } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
-import { MISSING_API_KEY_MESSAGE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../../src/messages';
+import {
+  INVALID_API_KEY,
+  MISSING_API_KEY_MESSAGE,
+  SUCCESS_MESSAGE,
+  UNEXPECTED_ERROR_MESSAGE,
+} from '../../src/messages';
 
 describe('destination', () => {
   describe('setup', () => {
@@ -396,6 +401,40 @@ describe('destination', () => {
       });
       expect(result.code).toBe(0);
       expect(result.message).toBe(UNEXPECTED_ERROR_MESSAGE);
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not retry with invalid api key', async () => {
+      class Http {
+        send = jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Invalid,
+            statusCode: 400,
+            body: {
+              error: INVALID_API_KEY,
+            },
+          });
+        });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination();
+      destination.retryTimeout = 10;
+      const config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 2,
+        flushIntervalMillis: 500,
+        transportProvider,
+      };
+      await destination.setup(config);
+      const results = await Promise.all([
+        destination.execute({
+          event_type: 'event_type',
+        }),
+        destination.execute({
+          event_type: 'event_type',
+        }),
+      ]);
+      expect(results[0].code).toBe(400);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
