@@ -24,7 +24,7 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn version-file && bob build",
+    "build": "bob build",
     "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
@@ -36,10 +36,9 @@
     "test:web": "jest --setupFiles './test/mock/setup-web.ts'",
     "test:mobile": "jest --setupFiles './test/mock/setup-mobile.ts'",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn build",
+    "version": "yarn version-file && yarn build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts",
     "typescript": "tsc --noEmit",
-    "prepare": "yarn version-file && bob build",
     "example": "yarn --cwd example",
     "pods": "cd example && pod-install --quiet"
   },

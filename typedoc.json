@@ -1,6 +1,7 @@
 {
   "entryPoints": [
-    "packages/analytics-browser"
+    "packages/analytics-browser",
+    "packages/analytics-node"
   ],
   "entryPointStrategy": "packages",
   "logLevel": "Error",

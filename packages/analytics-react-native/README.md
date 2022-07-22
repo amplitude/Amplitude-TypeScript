@@ -30,7 +30,7 @@ yarn add @react-native-async-storage/async-storage
 Initialization is necessary before any instrumentation is done. The API key for your Amplitude project is required.
 
 ```typescript
-amplitude.init(API_KEY)
+amplitude.init(API_KEY);
 ```
 
 ### Tracking an Event
