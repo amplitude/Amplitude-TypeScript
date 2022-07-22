@@ -171,12 +171,7 @@ export class Destination implements DestinationPlugin {
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
-    if (res.body.missingField) {
-      this.fulfillRequest(list, res.statusCode, res.body.error);
-      return;
-    }
-
-    if (res.body.error.startsWith(INVALID_API_KEY)) {
+    if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }

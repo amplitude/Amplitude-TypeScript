@@ -1,8 +1,12 @@
 import { Destination } from '../../src/plugins/destination';
 import { DestinationContext, Payload, Status } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
-import { MISSING_API_KEY_MESSAGE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../../src/messages';
-import { INVALID_API_KEY } from '../../src/messages';
+import {
+  INVALID_API_KEY,
+  MISSING_API_KEY_MESSAGE,
+  SUCCESS_MESSAGE,
+  UNEXPECTED_ERROR_MESSAGE,
+} from '../../src/messages';
 
 describe('destination', () => {
   describe('setup', () => {
