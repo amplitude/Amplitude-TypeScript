@@ -34,7 +34,6 @@ export interface EventOptions {
   android_id?: string;
   language?: string;
   ip?: string;
-  uuid?: string;
   price?: number;
   quantity?: number;
   revenue?: number;
