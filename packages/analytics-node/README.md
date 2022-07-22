@@ -90,7 +90,7 @@ identify(event);
 
 ### User Groups
 
-```
+```typescript
 import { setGroup } from '@amplitude/analytics-node';
 
 // set group with single group name
