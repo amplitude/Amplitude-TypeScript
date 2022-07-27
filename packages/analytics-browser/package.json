@@ -43,6 +43,7 @@
   "dependencies": {
     "@amplitude/analytics-core": "^0.6.4",
     "@amplitude/analytics-types": "^0.6.1",
+    "@amplitude/analytics-connector": "^1.4.5",
     "@amplitude/ua-parser-js": "^0.7.31",
     "tslib": "^2.3.1"
   },
