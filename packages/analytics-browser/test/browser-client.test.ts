@@ -5,6 +5,7 @@ import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport } from '../src/transports/fetch';
 import * as SnippetHelper from '../src/utils/snippet-helper';
+import { getAnalyticsConnector } from '../src/utils/analytics-connector';
 
 describe('browser-client', () => {
   const API_KEY = 'API_KEY';
@@ -102,6 +103,50 @@ describe('browser-client', () => {
       });
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(runAttributionStrategy).toHaveBeenCalledTimes(1);
+    });
+
+    test('should set user id and device id in analytics connector', async () => {
+      const cookieStorage = new core.MemoryStorage<UserSession>();
+      jest.spyOn(cookieStorage, 'get').mockResolvedValue({
+        sessionId: 1,
+        deviceId: DEVICE_ID,
+        optOut: false,
+      });
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, USER_ID, {
+        optOut: true,
+        cookieStorage,
+        ...attributionConfig,
+      });
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getUserId()).toBe(USER_ID);
+      const identity = getAnalyticsConnector().identityStore.getIdentity();
+      expect(identity.deviceId).toBe(DEVICE_ID);
+      expect(identity.userId).toBe(USER_ID);
+    });
+
+    test('should set up event bridge and track events', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, USER_ID, {
+        optOut: false,
+        ...attributionConfig,
+      });
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      getAnalyticsConnector().eventBridge.logEvent({
+        eventType: 'event_type',
+        eventProperties: {
+          k: 'v',
+        },
+      });
+      expect(track).toHaveBeenCalledTimes(1);
     });
   });
 
