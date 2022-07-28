@@ -74,6 +74,7 @@ const snippet = (integrity, version) => `
       'setUserId',
       'setOptOut',
       'setTransport',
+      'reset',
     ];
     var funcsWithPromise = [
       'init',
