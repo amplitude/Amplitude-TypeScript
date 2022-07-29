@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.1.1...@amplitude/analytics-react-native@0.2.0) (2022-07-29)
+
+
+### Features
+
+* add reset method for resetting userId and deviceId ([#157](https://github.com/amplitude/Amplitude-TypeScript/issues/157)) ([8bfc864](https://github.com/amplitude/Amplitude-TypeScript/commit/8bfc864b15dd7e427556a50bc3de6b43b2485189))
+
+
+
+
+
 ## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.1.0...@amplitude/analytics-react-native@0.1.1) (2022-07-22)
 
 
