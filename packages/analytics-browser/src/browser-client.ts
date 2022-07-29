@@ -97,6 +97,11 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     this.setDeviceId(deviceId);
   }
 
+  reset() {
+    this.setUserId(undefined);
+    this.regenerateDeviceId();
+  }
+
   getSessionId() {
     return this.config.sessionId;
   }
@@ -299,13 +304,25 @@ export const setDeviceId = client.setDeviceId.bind(client);
 /**
  * Regenerates a new random deviceId for current user. Note: this is not recommended unless you know what you
  * are doing. This can be used in conjunction with `setUserId(undefined)` to anonymize users after they log out.
- * With an `unefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
+ * With an `undefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
  *
  * ```typescript
  * regenerateDeviceId();
  * ```
  */
 export const regenerateDeviceId = client.regenerateDeviceId.bind(client);
+
+/**
+ * reset is a shortcut to anonymize users after they log out, by:
+ *   - setting userId to `undefined`
+ *   - regenerating a new random deviceId
+ * With an `unefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
+ *
+ * ```typescript
+ * reset();
+ * ```
+ */
+export const reset = client.reset.bind(client);
 
 /**
  * Returns current session ID.

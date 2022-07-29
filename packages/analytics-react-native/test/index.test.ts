@@ -10,6 +10,7 @@ import {
   init,
   logEvent,
   remove,
+  reset,
   Revenue,
   revenue,
   setDeviceId,
@@ -33,6 +34,7 @@ describe('index', () => {
     expect(typeof init).toBe('function');
     expect(typeof logEvent).toBe('function');
     expect(typeof remove).toBe('function');
+    expect(typeof reset).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof revenue).toBe('function');
     expect(typeof setDeviceId).toBe('function');
