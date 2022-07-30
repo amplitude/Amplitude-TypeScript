@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.1.0...@amplitude/analytics-browser@1.1.1) (2022-07-30)
+
+
+### Bug Fixes
+
+* fixes auto gen of snippet instructions ([#160](https://github.com/amplitude/Amplitude-TypeScript/issues/160)) ([bbdf284](https://github.com/amplitude/Amplitude-TypeScript/commit/bbdf2840665f58507391ccdd9ca1398676bab194))
+
+
+
+
+
 # [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.0.3...@amplitude/analytics-browser@1.1.0) (2022-07-29)
 
 
