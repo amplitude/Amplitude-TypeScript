@@ -9,6 +9,7 @@ export {
   init,
   logEvent,
   remove,
+  reset,
   revenue,
   setDeviceId,
   setGroup,

@@ -63,6 +63,9 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   constructor(apiKey: string, userId?: string, options?: ReactNativeOptions) {
     const defaultConfig = getDefaultConfig();
     super({
+      flushIntervalMillis: 1000,
+      flushMaxRetries: 5,
+      flushQueueSize: 30,
       ...options,
       apiKey,
       storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,
@@ -183,15 +186,21 @@ export const createFlexibleStorage = async <T>(options: ReactNativeOptions): Pro
   return storage;
 };
 
-export const createEventsStorage = async (overrides?: ReactNativeOptions): Promise<Storage<Event[]>> => {
-  let eventsStorage = overrides?.storageProvider;
-  if (!eventsStorage || !(await eventsStorage.isEnabled())) {
-    eventsStorage = new LocalStorage();
-    if (!(await eventsStorage.isEnabled())) {
-      eventsStorage = new MemoryStorage();
+export const createEventsStorage = async (overrides?: ReactNativeOptions): Promise<Storage<Event[]> | undefined> => {
+  const hasStorageProviderProperty = overrides && Object.prototype.hasOwnProperty.call(overrides, 'storageProvider');
+  // If storageProperty is explicitly undefined like `{ storageProperty: undefined }`
+  // then storageProvider is undefined
+  // If storageProvider is implicitly undefined like `{ }`
+  // then storageProvider is LocalStorage
+  // Otherwise storageProvider is overriden
+  if (!hasStorageProviderProperty || overrides.storageProvider) {
+    for (const storage of [overrides?.storageProvider, new LocalStorage<Event[]>()]) {
+      if (storage && (await storage.isEnabled())) {
+        return storage;
+      }
     }
   }
-  return eventsStorage;
+  return undefined;
 };
 
 export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, idFromQueryParams?: string) => {

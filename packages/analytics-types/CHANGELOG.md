@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.6.0...@amplitude/analytics-types@0.6.1) (2022-07-22)
+
+
+### Bug Fixes
+
+* allow undefined storage provider ([#146](https://github.com/amplitude/Amplitude-TypeScript/issues/146)) ([e704342](https://github.com/amplitude/Amplitude-TypeScript/commit/e704342761c8ad7de3921ba21901ef8d3a768188))
+* removes deprecated uuid from event options ([#154](https://github.com/amplitude/Amplitude-TypeScript/issues/154)) ([d940dea](https://github.com/amplitude/Amplitude-TypeScript/commit/d940dea139d022712a9766c1f7f8096c6dc44832))
+* removes saveEvents config ([#147](https://github.com/amplitude/Amplitude-TypeScript/issues/147)) ([6fde736](https://github.com/amplitude/Amplitude-TypeScript/commit/6fde736ca8a865462522082a8085673756dbcc7d))
+
+
+
+
+
+# [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.5.1...@amplitude/analytics-types@0.6.0) (2022-07-15)
+
+
+### Features
+
+* react-native with web support ([#126](https://github.com/amplitude/Amplitude-TypeScript/issues/126)) ([5384130](https://github.com/amplitude/Amplitude-TypeScript/commit/5384130904d19b4b6cf4b43826efa2b373b47b85))
+
+
+
+
+
 ## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.5.0...@amplitude/analytics-types@0.5.1) (2022-06-29)
 
 

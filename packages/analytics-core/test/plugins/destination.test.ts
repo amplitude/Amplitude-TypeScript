@@ -1,7 +1,12 @@
 import { Destination } from '../../src/plugins/destination';
 import { DestinationContext, Payload, Status } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
-import { MISSING_API_KEY_MESSAGE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../../src/messages';
+import {
+  INVALID_API_KEY,
+  MISSING_API_KEY_MESSAGE,
+  SUCCESS_MESSAGE,
+  UNEXPECTED_ERROR_MESSAGE,
+} from '../../src/messages';
 
 describe('destination', () => {
   describe('setup', () => {
@@ -26,6 +31,14 @@ describe('destination', () => {
       const event = {
         event_type: 'hello',
       };
+      config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
       const get = jest.spyOn(config.storageProvider, 'get').mockResolvedValueOnce([event]);
       const execute = jest.spyOn(destination, 'execute').mockReturnValueOnce(
         Promise.resolve({
@@ -37,6 +50,15 @@ describe('destination', () => {
       await destination.setup(config);
       expect(get).toHaveBeenCalledTimes(1);
       expect(execute).toHaveBeenCalledTimes(1);
+    });
+
+    test('should be ok with undefined storage', async () => {
+      const destination = new Destination();
+      const config = useDefaultConfig();
+      config.storageProvider = undefined;
+      const execute = jest.spyOn(destination, 'execute');
+      await destination.setup(config);
+      expect(execute).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -327,19 +349,24 @@ describe('destination', () => {
     test('should save to storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
-      destination.config.saveEvents = true;
+      destination.config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
       destination.saveEvents();
       expect(set).toHaveBeenCalledTimes(1);
     });
 
-    test('should not save to storage provider', () => {
+    test('should be ok with no storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
-      destination.config.saveEvents = false;
-      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      destination.saveEvents();
-      expect(set).toHaveBeenCalledTimes(0);
+      destination.config.storageProvider = undefined;
+      expect(destination.saveEvents()).toBe(undefined);
     });
   });
 
@@ -374,6 +401,40 @@ describe('destination', () => {
       });
       expect(result.code).toBe(0);
       expect(result.message).toBe(UNEXPECTED_ERROR_MESSAGE);
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not retry with invalid api key', async () => {
+      class Http {
+        send = jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Invalid,
+            statusCode: 400,
+            body: {
+              error: INVALID_API_KEY,
+            },
+          });
+        });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination();
+      destination.retryTimeout = 10;
+      const config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 2,
+        flushIntervalMillis: 500,
+        transportProvider,
+      };
+      await destination.setup(config);
+      const results = await Promise.all([
+        destination.execute({
+          event_type: 'event_type',
+        }),
+        destination.execute({
+          event_type: 'event_type',
+        }),
+      ]);
+      expect(results[0].code).toBe(400);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 

@@ -17,6 +17,8 @@ import {
 } from './utils/event-builder';
 import { Timeline } from './timeline';
 import { buildResult } from './utils/result-builder';
+import { OPT_OUT_MESSAGE } from './messages';
+
 export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -27,13 +29,13 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   timeline: Timeline;
 
   constructor(name = '$default') {
+    this.timeline = new Timeline();
     this.name = name;
   }
 
-  // NOTE: Do not use `_apiKey` and `_userId` here
-  init(_apiKey: string | undefined, _userId: string | undefined, config: T) {
+  _init(config: T) {
     this.config = config;
-    this.timeline = new Timeline();
+    this.timeline.reset();
     return Promise.resolve();
   }
 
@@ -75,7 +77,11 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   async dispatch(event: Event) {
     try {
-      const result = await this.timeline.push(event, this.config);
+      // skip event processing if opt out
+      if (this.config?.optOut) {
+        return buildResult(event, 0, OPT_OUT_MESSAGE);
+      }
+      const result = await this.timeline.push(event);
       if (result.code === 200) {
         this.config.loggerProvider.log(result.message);
       } else {

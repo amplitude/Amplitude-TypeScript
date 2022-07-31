@@ -27,3 +27,5 @@ Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.
 ## Projects
 
 * [@amplitude/analytics-browser](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser): Amplitude SDK for Web
+* [@amplitude/analytics-node](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-node): Amplitude SDK for Node.js
+* [@amplitude/analytics-react-native](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-react-native): Amplitude SDK for React Native

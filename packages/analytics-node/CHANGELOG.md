@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.3.3...@amplitude/analytics-node@0.3.4) (2022-07-22)
+
+
+### Bug Fixes
+
+* allow undefined storage provider ([#146](https://github.com/amplitude/Amplitude-TypeScript/issues/146)) ([e704342](https://github.com/amplitude/Amplitude-TypeScript/commit/e704342761c8ad7de3921ba21901ef8d3a768188))
+* missing tracked events before init issue ([#144](https://github.com/amplitude/Amplitude-TypeScript/issues/144)) ([60d0f68](https://github.com/amplitude/Amplitude-TypeScript/commit/60d0f6848087f7b8fc3c870d55489a238e841b26))
+* removes saveEvents config ([#147](https://github.com/amplitude/Amplitude-TypeScript/issues/147)) ([6fde736](https://github.com/amplitude/Amplitude-TypeScript/commit/6fde736ca8a865462522082a8085673756dbcc7d))
+* update default flush config for node ([#152](https://github.com/amplitude/Amplitude-TypeScript/issues/152)) ([2445dff](https://github.com/amplitude/Amplitude-TypeScript/commit/2445dff0842e7e0a2b7ee767ab926b5a93348214))
+
+
+
+
+
+## [0.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.3.2...@amplitude/analytics-node@0.3.3) (2022-07-15)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+
+
+
+
 ## [0.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.3.1...@amplitude/analytics-node@0.3.2) (2022-07-13)
 
 **Note:** Version bump only for package @amplitude/analytics-node

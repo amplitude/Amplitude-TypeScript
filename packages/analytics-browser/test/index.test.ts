@@ -10,6 +10,7 @@ import {
   init,
   logEvent,
   remove,
+  reset,
   Revenue,
   revenue,
   runQueuedFunctions,
@@ -37,6 +38,7 @@ describe('index', () => {
     expect(typeof remove).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof revenue).toBe('function');
+    expect(typeof reset).toBe('function');
     expect(typeof runQueuedFunctions).toBe('function');
     expect(typeof setDeviceId).toBe('function');
     expect(typeof setGroup).toBe('function');

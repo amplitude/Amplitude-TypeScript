@@ -3,6 +3,41 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.0.4...@amplitude/analytics-browser-test@2.0.5) (2022-07-30)
+
+**Note:** Version bump only for package @amplitude/analytics-browser-test
+
+
+
+
+
+## [2.0.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.0.3...@amplitude/analytics-browser-test@2.0.4) (2022-07-29)
+
+**Note:** Version bump only for package @amplitude/analytics-browser-test
+
+
+
+
+
+## [2.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.0.2...@amplitude/analytics-browser-test@2.0.3) (2022-07-22)
+
+
+### Bug Fixes
+
+* adds error handling for invalid api ([#153](https://github.com/amplitude/Amplitude-TypeScript/issues/153)) ([c03f9d7](https://github.com/amplitude/Amplitude-TypeScript/commit/c03f9d7dad51e3026673dca31418a74591d79bbc))
+
+
+
+
+
+## [2.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.0.1...@amplitude/analytics-browser-test@2.0.2) (2022-07-15)
+
+**Note:** Version bump only for package @amplitude/analytics-browser-test
+
+
+
+
+
 ## [2.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.0.0...@amplitude/analytics-browser-test@2.0.1) (2022-07-13)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test

@@ -1,6 +1,7 @@
 import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import { useDefaultConfig } from './helpers/default';
+import { useDefaultConfig, promiseState } from './helpers/default';
+import { OPT_OUT_MESSAGE } from '../src/messages';
 
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
@@ -10,7 +11,7 @@ describe('core-client', () => {
   describe('init', () => {
     test('should call init', async () => {
       expect(client.config).toBeUndefined();
-      await client.init('', '', useDefaultConfig());
+      await client._init(useDefaultConfig());
       expect(client.config).toBeDefined();
     });
   });
@@ -126,6 +127,35 @@ describe('core-client', () => {
         code: 0,
       });
       expect(push).toBeCalledTimes(1);
+    });
+
+    test('should handle opt out', async () => {
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
+      const event: Event = {
+        event_type: 'event_type',
+      };
+
+      client.setOptOut(true);
+      const result = await client.dispatch(event);
+      expect(result).toEqual({
+        event,
+        message: OPT_OUT_MESSAGE,
+        code: 0,
+      });
+      expect(push).toBeCalledTimes(0);
+    });
+
+    test('should handle timeline is not ready', async () => {
+      const clientWithoutInit = new AmplitudeCore();
+      const push = jest.spyOn(clientWithoutInit.timeline, 'push').mockReturnValueOnce(new Promise(() => undefined));
+      const event: Event = {
+        event_type: 'event_type',
+      };
+
+      const result = clientWithoutInit.dispatch(event);
+      expect(await promiseState(result)).toEqual('pending');
+      expect(push).toBeCalledTimes(1);
+      expect(push).toBeCalledWith(event);
     });
   });
 

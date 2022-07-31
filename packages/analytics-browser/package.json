@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -20,10 +20,11 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn vesion-file && yarn bundle && yarn build:es5 && yarn build:esm",
+    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
@@ -33,15 +34,15 @@
     "publish": "node scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "GENERATE_SNIPPET=true yarn build",
-    "vesion-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
+    "version": "yarn version-file && GENERATE_SNIPPET=true yarn build",
+    "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^0.6.2",
-    "@amplitude/analytics-types": "^0.5.1",
+    "@amplitude/analytics-core": "^0.6.4",
+    "@amplitude/analytics-types": "^0.6.1",
     "@amplitude/ua-parser-js": "^0.7.31",
     "tslib": "^2.3.1"
   },

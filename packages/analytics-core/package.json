@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-core",
-  "version": "0.6.2",
+  "version": "0.6.4",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -19,6 +19,7 @@
     "build": "yarn build:es5 & yarn build:esm",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
@@ -32,7 +33,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-types": "^0.5.1",
+    "@amplitude/analytics-types": "^0.6.1",
     "tslib": "^2.3.1"
   },
   "files": [

@@ -12,7 +12,13 @@ import {
   Status,
   SuccessResponse,
 } from '@amplitude/analytics-types';
-import { MISSING_API_KEY_MESSAGE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../messages';
+import {
+  INVALID_API_KEY,
+  MAX_RETRIES_EXCEEDED_MESSAGE,
+  MISSING_API_KEY_MESSAGE,
+  SUCCESS_MESSAGE,
+  UNEXPECTED_ERROR_MESSAGE,
+} from '../messages';
 import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
@@ -36,7 +42,7 @@ export class Destination implements DestinationPlugin {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
-    const unsent = await this.config.storageProvider.get(this.storageKey);
+    const unsent = await this.config.storageProvider?.get(this.storageKey);
     this.saveEvents(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
@@ -63,7 +69,7 @@ export class Destination implements DestinationPlugin {
         context.attempts += 1;
         return true;
       }
-      void this.fulfillRequest([context], 500, Status.Unknown);
+      void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
 
@@ -165,7 +171,7 @@ export class Destination implements DestinationPlugin {
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
-    if (res.body.missingField) {
+    if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
@@ -244,7 +250,7 @@ export class Destination implements DestinationPlugin {
    * 2) response comes back for a request
    */
   saveEvents() {
-    if (!this.config.saveEvents) {
+    if (!this.config.storageProvider) {
       return;
     }
     const events = Array.from(this.queue.map((context) => context.event));

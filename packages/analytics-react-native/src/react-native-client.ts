@@ -27,7 +27,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
     });
-    await super.init(undefined, undefined, reactNativeOptions);
+    await super._init(reactNativeOptions);
 
     // Step 3: Manage session
     let isNewSession = false;
@@ -57,7 +57,14 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await this.add(new IdentityEventSender());
     await this.add(new Destination());
 
-    // Step 5: Track attributions
+    // Step 5: Set timeline ready for processing events
+    // Send existing events, which might be collected by track before init
+    this.timeline.isReady = true;
+    if (!this.config.optOut) {
+      this.timeline.scheduleApply(0);
+    }
+
+    // Step 6: Track attributions
     await this.runAttributionStrategy(options?.attribution, isNewSession);
   }
 
@@ -110,6 +117,11 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   regenerateDeviceId() {
     const deviceId = createDeviceId();
     this.setDeviceId(deviceId);
+  }
+
+  reset() {
+    this.setUserId(undefined);
+    this.regenerateDeviceId();
   }
 
   getSessionId() {
@@ -278,13 +290,26 @@ export const setDeviceId = client.setDeviceId.bind(client);
 /**
  * Regenerates a new random deviceId for current user. Note: this is not recommended unless you know what you
  * are doing. This can be used in conjunction with `setUserId(undefined)` to anonymize users after they log out.
- * With an `unefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
+ * With an `undefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
  *
  * ```typescript
  * regenerateDeviceId();
  * ```
  */
 export const regenerateDeviceId = client.regenerateDeviceId.bind(client);
+
+/**
+ * reset is a shortcut to anonymize users after they log out, by:
+ *   - setting userId to `undefined`
+ *   - regenerating a new random deviceId
+ *
+ * With an `undefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
+ *
+ * ```typescript
+ * reset();
+ * ```
+ */
+export const reset = client.reset.bind(client);
 
 /**
  * Returns current session ID.

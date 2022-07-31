@@ -67,13 +67,13 @@ const snippet = (integrity, version) => `
     var funcs = [
       'getDeviceId',
       'setDeviceId',
-      'regenerateDeviceId',
       'getSessionId',
       'setSessionId',
       'getUserId',
       'setUserId',
       'setOptOut',
       'setTransport',
+      'reset',
     ];
     var funcsWithPromise = [
       'init',

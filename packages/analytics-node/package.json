@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-node",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "description": "Official Amplitude SDK for NodeJS",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -8,7 +8,9 @@
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
-  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
@@ -17,6 +19,7 @@
     "build": "yarn build:es5 & yarn build:esm",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
@@ -25,15 +28,15 @@
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn build",
-    "vesion-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
+    "version": "yarn version-file && yarn build",
+    "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^0.6.2",
-    "@amplitude/analytics-types": "^0.5.1",
+    "@amplitude/analytics-core": "^0.6.4",
+    "@amplitude/analytics-types": "^0.6.1",
     "tslib": "^2.3.1"
   },
   "files": [

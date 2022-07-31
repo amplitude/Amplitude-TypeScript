@@ -3,6 +3,49 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.1.0...@amplitude/analytics-browser@1.1.1) (2022-07-30)
+
+
+### Bug Fixes
+
+* fixes auto gen of snippet instructions ([#160](https://github.com/amplitude/Amplitude-TypeScript/issues/160)) ([bbdf284](https://github.com/amplitude/Amplitude-TypeScript/commit/bbdf2840665f58507391ccdd9ca1398676bab194))
+
+
+
+
+
+# [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.0.3...@amplitude/analytics-browser@1.1.0) (2022-07-29)
+
+
+### Features
+
+* add reset method for resetting userId and deviceId ([#157](https://github.com/amplitude/Amplitude-TypeScript/issues/157)) ([8bfc864](https://github.com/amplitude/Amplitude-TypeScript/commit/8bfc864b15dd7e427556a50bc3de6b43b2485189))
+
+
+
+
+
+## [1.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.0.2...@amplitude/analytics-browser@1.0.3) (2022-07-22)
+
+
+### Bug Fixes
+
+* missing tracked events before init issue ([#144](https://github.com/amplitude/Amplitude-TypeScript/issues/144)) ([60d0f68](https://github.com/amplitude/Amplitude-TypeScript/commit/60d0f6848087f7b8fc3c870d55489a238e841b26))
+* removes saveEvents config ([#147](https://github.com/amplitude/Amplitude-TypeScript/issues/147)) ([6fde736](https://github.com/amplitude/Amplitude-TypeScript/commit/6fde736ca8a865462522082a8085673756dbcc7d))
+* update default flush config for node ([#152](https://github.com/amplitude/Amplitude-TypeScript/issues/152)) ([2445dff](https://github.com/amplitude/Amplitude-TypeScript/commit/2445dff0842e7e0a2b7ee767ab926b5a93348214))
+
+
+
+
+
+## [1.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.0.1...@amplitude/analytics-browser@1.0.2) (2022-07-15)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 ## [1.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.0.0...@amplitude/analytics-browser@1.0.1) (2022-07-13)
 
 

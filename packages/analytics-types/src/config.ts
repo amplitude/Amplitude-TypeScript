@@ -21,10 +21,9 @@ export interface Config {
   minIdLength?: number;
   optOut: boolean;
   plan?: Plan;
-  saveEvents: boolean;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
-  storageProvider: Storage<Event[]>;
+  storageProvider?: Storage<Event[]>;
   transportProvider: Transport;
   useBatch: boolean;
 }
@@ -56,7 +55,6 @@ export type InitOptions<T extends Config> =
       Omit<T, keyof Config> & {
         apiKey: string;
         transportProvider: Transport;
-        storageProvider: Storage<Event[]>;
       };
 
 export interface TrackingOptions {
