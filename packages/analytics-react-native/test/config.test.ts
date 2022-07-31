@@ -174,7 +174,6 @@ describe('config', () => {
         plan: {
           version: '0',
         },
-        saveEvents: true,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
