@@ -3,25 +3,15 @@ import {StyleSheet, Text, View} from 'react-native';
 import {useEffect} from 'react';
 import {identify, Identify, init, track} from '@amplitude/analytics-react-native';
 import {LogLevel} from '@amplitude/analytics-types';
-import {Experiment} from '@amplitude/experiment-react-native-client';
 
 export default function App() {
   useEffect(() => {
     (async () => {
-        await init('a6dd847b9d2f03c816d4f3f8458cdc1d', 'briang1000', {
+        await init('API_KEY', 'example_user_id', {
             logLevel: LogLevel.Verbose,
         }).promise;
-        const experiment = Experiment.initializeWithAmplitudeAnalytics(
-            'client-IAxMYws9vVQESrrK88aTcToyqMxiiJoR',
-            {
-                debug: true,
-            },
-        );
-        await experiment.fetch();
-        experiment.variant('react-native');
         track('test');
         await identify(new Identify().set('react-native-test', 'yes')).promise;
-        await experiment.fetch();
     })();
   }, []);
   return (
@@ -30,7 +20,6 @@ export default function App() {
       <StatusBar style="auto" />
     </View>
   );
-
 }
 
 const styles = StyleSheet.create({
