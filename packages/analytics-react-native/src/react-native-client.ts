@@ -42,6 +42,9 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       isNewSession = true;
     }
 
+    // Set up the analytics connector to integrate with the experiment SDK.
+    // Send events from the experiment SDK and forward identifies to the
+    // identity store.
     const connector = getAnalyticsConnector();
     connector.eventBridge.setEventReceiver((event) => {
       void this.track(event.eventType, event.eventProperties);
