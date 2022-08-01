@@ -29,7 +29,7 @@ jobs:
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{
-            "customfield_11794": {"value": "Developer Experience"},
+            "customfield_11794": {"value": "Github"},
             "labels": ["ts"]
           }' # origin, labels
 
