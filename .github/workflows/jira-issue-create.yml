@@ -4,6 +4,13 @@ name: Jira Issue Creator
 on:
   issues:
     types: [opened]
+  workflow_call:
+    inputs:
+      label:
+        required: true
+        type: string
+env:
+  JIRA_TAG: TS
 
 jobs:
   build:
@@ -25,12 +32,12 @@ jobs:
           project: ${{ secrets.JIRA_PROJECT }}
           issuetype: Task
           summary: |
-            [SDK - TS] ${{ github.event.issue.title }}
+            [SDK - $JIRA_TAG] ${{ github.event.issue.title }}
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{
             "customfield_11794": {"value": "Github"},
-            "labels": ["ts"]
+            "labels": ["$JIRA_TAG"]
           }' # origin, labels
 
       - name: Log created issue
