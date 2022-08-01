@@ -29,11 +29,9 @@ jobs:
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{
-            "customfield_10006": 1391,
-            "customfield_11481": {"value": "Governance 🕵️"},
-            "customfield_11200": {"value": "Developer Experience"},
+            "customfield_11794": "Github",
             "labels": ["ts"]
-          }' # sprint, pillar, pod, labels
+          }' # origin, labels
 
       - name: Log created issue
         run: echo "Issue AMP-${{ steps.create.outputs.issue }} was created"
