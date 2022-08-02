@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -41,9 +41,9 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
+    "@amplitude/analytics-connector": "^1.4.5",
     "@amplitude/analytics-core": "^0.6.4",
     "@amplitude/analytics-types": "^0.6.1",
-    "@amplitude/analytics-connector": "^1.4.5",
     "@amplitude/ua-parser-js": "^0.7.31",
     "tslib": "^2.3.1"
   },

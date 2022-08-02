@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.2.0...@amplitude/analytics-react-native@0.2.1) (2022-08-02)
+
+
+### Bug Fixes
+
+* implement integration with experiment sdk for browser ([#156](https://github.com/amplitude/Amplitude-TypeScript/issues/156)) ([075ba84](https://github.com/amplitude/Amplitude-TypeScript/commit/075ba84bb4d05fb6a256272d19c03cb692cb0c28))
+
+
+
+
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.1.1...@amplitude/analytics-react-native@0.2.0) (2022-07-29)
 
 
