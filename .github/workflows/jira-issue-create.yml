@@ -7,7 +7,6 @@ on:
   workflow_call:
     inputs:
       label:
-        required: true
         type: string
         default: 'TS'
     secrets:
