@@ -148,3 +148,13 @@ track('Button Clicked').promise.then((result) => {
   result.message; // "Event tracked successfully" (The response message)
 });
 ```
+
+### User Log out
+
+This updates user ID and device ID. After calling `reset()` the succeeding events now belong to a new user identity.
+
+```typescript
+import { reset } from '@amplitude/analytics-react-native';
+
+reset();
+```
