@@ -170,6 +170,7 @@ track('Button Clicked').promise.then((result) => {
 This updates user ID and device ID. After calling `reset()` the succeeding events now belong to a new user identity.
 
 ```typescript
-import { reset } from '@amplitude/analytics-react-native';
+import { reset } from '@amplitude/analytics-browser';
+
 reset();
 ```
