@@ -9,8 +9,20 @@ on:
       label:
         required: true
         type: string
-env:
-  JIRA_TAG: TS
+        default: 'TS'
+    secrets:
+      JIRA_BASE_URL:
+        description: 'Jira Base Url'
+        required: true
+      JIRA_USER_EMAIL:
+        description: 'Jira User Email'
+        required: true
+      JIRA_API_TOKEN:
+        description: 'Jira Token'
+        required: true
+      JIRA_PROJECT:
+        description: 'Jira Project'
+        required: true
 
 jobs:
   build:
@@ -25,6 +37,12 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
+      - name: Convert Label String
+        id: string
+        uses: ASzc/change-string-case-action@v1
+        with:
+          string: ${{ inputs.label }}
+
       - name: Create issue
         id: create
         uses: atlassian/gajira-create@master
@@ -32,12 +50,12 @@ jobs:
           project: ${{ secrets.JIRA_PROJECT }}
           issuetype: Task
           summary: |
-            [SDK - $JIRA_TAG] ${{ github.event.issue.title }}
+            [SDK - ${{ inputs.label }} ] ${{ github.event.issue.title }}
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{
             "customfield_11794": {"value": "Github"},
-            "labels": ["$JIRA_TAG"]
+            "labels": ["${{ steps.string.outputs.lowercase }}"]
           }' # origin, labels
 
       - name: Log created issue
