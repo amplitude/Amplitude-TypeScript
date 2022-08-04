@@ -151,7 +151,7 @@ track('Button Clicked').promise.then((result) => {
 
 ### User Log out
 
-Reset the user (usually called after the user logs out in the app). This will clear the `userId` and user properties (previously set using `Identify`)
+This updates user ID and device ID. After calling `reset()` the succeeding events now belong to a new user identity.
 
 ```typescript
 import { reset } from '@amplitude/analytics-react-native';
