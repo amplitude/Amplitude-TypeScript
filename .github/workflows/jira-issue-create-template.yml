@@ -1,14 +1,14 @@
-# Creates jira tickets for new github issues to help triage
+# Template for jira issue creation in order to creates jira tickets for new github issues to help triage
+# Notice that the change of this temple might effect jira issue creation for other repositories
 name: Jira Issue Creator
 
 on:
-  issues:
-    types: [opened]
   workflow_call:
     inputs:
       label:
+        description: 'Label for Repository'
         type: string
-        default: 'TS'
+        required: true
     secrets:
       JIRA_BASE_URL:
         description: 'Jira Base Url'
