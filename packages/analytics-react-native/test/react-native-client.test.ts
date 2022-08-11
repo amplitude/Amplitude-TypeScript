@@ -4,7 +4,6 @@ import * as CookieMigration from '../src/cookie-migration';
 import { Status, UserSession } from '@amplitude/analytics-types';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AmplitudeBrowser } from '@amplitude/analytics-browser/src/browser-client';
 import { getAnalyticsConnector } from '@amplitude/analytics-browser/src/utils/analytics-connector';
 
 describe('react-native-client', () => {
@@ -122,7 +121,7 @@ describe('react-native-client', () => {
         deviceId: DEVICE_ID,
         optOut: false,
       });
-      const client = new AmplitudeBrowser();
+      const client = new AmplitudeReactNative();
       await client.init(API_KEY, USER_ID, {
         optOut: true,
         cookieStorage,
@@ -136,7 +135,7 @@ describe('react-native-client', () => {
     });
 
     test('should set up event bridge and track events', async () => {
-      const client = new AmplitudeBrowser();
+      const client = new AmplitudeReactNative();
       await client.init(API_KEY, USER_ID, {
         optOut: false,
         ...attributionConfig,
@@ -193,6 +192,11 @@ describe('react-native-client', () => {
       });
       expect(client.getUserId()).toBe(USER_ID);
     });
+
+    test('should handle undefined config', async () => {
+      const client = new AmplitudeReactNative();
+      expect(client.getUserId()).toBe(undefined);
+    });
   });
 
   describe('setUserId', () => {
@@ -205,6 +209,21 @@ describe('react-native-client', () => {
       client.setUserId(USER_ID);
       expect(client.getUserId()).toBe(USER_ID);
     });
+
+    test('should defer set user id', () => {
+      return new Promise<void>((resolve) => {
+        const client = new AmplitudeReactNative();
+        void client
+          .init(API_KEY, undefined, {
+            ...attributionConfig,
+          })
+          .then(() => {
+            expect(client.getUserId()).toBe('user@amplitude.com');
+            resolve();
+          });
+        client.setUserId('user@amplitude.com');
+      });
+    });
   });
 
   describe('getDeviceId', () => {
@@ -215,6 +234,11 @@ describe('react-native-client', () => {
         ...attributionConfig,
       });
       expect(client.getDeviceId()).toBe(DEVICE_ID);
+    });
+
+    test('should handle undefined config', async () => {
+      const client = new AmplitudeReactNative();
+      expect(client.getDeviceId()).toBe(undefined);
     });
   });
 
@@ -227,16 +251,20 @@ describe('react-native-client', () => {
       client.setDeviceId(DEVICE_ID);
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
-  });
 
-  describe('regenerateDeviceId', () => {
-    test('should generate new device id config', async () => {
-      const client = new AmplitudeReactNative();
-      await client.init(API_KEY);
-      client.setDeviceId(DEVICE_ID);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
-      client.regenerateDeviceId();
-      expect(client.getDeviceId()).not.toBe(DEVICE_ID);
+    test('should defer set device id', () => {
+      return new Promise<void>((resolve) => {
+        const client = new AmplitudeReactNative();
+        void client
+          .init(API_KEY, undefined, {
+            ...attributionConfig,
+          })
+          .then(() => {
+            expect(client.getDeviceId()).toBe('asdfg');
+            resolve();
+          });
+        client.setDeviceId('asdfg');
+      });
     });
   });
 
@@ -263,6 +291,11 @@ describe('react-native-client', () => {
       });
       expect(client.getSessionId()).toBe(1);
     });
+
+    test('should handle undefined config', async () => {
+      const client = new AmplitudeReactNative();
+      expect(client.getSessionId()).toBe(undefined);
+    });
   });
 
   describe('setSessionId', () => {
@@ -273,6 +306,21 @@ describe('react-native-client', () => {
       });
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
+    });
+
+    test('should defer set session id', () => {
+      return new Promise<void>((resolve) => {
+        const client = new AmplitudeReactNative();
+        void client
+          .init(API_KEY, undefined, {
+            ...attributionConfig,
+          })
+          .then(() => {
+            expect(client.getSessionId()).toBe(1);
+            resolve();
+          });
+        client.setSessionId(1);
+      });
     });
   });
 

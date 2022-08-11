@@ -1,4 +1,4 @@
-import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper, UUID } from '@amplitude/analytics-core';
 import {
   AdditionalBrowserOptions,
   AttributionBrowserOptions,
@@ -13,7 +13,7 @@ import {
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport, createDeviceId, createFlexibleStorage } from './config';
+import { useBrowserConfig, createTransport, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
 import { getAnalyticsConnector } from './utils/analytics-connector';
@@ -92,44 +92,51 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   }
 
   getUserId() {
-    return this.config.userId;
+    return this.config?.userId;
   }
 
   setUserId(userId: string | undefined) {
+    if (!this.config) {
+      this.q.push(this.setUserId.bind(this, userId));
+      return;
+    }
     this.config.userId = userId;
   }
 
   getDeviceId() {
-    return this.config.deviceId;
+    return this.config?.deviceId;
   }
 
   setDeviceId(deviceId: string) {
+    if (!this.config) {
+      this.q.push(this.setDeviceId.bind(this, deviceId));
+      return;
+    }
     this.config.deviceId = deviceId;
-  }
-
-  regenerateDeviceId() {
-    const deviceId = createDeviceId();
-    this.setDeviceId(deviceId);
   }
 
   reset() {
     this.setUserId(undefined);
-    this.regenerateDeviceId();
+    this.setDeviceId(UUID());
   }
 
   getSessionId() {
-    return this.config.sessionId;
+    return this.config?.sessionId;
   }
 
   setSessionId(sessionId: number) {
+    if (!this.config) {
+      this.q.push(this.setSessionId.bind(this, sessionId));
+      return;
+    }
     this.config.sessionId = sessionId;
   }
 
-  setOptOut(optOut: boolean) {
-    this.config.optOut = optOut;
-  }
-
   setTransport(transport: TransportType) {
+    if (!this.config) {
+      this.q.push(this.setTransport.bind(this, transport));
+      return;
+    }
     this.config.transportProvider = createTransport(transport);
   }
 
@@ -315,17 +322,6 @@ export const getDeviceId = client.getDeviceId.bind(client);
  * ```
  */
 export const setDeviceId = client.setDeviceId.bind(client);
-
-/**
- * Regenerates a new random deviceId for current user. Note: this is not recommended unless you know what you
- * are doing. This can be used in conjunction with `setUserId(undefined)` to anonymize users after they log out.
- * With an `undefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
- *
- * ```typescript
- * regenerateDeviceId();
- * ```
- */
-export const regenerateDeviceId = client.regenerateDeviceId.bind(client);
 
 /**
  * reset is a shortcut to anonymize users after they log out, by:

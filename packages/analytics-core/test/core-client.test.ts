@@ -87,6 +87,22 @@ describe('core-client', () => {
       await client.remove(plugin.name);
       expect(deregister).toBeCalledTimes(1);
     });
+
+    test('should queue add/remove', async () => {
+      const client = new AmplitudeCore();
+      const register = jest.spyOn(client.timeline, 'register');
+      const deregister = jest.spyOn(client.timeline, 'deregister');
+      await client.add({
+        name: 'example',
+        type: PluginType.BEFORE,
+        setup: jest.fn(),
+        execute: jest.fn(),
+      });
+      await client.remove('example');
+      await client._init(useDefaultConfig());
+      expect(register).toHaveBeenCalledTimes(1);
+      expect(deregister).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('dispatch', () => {
@@ -162,6 +178,13 @@ describe('core-client', () => {
   describe('setOptOut', () => {
     test('should update opt out value', () => {
       client.setOptOut(true);
+      expect(client.config.optOut).toBe(true);
+    });
+
+    test('should defer update opt out value', async () => {
+      const client = new AmplitudeCore();
+      client.setOptOut(true);
+      await client._init(useDefaultConfig());
       expect(client.config.optOut).toBe(true);
     });
   });
