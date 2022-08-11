@@ -130,6 +130,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       return;
     }
     this.config.sessionId = sessionId;
+    this.config.lastEventTime = undefined;
   }
 
   setTransport(transport: TransportType) {
