@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
@@ -58,7 +58,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-connector": "1.4.5",
-    "@amplitude/analytics-core": "^0.6.4",
+    "@amplitude/analytics-core": "^0.6.5",
     "@amplitude/analytics-types": "^0.6.1",
     "@amplitude/ua-parser-js": "^0.7.31",
     "@react-native-async-storage/async-storage": "^1.17.7",

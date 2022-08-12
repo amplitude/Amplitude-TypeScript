@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-node-test",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "private": true,
   "description": "",
   "author": "Amplitude Inc",
@@ -16,7 +16,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-node": "^0.3.4"
+    "@amplitude/analytics-node": "^0.3.5"
   },
   "devDependencies": {
     "nock": "^13.2.4"

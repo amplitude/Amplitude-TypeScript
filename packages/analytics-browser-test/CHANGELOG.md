@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.0.6...@amplitude/analytics-browser-test@2.0.7) (2022-08-12)
+
+
+### Bug Fixes
+
+* add callable queue when init is pending ([#181](https://github.com/amplitude/Amplitude-TypeScript/issues/181)) ([d8fc361](https://github.com/amplitude/Amplitude-TypeScript/commit/d8fc36195b96e2c10ccc5106027beaa7e970e0c0))
+
+
+
+
+
 ## [2.0.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.0.5...@amplitude/analytics-browser-test@2.0.6) (2022-08-02)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test
