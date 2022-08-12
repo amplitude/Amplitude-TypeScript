@@ -42,7 +42,6 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
     for (const queuedFunction of queuedFunctions) {
       await queuedFunction();
     }
-    return undefined;
   }
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
