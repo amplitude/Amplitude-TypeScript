@@ -39,7 +39,10 @@ FAILURE: Build failed with an exception.
 Could not determine the dependencies of task ':app:compileDebugJavaWithJavac'.
 > SDK location not found. Define location with an ANDROID_SDK_ROOT environment variable or by setting the sdk.dir path in your project's local properties file at ...
 ```
-Make sure the `ANDROID_SDK_ROOT` is setup in shell:
+
+This error happens as the path is missing in the environment, refer to step 3 in [Android development environment](https://reactnative.dev/docs/environment-setup).
+
+For macOS or Linux, make sure the `ANDROID_SDK_ROOT` is set up in shell:
 ```
 export ANDROID_SDK_ROOT=$HOME/Library/Android/sdk
 export PATH=$PATH:$ANDROID_SDK_ROOT/emulator
