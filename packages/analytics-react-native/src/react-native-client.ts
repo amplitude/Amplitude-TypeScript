@@ -1,4 +1,4 @@
-import { AmplitudeCore, Destination, returnWrapper } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, returnWrapper, UUID } from '@amplitude/analytics-core';
 import {
   ReactNativeConfig,
   Campaign,
@@ -7,7 +7,7 @@ import {
   AttributionReactNativeOptions,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
-import { useReactNativeConfig, createDeviceId, createFlexibleStorage } from './config';
+import { useReactNativeConfig, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
 import { isNative } from './utils/platform';
@@ -30,7 +30,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await super._init(reactNativeOptions);
 
     // Step 3: Manage session
-    let isNewSession = false;
+    let isNewSession = !this.config.lastEventTime;
     if (
       !this.config.sessionId ||
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
@@ -38,7 +38,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       // Either
       // 1) No previous session; or
       // 2) Previous session expired
-      this.config.sessionId = Date.now();
+      this.setSessionId(Date.now());
       isNewSession = true;
     }
 
@@ -90,10 +90,14 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   }
 
   getUserId() {
-    return this.config.userId;
+    return this.config?.userId;
   }
 
   setUserId(userId: string | undefined) {
+    if (!this.config) {
+      this.q.push(this.setUserId.bind(this, userId));
+      return;
+    }
     this.config.userId = userId;
     getAnalyticsConnector()
       .identityStore.editIdentity()
@@ -104,10 +108,14 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   }
 
   getDeviceId() {
-    return this.config.deviceId;
+    return this.config?.deviceId;
   }
 
   setDeviceId(deviceId: string) {
+    if (!this.config) {
+      this.q.push(this.setDeviceId.bind(this, deviceId));
+      return;
+    }
     this.config.deviceId = deviceId;
     getAnalyticsConnector()
       .identityStore.editIdentity()
@@ -117,26 +125,21 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       .commit();
   }
 
-  regenerateDeviceId() {
-    const deviceId = createDeviceId();
-    this.setDeviceId(deviceId);
-  }
-
   reset() {
     this.setUserId(undefined);
-    this.regenerateDeviceId();
+    this.setDeviceId(UUID());
   }
 
   getSessionId() {
-    return this.config.sessionId;
+    return this.config?.sessionId;
   }
 
   setSessionId(sessionId: number) {
+    if (!this.config) {
+      this.q.push(this.setSessionId.bind(this, sessionId));
+      return;
+    }
     this.config.sessionId = sessionId;
-  }
-
-  setOptOut(optOut: boolean) {
-    this.config.optOut = optOut;
   }
 }
 
@@ -289,17 +292,6 @@ export const getDeviceId = client.getDeviceId.bind(client);
  * ```
  */
 export const setDeviceId = client.setDeviceId.bind(client);
-
-/**
- * Regenerates a new random deviceId for current user. Note: this is not recommended unless you know what you
- * are doing. This can be used in conjunction with `setUserId(undefined)` to anonymize users after they log out.
- * With an `undefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
- *
- * ```typescript
- * regenerateDeviceId();
- * ```
- */
-export const regenerateDeviceId = client.regenerateDeviceId.bind(client);
 
 /**
  * reset is a shortcut to anonymize users after they log out, by:

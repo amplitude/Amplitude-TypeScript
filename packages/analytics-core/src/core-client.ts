@@ -27,16 +27,21 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   timeline: Timeline;
+  protected q: CallableFunction[] = [];
 
   constructor(name = '$default') {
     this.timeline = new Timeline();
     this.name = name;
   }
 
-  _init(config: T) {
+  async _init(config: T) {
     this.config = config;
     this.timeline.reset();
-    return Promise.resolve();
+    const queuedFunctions = this.q;
+    this.q = [];
+    for (const queuedFunction of queuedFunctions) {
+      await queuedFunction();
+    }
   }
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
@@ -67,11 +72,18 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   }
 
   async add(plugin: Plugin) {
-    const config = this.config;
-    return this.timeline.register(plugin, config);
+    if (!this.config) {
+      this.q.push(this.add.bind(this, plugin));
+      return;
+    }
+    return this.timeline.register(plugin, this.config);
   }
 
   async remove(pluginName: string) {
+    if (!this.config) {
+      this.q.push(this.remove.bind(this, pluginName));
+      return;
+    }
     return this.timeline.deregister(pluginName);
   }
 
@@ -96,8 +108,11 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   }
 
   setOptOut(optOut: boolean) {
-    const config = this.config;
-    config.optOut = Boolean(optOut);
+    if (!this.config) {
+      this.q.push(this.setOptOut.bind(this, Boolean(optOut)));
+      return;
+    }
+    this.config.optOut = Boolean(optOut);
   }
 
   flush() {

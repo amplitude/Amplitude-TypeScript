@@ -3,6 +3,7 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
+import { PluginType } from '@amplitude/analytics-types';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -18,6 +19,66 @@ describe('integration', () => {
   afterEach(() => {
     // clean up cookies
     document.cookie = 'AMP_API_KEY=null; expires=-1';
+  });
+
+  // WARNING: This test has to run first
+  // This test is under the assumption that amplitude has not be initiated at all
+  // To achieve this condition, it must run before any other tests
+  describe('FIRST TEST: defer initialization', () => {
+    test('should allow init to be called after other APIs', () => {
+      return new Promise((resolve) => {
+        const scope = nock(url).post(path).reply(200, success);
+
+        // NOTE: Values to assert on
+        const sessionId = Date.now() - 1000;
+        const userId = 'user@amplitude.com';
+        const deviceId = 'device-12345';
+        const platform = 'Jest';
+
+        amplitude.setUserId(userId);
+        amplitude.setDeviceId(deviceId);
+        amplitude.setSessionId(sessionId);
+        amplitude.add({
+          type: PluginType.ENRICHMENT,
+          name: 'custom',
+          setup: async () => {
+            return undefined;
+          },
+          execute: async (event) => {
+            event.platform = platform;
+            return event;
+          },
+        });
+        void amplitude.track('Event Before Init').promise.then((response) => {
+          expect(response.event).toEqual({
+            device_id: deviceId, // NOTE: Device ID was set before init
+            device_manufacturer: undefined,
+            event_id: 0,
+            event_type: 'Event Before Init',
+            insert_id: uuid,
+            ip: '$remote',
+            language: 'en-US',
+            library: library,
+            os_name: 'WebKit',
+            os_version: '537.36',
+            partner_id: undefined,
+            plan: undefined,
+            platform: platform, // NOTE: Session ID was set using a plugin added before init
+            session_id: sessionId, // NOTE: Session ID was set before init
+            time: number,
+            user_id: userId, // NOTE: User ID was set before init
+          });
+          expect(response.code).toBe(200);
+          expect(response.message).toBe(SUCCESS_MESSAGE);
+          scope.done();
+          resolve(undefined);
+        });
+        amplitude.init('API_KEY', undefined, {
+          ...opts,
+          serverUrl: url + path,
+        });
+      });
+    });
   });
 
   describe('track', () => {
