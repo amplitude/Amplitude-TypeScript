@@ -38,6 +38,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
     val country: String?
     val versionName: String?
     val osName: String
+    val platform: String
     val osVersion: String
     val brand: String
     val manufacturer: String
@@ -52,6 +53,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
       advertisingId = fetchAdvertisingId()
       versionName = fetchVersionName()
       osName = OS_NAME
+      platform = PLATFORM
       osVersion = fetchOsVersion()
       brand = fetchBrand()
       manufacturer = fetchManufacturer()
@@ -322,6 +324,8 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
     get() = cachedInfo!!.versionName
   val osName: String
     get() = cachedInfo!!.osName
+  val platform: String
+    get() = cachedInfo!!.platform
   val osVersion: String
     get() = cachedInfo!!.osVersion
   val brand: String
@@ -402,6 +406,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
 
   companion object {
     const val OS_NAME = "android"
+    const val PLATFORM = "Android"
     const val SETTING_LIMIT_AD_TRACKING = "limit_ad_tracking"
     const val SETTING_ADVERTISING_ID = "advertising_id"
     fun generateUUID(): String {
