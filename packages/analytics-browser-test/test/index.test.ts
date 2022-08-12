@@ -22,7 +22,7 @@ describe('integration', () => {
   });
 
   // WARNING: This test has to run first
-  // It assumes tests under the assumption that amplitude has not be initiated at all
+  // This test is under the assumption that amplitude has not be initiated at all
   // To achieve this condition, it must run before any other tests
   describe('FIRST TEST: defer initialization', () => {
     test('should allow init to be called after other APIs', () => {
