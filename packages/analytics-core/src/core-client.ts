@@ -34,15 +34,15 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
     this.name = name;
   }
 
-  _init(config: T) {
+  async _init(config: T) {
     this.config = config;
     this.timeline.reset();
     const queuedFunctions = this.q;
     this.q = [];
-    queuedFunctions.map(async (queuedFunction) => {
+    for (const queuedFunction of queuedFunctions) {
       await queuedFunction();
-    });
-    return Promise.resolve();
+    }
+    return undefined;
   }
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {

@@ -47,7 +47,7 @@ export class Timeline {
   }
 
   scheduleApply(timeout: number) {
-    if (this.applying && this.isReady) return;
+    if (!this.isReady || this.applying) return;
     this.applying = true;
     setTimeout(() => {
       void this.apply(this.queue.shift()).then(() => {

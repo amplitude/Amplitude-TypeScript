@@ -30,7 +30,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await super._init(reactNativeOptions);
 
     // Step 3: Manage session
-    let isNewSession = false;
+    let isNewSession = !this.config.lastEventTime;
     if (
       !this.config.sessionId ||
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
@@ -38,7 +38,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       // Either
       // 1) No previous session; or
       // 2) Previous session expired
-      this.config.sessionId = Date.now();
+      this.setSessionId(Date.now());
       isNewSession = true;
     }
 

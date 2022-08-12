@@ -35,7 +35,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await super._init(browserOptions);
 
     // Step 3: Manage session
-    let isNewSession = false;
+    let isNewSession = !this.config.lastEventTime;
     if (
       !this.config.sessionId ||
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
@@ -43,7 +43,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       // Either
       // 1) No previous session; or
       // 2) Previous session expired
-      this.config.sessionId = Date.now();
+      this.setSessionId(Date.now());
       isNewSession = true;
     }
 
