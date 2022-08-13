@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.2.2...@amplitude/analytics-react-native@0.2.3) (2022-08-13)
+
+
+### Bug Fixes
+
+* correct platform and add adid ([#184](https://github.com/amplitude/Amplitude-TypeScript/issues/184)) ([7134a43](https://github.com/amplitude/Amplitude-TypeScript/commit/7134a4398844516f3d868daf82df9cf2e19d3c39))
+
+
+
+
+
 ## [0.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.2.1...@amplitude/analytics-react-native@0.2.2) (2022-08-12)
 
 
