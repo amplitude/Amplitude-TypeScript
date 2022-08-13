@@ -5,7 +5,7 @@
 ## Setup
 ```
 # cd into Amplitude-TypeScript/examples/react-native/app directory
-npm install
+yarn install
 cd ios
 pod install
 ```
@@ -18,13 +18,13 @@ pod install
 ### Android
 ```
 # cd into Amplitude-TypeScript/examples/react-native/app directory
-npm run android
+yarn run android
 ```
 
 ### iOS
 ```
 # cd into Amplitude-TypeScript/examples/react-native/app directory
-npm run ios
+yarn run ios
 ```
 
 ### Issues

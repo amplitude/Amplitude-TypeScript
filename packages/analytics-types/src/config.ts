@@ -46,7 +46,9 @@ export interface BrowserConfig extends Config {
   userId?: string;
 }
 
-export type ReactNativeConfig = BrowserConfig;
+export type ReactNativeConfig = Omit<BrowserConfig, 'trackingOptions'> & {
+  trackingOptions: ReactNativeTrackingOptions;
+};
 
 export type NodeConfig = Config;
 
@@ -71,6 +73,10 @@ export interface TrackingOptions {
   platform?: boolean;
   region?: boolean;
   versionName?: boolean;
+}
+
+export interface ReactNativeTrackingOptions extends TrackingOptions {
+  adid?: boolean;
 }
 
 export interface AdditionalBrowserOptions {

@@ -23,7 +23,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     private fun getApplicationContext(promise: Promise) {
         promise.resolve(WritableNativeMap().apply {
             putString("version", androidContextProvider.versionName)
-            putString("platform", androidContextProvider.osName)
+            putString("platform", androidContextProvider.platform)
             putString("language", androidContextProvider.language)
             putString("osName", androidContextProvider.osName)
             putString("osVersion", androidContextProvider.osVersion)
@@ -31,6 +31,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
             putString("deviceManufacturer", androidContextProvider.manufacturer)
             putString("deviceModel", androidContextProvider.model)
             putString("carrier", androidContextProvider.carrier)
+            putString("adid", androidContextProvider.advertisingId)
         })
     }
 }
