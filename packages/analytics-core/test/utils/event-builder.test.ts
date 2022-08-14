@@ -71,6 +71,24 @@ describe('event-builder', () => {
 
   describe('createGroupEvent', () => {
     test('should create group event', () => {
+      const eventOptions = { user_id: 'userId', device_id: 'deviceId' };
+      const event = createGroupEvent('a', 'b', eventOptions);
+      expect(event).toEqual({
+        event_type: SpecialEventType.IDENTIFY,
+        user_properties: {
+          $set: {
+            a: 'b',
+          },
+        },
+        groups: {
+          a: 'b',
+        },
+        user_id: 'userId',
+        device_id: 'deviceId',
+      });
+    });
+
+    test('should handle missing event options', () => {
       const event = createGroupEvent('a', 'b');
       expect(event).toEqual({
         event_type: SpecialEventType.IDENTIFY,
