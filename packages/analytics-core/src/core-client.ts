@@ -61,8 +61,8 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
     return this.dispatch(event);
   }
 
-  setGroup(groupType: string, groupName: string | string[]) {
-    const event = createGroupEvent(groupType, groupName);
+  setGroup(groupType: string, groupName: string | string[], eventOptions?: EventOptions) {
+    const event = createGroupEvent(groupType, groupName, eventOptions);
     return this.dispatch(event);
   }
 

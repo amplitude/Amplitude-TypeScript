@@ -52,11 +52,12 @@ export const createGroupIdentifyEvent = (
   return groupIdentify;
 };
 
-export const createGroupEvent = (groupType: string, groupName: string | string[]) => {
+export const createGroupEvent = (groupType: string, groupName: string | string[], eventOptions?: EventOptions) => {
   const identify = new Identify();
   identify.set(groupType, groupName);
 
   const groupEvent: IdentifyEvent = {
+    ...eventOptions,
     event_type: SpecialEventType.IDENTIFY,
     user_properties: identify.getUserProperties(),
     groups: {
