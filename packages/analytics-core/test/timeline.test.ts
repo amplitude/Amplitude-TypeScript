@@ -128,6 +128,62 @@ describe('timeline', () => {
       await timeline.deregister(before.name);
       expect(beforeExecute).toHaveBeenCalledTimes(0);
     });
+
+    test("should pass event's extra to plugins", async () => {
+      const beforeExecute = jest.fn().mockImplementationOnce((event: Event) => {
+        expect(event.extra).toStrictEqual({ 'extra-key': 'extra-value' });
+        return Promise.resolve(event);
+      });
+      const before: Plugin = {
+        name: 'plugin:before',
+        type: PluginType.BEFORE,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: beforeExecute,
+      };
+
+      const enrichmentExecute = jest.fn().mockImplementationOnce((event: Event) => {
+        expect(event.extra).toStrictEqual({ 'extra-key': 'extra-value' });
+        return Promise.resolve(event);
+      });
+      const enrichment: Plugin = {
+        name: 'plugin:enrichment',
+        type: PluginType.ENRICHMENT,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: enrichmentExecute,
+      };
+
+      const destinationExecute = jest.fn().mockImplementationOnce((event: Event) => {
+        expect(event.extra).toStrictEqual({ 'extra-key': 'extra-value' });
+        return Promise.resolve(event);
+      });
+      const destination: Plugin = {
+        name: 'plugin:destination',
+        type: PluginType.DESTINATION,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: destinationExecute,
+      };
+
+      const config = useDefaultConfig();
+      await timeline.register(before, config);
+      await timeline.register(enrichment, config);
+      await timeline.register(destination, config);
+
+      const event = {
+        event_type: 'some-event',
+        extra: { 'extra-key': 'extra-value' },
+      };
+      const callback = jest.fn();
+      await timeline.apply([event, callback]);
+
+      await timeline.deregister(before.name);
+      await timeline.deregister(enrichment.name);
+      await timeline.deregister(destination.name);
+
+      expect(beforeExecute).toHaveBeenCalledTimes(1);
+      expect(enrichmentExecute).toHaveBeenCalledTimes(1);
+      expect(destinationExecute).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('flush', () => {

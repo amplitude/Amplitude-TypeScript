@@ -255,6 +255,49 @@ describe('destination', () => {
       });
     });
 
+    test('should not include extra', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+        extra: { 'extra-key': 'extra-value' },
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
+          expect(payload.options?.min_id_length).toBe(10);
+          expect(payload.events.some((event) => !!event.extra)).toBeFalsy();
+          return Promise.resolve({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: 1,
+              payloadSizeBytes: 1,
+              serverUploadTime: 1,
+            },
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        minIdLength: 10,
+      });
+      await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 200,
+        message: SUCCESS_MESSAGE,
+      });
+    });
+
     test('should not retry', async () => {
       const destination = new Destination();
       const callback = jest.fn();
