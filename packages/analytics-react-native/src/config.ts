@@ -3,7 +3,7 @@ import {
   ReactNativeOptions,
   ReactNativeConfig as IReactNativeConfig,
   Storage,
-  TrackingOptions,
+  ReactNativeTrackingOptions,
   UserSession,
   SessionManager as ISessionManager,
 } from '@amplitude/analytics-types';
@@ -18,6 +18,17 @@ import { SessionManager } from './session-manager';
 
 export const getDefaultConfig = () => {
   const cookieStorage = new MemoryStorage<UserSession>();
+  const trackingOptions: Required<ReactNativeTrackingOptions> = {
+    adid: true,
+    carrier: true,
+    deviceManufacturer: true,
+    deviceModel: true,
+    ipAddress: true,
+    language: true,
+    osName: true,
+    osVersion: true,
+    platform: true,
+  };
   return {
     cookieExpiration: 365,
     cookieSameSite: 'Lax',
@@ -28,22 +39,7 @@ export const getDefaultConfig = () => {
     sessionManager: new SessionManager(cookieStorage, ''),
     sessionTimeout: 30 * 60 * 1000,
     storageProvider: new MemoryStorage<Event[]>(),
-    trackingOptions: {
-      city: true,
-      country: true,
-      carrier: true,
-      deviceManufacturer: true,
-      deviceModel: true,
-      dma: true,
-      ipAddress: true,
-      language: true,
-      osName: true,
-      osVersion: true,
-      platform: true,
-      region: true,
-      versionName: true,
-      adid: true,
-    },
+    trackingOptions,
     transportProvider: new FetchTransport(),
   };
 };
@@ -58,7 +54,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   domain: string;
   partnerId?: string;
   sessionTimeout: number;
-  trackingOptions: TrackingOptions;
+  trackingOptions: ReactNativeTrackingOptions;
   sessionManager: ISessionManager;
 
   constructor(apiKey: string, userId?: string, options?: ReactNativeOptions) {
