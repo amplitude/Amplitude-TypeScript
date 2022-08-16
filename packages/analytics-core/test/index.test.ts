@@ -5,7 +5,7 @@ import {
   Config,
   Logger,
   AMPLITUDE_PREFIX,
-  returnWrapper,
+  amplitudePromise,
   UUID,
   MemoryStorage,
   createIdentifyEvent,
@@ -28,7 +28,7 @@ describe('index', () => {
     expect(typeof Destination).toBe('function');
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
-    expect(typeof returnWrapper).toBe('function');
+    expect(typeof amplitudePromise).toBe('function');
     expect(typeof UUID).toBe('function');
     expect(typeof MemoryStorage).toBe('function');
     expect(typeof createIdentifyEvent).toBe('function');

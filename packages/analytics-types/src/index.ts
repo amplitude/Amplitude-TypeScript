@@ -1,4 +1,4 @@
-export { AmplitudeReturn } from './amplitude-promise';
+export { AmplitudePromise } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
 export {
   Campaign,
@@ -10,6 +10,7 @@ export {
   ReferrerParameters,
   UTMParameters,
 } from './campaign';
+export { CreateBrowserInstance, CreateReactNativeInstance, CreateNodeInstance } from './client';
 export {
   AdditionalBrowserOptions,
   AdditionalReactNativeOptions,

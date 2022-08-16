@@ -1,4 +1,4 @@
-import { AmplitudeReturn, InstanceProxy, QueueProxy, Result } from '@amplitude/analytics-types';
+import { AmplitudePromise, InstanceProxy, QueueProxy, Result } from '@amplitude/analytics-types';
 
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
@@ -17,7 +17,7 @@ export const convertProxyObjectToRealObject = <T>(instance: T, queue: QueueProxy
     const { name, args, resolve } = queue[i];
     const fn = instance && instance[name as keyof T];
     if (typeof fn === 'function') {
-      const result = fn.apply(instance, args) as AmplitudeReturn<Promise<Result>>;
+      const result = fn.apply(instance, args) as AmplitudePromise<Result>;
       if (typeof resolve === 'function') {
         resolve(result?.promise);
       }

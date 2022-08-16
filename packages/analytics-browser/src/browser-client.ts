@@ -1,10 +1,11 @@
-import { AmplitudeCore, Destination, Identify, Revenue, returnWrapper, UUID } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, Identify, Revenue, UUID, amplitudePromise } from '@amplitude/analytics-core';
 import {
   AdditionalBrowserOptions,
   AttributionBrowserOptions,
   BrowserConfig,
   BrowserOptions,
   Campaign,
+  CreateBrowserInstance,
   EventOptions,
   Identify as IIdentify,
   Result,
@@ -182,226 +183,29 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   }
 }
 
-const client = new AmplitudeBrowser();
+export const createInstance: CreateBrowserInstance = () => {
+  const client = new AmplitudeBrowser();
+  return {
+    init: amplitudePromise(client.init.bind(client)),
+    add: amplitudePromise(client.add.bind(client)),
+    remove: amplitudePromise(client.remove.bind(client)),
+    track: amplitudePromise(client.track.bind(client)),
+    logEvent: amplitudePromise(client.logEvent.bind(client)),
+    identify: amplitudePromise(client.identify.bind(client)),
+    groupIdentify: amplitudePromise(client.groupIdentify.bind(client)),
+    setGroup: amplitudePromise(client.setGroup.bind(client)),
+    revenue: amplitudePromise(client.revenue.bind(client)),
+    flush: amplitudePromise(client.flush.bind(client)),
+    getUserId: client.getUserId.bind(client),
+    setUserId: client.setUserId.bind(client),
+    getDeviceId: client.getDeviceId.bind(client),
+    setDeviceId: client.setDeviceId.bind(client),
+    reset: client.reset.bind(client),
+    getSessionId: client.getSessionId.bind(client),
+    setSessionId: client.setSessionId.bind(client),
+    setOptOut: client.setOptOut.bind(client),
+    setTransport: client.setTransport.bind(client),
+  };
+};
 
-/**
- * Initializes the Amplitude SDK with your apiKey, userId and optional configurations.
- * This method must be called before any other operations.
- *
- * ```typescript
- * await init(API_KEY, USER_ID, options).promise;
- * ```
- */
-export const init = returnWrapper(client.init.bind(client));
-
-/**
- * Adds a new plugin.
- *
- * ```typescript
- * const plugin = {...};
- * amplitude.add(plugin);
- * ```
- */
-export const add = returnWrapper(client.add.bind(client));
-
-/**
- * Removes a plugin.
- *
- * ```typescript
- * amplitude.remove('myPlugin');
- * ```
- */
-export const remove = returnWrapper(client.remove.bind(client));
-
-/**
- * Tracks user-defined event, with specified type, optional event properties and optional overwrites.
- *
- * ```typescript
- * // event tracking with event type only
- * track('Page Load');
- *
- * // event tracking with event type and additional event properties
- * track('Page Load', { loadTime: 1000 });
- *
- * // event tracking with event type, additional event properties, and overwritten event options
- * track('Page Load', { loadTime: 1000 }, { sessionId: -1 });
- *
- * // alternatively, this tracking method is awaitable
- * const result = await track('Page Load').promise;
- * console.log(result.event); // {...}
- * console.log(result.code); // 200
- * console.log(result.message); // "Event tracked successfully"
- * ```
- */
-export const track = returnWrapper(client.track.bind(client));
-
-/**
- * Alias for track()
- */
-export const logEvent = returnWrapper(client.logEvent.bind(client));
-
-/**
- * Sends an identify event containing user property operations
- *
- * ```typescript
- * const id = new Identify();
- * id.set('colors', ['rose', 'gold']);
- * identify(id);
- *
- * // alternatively, this tracking method is awaitable
- * const result = await identify(id).promise;
- * console.log(result.event); // {...}
- * console.log(result.code); // 200
- * console.log(result.message); // "Event tracked successfully"
- * ```
- */
-export const identify = returnWrapper(client.identify.bind(client));
-
-/**
- * Sends a group identify event containing group property operations.
- *
- * ```typescript
- * const id = new Identify();
- * id.set('skills', ['js', 'ts']);
- * const groupType = 'org';
- * const groupName = 'engineering';
- * groupIdentify(groupType, groupName, id);
- *
- * // alternatively, this tracking method is awaitable
- * const result = await groupIdentify(groupType, groupName, id).promise;
- * console.log(result.event); // {...}
- * console.log(result.code); // 200
- * console.log(result.message); // "Event tracked successfully"
- * ```
- */
-export const groupIdentify = returnWrapper(client.groupIdentify.bind(client));
-export const setGroup = returnWrapper(client.setGroup.bind(client));
-
-/**
- * Sends a revenue event containing revenue property operations.
- *
- * ```typescript
- * const rev = new Revenue();
- * rev.setRevenue(100);
- * revenue(rev);
- *
- * // alternatively, this tracking method is awaitable
- * const result = await revenue(rev).promise;
- * console.log(result.event); // {...}
- * console.log(result.code); // 200
- * console.log(result.message); // "Event tracked successfully"
- * ```
- */
-export const revenue = returnWrapper(client.revenue.bind(client));
-
-/**
- * Returns current user ID.
- *
- * ```typescript
- * const userId = getUserId();
- * ```
- */
-export const getUserId = client.getUserId.bind(client);
-
-/**
- * Sets a new user ID.
- *
- * ```typescript
- * setUserId('userId');
- * ```
- */
-export const setUserId = client.setUserId.bind(client);
-
-/**
- * Returns current device ID.
- *
- * ```typescript
- * const deviceId = getDeviceId();
- * ```
- */
-export const getDeviceId = client.getDeviceId.bind(client);
-
-/**
- * Sets a new device ID.
- * When setting a custom device ID, make sure the value is sufficiently unique.
- * A uuid is recommended.
- *
- * ```typescript
- * setDeviceId('deviceId');
- * ```
- */
-export const setDeviceId = client.setDeviceId.bind(client);
-
-/**
- * reset is a shortcut to anonymize users after they log out, by:
- *   - setting userId to `undefined`
- *   - regenerating a new random deviceId
- *
- * With an `undefined` userId and a completely new deviceId, the current user would appear as a brand new user in dashboard.
- *
- * ```typescript
- * reset();
- * ```
- */
-export const reset = client.reset.bind(client);
-
-/**
- * Returns current session ID.
- *
- * ```typescript
- * const sessionId = getSessionId();
- * ```
- */
-export const getSessionId = client.getSessionId.bind(client);
-
-/**
- * Sets a new session ID.
- * When settign a custom session ID, make sure the value is in milliseconds since epoch (Unix Timestamp).
- *
- * ```typescript
- * setSessionId(Date.now());
- * ```
- */
-export const setSessionId = client.setSessionId.bind(client);
-
-/**
- * Sets a new optOut config value. This toggles event tracking on/off.
- *
- *```typescript
- * // Stops tracking
- * setOptOut(true);
- *
- * // Starts/resumes tracking
- * setOptOut(false);
- * ```
- */
-export const setOptOut = client.setOptOut.bind(client);
-
-/**
- *  Sets the network transport type for events.
- *
- * ```typescript
- * // Use Fetch API
- * setTransport('fetch');
- *
- * // Use XMLHttpRequest API
- * setTransport('xhr');
- *
- * // Use navigator.sendBeacon API
- * setTransport('beacon');
- * ```
- */
-export const setTransport = client.setTransport.bind(client);
-
-/**
- * Flush and send all the events which haven't been sent.
- *
- *```typescript
- * // Send all the unsent events
- * flush();
- *
- * // alternatively, this tracking method is awaitable
- * await flush().promise;
- * ```
- */
-export const flush = returnWrapper(client.flush.bind(client));
+export default createInstance();
