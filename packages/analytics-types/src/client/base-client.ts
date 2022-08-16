@@ -109,7 +109,16 @@ export interface BaseClient {
     eventOptions?: EventOptions,
   ): AmplitudePromise<Result>;
 
-  setGroup(groupType: string, groupName: string | string[]): AmplitudePromise<Result>;
+  /**
+   * Assigns a user to group
+   *
+   * ```typescript
+   * const groupType = 'orgId';
+   * const groupName = '15';
+   * setGroup(groupType, groupName, { user_id: '12345' })
+   * ```
+   */
+  setGroup(groupType: string, groupName: string | string[], eventOptions?: EventOptions): AmplitudePromise<Result>;
 
   /**
    * Sends a revenue event containing revenue property operations.
