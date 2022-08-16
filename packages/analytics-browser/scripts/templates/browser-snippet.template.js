@@ -111,7 +111,7 @@ const snippet = (integrity, version) => `
     }
     setUpProxy(amplitude);
     amplitude.createInstance = function () {
-      var index = amplitude._iq.push({ _q: [] });
+      var index = amplitude._iq.push({ _q: [] }) - 1;
       setUpProxy(amplitude._iq[index]);
       return amplitude._iq[index];
     };
