@@ -42,6 +42,7 @@ export const getDefaultConfig = () => {
       platform: true,
       region: true,
       versionName: true,
+      adid: true,
     },
     transportProvider: new FetchTransport(),
   };
