@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.6.6...@amplitude/analytics-core@0.7.0) (2022-08-16)
+
+
+### Bug Fixes
+
+* add event options to setGroup ([6ee19e2](https://github.com/amplitude/Amplitude-TypeScript/commit/6ee19e2abb326a687e6e43ecb95fe84adf35a8ce))
+
+
+### Features
+
+* add 'extra' to eventOptions ([#186](https://github.com/amplitude/Amplitude-TypeScript/issues/186)) ([32266f4](https://github.com/amplitude/Amplitude-TypeScript/commit/32266f459c180b75236d036bac66c3e7ecd33920))
+
+
+
+
+
 ## [0.6.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.6.5...@amplitude/analytics-core@0.6.6) (2022-08-13)
 
 **Note:** Version bump only for package @amplitude/analytics-core

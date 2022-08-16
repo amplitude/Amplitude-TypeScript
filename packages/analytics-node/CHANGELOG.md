@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.3.6...@amplitude/analytics-node@0.3.7) (2022-08-16)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+
+
+
+
 ## [0.3.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.3.5...@amplitude/analytics-node@0.3.6) (2022-08-13)
 
 **Note:** Version bump only for package @amplitude/analytics-node

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.6.2...@amplitude/analytics-types@0.7.0) (2022-08-16)
+
+
+### Features
+
+* add 'extra' to eventOptions ([#186](https://github.com/amplitude/Amplitude-TypeScript/issues/186)) ([32266f4](https://github.com/amplitude/Amplitude-TypeScript/commit/32266f459c180b75236d036bac66c3e7ecd33920))
+
+
+
+
+
 ## [0.6.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.6.1...@amplitude/analytics-types@0.6.2) (2022-08-13)
 
 
