@@ -119,7 +119,11 @@ export class Destination implements DestinationPlugin {
 
     const payload = {
       api_key: this.config.apiKey,
-      events: list.map((context) => context.event),
+      events: list.map((context) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { extra, ...eventWithoutExtra } = context.event;
+        return eventWithoutExtra;
+      }),
       options: {
         min_id_length: this.config.minIdLength,
       },

@@ -44,4 +44,5 @@ export interface EventOptions {
   insert_id?: string;
   plan?: Plan;
   partner_id?: string;
+  extra?: { [key: string]: any };
 }
