@@ -16,6 +16,12 @@ import { getAnalyticsConnector } from './utils/analytics-connector';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   async init(apiKey: string, userId?: string, options?: ReactNativeOptions & AdditionalReactNativeOptions) {
+    // Step 0: Block concurrent initialization
+    if (this.initializing) {
+      return;
+    }
+    this.initializing = true;
+
     // Step 1: Read cookies stored by old SDK
     const oldCookies = await parseOldCookies(apiKey, options);
 
@@ -59,6 +65,8 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await this.add(new Context());
     await this.add(new IdentityEventSender());
     await this.add(new Destination());
+
+    this.initializing = false;
 
     // Step 5: Set timeline ready for processing events
     // Send existing events, which might be collected by track before init
