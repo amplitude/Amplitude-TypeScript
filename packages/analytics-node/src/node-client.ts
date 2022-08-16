@@ -5,6 +5,12 @@ import { useNodeConfig } from './config';
 
 export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
   async init(apiKey: string, options?: NodeOptions) {
+    // Step 0: Block concurrent initialization
+    if (this.initializing) {
+      return;
+    }
+    this.initializing = true;
+
     const nodeOptions = useNodeConfig(apiKey, {
       ...options,
     });
@@ -13,6 +19,8 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
 
     await this.add(new Context());
     await this.add(new Destination());
+
+    this.initializing = false;
 
     // Set timeline ready for processing events
     // Send existing events, which might be collected by track before init

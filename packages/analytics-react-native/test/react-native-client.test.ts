@@ -5,6 +5,7 @@ import { Status, UserSession } from '@amplitude/analytics-types';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAnalyticsConnector } from '@amplitude/analytics-browser/src/utils/analytics-connector';
+import * as Config from '../src/config';
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';
@@ -60,6 +61,28 @@ describe('react-native-client', () => {
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call prevent concurrent init executions', async () => {
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const useNodeConfig = jest.spyOn(Config, 'useReactNativeConfig');
+      const client = new AmplitudeReactNative();
+      await Promise.all([
+        client.init(API_KEY, USER_ID, {
+          ...attributionConfig,
+        }),
+        client.init(API_KEY, USER_ID, {
+          ...attributionConfig,
+        }),
+        client.init(API_KEY, USER_ID, {
+          ...attributionConfig,
+        }),
+      ]);
+      // NOTE: `parseOldCookies` and `useNodeConfig` are only called once despite multiple init calls
+      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(useNodeConfig).toHaveBeenCalledTimes(1);
     });
 
     test('should read from new cookies config', async () => {

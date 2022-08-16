@@ -74,6 +74,28 @@ describe('browser-client', () => {
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
     });
 
+    test('should call prevent concurrent init executions', async () => {
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const useBrowserConfig = jest.spyOn(Config, 'useBrowserConfig');
+      const client = new AmplitudeBrowser();
+      await Promise.all([
+        client.init(API_KEY, USER_ID, {
+          ...attributionConfig,
+        }),
+        client.init(API_KEY, USER_ID, {
+          ...attributionConfig,
+        }),
+        client.init(API_KEY, USER_ID, {
+          ...attributionConfig,
+        }),
+      ]);
+      // NOTE: `parseOldCookies` and `useBrowserConfig` are only called once despite multiple init calls
+      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(useBrowserConfig).toHaveBeenCalledTimes(1);
+    });
+
     test('should track attributions', async () => {
       const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,

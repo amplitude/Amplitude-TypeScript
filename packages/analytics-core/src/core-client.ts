@@ -20,6 +20,7 @@ import { buildResult } from './utils/result-builder';
 import { OPT_OUT_MESSAGE } from './messages';
 
 export class AmplitudeCore<T extends Config> implements CoreClient<T> {
+  initializing = false;
   name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore

@@ -1,6 +1,7 @@
 import { AmplitudeNode } from '../src/node-client';
 import * as core from '@amplitude/analytics-core';
 import { Status } from '@amplitude/analytics-types';
+import * as Config from '../src/config';
 
 describe('node-client', () => {
   const API_KEY = 'API_KEY';
@@ -12,6 +13,14 @@ describe('node-client', () => {
         flushIntervalMillis: 1000,
       });
       expect(client.config).toBeDefined();
+    });
+
+    test('should call prevent concurrent init executions', async () => {
+      const client = new AmplitudeNode();
+      const useNodeConfig = jest.spyOn(Config, 'useNodeConfig');
+      await Promise.all([client.init(API_KEY), client.init(API_KEY), client.init(API_KEY)]);
+      // NOTE: `useNodeConfig` is only called once despite multiple init calls
+      expect(useNodeConfig).toHaveBeenCalledTimes(1);
     });
   });
 
