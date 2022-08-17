@@ -1,5 +1,5 @@
 import { AmplitudeCore, Destination, amplitudePromise } from '@amplitude/analytics-core';
-import { CreateNodeInstance, NodeConfig, NodeOptions } from '@amplitude/analytics-types';
+import { NodeClient, NodeConfig, NodeOptions } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useNodeConfig } from './config';
 
@@ -31,7 +31,7 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
   }
 }
 
-export const createInstance: CreateNodeInstance = () => {
+export const createInstance = (): NodeClient => {
   const client = new AmplitudeNode();
   return {
     init: amplitudePromise(client.init.bind(client)),

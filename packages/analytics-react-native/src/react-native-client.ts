@@ -5,7 +5,7 @@ import {
   ReactNativeOptions,
   AdditionalReactNativeOptions,
   AttributionReactNativeOptions,
-  CreateReactNativeInstance,
+  ReactNativeClient,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useReactNativeConfig, createFlexibleStorage } from './config';
@@ -152,7 +152,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   }
 }
 
-export const createInstance: CreateReactNativeInstance = () => {
+export const createInstance = (): ReactNativeClient => {
   const client = new AmplitudeReactNative();
   return {
     init: amplitudePromise(client.init.bind(client)),

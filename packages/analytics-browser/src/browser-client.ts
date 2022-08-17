@@ -2,10 +2,10 @@ import { AmplitudeCore, Destination, Identify, Revenue, UUID, amplitudePromise }
 import {
   AdditionalBrowserOptions,
   AttributionBrowserOptions,
+  BrowserClient,
   BrowserConfig,
   BrowserOptions,
   Campaign,
-  CreateBrowserInstance,
   EventOptions,
   Identify as IIdentify,
   Result,
@@ -183,7 +183,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   }
 }
 
-export const createInstance: CreateBrowserInstance = () => {
+export const createInstance = (): BrowserClient => {
   const client = new AmplitudeBrowser();
   return {
     init: amplitudePromise(client.init.bind(client)),
