@@ -67,6 +67,7 @@ export interface TrackingOptions {
   osName?: boolean;
   osVersion?: boolean;
   platform?: boolean;
+  [key: string]: boolean | undefined;
 }
 
 export interface ReactNativeTrackingOptions extends TrackingOptions {
