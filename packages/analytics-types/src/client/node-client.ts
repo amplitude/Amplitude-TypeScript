@@ -1,4 +1,4 @@
-import { AmplitudePromise } from '../amplitude-promise';
+import { AmplitudeReturn } from '../amplitude-promise';
 import { NodeOptions } from '../config';
 import { BaseClient } from './base-client';
 
@@ -11,5 +11,5 @@ export interface NodeClient extends BaseClient {
    * await init(API_KEY, options).promise;
    * ```
    */
-  init(apiKey: string, options?: NodeOptions): AmplitudePromise<void>;
+  init(apiKey: string, options?: NodeOptions): AmplitudeReturn<void>;
 }

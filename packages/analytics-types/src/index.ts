@@ -1,4 +1,4 @@
-export { AmplitudePromise } from './amplitude-promise';
+export { AmplitudeReturn } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
 export {
   Campaign,

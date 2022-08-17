@@ -1,4 +1,4 @@
-import { AmplitudePromise } from '../amplitude-promise';
+import { AmplitudeReturn } from '../amplitude-promise';
 import { BaseEvent, EventOptions } from '../base-event';
 import { Identify, Revenue } from '../event';
 import { Plugin } from '../plugin';
@@ -22,7 +22,7 @@ export interface BaseClient {
    * amplitude.add(plugin);
    * ```
    */
-  add(plugin: Plugin): AmplitudePromise<void>;
+  add(plugin: Plugin): AmplitudeReturn<void>;
 
   /**
    * Removes a plugin.
@@ -31,7 +31,7 @@ export interface BaseClient {
    * amplitude.remove('myPlugin');
    * ```
    */
-  remove(pluginName: string): AmplitudePromise<void>;
+  remove(pluginName: string): AmplitudeReturn<void>;
 
   /**
    * Tracks user-defined event, with specified type, optional event properties and optional overwrites.
@@ -57,7 +57,7 @@ export interface BaseClient {
     eventInput: BaseEvent | string,
     eventProperties?: Record<string, any>,
     eventOptions?: EventOptions,
-  ): AmplitudePromise<Result>;
+  ): AmplitudeReturn<Result>;
 
   /**
    * Alias for track()
@@ -66,7 +66,7 @@ export interface BaseClient {
     eventInput: BaseEvent | string,
     eventProperties?: Record<string, any>,
     eventOptions?: EventOptions,
-  ): AmplitudePromise<Result>;
+  ): AmplitudeReturn<Result>;
 
   /**
    * Sends an identify event containing user property operations
@@ -83,7 +83,7 @@ export interface BaseClient {
    * console.log(result.message); // "Event tracked successfully"
    * ```
    */
-  identify(identify: Identify, eventOptions?: EventOptions): AmplitudePromise<Result>;
+  identify(identify: Identify, eventOptions?: EventOptions): AmplitudeReturn<Result>;
 
   /**
    * Sends a group identify event containing group property operations.
@@ -107,7 +107,7 @@ export interface BaseClient {
     groupName: string | string[],
     identify: Identify,
     eventOptions?: EventOptions,
-  ): AmplitudePromise<Result>;
+  ): AmplitudeReturn<Result>;
 
   /**
    * Assigns a user to group
@@ -118,7 +118,7 @@ export interface BaseClient {
    * setGroup(groupType, groupName, { user_id: '12345' })
    * ```
    */
-  setGroup(groupType: string, groupName: string | string[], eventOptions?: EventOptions): AmplitudePromise<Result>;
+  setGroup(groupType: string, groupName: string | string[], eventOptions?: EventOptions): AmplitudeReturn<Result>;
 
   /**
    * Sends a revenue event containing revenue property operations.
@@ -135,7 +135,7 @@ export interface BaseClient {
    * console.log(result.message); // "Event tracked successfully"
    * ```
    */
-  revenue(revenue: Revenue, eventOptions?: EventOptions): AmplitudePromise<Result>;
+  revenue(revenue: Revenue, eventOptions?: EventOptions): AmplitudeReturn<Result>;
 
   /**
    * Sets a new optOut config value. This toggles event tracking on/off.
@@ -157,5 +157,5 @@ export interface BaseClient {
    * flush();
    * ```
    */
-  flush(): AmplitudePromise<void>;
+  flush(): AmplitudeReturn<void>;
 }

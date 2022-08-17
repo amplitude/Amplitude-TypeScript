@@ -6,7 +6,6 @@ import { VERSION } from '../version';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
-
 export class Context implements BeforePlugin {
   name = 'context';
   type = PluginType.BEFORE as const;

@@ -1,4 +1,4 @@
-import { AmplitudeCore, Destination, UUID, amplitudePromise } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, UUID, returnWrapper } from '@amplitude/analytics-core';
 import {
   ReactNativeConfig,
   Campaign,
@@ -155,16 +155,16 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 export const createInstance = (): ReactNativeClient => {
   const client = new AmplitudeReactNative();
   return {
-    init: amplitudePromise(client.init.bind(client)),
-    add: amplitudePromise(client.add.bind(client)),
-    remove: amplitudePromise(client.remove.bind(client)),
-    track: amplitudePromise(client.track.bind(client)),
-    logEvent: amplitudePromise(client.logEvent.bind(client)),
-    identify: amplitudePromise(client.identify.bind(client)),
-    groupIdentify: amplitudePromise(client.groupIdentify.bind(client)),
-    setGroup: amplitudePromise(client.setGroup.bind(client)),
-    revenue: amplitudePromise(client.revenue.bind(client)),
-    flush: amplitudePromise(client.flush.bind(client)),
+    init: returnWrapper(client.init.bind(client)),
+    add: returnWrapper(client.add.bind(client)),
+    remove: returnWrapper(client.remove.bind(client)),
+    track: returnWrapper(client.track.bind(client)),
+    logEvent: returnWrapper(client.logEvent.bind(client)),
+    identify: returnWrapper(client.identify.bind(client)),
+    groupIdentify: returnWrapper(client.groupIdentify.bind(client)),
+    setGroup: returnWrapper(client.setGroup.bind(client)),
+    revenue: returnWrapper(client.revenue.bind(client)),
+    flush: returnWrapper(client.flush.bind(client)),
     getUserId: client.getUserId.bind(client),
     setUserId: client.setUserId.bind(client),
     getDeviceId: client.getDeviceId.bind(client),

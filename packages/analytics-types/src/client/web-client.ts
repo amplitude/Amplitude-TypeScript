@@ -1,4 +1,4 @@
-import { AmplitudePromise } from '../amplitude-promise';
+import { AmplitudeReturn } from '../amplitude-promise';
 import { BrowserOptions, ReactNativeOptions } from '../config';
 import { TransportType } from '../transport';
 import { BaseClient } from './base-client';
@@ -87,7 +87,7 @@ export interface BrowserClient extends Client {
    * await init(API_KEY, options).promise;
    * ```
    */
-  init(apiKey: string, userId?: string, options?: BrowserOptions): AmplitudePromise<void>;
+  init(apiKey: string, userId?: string, options?: BrowserOptions): AmplitudeReturn<void>;
 
   /**
    * Sets the network transport type for events.
@@ -115,5 +115,5 @@ export interface ReactNativeClient extends Client {
    * await init(API_KEY, options).promise;
    * ```
    */
-  init(apiKey: string, userId?: string, options?: ReactNativeOptions): AmplitudePromise<void>;
+  init(apiKey: string, userId?: string, options?: ReactNativeOptions): AmplitudeReturn<void>;
 }
