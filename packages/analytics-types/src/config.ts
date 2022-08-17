@@ -22,7 +22,7 @@ export interface Config {
   optOut: boolean;
   plan?: Plan;
   serverUrl: string | undefined;
-  serverZone?: ServerZone;
+  serverZone?: ServerZone | 'EU' | 'US';
   storageProvider?: Storage<Event[]>;
   transportProvider: Transport;
   useBatch: boolean;
