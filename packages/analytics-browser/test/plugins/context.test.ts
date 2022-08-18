@@ -62,19 +62,13 @@ describe('context', () => {
         deviceId: 'deviceId',
         sessionId: 1,
         trackingOptions: {
-          city: false,
-          country: false,
-          carrier: false,
           deviceManufacturer: false,
           deviceModel: false,
-          dma: false,
           ipAddress: false,
           language: false,
           osName: false,
           osVersion: false,
           platform: false,
-          region: false,
-          versionName: false,
         },
       });
       config.appVersion = '1.0.0';

@@ -60,23 +60,19 @@ export type InitOptions<T extends Config> =
       };
 
 export interface TrackingOptions {
-  city?: boolean;
-  country?: boolean;
-  carrier?: boolean;
   deviceManufacturer?: boolean;
   deviceModel?: boolean;
-  dma?: boolean;
   ipAddress?: boolean;
   language?: boolean;
   osName?: boolean;
   osVersion?: boolean;
   platform?: boolean;
-  region?: boolean;
-  versionName?: boolean;
+  [key: string]: boolean | undefined;
 }
 
 export interface ReactNativeTrackingOptions extends TrackingOptions {
   adid?: boolean;
+  carrier?: boolean;
 }
 
 export interface AdditionalBrowserOptions {

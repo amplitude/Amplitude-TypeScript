@@ -23,6 +23,7 @@ export {
   NodeOptions,
   ReactNativeConfig,
   ReactNativeOptions,
+  ReactNativeTrackingOptions,
   TrackingOptions,
   ServerZone,
 } from './config';
