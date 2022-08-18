@@ -1,5 +1,6 @@
 import {
   add,
+  createInstance,
   groupIdentify,
   Identify,
   identify,
@@ -17,6 +18,7 @@ import {
 describe('index', () => {
   test('should expose apis', () => {
     expect(typeof add).toBe('function');
+    expect(typeof createInstance).toBe('function');
     expect(typeof groupIdentify).toBe('function');
     expect(typeof Identify).toBe('function');
     expect(typeof identify).toBe('function');

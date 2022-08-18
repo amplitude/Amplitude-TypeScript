@@ -10,6 +10,7 @@ export {
   ReferrerParameters,
   UTMParameters,
 } from './campaign';
+export { BrowserClient, ReactNativeClient, NodeClient } from './client';
 export {
   AdditionalBrowserOptions,
   AdditionalReactNativeOptions,

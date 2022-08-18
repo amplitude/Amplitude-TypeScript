@@ -1,4 +1,7 @@
-export {
+/* eslint-disable @typescript-eslint/unbound-method */
+import client from './react-native-client';
+export { createInstance } from './react-native-client';
+export const {
   add,
   flush,
   getDeviceId,
@@ -17,7 +20,7 @@ export {
   setSessionId,
   setUserId,
   track,
-} from './react-native-client';
+} = client;
 export { Revenue, Identify } from '@amplitude/analytics-core';
 // Hack - react-native apps have trouble with:
 // export * as Types from '@amplitude/analytics-types

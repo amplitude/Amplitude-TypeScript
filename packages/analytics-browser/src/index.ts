@@ -1,4 +1,7 @@
-export {
+/* eslint-disable @typescript-eslint/unbound-method */
+import client from './browser-client';
+export { createInstance } from './browser-client';
+export const {
   add,
   flush,
   getDeviceId,
@@ -18,7 +21,7 @@ export {
   setTransport,
   setUserId,
   track,
-} from './browser-client';
+} = client;
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
 export * as Types from '@amplitude/analytics-types';
