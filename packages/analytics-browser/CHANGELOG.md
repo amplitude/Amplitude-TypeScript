@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.1.5...@amplitude/analytics-browser@1.2.0) (2022-08-18)
+
+
+### Bug Fixes
+
+* handle parsing malformed urls for web attribution ([#192](https://github.com/amplitude/Amplitude-TypeScript/issues/192)) ([cd254d6](https://github.com/amplitude/Amplitude-TypeScript/commit/cd254d6319d8bc7d92affc263ec12c9c39f82fb2))
+* prevent concurrent init calls ([#191](https://github.com/amplitude/Amplitude-TypeScript/issues/191)) ([efda076](https://github.com/amplitude/Amplitude-TypeScript/commit/efda0760f4f1e92e47a3150985e18efcc3b108d9))
+* removes unused tracking options ([#193](https://github.com/amplitude/Amplitude-TypeScript/issues/193)) ([2b57a8e](https://github.com/amplitude/Amplitude-TypeScript/commit/2b57a8e07971312b40c8287e2daddcfb2b55a832))
+
+
+### Features
+
+* adds create instance api ([#188](https://github.com/amplitude/Amplitude-TypeScript/issues/188)) ([050c1d9](https://github.com/amplitude/Amplitude-TypeScript/commit/050c1d96cedbc9e68aedf6fd55e85d2d3dc2fee4))
+
+
+
+
+
 ## [1.1.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.1.4...@amplitude/analytics-browser@1.1.5) (2022-08-16)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

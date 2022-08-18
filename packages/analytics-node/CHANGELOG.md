@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.3.7...@amplitude/analytics-node@0.4.0) (2022-08-18)
+
+
+### Bug Fixes
+
+* prevent concurrent init calls ([#191](https://github.com/amplitude/Amplitude-TypeScript/issues/191)) ([efda076](https://github.com/amplitude/Amplitude-TypeScript/commit/efda0760f4f1e92e47a3150985e18efcc3b108d9))
+
+
+### Features
+
+* adds create instance api ([#188](https://github.com/amplitude/Amplitude-TypeScript/issues/188)) ([050c1d9](https://github.com/amplitude/Amplitude-TypeScript/commit/050c1d96cedbc9e68aedf6fd55e85d2d3dc2fee4))
+
+
+
+
+
 ## [0.3.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.3.6...@amplitude/analytics-node@0.3.7) (2022-08-16)
 
 **Note:** Version bump only for package @amplitude/analytics-node

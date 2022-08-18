@@ -5,16 +5,16 @@
  * These are sent once real SDK loaded through another <script> tag
  */
 !(function (window, document) {
-  var amplitude = window.amplitude || { _q: [] };
+  var amplitude = window.amplitude || { _q: [], _iq: [] };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-7ApSW/NaTIeN9HSgvraZZ/yPDhGmggsAlm2vNAxPIzh/GJp5kBjcBo1RiPjGeGtR';
+    as.integrity = 'sha384-Y4XyoQjvRukDBVnBbXqJPNh2s443JCBG79sung/JWWUc5u3w5iWdPqUAY1EL461g';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.1.5-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.2.0-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -103,7 +103,7 @@
                 resolve: resolve,
               });
             }),
-          }
+          };
           if (isPromise) return result;
         };
       }
@@ -115,6 +115,11 @@
       }
     }
     setUpProxy(amplitude);
+    amplitude.createInstance = function () {
+      var index = amplitude._iq.push({ _q: [] }) - 1;
+      setUpProxy(amplitude._iq[index]);
+      return amplitude._iq[index];
+    };
     window.amplitude = amplitude;
   }
 })(window, document);

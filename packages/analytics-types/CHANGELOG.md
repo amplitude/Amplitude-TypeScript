@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.7.0...@amplitude/analytics-types@0.8.0) (2022-08-18)
+
+
+### Bug Fixes
+
+* removes unused tracking options ([#193](https://github.com/amplitude/Amplitude-TypeScript/issues/193)) ([2b57a8e](https://github.com/amplitude/Amplitude-TypeScript/commit/2b57a8e07971312b40c8287e2daddcfb2b55a832))
+
+
+### Features
+
+* adds create instance api ([#188](https://github.com/amplitude/Amplitude-TypeScript/issues/188)) ([050c1d9](https://github.com/amplitude/Amplitude-TypeScript/commit/050c1d96cedbc9e68aedf6fd55e85d2d3dc2fee4))
+
+
+
+
+
 # [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.6.2...@amplitude/analytics-types@0.7.0) (2022-08-16)
 
 
