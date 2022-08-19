@@ -49,7 +49,7 @@ jobs:
           project: ${{ secrets.JIRA_PROJECT }}
           issuetype: Task
           summary: |
-            [SDK - ${{ inputs.label }} ] ${{ github.event.issue.title }}
+            [SDK - ${{ inputs.label }}] ${{ github.event.issue.title }}
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{
