@@ -1,6 +1,6 @@
 export const getQueryParams = (): Record<string, string | undefined> => {
   /* istanbul ignore if */
-  if (typeof window === 'undefined') {
+  if (typeof window?.location?.search === 'undefined') {
     return {};
   }
   const pairs = window.location.search.substring(1).split('&').filter(Boolean);
