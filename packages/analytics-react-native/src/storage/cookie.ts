@@ -15,7 +15,7 @@ export class CookieStorage<T> implements Storage<T> {
     }
 
     const random = String(Date.now());
-    const testStrorage = new CookieStorage<string>();
+    const testStrorage = new CookieStorage<string>(this.options);
     const testKey = 'AMP_TEST';
     try {
       await testStrorage.set(testKey, random);
