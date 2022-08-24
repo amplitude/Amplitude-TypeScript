@@ -27,7 +27,7 @@ import {
 export class CampaignParser implements ICampaignParser {
   utmCookieStorage = new UTMCookie();
 
-  constructor(public additionalCampaignParameters: string[]) {}
+  constructor(public additionalCampaignParameters: string[] = []) {}
 
   async parse(): Promise<Campaign> {
     const params = getQueryParams();

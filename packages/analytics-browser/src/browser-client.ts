@@ -19,6 +19,7 @@ import { parseOldCookies } from './cookie-migration';
 import { CampaignTracker } from './attribution/campaign-tracker';
 import { getAnalyticsConnector } from './utils/analytics-connector';
 import { IdentityEventSender } from './plugins/identity';
+import noop from './utils/noop';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
@@ -87,7 +88,9 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
   async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, isNewSession = false) {
     const track = this.track.bind(this);
-    const onNewCampaign = this.setSessionId.bind(this, Date.now());
+    const onNewCampaign = !(attributionConfig?.continueSessionOnNewCampaign ?? false)
+      ? this.setSessionId.bind(this, Date.now())
+      : noop;
 
     const storage = await createFlexibleStorage<Campaign>(this.config);
     const campaignTracker = new CampaignTracker(this.config.apiKey, {

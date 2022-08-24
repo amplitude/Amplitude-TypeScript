@@ -81,6 +81,7 @@ export interface AdditionalBrowserOptions {
 
 export interface AttributionBrowserOptions {
   additionalCampaignParameters?: string[];
+  continueSessionOnNewCampaign?: boolean;
   disabled?: boolean;
   excludeReferrers?: string[];
   initialEmptyValue?: string;
