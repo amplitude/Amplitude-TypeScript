@@ -20,7 +20,9 @@ export interface ClickIdParameters extends Record<string, string | undefined> {
   fbclid: string | undefined;
 }
 
-export interface Campaign extends UTMParameters, ReferrerParameters, ClickIdParameters {}
+export type AdditionalCampaignParameters = Record<string, string | undefined>;
+
+export interface Campaign extends UTMParameters, ReferrerParameters, ClickIdParameters, AdditionalCampaignParameters {}
 
 export interface CampaignParser {
   parse(): Promise<Campaign>;

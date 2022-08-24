@@ -1,6 +1,7 @@
 export { AmplitudeReturn } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
 export {
+  AdditionalCampaignParameters,
   Campaign,
   CampaignParser,
   CampaignTracker,

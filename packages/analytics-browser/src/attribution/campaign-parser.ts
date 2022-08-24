@@ -21,22 +21,27 @@ import {
   ClickIdParameters,
   ReferrerParameters,
   UTMParameters,
+  AdditionalCampaignParameters,
 } from '@amplitude/analytics-types';
 
 export class CampaignParser implements ICampaignParser {
   utmCookieStorage = new UTMCookie();
 
+  constructor(public additionalCampaignParameters: string[]) {}
+
   async parse(): Promise<Campaign> {
+    const params = getQueryParams();
+
     return {
       ...BASE_CAMPAIGN,
-      ...(await this.getUtmParam()),
+      ...(await this.getUtmParam(params)),
       ...this.getReferrer(),
-      ...this.getClickIds(),
+      ...this.getClickIds(params),
+      ...this.getAdditionalCampaignParameters(params),
     } as Campaign;
   }
 
-  async getUtmParam(): Promise<UTMParameters> {
-    const params = getQueryParams();
+  async getUtmParam(params: Record<string, string | undefined>): Promise<UTMParameters> {
     const cookies = ((await this.utmCookieStorage.isEnabled()) && (await this.utmCookieStorage.get('__utmz'))) || {};
 
     const utmSource = params[UTM_SOURCE] || cookies[UTMZ_SOURCE];
@@ -68,11 +73,18 @@ export class CampaignParser implements ICampaignParser {
     return data;
   }
 
-  getClickIds(): ClickIdParameters {
-    const params = getQueryParams();
+  getClickIds(params: Record<string, string | undefined>): ClickIdParameters {
     return {
       [GCLID]: params[GCLID],
       [FBCLID]: params[FBCLID],
     };
+  }
+
+  getAdditionalCampaignParameters(params: Record<string, string | undefined>): AdditionalCampaignParameters {
+    const additionalParams: AdditionalCampaignParameters = {};
+    this.additionalCampaignParameters.forEach((param) => {
+      additionalParams[param] = params[param];
+    });
+    return additionalParams;
   }
 }

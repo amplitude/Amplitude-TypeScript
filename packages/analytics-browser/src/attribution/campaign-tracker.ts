@@ -19,6 +19,7 @@ export class CampaignTracker implements ICampaignTracker {
   track: CampaignTrackFunction;
   onNewCampaign: (campaign: Campaign) => unknown;
 
+  additionalCampaignParameters: string[];
   disabled: boolean;
   trackNewCampaigns: boolean;
   trackPageViews: boolean;
@@ -28,7 +29,8 @@ export class CampaignTracker implements ICampaignTracker {
   constructor(apiKey: string, options: CampaignTrackerOptions) {
     this.storage = options.storage;
     this.storageKey = getStorageKey(apiKey, MKTG);
-    this.parser = new CampaignParser();
+    this.additionalCampaignParameters = options.additionalCampaignParameters ?? [];
+    this.parser = new CampaignParser(this.additionalCampaignParameters);
     this.track = options.track;
     this.onNewCampaign = options.onNewCampaign;
 
@@ -62,14 +64,22 @@ export class CampaignTracker implements ICampaignTracker {
   }
 
   async getCampaignFromStorage(): Promise<Campaign> {
-    return (await this.storage.get(this.storageKey)) || { ...BASE_CAMPAIGN };
+    return (await this.storage.get(this.storageKey)) || this.getEmptyCampaign();
+  }
+
+  private getEmptyCampaign(): Campaign {
+    const campaign = { ...BASE_CAMPAIGN };
+    for (const key of this.additionalCampaignParameters) {
+      campaign[key] = undefined;
+    }
+    return campaign;
   }
 
   createCampaignEvent(campaign: Campaign) {
     const campaignParameters: Campaign = {
       // This object definition allows undefined keys to be iterated on
       // in .reduce() to build indentify object
-      ...BASE_CAMPAIGN,
+      ...this.getEmptyCampaign(),
       ...campaign,
     };
     const identifyEvent = Object.entries(campaignParameters).reduce((identify, [key, value]) => {

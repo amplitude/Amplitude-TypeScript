@@ -80,6 +80,7 @@ export interface AdditionalBrowserOptions {
 }
 
 export interface AttributionBrowserOptions {
+  additionalCampaignParameters?: string[];
   disabled?: boolean;
   excludeReferrers?: string[];
   initialEmptyValue?: string;
