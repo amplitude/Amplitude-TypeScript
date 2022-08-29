@@ -1,7 +1,7 @@
 import { MemoryStorage } from '@amplitude/analytics-core';
 import { UserSession } from '@amplitude/analytics-types';
 import { SessionManager } from '../src/session-manager';
-import { API_KEY } from './helpers/default';
+import { API_KEY } from './helpers/constants';
 
 describe('session-manager', () => {
   describe('setSession', () => {

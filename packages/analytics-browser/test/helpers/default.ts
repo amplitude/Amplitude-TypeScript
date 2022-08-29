@@ -1,6 +1,6 @@
 import { MemoryStorage } from '@amplitude/analytics-core';
 import { BrowserConfig as IBrowserConfig, InitOptions, UserSession } from '@amplitude/analytics-types';
-import { SessionManager } from '../../src/session-manager';
+import { SessionManager } from '@amplitude/analytics-browser-utils';
 
 import { BrowserConfig } from '../../src/config';
 

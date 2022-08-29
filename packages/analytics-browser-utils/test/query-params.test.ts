@@ -1,4 +1,4 @@
-import { getQueryParams } from '../../src/utils/query-params';
+import { getQueryParams } from '../src/query-params';
 
 describe('query-params', () => {
   describe('getQueryParams', () => {

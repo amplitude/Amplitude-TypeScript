@@ -1,4 +1,5 @@
 import { AmplitudeCore, Destination, UUID, returnWrapper } from '@amplitude/analytics-core';
+import { CampaignTracker } from '@amplitude/analytics-browser-utils';
 import {
   ReactNativeConfig,
   Campaign,
@@ -10,7 +11,6 @@ import {
 import { Context } from './plugins/context';
 import { useReactNativeConfig, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
-import { CampaignTracker } from './attribution/campaign-tracker';
 import { isNative } from './utils/platform';
 import { IdentityEventSender } from './plugins/identity';
 import { getAnalyticsConnector } from './utils/analytics-connector';

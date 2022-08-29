@@ -1,5 +1,5 @@
 import { UserSession, Storage, SessionManager as ISessionManager } from '@amplitude/analytics-types';
-import { getCookieName as getStorageKey } from './utils/cookie-name';
+import { getCookieName as getStorageKey } from './cookie-name';
 
 export class SessionManager implements ISessionManager {
   storageKey: string;

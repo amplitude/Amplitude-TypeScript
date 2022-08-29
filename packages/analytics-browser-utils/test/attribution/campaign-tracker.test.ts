@@ -1,4 +1,4 @@
-import { API_KEY } from '../helpers/default';
+import { API_KEY } from '../helpers/constants';
 import { CampaignTracker } from '../../src/attribution/campaign-tracker';
 import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import { MemoryStorage } from '@amplitude/analytics-core';

@@ -8,7 +8,7 @@ import {
   CampaignTrackerOptions,
   BaseEvent,
 } from '@amplitude/analytics-types';
-import { getCookieName as getStorageKey } from '../utils/cookie-name';
+import { getCookieName as getStorageKey } from '../cookie-name';
 import { CampaignParser } from './campaign-parser';
 import { BASE_CAMPAIGN, EMPTY_VALUE, MKTG } from './constants';
 

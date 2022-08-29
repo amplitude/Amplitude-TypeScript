@@ -1,5 +1,5 @@
 import { UTMCookie } from '../storage/utm-cookie';
-import { getQueryParams } from '../utils/query-params';
+import { getQueryParams } from '../query-params';
 import {
   UTM_CAMPAIGN,
   UTM_CONTENT,
