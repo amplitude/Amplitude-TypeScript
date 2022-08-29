@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.2.1...@amplitude/analytics-browser@1.2.2) (2022-08-29)
+
+
+### Bug Fixes
+
+* add conditional check for window.location.search ([#198](https://github.com/amplitude/Amplitude-TypeScript/issues/198)) ([e61b4db](https://github.com/amplitude/Amplitude-TypeScript/commit/e61b4db25e2e7677a3dcb2c8e71f26bcac9a9fd5))
+
+
+
+
+
 ## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.2.0...@amplitude/analytics-browser@1.2.1) (2022-08-23)
 
 
