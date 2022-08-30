@@ -85,7 +85,9 @@ export interface AttributionBrowserOptions {
   excludeReferrers?: string[];
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
+  /** @deprecated New campaigns are now always tracked by default. Setting this to true also sets resetSessionOnNewCampaign to true. */
   trackNewCampaigns?: boolean;
+  /** @deprecated Use the new top level trackPageViews configuration instead. */
   trackPageViews?: boolean;
 }
 
