@@ -3,7 +3,7 @@ import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport } from '../src/transports/fetch';
+import { FetchTransport } from '@amplitude/analytics-browser-utils';
 import * as SnippetHelper from '../src/utils/snippet-helper';
 import { getAnalyticsConnector } from '../src/utils/analytics-connector';
 

@@ -207,6 +207,23 @@ describe('CampaignTracker', () => {
       expect(saveCampaignToStorage).toHaveBeenCalledTimes(1);
     });
 
+    test('should disbale tracking', async () => {
+      const config = {
+        disabled: true,
+        storage: new MemoryStorage<Campaign>(),
+        track: jest.fn(),
+        onNewCampaign: jest.fn(),
+      };
+      const campaignTracker = new CampaignTracker(API_KEY, config);
+      const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
+      const saveCampaignToStorage = jest
+        .spyOn(campaignTracker, 'saveCampaignToStorage')
+        .mockResolvedValueOnce(undefined);
+      await campaignTracker.send(true);
+      expect(track).toHaveBeenCalledTimes(0);
+      expect(saveCampaignToStorage).toHaveBeenCalledTimes(0);
+    });
+
     test('should track new campaigns', async () => {
       const onNewCampaign = jest.fn();
       const config = {

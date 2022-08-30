@@ -4,7 +4,7 @@ import * as CookieMigration from '../src/cookie-migration';
 import { Status, UserSession } from '@amplitude/analytics-types';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAnalyticsConnector } from '@amplitude/analytics-browser/src/utils/analytics-connector';
+import { getAnalyticsConnector } from '../src/utils/analytics-connector';
 import * as Config from '../src/config';
 
 describe('react-native-client', () => {

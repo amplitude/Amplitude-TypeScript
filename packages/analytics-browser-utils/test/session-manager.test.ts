@@ -4,6 +4,32 @@ import { SessionManager } from '../src/session-manager';
 import { API_KEY } from './helpers/constants';
 
 describe('session-manager', () => {
+  describe('load', () => {
+    test('should use persisted session value', async () => {
+      const storage = new MemoryStorage<UserSession>();
+      const get = jest.spyOn(storage, 'get').mockReturnValueOnce(
+        Promise.resolve({
+          optOut: true,
+        }),
+      );
+      const sessionManager = await new SessionManager(storage, API_KEY).load();
+      expect(sessionManager.cache).toEqual({
+        optOut: true,
+      });
+      expect(get).toHaveBeenCalledTimes(1);
+    });
+
+    test('should use default session value', async () => {
+      const storage = new MemoryStorage<UserSession>();
+      const get = jest.spyOn(storage, 'get').mockReturnValueOnce(Promise.resolve(undefined));
+      const sessionManager = await new SessionManager(storage, API_KEY).load();
+      expect(sessionManager.cache).toEqual({
+        optOut: false,
+      });
+      expect(get).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('setSession', () => {
     test('should set session', async () => {
       const storage = new MemoryStorage<UserSession>();
