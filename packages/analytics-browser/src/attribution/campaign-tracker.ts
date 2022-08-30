@@ -32,7 +32,7 @@ export class CampaignTracker implements ICampaignTracker {
     this.disabled = Boolean(options.disabled);
     this.excludeReferrers = options.excludeReferrers ?? [];
     this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
-    this.resetSessionOnNewCampaign = options.resetSessionOnNewCampaign ?? options.trackNewCampaigns === true;
+    this.resetSessionOnNewCampaign = options.resetSessionOnNewCampaign ?? options.trackNewCampaigns;
 
     if (typeof location !== 'undefined') {
       this.excludeReferrers.unshift(location.hostname);
