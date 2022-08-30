@@ -1,5 +1,6 @@
 import { BaseEvent } from './base-event';
-import { AttributionBrowserOptions } from './config';
+import { AttributionBrowserOptions, PageTrackingFilter } from './config';
+import { IdentifyEvent } from './event';
 import { Storage } from './storage';
 
 export interface UTMParameters extends Record<string, string | undefined> {
@@ -28,12 +29,14 @@ export interface CampaignParser {
 
 export interface CampaignTrackerOptions extends AttributionBrowserOptions {
   storage: Storage<Campaign>;
-  track: CampaignTrackFunction;
-  onNewCampaign: (campaign: Campaign) => unknown;
 }
 
-export interface CampaignTracker extends CampaignTrackerOptions {
-  send(force: boolean): Promise<void>;
+export interface CampaignTracker {
+  isNewCampaign(currentCampaign: Campaign, previousCampaign: Campaign): boolean;
+  saveCampaignToStorage(campaign: Campaign): Promise<void>;
+  getCampaignFromStorage(): Promise<Campaign>;
+  createCampaignEvent(campaign: Campaign): IdentifyEvent;
+  trackOn(filter: PageTrackingFilter, callback: (currentCampaign: Campaign) => unknown): unknown;
 }
 
 export type CampaignTrackFunction = (event: BaseEvent) => Promise<unknown>;

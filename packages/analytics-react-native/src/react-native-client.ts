@@ -1,19 +1,18 @@
 import { AmplitudeCore, Destination, UUID, returnWrapper } from '@amplitude/analytics-core';
 import {
   ReactNativeConfig,
-  Campaign,
   ReactNativeOptions,
   AdditionalReactNativeOptions,
-  AttributionReactNativeOptions,
   ReactNativeClient,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
-import { useReactNativeConfig, createFlexibleStorage } from './config';
+import { useReactNativeConfig } from './config';
 import { parseOldCookies } from './cookie-migration';
-import { CampaignTracker } from './attribution/campaign-tracker';
 import { isNative } from './utils/platform';
 import { IdentityEventSender } from './plugins/identity';
 import { getAnalyticsConnector } from './utils/analytics-connector';
+import { Attribution } from './plugins/attribution';
+import { PageTracking } from './plugins/pageTracking';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   async init(apiKey: string, userId?: string, options?: ReactNativeOptions & AdditionalReactNativeOptions) {
@@ -37,7 +36,6 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await super._init(reactNativeOptions);
 
     // Step 3: Manage session
-    let isNewSession = !this.config.lastEventTime;
     if (
       !this.config.sessionId ||
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
@@ -46,7 +44,6 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       // 1) No previous session; or
       // 2) Previous session expired
       this.setSessionId(Date.now());
-      isNewSession = true;
     }
 
     // Set up the analytics connector to integrate with the experiment SDK.
@@ -66,6 +63,10 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await this.add(new Context());
     await this.add(new IdentityEventSender());
     await this.add(new Destination());
+    if (!isNative()) {
+      await this.add(new Attribution(options));
+      await this.add(new PageTracking(options));
+    }
 
     this.initializing = false;
 
@@ -75,27 +76,6 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     if (!this.config.optOut) {
       this.timeline.scheduleApply(0);
     }
-
-    // Step 6: Track attributions
-    await this.runAttributionStrategy(options?.attribution, isNewSession);
-  }
-
-  async runAttributionStrategy(attributionConfig?: AttributionReactNativeOptions, isNewSession = false) {
-    if (isNative()) {
-      return;
-    }
-    const track = this.track.bind(this);
-    const onNewCampaign = this.setSessionId.bind(this, Date.now());
-
-    const storage = await createFlexibleStorage<Campaign>(this.config);
-    const campaignTracker = new CampaignTracker(this.config.apiKey, {
-      ...attributionConfig,
-      storage,
-      track,
-      onNewCampaign,
-    });
-
-    await campaignTracker.send(isNewSession);
   }
 
   getUserId() {

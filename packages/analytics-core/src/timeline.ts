@@ -9,6 +9,7 @@ import {
   PluginType,
   Result,
 } from '@amplitude/analytics-types';
+import { AmplitudeCore } from './core-client';
 import { buildResult } from './utils/result-builder';
 
 export class Timeline {
@@ -17,11 +18,29 @@ export class Timeline {
   applying = false;
   // Flag indicates whether timeline is ready to process event
   // Events collected before timeline is ready will stay in the queue to be processed later
-  isReady = false;
+  ready: Promise<boolean>;
   plugins: Plugin[] = [];
 
-  async register(plugin: Plugin, config: Config) {
-    await plugin.setup(config);
+  private _isReady = false;
+  private _readyResolver!: (value: boolean | PromiseLike<boolean>) => void;
+
+  constructor() {
+    this.ready = new Promise<boolean>((resolve) => {
+      this._readyResolver = resolve;
+    });
+  }
+
+  get isReady() {
+    return this._isReady;
+  }
+
+  set isReady(value: boolean) {
+    this._isReady = value;
+    if (value === true) this._readyResolver(value);
+  }
+
+  async register(plugin: Plugin, config: Config, instance: AmplitudeCore<Config>) {
+    await plugin.setup(config, { instance });
     this.plugins.push(plugin);
   }
 

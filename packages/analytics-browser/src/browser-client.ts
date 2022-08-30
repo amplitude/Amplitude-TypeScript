@@ -1,11 +1,9 @@
 import { AmplitudeCore, Destination, Identify, Revenue, UUID, returnWrapper } from '@amplitude/analytics-core';
 import {
   AdditionalBrowserOptions,
-  AttributionBrowserOptions,
   BrowserClient,
   BrowserConfig,
   BrowserOptions,
-  Campaign,
   EventOptions,
   Identify as IIdentify,
   Result,
@@ -14,11 +12,12 @@ import {
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport, createFlexibleStorage } from './config';
+import { useBrowserConfig, createTransport } from './config';
 import { parseOldCookies } from './cookie-migration';
-import { CampaignTracker } from './attribution/campaign-tracker';
 import { getAnalyticsConnector } from './utils/analytics-connector';
 import { IdentityEventSender } from './plugins/identity';
+import { Attribution } from './plugins/attribution';
+import { PageTracking } from './plugins/pageTracking';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
@@ -42,7 +41,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await super._init(browserOptions);
 
     // Step 3: Manage session
-    let isNewSession = !this.config.lastEventTime;
     if (
       !this.config.sessionId ||
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
@@ -51,7 +49,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       // 1) No previous session; or
       // 2) Previous session expired
       this.setSessionId(Date.now());
-      isNewSession = true;
     }
 
     // Set up the analytics connector to integrate with the experiment SDK.
@@ -71,6 +68,8 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await this.add(new Context());
     await this.add(new IdentityEventSender());
     await this.add(new Destination());
+    await this.add(new Attribution(options));
+    await this.add(new PageTracking(options));
 
     this.initializing = false;
 
@@ -80,24 +79,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     if (!this.config.optOut) {
       this.timeline.scheduleApply(0);
     }
-
-    // Step 6: Track attributions
-    await this.runAttributionStrategy(options?.attribution, isNewSession);
-  }
-
-  async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, isNewSession = false) {
-    const track = this.track.bind(this);
-    const onNewCampaign = this.setSessionId.bind(this, Date.now());
-
-    const storage = await createFlexibleStorage<Campaign>(this.config);
-    const campaignTracker = new CampaignTracker(this.config.apiKey, {
-      ...attributionConfig,
-      storage,
-      track,
-      onNewCampaign,
-    });
-
-    await campaignTracker.send(isNewSession);
   }
 
   getUserId() {

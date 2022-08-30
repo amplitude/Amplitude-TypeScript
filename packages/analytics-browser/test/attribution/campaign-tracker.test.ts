@@ -9,8 +9,6 @@ describe('CampaignTracker', () => {
     test('should return true for new campaign', () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const previousCampaign = {
@@ -26,8 +24,6 @@ describe('CampaignTracker', () => {
     test('should return true for new referrer', () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const previousCampaign = {
@@ -46,8 +42,6 @@ describe('CampaignTracker', () => {
     test('should return false for excluded referrer', () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
         excludeReferrers: ['a'],
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
@@ -66,8 +60,6 @@ describe('CampaignTracker', () => {
     test('should save campaign', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const set = jest.spyOn(campaignTracker.storage, 'set');
@@ -83,8 +75,6 @@ describe('CampaignTracker', () => {
     test('should get campaign', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const get = jest.spyOn(campaignTracker.storage, 'get');
@@ -99,9 +89,6 @@ describe('CampaignTracker', () => {
     test('should return event', () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
-        trackPageViews: true,
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const campaignEvent = campaignTracker.createCampaignEvent({
@@ -109,12 +96,7 @@ describe('CampaignTracker', () => {
         utm_campaign: 'utm_campaign',
       });
       expect(campaignEvent).toEqual({
-        event_type: 'Page View',
-        event_properties: {
-          page_location: 'http://localhost/',
-          page_path: '/',
-          page_title: '',
-        },
+        event_type: '$identify',
         user_id: undefined,
         user_properties: {
           $set: {
@@ -148,8 +130,6 @@ describe('CampaignTracker', () => {
     test('should return event with custom empty value', () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
         initialEmptyValue: '(none)',
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
@@ -190,82 +170,80 @@ describe('CampaignTracker', () => {
     });
   });
 
-  describe('send', () => {
-    test('should force track', async () => {
+  describe('trackOn', () => {
+    test('should trigger callback when mode is onAttribution and campaign changes', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign: jest.fn(),
       };
+      const callback = jest.fn();
+      jest.spyOn(CampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        isNewCampaign: true,
+        currentCampaign: { utm_source: 'amp-test' },
+      });
       const campaignTracker = new CampaignTracker(API_KEY, config);
-      const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest
-        .spyOn(campaignTracker, 'saveCampaignToStorage')
-        .mockResolvedValueOnce(undefined);
-      await campaignTracker.send(true);
-      expect(track).toHaveBeenCalledTimes(1);
-      expect(saveCampaignToStorage).toHaveBeenCalledTimes(1);
+      await campaignTracker.trackOn('onAttribution', callback);
+
+      expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    test('should track new campaigns', async () => {
-      const onNewCampaign = jest.fn();
+    test('should not trigger callback when mode is onAttribution but campaign does not change', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign,
-        trackNewCampaigns: true,
       };
+      const callback = jest.fn();
+      jest.spyOn(CampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        isNewCampaign: false,
+        currentCampaign: { utm_source: 'amp-test' },
+      });
       const campaignTracker = new CampaignTracker(API_KEY, config);
-      const isNewCampaign = jest.spyOn(campaignTracker, 'isNewCampaign').mockReturnValueOnce(true);
-      const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest
-        .spyOn(campaignTracker, 'saveCampaignToStorage')
-        .mockResolvedValueOnce(undefined);
-      await campaignTracker.send(false);
-      expect(onNewCampaign).toHaveBeenCalledTimes(1);
-      expect(isNewCampaign).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenCalledTimes(1);
-      expect(saveCampaignToStorage).toHaveBeenCalledTimes(1);
+      await campaignTracker.trackOn('onAttribution', callback);
+
+      expect(callback).toHaveBeenCalledTimes(0);
     });
 
-    test('should not track same campaigns', async () => {
-      const onNewCampaign = jest.fn();
+    test('should trigger callback when mode is a function and it returns true', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign,
-        trackNewCampaigns: true,
       };
+      const callback = jest.fn();
+      jest.spyOn(CampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        isNewCampaign: false,
+        currentCampaign: { utm_source: 'amp-test' },
+      });
       const campaignTracker = new CampaignTracker(API_KEY, config);
-      const isNewCampaign = jest.spyOn(campaignTracker, 'isNewCampaign').mockReturnValueOnce(false);
-      const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest
-        .spyOn(campaignTracker, 'saveCampaignToStorage')
-        .mockResolvedValueOnce(undefined);
-      await campaignTracker.send(false);
-      expect(onNewCampaign).toHaveBeenCalledTimes(0);
-      expect(isNewCampaign).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenCalledTimes(0);
-      expect(saveCampaignToStorage).toHaveBeenCalledTimes(0);
+      await campaignTracker.trackOn(() => true, callback);
+
+      expect(callback).toHaveBeenCalledTimes(1);
     });
 
-    test('should not track new campaigns', async () => {
-      const onNewCampaign = jest.fn();
+    test('should not trigger callback when mode is a function but it returns false', async () => {
       const config = {
         storage: new MemoryStorage<Campaign>(),
-        track: jest.fn(),
-        onNewCampaign,
-        trackNewCampaigns: false,
       };
+      const callback = jest.fn();
+      jest.spyOn(CampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        isNewCampaign: false,
+        currentCampaign: { utm_source: 'amp-test' },
+      });
       const campaignTracker = new CampaignTracker(API_KEY, config);
-      const track = jest.spyOn(campaignTracker, 'track').mockReturnValueOnce(Promise.resolve());
-      const saveCampaignToStorage = jest
-        .spyOn(campaignTracker, 'saveCampaignToStorage')
-        .mockResolvedValueOnce(undefined);
-      await campaignTracker.send(false);
-      expect(onNewCampaign).toHaveBeenCalledTimes(0);
-      expect(track).toHaveBeenCalledTimes(0);
-      expect(saveCampaignToStorage).toHaveBeenCalledTimes(0);
+      await campaignTracker.trackOn(() => false, callback);
+
+      expect(callback).toHaveBeenCalledTimes(0);
+    });
+
+    test('should trigger callback when mode is undefined', async () => {
+      const config = {
+        storage: new MemoryStorage<Campaign>(),
+      };
+      const callback = jest.fn();
+      jest.spyOn(CampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        isNewCampaign: false,
+        currentCampaign: { utm_source: 'amp-test' },
+      });
+      const campaignTracker = new CampaignTracker(API_KEY, config);
+      await campaignTracker.trackOn(undefined, callback);
+
+      expect(callback).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -4,9 +4,8 @@ import {
   Campaign,
   CampaignParser as ICampaignParser,
   CampaignTracker as ICampaignTracker,
-  CampaignTrackFunction,
   CampaignTrackerOptions,
-  BaseEvent,
+  PageTrackingFilter,
 } from '@amplitude/analytics-types';
 import { getCookieName as getStorageKey } from '../utils/cookie-name';
 import { CampaignParser } from './campaign-parser';
@@ -16,30 +15,39 @@ export class CampaignTracker implements ICampaignTracker {
   storage: Storage<Campaign>;
   storageKey: string;
   parser: ICampaignParser;
-  track: CampaignTrackFunction;
-  onNewCampaign: (campaign: Campaign) => unknown;
 
   disabled: boolean;
-  trackNewCampaigns: boolean;
-  trackPageViews: boolean;
   excludeReferrers: string[];
   initialEmptyValue: string;
+  resetSessionOnNewCampaign: boolean;
+
+  private _currentCampaign!: Campaign;
+  private _isNewCampaign!: boolean;
 
   constructor(apiKey: string, options: CampaignTrackerOptions) {
     this.storage = options.storage;
     this.storageKey = getStorageKey(apiKey, MKTG);
     this.parser = new CampaignParser();
-    this.track = options.track;
-    this.onNewCampaign = options.onNewCampaign;
 
     this.disabled = Boolean(options.disabled);
-    this.trackNewCampaigns = Boolean(options.trackNewCampaigns);
-    this.trackPageViews = Boolean(options.trackPageViews);
     this.excludeReferrers = options.excludeReferrers ?? [];
+    this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
+    this.resetSessionOnNewCampaign = options.resetSessionOnNewCampaign ?? options.trackNewCampaigns === true;
+
     if (typeof location !== 'undefined') {
       this.excludeReferrers.unshift(location.hostname);
     }
-    this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
+
+    void this.refreshCampaignState();
+  }
+
+  private async refreshCampaignState() {
+    return Promise.all([this.parser.parse(), this.getCampaignFromStorage()]).then(
+      ([currentCampaign, previousCampaign]) => {
+        this._isNewCampaign = this.isNewCampaign(currentCampaign, previousCampaign);
+        this._currentCampaign = currentCampaign;
+      },
+    );
   }
 
   isNewCampaign(currentCampaign: Campaign, previousCampaign: Campaign) {
@@ -80,33 +88,38 @@ export class CampaignTracker implements ICampaignTracker {
       return identify.unset(key);
     }, new Identify());
 
-    const pageViewEvent: BaseEvent = {
-      event_type: 'Page View',
-      event_properties: {
-        page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-        page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
-        page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
-      },
-    };
-    return {
-      ...createIdentifyEvent(identifyEvent),
-      ...(this.trackPageViews && pageViewEvent),
-    };
+    return createIdentifyEvent(identifyEvent);
   }
 
-  async send(isNewSession: boolean) {
-    if (this.disabled) {
-      return;
-    }
-    const currentCampaign = await this.parser.parse();
-    const previousCampaign = await this.getCampaignFromStorage();
-    if (!isNewSession) {
-      if (!this.trackNewCampaigns || !this.isNewCampaign(currentCampaign, previousCampaign)) {
-        return;
+  trackOn(filter: PageTrackingFilter = undefined, callback: (currentCampaing: Campaign) => unknown) {
+    const { isNewCampaign, currentCampaign } = this.getCurrentState();
+
+    switch (filter) {
+      case 'onAttribution': {
+        return isNewCampaign && callback(currentCampaign);
       }
-      this.onNewCampaign(currentCampaign);
+      default: {
+        if (typeof filter === 'function') {
+          return filter() && callback(currentCampaign);
+        }
+        return callback(currentCampaign);
+      }
     }
-    await this.track(this.createCampaignEvent(currentCampaign));
-    await this.saveCampaignToStorage(currentCampaign);
+  }
+
+  async onStateChange(callback: (state: { isNewCampaign: boolean; currentCampaign: Campaign }) => Promise<unknown>) {
+    const currentState = this.getCurrentState();
+    await callback(currentState);
+
+    if (currentState.isNewCampaign) {
+      await this.saveCampaignToStorage(currentState.currentCampaign);
+    }
+  }
+
+  private getCurrentState() {
+    return {
+      isNewCampaign: this._isNewCampaign,
+      currentCampaign: this._currentCampaign,
+    };
   }
 }

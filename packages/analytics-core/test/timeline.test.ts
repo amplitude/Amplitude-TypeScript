@@ -2,9 +2,11 @@ import { Timeline } from '../src/timeline';
 import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
+import { AmplitudeCore } from '../src/core-client';
 
 describe('timeline', () => {
   let timeline = new Timeline();
+  const instance = new AmplitudeCore();
 
   beforeEach(() => {
     timeline = new Timeline();
@@ -61,9 +63,9 @@ describe('timeline', () => {
     };
     const config = useDefaultConfig();
     // register
-    await timeline.register(before, config);
-    await timeline.register(enrichment, config);
-    await timeline.register(destination, config);
+    await timeline.register(before, config, instance);
+    await timeline.register(enrichment, config, instance);
+    await timeline.register(destination, config, instance);
     timeline.isReady = true;
 
     expect(beforeSetup).toHaveBeenCalledTimes(1);
@@ -123,7 +125,7 @@ describe('timeline', () => {
         execute: beforeExecute,
       };
       const config = useDefaultConfig();
-      await timeline.register(before, config);
+      await timeline.register(before, config, instance);
       await timeline.apply(undefined);
       await timeline.deregister(before.name);
       expect(beforeExecute).toHaveBeenCalledTimes(0);
@@ -164,9 +166,9 @@ describe('timeline', () => {
       };
 
       const config = useDefaultConfig();
-      await timeline.register(before, config);
-      await timeline.register(enrichment, config);
-      await timeline.register(destination, config);
+      await timeline.register(before, config, instance);
+      await timeline.register(enrichment, config, instance);
+      await timeline.register(destination, config, instance);
 
       const event = {
         event_type: 'some-event',
@@ -199,7 +201,7 @@ describe('timeline', () => {
         flush,
       };
       const config = useDefaultConfig();
-      await timeline.register(plugin, config);
+      await timeline.register(plugin, config, instance);
       void timeline.push(createTrackEvent('a'));
       void timeline.push(createTrackEvent('b'));
       void timeline.push(createTrackEvent('c'));

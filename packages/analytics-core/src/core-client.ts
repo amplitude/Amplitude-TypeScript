@@ -72,15 +72,15 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
     return this.dispatch(event);
   }
 
-  async add(plugin: Plugin) {
+  async add(plugin: Plugin): Promise<void> {
     if (!this.config) {
       this.q.push(this.add.bind(this, plugin));
       return;
     }
-    return this.timeline.register(plugin, this.config);
+    return this.timeline.register(plugin, this.config, this);
   }
 
-  async remove(pluginName: string) {
+  async remove(pluginName: string): Promise<void> {
     if (!this.config) {
       this.q.push(this.remove.bind(this, pluginName));
       return;

@@ -96,37 +96,6 @@ describe('browser-client', () => {
       expect(useBrowserConfig).toHaveBeenCalledTimes(1);
     });
 
-    test('should track attributions', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
-        optOut: false,
-      });
-      const client = new AmplitudeBrowser();
-      const runAttributionStrategy = jest
-        .spyOn(client, 'runAttributionStrategy')
-        .mockReturnValueOnce(Promise.resolve(undefined));
-      await client.init(API_KEY, USER_ID);
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
-      expect(runAttributionStrategy).toHaveBeenCalledTimes(1);
-    });
-
-    test('should track attributions with config', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
-        optOut: false,
-      });
-      const client = new AmplitudeBrowser();
-      const runAttributionStrategy = jest
-        .spyOn(client, 'runAttributionStrategy')
-        .mockReturnValueOnce(Promise.resolve(undefined));
-      await client.init(API_KEY, USER_ID, {
-        attribution: {
-          excludeReferrers: [],
-          initialEmptyValue: '',
-        },
-      });
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
-      expect(runAttributionStrategy).toHaveBeenCalledTimes(1);
-    });
-
     test('should set user id and device id in analytics connector', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
       jest.spyOn(cookieStorage, 'get').mockResolvedValue({
@@ -168,29 +137,6 @@ describe('browser-client', () => {
           k: 'v',
         },
       });
-      expect(track).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('trackCampaign', () => {
-    test('should track campaign', async () => {
-      const client = new AmplitudeBrowser();
-      const track = jest.spyOn(client, 'track').mockReturnValueOnce(
-        Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: 'event_type',
-          },
-        }),
-      );
-      await client.init(API_KEY, USER_ID, {
-        attribution: {
-          disabled: false,
-        },
-      });
-      const result = await client.runAttributionStrategy();
-      expect(result).toBe(undefined);
       expect(track).toHaveBeenCalledTimes(1);
     });
   });
