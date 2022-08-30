@@ -6,3 +6,6 @@ export { CookieStorage } from './storage/cookie';
 export { UTMCookie } from './storage/utm-cookie';
 export { SessionManager } from './session-manager';
 export { FetchTransport } from './transports/fetch';
+export { getAnalyticsConnector } from './analytics-connector';
+export { IdentityEventSender } from './plugins/identity';
+export { getLanguage } from './language';

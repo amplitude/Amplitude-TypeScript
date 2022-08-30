@@ -14,7 +14,7 @@ import {
   getQueryParams,
   SessionManager,
   FetchTransport,
-} from '@amplitude/analytics-browser-utils';
+} from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
 

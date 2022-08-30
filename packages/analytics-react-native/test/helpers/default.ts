@@ -1,6 +1,6 @@
 import { MemoryStorage } from '@amplitude/analytics-core';
 import { ReactNativeConfig as IReactNativeConfig, InitOptions, UserSession } from '@amplitude/analytics-types';
-import { SessionManager } from '@amplitude/analytics-browser-utils';
+import { SessionManager } from '@amplitude/analytics-client-common';
 
 import { ReactNativeConfig } from '../../src/config';
 

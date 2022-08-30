@@ -1,5 +1,5 @@
 import { BrowserOptions, Storage, UserSession } from '@amplitude/analytics-types';
-import { getOldCookieName, CookieStorage } from '@amplitude/analytics-browser-utils';
+import { getOldCookieName, CookieStorage } from '@amplitude/analytics-client-common';
 import { LocalStorage } from '../storage/local-storage';
 
 export const parseOldCookies = async (apiKey: string, options?: BrowserOptions): Promise<UserSession> => {

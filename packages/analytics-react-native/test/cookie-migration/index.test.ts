@@ -1,4 +1,4 @@
-import { getOldCookieName } from '@amplitude/analytics-browser-utils';
+import { getOldCookieName } from '@amplitude/analytics-client-common';
 import { decode, parseOldCookies, parseTime } from '../../src/cookie-migration';
 import * as LocalStorageModule from '../../src/storage/local-storage';
 import { isWeb } from '../../src/utils/platform';

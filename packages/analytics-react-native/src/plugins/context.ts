@@ -1,7 +1,7 @@
 import { BeforePlugin, ReactNativeConfig, Event, PluginType } from '@amplitude/analytics-types';
 import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '@amplitude/analytics-core';
-import { getLanguage } from '../utils/language';
+import { getLanguage } from '@amplitude/analytics-client-common';
 import { VERSION } from '../version';
 import { NativeModules } from 'react-native';
 

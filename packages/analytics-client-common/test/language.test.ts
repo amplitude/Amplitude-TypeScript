@@ -1,4 +1,4 @@
-import { getLanguage } from '../../src/utils/language';
+import { getLanguage } from '../src/language';
 interface Navigator {
   language: string | undefined;
   languages: string[] | undefined;

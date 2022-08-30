@@ -3,9 +3,8 @@ import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport } from '@amplitude/analytics-browser-utils';
+import { FetchTransport, getAnalyticsConnector } from '@amplitude/analytics-client-common';
 import * as SnippetHelper from '../src/utils/snippet-helper';
-import { getAnalyticsConnector } from '../src/utils/analytics-connector';
 
 describe('browser-client', () => {
   const API_KEY = 'API_KEY';
