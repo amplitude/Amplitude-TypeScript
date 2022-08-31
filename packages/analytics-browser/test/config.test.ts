@@ -1,14 +1,12 @@
 import * as Config from '../src/config';
-import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, Storage, TransportType, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport } from '../src/transports/fetch';
-import { getCookieName } from '../src/utils/cookie-name';
+import * as BrowserUtils from '@amplitude/analytics-client-common';
+import { SessionManager, getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
-import { SessionManager } from '../src/session-manager';
 
 describe('config', () => {
   const API_KEY = 'apiKey';
@@ -205,7 +203,7 @@ describe('config', () => {
 
     test('should return cookies', async () => {
       const storage = await Config.createCookieStorage();
-      expect(storage).toBeInstanceOf(CookieModule.CookieStorage);
+      expect(storage).toBeInstanceOf(BrowserUtils.CookieStorage);
     });
 
     test('should use return storage', async () => {
@@ -214,7 +212,7 @@ describe('config', () => {
     });
 
     test('should use memory', async () => {
-      const cookiesConstructor = jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
+      const cookiesConstructor = jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         options: {},
         isEnabled: async () => false,
         get: async () => '',
@@ -319,7 +317,7 @@ describe('config', () => {
         remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
       };
-      jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
+      jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         ...testCookieStorage,
         options: {},
       });
@@ -345,7 +343,7 @@ describe('config', () => {
         reset: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
       };
       jest
-        .spyOn(CookieModule, 'CookieStorage')
+        .spyOn(BrowserUtils, 'CookieStorage')
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},

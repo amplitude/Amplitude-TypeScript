@@ -1,11 +1,9 @@
 import * as Config from '../src/config';
-import * as CookieModule from '../src/storage/cookie';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, Storage, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport } from '../src/transports/fetch';
-import { getCookieName } from '../src/utils/cookie-name';
-import { SessionManager } from '../src/session-manager';
+import * as BrowserUtils from '@amplitude/analytics-client-common';
+import { SessionManager, getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
 import { isWeb } from '../src/utils/platform';
 
 describe('config', () => {
@@ -213,7 +211,7 @@ describe('config', () => {
     if (isWeb()) {
       test('should return cookies', async () => {
         const storage = await Config.createCookieStorage();
-        expect(storage).toBeInstanceOf(CookieModule.CookieStorage);
+        expect(storage).toBeInstanceOf(BrowserUtils.CookieStorage);
       });
     }
 
@@ -223,7 +221,7 @@ describe('config', () => {
     });
 
     test('should use memory', async () => {
-      const cookiesConstructor = jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
+      const cookiesConstructor = jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         options: {},
         isEnabled: async () => false,
         get: async () => '',
@@ -314,7 +312,7 @@ describe('config', () => {
         remove: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
         reset: jest.fn().mockResolvedValueOnce(Promise.resolve(undefined)),
       };
-      jest.spyOn(CookieModule, 'CookieStorage').mockReturnValueOnce({
+      jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
         ...testCookieStorage,
         options: {},
       });
@@ -340,7 +338,7 @@ describe('config', () => {
         reset: jest.fn().mockResolvedValue(Promise.resolve(undefined)),
       };
       jest
-        .spyOn(CookieModule, 'CookieStorage')
+        .spyOn(BrowserUtils, 'CookieStorage')
         .mockReturnValueOnce({
           ...testCookieStorage,
           options: {},

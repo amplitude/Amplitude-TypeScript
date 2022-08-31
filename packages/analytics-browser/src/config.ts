@@ -9,15 +9,17 @@ import {
   SessionManager as ISessionManager,
 } from '@amplitude/analytics-types';
 import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
+import {
+  CookieStorage,
+  getCookieName,
+  getQueryParams,
+  SessionManager,
+  FetchTransport,
+} from '@amplitude/analytics-client-common';
 
-import { CookieStorage } from './storage/cookie';
-import { FetchTransport } from './transports/fetch';
 import { LocalStorage } from './storage/local-storage';
-import { getCookieName } from './utils/cookie-name';
-import { getQueryParams } from './utils/query-params';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
-import { SessionManager } from './session-manager';
 
 export const getDefaultConfig = () => {
   const cookieStorage = new MemoryStorage<UserSession>();

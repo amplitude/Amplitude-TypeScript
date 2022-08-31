@@ -4,7 +4,7 @@ import * as CookieMigration from '../src/cookie-migration';
 import { Status, UserSession } from '@amplitude/analytics-types';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAnalyticsConnector } from '@amplitude/analytics-browser/src/utils/analytics-connector';
+import { getAnalyticsConnector } from '@amplitude/analytics-client-common';
 import * as Config from '../src/config';
 
 describe('react-native-client', () => {
@@ -17,20 +17,14 @@ describe('react-native-client', () => {
     },
   };
 
-  /*
-   * Clean up after each test based on the storage used for the given platform
-   */
-  if (isWeb()) {
-    afterEach(() => {
-      // clean up cookies
-      document.cookie = 'AMP_API_KEY=null; expires=-1';
-    });
-  } else {
-    afterEach(async () => {
-      // clean up cookies
+  afterEach(async () => {
+    // clean up cookies
+    // due to jest env, cookies are always preset and needs to be cleaned up
+    document.cookie = 'AMP_API_KEY=null; expires=-1';
+    if (!isWeb()) {
       await AsyncStorage.clear();
-    });
-  }
+    }
+  });
 
   describe('init', () => {
     test('should initialize client', async () => {

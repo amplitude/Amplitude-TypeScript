@@ -1,4 +1,5 @@
 import { AmplitudeCore, Destination, Identify, Revenue, UUID, returnWrapper } from '@amplitude/analytics-core';
+import { CampaignTracker, getAnalyticsConnector, IdentityEventSender } from '@amplitude/analytics-client-common';
 import {
   AdditionalBrowserOptions,
   AttributionBrowserOptions,
@@ -16,9 +17,6 @@ import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
-import { CampaignTracker } from './attribution/campaign-tracker';
-import { getAnalyticsConnector } from './utils/analytics-connector';
-import { IdentityEventSender } from './plugins/identity';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
