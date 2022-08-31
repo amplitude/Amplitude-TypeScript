@@ -65,12 +65,6 @@ export interface TimeoutResponse {
   statusCode: number;
 }
 
-export interface SystemErrorResponse {
-  status: Status.SystemError;
-  statusCode: 0;
-  error: NodeJS.ErrnoException;
-}
-
 export interface OtherReponse {
   status: Exclude<Status, StatusWithResponseBody>;
   statusCode: number;
@@ -82,5 +76,4 @@ export type Response =
   | PayloadTooLargeResponse
   | RateLimitResponse
   | TimeoutResponse
-  | SystemErrorResponse
   | OtherReponse;
