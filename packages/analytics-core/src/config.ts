@@ -7,6 +7,7 @@ import {
   Storage,
   Transport,
   Plan,
+  IngestionMetadata,
   ServerZone,
 } from '@amplitude/analytics-types';
 import {
@@ -39,6 +40,7 @@ export class Config implements IConfig {
   logLevel: LogLevel;
   minIdLength?: number;
   plan?: Plan;
+  ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
   transportProvider: Transport;
@@ -63,6 +65,7 @@ export class Config implements IConfig {
     this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.minIdLength = options.minIdLength;
     this.plan = options.plan;
+    this.ingestionMetadata = options.ingestionMetadata;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.serverUrl = options.serverUrl;
     this.serverZone = options.serverZone || defaultConfig.serverZone;

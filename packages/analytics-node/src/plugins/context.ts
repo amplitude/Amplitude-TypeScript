@@ -26,6 +26,14 @@ export class Context implements BeforePlugin {
         time,
         insert_id: UUID(),
         plan: this.config.plan,
+        ...(this.config.ingestionMetadata && {
+          ingestion_metadata: {
+            ...(this.config.ingestionMetadata.sourceName && { source_name: this.config.ingestionMetadata.sourceName }),
+            ...(this.config.ingestionMetadata.sourceVersion && {
+              source_version: this.config.ingestionMetadata.sourceVersion,
+            }),
+          },
+        }),
         ...context,
         event_id: this.eventId++,
         library: this.library,

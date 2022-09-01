@@ -50,6 +50,7 @@ export { EventBridge, EventBridgeChannel, EventBridgeContainer, EventBridgeRecei
 export { Logger, LogLevel } from './logger';
 export { Payload } from './payload';
 export { Plan } from './plan';
+export { IngestionMetadata } from './ingestion-metadata';
 export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';

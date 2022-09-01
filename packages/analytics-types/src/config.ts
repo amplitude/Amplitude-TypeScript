@@ -4,6 +4,7 @@ import { Storage } from './storage';
 import { Event } from './event';
 import { Transport, TransportType } from './transport';
 import { Plan } from './plan';
+import { IngestionMetadata } from './ingestion-metadata';
 import { SessionManager, UserSession } from './session-manager';
 
 export enum ServerZone {
@@ -21,6 +22,7 @@ export interface Config {
   minIdLength?: number;
   optOut: boolean;
   plan?: Plan;
+  ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
   serverZone?: ServerZone;
   storageProvider?: Storage<Event[]>;

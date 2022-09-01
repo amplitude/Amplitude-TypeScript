@@ -1,4 +1,5 @@
 import { Plan } from './plan';
+import { IngestionMetadataEventProperty } from './ingestion-metadata';
 
 export interface BaseEvent extends EventOptions {
   event_type: string;
@@ -43,6 +44,7 @@ export interface EventOptions {
   session_id?: number;
   insert_id?: string;
   plan?: Plan;
+  ingestion_metadata?: IngestionMetadataEventProperty;
   partner_id?: string;
   extra?: { [key: string]: any };
 }

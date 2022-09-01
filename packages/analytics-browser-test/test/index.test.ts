@@ -63,6 +63,7 @@ describe('integration', () => {
             os_version: '537.36',
             partner_id: undefined,
             plan: undefined,
+            ingestion_metadata: undefined,
             platform: platform, // NOTE: Session ID was set using a plugin added before init
             session_id: sessionId, // NOTE: Session ID was set before init
             time: number,
@@ -174,6 +175,49 @@ describe('integration', () => {
         event_type: 'test event',
         event_id: 0,
         library: library,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      scope.done();
+    });
+
+    test('should track event with optional ingestionMetadata option', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+
+      const sourceName = 'ampli';
+      const sourceVersion = '2.0.0';
+      await amplitude.init('API_KEY', undefined, {
+        ...opts,
+        ingestionMetadata: {
+          sourceName,
+          sourceVersion,
+        },
+      }).promise;
+      const response = await amplitude.track('test event', undefined, {
+        user_id: 'sdk.dev@amplitude.com',
+        device_id: 'deviceId',
+        session_id: 1,
+      }).promise;
+      expect(response.event).toEqual({
+        user_id: 'sdk.dev@amplitude.com',
+        device_id: 'deviceId',
+        session_id: 1,
+        time: number,
+        platform: 'Web',
+        os_name: 'WebKit',
+        os_version: '537.36',
+        device_manufacturer: undefined,
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 0,
+        library: library,
+        ingestion_metadata: {
+          source_name: sourceName,
+          source_version: sourceVersion,
+        },
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
