@@ -1,5 +1,6 @@
 import {
   add,
+  AmplitudeBrowser,
   createInstance,
   flush,
   getDeviceId,
@@ -27,6 +28,7 @@ import {
 describe('index', () => {
   test('should expose apis', () => {
     expect(typeof add).toBe('function');
+    expect(typeof AmplitudeBrowser).toBe('function');
     expect(typeof createInstance).toBe('function');
     expect(typeof flush).toBe('function');
     expect(typeof groupIdentify).toBe('function');

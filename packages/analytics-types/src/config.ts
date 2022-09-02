@@ -77,15 +77,25 @@ export interface ReactNativeTrackingOptions extends TrackingOptions {
 
 export interface AdditionalBrowserOptions {
   attribution?: AttributionBrowserOptions;
+  trackPageViews?: boolean | PageTrackingBrowserOptions;
 }
 
 export interface AttributionBrowserOptions {
   disabled?: boolean;
   excludeReferrers?: string[];
   initialEmptyValue?: string;
+  resetSessionOnNewCampaign?: boolean;
+  /** @deprecated New campaigns are now always tracked by default. Setting this to true also sets resetSessionOnNewCampaign to true. */
   trackNewCampaigns?: boolean;
+  /** @deprecated Use the new top level trackPageViews configuration instead. */
   trackPageViews?: boolean;
 }
+
+export interface PageTrackingBrowserOptions {
+  filter?: PageTrackingFilter;
+}
+
+export type PageTrackingFilter = 'onAttribution' | (() => boolean) | undefined;
 
 export type BrowserOptions = Omit<
   Partial<
@@ -98,9 +108,12 @@ export type BrowserOptions = Omit<
 
 export interface AdditionalReactNativeOptions {
   attribution?: AttributionReactNativeOptions;
+  trackPageViews?: boolean | PageTrackingReactNativeOptions;
 }
 
 export type AttributionReactNativeOptions = AttributionBrowserOptions;
+
+export type PageTrackingReactNativeOptions = PageTrackingBrowserOptions;
 
 export type ReactNativeOptions = Omit<
   Partial<
