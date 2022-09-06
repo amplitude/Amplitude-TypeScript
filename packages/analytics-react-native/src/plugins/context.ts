@@ -96,10 +96,8 @@ export class Context implements BeforePlugin {
       plan: this.config.plan,
       ...(this.config.ingestionMetadata && {
         ingestion_metadata: {
-          ...(this.config.ingestionMetadata.sourceName && { source_name: this.config.ingestionMetadata.sourceName }),
-          ...(this.config.ingestionMetadata.sourceVersion && {
-            source_version: this.config.ingestionMetadata.sourceVersion,
-          }),
+          source_name: this.config.ingestionMetadata.sourceName,
+          source_version: this.config.ingestionMetadata.sourceVersion,
         },
       }),
       ...context,
