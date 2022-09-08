@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import client from './browser-client';
-export { AmplitudeBrowser, createInstance } from './browser-client';
+export { IAmplitudeBrowser, createInstance } from './browser-client';
 export const {
   add,
   flush,

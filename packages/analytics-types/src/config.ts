@@ -30,6 +30,7 @@ export interface Config {
 
 export interface BrowserConfig extends Config {
   appVersion?: string;
+  attribution?: AttributionBrowserOptions;
   deviceId?: string;
   cookieExpiration: number;
   cookieSameSite: string;
@@ -77,7 +78,6 @@ export interface ReactNativeTrackingOptions extends TrackingOptions {
 
 export interface AdditionalBrowserOptions {
   attribution?: AttributionBrowserOptions;
-  trackPageViews?: boolean | PageTrackingBrowserOptions;
 }
 
 export interface AttributionBrowserOptions {
@@ -91,12 +91,6 @@ export interface AttributionBrowserOptions {
   trackPageViews?: boolean;
 }
 
-export interface PageTrackingBrowserOptions {
-  filter?: PageTrackingFilter;
-}
-
-export type PageTrackingFilter = 'onAttribution' | (() => boolean) | undefined;
-
 export type BrowserOptions = Omit<
   Partial<
     BrowserConfig & {
@@ -108,12 +102,9 @@ export type BrowserOptions = Omit<
 
 export interface AdditionalReactNativeOptions {
   attribution?: AttributionReactNativeOptions;
-  trackPageViews?: boolean | PageTrackingReactNativeOptions;
 }
 
 export type AttributionReactNativeOptions = AttributionBrowserOptions;
-
-export type PageTrackingReactNativeOptions = PageTrackingBrowserOptions;
 
 export type ReactNativeOptions = Omit<
   Partial<

@@ -33,14 +33,7 @@ export interface CampaignTrackerOptions extends AttributionBrowserOptions {
 }
 
 export interface CampaignTracker extends CampaignTrackerOptions {
-  isNewCampaign(currentCampaign: Campaign, previousCampaign: Campaign): boolean;
-  saveCampaignToStorage(campaign: Campaign): Promise<void>;
-  getCampaignFromStorage(): Promise<Campaign>;
-  createCampaignEvent(campaign: Campaign): BaseEvent;
   send(force: boolean): Promise<void>;
-  onPageChange?: (
-    callback: (state: { isNewCampaign: boolean; currentCampaign: Campaign }) => Promise<unknown>,
-  ) => Promise<void>;
 }
 
 export type CampaignTrackFunction = (event: BaseEvent) => Promise<unknown>;

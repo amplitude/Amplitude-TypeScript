@@ -1,4 +1,5 @@
 import {
+  AttributionBrowserOptions,
   Event,
   BrowserOptions,
   BrowserConfig as IBrowserConfig,
@@ -49,6 +50,7 @@ export const getDefaultConfig = () => {
 
 export class BrowserConfig extends Config implements IBrowserConfig {
   appVersion?: string;
+  attribution?: AttributionBrowserOptions;
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
@@ -76,6 +78,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
 
     this.appVersion = options?.appVersion;
+    this.attribution = options?.attribution;
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;

@@ -1,7 +1,6 @@
 import { AmplitudeCore, Destination, Identify, Revenue, UUID, returnWrapper } from '@amplitude/analytics-core';
 import { CampaignTracker, getAnalyticsConnector, IdentityEventSender } from '@amplitude/analytics-client-common';
 import {
-  AdditionalBrowserOptions,
   AttributionBrowserOptions,
   BrowserClient,
   BrowserConfig,
@@ -18,8 +17,10 @@ import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 
+export type IAmplitudeBrowser = AmplitudeBrowser;
+
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
-  async init(apiKey: string, userId?: string, options?: BrowserOptions & AdditionalBrowserOptions) {
+  async init(apiKey: string, userId?: string, options?: BrowserOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
@@ -80,7 +81,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     }
 
     // Step 6: Track attributions
-    await this.runAttributionStrategy(options?.attribution, isNewSession);
+    await this.runAttributionStrategy(browserOptions.attribution, isNewSession);
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, isNewSession = false) {
