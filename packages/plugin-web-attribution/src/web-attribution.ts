@@ -8,7 +8,7 @@ import {
   PluginType,
   Storage,
 } from '@amplitude/analytics-types';
-import { AdvancedCampaignTracker } from './advanced-campaign-tracker';
+import { PluginCampaignTracker } from './plugin-campaign-tracker';
 import { AttributionPluginOptions } from './typings/web-attribution';
 
 export class WebAttributionPlugin implements BeforePlugin {
@@ -36,12 +36,8 @@ export class WebAttributionPlugin implements BeforePlugin {
     // Share cookie storage with user session storage
     const storage = config.cookieStorage as unknown as Storage<Campaign>;
 
-    const campaignTracker = new AdvancedCampaignTracker(config.apiKey, {
+    const campaignTracker = new PluginCampaignTracker(config.apiKey, storage, {
       ...attributionConfig,
-      trackPageViews: false,
-      track: /* istanbul ignore next */ () => Promise.resolve(),
-      onNewCampaign: /* istanbul ignore next */ () => () => undefined,
-      storage,
     });
 
     // Web Attribution tracking

@@ -1,6 +1,6 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { WebAttributionPlugin } from '../src/web-attribution';
-import { AdvancedCampaignTracker } from '../src/advanced-campaign-tracker';
+import { PluginCampaignTracker } from '../src/plugin-campaign-tracker';
 
 describe('WebAttributionPlugin', () => {
   const API_KEY = 'API_KEY';
@@ -20,7 +20,7 @@ describe('WebAttributionPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: true,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -76,7 +76,7 @@ describe('WebAttributionPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: true,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -136,7 +136,7 @@ describe('WebAttributionPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: true,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -198,7 +198,7 @@ describe('WebAttributionPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: false,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -216,7 +216,7 @@ describe('WebAttributionPlugin', () => {
     test('should return same event', async () => {
       const instance = createInstance();
 
-      jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+      jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
         isNewCampaign: true,
         currentCampaign: { utm_source: 'amp-test' },
       });

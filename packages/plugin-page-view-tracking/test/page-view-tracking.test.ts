@@ -1,6 +1,6 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { PageViewTrackingPlugin } from '../src/page-view-tracking';
-import { AdvancedCampaignTracker } from '../src/advanced-campaign-tracker';
+import { PluginCampaignTracker } from '../src/plugin-campaign-tracker';
 
 describe('PageViewTrackingPlugin', () => {
   beforeAll(() => {
@@ -44,7 +44,7 @@ describe('PageViewTrackingPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: true,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -84,7 +84,7 @@ describe('PageViewTrackingPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: true,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -121,7 +121,7 @@ describe('PageViewTrackingPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: false,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -161,7 +161,7 @@ describe('PageViewTrackingPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: false,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -197,7 +197,7 @@ describe('PageViewTrackingPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: true,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -231,7 +231,7 @@ describe('PageViewTrackingPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: false,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -263,7 +263,7 @@ describe('PageViewTrackingPlugin', () => {
           }),
         });
 
-        jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
           isNewCampaign: true,
           currentCampaign: { utm_source: 'amp-test' },
         });
@@ -289,7 +289,7 @@ describe('PageViewTrackingPlugin', () => {
     test('should return same event', async () => {
       const instance = createInstance();
 
-      jest.spyOn(AdvancedCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
+      jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
         isNewCampaign: true,
         currentCampaign: { utm_source: 'amp-test' },
       });
