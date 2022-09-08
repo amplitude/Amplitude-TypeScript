@@ -1,8 +1,11 @@
 import { Campaign, CampaignTrackerOptions } from '@amplitude/analytics-types';
 import { CampaignTracker } from '@amplitude/analytics-client-common';
+import { BASE_CAMPAIGN } from './constant';
 
 export class AdvancedCampaignTracker extends CampaignTracker {
-  private _currentCampaign!: Campaign;
+  private _currentCampaign: Campaign = {
+    ...BASE_CAMPAIGN,
+  };
   private _isNewCampaign = true;
   ready: Promise<unknown>;
 
