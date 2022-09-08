@@ -3,8 +3,6 @@ import { CampaignTracker } from '@amplitude/analytics-client-common';
 import { BASE_CAMPAIGN } from './constant';
 
 export class AdvancedCampaignTracker extends CampaignTracker {
-  resetSessionOnNewCampaign: boolean;
-
   private _currentCampaign: Campaign = {
     ...BASE_CAMPAIGN,
   };
@@ -14,7 +12,6 @@ export class AdvancedCampaignTracker extends CampaignTracker {
   constructor(apiKey: string, options: CampaignTrackerOptions) {
     super(apiKey, options);
 
-    this.resetSessionOnNewCampaign = options.resetSessionOnNewCampaign ?? Boolean(options.trackNewCampaigns);
     this.ready = new Promise((resolve) => resolve(this.refreshCampaignState()));
   }
 
