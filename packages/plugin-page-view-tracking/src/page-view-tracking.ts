@@ -21,7 +21,7 @@ export class PageViewTrackingPlugin implements BeforePlugin {
     private readonly options: PageTrackingBrowserOptions = {},
   ) {}
 
-  async setup(config: BrowserConfig): Promise<undefined> {
+  async setup(config: BrowserConfig): Promise<void> {
     const attributionConfig = config.attribution;
     const pageTrackingConfig = {
       filter: attributionConfig?.trackPageViews ? 'onAttribution' : undefined,
