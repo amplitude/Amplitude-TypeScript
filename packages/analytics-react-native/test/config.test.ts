@@ -42,6 +42,7 @@ describe('config', () => {
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
+        ingestionMetadata: undefined,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
@@ -100,6 +101,7 @@ describe('config', () => {
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
+        ingestionMetadata: undefined,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
@@ -142,6 +144,10 @@ describe('config', () => {
         plan: {
           version: '0',
         },
+        ingestionMetadata: {
+          sourceName: 'ampli',
+          sourceVersion: '2.0.0',
+        },
         sessionTimeout: 1,
       });
       expect(config).toEqual({
@@ -163,6 +169,10 @@ describe('config', () => {
         partnerId: 'partnerId',
         plan: {
           version: '0',
+        },
+        ingestionMetadata: {
+          sourceName: 'ampli',
+          sourceVersion: '2.0.0',
         },
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',

@@ -28,6 +28,7 @@ describe('config', () => {
       _optOut: false, // private for `optOut` getter/setter
       partnerId: undefined,
       plan: undefined,
+      ingestionMetadata: undefined,
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
@@ -44,6 +45,10 @@ describe('config', () => {
       logLevel: LogLevel.Verbose,
       optOut: true,
       plan: { version: '0' },
+      ingestionMetadata: {
+        sourceName: 'ampli',
+        sourceVersion: '2.0.0',
+      },
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
@@ -59,6 +64,10 @@ describe('config', () => {
       _optOut: true,
       plan: {
         version: '0',
+      },
+      ingestionMetadata: {
+        sourceName: 'ampli',
+        sourceVersion: '2.0.0',
       },
       serverUrl: 'https://api2.amplitude.com/batch',
       serverZone: 'US',
