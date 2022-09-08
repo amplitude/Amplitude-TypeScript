@@ -1,6 +1,5 @@
 import { IAmplitudeBrowser } from '@amplitude/analytics-browser';
 import {
-  AttributionBrowserOptions,
   BeforePlugin,
   BrowserClient,
   BrowserConfig,
@@ -10,6 +9,7 @@ import {
   Storage,
 } from '@amplitude/analytics-types';
 import { AdvancedCampaignTracker } from './advanced-campaign-tracker';
+import { AttributionPluginOptions } from './typings/web-attribution';
 
 export class WebAttributionPlugin implements BeforePlugin {
   name = 'web-attribution';
@@ -17,7 +17,7 @@ export class WebAttributionPlugin implements BeforePlugin {
 
   constructor(
     private readonly instance: BrowserClient | IAmplitudeBrowser,
-    private readonly options: AttributionBrowserOptions = {},
+    private readonly options: AttributionPluginOptions = {},
   ) {}
 
   async setup(config: BrowserConfig): Promise<undefined> {
