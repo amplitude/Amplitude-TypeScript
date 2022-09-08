@@ -2,4 +2,4 @@ export interface PageTrackingBrowserOptions {
   filter?: PageTrackingFilter;
 }
 
-export type PageTrackingFilter = 'onAttribution' | (() => boolean) | undefined;
+export type PageTrackingFilter = 'onAttribution' | (() => boolean);
