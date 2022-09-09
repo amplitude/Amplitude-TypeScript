@@ -17,8 +17,6 @@ import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 
-export type IAmplitudeBrowser = AmplitudeBrowser;
-
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   async init(apiKey: string, userId?: string, options?: BrowserOptions) {
     // Step 0: Block concurrent initialization

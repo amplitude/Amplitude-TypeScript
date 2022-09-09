@@ -1,5 +1,5 @@
 {
-  "name": "@amplitude/plugin-page-view-tracking",
+  "name": "@amplitude/plugin-web-attribution-browser",
   "version": "0.0.0",
   "description": "",
   "author": "Amplitude Inc",

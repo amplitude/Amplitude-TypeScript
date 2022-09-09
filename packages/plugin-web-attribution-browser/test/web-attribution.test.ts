@@ -1,5 +1,5 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { WebAttributionPlugin } from '../src/web-attribution';
+import { webAttributionPlugin } from '../src/web-attribution';
 import { PluginCampaignTracker } from '../src/plugin-campaign-tracker';
 
 describe('WebAttributionPlugin', () => {
@@ -25,7 +25,7 @@ describe('WebAttributionPlugin', () => {
           currentCampaign: { utm_source: 'amp-test' },
         });
 
-        await instance.add(new WebAttributionPlugin(instance)).promise;
+        await instance.add(webAttributionPlugin(instance)).promise;
 
         await instance.init(API_KEY, USER_ID).promise;
 
@@ -82,7 +82,7 @@ describe('WebAttributionPlugin', () => {
         });
 
         await instance.add(
-          new WebAttributionPlugin(instance, {
+          webAttributionPlugin(instance, {
             trackNewCampaigns: true,
           }),
         ).promise;
@@ -144,7 +144,7 @@ describe('WebAttributionPlugin', () => {
         const sessionId = instance.getSessionId();
 
         await instance.add(
-          new WebAttributionPlugin(instance, {
+          webAttributionPlugin(instance, {
             resetSessionOnNewCampaign: true,
           }),
         ).promise;
@@ -203,7 +203,7 @@ describe('WebAttributionPlugin', () => {
           currentCampaign: { utm_source: 'amp-test' },
         });
 
-        await instance.add(new WebAttributionPlugin(instance)).promise;
+        await instance.add(webAttributionPlugin(instance)).promise;
 
         await instance.init(API_KEY, USER_ID).promise;
 
@@ -221,7 +221,7 @@ describe('WebAttributionPlugin', () => {
         currentCampaign: { utm_source: 'amp-test' },
       });
 
-      const plugin = new WebAttributionPlugin(instance, {});
+      const plugin = webAttributionPlugin(instance, {});
       const event = {
         event_properties: {
           page_location: '',

@@ -1,14 +1,8 @@
 import { AttributionBrowserOptions, Campaign } from '@amplitude/analytics-types';
 import { CampaignTracker } from '@amplitude/analytics-client-common';
-import { BASE_CAMPAIGN } from './constant';
 import { Storage } from '@amplitude/analytics-types';
 
 export class PluginCampaignTracker {
-  private _currentCampaign: Campaign = {
-    ...BASE_CAMPAIGN,
-  };
-  private _isNewCampaign = true;
-  ready: Promise<unknown>;
   campaignTracker: CampaignTracker;
 
   constructor(apiKey: string, storage: Storage<Campaign>, options: AttributionBrowserOptions) {
@@ -19,35 +13,30 @@ export class PluginCampaignTracker {
       onNewCampaign: /* istanbul ignore next */ () => () => undefined,
       storage,
     });
-    this.ready = new Promise((resolve) => resolve(this.refreshCampaignState()));
+  }
+
+  createCampaignEvent(currentCampaign: Campaign) {
+    return this.campaignTracker.createCampaignEvent(currentCampaign);
   }
 
   async onPageChange(callback: (state: { isNewCampaign: boolean; currentCampaign: Campaign }) => Promise<unknown>) {
-    const currentState = await this.getCurrentState();
-    await callback(currentState);
+    await callback(await this.getCurrentState());
 
+    const currentState = await this.getCurrentState();
     if (currentState.isNewCampaign) {
       await this.campaignTracker.saveCampaignToStorage(currentState.currentCampaign);
     }
   }
 
   private async getCurrentState() {
-    await this.ready;
+    const currentCampaign = await this.campaignTracker.parser.parse();
+    const isNewCampaign = this.campaignTracker.isNewCampaign(
+      currentCampaign,
+      await this.campaignTracker.getCampaignFromStorage(),
+    );
     return {
-      isNewCampaign: this._isNewCampaign,
-      currentCampaign: this._currentCampaign,
+      isNewCampaign,
+      currentCampaign,
     };
-  }
-
-  private async refreshCampaignState() {
-    try {
-      this._currentCampaign = await this.campaignTracker.parser.parse();
-      this._isNewCampaign = this.campaignTracker.isNewCampaign(
-        this._currentCampaign,
-        await this.campaignTracker.getCampaignFromStorage(),
-      );
-    } catch {
-      // nothing to do here
-    }
   }
 }

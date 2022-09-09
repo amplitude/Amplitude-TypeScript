@@ -84,7 +84,9 @@ export interface AdditionalBrowserOptions {
 
 export interface AttributionBrowserOptions {
   disabled?: boolean;
+  /** @deprecated Use the web attribution plugin configuration instead. */
   excludeReferrers?: string[];
+  /** @deprecated Use the web attribution plugin configuration instead. */
   initialEmptyValue?: string;
   /** @deprecated New campaigns are now always tracked by default. Setting this to true also sets resetSessionOnNewCampaign to true. */
   trackNewCampaigns?: boolean;
