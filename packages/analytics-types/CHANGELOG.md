@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.8.1...@amplitude/analytics-types@0.9.0) (2022-09-08)
+
+
+### Bug Fixes
+
+* allow implicit undefined return for Plugin.setup interface ([#211](https://github.com/amplitude/Amplitude-TypeScript/issues/211)) ([e88642e](https://github.com/amplitude/Amplitude-TypeScript/commit/e88642e15adf400387dd8383f1f9751d76d33575))
+
+
+### Features
+
+* add ingestion_metadata field ([#212](https://github.com/amplitude/Amplitude-TypeScript/issues/212)) ([ebe8448](https://github.com/amplitude/Amplitude-TypeScript/commit/ebe8448b23609134f846e18da2e769158ca30bf1))
+
+
+
+
+
 ## [0.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.8.0...@amplitude/analytics-types@0.8.1) (2022-08-31)
 
 

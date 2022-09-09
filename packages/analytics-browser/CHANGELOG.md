@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.2.3...@amplitude/analytics-browser@1.3.0) (2022-09-08)
+
+
+### Features
+
+* add ingestion_metadata field ([#212](https://github.com/amplitude/Amplitude-TypeScript/issues/212)) ([ebe8448](https://github.com/amplitude/Amplitude-TypeScript/commit/ebe8448b23609134f846e18da2e769158ca30bf1))
+
+
+
+
+
 ## [1.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.2.2...@amplitude/analytics-browser@1.2.3) (2022-08-31)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

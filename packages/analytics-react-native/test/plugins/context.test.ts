@@ -141,5 +141,67 @@ describe('context', () => {
       const event = await plugin.execute(context);
       expect(event.session_id).not.toBe(1);
     });
+
+    describe('ingestionMetadata config', () => {
+      test('should include ingestion metadata', async () => {
+        const sourceName = 'ampli';
+        const sourceVersion = '2.0.0';
+        const context = new Context();
+        const config = useDefaultConfig('user@amplitude.com', {
+          ingestionMetadata: {
+            sourceName,
+            sourceVersion,
+          },
+        });
+        await context.setup(config);
+
+        const event = {
+          event_type: 'event_type',
+        };
+        const firstContextEvent = await context.execute(event);
+        expect(firstContextEvent.event_id).toEqual(0);
+        expect(firstContextEvent.event_type).toEqual('event_type');
+        expect(firstContextEvent.ingestion_metadata?.source_name).toEqual(sourceName);
+        expect(firstContextEvent.ingestion_metadata?.source_version).toEqual(sourceVersion);
+      });
+
+      test('sourceName should be optional', async () => {
+        const sourceVersion = '2.0.0';
+        const context = new Context();
+        const config = useDefaultConfig('user@amplitude.com', {
+          ingestionMetadata: {
+            sourceVersion,
+          },
+        });
+        await context.setup(config);
+
+        const event = {
+          event_type: 'event_type',
+        };
+        const firstContextEvent = await context.execute(event);
+        expect(firstContextEvent.event_id).toEqual(0);
+        expect(firstContextEvent.ingestion_metadata?.source_name).toBeUndefined();
+        expect(firstContextEvent.ingestion_metadata?.source_version).toEqual(sourceVersion);
+      });
+
+      test('sourceVersion should be optional', async () => {
+        const sourceName = 'ampli';
+        const context = new Context();
+        const config = useDefaultConfig('user@amplitude.com', {
+          ingestionMetadata: {
+            sourceName,
+          },
+        });
+        await context.setup(config);
+
+        const event = {
+          event_type: 'event_type',
+        };
+        const firstContextEvent = await context.execute(event);
+        expect(firstContextEvent.event_id).toEqual(0);
+        expect(firstContextEvent.ingestion_metadata?.source_name).toEqual(sourceName);
+        expect(firstContextEvent.ingestion_metadata?.source_version).toBeUndefined();
+      });
+    });
   });
 });

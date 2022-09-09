@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.8.1...@amplitude/analytics-core@0.9.0) (2022-09-08)
+
+
+### Features
+
+* add ingestion_metadata field ([#212](https://github.com/amplitude/Amplitude-TypeScript/issues/212)) ([ebe8448](https://github.com/amplitude/Amplitude-TypeScript/commit/ebe8448b23609134f846e18da2e769158ca30bf1))
+
+
+
+
+
 ## [0.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.8.0...@amplitude/analytics-core@0.8.1) (2022-08-31)
 
 **Note:** Version bump only for package @amplitude/analytics-core
