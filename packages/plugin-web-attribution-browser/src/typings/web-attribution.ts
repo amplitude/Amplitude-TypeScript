@@ -1,6 +1,4 @@
-import { AttributionBrowserOptions } from '@amplitude/analytics-types';
-
-export interface AttributionPluginOptions extends AttributionBrowserOptions {
+export interface AttributionPluginOptions {
   disabled?: boolean;
   excludeReferrers?: string[];
   initialEmptyValue?: string;

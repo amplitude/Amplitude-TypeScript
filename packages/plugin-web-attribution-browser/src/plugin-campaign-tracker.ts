@@ -24,7 +24,7 @@ export class PluginCampaignTracker {
 
     const currentState = await this.getCurrentState();
     if (currentState.isNewCampaign) {
-      await this.campaignTracker.saveCampaignToStorage(currentState.currentCampaign);
+      void this.campaignTracker.saveCampaignToStorage(currentState.currentCampaign);
     }
   }
 

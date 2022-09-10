@@ -64,66 +64,6 @@ describe('WebAttributionPlugin', () => {
         expect(sessionId).toBe(sessionId);
       });
 
-      test('when a campaign changes and attribution.trackNewCampaigns is true', async () => {
-        const instance = createInstance();
-        const track = jest.spyOn(instance, 'track').mockReturnValueOnce({
-          promise: Promise.resolve({
-            code: 200,
-            message: '',
-            event: {
-              event_type: 'event_type',
-            },
-          }),
-        });
-
-        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
-          isNewCampaign: true,
-          currentCampaign: { utm_source: 'amp-test' },
-        });
-
-        await instance.add(
-          webAttributionPlugin(instance, {
-            trackNewCampaigns: true,
-          }),
-        ).promise;
-
-        await instance.init(API_KEY, USER_ID).promise;
-
-        const sessionId = instance.getSessionId();
-
-        expect(track).toHaveBeenCalledWith({
-          event_type: '$identify',
-          user_properties: {
-            $set: {
-              utm_source: 'amp-test',
-            },
-            $setOnce: {
-              initial_fbclid: 'EMPTY',
-              initial_gclid: 'EMPTY',
-              initial_referrer: 'EMPTY',
-              initial_referring_domain: 'EMPTY',
-              initial_utm_campaign: 'EMPTY',
-              initial_utm_content: 'EMPTY',
-              initial_utm_medium: 'EMPTY',
-              initial_utm_source: 'amp-test',
-              initial_utm_term: 'EMPTY',
-            },
-            $unset: {
-              fbclid: '-',
-              gclid: '-',
-              referrer: '-',
-              referring_domain: '-',
-              utm_campaign: '-',
-              utm_content: '-',
-              utm_medium: '-',
-              utm_term: '-',
-            },
-          },
-        });
-        expect(track).toHaveBeenCalledTimes(1);
-        expect(instance.getSessionId()).toBe(sessionId);
-      });
-
       test('when a campaign changes and reset session id', async () => {
         const instance = createInstance();
         const track = jest.spyOn(instance, 'track').mockReturnValueOnce({

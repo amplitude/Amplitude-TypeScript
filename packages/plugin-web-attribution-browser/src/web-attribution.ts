@@ -16,16 +16,12 @@ export const webAttributionPlugin = (instance: BrowserClient, options: Attributi
     type: PluginType.BEFORE,
 
     setup: async (config: BrowserConfig) => {
-      // Merge plugin options and attribution config from BrowserConfig
-      const attributionConfig = (config.attribution = Object.assign({}, config.attribution, options));
+      const attributionConfig = options;
 
       // Disable "runAttributionStrategy" function
-      attributionConfig.disabled = true;
-
-      // New campaigns are now always tracked by default. Setting trackNewCampaigns to true also sets resetSessionOnNewCampaign to true.
-      if (attributionConfig.trackNewCampaigns && typeof attributionConfig.resetSessionOnNewCampaign === 'undefined') {
-        attributionConfig.resetSessionOnNewCampaign = true;
-      }
+      config.attribution = {
+        disabled: true,
+      };
 
       // Share cookie storage with user session storage
       const storage = config.cookieStorage as unknown as Storage<Campaign>;

@@ -72,7 +72,7 @@ const isCampaignEvent = (event: Event) => {
     const $set = properties[IdentifyOperation.SET] || {};
     const $unset = properties[IdentifyOperation.UNSET] || {};
     const userProperties = [...Object.keys($set), ...Object.keys($unset)];
-    return Object.keys(BASE_CAMPAIGN).some((r) => userProperties.includes(r));
+    return Object.keys(BASE_CAMPAIGN).every((value) => userProperties.includes(value));
   }
   return false;
 };

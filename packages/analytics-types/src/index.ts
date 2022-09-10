@@ -12,7 +12,6 @@ export {
 } from './campaign';
 export { BrowserClient, ReactNativeClient, NodeClient } from './client';
 export {
-  AdditionalBrowserOptions,
   AdditionalReactNativeOptions,
   AttributionBrowserOptions,
   AttributionReactNativeOptions,

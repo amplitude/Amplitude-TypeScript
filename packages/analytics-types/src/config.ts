@@ -32,6 +32,7 @@ export interface Config {
 
 export interface BrowserConfig extends Config {
   appVersion?: string;
+  /** @deprecated Use the web attribution plugin configuration instead. */
   attribution?: AttributionBrowserOptions;
   deviceId?: string;
   cookieExpiration: number;
@@ -78,19 +79,11 @@ export interface ReactNativeTrackingOptions extends TrackingOptions {
   carrier?: boolean;
 }
 
-export interface AdditionalBrowserOptions {
-  attribution?: AttributionBrowserOptions;
-}
-
 export interface AttributionBrowserOptions {
   disabled?: boolean;
-  /** @deprecated Use the web attribution plugin configuration instead. */
   excludeReferrers?: string[];
-  /** @deprecated Use the web attribution plugin configuration instead. */
   initialEmptyValue?: string;
-  /** @deprecated New campaigns are now always tracked by default. Setting this to true also sets resetSessionOnNewCampaign to true. */
   trackNewCampaigns?: boolean;
-  /** @deprecated Use the new top level trackPageViews configuration instead. */
   trackPageViews?: boolean;
 }
 
