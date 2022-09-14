@@ -26,6 +26,8 @@ import {
 export class CampaignParser implements ICampaignParser {
   utmCookieStorage = new UTMCookie();
 
+  constructor(protected queryStringParsingOnly: boolean = false) {}
+
   async parse(): Promise<Campaign> {
     return {
       ...BASE_CAMPAIGN,
@@ -37,7 +39,11 @@ export class CampaignParser implements ICampaignParser {
 
   async getUtmParam(): Promise<UTMParameters> {
     const params = getQueryParams();
-    const cookies = ((await this.utmCookieStorage.isEnabled()) && (await this.utmCookieStorage.get('__utmz'))) || {};
+    const cookies =
+      (!this.queryStringParsingOnly &&
+        (await this.utmCookieStorage.isEnabled()) &&
+        (await this.utmCookieStorage.get('__utmz'))) ||
+      {};
 
     const utmSource = params[UTM_SOURCE] || cookies[UTMZ_SOURCE];
     const utmMedium = params[UTM_MEDIUM] || cookies[UTMZ_MEDIUM];
