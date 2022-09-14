@@ -49,7 +49,7 @@ Initialization is necessary before any instrumentation is done. The API key for 
 amplitude.init(API_KEY);
 
 // Config web attribution and auto page view tracking
-amplitude.init(API_KEY, DEVICE_ID, {
+amplitude.init(API_KEY, USER_ID, {
   // Config web attribution
   attribution: {
     resetSessionOnNewCampaign: true;
