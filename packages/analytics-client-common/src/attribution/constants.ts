@@ -12,8 +12,13 @@ export const UTMZ_CAMPAIGN = 'utmccn';
 export const UTMZ_TERM = 'utmctr';
 export const UTMZ_CONTENT = 'utmcct';
 
-export const GCLID = 'gclid';
+export const DCLID = 'dclid';
 export const FBCLID = 'fbclid';
+export const GCLID = 'gclid';
+export const KO_CLICK_ID = 'ko_click_id';
+export const MSCLKID = 'msclkid';
+export const TTCLID = 'ttclid';
+export const TWCLID = 'twclid';
 
 export const EMPTY_VALUE = 'EMPTY';
 

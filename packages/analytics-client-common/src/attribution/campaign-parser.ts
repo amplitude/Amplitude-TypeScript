@@ -14,6 +14,11 @@ import {
   GCLID,
   FBCLID,
   BASE_CAMPAIGN,
+  DCLID,
+  MSCLKID,
+  TWCLID,
+  TTCLID,
+  KO_CLICK_ID,
 } from './constants';
 import {
   Campaign,
@@ -71,8 +76,13 @@ export class CampaignParser implements ICampaignParser {
   getClickIds(): ClickIdParameters {
     const params = getQueryParams();
     return {
-      [GCLID]: params[GCLID],
+      [DCLID]: params[DCLID],
       [FBCLID]: params[FBCLID],
+      [GCLID]: params[GCLID],
+      [KO_CLICK_ID]: params[KO_CLICK_ID],
+      [MSCLKID]: params[MSCLKID],
+      [TTCLID]: params[TTCLID],
+      [TWCLID]: params[TWCLID],
     };
   }
 }
