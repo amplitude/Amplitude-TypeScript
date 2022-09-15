@@ -20,7 +20,7 @@ interface Client extends BaseClient {
    * setUserId('userId');
    * ```
    */
-  setUserId(userId: string): void;
+  setUserId(userId: string | undefined): void;
 
   /**
    * Returns current device ID.
