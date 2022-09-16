@@ -1,5 +1,5 @@
 import { BaseEvent } from './base-event';
-import { AttributionBrowserOptions } from './config';
+import { AttributionOptions } from './config';
 import { Storage } from './storage';
 
 export interface UTMParameters extends Record<string, string | undefined> {
@@ -26,7 +26,7 @@ export interface CampaignParser {
   parse(): Promise<Campaign>;
 }
 
-export interface CampaignTrackerOptions extends AttributionBrowserOptions {
+export interface CampaignTrackerOptions extends AttributionOptions {
   storage: Storage<Campaign>;
   track: CampaignTrackFunction;
   onNewCampaign: (campaign: Campaign) => unknown;

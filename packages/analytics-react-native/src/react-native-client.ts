@@ -4,8 +4,7 @@ import {
   ReactNativeConfig,
   Campaign,
   ReactNativeOptions,
-  AdditionalReactNativeOptions,
-  AttributionReactNativeOptions,
+  AttributionOptions,
   ReactNativeClient,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
@@ -14,7 +13,7 @@ import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
-  async init(apiKey: string, userId?: string, options?: ReactNativeOptions & AdditionalReactNativeOptions) {
+  async init(apiKey: string, userId?: string, options?: ReactNativeOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
@@ -78,7 +77,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     await this.runAttributionStrategy(options?.attribution, isNewSession);
   }
 
-  async runAttributionStrategy(attributionConfig?: AttributionReactNativeOptions, isNewSession = false) {
+  async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
     if (isNative()) {
       return;
     }

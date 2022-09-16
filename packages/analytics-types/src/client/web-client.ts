@@ -1,5 +1,5 @@
 import { AmplitudeReturn } from '../amplitude-promise';
-import { AdditionalReactNativeOptions, BrowserOptions, ReactNativeOptions } from '../config';
+import { BrowserOptions, ReactNativeOptions } from '../config';
 import { TransportType } from '../transport';
 import { BaseClient } from './base-client';
 
@@ -115,9 +115,5 @@ export interface ReactNativeClient extends Client {
    * await init(API_KEY, options).promise;
    * ```
    */
-  init(
-    apiKey: string,
-    userId?: string,
-    options?: ReactNativeOptions & AdditionalReactNativeOptions,
-  ): AmplitudeReturn<void>;
+  init(apiKey: string, userId?: string, options?: ReactNativeOptions): AmplitudeReturn<void>;
 }
