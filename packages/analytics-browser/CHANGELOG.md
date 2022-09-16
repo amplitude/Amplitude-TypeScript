@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.3.0...@amplitude/analytics-browser@1.4.0) (2022-09-16)
+
+
+### Features
+
+* new marketing analytics plugin ([#213](https://github.com/amplitude/Amplitude-TypeScript/issues/213)) ([02ff174](https://github.com/amplitude/Amplitude-TypeScript/commit/02ff174e3361173dbf15ed3acf72e950810e174f))
+
+
+
+
+
 # [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.2.3...@amplitude/analytics-browser@1.3.0) (2022-09-08)
 
 
