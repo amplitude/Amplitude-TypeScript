@@ -1,11 +1,11 @@
-import { AttributionBrowserOptions, Campaign } from '@amplitude/analytics-types';
+import { AttributionOptions, Campaign } from '@amplitude/analytics-types';
 import { CampaignTracker } from '@amplitude/analytics-client-common';
 import { Storage } from '@amplitude/analytics-types';
 
 export class PluginCampaignTracker {
   campaignTracker: CampaignTracker;
 
-  constructor(apiKey: string, storage: Storage<Campaign>, options: AttributionBrowserOptions) {
+  constructor(apiKey: string, storage: Storage<Campaign>, options: AttributionOptions) {
     this.campaignTracker = new CampaignTracker(apiKey, {
       ...options,
       trackPageViews: false,

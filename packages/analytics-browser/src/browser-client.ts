@@ -1,7 +1,7 @@
 import { AmplitudeCore, Destination, Identify, Revenue, UUID, returnWrapper } from '@amplitude/analytics-core';
 import { CampaignTracker, getAnalyticsConnector, IdentityEventSender } from '@amplitude/analytics-client-common';
 import {
-  AttributionBrowserOptions,
+  AttributionOptions,
   BrowserClient,
   BrowserConfig,
   BrowserOptions,
@@ -82,7 +82,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await this.runAttributionStrategy(browserOptions.attribution, isNewSession);
   }
 
-  async runAttributionStrategy(attributionConfig?: AttributionBrowserOptions, isNewSession = false) {
+  async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
     const track = this.track.bind(this);
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
 

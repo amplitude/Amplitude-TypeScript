@@ -1,5 +1,19 @@
 import { getQueryParams } from '../query-params';
-import { UTM_CAMPAIGN, UTM_CONTENT, UTM_MEDIUM, UTM_SOURCE, UTM_TERM, GCLID, FBCLID, BASE_CAMPAIGN } from './constants';
+import {
+  UTM_CAMPAIGN,
+  UTM_CONTENT,
+  UTM_MEDIUM,
+  UTM_SOURCE,
+  UTM_TERM,
+  GCLID,
+  FBCLID,
+  BASE_CAMPAIGN,
+  DCLID,
+  MSCLKID,
+  TWCLID,
+  TTCLID,
+  KO_CLICK_ID,
+} from './constants';
 import {
   Campaign,
   CampaignParser as ICampaignParser,
@@ -53,8 +67,13 @@ export class CampaignParser implements ICampaignParser {
   getClickIds(): ClickIdParameters {
     const params = getQueryParams();
     return {
-      [GCLID]: params[GCLID],
+      [DCLID]: params[DCLID],
       [FBCLID]: params[FBCLID],
+      [GCLID]: params[GCLID],
+      [KO_CLICK_ID]: params[KO_CLICK_ID],
+      [MSCLKID]: params[MSCLKID],
+      [TTCLID]: params[TTCLID],
+      [TWCLID]: params[TWCLID],
     };
   }
 }

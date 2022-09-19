@@ -1,5 +1,5 @@
 import { AmplitudeReturn } from '../amplitude-promise';
-import { AdditionalReactNativeOptions, BrowserOptions, ReactNativeOptions } from '../config';
+import { BrowserOptions, ReactNativeOptions } from '../config';
 import { TransportType } from '../transport';
 import { BaseClient } from './base-client';
 
@@ -20,7 +20,7 @@ interface Client extends BaseClient {
    * setUserId('userId');
    * ```
    */
-  setUserId(userId: string): void;
+  setUserId(userId: string | undefined): void;
 
   /**
    * Returns current device ID.
@@ -115,9 +115,5 @@ export interface ReactNativeClient extends Client {
    * await init(API_KEY, options).promise;
    * ```
    */
-  init(
-    apiKey: string,
-    userId?: string,
-    options?: ReactNativeOptions & AdditionalReactNativeOptions,
-  ): AmplitudeReturn<void>;
+  init(apiKey: string, userId?: string, options?: ReactNativeOptions): AmplitudeReturn<void>;
 }

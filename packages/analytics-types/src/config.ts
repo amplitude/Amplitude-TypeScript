@@ -32,8 +32,7 @@ export interface Config {
 
 export interface BrowserConfig extends Config {
   appVersion?: string;
-  /** @deprecated Use the web attribution plugin configuration instead. */
-  attribution?: AttributionBrowserOptions;
+  attribution?: AttributionOptions;
   deviceId?: string;
   cookieExpiration: number;
   cookieSameSite: string;
@@ -79,7 +78,7 @@ export interface ReactNativeTrackingOptions extends TrackingOptions {
   carrier?: boolean;
 }
 
-export interface AttributionBrowserOptions {
+export interface AttributionOptions {
   disabled?: boolean;
   excludeReferrers?: string[];
   initialEmptyValue?: string;
@@ -95,12 +94,6 @@ export type BrowserOptions = Omit<
   >,
   'apiKey'
 >;
-
-export interface AdditionalReactNativeOptions {
-  attribution?: AttributionReactNativeOptions;
-}
-
-export type AttributionReactNativeOptions = AttributionBrowserOptions;
 
 export type ReactNativeOptions = Omit<
   Partial<

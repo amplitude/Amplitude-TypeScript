@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-client-common",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -33,8 +33,8 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^0.9.0",
-    "@amplitude/analytics-types": "^0.9.0",
+    "@amplitude/analytics-core": "^0.9.1",
+    "@amplitude/analytics-types": "^0.10.0",
     "tslib": "^2.3.1"
   },
   "files": [

@@ -6,8 +6,13 @@ export const UTM_CAMPAIGN = 'utm_campaign';
 export const UTM_TERM = 'utm_term';
 export const UTM_CONTENT = 'utm_content';
 
-export const GCLID = 'gclid';
+export const DCLID = 'dclid';
 export const FBCLID = 'fbclid';
+export const GCLID = 'gclid';
+export const KO_CLICK_ID = 'ko_click_id';
+export const MSCLKID = 'msclkid';
+export const TTCLID = 'ttclid';
+export const TWCLID = 'twclid';
 
 export const EMPTY_VALUE = 'EMPTY';
 
