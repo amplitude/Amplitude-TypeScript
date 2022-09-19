@@ -11,7 +11,7 @@ Official Amplitude SDK for Web and Marketing Analytics
 
 ## Installation
 
-To get started with using Amplitude Browser SDK, install the package to your project via NPM or script loader.
+To get started with using Amplitude MA Browser SDK, install the package to your project via NPM or script loader.
 
 ### Using Node package
 
@@ -67,7 +67,7 @@ amplitude.init(API_KEY, USER_ID, {
 Events represent how users interact with your application. For example, "Button Clicked" may be an action you want to note.
 
 ```typescript
-import { track } from '@amplitude/analytics-browser';
+import { track } from '@amplitude/analytics-ma-browser';
 
 // Track a basic event
 track('Button Clicked');
@@ -84,7 +84,7 @@ track('Button Clicked', eventProperties);
 User properties help you understand your users at the time they performed some action within your app such as their device details, their preferences, or language.
 
 ```typescript
-import { Identify, identify } from '@amplitude/analytics-browser';
+import { Identify, identify } from '@amplitude/analytics-ma-browser';
 
 const event = new Identify();
 
@@ -118,7 +118,7 @@ identify(event);
 ### User Groups
 
 ```typescript
-import { setGroup } from '@amplitude/analytics-browser';
+import { setGroup } from '@amplitude/analytics-ma-browser';
 
 // set group with single group name
 setGroup('orgId', '15');
@@ -134,7 +134,7 @@ This feature is only available to Growth and Enterprise customers who have purch
 Use the Group Identify API to set or update properties of particular groups. However, these updates will only affect events going forward.
 
 ```typescript
-import { Identify, groupIdentify } from '@amplitude/analytics-browser';
+import { Identify, groupIdentify } from '@amplitude/analytics-ma-browser';
 
 const groupType = 'plan';
 const groupName = 'enterprise';
@@ -149,7 +149,7 @@ groupIdentify(groupType, groupName, identify);
 Revenue instances will store each revenue transaction and allow you to define several special revenue properties (such as 'revenueType', 'productIdentifier', etc.) that are used in Amplitude's Event Segmentation and Revenue LTV charts. These Revenue instance objects are then passed into `revenue` to send as revenue events to Amplitude. This allows us to automatically display data relevant to revenue in the platform. You can use this to track both in-app and non-in-app purchases.
 
 ```typescript
-import { Revenue, revenue } from '@amplitude/analytics-browser';
+import { Revenue, revenue } from '@amplitude/analytics-ma-browser';
 
 const event = new Revenue()
   .setProductId('com.company.productId')
@@ -183,7 +183,7 @@ track('Button Clicked').promise.then((result) => {
 This updates user ID and device ID. After calling `reset()` the succeeding events now belong to a new user identity.
 
 ```typescript
-import { reset } from '@amplitude/analytics-browser';
+import { reset } from '@amplitude/analytics-ma-browser';
 
 reset();
 ```
