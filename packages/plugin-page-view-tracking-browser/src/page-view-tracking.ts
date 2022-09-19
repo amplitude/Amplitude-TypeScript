@@ -80,11 +80,11 @@ const createPageViewEvent = (): Event => {
   const pageViewEvent: BaseEvent = {
     event_type: 'Page View',
     event_properties: {
-      page_domain: location.hostname,
+      page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
       page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
       page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
       page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-      page_url: location.href.split('?')[0],
+      page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
     },
   };
   return pageViewEvent;
