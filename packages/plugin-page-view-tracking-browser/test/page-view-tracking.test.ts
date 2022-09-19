@@ -168,9 +168,11 @@ describe('pageViewTrackingPlugin', () => {
 
         expect(track).toHaveBeenCalledWith({
           event_properties: {
+            page_domain: '',
             page_location: '',
             page_path: '',
             page_title: '',
+            page_url: '',
           },
           event_type: 'Page View',
         });
@@ -199,9 +201,11 @@ describe('pageViewTrackingPlugin', () => {
 
         expect(track).toHaveBeenCalledWith({
           event_properties: {
+            page_domain: '',
             page_location: '',
             page_path: '',
             page_title: '',
+            page_url: '',
           },
           event_type: 'Page View',
         });
@@ -301,6 +305,52 @@ describe('pageViewTrackingPlugin', () => {
       };
       const event = await plugin.execute(sentEvent);
       expect(event).toBe(sentEvent);
+    });
+
+    test('should send utm parameters from URL in page view event', async () => {
+      const instance = createInstance();
+      const search = 'utm_source=google&utm_medium=cpc&utm_campaign=brand&utm_term=keyword&utm_content=adcopy';
+      const hostname = 'www.example.com';
+      const pathname = '/path/to/page';
+      const url = new URL(`https://${hostname}${pathname}?${search}`);
+      window.location.href = url.toString();
+      window.location.search = url.search;
+      window.location.hostname = url.hostname;
+      window.location.pathname = url.pathname;
+      const track = jest.spyOn(instance, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      });
+
+      await instance.add(pageViewTrackingPlugin(instance)).promise;
+
+      await instance.init(API_KEY, USER_ID, {
+        attribution: {
+          disabled: true,
+        },
+      }).promise;
+
+      expect(track).toHaveBeenCalledWith({
+        event_properties: {
+          page_domain: hostname,
+          page_location: url.toString(),
+          page_path: pathname,
+          page_title: '',
+          page_url: `https://${hostname}${pathname}`,
+          utm_source: 'google',
+          utm_medium: 'cpc',
+          utm_campaign: 'brand',
+          utm_term: 'keyword',
+          utm_content: 'adcopy',
+        },
+        event_type: 'Page View',
+      });
+      expect(track).toHaveBeenCalledTimes(1);
     });
   });
 });

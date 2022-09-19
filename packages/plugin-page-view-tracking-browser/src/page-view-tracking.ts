@@ -1,3 +1,4 @@
+import { CampaignParser } from '@amplitude/analytics-client-common';
 import {
   BaseEvent,
   BrowserClient,
@@ -16,6 +17,21 @@ export const pageViewTrackingPlugin = (
   options: PageTrackingBrowserOptions = {},
 ): EnrichmentPlugin => {
   let pageTrackingConfig = options;
+
+  const campaignParser = new CampaignParser();
+
+  const getCampaignParamsForPageViewEvent = async () => {
+    const parsed = await campaignParser.parse();
+    const campaignParams: Record<string, string> = {};
+    for (const key in parsed) {
+      const val = parsed[key];
+      if (val) {
+        campaignParams[key] = val;
+      }
+    }
+    return campaignParams;
+  };
+
   return {
     name: 'page-view-tracking',
     type: PluginType.ENRICHMENT,
@@ -36,7 +52,12 @@ export const pageViewTrackingPlugin = (
         typeof pageTrackingConfig.trackOn === 'undefined' ||
         (typeof pageTrackingConfig.trackOn === 'function' && pageTrackingConfig.trackOn())
       ) {
-        instance.track(createPageViewEvent());
+        const event = createPageViewEvent();
+        event.event_properties = {
+          ...(await getCampaignParamsForPageViewEvent()),
+          ...event.event_properties,
+        };
+        instance.track(event);
       }
     },
 
@@ -45,6 +66,7 @@ export const pageViewTrackingPlugin = (
         const pageViewEvent = createPageViewEvent();
         event.event_type = pageViewEvent.event_type;
         event.event_properties = {
+          ...(await getCampaignParamsForPageViewEvent()),
           ...event.event_properties,
           ...pageViewEvent.event_properties,
         };
@@ -58,9 +80,11 @@ const createPageViewEvent = (): Event => {
   const pageViewEvent: BaseEvent = {
     event_type: 'Page View',
     event_properties: {
-      page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+      page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
       page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
       page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
+      page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+      page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
     },
   };
   return pageViewEvent;
