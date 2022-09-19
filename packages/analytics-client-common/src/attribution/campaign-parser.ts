@@ -1,20 +1,5 @@
-import { UTMCookie } from '../storage/utm-cookie';
 import { getQueryParams } from '../query-params';
-import {
-  UTM_CAMPAIGN,
-  UTM_CONTENT,
-  UTM_MEDIUM,
-  UTM_SOURCE,
-  UTM_TERM,
-  UTMZ_SOURCE,
-  UTMZ_MEDIUM,
-  UTMZ_CAMPAIGN,
-  UTMZ_TERM,
-  UTMZ_CONTENT,
-  GCLID,
-  FBCLID,
-  BASE_CAMPAIGN,
-} from './constants';
+import { UTM_CAMPAIGN, UTM_CONTENT, UTM_MEDIUM, UTM_SOURCE, UTM_TERM, GCLID, FBCLID, BASE_CAMPAIGN } from './constants';
 import {
   Campaign,
   CampaignParser as ICampaignParser,
@@ -24,32 +9,23 @@ import {
 } from '@amplitude/analytics-types';
 
 export class CampaignParser implements ICampaignParser {
-  utmCookieStorage = new UTMCookie();
-
-  constructor(protected queryStringParsingOnly: boolean = false) {}
-
   async parse(): Promise<Campaign> {
     return {
       ...BASE_CAMPAIGN,
-      ...(await this.getUtmParam()),
+      ...this.getUtmParam(),
       ...this.getReferrer(),
       ...this.getClickIds(),
     } as Campaign;
   }
 
-  async getUtmParam(): Promise<UTMParameters> {
+  getUtmParam(): UTMParameters {
     const params = getQueryParams();
-    const cookies =
-      (!this.queryStringParsingOnly &&
-        (await this.utmCookieStorage.isEnabled()) &&
-        (await this.utmCookieStorage.get('__utmz'))) ||
-      {};
 
-    const utmSource = params[UTM_SOURCE] || cookies[UTMZ_SOURCE];
-    const utmMedium = params[UTM_MEDIUM] || cookies[UTMZ_MEDIUM];
-    const utmCampaign = params[UTM_CAMPAIGN] || cookies[UTMZ_CAMPAIGN];
-    const utmTerm = params[UTM_TERM] || cookies[UTMZ_TERM];
-    const utmContent = params[UTM_CONTENT] || cookies[UTMZ_CONTENT];
+    const utmSource = params[UTM_SOURCE];
+    const utmMedium = params[UTM_MEDIUM];
+    const utmCampaign = params[UTM_CAMPAIGN];
+    const utmTerm = params[UTM_TERM];
+    const utmContent = params[UTM_CONTENT];
 
     return {
       utm_source: utmSource,

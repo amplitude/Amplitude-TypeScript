@@ -18,7 +18,7 @@ export const pageViewTrackingPlugin = (
 ): EnrichmentPlugin => {
   let pageTrackingConfig = options;
 
-  const campaignParser = new CampaignParser(true);
+  const campaignParser = new CampaignParser();
 
   const getCampaignParamsForPageViewEvent = async () => {
     const parsed = await campaignParser.parse();

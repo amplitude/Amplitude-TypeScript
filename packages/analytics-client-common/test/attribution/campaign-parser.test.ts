@@ -2,33 +2,37 @@ import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import { CampaignParser } from '../../src/attribution/campaign-parser';
 import * as queryParams from '../../src/query-params';
 
+beforeAll(() => {
+  Object.defineProperty(window, 'location', {
+    value: {
+      hostname: '',
+      href: '',
+      pathname: '',
+      search: '',
+    },
+    writable: true,
+  });
+  Object.defineProperty(document, 'referrer', {
+    value: '',
+    writable: true,
+  });
+});
+
 describe('campaign-parser', () => {
   describe('parse', () => {
     test('should return parameters', async () => {
       const parser = new CampaignParser();
-      jest.spyOn(parser, 'getUtmParam').mockResolvedValue({
-        utm_campaign: 'utm_campaign',
-        utm_source: undefined,
-        utm_medium: undefined,
-        utm_term: undefined,
-        utm_content: undefined,
-      });
-
-      jest.spyOn(parser, 'getReferrer').mockReturnValue({
-        referrer: 'https://google.com',
-        referring_domain: undefined,
-      });
-
-      jest.spyOn(parser, 'getClickIds').mockReturnValue({
-        gclid: '123',
-        fbclid: undefined,
-      });
+      const referringDomain = 'https://google.com';
+      const search = '?utm_campaign=utm_campaign&gclid=123';
+      (document.referrer as any) = referringDomain;
+      window.location.search = search;
 
       const campaign = await parser.parse();
       expect(campaign).toEqual({
         ...BASE_CAMPAIGN,
         utm_campaign: 'utm_campaign',
         referrer: 'https://google.com',
+        referring_domain: 'google.com',
         gclid: '123',
       });
     });
@@ -37,43 +41,16 @@ describe('campaign-parser', () => {
   describe('getUtmParam', () => {
     test('should return utm param from query params', async () => {
       const parser = new CampaignParser();
-      jest.spyOn(parser.utmCookieStorage, 'isEnabled').mockReturnValueOnce(Promise.resolve(false));
-      const getQueryParams = jest.spyOn(queryParams, 'getQueryParams').mockReturnValueOnce({
-        utm_source: 'utm_source',
-        utm_medium: 'utm_medium',
-        utm_campaign: 'utm_campaign',
-        utm_term: 'utm_term',
-        utm_content: 'utm_content',
-      });
-      const utmParam = await parser.getUtmParam();
+      const getQueryParams = jest.spyOn(queryParams, 'getQueryParams');
+      window.location.search =
+        '?utm_source=utm_source&utm_medium=utm_medium&utm_campaign=utm_campaign&utm_term=utm_term&utm_content=utm_content';
+      const utmParam = parser.getUtmParam();
       expect(utmParam).toEqual({
         utm_source: 'utm_source',
         utm_medium: 'utm_medium',
         utm_campaign: 'utm_campaign',
         utm_term: 'utm_term',
         utm_content: 'utm_content',
-      });
-      expect(getQueryParams).toHaveBeenCalledTimes(1);
-    });
-
-    test('should return utm param from from cookies', async () => {
-      const parser = new CampaignParser();
-      const getQueryParams = jest.spyOn(queryParams, 'getQueryParams').mockReturnValueOnce({});
-      jest.spyOn(parser.utmCookieStorage, 'isEnabled').mockResolvedValueOnce(true);
-      jest.spyOn(parser.utmCookieStorage, 'get').mockResolvedValueOnce({
-        utmcsr: 'utmcsr',
-        utmcmd: 'utmcmd',
-        utmccn: 'utmccn',
-        utmctr: 'utmctr',
-        utmcct: 'utmcct',
-      });
-      const utmParam = await parser.getUtmParam();
-      expect(utmParam).toEqual({
-        utm_source: 'utmcsr',
-        utm_medium: 'utmcmd',
-        utm_campaign: 'utmccn',
-        utm_term: 'utmctr',
-        utm_content: 'utmcct',
       });
       expect(getQueryParams).toHaveBeenCalledTimes(1);
     });
