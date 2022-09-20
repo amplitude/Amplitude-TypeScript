@@ -27,7 +27,7 @@ describe('browser-client', () => {
 
       await client.init(API_KEY, USER_ID).promise;
 
-      expect(add).toHaveBeenCalledTimes(1);
+      expect(add).toHaveBeenCalledTimes(2);
       expect(init).toHaveBeenCalledTimes(1);
     });
 
@@ -51,7 +51,7 @@ describe('browser-client', () => {
 
       await client.init(API_KEY, USER_ID, {}).promise;
 
-      expect(add).toHaveBeenCalledTimes(1);
+      expect(add).toHaveBeenCalledTimes(2);
       expect(init).toHaveBeenCalledTimes(1);
     });
 
@@ -79,7 +79,7 @@ describe('browser-client', () => {
         },
       }).promise;
 
-      expect(add).toHaveBeenCalledTimes(0);
+      expect(add).toHaveBeenCalledTimes(1);
       expect(init).toHaveBeenCalledTimes(1);
     });
 
@@ -108,7 +108,7 @@ describe('browser-client', () => {
         trackPageViews: true,
       }).promise;
 
-      expect(add).toHaveBeenCalledTimes(1);
+      expect(add).toHaveBeenCalledTimes(2);
       expect(init).toHaveBeenCalledTimes(1);
     });
 
@@ -139,7 +139,7 @@ describe('browser-client', () => {
         },
       }).promise;
 
-      expect(add).toHaveBeenCalledTimes(1);
+      expect(add).toHaveBeenCalledTimes(2);
       expect(init).toHaveBeenCalledTimes(1);
     });
 
@@ -168,7 +168,7 @@ describe('browser-client', () => {
         trackPageViews: false,
       }).promise;
 
-      expect(add).toHaveBeenCalledTimes(0);
+      expect(add).toHaveBeenCalledTimes(1);
       expect(init).toHaveBeenCalledTimes(1);
     });
   });

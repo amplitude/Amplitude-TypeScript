@@ -2,6 +2,7 @@ import { createInstance as createBrowserInstance } from '@amplitude/analytics-br
 import { returnWrapper } from '@amplitude/analytics-core';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
+import { Context } from './plugins/context';
 import { BrowserMaClient, BrowserMaOptions } from './typings/browser-ma-client';
 
 export const createInstance = (): BrowserMaClient => {
@@ -15,6 +16,7 @@ export const createInstance = (): BrowserMaClient => {
       const pageViewTrackingPluginOptions = typeof options.trackPageViews === 'boolean' ? {} : options.trackPageViews;
       await client.add(pageViewTrackingPlugin(client, pageViewTrackingPluginOptions)).promise;
     }
+    await client.add(new Context()).promise;
     await client.init(apiKey, userId, options).promise;
   };
 
