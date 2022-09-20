@@ -32,9 +32,42 @@ export const pageViewTrackingPlugin = (
     return campaignParams;
   };
 
-  return {
+  const shouldTrackOnPageLoad = () =>
+    typeof pageTrackingConfig.trackOn === 'undefined' ||
+    (typeof pageTrackingConfig.trackOn === 'function' && pageTrackingConfig.trackOn());
+
+  const createPageViewEvent = async (): Promise<Event> => {
+    const pageViewEvent: BaseEvent = {
+      event_type: 'Page View',
+      event_properties: {
+        ...(await getCampaignParamsForPageViewEvent()),
+        page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+        page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
+        page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
+        page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+        page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
+      },
+    };
+    return pageViewEvent;
+  };
+
+  let previousURL: string | null = null;
+
+  const trackHistoryPageView = async (): Promise<void> => {
+    const newURL = location.href;
+
+    if (
+      shouldTrackHistoryPageView(pageTrackingConfig.trackHistoryChanges, newURL, previousURL || '') &&
+      shouldTrackOnPageLoad()
+    ) {
+      instance.track(await createPageViewEvent());
+    }
+    previousURL = newURL;
+  };
+
+  const plugin = {
     name: 'page-view-tracking',
-    type: PluginType.ENRICHMENT,
+    type: PluginType.ENRICHMENT as const,
 
     setup: async (config: BrowserConfig) => {
       const attributionConfig = config.attribution;
@@ -48,25 +81,35 @@ export const pageViewTrackingPlugin = (
         attributionConfig.trackPageViews = false;
       }
 
-      if (
-        typeof pageTrackingConfig.trackOn === 'undefined' ||
-        (typeof pageTrackingConfig.trackOn === 'function' && pageTrackingConfig.trackOn())
-      ) {
-        const event = createPageViewEvent();
-        event.event_properties = {
-          ...(await getCampaignParamsForPageViewEvent()),
-          ...event.event_properties,
-        };
-        instance.track(event);
+      if (shouldTrackOnPageLoad()) {
+        instance.track(await createPageViewEvent());
+      }
+
+      /* istanbul ignore next */
+      if (pageTrackingConfig.trackHistoryChanges) {
+        window.addEventListener('popstate', () => {
+          void trackHistoryPageView();
+        });
+
+        // There is no global browser listener for changes to history, so we have
+        // to modify pushState directly.
+        // https://stackoverflow.com/a/64927639
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        window.history.pushState = new Proxy(window.history.pushState, {
+          apply: (target, thisArg, [state, unused, url]) => {
+            void trackHistoryPageView();
+
+            return target.apply(thisArg, [state, unused, url]);
+          },
+        });
       }
     },
 
     execute: async (event: Event) => {
       if (pageTrackingConfig.trackOn === 'attribution' && isCampaignEvent(event)) {
-        const pageViewEvent = createPageViewEvent();
+        const pageViewEvent = await createPageViewEvent();
         event.event_type = pageViewEvent.event_type;
         event.event_properties = {
-          ...(await getCampaignParamsForPageViewEvent()),
           ...event.event_properties,
           ...pageViewEvent.event_properties,
         };
@@ -74,20 +117,12 @@ export const pageViewTrackingPlugin = (
       return event;
     },
   };
-};
 
-const createPageViewEvent = (): Event => {
-  const pageViewEvent: BaseEvent = {
-    event_type: 'Page View',
-    event_properties: {
-      page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-      page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
-      page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
-      page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-      page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
-    },
-  };
-  return pageViewEvent;
+  // Required for unit tests
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  (plugin as any).__trackHistoryPageView = trackHistoryPageView;
+
+  return plugin;
 };
 
 const isCampaignEvent = (event: Event) => {
@@ -99,4 +134,17 @@ const isCampaignEvent = (event: Event) => {
     return Object.keys(BASE_CAMPAIGN).every((value) => userProperties.includes(value));
   }
   return false;
+};
+
+export const shouldTrackHistoryPageView = (
+  trackingOption: PageTrackingBrowserOptions['trackHistoryChanges'],
+  newURL: string,
+  oldURL: string,
+): boolean => {
+  switch (trackingOption) {
+    case 'pathOnly':
+      return newURL.split('?')[0] !== oldURL.split('?')[0];
+    default:
+      return newURL !== oldURL;
+  }
 };
