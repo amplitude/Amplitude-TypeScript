@@ -22,5 +22,6 @@ export const {
   setUserId,
   track,
 } = client;
-export { Revenue, Identify, runQueuedFunctions } from '@amplitude/analytics-browser';
+export { runQueuedFunctions } from '@amplitude/analytics-browser';
+export { Revenue, Identify } from '@amplitude/analytics-core';
 export * as Types from '@amplitude/analytics-types';
