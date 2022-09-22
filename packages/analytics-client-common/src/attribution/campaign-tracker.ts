@@ -42,19 +42,16 @@ export class CampaignTracker implements ICampaignTracker {
     this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
   }
 
-  isNewCampaign(currentCampaign: Campaign, previousCampaign: Campaign) {
+  isNewCampaign(current: Campaign, previous: Campaign) {
+    const { referrer: _referrer, ...currentCampaign } = current;
+    const { referrer: _previous_referrer, ...previousCampaign } = previous;
+
     const isReferrerExcluded = Boolean(
       currentCampaign.referring_domain && this.excludeReferrers.includes(currentCampaign.referring_domain),
     );
-    const hasNewUtm =
-      previousCampaign.utm_campaign !== currentCampaign.utm_campaign ||
-      previousCampaign.utm_source !== currentCampaign.utm_source ||
-      previousCampaign.utm_medium !== currentCampaign.utm_medium ||
-      previousCampaign.utm_term !== currentCampaign.utm_term ||
-      previousCampaign.utm_content !== currentCampaign.utm_content;
-    const hasNewReferrer = previousCampaign.referring_domain !== currentCampaign.referring_domain;
+    const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
 
-    return !isReferrerExcluded && (hasNewUtm || hasNewReferrer);
+    return !isReferrerExcluded && hasNewCampaign;
   }
 
   async saveCampaignToStorage(campaign: Campaign): Promise<void> {
