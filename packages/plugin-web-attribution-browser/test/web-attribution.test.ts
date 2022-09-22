@@ -27,7 +27,11 @@ describe('WebAttributionPlugin', () => {
 
         await instance.add(webAttributionPlugin(instance)).promise;
 
-        await instance.init(API_KEY, USER_ID).promise;
+        await instance.init(API_KEY, USER_ID, {
+          attribution: {
+            disabled: true,
+          },
+        }).promise;
 
         const sessionId = instance.getSessionId();
 
@@ -89,7 +93,11 @@ describe('WebAttributionPlugin', () => {
           }),
         ).promise;
 
-        await instance.init(API_KEY, USER_ID).promise;
+        await instance.init(API_KEY, USER_ID, {
+          attribution: {
+            disabled: true,
+          },
+        }).promise;
 
         expect(track).toHaveBeenCalledWith({
           event_type: '$identify',
@@ -145,9 +153,20 @@ describe('WebAttributionPlugin', () => {
 
         await instance.add(webAttributionPlugin(instance)).promise;
 
-        await instance.init(API_KEY, USER_ID).promise;
+        const loggerProvider = {
+          enable: jest.fn(),
+          disable: jest.fn(),
+          log: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        };
+
+        await instance.init(API_KEY, USER_ID, {
+          loggerProvider,
+        }).promise;
 
         expect(track).toHaveBeenCalledTimes(0);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       });
     });
   });

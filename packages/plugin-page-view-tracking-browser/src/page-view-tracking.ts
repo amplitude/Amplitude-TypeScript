@@ -7,62 +7,48 @@ import {
   Event,
   IdentifyOperation,
   IdentifyUserProperties,
+  Logger,
   PluginType,
 } from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from './constant';
-import { PageTrackingBrowserOptions } from './typings/page-view-tracking';
+import { BASE_CAMPAIGN } from './constants';
+import { Options } from './typings/page-view-tracking';
 
-export const pageViewTrackingPlugin = (
-  instance: BrowserClient,
-  options: PageTrackingBrowserOptions = {},
-): EnrichmentPlugin => {
-  let pageTrackingConfig = options;
-
-  const campaignParser = new CampaignParser();
-
-  const getCampaignParamsForPageViewEvent = async () => {
-    const parsed = await campaignParser.parse();
-    const campaignParams: Record<string, string> = {};
-    for (const key in parsed) {
-      const val = parsed[key];
-      if (val) {
-        campaignParams[key] = val;
-      }
-    }
-    return campaignParams;
-  };
+export const pageViewTrackingPlugin = (client: BrowserClient, options: Options = {}): EnrichmentPlugin => {
+  let loggerProvider: Logger | undefined = undefined;
 
   return {
     name: 'page-view-tracking',
     type: PluginType.ENRICHMENT,
 
     setup: async (config: BrowserConfig) => {
-      const attributionConfig = config.attribution;
-      pageTrackingConfig = {
-        trackOn: attributionConfig?.trackPageViews ? 'attribution' : undefined,
-        ...pageTrackingConfig,
-      };
+      loggerProvider = config.loggerProvider;
+      loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
+
+      options.trackOn = config.attribution?.trackPageViews ? 'attribution' : options.trackOn;
 
       // Turn off sending page view event by "runAttributionStrategy" function
-      if (attributionConfig) {
-        attributionConfig.trackPageViews = false;
+      if (config.attribution?.trackPageViews) {
+        loggerProvider.warn(
+          '@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser',
+        );
+        config.attribution.trackPageViews = false;
       }
 
-      if (
-        typeof pageTrackingConfig.trackOn === 'undefined' ||
-        (typeof pageTrackingConfig.trackOn === 'function' && pageTrackingConfig.trackOn())
-      ) {
+      if (typeof options.trackOn === 'undefined' || (typeof options.trackOn === 'function' && options.trackOn())) {
         const event = createPageViewEvent();
         event.event_properties = {
           ...(await getCampaignParamsForPageViewEvent()),
           ...event.event_properties,
         };
-        instance.track(event);
+        loggerProvider.log('Tracking page view event');
+        client.track(event);
       }
     },
 
     execute: async (event: Event) => {
-      if (pageTrackingConfig.trackOn === 'attribution' && isCampaignEvent(event)) {
+      if (options.trackOn === 'attribution' && isCampaignEvent(event)) {
+        /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
+        loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
         const pageViewEvent = createPageViewEvent();
         event.event_type = pageViewEvent.event_type;
         event.event_properties = {
@@ -74,6 +60,19 @@ export const pageViewTrackingPlugin = (
       return event;
     },
   };
+};
+
+const getCampaignParamsForPageViewEvent = async () => {
+  const campaignParser = new CampaignParser();
+  const parsed = await campaignParser.parse();
+  const campaignParams: Record<string, string> = {};
+  for (const key in parsed) {
+    const val = parsed[key];
+    if (val) {
+      campaignParams[key] = val;
+    }
+  }
+  return campaignParams;
 };
 
 const createPageViewEvent = (): Event => {
