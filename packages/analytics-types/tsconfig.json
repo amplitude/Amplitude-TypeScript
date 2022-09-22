@@ -1,9 +1,10 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "baseUrl": ".",
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "types": []
   }
 }
