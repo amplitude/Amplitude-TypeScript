@@ -11,7 +11,7 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-XUaOGvAvcj+PJOP3egenmvzXyQkTj/DmcOnKPJfVTDBKsGSDd4UBi2cvt/tyauf1';
+    as.integrity = 'sha384-UDxNfSaYLuTwSN3XLC2PJTWrCdGiMn7qvlAne/vfBODJsWLjnWk+sYJXDeSZs7If';
     as.crossOrigin = 'anonymous';
     as.async = true;
     as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.4.1-min.js.gz';

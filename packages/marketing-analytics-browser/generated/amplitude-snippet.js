@@ -11,7 +11,7 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-gDu85AHvgWZT+ti4GsLM43B65IuUjptLCjlWyzj8kmFZLV3sldlGEvd+Zvt6Rj71';
+    as.integrity = 'sha384-LFJbLqjCLPH3n8ROusLT/mkt+fOJb+B/8YwATqnLmAL7XOeAFtyQUw84uA1WJW4S';
     as.crossOrigin = 'anonymous';
     as.async = true;
     as.src = 'https://cdn.amplitude.com/libs/marketing-analytics-browser-0.0.0-min.js.gz';
