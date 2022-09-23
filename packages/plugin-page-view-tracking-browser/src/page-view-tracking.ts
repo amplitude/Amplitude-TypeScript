@@ -10,8 +10,9 @@ import {
   Logger,
   PluginType,
 } from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from './constants';
+import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
 import { Options } from './typings/page-view-tracking';
+import { omitUndefined } from './utils';
 
 export const pageViewTrackingPlugin = (client: BrowserClient, options: Options = {}): EnrichmentPlugin => {
   let loggerProvider: Logger | undefined = undefined;
@@ -37,7 +38,7 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
       if (typeof options.trackOn === 'undefined' || (typeof options.trackOn === 'function' && options.trackOn())) {
         const event = createPageViewEvent();
         event.event_properties = {
-          ...(await getCampaignParamsForPageViewEvent()),
+          ...(await getCampaignParams()),
           ...event.event_properties,
         };
         loggerProvider.log('Tracking page view event');
@@ -52,7 +53,7 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
         const pageViewEvent = createPageViewEvent();
         event.event_type = pageViewEvent.event_type;
         event.event_properties = {
-          ...(await getCampaignParamsForPageViewEvent()),
+          ...(await getCampaignParams()),
           ...event.event_properties,
           ...pageViewEvent.event_properties,
         };
@@ -62,18 +63,7 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
   };
 };
 
-const getCampaignParamsForPageViewEvent = async () => {
-  const campaignParser = new CampaignParser();
-  const parsed = await campaignParser.parse();
-  const campaignParams: Record<string, string> = {};
-  for (const key in parsed) {
-    const val = parsed[key];
-    if (val) {
-      campaignParams[key] = val;
-    }
-  }
-  return campaignParams;
-};
+const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
 
 const createPageViewEvent = (): Event => {
   const pageViewEvent: BaseEvent = {

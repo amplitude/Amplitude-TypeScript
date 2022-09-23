@@ -24,8 +24,13 @@ export const BASE_CAMPAIGN: Campaign = {
   utm_content: undefined,
   referrer: undefined,
   referring_domain: undefined,
+  dclid: undefined,
   gclid: undefined,
   fbclid: undefined,
+  ko_click_id: undefined,
+  msclkid: undefined,
+  ttclid: undefined,
+  twclid: undefined,
 };
 
 export const MKTG = 'MKTG';
