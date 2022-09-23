@@ -1,5 +1,5 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { pageViewTrackingPlugin } from '../src/page-view-tracking';
+import { pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 
 describe('pageViewTrackingPlugin', () => {
   beforeAll(() => {
@@ -9,21 +9,18 @@ describe('pageViewTrackingPlugin', () => {
         href: '',
         pathname: '',
         search: '',
-        writable: true,
       },
+      writable: true,
     });
   });
 
-  afterAll(() => {
-    Object.defineProperty(window, 'location', {
-      value: {
-        hostname: '',
-        href: '',
-        pathname: '',
-        search: '',
-        writable: false,
-      },
-    });
+  beforeEach(() => {
+    (window.location as any) = {
+      hostname: '',
+      href: '',
+      pathname: '',
+      search: '',
+    };
   });
 
   const API_KEY = 'API_KEY';
@@ -333,10 +330,7 @@ describe('pageViewTrackingPlugin', () => {
       const hostname = 'www.example.com';
       const pathname = '/path/to/page';
       const url = new URL(`https://${hostname}${pathname}?${search}`);
-      window.location.href = url.toString();
-      window.location.search = url.search;
-      window.location.hostname = url.hostname;
-      window.location.pathname = url.pathname;
+      mockWindowLocationFromURL(url);
       const track = jest.spyOn(instance, 'track').mockReturnValueOnce({
         promise: Promise.resolve({
           code: 200,
@@ -373,4 +367,84 @@ describe('pageViewTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
   });
+
+  test('shouldTrackHistoryPageView pathOnly option', () => {
+    const url1 = 'https://www.example.com/path/to/page';
+    const url2 = 'https://www.example.com/path/to/page?query=1';
+    expect(shouldTrackHistoryPageView('all', url1, url2)).toBe(true);
+    expect(shouldTrackHistoryPageView('pathOnly', url1, url1)).toBe(false);
+  });
+
+  test('track SPA page view on history push', async () => {
+    const instance = createInstance();
+    const track = jest.spyOn(instance, 'track').mockReturnValue({
+      promise: Promise.resolve({
+        code: 200,
+        message: '',
+        event: {
+          event_type: 'event_type',
+        },
+      }),
+    });
+
+    const plugin = pageViewTrackingPlugin(instance, {
+      trackHistoryChanges: 'all',
+      trackOn: () => window.location.hostname !== 'www.google.com',
+    });
+    await instance.add(plugin).promise;
+
+    await instance.init(API_KEY, USER_ID, {
+      attribution: {
+        disabled: true,
+      },
+    }).promise;
+
+    expect(track).toHaveBeenCalledWith({
+      event_properties: {
+        page_domain: '',
+        page_location: '',
+        page_path: '',
+        page_title: '',
+        page_url: '',
+      },
+      event_type: 'Page View',
+    });
+    expect(track).toHaveBeenCalledTimes(1);
+
+    const mockURL = new URL('https://www.example.com/path/to/page');
+    mockWindowLocationFromURL(mockURL);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    await (plugin as any).__trackHistoryPageView();
+
+    expect(track).toHaveBeenCalledWith({
+      event_properties: {
+        page_domain: mockURL.hostname,
+        page_location: mockURL.toString(),
+        page_path: mockURL.pathname,
+        page_title: '',
+        page_url: mockURL.toString(),
+      },
+      event_type: 'Page View',
+    });
+    expect(track).toHaveBeenCalledTimes(2);
+
+    // Check that revisiting same url won't send another page view
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    await (plugin as any).__trackHistoryPageView();
+    expect(track).toHaveBeenCalledTimes(2);
+
+    // Validate filter works
+    const mockGoogleURL = new URL('https://www.google.com/path/to/page');
+    mockWindowLocationFromURL(mockGoogleURL);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    await (plugin as any).__trackHistoryPageView();
+    expect(track).toHaveBeenCalledTimes(2);
+  });
 });
+
+const mockWindowLocationFromURL = (url: URL) => {
+  window.location.href = url.toString();
+  window.location.search = url.search;
+  window.location.hostname = url.hostname;
+  window.location.pathname = url.pathname;
+};
