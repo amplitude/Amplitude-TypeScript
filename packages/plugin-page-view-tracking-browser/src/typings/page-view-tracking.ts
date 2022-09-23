@@ -1,4 +1,4 @@
-export interface PageTrackingBrowserOptions {
+export interface Options {
   trackOn?: PageTrackingTrackOn;
   trackHistoryChanges?: PageTrackingHistoryChanges;
 }

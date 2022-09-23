@@ -27,7 +27,11 @@ describe('WebAttributionPlugin', () => {
 
         await instance.add(webAttributionPlugin(instance)).promise;
 
-        await instance.init(API_KEY, USER_ID).promise;
+        await instance.init(API_KEY, USER_ID, {
+          attribution: {
+            disabled: true,
+          },
+        }).promise;
 
         const sessionId = instance.getSessionId();
 
@@ -38,10 +42,15 @@ describe('WebAttributionPlugin', () => {
               utm_source: 'amp-test',
             },
             $setOnce: {
+              initial_dclid: 'EMPTY',
               initial_fbclid: 'EMPTY',
               initial_gclid: 'EMPTY',
+              initial_ko_click_id: 'EMPTY',
+              initial_msclkid: 'EMPTY',
               initial_referrer: 'EMPTY',
               initial_referring_domain: 'EMPTY',
+              initial_ttclid: 'EMPTY',
+              initial_twclid: 'EMPTY',
               initial_utm_campaign: 'EMPTY',
               initial_utm_content: 'EMPTY',
               initial_utm_medium: 'EMPTY',
@@ -49,10 +58,15 @@ describe('WebAttributionPlugin', () => {
               initial_utm_term: 'EMPTY',
             },
             $unset: {
+              dclid: '-',
               fbclid: '-',
               gclid: '-',
+              ko_click_id: '-',
+              msclkid: '-',
               referrer: '-',
               referring_domain: '-',
+              ttclid: '-',
+              twclid: '-',
               utm_campaign: '-',
               utm_content: '-',
               utm_medium: '-',
@@ -89,7 +103,11 @@ describe('WebAttributionPlugin', () => {
           }),
         ).promise;
 
-        await instance.init(API_KEY, USER_ID).promise;
+        await instance.init(API_KEY, USER_ID, {
+          attribution: {
+            disabled: true,
+          },
+        }).promise;
 
         expect(track).toHaveBeenCalledWith({
           event_type: '$identify',
@@ -98,10 +116,15 @@ describe('WebAttributionPlugin', () => {
               utm_source: 'amp-test',
             },
             $setOnce: {
+              initial_dclid: 'EMPTY',
               initial_fbclid: 'EMPTY',
               initial_gclid: 'EMPTY',
+              initial_ko_click_id: 'EMPTY',
+              initial_msclkid: 'EMPTY',
               initial_referrer: 'EMPTY',
               initial_referring_domain: 'EMPTY',
+              initial_ttclid: 'EMPTY',
+              initial_twclid: 'EMPTY',
               initial_utm_campaign: 'EMPTY',
               initial_utm_content: 'EMPTY',
               initial_utm_medium: 'EMPTY',
@@ -109,10 +132,15 @@ describe('WebAttributionPlugin', () => {
               initial_utm_term: 'EMPTY',
             },
             $unset: {
+              dclid: '-',
               fbclid: '-',
               gclid: '-',
+              ko_click_id: '-',
+              msclkid: '-',
               referrer: '-',
               referring_domain: '-',
+              ttclid: '-',
+              twclid: '-',
               utm_campaign: '-',
               utm_content: '-',
               utm_medium: '-',
@@ -145,9 +173,20 @@ describe('WebAttributionPlugin', () => {
 
         await instance.add(webAttributionPlugin(instance)).promise;
 
-        await instance.init(API_KEY, USER_ID).promise;
+        const loggerProvider = {
+          enable: jest.fn(),
+          disable: jest.fn(),
+          log: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        };
+
+        await instance.init(API_KEY, USER_ID, {
+          loggerProvider,
+        }).promise;
 
         expect(track).toHaveBeenCalledTimes(0);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       });
     });
   });

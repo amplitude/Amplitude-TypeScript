@@ -1,4 +1,4 @@
-export interface AttributionPluginOptions {
+export interface Options {
   disabled?: boolean;
   excludeReferrers?: string[];
   initialEmptyValue?: string;

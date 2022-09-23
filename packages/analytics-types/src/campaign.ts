@@ -2,7 +2,7 @@ import { BaseEvent } from './base-event';
 import { AttributionOptions } from './config';
 import { Storage } from './storage';
 
-export interface UTMParameters extends Record<string, string | undefined> {
+export interface UTMParameters {
   utm_source: string | undefined;
   utm_medium: string | undefined;
   utm_campaign: string | undefined;
@@ -10,17 +10,26 @@ export interface UTMParameters extends Record<string, string | undefined> {
   utm_content: string | undefined;
 }
 
-export interface ReferrerParameters extends Record<string, string | undefined> {
+export interface ReferrerParameters {
   referrer: string | undefined;
   referring_domain: string | undefined;
 }
 
-export interface ClickIdParameters extends Record<string, string | undefined> {
+export interface ClickIdParameters {
+  dclid: string | undefined;
   gclid: string | undefined;
   fbclid: string | undefined;
+  ko_click_id: string | undefined;
+  msclkid: string | undefined;
+  ttclid: string | undefined;
+  twclid: string | undefined;
 }
 
-export interface Campaign extends UTMParameters, ReferrerParameters, ClickIdParameters {}
+export interface Campaign
+  extends Record<string, string | undefined>,
+    UTMParameters,
+    ReferrerParameters,
+    ClickIdParameters {}
 
 export interface CampaignParser {
   parse(): Promise<Campaign>;

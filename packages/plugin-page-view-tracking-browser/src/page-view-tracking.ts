@@ -7,49 +7,19 @@ import {
   Event,
   IdentifyOperation,
   IdentifyUserProperties,
+  Logger,
   PluginType,
 } from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from './constant';
-import { PageTrackingBrowserOptions } from './typings/page-view-tracking';
+import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
+import { Options } from './typings/page-view-tracking';
+import { omitUndefined } from './utils';
 
-export const pageViewTrackingPlugin = (
-  instance: BrowserClient,
-  options: PageTrackingBrowserOptions = {},
-): EnrichmentPlugin => {
-  let pageTrackingConfig = options;
-
-  const campaignParser = new CampaignParser();
-
-  const getCampaignParamsForPageViewEvent = async () => {
-    const parsed = await campaignParser.parse();
-    const campaignParams: Record<string, string> = {};
-    for (const key in parsed) {
-      const val = parsed[key];
-      if (val) {
-        campaignParams[key] = val;
-      }
-    }
-    return campaignParams;
-  };
+export const pageViewTrackingPlugin = (client: BrowserClient, options: Options = {}): EnrichmentPlugin => {
+  let loggerProvider: Logger | undefined = undefined;
 
   const shouldTrackOnPageLoad = () =>
-    typeof pageTrackingConfig.trackOn === 'undefined' ||
-    (typeof pageTrackingConfig.trackOn === 'function' && pageTrackingConfig.trackOn());
-
-  const createPageViewEvent = async (): Promise<Event> => {
-    const pageViewEvent: BaseEvent = {
-      event_type: 'Page View',
-      event_properties: {
-        ...(await getCampaignParamsForPageViewEvent()),
-        page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-        page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
-        page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
-        page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-        page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
-      },
-    };
-    return pageViewEvent;
-  };
+    typeof options.trackOn === 'undefined' ||
+    (typeof options.trackOn === 'function' && options.trackOn());
 
   let previousURL: string | null = null;
 
@@ -57,10 +27,10 @@ export const pageViewTrackingPlugin = (
     const newURL = location.href;
 
     if (
-      shouldTrackHistoryPageView(pageTrackingConfig.trackHistoryChanges, newURL, previousURL || '') &&
+      shouldTrackHistoryPageView(options.trackHistoryChanges, newURL, previousURL || '') &&
       shouldTrackOnPageLoad()
     ) {
-      instance.track(await createPageViewEvent());
+      client.track(await createPageViewEvent());
     }
     previousURL = newURL;
   };
@@ -70,23 +40,25 @@ export const pageViewTrackingPlugin = (
     type: PluginType.ENRICHMENT as const,
 
     setup: async (config: BrowserConfig) => {
-      const attributionConfig = config.attribution;
-      pageTrackingConfig = {
-        trackOn: attributionConfig?.trackPageViews ? 'attribution' : undefined,
-        ...pageTrackingConfig,
-      };
+      loggerProvider = config.loggerProvider;
+      loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
+
+      options.trackOn = config.attribution?.trackPageViews ? 'attribution' : options.trackOn;
 
       // Turn off sending page view event by "runAttributionStrategy" function
-      if (attributionConfig) {
-        attributionConfig.trackPageViews = false;
+      if (config.attribution?.trackPageViews) {
+        loggerProvider.warn(
+          '@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser',
+        );
+        config.attribution.trackPageViews = false;
       }
 
       if (shouldTrackOnPageLoad()) {
-        instance.track(await createPageViewEvent());
+        client.track(await createPageViewEvent());
       }
 
       /* istanbul ignore next */
-      if (pageTrackingConfig.trackHistoryChanges) {
+      if (options.trackHistoryChanges) {
         window.addEventListener('popstate', () => {
           void trackHistoryPageView();
         });
@@ -106,7 +78,9 @@ export const pageViewTrackingPlugin = (
     },
 
     execute: async (event: Event) => {
-      if (pageTrackingConfig.trackOn === 'attribution' && isCampaignEvent(event)) {
+      if (options.trackOn === 'attribution' && isCampaignEvent(event)) {
+        /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
+        loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
         const pageViewEvent = await createPageViewEvent();
         event.event_type = pageViewEvent.event_type;
         event.event_properties = {
@@ -125,6 +99,23 @@ export const pageViewTrackingPlugin = (
   return plugin;
 };
 
+const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
+
+const createPageViewEvent = async (): Promise<Event> => {
+  const pageViewEvent: BaseEvent = {
+    event_type: 'Page View',
+    event_properties: {
+      ...(await getCampaignParams()),
+      page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+      page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
+      page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
+      page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+      page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
+    },
+  };
+  return pageViewEvent;
+};
+
 const isCampaignEvent = (event: Event) => {
   if (event.event_type === '$identify' && event.user_properties) {
     const properties = event.user_properties as IdentifyUserProperties;
@@ -137,7 +128,7 @@ const isCampaignEvent = (event: Event) => {
 };
 
 export const shouldTrackHistoryPageView = (
-  trackingOption: PageTrackingBrowserOptions['trackHistoryChanges'],
+  trackingOption: Options['trackHistoryChanges'],
   newURL: string,
   oldURL: string,
 ): boolean => {

@@ -8,41 +8,44 @@ import {
   Storage,
 } from '@amplitude/analytics-types';
 import { PluginCampaignTracker } from './plugin-campaign-tracker';
-import { AttributionPluginOptions } from './typings/web-attribution';
+import { Options } from './typings/web-attribution';
 
-export const webAttributionPlugin = (instance: BrowserClient, options: AttributionPluginOptions = {}): BeforePlugin => {
-  return {
-    name: 'web-attribution',
-    type: PluginType.BEFORE,
+export const webAttributionPlugin = (client: BrowserClient, options: Options = {}): BeforePlugin => ({
+  name: 'web-attribution',
+  type: PluginType.BEFORE,
 
-    setup: async (config: BrowserConfig) => {
-      const attributionConfig = options;
+  setup: async (config: BrowserConfig) => {
+    config.loggerProvider.log('Installing @amplitude/plugin-web-attribution-browser');
 
-      // Disable "runAttributionStrategy" function
+    // Disable "runAttributionStrategy" function
+    if (!config.attribution?.disabled) {
+      config.loggerProvider.warn(
+        '@amplitude/plugin-web-attribution-browser overrides web attribution behavior defined in @amplitude/analytics-browser',
+      );
       config.attribution = {
         disabled: true,
       };
+    }
 
-      // Share cookie storage with user session storage
-      const storage = config.cookieStorage as unknown as Storage<Campaign>;
+    // Share cookie storage with user session storage
+    const storage = config.cookieStorage as unknown as Storage<Campaign>;
 
-      const campaignTracker = new PluginCampaignTracker(config.apiKey, storage, {
-        ...attributionConfig,
-      });
+    const campaignTracker = new PluginCampaignTracker(config.apiKey, storage, {
+      ...options,
+    });
 
-      // Web Attribution tracking
-      void campaignTracker.onPageChange(async ({ isNewCampaign, currentCampaign }) => {
-        if (isNewCampaign) {
-          if (attributionConfig.resetSessionOnNewCampaign) {
-            instance.setSessionId(Date.now());
-          }
-          void instance.track(campaignTracker.createCampaignEvent(currentCampaign));
+    // Web Attribution tracking
+    void campaignTracker.onPageChange(async ({ isNewCampaign, currentCampaign }) => {
+      if (isNewCampaign) {
+        if (options.resetSessionOnNewCampaign) {
+          client.setSessionId(Date.now());
+          config.loggerProvider.log('Created a new session for new campaign');
         }
-      });
-    },
+        config.loggerProvider.log('Tracking new campaign event');
+        void client.track(campaignTracker.createCampaignEvent(currentCampaign));
+      }
+    });
+  },
 
-    execute: async (event: Event) => {
-      return event;
-    },
-  };
-};
+  execute: async (event: Event) => event,
+});
