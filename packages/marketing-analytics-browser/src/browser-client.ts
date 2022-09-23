@@ -3,12 +3,12 @@ import { returnWrapper } from '@amplitude/analytics-core';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { Context } from './plugins/context';
-import { BrowserMaClient, BrowserMaOptions } from './typings/browser-ma-client';
+import { BrowserClient, BrowserOptions } from './typings/browser-client';
 
-export const createInstance = (): BrowserMaClient => {
+export const createInstance = (): BrowserClient => {
   const client = createBrowserInstance();
 
-  const init = async (apiKey: string, userId?: string, options?: BrowserMaOptions) => {
+  const init = async (apiKey: string, userId?: string, options?: BrowserOptions) => {
     if (!options?.attribution?.disabled) {
       await client.add(webAttributionPlugin(client, options?.attribution)).promise;
     }

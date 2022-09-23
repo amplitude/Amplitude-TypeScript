@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
-import client from './browser-ma-client';
-export { createInstance } from './browser-ma-client';
+import client from './browser-client';
+export { createInstance } from './browser-client';
 export const {
   add,
   flush,

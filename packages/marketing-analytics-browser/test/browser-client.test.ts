@@ -1,4 +1,4 @@
-import { createInstance } from '../src/browser-ma-client';
+import { createInstance } from '../src/browser-client';
 import * as browser from '@amplitude/analytics-browser';
 import { BrowserClient } from '@amplitude/analytics-types';
 
