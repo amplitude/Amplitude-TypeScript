@@ -18,18 +18,16 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
   let loggerProvider: Logger | undefined = undefined;
 
   const shouldTrackOnPageLoad = () =>
-    typeof options.trackOn === 'undefined' ||
-    (typeof options.trackOn === 'function' && options.trackOn());
+    typeof options.trackOn === 'undefined' || (typeof options.trackOn === 'function' && options.trackOn());
 
   let previousURL: string | null = null;
 
   const trackHistoryPageView = async (): Promise<void> => {
     const newURL = location.href;
 
-    if (
-      shouldTrackHistoryPageView(options.trackHistoryChanges, newURL, previousURL || '') &&
-      shouldTrackOnPageLoad()
-    ) {
+    if (shouldTrackHistoryPageView(options.trackHistoryChanges, newURL, previousURL || '') && shouldTrackOnPageLoad()) {
+      /* istanbul ignore next */
+      loggerProvider?.log('Tracking page view event');
       client.track(await createPageViewEvent());
     }
     previousURL = newURL;
@@ -53,16 +51,13 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
         config.attribution.trackPageViews = false;
       }
 
-      if (shouldTrackOnPageLoad()) {
-        client.track(await createPageViewEvent());
-      }
-
-      /* istanbul ignore next */
       if (options.trackHistoryChanges) {
+        /* istanbul ignore next */
         window.addEventListener('popstate', () => {
           void trackHistoryPageView();
         });
 
+        /* istanbul ignore next */
         // There is no global browser listener for changes to history, so we have
         // to modify pushState directly.
         // https://stackoverflow.com/a/64927639
@@ -74,6 +69,12 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
             return target.apply(thisArg, [state, unused, url]);
           },
         });
+      }
+
+      if (shouldTrackOnPageLoad()) {
+        loggerProvider.log('Tracking page view event');
+
+        client.track(await createPageViewEvent());
       }
     },
 
