@@ -1,9 +1,4 @@
-/**
- * Imported in client browser via <script> tag
- * Async capabilities: Interally creates stubbed window.amplitude object until real SDK loaded
- * Stubbed functions keep track of funciton calls and their arguments
- * These are sent once real SDK loaded through another <script> tag
- */
+const snippet = (integrity, version) => `
 !(function (window, document) {
   var amplitude = window.amplitude || { _q: [], _iq: [] };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
@@ -11,10 +6,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-UDxNfSaYLuTwSN3XLC2PJTWrCdGiMn7qvlAne/vfBODJsWLjnWk+sYJXDeSZs7If';
+    as.integrity = '${integrity}';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.4.1-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/marketing-analytics-browser-${version}-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -123,3 +118,6 @@
     window.amplitude = amplitude;
   }
 })(window, document);
+`;
+
+exports.snippet = snippet;
