@@ -22,6 +22,11 @@ describe('e2e', () => {
   const expectString = expect.any(String) as string;
   const expectLibrary = expect.stringMatching(/^amplitude-ma-ts\/.+/) as string;
   const expectNumber = expect.any(Number) as number;
+  const opts = {
+    trackingOptions: {
+      deviceModel: false,
+    },
+  };
 
   beforeEach(() => {
     unsetCookie('AMP_API_KEY');
@@ -42,7 +47,7 @@ describe('e2e', () => {
       .reply(200, success);
 
     const client = createInstance();
-    client.init('API_KEY', undefined);
+    client.init('API_KEY', undefined, { ...opts });
 
     return new Promise<void>((resolve) => {
       scope.on('replied', () => {
@@ -121,6 +126,7 @@ describe('e2e', () => {
 
     const client = createInstance();
     client.init('API_KEY', undefined, {
+      ...opts,
       trackPageViews: {
         trackOn: 'attribution',
       },
@@ -210,6 +216,7 @@ describe('e2e', () => {
 
     const client = createInstance();
     client.init('API_KEY', undefined, {
+      ...opts,
       attribution: {
         disabled: true,
       },
@@ -266,6 +273,7 @@ describe('e2e', () => {
 
     const client = createInstance();
     client.init('API_KEY', undefined, {
+      ...opts,
       trackPageViews: true,
     });
 
