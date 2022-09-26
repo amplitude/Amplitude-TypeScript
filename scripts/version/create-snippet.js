@@ -1,20 +1,18 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { version } = require('../../package');
 const { snippet } = require('../templates/browser-snippet.template');
-
-const cwd = process.cwd();
+const { getName, getVersion } = require('../utils');
 
 // Setup input
 const inputDir = 'lib/scripts';
 const inputFile = 'amplitude-min.js';
-const inputPath = path.join(cwd, inputDir, inputFile);
+const inputPath = path.join(process.cwd(), inputDir, inputFile);
 
 // Setup output
 const outputDir = 'generated/';
 const outputFile = 'amplitude-snippet.js';
-const outputPath = path.join(cwd, outputDir, outputFile);
+const outputPath = path.join(process.cwd(), outputDir, outputFile);
 
 // Generate output contents
 const header = `/**
@@ -27,7 +25,7 @@ const algorithm = 'sha384';
 const encoding = 'base64';
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputText).digest(encoding);
-const outputText = header + snippet(integrity, version);
+const outputText = header + snippet(getName(), integrity, getVersion());
 
 // Write to disk
 fs.writeFileSync(outputPath, outputText);
