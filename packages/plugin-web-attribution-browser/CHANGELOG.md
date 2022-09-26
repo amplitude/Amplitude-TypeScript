@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.1.1...@amplitude/plugin-web-attribution-browser@0.1.2) (2022-09-26)
+
+
+### Bug Fixes
+
+* update base config to include additional click ids ([#229](https://github.com/amplitude/Amplitude-TypeScript/issues/229)) ([5596931](https://github.com/amplitude/Amplitude-TypeScript/commit/55969310714c43f138e1702ba285fd4dadcdcb44))
+
+
+
+
+
 ## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.1.0...@amplitude/plugin-web-attribution-browser@0.1.1) (2022-09-22)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

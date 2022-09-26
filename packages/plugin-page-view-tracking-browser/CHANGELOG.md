@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.2.0...@amplitude/plugin-page-view-tracking-browser@0.3.0) (2022-09-26)
+
+
+### Bug Fixes
+
+* update base config to include additional click ids ([#229](https://github.com/amplitude/Amplitude-TypeScript/issues/229)) ([5596931](https://github.com/amplitude/Amplitude-TypeScript/commit/55969310714c43f138e1702ba285fd4dadcdcb44))
+
+
+### Features
+
+* add single page app page view tracking option ([#224](https://github.com/amplitude/Amplitude-TypeScript/issues/224)) ([2d97c9e](https://github.com/amplitude/Amplitude-TypeScript/commit/2d97c9ef8501da04465225ef8366fe0419b3415a))
+
+
+
+
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.1.0...@amplitude/plugin-page-view-tracking-browser@0.2.0) (2022-09-22)
 
 
