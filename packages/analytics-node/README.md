@@ -111,10 +111,10 @@ import { Identify, groupIdentify } from '@amplitude/analytics-node';
 
 const groupType = 'plan';
 const groupName = 'enterprise';
-const event = new Identify()
-event.set('key1', 'value1');
+const identity = new Identify()
+identity.set('key1', 'value1');
 
-groupIdentify(groupType, groupName, identify);
+groupIdentify(groupType, groupName, identity);
 ```
 
 ### Track Revenue
