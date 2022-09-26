@@ -1,4 +1,4 @@
-const snippet = (integrity, version) => `
+const snippet = (name, integrity, version) => `
 !(function (window, document) {
   var amplitude = window.amplitude || { _q: [], _iq: [] };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
@@ -9,7 +9,7 @@ const snippet = (integrity, version) => `
     as.integrity = '${integrity}';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/marketing-analytics-browser-${version}-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/${name}-${version}-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { S3Client, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
-const pkg = require('../../package.json');
+const { getName, getVersion } = require('../utils');
 
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
@@ -12,7 +12,7 @@ let deployedCount = 0;
 console.log('[Publish to AWS S3] START');
 const promises = files.map((file) => {
   const body = fs.readFileSync(path.join(location, file));
-  const key = `libs/${file.replace('amplitude', `marketing-analytics-browser-${pkg.version}`)}`;
+  const key = `libs/${file.replace('amplitude', `${getName()}-${getVersion()}`)}`;
   const client = new S3Client();
 
   const headObject = new HeadObjectCommand({

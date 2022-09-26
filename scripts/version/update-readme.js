@@ -1,17 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const cwd = process.cwd();
-
 // Setup input
 const inputDir = 'lib/scripts';
 const inputFile = 'amplitude-snippet-instructions.html';
-const inputPath = path.join(cwd, inputDir, inputFile);
+const inputPath = path.join(process.cwd(), inputDir, inputFile);
 
 // Setup output
 const outputDir = '';
 const outputFile = 'README.md';
-const outputPath = path.join(cwd, outputDir, outputFile);
+const outputPath = path.join(process.cwd(), outputDir, outputFile);
 
 // Generate output contents
 const inputText = fs.readFileSync(inputPath, 'utf-8');
