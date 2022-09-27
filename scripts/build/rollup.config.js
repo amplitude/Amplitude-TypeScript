@@ -45,7 +45,11 @@ export const umd = {
       browser: true,
     }),
     commonjs(),
-    terser(),
+    terser({
+      output: {
+        comments: false,
+      },
+    }),
     gzip(),
   ],
 };
@@ -68,7 +72,11 @@ export const iife = {
       browser: true,
     }),
     commonjs(),
-    terser(),
+    terser({
+      output: {
+        comments: false,
+      },
+    }),
     gzip(),
   ],
 };
