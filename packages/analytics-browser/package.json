@@ -43,7 +43,6 @@
   },
   "dependencies": {
     "@amplitude/analytics-client-common": "^0.2.2-beta.0",
-    "@amplitude/analytics-connector": "^1.4.5",
     "@amplitude/analytics-core": "^0.9.4-beta.0",
     "@amplitude/analytics-types": "^0.10.3-beta.0",
     "@amplitude/ua-parser-js": "^0.7.31",
