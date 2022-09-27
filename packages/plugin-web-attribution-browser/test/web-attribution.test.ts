@@ -2,7 +2,7 @@ import { createInstance } from '@amplitude/analytics-browser';
 import { webAttributionPlugin } from '../src/web-attribution';
 import { PluginCampaignTracker } from '../src/plugin-campaign-tracker';
 
-describe('WebAttributionPlugin', () => {
+describe('webAttributionPlugin', () => {
   const API_KEY = 'API_KEY';
   const USER_ID = 'USER_ID';
 
