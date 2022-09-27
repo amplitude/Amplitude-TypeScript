@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.2-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.2-beta.0...@amplitude/analytics-client-common@0.2.2-beta.1) (2022-09-27)
+
+
+### Bug Fixes
+
+* define correct dependencies for @amplitude/analytics-connector ([#234](https://github.com/amplitude/Amplitude-TypeScript/issues/234)) ([41c1351](https://github.com/amplitude/Amplitude-TypeScript/commit/41c1351e441b890b016ba123c4ed5747a4c33adb))
+
+
+
+
+
 ## [0.2.2-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.1...@amplitude/analytics-client-common@0.2.2-beta.0) (2022-09-26)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common

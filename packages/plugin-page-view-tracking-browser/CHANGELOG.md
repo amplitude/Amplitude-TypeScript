@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.2-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.3.2-beta.0...@amplitude/plugin-page-view-tracking-browser@0.3.2-beta.1) (2022-09-27)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
 ## [0.3.2-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.3.1...@amplitude/plugin-page-view-tracking-browser@0.3.2-beta.0) (2022-09-26)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
