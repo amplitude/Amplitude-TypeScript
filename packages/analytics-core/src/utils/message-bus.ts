@@ -6,7 +6,7 @@ import { AmplitudeCore } from '../core-client';
 import { Config } from '../config';
 import { UUID } from './uuid';
 import { Logger } from '../logger';
-import { getParamNames } from './getParamNames';
+import { getParamNames } from './get-param-names';
 
 export interface MessageBusState {
   messageType: string | symbol;
@@ -82,7 +82,7 @@ export const emitPublicApi = (client: any, fnName: string, fn: (...args: any[]) 
 
     const result = fn.apply(client, args);
 
-    if (result.promise) {
+    if (result?.promise) {
       result.promise.then(() => {
         client.messageBus.emit(MeasurementStates.END, [
           {

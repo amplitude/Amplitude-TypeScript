@@ -92,6 +92,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     await this.runAttributionStrategy(browserOptions.attribution, isNewSession);
   }
 
+  @emitInternalApi
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
     const track = this.track.bind(this);
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
