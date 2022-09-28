@@ -37,7 +37,7 @@ export const emitPublicApi = <T extends (...args: any[]) => unknown>(
 
     const result = fn.apply(client, args) as ReturnType<T>;
 
-    if ((result as ReturnType<ReturnType<typeof returnWrapper>>).promise) {
+    if ((result as ReturnType<ReturnType<typeof returnWrapper>>)?.promise) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       (result as any).promise.then(() => {
         client.messageBus.emit(MeasurementStates.END, [
