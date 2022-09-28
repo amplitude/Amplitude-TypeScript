@@ -57,3 +57,4 @@ export { Status } from './status';
 export { CookieStorageOptions, Storage } from './storage';
 export { Transport, TransportType } from './transport';
 export { UTMData } from './utm';
+export { MessageBus, MessageBusState, MessageBusCallback } from './message-bus';

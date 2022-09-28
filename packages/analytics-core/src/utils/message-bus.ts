@@ -1,66 +1,21 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { AmplitudeCore } from '../core-client';
-import { Config } from '../config';
+import { Config, MessageBus as IMessageBus, MessageBusCallback } from '@amplitude/analytics-types';
 import { UUID } from './uuid';
 import { Logger } from '../logger';
 import { getParamNames } from './get-param-names';
-
-export interface MessageBusState {
-  messageType: string | symbol;
-  args: any[];
-}
-
-export type MessageBusCallback = (state: MessageBusState) => unknown | Promise<unknown>;
+import { returnWrapper } from './return-wrapper';
 
 export const MeasurementStates = {
   START: 'MeasurementStart',
   END: 'MeasurementEnd',
 };
 
-export const emitMessage = (_target: AmplitudeCore<Config>, propertyKey: string, descriptor: PropertyDescriptor) => {
-  const originalMethod = descriptor.value;
-  descriptor.value = function (...args: any[]) {
-    const result = originalMethod.apply(this, args);
-    (this as AmplitudeCore<Config>).messageBus.emit(propertyKey, args);
-
-    return result;
-  };
-
-  Object.defineProperty(descriptor.value, 'name', {
-    value: propertyKey,
-    configurable: true,
-  });
-
-  return descriptor;
-};
-
-export const emitMessageAsync = (
-  _target: AmplitudeCore<Config>,
-  propertyKey: string,
-  descriptor: PropertyDescriptor,
+export const emitPublicApi = <T extends (...args: any[]) => unknown>(
+  client: AmplitudeCore<Config>,
+  fnName: string,
+  fn: T,
 ) => {
-  const originalMethod = descriptor.value;
-
-  descriptor.value = async function (...args: any[]) {
-    const result = await originalMethod.apply(this, args);
-    (this as AmplitudeCore<Config>).messageBus.emit(propertyKey, args);
-
-    return result;
-  };
-
-  Object.defineProperty(descriptor.value, 'name', {
-    value: propertyKey,
-    configurable: true,
-  });
-
-  return descriptor;
-};
-
-export const emitPublicApi = (client: any, fnName: string, fn: (...args: any[]) => any) => {
-  const publicApiFn = (...args: any[]) => {
+  const publicApiFn = (...args: Parameters<T>) => {
     const loggerKey = `PublicApi_${UUID()}`;
 
     client.messageBus.emit(MeasurementStates.START, [
@@ -80,10 +35,11 @@ export const emitPublicApi = (client: any, fnName: string, fn: (...args: any[]) 
       configurable: true,
     });
 
-    const result = fn.apply(client, args);
+    const result = fn.apply(client, args) as ReturnType<T>;
 
-    if (result?.promise) {
-      result.promise.then(() => {
+    if ((result as ReturnType<ReturnType<typeof returnWrapper>>).promise) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      (result as any).promise.then(() => {
         client.messageBus.emit(MeasurementStates.END, [
           {
             key: loggerKey,
@@ -115,35 +71,40 @@ export const emitPublicApi = (client: any, fnName: string, fn: (...args: any[]) 
   return publicApiFn;
 };
 
-export const emitInternalApi = (_target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-  const originalMethod = descriptor.value;
-  descriptor.value = async function (...args: any[]) {
+export const emitInternalApi = <T extends (...args: any[]) => any>(
+  _target: AmplitudeCore<Config>,
+  propertyKey: string,
+  descriptor: PropertyDescriptor,
+) => {
+  const originalMethod = descriptor.value as T;
+  descriptor.value = async function (...args: Parameters<T>) {
+    const scope = this as AmplitudeCore<Config>;
     const loggerKey = `InternalApi_${UUID()}`;
     Object.defineProperty(originalMethod, 'name', {
       value: loggerKey,
       configurable: true,
     });
 
-    (this as AmplitudeCore<Config>).messageBus.emit(MeasurementStates.START, [
+    scope.messageBus.emit(MeasurementStates.START, [
       {
         key: loggerKey,
         name: propertyKey,
         callStacks: Logger.trace(),
         arguments: args,
-        paramNames: getParamNames(originalMethod as () => unknown),
+        paramNames: getParamNames(originalMethod),
         time: new Date().getTime(),
-        config: JSON.stringify((this as AmplitudeCore<Config>).config, null, 2),
+        config: JSON.stringify(scope.config, null, 2),
       },
     ]);
 
-    const result = await originalMethod.apply(this, args);
+    const result = (await originalMethod.apply(this, args)) as ReturnType<T>;
 
-    (this as AmplitudeCore<Config>).messageBus.emit(MeasurementStates.END, [
+    scope.messageBus.emit(MeasurementStates.END, [
       {
         key: loggerKey,
         name: propertyKey,
         time: new Date().getTime(),
-        config: JSON.stringify((this as AmplitudeCore<Config>).config, null, 2),
+        config: JSON.stringify(scope.config, null, 2),
       },
     ]);
 
@@ -158,7 +119,7 @@ export const emitInternalApi = (_target: any, propertyKey: string, descriptor: P
   return descriptor;
 };
 
-export class MessageBus {
+export class MessageBus implements IMessageBus {
   private callbacks = new Map<string | symbol, Set<MessageBusCallback>>();
   private coreCallbacks = new Set<MessageBusCallback>();
 
