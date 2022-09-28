@@ -37,4 +37,12 @@ export class Logger implements ILogger {
     }
     console.error(`${PREFIX}[Error]: ${args.join(' ')}`);
   }
+
+  static trace(ignoreDepth = 0): string[] {
+    const trace = new Error().stack || '';
+    return trace
+      .split('\n')
+      .slice(2 + ignoreDepth)
+      .map((text) => text.trim());
+  }
 }

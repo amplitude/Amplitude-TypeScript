@@ -4,6 +4,7 @@
     "declaration": true,
     "declarationMap": true,
     "downlevelIteration": true,
+    "experimentalDecorators": true,
     "inlineSources": true,
     "importHelpers": true,
     "lib": ["es6"],

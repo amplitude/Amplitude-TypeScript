@@ -1,4 +1,13 @@
-import { AmplitudeCore, Destination, Identify, Revenue, UUID, returnWrapper } from '@amplitude/analytics-core';
+import {
+  AmplitudeCore,
+  Destination,
+  Identify,
+  Revenue,
+  UUID,
+  returnWrapper,
+  emitPublicApi,
+  // emitInternalApi,
+} from '@amplitude/analytics-core';
 import { CampaignTracker, getAnalyticsConnector, IdentityEventSender } from '@amplitude/analytics-client-common';
 import {
   AttributionOptions,
@@ -18,6 +27,7 @@ import { useBrowserConfig, createTransport, createFlexibleStorage } from './conf
 import { parseOldCookies } from './cookie-migration';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
+  // @emitInternalApi
   async init(apiKey: string, userId?: string, options?: BrowserOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
@@ -182,26 +192,31 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
 export const createInstance = (): BrowserClient => {
   const client = new AmplitudeBrowser();
+
+  if (!window.amplitudeMessageBus) {
+    window.amplitudeMessageBus = client.messageBus;
+  }
+
   return {
-    init: returnWrapper(client.init.bind(client)),
-    add: returnWrapper(client.add.bind(client)),
-    remove: returnWrapper(client.remove.bind(client)),
-    track: returnWrapper(client.track.bind(client)),
-    logEvent: returnWrapper(client.logEvent.bind(client)),
-    identify: returnWrapper(client.identify.bind(client)),
-    groupIdentify: returnWrapper(client.groupIdentify.bind(client)),
-    setGroup: returnWrapper(client.setGroup.bind(client)),
-    revenue: returnWrapper(client.revenue.bind(client)),
-    flush: returnWrapper(client.flush.bind(client)),
-    getUserId: client.getUserId.bind(client),
-    setUserId: client.setUserId.bind(client),
-    getDeviceId: client.getDeviceId.bind(client),
-    setDeviceId: client.setDeviceId.bind(client),
-    reset: client.reset.bind(client),
-    getSessionId: client.getSessionId.bind(client),
-    setSessionId: client.setSessionId.bind(client),
-    setOptOut: client.setOptOut.bind(client),
-    setTransport: client.setTransport.bind(client),
+    init: emitPublicApi(client, 'init', returnWrapper(client.init.bind(client))),
+    add: emitPublicApi(client, 'add', returnWrapper(client.add.bind(client))),
+    remove: emitPublicApi(client, 'remove', returnWrapper(client.remove.bind(client))),
+    track: emitPublicApi(client, 'track', returnWrapper(client.track.bind(client))),
+    logEvent: emitPublicApi(client, 'logEvent', returnWrapper(client.logEvent.bind(client))),
+    identify: emitPublicApi(client, 'identify', returnWrapper(client.identify.bind(client))),
+    groupIdentify: emitPublicApi(client, 'groupIdentify', returnWrapper(client.groupIdentify.bind(client))),
+    setGroup: emitPublicApi(client, 'setGroup', returnWrapper(client.setGroup.bind(client))),
+    revenue: emitPublicApi(client, 'revenue', returnWrapper(client.revenue.bind(client))),
+    flush: emitPublicApi(client, 'flush', returnWrapper(client.flush.bind(client))),
+    getUserId: emitPublicApi(client, 'getUserId', client.getUserId.bind(client)),
+    setUserId: emitPublicApi(client, 'setUserId', client.setUserId.bind(client)),
+    getDeviceId: emitPublicApi(client, 'getDeviceId', client.getDeviceId.bind(client)),
+    setDeviceId: emitPublicApi(client, 'setDeviceId', client.setDeviceId.bind(client)),
+    reset: emitPublicApi(client, 'reset', client.reset.bind(client)),
+    getSessionId: emitPublicApi(client, 'getSessionId', client.getSessionId.bind(client)),
+    setSessionId: emitPublicApi(client, 'setSessionId', client.setSessionId.bind(client)),
+    setOptOut: emitPublicApi(client, 'setOptOut', client.setOptOut.bind(client)),
+    setTransport: emitPublicApi(client, 'setTransport', client.setTransport.bind(client)),
   };
 };
 

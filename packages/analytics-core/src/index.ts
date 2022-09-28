@@ -10,3 +10,4 @@ export { UUID } from './utils/uuid';
 export { MemoryStorage } from './storage/memory';
 export { BaseTransport } from './transports/base';
 export { createIdentifyEvent } from './utils/event-builder';
+export { MeasurementStates, emitPublicApi, emitInternalApi } from './utils/message-bus';
