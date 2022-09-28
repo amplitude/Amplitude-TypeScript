@@ -32,10 +32,11 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "playground": "cp lib/scripts/amplitude-min.js playground/amplitude.js && cd playground && npx http-server && cd -",
     "publish": "node scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn version-file && GENERATE_SNIPPET=true yarn build",
+    "version": "yarn version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/amplitude.js",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
