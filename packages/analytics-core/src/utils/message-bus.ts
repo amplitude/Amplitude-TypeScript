@@ -82,14 +82,28 @@ export const emitPublicApi = (client: any, fnName: string, fn: (...args: any[]) 
 
     const result = fn.apply(client, args);
 
-    client.messageBus.emit(MeasurementStates.END, [
-      {
-        key: loggerKey,
-        name: fnName,
-        time: new Date().getTime(),
-        config: JSON.stringify(client.config, null, 2),
-      },
-    ]);
+    if (result.promise) {
+      result.promise.then(() => {
+        client.messageBus.emit(MeasurementStates.END, [
+          {
+            key: loggerKey,
+            name: fnName,
+            time: new Date().getTime(),
+            config: JSON.stringify(client.config, null, 2),
+          },
+        ]);
+      });
+    } else {
+      client.messageBus.emit(MeasurementStates.END, [
+        {
+          key: loggerKey,
+          name: fnName,
+          time: new Date().getTime(),
+          config: JSON.stringify(client.config, null, 2),
+        },
+      ]);
+    }
+
     return result;
   };
 

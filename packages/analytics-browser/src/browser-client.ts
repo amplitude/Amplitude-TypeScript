@@ -6,7 +6,7 @@ import {
   UUID,
   returnWrapper,
   emitPublicApi,
-  // emitInternalApi,
+  emitInternalApi,
 } from '@amplitude/analytics-core';
 import { CampaignTracker, getAnalyticsConnector, IdentityEventSender } from '@amplitude/analytics-client-common';
 import {
@@ -27,7 +27,7 @@ import { useBrowserConfig, createTransport, createFlexibleStorage } from './conf
 import { parseOldCookies } from './cookie-migration';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
-  // @emitInternalApi
+  @emitInternalApi
   async init(apiKey: string, userId?: string, options?: BrowserOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {

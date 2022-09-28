@@ -7,7 +7,7 @@
     "experimentalDecorators": true,
     "inlineSources": true,
     "importHelpers": true,
-    "lib": ["es6"],
+    "lib": ["es2018"],
     "module": "commonjs",
     "moduleResolution": "node",
     "noEmitHelpers": true,
@@ -23,7 +23,7 @@
     "resolveJsonModule": true,
     "strict": true,
     "strictBindCallApply": true,
-    "target": "es5",
+    "target": "es2018",
     "types": ["jest", "node"],
   }
 }
