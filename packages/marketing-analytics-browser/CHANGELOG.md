@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.1.3...@amplitude/marketing-analytics-browser@0.1.4) (2022-09-30)
+
+
+### Bug Fixes
+
+* remove unintended options passed to browser SDK ([88cfc3f](https://github.com/amplitude/Amplitude-TypeScript/commit/88cfc3f26626ad0f8419c2b94f044a2a04f5cc86))
+
+
+
+
+
 ## [0.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.1.2...@amplitude/marketing-analytics-browser@0.1.3) (2022-09-30)
 
 **Note:** Version bump only for package @amplitude/marketing-analytics-browser

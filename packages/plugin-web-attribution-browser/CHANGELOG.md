@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.1.5...@amplitude/plugin-web-attribution-browser@0.1.6) (2022-09-30)
+
+
+### Bug Fixes
+
+* resolve web attribution is not tracking the first direct/organic traffic ([#239](https://github.com/amplitude/Amplitude-TypeScript/issues/239)) ([98a3363](https://github.com/amplitude/Amplitude-TypeScript/commit/98a33633a7a6de7ee147c8cbf690e5546ce53163))
+
+
+
+
+
 ## [0.1.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.1.4...@amplitude/plugin-web-attribution-browser@0.1.5) (2022-09-30)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

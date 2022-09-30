@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.3...@amplitude/analytics-client-common@0.2.4) (2022-09-30)
+
+
+### Bug Fixes
+
+* resolve web attribution is not tracking the first direct/organic traffic ([#239](https://github.com/amplitude/Amplitude-TypeScript/issues/239)) ([98a3363](https://github.com/amplitude/Amplitude-TypeScript/commit/98a33633a7a6de7ee147c8cbf690e5546ce53163))
+
+
+
+
+
 ## [0.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.2...@amplitude/analytics-client-common@0.2.3) (2022-09-30)
 
 
