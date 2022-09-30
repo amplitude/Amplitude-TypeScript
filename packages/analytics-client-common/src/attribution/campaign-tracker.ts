@@ -42,7 +42,10 @@ export class CampaignTracker implements ICampaignTracker {
     this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
   }
 
-  isNewCampaign(current: Campaign, previous: Campaign) {
+  isNewCampaign(current: Campaign, previous: Campaign | undefined) {
+    if (typeof previous === 'undefined') {
+      return true;
+    }
     const { referrer: _referrer, ...currentCampaign } = current;
     const { referrer: _previous_referrer, ...previousCampaign } = previous;
 
@@ -58,8 +61,8 @@ export class CampaignTracker implements ICampaignTracker {
     await this.storage.set(this.storageKey, campaign);
   }
 
-  async getCampaignFromStorage(): Promise<Campaign> {
-    return (await this.storage.get(this.storageKey)) || { ...BASE_CAMPAIGN };
+  async getCampaignFromStorage(): Promise<Campaign | undefined> {
+    return await this.storage.get(this.storageKey);
   }
 
   createCampaignEvent(campaign: Campaign) {

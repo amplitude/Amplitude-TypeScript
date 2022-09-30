@@ -60,6 +60,21 @@ describe('CampaignTracker', () => {
       };
       expect(campaignTracker.isNewCampaign(currentCampaign, previousCampaign)).toBe(false);
     });
+
+    test('should return true for undefined previous campaign', () => {
+      const config = {
+        storage: new MemoryStorage<Campaign>(),
+        track: jest.fn(),
+        onNewCampaign: jest.fn(),
+        excludeReferrers: ['a'],
+      };
+      const campaignTracker = new CampaignTracker(API_KEY, config);
+      const previousCampaign = undefined;
+      const currentCampaign = {
+        ...BASE_CAMPAIGN,
+      };
+      expect(campaignTracker.isNewCampaign(currentCampaign, previousCampaign)).toBe(true);
+    });
   });
 
   describe('saveCampaignToStorage', () => {
@@ -88,9 +103,7 @@ describe('CampaignTracker', () => {
       };
       const campaignTracker = new CampaignTracker(API_KEY, config);
       const get = jest.spyOn(campaignTracker.storage, 'get');
-      expect(await campaignTracker.getCampaignFromStorage()).toEqual({
-        ...BASE_CAMPAIGN,
-      });
+      expect(await campaignTracker.getCampaignFromStorage()).toEqual(undefined);
       expect(get).toHaveBeenCalledTimes(1);
     });
   });
