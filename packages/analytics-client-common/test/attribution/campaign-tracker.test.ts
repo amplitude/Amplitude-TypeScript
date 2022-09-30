@@ -75,6 +75,22 @@ describe('CampaignTracker', () => {
       };
       expect(campaignTracker.isNewCampaign(currentCampaign, previousCampaign)).toBe(true);
     });
+
+    test('should return false for undefined previous campaign and excluded referrer', () => {
+      const config = {
+        storage: new MemoryStorage<Campaign>(),
+        track: jest.fn(),
+        onNewCampaign: jest.fn(),
+        excludeReferrers: ['a'],
+      };
+      const campaignTracker = new CampaignTracker(API_KEY, config);
+      const previousCampaign = undefined;
+      const currentCampaign = {
+        ...BASE_CAMPAIGN,
+        referring_domain: 'a',
+      };
+      expect(campaignTracker.isNewCampaign(currentCampaign, previousCampaign)).toBe(false);
+    });
   });
 
   describe('saveCampaignToStorage', () => {
