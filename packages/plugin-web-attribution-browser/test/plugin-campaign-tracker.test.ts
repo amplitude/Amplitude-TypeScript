@@ -13,7 +13,7 @@ describe('PluginCampaignTracker', () => {
       const storage = new MemoryStorage<Campaign>();
       const tracker = new PluginCampaignTracker(API_KEY, storage, config);
       await tracker.onPageChange(async ({ isNewCampaign }) => {
-        expect(isNewCampaign).toBe(false);
+        expect(isNewCampaign).toBe(true);
       });
     });
   });
