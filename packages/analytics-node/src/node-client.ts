@@ -4,7 +4,7 @@ import { Context } from './plugins/context';
 import { useNodeConfig } from './config';
 
 export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
-  async init(apiKey: string, options?: NodeOptions) {
+  async init(apiKey = '', options?: NodeOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;

@@ -33,6 +33,18 @@ describe('browser-client', () => {
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
     });
 
+    test('should initialize without error when apiKey is undefined', async () => {
+      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+      });
+      const client = new AmplitudeBrowser();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      await client.init(undefined as any, USER_ID, {
+        ...attributionConfig,
+      });
+      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+    });
+
     test('should read from old cookies config', async () => {
       const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
         optOut: false,

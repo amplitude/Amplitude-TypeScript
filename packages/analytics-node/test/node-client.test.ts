@@ -15,6 +15,15 @@ describe('node-client', () => {
       expect(client.config).toBeDefined();
     });
 
+    test('should initialize without error when apiKey is undefined', async () => {
+      const client = new AmplitudeNode();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      await client.init(undefined as any, {
+        flushIntervalMillis: 1000,
+      });
+      expect(client.config).toBeDefined();
+    });
+
     test('should call prevent concurrent init executions', async () => {
       const client = new AmplitudeNode();
       const useNodeConfig = jest.spyOn(Config, 'useNodeConfig');
