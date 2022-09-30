@@ -83,7 +83,7 @@ describe('browser-client', () => {
       expect(init).toHaveBeenCalledTimes(1);
     });
 
-    test('should add page view tracking plugin when trackPageViews is true', async () => {
+    test('should add page view tracking plugin when pageViewTracking is true', async () => {
       const init = jest.fn().mockImplementation(() => ({
         promise: Promise.resolve(),
       }));
@@ -105,14 +105,14 @@ describe('browser-client', () => {
         attribution: {
           disabled: true,
         },
-        trackPageViews: true,
+        pageViewTracking: true,
       }).promise;
 
       expect(add).toHaveBeenCalledTimes(2);
       expect(init).toHaveBeenCalledTimes(1);
     });
 
-    test('should add page view tracking plugin when trackPageViews is set', async () => {
+    test('should add page view tracking plugin when pageViewTracking is set', async () => {
       const init = jest.fn().mockImplementation(() => ({
         promise: Promise.resolve(),
       }));
@@ -134,7 +134,7 @@ describe('browser-client', () => {
         attribution: {
           disabled: true,
         },
-        trackPageViews: {
+        pageViewTracking: {
           trackOn: 'attribution',
         },
       }).promise;
@@ -143,7 +143,7 @@ describe('browser-client', () => {
       expect(init).toHaveBeenCalledTimes(1);
     });
 
-    test('should not add page view tracking plugin when trackPageViews is false', async () => {
+    test('should not add page view tracking plugin when pageViewTracking is false', async () => {
       const init = jest.fn().mockImplementation(() => ({
         promise: Promise.resolve(),
       }));
@@ -165,7 +165,7 @@ describe('browser-client', () => {
         attribution: {
           disabled: true,
         },
-        trackPageViews: false,
+        pageViewTracking: false,
       }).promise;
 
       expect(add).toHaveBeenCalledTimes(1);

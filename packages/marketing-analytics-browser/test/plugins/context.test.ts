@@ -1,16 +1,17 @@
-import { Context } from '../../src/plugins/context';
+import { Config } from '@amplitude/analytics-types';
+import { context } from '../../src/plugins/context';
 
 describe('context', () => {
   describe('execute', () => {
     test('should execute plugin', async () => {
-      const context = new Context();
-      await context.setup();
+      const plugin = context();
+      await plugin.setup({} as Config);
 
-      const event = {
+      const e = {
         event_type: 'event_type',
       };
-      const contextEvent = await context.execute(event);
-      expect(contextEvent.library).toBeDefined();
+      const event = await plugin.execute(e);
+      expect(event.library).toMatch(/^amplitude-ma-ts\/.+/);
     });
   });
 });
