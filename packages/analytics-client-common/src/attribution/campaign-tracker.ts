@@ -50,9 +50,6 @@ export class CampaignTracker implements ICampaignTracker {
       currentCampaign.referring_domain && this.excludeReferrers.includes(currentCampaign.referring_domain),
     );
 
-    if (!previous) {
-      return !isReferrerExcluded;
-    }
     const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
 
     return !isReferrerExcluded && hasNewCampaign;
