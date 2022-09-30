@@ -6,12 +6,16 @@ import {
 import { Types as PageViewTrackingTypes } from '@amplitude/plugin-page-view-tracking-browser';
 import { Types as WebAttributionPluginTypes } from '@amplitude/plugin-web-attribution-browser';
 
-export interface BrowserClient extends AnalyticsBrowserClient {
-  init(apiKey: string, userId?: string, options?: BrowserOptions): AmplitudeReturn<void>;
+export interface Client extends AnalyticsBrowserClient {
+  init(apiKey: string, userId?: string, options?: Options): AmplitudeReturn<void>;
 }
 
-export type BrowserOptions = AnalyticsBrowserOptions & {
+export type Options = AnalyticsBrowserOptions & AttributionOptions & PageViewTracking;
+
+export type AttributionOptions = {
   attribution?: WebAttributionPluginTypes.Options;
-} & {
-  trackPageViews?: PageViewTrackingTypes.Options | boolean;
+};
+
+export type PageViewTracking = {
+  pageViewTracking?: PageViewTrackingTypes.Options | boolean;
 };

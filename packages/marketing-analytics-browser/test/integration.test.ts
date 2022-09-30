@@ -127,7 +127,7 @@ describe('e2e', () => {
     const client = createInstance();
     client.init('API_KEY', undefined, {
       ...opts,
-      trackPageViews: {
+      pageViewTracking: {
         trackOn: 'attribution',
       },
     });
@@ -220,7 +220,7 @@ describe('e2e', () => {
       attribution: {
         disabled: true,
       },
-      trackPageViews: true,
+      pageViewTracking: true,
     });
 
     return new Promise<void>((resolve) => {
@@ -274,7 +274,7 @@ describe('e2e', () => {
     const client = createInstance();
     client.init('API_KEY', undefined, {
       ...opts,
-      trackPageViews: true,
+      pageViewTracking: true,
     });
 
     return new Promise<void>((resolve) => {
