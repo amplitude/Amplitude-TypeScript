@@ -43,7 +43,7 @@ export class CampaignTracker implements ICampaignTracker {
   }
 
   isNewCampaign(current: Campaign, previous: Campaign | undefined) {
-    if (typeof previous === 'undefined') {
+    if (!previous) {
       return true;
     }
     const { referrer: _referrer, ...currentCampaign } = current;
