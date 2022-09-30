@@ -56,7 +56,7 @@ amplitude.init(API_KEY, USER_ID, {
   },
 
   // Enable auto page view tracking
-  trackPageViews: {
+  pageViewTracking: {
     trackOn: 'attribution',
   }
 });
