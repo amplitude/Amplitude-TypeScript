@@ -52,7 +52,7 @@ export class CampaignTracker implements ICampaignTracker {
 
     const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
 
-    return !isReferrerExcluded && hasNewCampaign;
+    return !isReferrerExcluded && (!previous || hasNewCampaign);
   }
 
   async saveCampaignToStorage(campaign: Campaign): Promise<void> {
