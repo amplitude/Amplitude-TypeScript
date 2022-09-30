@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.2...@amplitude/analytics-client-common@0.2.3) (2022-09-30)
+
+
+### Bug Fixes
+
+* cover the case when apiKey is missing in the runtime ([#240](https://github.com/amplitude/Amplitude-TypeScript/issues/240)) ([308bbe8](https://github.com/amplitude/Amplitude-TypeScript/commit/308bbe8337cbab366a0ca255f2d665101f4781a0))
+
+
+
+
+
 ## [0.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.2-beta.1...@amplitude/analytics-client-common@0.2.2) (2022-09-28)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common

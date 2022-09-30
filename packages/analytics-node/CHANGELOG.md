@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.5.4...@amplitude/analytics-node@0.5.5) (2022-09-30)
+
+
+### Bug Fixes
+
+* cover the case when apiKey is missing in the runtime ([#240](https://github.com/amplitude/Amplitude-TypeScript/issues/240)) ([308bbe8](https://github.com/amplitude/Amplitude-TypeScript/commit/308bbe8337cbab366a0ca255f2d665101f4781a0))
+
+
+
+
+
 ## [0.5.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.5.4-beta.0...@amplitude/analytics-node@0.5.4) (2022-09-28)
 
 **Note:** Version bump only for package @amplitude/analytics-node
