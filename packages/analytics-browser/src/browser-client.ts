@@ -26,6 +26,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     this.initializing = true;
 
     // Step 1: Read cookies stored by old SDK
+    apiKey = apiKey ?? '';
     const oldCookies = await parseOldCookies(apiKey, options);
 
     // Step 2: Create browser config

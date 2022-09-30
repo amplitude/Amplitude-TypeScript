@@ -21,6 +21,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     this.initializing = true;
 
     // Step 1: Read cookies stored by old SDK
+    apiKey = apiKey ?? '';
     const oldCookies = await parseOldCookies(apiKey, options);
 
     // Step 2: Create react native config

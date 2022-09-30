@@ -11,6 +11,7 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
     }
     this.initializing = true;
 
+    apiKey = apiKey ?? '';
     const nodeOptions = useNodeConfig(apiKey, {
       ...options,
     });
