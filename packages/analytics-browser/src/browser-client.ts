@@ -18,7 +18,7 @@ import { useBrowserConfig, createTransport, createFlexibleStorage } from './conf
 import { parseOldCookies } from './cookie-migration';
 
 export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
-  async init(apiKey: string, userId?: string, options?: BrowserOptions) {
+  async init(apiKey = '', userId?: string, options?: BrowserOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
@@ -26,7 +26,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     this.initializing = true;
 
     // Step 1: Read cookies stored by old SDK
-    apiKey = apiKey ?? '';
     const oldCookies = await parseOldCookies(apiKey, options);
 
     // Step 2: Create browser config

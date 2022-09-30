@@ -13,7 +13,7 @@ import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
-  async init(apiKey: string, userId?: string, options?: ReactNativeOptions) {
+  async init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
@@ -21,7 +21,6 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     this.initializing = true;
 
     // Step 1: Read cookies stored by old SDK
-    apiKey = apiKey ?? '';
     const oldCookies = await parseOldCookies(apiKey, options);
 
     // Step 2: Create react native config
