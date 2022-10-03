@@ -13,6 +13,8 @@ import {
   TWCLID,
   TTCLID,
   KO_CLICK_ID,
+  GBRAID,
+  WBRAID,
 } from './constants';
 import {
   Campaign,
@@ -69,11 +71,13 @@ export class CampaignParser implements ICampaignParser {
     return {
       [DCLID]: params[DCLID],
       [FBCLID]: params[FBCLID],
+      [GBRAID]: params[GBRAID],
       [GCLID]: params[GCLID],
       [KO_CLICK_ID]: params[KO_CLICK_ID],
       [MSCLKID]: params[MSCLKID],
       [TTCLID]: params[TTCLID],
       [TWCLID]: params[TWCLID],
+      [WBRAID]: params[WBRAID],
     };
   }
 }

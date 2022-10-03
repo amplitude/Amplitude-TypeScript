@@ -17,12 +17,14 @@ export interface ReferrerParameters {
 
 export interface ClickIdParameters {
   dclid: string | undefined;
-  gclid: string | undefined;
   fbclid: string | undefined;
+  gbraid: string | undefined;
+  gclid: string | undefined;
   ko_click_id: string | undefined;
   msclkid: string | undefined;
   ttclid: string | undefined;
   twclid: string | undefined;
+  wbraid: string | undefined;
 }
 
 export interface Campaign
