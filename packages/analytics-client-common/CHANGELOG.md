@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.4...@amplitude/analytics-client-common@0.3.0) (2022-10-04)
+
+
+### Features
+
+* add gbraid and wbraid as campaign parameters ([#242](https://github.com/amplitude/Amplitude-TypeScript/issues/242)) ([514b7cd](https://github.com/amplitude/Amplitude-TypeScript/commit/514b7cdea9fee0c4e61479b087f7acdfea889350))
+
+
+
+
+
 ## [0.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.2.3...@amplitude/analytics-client-common@0.2.4) (2022-09-30)
 
 

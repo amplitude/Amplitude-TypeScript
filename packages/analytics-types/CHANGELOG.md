@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.10.3...@amplitude/analytics-types@0.11.0) (2022-10-04)
+
+
+### Features
+
+* add gbraid and wbraid as campaign parameters ([#242](https://github.com/amplitude/Amplitude-TypeScript/issues/242)) ([514b7cd](https://github.com/amplitude/Amplitude-TypeScript/commit/514b7cdea9fee0c4e61479b087f7acdfea889350))
+
+
+
+
+
 ## [0.10.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.10.3-beta.0...@amplitude/analytics-types@0.10.3) (2022-09-28)
 
 **Note:** Version bump only for package @amplitude/analytics-types
