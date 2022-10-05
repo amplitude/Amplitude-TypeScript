@@ -137,6 +137,9 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     if (eventOptions?.user_id) {
       this.setUserId(eventOptions.user_id);
     }
+    if (eventOptions?.device_id) {
+      this.setDeviceId(eventOptions.device_id);
+    }
     return super.identify(identify, eventOptions);
   }
 
