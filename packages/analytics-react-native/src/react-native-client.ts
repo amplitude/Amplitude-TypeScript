@@ -6,6 +6,8 @@ import {
   ReactNativeOptions,
   AttributionOptions,
   ReactNativeClient,
+  Identify as IIdentify,
+  EventOptions,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useReactNativeConfig, createFlexibleStorage } from './config';
@@ -129,6 +131,13 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       // @ts-ignore
       .setDeviceId(deviceId)
       .commit();
+  }
+
+  identify(identify: IIdentify, eventOptions?: EventOptions) {
+    if (eventOptions?.user_id) {
+      this.setUserId(eventOptions.user_id);
+    }
+    return super.identify(identify, eventOptions);
   }
 
   reset() {
