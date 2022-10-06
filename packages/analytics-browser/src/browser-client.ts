@@ -153,6 +153,12 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       identify._q = [];
       identify = convertProxyObjectToRealObject(new Identify(), queue);
     }
+    if (eventOptions?.user_id) {
+      this.setUserId(eventOptions.user_id);
+    }
+    if (eventOptions?.device_id) {
+      this.setDeviceId(eventOptions.device_id);
+    }
     return super.identify(identify, eventOptions);
   }
 
