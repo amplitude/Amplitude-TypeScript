@@ -3,7 +3,7 @@ import { Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
 import { pageViewTrackingEnrichment } from './';
 
-describe('pageViewTrackingEnrichment', () => {
+describe('page-view-tracking-enrichment', () => {
   describe('setup', () => {
     test('should return undefined', async () => {
       const mockConfig = {
@@ -36,6 +36,17 @@ describe('pageViewTrackingEnrichment', () => {
         event_properties: {
           new_property: 'new_value',
         },
+      });
+    });
+
+    test('should not enrich other events', async () => {
+      const mockEvent = {
+        event_type: 'Not Page View',
+      };
+      const plugin = pageViewTrackingEnrichment();
+      const result = await plugin.execute(mockEvent);
+      expect(result).toEqual({
+        event_type: 'Not Page View',
       });
     });
   });
