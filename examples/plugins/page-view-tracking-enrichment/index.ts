@@ -28,7 +28,10 @@ export const pageViewTrackingEnrichment = (): EnrichmentPlugin => {
   };
 };
 
-// install plugin
+/**
+ * IMPORTANT: install plugin before calling init to make sure plugin is added by the time
+ * init function sends out the "Page View" event
+ */
 instance.add(pageViewTrackingEnrichment());
 
 // initialize sdk
