@@ -36,6 +36,8 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
     });
+
+    const tempQ = this.getAndResetQueuedFunctions();
     await super._init(browserOptions);
 
     // Step 3: Manage session
@@ -80,6 +82,11 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
     // Step 6: Track attributions
     await this.runAttributionStrategy(browserOptions.attribution, isNewSession);
+
+    // Step 7:
+    // Run queued functions
+    this.q = [...tempQ, ...this.q];
+    await this.runQueuedFunctions();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
