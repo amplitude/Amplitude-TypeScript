@@ -7,14 +7,11 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2018,
-    project: "packages/*/tsconfig.json",
+    project: 'packages/*/tsconfig.json',
     sourceType: 'module',
     tsconfigRootDir: __dirname,
   },
-  plugins: [
-    '@typescript-eslint',
-    'jest',
-  ],
+  plugins: ['@typescript-eslint', 'jest'],
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/eslint-recommended',
@@ -31,7 +28,22 @@ module.exports = {
     '@typescript-eslint/require-await': 0,
     'comma-dangle': 0,
     'new-cap': 0,
-    'eol-last': [2, "always"],
+    'eol-last': [2, 'always'],
     'no-multiple-empty-lines': [2, { max: 1, maxEOF: 0 }],
+    'no-restricted-globals': [
+      'error',
+      {
+        name: 'globalThis',
+        message: 'Unsafe access to `globalThis`.',
+      },
+      {
+        name: 'window',
+        message: 'Unsafe access to `window`.',
+      },
+      {
+        name: 'self',
+        message: 'Unsafe access to `self`.',
+      },
+    ],
   },
 };
