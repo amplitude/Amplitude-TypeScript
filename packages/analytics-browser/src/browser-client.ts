@@ -37,7 +37,8 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       lastEventTime: oldCookies.lastEventTime,
     });
 
-    const tempQ = this.getAndResetQueuedFunctions();
+    // delay running queued functions until after all initialization is complete
+    const delayedQ = this.getAndResetQueuedFunctions();
     await super._init(browserOptions);
 
     // Step 3: Manage session
@@ -85,7 +86,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
     // Step 7:
     // Run queued functions
-    this.q = [...tempQ, ...this.q];
+    this.q = [...delayedQ, ...this.q];
     await this.runQueuedFunctions();
   }
 
