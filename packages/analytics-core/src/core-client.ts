@@ -29,6 +29,7 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   // @ts-ignore
   timeline: Timeline;
   protected q: CallableFunction[] = [];
+  protected pluginQueue: CallableFunction[] = [];
 
   constructor(name = '$default') {
     this.timeline = new Timeline();
@@ -38,6 +39,7 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   async _init(config: T) {
     this.config = config;
     this.timeline.reset();
+    await this.runQueuedPluginFunctions();
     await this.runQueuedFunctions();
   }
 
@@ -49,6 +51,19 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   protected async runQueuedFunctions() {
     const queuedFunctions = this.getAndResetQueuedFunctions();
+    for (const queuedFunction of queuedFunctions) {
+      await queuedFunction();
+    }
+  }
+
+  protected getAndResetQueuedPluginFunctions() {
+    const queuedFunctions = this.pluginQueue;
+    this.pluginQueue = [];
+    return queuedFunctions;
+  }
+
+  protected async runQueuedPluginFunctions() {
+    const queuedFunctions = this.getAndResetQueuedPluginFunctions();
     for (const queuedFunction of queuedFunctions) {
       await queuedFunction();
     }
@@ -83,7 +98,7 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   async add(plugin: Plugin) {
     if (!this.config) {
-      this.q.push(this.add.bind(this, plugin));
+      this.pluginQueue.push(this.add.bind(this, plugin));
       return;
     }
     return this.timeline.register(plugin, this.config);
@@ -91,7 +106,7 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   async remove(pluginName: string) {
     if (!this.config) {
-      this.q.push(this.remove.bind(this, pluginName));
+      this.pluginQueue.push(this.remove.bind(this, pluginName));
       return;
     }
     return this.timeline.deregister(pluginName);

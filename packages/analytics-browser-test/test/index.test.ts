@@ -3,7 +3,23 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
-import { PluginType } from '@amplitude/analytics-types';
+import { PluginType, Response, Transport } from '@amplitude/analytics-types';
+import { BaseTransport } from '@amplitude/analytics-core';
+
+const mockWindowLocationFromURL = (url: URL) => {
+  window.location.href = url.toString();
+  window.location.search = url.search;
+  window.location.hostname = url.hostname;
+  window.location.pathname = url.pathname;
+};
+
+class DummyTransport extends BaseTransport implements Transport {
+  async send(): Promise<Response | null> {
+    return this.buildResponse({
+      code: 200,
+    });
+  }
+}
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -25,6 +41,27 @@ describe('integration', () => {
   // This test is under the assumption that amplitude has not be initiated at all
   // To achieve this condition, it must run before any other tests
   describe('FIRST TEST: defer initialization', () => {
+    beforeAll(() => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: '',
+          href: '',
+          pathname: '',
+          search: '',
+        },
+        writable: true,
+      });
+    });
+
+    beforeEach(() => {
+      (window.location as any) = {
+        hostname: '',
+        href: '',
+        pathname: '',
+        search: '',
+      };
+    });
+
     test('should allow init to be called after other APIs', () => {
       return new Promise((resolve) => {
         const scope = nock(url).post(path).reply(200, success);
@@ -79,6 +116,76 @@ describe('integration', () => {
           serverUrl: url + path,
         });
       });
+    });
+
+    test('should set attribution on init prior to running queued methods', async () => {
+      const search = 'utm_source=google&utm_medium=cpc&utm_campaign=brand&utm_term=keyword&utm_content=adcopy';
+      const hostname = 'www.example.com';
+      const pathname = '/path/to/page';
+      const windowUrl = new URL(`https://${hostname}${pathname}?${search}`);
+      mockWindowLocationFromURL(windowUrl);
+
+      // NOTE: Values to assert on
+      const sessionId = Date.now() - 1000;
+      const userId = 'user@amplitude.com';
+      const deviceId = 'device-12345';
+
+      const transportProvider = new DummyTransport();
+      const send = jest.spyOn(transportProvider, 'send');
+      const track = jest.fn();
+
+      amplitude.setUserId(userId);
+      amplitude.setDeviceId(deviceId);
+      amplitude.setSessionId(sessionId);
+
+      void amplitude.track('Event Before Init').promise.then((result) => {
+        track(result.event.event_type);
+      });
+      await amplitude.init('API_KEY', undefined, {
+        ...opts,
+        transportProvider,
+        attribution: {
+          disabled: false,
+        },
+      }).promise;
+
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(send).toHaveBeenCalledWith(
+        'https://api2.amplitude.com/2/httpapi',
+        expect.objectContaining({
+          api_key: 'API_KEY',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          events: expect.arrayContaining([
+            expect.objectContaining({
+              event_type: '$identify',
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              user_properties: expect.objectContaining({
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                $setOnce: expect.objectContaining({
+                  initial_utm_source: 'google',
+                  initial_utm_medium: 'cpc',
+                  initial_utm_campaign: 'brand',
+                  initial_utm_term: 'keyword',
+                  initial_utm_content: 'adcopy',
+                }),
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                $set: expect.objectContaining({
+                  utm_source: 'google',
+                  utm_medium: 'cpc',
+                  utm_campaign: 'brand',
+                  utm_term: 'keyword',
+                  utm_content: 'adcopy',
+                }),
+              }),
+            }),
+          ]),
+        }),
+      );
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledWith('Event Before Init');
+      expect(send.mock.invocationCallOrder[0]).toBe(1);
+      expect(track.mock.invocationCallOrder[0]).toBe(2);
     });
   });
 
