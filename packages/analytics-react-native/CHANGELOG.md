@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.4.7...@amplitude/analytics-react-native@0.4.8) (2022-10-14)
+
+
+### Bug Fixes
+
+* update userId/deviceId in identify call if eventOptions contains userId/deviceId ([#244](https://github.com/amplitude/Amplitude-TypeScript/issues/244)) ([578cbe2](https://github.com/amplitude/Amplitude-TypeScript/commit/578cbe218de84d7fdd4930f75820beda6f85ce6d))
+
+
+
+
+
 ## [0.4.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.4.6...@amplitude/analytics-react-native@0.4.7) (2022-10-04)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.2.0...@amplitude/marketing-analytics-browser@0.2.1) (2022-10-14)
+
+
+### Bug Fixes
+
+* globalThis polyfill ([#250](https://github.com/amplitude/Amplitude-TypeScript/issues/250)) ([c52f263](https://github.com/amplitude/Amplitude-TypeScript/commit/c52f2631f7a1884a7bac89538407681f6224a27e))
+
+
+
+
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.1.4...@amplitude/marketing-analytics-browser@0.2.0) (2022-10-04)
 
 

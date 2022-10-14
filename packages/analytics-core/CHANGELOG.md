@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.9.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.9.5...@amplitude/analytics-core@0.9.6) (2022-10-14)
+
+
+### Bug Fixes
+
+* run queued functions after attribution in browser-client.ts ([#249](https://github.com/amplitude/Amplitude-TypeScript/issues/249)) ([751b7ca](https://github.com/amplitude/Amplitude-TypeScript/commit/751b7ca6b0f05131dc932b89dd89e8979e334b4b))
+
+
+
+
+
 ## [0.9.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.9.4...@amplitude/analytics-core@0.9.5) (2022-10-04)
 
 **Note:** Version bump only for package @amplitude/analytics-core

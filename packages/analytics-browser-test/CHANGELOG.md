@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.1.7...@amplitude/analytics-browser-test@2.1.8) (2022-10-14)
+
+
+### Bug Fixes
+
+* run queued functions after attribution in browser-client.ts ([#249](https://github.com/amplitude/Amplitude-TypeScript/issues/249)) ([751b7ca](https://github.com/amplitude/Amplitude-TypeScript/commit/751b7ca6b0f05131dc932b89dd89e8979e334b4b))
+
+
+
+
+
 ## [2.1.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.1.6...@amplitude/analytics-browser-test@2.1.7) (2022-10-04)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test

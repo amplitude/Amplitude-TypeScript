@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.5.4...@amplitude/analytics-browser@1.5.5) (2022-10-14)
+
+
+### Bug Fixes
+
+* globalThis polyfill ([#250](https://github.com/amplitude/Amplitude-TypeScript/issues/250)) ([c52f263](https://github.com/amplitude/Amplitude-TypeScript/commit/c52f2631f7a1884a7bac89538407681f6224a27e))
+* run queued functions after attribution in browser-client.ts ([#249](https://github.com/amplitude/Amplitude-TypeScript/issues/249)) ([751b7ca](https://github.com/amplitude/Amplitude-TypeScript/commit/751b7ca6b0f05131dc932b89dd89e8979e334b4b))
+* update userId/deviceId in identify call if eventOptions contains userId/deviceId ([#244](https://github.com/amplitude/Amplitude-TypeScript/issues/244)) ([578cbe2](https://github.com/amplitude/Amplitude-TypeScript/commit/578cbe218de84d7fdd4930f75820beda6f85ce6d))
+
+
+
+
+
 ## [1.5.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.5.3...@amplitude/analytics-browser@1.5.4) (2022-10-04)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
