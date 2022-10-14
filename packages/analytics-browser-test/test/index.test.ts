@@ -134,14 +134,15 @@ describe('integration', () => {
       const send = jest.spyOn(transportProvider, 'send');
       const track = jest.fn();
 
-      amplitude.setUserId(userId);
-      amplitude.setDeviceId(deviceId);
-      amplitude.setSessionId(sessionId);
+      const client = amplitude.createInstance();
+      client.setUserId(userId);
+      client.setDeviceId(deviceId);
+      client.setSessionId(sessionId);
 
-      void amplitude.track('Event Before Init').promise.then((result) => {
+      void client.track('Event Before Init').promise.then((result) => {
         track(result.event.event_type);
       });
-      await amplitude.init('API_KEY', undefined, {
+      await client.init('API_KEY', undefined, {
         ...opts,
         transportProvider,
         attribution: {
