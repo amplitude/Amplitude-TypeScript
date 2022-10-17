@@ -1,10 +1,8 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { EnrichmentPlugin, PluginType } from '@amplitude/analytics-types';
 
-const instance = createInstance();
-
 /**
- * This is example plugin that enriches events with event_type "Page View" by adding
+ * This is an example plugin that enriches events with event_type "Page View" by adding
  * more event_properties on top of what @amplitude/analytics-browser provides out of the box
  *
  * @returns EnrichmentPlugin
@@ -27,6 +25,8 @@ export const pageViewTrackingEnrichment = (): EnrichmentPlugin => {
     },
   };
 };
+
+const instance = createInstance();
 
 /**
  * IMPORTANT: install plugin before calling init to make sure plugin is added by the time
