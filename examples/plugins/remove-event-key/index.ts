@@ -34,9 +34,11 @@ export const removeEventKeyEnrichment = (keysToRemove: KeyOfEvent[] = []): Enric
  * This is an example plugin that enriches all events by removing `event.time` from all events.
  * `event.time` uses `Date.now()` which is controlled by the device where the browser runs on.
  * With `event.time` being `undefined`, the time of the event is determined when the event was sent
- * by the browser, determined by the server clock, rather then when the event occurred which can be
+ * successfully by the browser ("Client Upload Time"), determined by the server clock, rather than
+ * when the event actually occurred. On majority of the cases, "Client Upload Time" can be
  * off by up to the configured `config.flushIntervalMillis`. By default `config.flushIntervalMillis`
- * is set to 1000 milliseconds.
+ * is set to 1000 milliseconds. In rare cases where initial request to Amplitude fails due to
+ * bad payload, throttled request, server error, etc, the time difference can be extended.
  */
 const removeTimeEnrichment = removeEventKeyEnrichment(['time']);
 
