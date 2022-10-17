@@ -33,6 +33,7 @@ export const removeEventKeyEnrichment = (keysToRemove: KeyOfEvent[] = []): Enric
 /**
  * This is an example plugin that enriches all events by removing `event.time` from all events.
  * `event.time` uses `Date.now()` which is controlled by the device where the browser runs on.
+ * The device clock can be easily manipulated yielding events having unreasonable time values.
  * With `event.time` being `undefined`, the time of the event is determined when the event was sent
  * successfully by the browser ("Client Upload Time"), determined by the server clock, rather than
  * when the event actually occurred. On majority of the cases, "Client Upload Time" can be
