@@ -342,4 +342,29 @@ describe('CampaignTracker', () => {
       expect(saveCampaignToStorage).toHaveBeenCalledTimes(0);
     });
   });
+
+  describe('domain comparison', () => {
+    const cases = [
+      ['amplitude.com', 'www.amplitude.com', false] as const,
+      ['google.com', 'amplitude.com', true] as const,
+      ['', '', false] as const,
+      ['www.amplitude.com', 'www.amplitude.com', false] as const,
+      ['', 'www.amplitude.com', true] as const,
+    ];
+    for (const [domain1, domain2, isNewCampaign] of cases) {
+      test(`for "${domain1}" and "${domain2}", should track new campaign: ${isNewCampaign.toString()} `, () => {
+        const config = {
+          storage: new MemoryStorage<Campaign>(),
+          track: jest.fn(),
+          onNewCampaign: () => false,
+        };
+        const campaignTracker = new CampaignTracker(API_KEY, config);
+        const result = campaignTracker.isNewCampaign(
+          { referring_domain: domain1 } as Campaign,
+          { referring_domain: domain2 } as Campaign,
+        );
+        expect(result).toBe(isNewCampaign);
+      });
+    }
+  });
 });
