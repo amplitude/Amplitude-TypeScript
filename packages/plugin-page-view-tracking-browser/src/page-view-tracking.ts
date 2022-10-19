@@ -1,4 +1,4 @@
-import { CampaignParser } from '@amplitude/analytics-client-common';
+import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-common';
 import {
   BaseEvent,
   BrowserClient,
@@ -15,6 +15,7 @@ import { Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
 export const pageViewTrackingPlugin = (client: BrowserClient, options: Options = {}): EnrichmentPlugin => {
+  const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
 
   const shouldTrackOnPageLoad = () =>
@@ -51,9 +52,9 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
         config.attribution.trackPageViews = false;
       }
 
-      if (options.trackHistoryChanges) {
+      if (options.trackHistoryChanges && globalScope) {
         /* istanbul ignore next */
-        window.addEventListener('popstate', () => {
+        globalScope.addEventListener('popstate', () => {
           void trackHistoryPageView();
         });
 
@@ -62,7 +63,7 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
         // to modify pushState directly.
         // https://stackoverflow.com/a/64927639
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        window.history.pushState = new Proxy(window.history.pushState, {
+        globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
           apply: (target, thisArg, [state, unused, url]) => {
             void trackHistoryPageView();
 

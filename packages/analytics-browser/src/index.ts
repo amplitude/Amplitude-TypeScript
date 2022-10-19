@@ -23,6 +23,5 @@ export const {
   track,
 } = client;
 export { runQueuedFunctions } from './utils/snippet-helper';
-export { GlobalScope } from './utils/global-scope';
 export { Revenue, Identify } from '@amplitude/analytics-core';
 export * as Types from '@amplitude/analytics-types';

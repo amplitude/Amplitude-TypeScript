@@ -9,3 +9,4 @@ export { getAnalyticsConnector } from './analytics-connector';
 export { IdentityEventSender } from './plugins/identity';
 export { getLanguage } from './language';
 export { BASE_CAMPAIGN } from './attribution/constants';
+export { getGlobalScope } from './global-scope';
