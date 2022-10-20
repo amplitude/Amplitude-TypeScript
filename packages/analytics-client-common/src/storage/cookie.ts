@@ -1,4 +1,5 @@
 import { Storage, CookieStorageOptions } from '@amplitude/analytics-types';
+import { getGlobalScope } from '../global-scope';
 
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
@@ -9,7 +10,7 @@ export class CookieStorage<T> implements Storage<T> {
 
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
-    if (typeof window === 'undefined') {
+    if (!getGlobalScope()) {
       return false;
     }
 
@@ -48,7 +49,8 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async getRaw(key: string): Promise<string | undefined> {
-    const cookie = window.document.cookie.split('; ');
+    const globalScope = getGlobalScope();
+    const cookie = globalScope?.document.cookie.split('; ') ?? [];
     const match = cookie.find((c) => c.indexOf(key + '=') === 0);
     if (!match) {
       return undefined;
@@ -80,7 +82,10 @@ export class CookieStorage<T> implements Storage<T> {
       if (this.options.sameSite) {
         str += `; SameSite=${this.options.sameSite}`;
       }
-      window.document.cookie = str;
+      const globalScope = getGlobalScope();
+      if (globalScope) {
+        globalScope.document.cookie = str;
+      }
     } catch {
       //
     }

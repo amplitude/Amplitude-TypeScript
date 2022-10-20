@@ -6,5 +6,5 @@ module.exports = {
   displayName: package.name,
   rootDir: '.',
   testEnvironment: 'jsdom',
-  coveragePathIgnorePatterns: ['index.ts'],
+  coveragePathIgnorePatterns: ['index.ts', 'global-scope.ts'],
 };

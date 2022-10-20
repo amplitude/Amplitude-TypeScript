@@ -1,4 +1,5 @@
 import { CookieStorage } from '../../src/storage/cookie';
+import * as GlobalScopeModule from '../../src/global-scope';
 
 describe('cookies', () => {
   describe('isEnabled', () => {
@@ -32,6 +33,14 @@ describe('cookies', () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
       expect(await cookies.get('hello')).toEqual([1]);
+      await cookies.remove('hello');
+    });
+
+    test('should return undefined when global scope is not defined', async () => {
+      const cookies = new CookieStorage<number[]>();
+      await cookies.set('hello', [1]);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce(undefined);
+      expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });
   });

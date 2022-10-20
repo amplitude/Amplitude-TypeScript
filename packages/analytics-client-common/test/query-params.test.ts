@@ -1,4 +1,5 @@
 import { getQueryParams } from '../src/query-params';
+import * as GlobalScopeModule from '../src/global-scope';
 
 describe('query-params', () => {
   describe('getQueryParams', () => {
@@ -32,6 +33,12 @@ describe('query-params', () => {
 
     test('should parse malformed uri', () => {
       window.location.search = '?fb=X+%EF%BF%BD%93+C';
+      const params = getQueryParams();
+      expect(params).toEqual({});
+    });
+
+    test('should handle undefined global scope', () => {
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce(undefined);
       const params = getQueryParams();
       expect(params).toEqual({});
     });

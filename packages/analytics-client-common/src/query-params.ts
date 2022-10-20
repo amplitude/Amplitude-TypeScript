@@ -1,9 +1,12 @@
+import { getGlobalScope } from './global-scope';
+
 export const getQueryParams = (): Record<string, string | undefined> => {
+  const globalScope = getGlobalScope();
   /* istanbul ignore if */
-  if (typeof window === 'undefined' || !window.location || !window.location.search) {
+  if (!globalScope?.location.search) {
     return {};
   }
-  const pairs = window.location.search.substring(1).split('&').filter(Boolean);
+  const pairs = globalScope.location.search.substring(1).split('&').filter(Boolean);
   const params = pairs.reduce<Record<string, string | undefined>>((acc, curr) => {
     const query = curr.split('=', 2);
     const key = tryDecodeURIComponent(query[0]);

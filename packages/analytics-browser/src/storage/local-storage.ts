@@ -1,9 +1,10 @@
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { Storage } from '@amplitude/analytics-types';
 
 export class LocalStorage<T> implements Storage<T> {
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
-    if (typeof window === 'undefined') {
+    if (!getGlobalScope()) {
       return false;
     }
 
@@ -37,12 +38,12 @@ export class LocalStorage<T> implements Storage<T> {
   }
 
   async getRaw(key: string): Promise<string | undefined> {
-    return window.localStorage.getItem(key) || undefined;
+    return getGlobalScope()?.localStorage.getItem(key) || undefined;
   }
 
   async set(key: string, value: T): Promise<void> {
     try {
-      window.localStorage.setItem(key, JSON.stringify(value));
+      getGlobalScope()?.localStorage.setItem(key, JSON.stringify(value));
     } catch {
       //
     }
@@ -50,7 +51,7 @@ export class LocalStorage<T> implements Storage<T> {
 
   async remove(key: string): Promise<void> {
     try {
-      window.localStorage.removeItem(key);
+      getGlobalScope()?.localStorage.removeItem(key);
     } catch {
       //
     }
@@ -58,7 +59,7 @@ export class LocalStorage<T> implements Storage<T> {
 
   async reset(): Promise<void> {
     try {
-      window.localStorage.clear();
+      getGlobalScope()?.localStorage.clear();
     } catch {
       //
     }
