@@ -6,7 +6,7 @@ export const getQueryParams = (): Record<string, string | undefined> => {
   if (!globalScope?.location.search) {
     return {};
   }
-  const pairs = globalScope.location.search.substring(1).split('&').filter(Boolean) ?? [];
+  const pairs = globalScope.location.search.substring(1).split('&').filter(Boolean);
   const params = pairs.reduce<Record<string, string | undefined>>((acc, curr) => {
     const query = curr.split('=', 2);
     const key = tryDecodeURIComponent(query[0]);

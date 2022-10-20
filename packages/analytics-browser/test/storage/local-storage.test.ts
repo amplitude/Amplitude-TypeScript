@@ -1,4 +1,5 @@
 import { LocalStorage } from '../../src/storage/local-storage';
+import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 
 describe('local-storage', () => {
   describe('isEnabled', () => {
@@ -46,6 +47,14 @@ describe('local-storage', () => {
       expect(await localStorage.get('1')).toBe(undefined);
       expect(await localStorage.get('2')).toBe('b');
     });
+
+    test('should handle when GlobalScope is not defined', async () => {
+      const localStorage = new LocalStorage<number[]>();
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      await localStorage.set('1', [1]);
+      expect(await localStorage.get('1')).toEqual(undefined);
+      await localStorage.remove('1');
+    });
   });
 
   describe('reset', () => {
@@ -58,6 +67,14 @@ describe('local-storage', () => {
       await localStorage.reset();
       expect(await localStorage.get('1')).toBe(undefined);
       expect(await localStorage.get('2')).toBe(undefined);
+    });
+
+    test('should handle when GlobalScope is not defined', async () => {
+      const localStorage = new LocalStorage<number[]>();
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      await localStorage.set('1', [1]);
+      expect(await localStorage.get('1')).toEqual(undefined);
+      await localStorage.reset();
     });
   });
 });

@@ -1,9 +1,8 @@
 import { Storage, CookieStorageOptions } from '@amplitude/analytics-types';
-import { getGlobalScope } from 'src/global-scope';
+import { getGlobalScope } from '../global-scope';
 
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
-  globalScope = getGlobalScope();
 
   constructor(options?: CookieStorageOptions) {
     this.options = { ...options };
@@ -11,7 +10,7 @@ export class CookieStorage<T> implements Storage<T> {
 
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
-    if (!this.globalScope) {
+    if (!getGlobalScope()) {
       return false;
     }
 
@@ -50,7 +49,8 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async getRaw(key: string): Promise<string | undefined> {
-    const cookie = this.globalScope?.document.cookie.split('; ') ?? [];
+    const globalScope = getGlobalScope();
+    const cookie = globalScope?.document.cookie.split('; ') ?? [];
     const match = cookie.find((c) => c.indexOf(key + '=') === 0);
     if (!match) {
       return undefined;
@@ -82,8 +82,9 @@ export class CookieStorage<T> implements Storage<T> {
       if (this.options.sameSite) {
         str += `; SameSite=${this.options.sameSite}`;
       }
-      if (this.globalScope) {
-        this.globalScope.document.cookie = str;
+      const globalScope = getGlobalScope();
+      if (globalScope) {
+        globalScope.document.cookie = str;
       }
     } catch {
       //

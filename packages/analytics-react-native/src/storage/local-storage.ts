@@ -3,11 +3,9 @@ import { Storage } from '@amplitude/analytics-types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export class LocalStorage<T> implements Storage<T> {
-  globalScope = getGlobalScope();
-
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
-    if (!this.globalScope) {
+    if (!getGlobalScope()) {
       return false;
     }
 

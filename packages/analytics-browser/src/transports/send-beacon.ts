@@ -3,17 +3,16 @@ import { BaseTransport } from '@amplitude/analytics-core';
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 
 export class SendBeaconTransport extends BaseTransport implements Transport {
-  globalScope = getGlobalScope();
-
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {
     return new Promise((resolve, reject) => {
+      const globalScope = getGlobalScope();
       /* istanbul ignore if */
-      if (!this.globalScope?.navigator.sendBeacon) {
+      if (!globalScope?.navigator.sendBeacon) {
         throw new Error('SendBeaconTransport is not supported');
       }
       try {
         const data = JSON.stringify(payload);
-        const success = this.globalScope.navigator.sendBeacon(serverUrl, JSON.stringify(payload));
+        const success = globalScope.navigator.sendBeacon(serverUrl, JSON.stringify(payload));
         if (success) {
           return resolve(
             this.buildResponse({
