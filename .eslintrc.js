@@ -46,4 +46,13 @@ module.exports = {
       },
     ],
   },
+  overrides: [
+    {
+      // Allow test files to access globals
+      files: '*.test.ts',
+      rules: {
+        'no-restricted-globals': 'off',
+      },
+    },
+  ],
 };

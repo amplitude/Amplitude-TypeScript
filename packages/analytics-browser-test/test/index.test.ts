@@ -3,23 +3,7 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
-import { PluginType, Response, Transport } from '@amplitude/analytics-types';
-import { BaseTransport } from '@amplitude/analytics-core';
-
-const mockWindowLocationFromURL = (url: URL) => {
-  window.location.href = url.toString();
-  window.location.search = url.search;
-  window.location.hostname = url.hostname;
-  window.location.pathname = url.pathname;
-};
-
-class DummyTransport extends BaseTransport implements Transport {
-  async send(): Promise<Response | null> {
-    return this.buildResponse({
-      code: 200,
-    });
-  }
-}
+import { PluginType } from '@amplitude/analytics-types';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -119,74 +103,122 @@ describe('integration', () => {
     });
 
     test('should set attribution on init prior to running queued methods', async () => {
-      const search = 'utm_source=google&utm_medium=cpc&utm_campaign=brand&utm_term=keyword&utm_content=adcopy';
-      const hostname = 'www.example.com';
-      const pathname = '/path/to/page';
-      const windowUrl = new URL(`https://${hostname}${pathname}?${search}`);
-      mockWindowLocationFromURL(windowUrl);
+      let requestBody1: Record<string, any> = {};
+      const scope1 = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          requestBody1 = body;
+          return true;
+        })
+        .reply(200, success);
+      let requestBody2: Record<string, any> = {};
+      const scope2 = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          requestBody2 = body;
+          return true;
+        })
+        .reply(200, success);
 
       // NOTE: Values to assert on
       const sessionId = Date.now() - 1000;
       const userId = 'user@amplitude.com';
       const deviceId = 'device-12345';
 
-      const transportProvider = new DummyTransport();
-      const send = jest.spyOn(transportProvider, 'send');
-      const track = jest.fn();
-
       const client = amplitude.createInstance();
       client.setUserId(userId);
       client.setDeviceId(deviceId);
       client.setSessionId(sessionId);
 
-      void client.track('Event Before Init').promise.then((result) => {
-        track(result.event.event_type);
-      });
+      const trackPromise = client.track('Event Before Init').promise;
       await client.init('API_KEY', undefined, {
         ...opts,
-        transportProvider,
         attribution: {
           disabled: false,
         },
       }).promise;
+      await trackPromise;
 
-      expect(send).toHaveBeenCalledTimes(1);
-      expect(send).toHaveBeenCalledWith(
-        'https://api2.amplitude.com/2/httpapi',
-        expect.objectContaining({
-          api_key: 'API_KEY',
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          events: expect.arrayContaining([
-            expect.objectContaining({
-              event_type: '$identify',
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-              user_properties: expect.objectContaining({
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                $setOnce: expect.objectContaining({
-                  initial_utm_source: 'google',
-                  initial_utm_medium: 'cpc',
-                  initial_utm_campaign: 'brand',
-                  initial_utm_term: 'keyword',
-                  initial_utm_content: 'adcopy',
-                }),
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                $set: expect.objectContaining({
-                  utm_source: 'google',
-                  utm_medium: 'cpc',
-                  utm_campaign: 'brand',
-                  utm_term: 'keyword',
-                  utm_content: 'adcopy',
-                }),
-              }),
-            }),
-          ]),
-        }),
-      );
-
-      expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenCalledWith('Event Before Init');
-      expect(send.mock.invocationCallOrder[0]).toBe(1);
-      expect(track.mock.invocationCallOrder[0]).toBe(2);
+      expect(requestBody1).toEqual({
+        api_key: 'API_KEY',
+        events: [
+          {
+            device_id: deviceId,
+            session_id: sessionId,
+            user_id: userId,
+            time: number,
+            platform: 'Web',
+            os_name: 'WebKit',
+            os_version: '537.36',
+            language: 'en-US',
+            ip: '$remote',
+            insert_id: uuid,
+            event_type: '$identify',
+            user_properties: {
+              $setOnce: {
+                initial_dclid: 'EMPTY',
+                initial_fbclid: 'EMPTY',
+                initial_gbraid: 'EMPTY',
+                initial_gclid: 'EMPTY',
+                initial_ko_click_id: 'EMPTY',
+                initial_msclkid: 'EMPTY',
+                initial_referrer: 'EMPTY',
+                initial_referring_domain: 'EMPTY',
+                initial_ttclid: 'EMPTY',
+                initial_twclid: 'EMPTY',
+                initial_utm_campaign: 'EMPTY',
+                initial_utm_content: 'EMPTY',
+                initial_utm_medium: 'EMPTY',
+                initial_utm_source: 'EMPTY',
+                initial_utm_term: 'EMPTY',
+                initial_wbraid: 'EMPTY',
+              },
+              $unset: {
+                dclid: '-',
+                fbclid: '-',
+                gbraid: '-',
+                gclid: '-',
+                ko_click_id: '-',
+                msclkid: '-',
+                referrer: '-',
+                referring_domain: '-',
+                ttclid: '-',
+                twclid: '-',
+                utm_campaign: '-',
+                utm_content: '-',
+                utm_medium: '-',
+                utm_source: '-',
+                utm_term: '-',
+                wbraid: '-',
+              },
+            },
+            event_id: 0,
+            library: library,
+          },
+        ],
+        options: {},
+      });
+      expect(requestBody2).toEqual({
+        api_key: 'API_KEY',
+        events: [
+          {
+            device_id: deviceId,
+            session_id: sessionId,
+            user_id: userId,
+            time: number,
+            platform: 'Web',
+            os_name: 'WebKit',
+            os_version: '537.36',
+            language: 'en-US',
+            ip: '$remote',
+            insert_id: uuid,
+            event_type: 'Event Before Init',
+            event_id: 1,
+            library: library,
+          },
+        ],
+        options: {},
+      });
+      scope1.done();
+      scope2.done();
     });
   });
 

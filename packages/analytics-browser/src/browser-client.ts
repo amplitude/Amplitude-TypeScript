@@ -37,8 +37,6 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
       lastEventTime: oldCookies.lastEventTime,
     });
 
-    // delay running queued functions until after all initialization is complete
-    const delayedQ = this.getAndResetQueuedFunctions();
     await super._init(browserOptions);
 
     // Step 3: Manage session
@@ -74,20 +72,11 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
     this.initializing = false;
 
-    // Step 5: Set timeline ready for processing events
-    // Send existing events, which might be collected by track before init
-    this.timeline.isReady = true;
-    if (!this.config.optOut) {
-      this.timeline.scheduleApply(0);
-    }
-
-    // Step 6: Track attributions
+    // Step 5: Track attributions
     await this.runAttributionStrategy(browserOptions.attribution, isNewSession);
 
-    // Step 7:
-    // Run queued functions
-    this.q = [...delayedQ, ...this.q];
-    await this.runQueuedFunctions();
+    // Step 6: Run queued dispatch functions
+    await this.runQueuedFunctions('dispatchQ');
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {

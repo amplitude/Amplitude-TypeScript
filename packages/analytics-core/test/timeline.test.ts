@@ -64,7 +64,6 @@ describe('timeline', () => {
     await timeline.register(before, config);
     await timeline.register(enrichment, config);
     await timeline.register(destination, config);
-    timeline.isReady = true;
 
     expect(beforeSetup).toHaveBeenCalledTimes(1);
     expect(enrichmentSetup).toHaveBeenCalledTimes(1);

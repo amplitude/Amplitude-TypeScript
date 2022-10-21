@@ -16,8 +16,8 @@
     "postinstall": "husky install",
     "test": "lerna run test --stream",
     "test:examples": "jest --env=jsdom --coverage=false examples",
-    "test:unit": "lerna run test --stream --ignore @amplitude/analytics-browser-test",
-    "test:e2e": "lerna run test --stream --scope @amplitude/analytics-browser-test",
+    "test:unit": "lerna run test --stream --ignore @amplitude/analytics-*-test",
+    "test:e2e": "lerna run test --stream --scope @amplitude/analytics-*-test",
     "version": "git add -A"
   },
   "devDependencies": {
