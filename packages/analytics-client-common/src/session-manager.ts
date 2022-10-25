@@ -32,6 +32,7 @@ export class SessionManager implements ISessionManager {
       console.debug(`SessionManager.setSession called with: ${JSON.stringify(this.cache)}.`);
       void this.storage.set(this.storageKey, this.cache);
     } catch (e) {
+      /* istanbul ignore next */
       console.debug(`SessionManager.setSession failed with: ${String(e)}.`);
     }
   }
