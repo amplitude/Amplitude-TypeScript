@@ -73,4 +73,23 @@ describe('logger', () => {
       expect(log).toHaveBeenCalledTimes(0);
     });
   });
+
+  describe('debug', () => {
+    test('should log event', () => {
+      const logger = new Logger();
+      logger.enable(LogLevel.Debug);
+      const log = jest.spyOn(console, 'log').mockReturnValueOnce(undefined);
+      logger.debug('Success');
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(log).toHaveBeenCalledWith('Amplitude Logger [Debug]: Success');
+    });
+
+    test('should not log event', () => {
+      const logger = new Logger();
+      logger.enable(LogLevel.Verbose);
+      const log = jest.spyOn(console, 'log');
+      logger.debug('Success');
+      expect(log).toHaveBeenCalledTimes(0);
+    });
+  });
 });

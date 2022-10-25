@@ -6,6 +6,7 @@ export { Config } from './config';
 export { Logger } from './logger';
 export { AMPLITUDE_PREFIX } from './constants';
 export { returnWrapper } from './utils/return-wrapper';
+export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
 export { UUID } from './utils/uuid';
 export { MemoryStorage } from './storage/memory';
 export { BaseTransport } from './transports/base';

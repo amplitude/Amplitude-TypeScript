@@ -187,6 +187,7 @@ describe('webAttributionPlugin', () => {
           log: jest.fn(),
           warn: jest.fn(),
           error: jest.fn(),
+          debug: jest.fn(),
         };
 
         await instance.init(API_KEY, USER_ID, {

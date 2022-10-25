@@ -3,7 +3,7 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
-import { PluginType } from '@amplitude/analytics-types';
+import { PluginType, LogLevel } from '@amplitude/analytics-types';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -927,6 +927,92 @@ describe('integration', () => {
         expect(response.code).toBe(200);
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
+      });
+    });
+
+    describe('debug mode', () => {
+      test('should enable debug mode for track', async () => {
+        const scope = nock(url).post(path).reply(200, success);
+
+        const logger = {
+          disable: jest.fn(),
+          enable: jest.fn(),
+          debug: jest.fn(),
+          log: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        };
+        await amplitude.init('API_KEY', undefined, {
+          ...opts,
+          loggerProvider: logger,
+          logLevel: LogLevel.Debug,
+        }).promise;
+
+        const response = await amplitude.track('test event').promise;
+        expect(response.event).toEqual({
+          user_id: undefined,
+          device_id: uuid,
+          session_id: number,
+          time: number,
+          platform: 'Web',
+          os_name: 'WebKit',
+          os_version: '537.36',
+          device_manufacturer: undefined,
+          language: 'en-US',
+          ip: '$remote',
+          insert_id: uuid,
+          partner_id: undefined,
+          event_type: 'test event',
+          event_id: 0,
+          library: library,
+        });
+        expect(response.code).toBe(200);
+        expect(response.message).toBe(SUCCESS_MESSAGE);
+        scope.done();
+
+        expect(logger.debug).toHaveBeenCalledTimes(6);
+        const debugCallParams = logger.debug.mock.calls;
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+        /* eslint-disable @typescript-eslint/no-unsafe-call */
+        expect(debugCallParams[0][0].includes('start time')).toEqual(true);
+        expect(debugCallParams[1][0].includes('function name "track"')).toEqual(true);
+        expect(debugCallParams[2][0].includes('states')).toEqual(true);
+        expect(debugCallParams[3][0].includes('function stacktrace')).toEqual(true);
+        expect(debugCallParams[4][0].includes('states')).toEqual(true);
+        expect(debugCallParams[5][0].includes('end time')).toEqual(true);
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+        /* eslint-enable @typescript-eslint/no-unsafe-call */
+      });
+
+      test('should enable debug mode for setOptOut', async () => {
+        const logger = {
+          disable: jest.fn(),
+          enable: jest.fn(),
+          debug: jest.fn(),
+          log: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        };
+        await amplitude.init('API_KEY', undefined, {
+          ...opts,
+          loggerProvider: logger,
+          logLevel: LogLevel.Debug,
+        }).promise;
+        amplitude.setOptOut(true);
+
+        expect(logger.debug).toHaveBeenCalledTimes(6);
+        const debugCallParams = logger.debug.mock.calls;
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+        /* eslint-disable @typescript-eslint/no-unsafe-call */
+        expect(debugCallParams[0][0].includes('start time')).toEqual(true);
+        expect(debugCallParams[1][0].includes('function name "setOptOut"')).toEqual(true);
+        expect(debugCallParams[2][0].includes('states')).toEqual(true);
+        expect(debugCallParams[3][0].includes('function stacktrace')).toEqual(true);
+        expect(debugCallParams[4][0].includes('states')).toEqual(true);
+        expect(debugCallParams[4][0].includes('config')).toEqual(true);
+        expect(debugCallParams[5][0].includes('end time')).toEqual(true);
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+        /* eslint-enable @typescript-eslint/no-unsafe-call */
       });
     });
   });
