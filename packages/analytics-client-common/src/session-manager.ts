@@ -22,12 +22,18 @@ export class SessionManager implements ISessionManager {
     this.cache = (await this.storage.get(this.storageKey)) ?? {
       optOut: false,
     };
+    console.debug(`SessionManager.cache loaded with: ${JSON.stringify(this.cache)}`);
     return this;
   }
 
   setSession(session: Partial<UserSession>) {
     this.cache = { ...this.cache, ...session };
-    void this.storage.set(this.storageKey, this.cache);
+    try {
+      console.debug(`SessionManager.setSession called with: ${JSON.stringify(this.cache)}.`);
+      void this.storage.set(this.storageKey, this.cache);
+    } catch (e) {
+      console.debug(`SessionManager.setSession failed with: ${String(e)}.`);
+    }
   }
 
   getSessionId() {

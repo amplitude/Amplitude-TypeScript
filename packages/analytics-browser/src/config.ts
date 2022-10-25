@@ -184,6 +184,7 @@ export const createFlexibleStorage = async <T>(options: BrowserOptions): Promise
     storage = new LocalStorage();
     if (!(await storage.isEnabled())) {
       storage = new MemoryStorage();
+      console.debug('Falling back to MemoryStorage.');
     }
   }
   return storage;
