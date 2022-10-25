@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.7-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.5.6...@amplitude/analytics-browser@1.5.7-beta.0) (2022-10-25)
+
+
+### Bug Fixes
+
+* add logging around cookie storage ([#255](https://github.com/amplitude/Amplitude-TypeScript/issues/255)) ([dee9d32](https://github.com/amplitude/Amplitude-TypeScript/commit/dee9d3299b90b71576a8c435c26a03c1dcabdae4))
+
+
+
+
+
 ## [1.5.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.5.5...@amplitude/analytics-browser@1.5.6) (2022-10-25)
 
 
