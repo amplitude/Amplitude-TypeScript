@@ -39,7 +39,6 @@ Sets an `userId` (usually called after user logs in).
 ``typescript
 import { setUserId } from '@amplitude/analytics-react-native';
 
-// Track a basic event
 setUserId('xxxxx');
 ```
 
