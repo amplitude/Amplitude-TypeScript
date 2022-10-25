@@ -17,7 +17,6 @@ export class Timeline {
   applying = false;
   // Flag indicates whether timeline is ready to process event
   // Events collected before timeline is ready will stay in the queue to be processed later
-  isReady = false;
   plugins: Plugin[] = [];
 
   async register(plugin: Plugin, config: Config) {
@@ -35,7 +34,6 @@ export class Timeline {
 
   reset() {
     this.applying = false;
-    this.isReady = false;
     this.plugins = [];
   }
 
@@ -47,7 +45,7 @@ export class Timeline {
   }
 
   scheduleApply(timeout: number) {
-    if (!this.isReady || this.applying) return;
+    if (this.applying) return;
     this.applying = true;
     setTimeout(() => {
       void this.apply(this.queue.shift()).then(() => {

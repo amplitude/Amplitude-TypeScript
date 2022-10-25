@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-connector": "^1.4.5",
-    "@amplitude/analytics-core": "^0.9.6",
+    "@amplitude/analytics-core": "0.9.6",
     "@amplitude/analytics-types": "^0.11.0",
     "tslib": "^2.3.1"
   },

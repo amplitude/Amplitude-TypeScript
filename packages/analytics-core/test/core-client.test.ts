@@ -1,7 +1,7 @@
 import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import { useDefaultConfig, promiseState } from './helpers/default';
-import { OPT_OUT_MESSAGE } from '../src/messages';
+import { useDefaultConfig } from './helpers/default';
+import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/messages';
 
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
@@ -105,6 +105,41 @@ describe('core-client', () => {
     });
   });
 
+  describe('dispatchWithCallback', () => {
+    test('should handle success', async () => {
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
+      const event: Event = {
+        event_type: 'event_type',
+      };
+
+      return new Promise<void>((resolve) => {
+        client.dispatchWithCallback(event, (result) => {
+          expect(result).toBe(success);
+          expect(push).toBeCalledTimes(1);
+          resolve();
+        });
+      });
+    });
+
+    test('should handle undefined config', async () => {
+      const client = new AmplitudeCore();
+      const event: Event = {
+        event_type: 'event_type',
+      };
+
+      return new Promise<void>((resolve) => {
+        client.dispatchWithCallback(event, (result) => {
+          expect(result).toEqual({
+            event,
+            code: 0,
+            message: CLIENT_NOT_INITIALIZED,
+          });
+          resolve();
+        });
+      });
+    });
+  });
+
   describe('dispatch', () => {
     test('should handle success', async () => {
       const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
@@ -161,17 +196,19 @@ describe('core-client', () => {
       expect(push).toBeCalledTimes(0);
     });
 
-    test('should handle timeline is not ready', async () => {
-      const clientWithoutInit = new AmplitudeCore();
-      const push = jest.spyOn(clientWithoutInit.timeline, 'push').mockReturnValueOnce(new Promise(() => undefined));
+    test('should handle undefined config', async () => {
+      const client = new AmplitudeCore();
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(success));
       const event: Event = {
         event_type: 'event_type',
       };
 
-      const result = clientWithoutInit.dispatch(event);
-      expect(await promiseState(result)).toEqual('pending');
+      const dispathPromise = client.dispatch(event);
+      await client._init(useDefaultConfig());
+      await client.runQueuedFunctions('dispatchQ');
+      const result = await dispathPromise;
       expect(push).toBeCalledTimes(1);
-      expect(push).toBeCalledWith(event);
+      expect(result).toBe(success);
     });
   });
 

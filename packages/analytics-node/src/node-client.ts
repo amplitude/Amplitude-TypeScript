@@ -22,12 +22,7 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
 
     this.initializing = false;
 
-    // Set timeline ready for processing events
-    // Send existing events, which might be collected by track before init
-    this.timeline.isReady = true;
-    if (!this.config.optOut) {
-      this.timeline.scheduleApply(0);
-    }
+    await this.runQueuedFunctions('dispatchQ');
   }
 }
 

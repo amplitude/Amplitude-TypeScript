@@ -68,15 +68,11 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
     this.initializing = false;
 
-    // Step 5: Set timeline ready for processing events
-    // Send existing events, which might be collected by track before init
-    this.timeline.isReady = true;
-    if (!this.config.optOut) {
-      this.timeline.scheduleApply(0);
-    }
-
-    // Step 6: Track attributions
+    // Step 5: Track attributions
     await this.runAttributionStrategy(options?.attribution, isNewSession);
+
+    // Step 6: Run queued dispatch functions
+    await this.runQueuedFunctions('dispatchQ');
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
