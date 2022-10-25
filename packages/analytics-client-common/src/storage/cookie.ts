@@ -11,10 +11,8 @@ export class CookieStorage<T> implements Storage<T> {
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (!getGlobalScope()) {
-      console.debug('CookieStorage is not available.');
       return false;
     }
-    console.debug('CookieStorage is available.');
 
     const random = String(Date.now());
     const testStrorage = new CookieStorage<string>(this.options);

@@ -205,9 +205,6 @@ export const createInstance = (): BrowserClient => {
     setSessionId: client.setSessionId.bind(client),
     setOptOut: client.setOptOut.bind(client),
     setTransport: client.setTransport.bind(client),
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    _config: client.config,
   };
 };
 
