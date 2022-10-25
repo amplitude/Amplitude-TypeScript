@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.3-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.3.3-beta.0...@amplitude/analytics-client-common@0.3.3-beta.1) (2022-10-25)
+
+
+### Reverts
+
+* add logging around cookie storage ([#256](https://github.com/amplitude/Amplitude-TypeScript/issues/256)) ([12016e7](https://github.com/amplitude/Amplitude-TypeScript/commit/12016e7eddb7bec885883c0ebf1619fc447beb87))
+
+
+
+
+
 ## [0.3.3-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.3.2...@amplitude/analytics-client-common@0.3.3-beta.0) (2022-10-25)
 
 
