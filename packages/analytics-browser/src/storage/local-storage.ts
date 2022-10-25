@@ -5,8 +5,10 @@ export class LocalStorage<T> implements Storage<T> {
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (!getGlobalScope()) {
+      console.debug('LocalStorage is not available.');
       return false;
     }
+    console.debug('LocalStorage is available.');
 
     const random = String(Date.now());
     const testStorage = new LocalStorage<string>();
