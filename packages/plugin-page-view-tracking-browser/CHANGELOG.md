@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.4.1...@amplitude/plugin-page-view-tracking-browser@0.4.2) (2022-10-25)
+
+
+### Bug Fixes
+
+* add safe check for global scope before loading SDK ([#252](https://github.com/amplitude/Amplitude-TypeScript/issues/252)) ([a3f4f6f](https://github.com/amplitude/Amplitude-TypeScript/commit/a3f4f6f7b11abd9cdbdf064e31e32d5fc3e92031))
+
+
+
+
+
 ## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.4.0...@amplitude/plugin-page-view-tracking-browser@0.4.1) (2022-10-14)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser

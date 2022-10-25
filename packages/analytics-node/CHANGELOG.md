@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.5.7...@amplitude/analytics-node@0.5.8) (2022-10-25)
+
+
+### Bug Fixes
+
+* invoke pre-init track fns after attribution ([#253](https://github.com/amplitude/Amplitude-TypeScript/issues/253)) ([b8996d7](https://github.com/amplitude/Amplitude-TypeScript/commit/b8996d793f74d388c1a96e0cde5c0ac060c1e565))
+
+
+
+
+
 ## [0.5.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.5.6...@amplitude/analytics-node@0.5.7) (2022-10-14)
 
 **Note:** Version bump only for package @amplitude/analytics-node

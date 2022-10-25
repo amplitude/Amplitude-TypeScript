@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.2.1...@amplitude/marketing-analytics-browser@0.2.2) (2022-10-25)
+
+
+### Bug Fixes
+
+* add safe check for global scope before loading SDK ([#252](https://github.com/amplitude/Amplitude-TypeScript/issues/252)) ([a3f4f6f](https://github.com/amplitude/Amplitude-TypeScript/commit/a3f4f6f7b11abd9cdbdf064e31e32d5fc3e92031))
+* invoke pre-init track fns after attribution ([#253](https://github.com/amplitude/Amplitude-TypeScript/issues/253)) ([b8996d7](https://github.com/amplitude/Amplitude-TypeScript/commit/b8996d793f74d388c1a96e0cde5c0ac060c1e565))
+
+
+
+
+
 ## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.2.0...@amplitude/marketing-analytics-browser@0.2.1) (2022-10-14)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/marketing-analytics-browser",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Official Amplitude SDK for Web and Marketing Analytics",
   "keywords": [
     "analytics",
@@ -42,12 +42,12 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "^1.5.5",
-    "@amplitude/analytics-client-common": "^0.3.1",
-    "@amplitude/analytics-core": "0.9.6",
+    "@amplitude/analytics-browser": "^1.5.6",
+    "@amplitude/analytics-client-common": "^0.3.2",
+    "@amplitude/analytics-core": "^0.9.7",
     "@amplitude/analytics-types": "^0.11.0",
-    "@amplitude/plugin-page-view-tracking-browser": "^0.4.1",
-    "@amplitude/plugin-web-attribution-browser": "^0.2.1",
+    "@amplitude/plugin-page-view-tracking-browser": "^0.4.2",
+    "@amplitude/plugin-web-attribution-browser": "^0.2.2",
     "tslib": "^2.3.1"
   },
   "devDependencies": {
