@@ -33,6 +33,16 @@ Initialization is necessary before any instrumentation is done. The API key for 
 amplitude.init(API_KEY);
 ```
 
+### Set UserId
+
+Sets an `userId` (usually called after user logs in).
+```typescript
+import { setUserId } from '@amplitude/analytics-react-native';
+
+setUserId('xxxxx');
+```
+
+
 ### Tracking an Event
 
 Events represent how users interact with your application. For example, “Button Clicked” may be an action you want to note.
