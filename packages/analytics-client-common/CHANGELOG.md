@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.3.3...@amplitude/analytics-client-common@0.3.4) (2022-10-26)
+
+
+### Bug Fixes
+
+* adds optional chaining to window.location ([#258](https://github.com/amplitude/Amplitude-TypeScript/issues/258)) ([c30a1e0](https://github.com/amplitude/Amplitude-TypeScript/commit/c30a1e06feb632942a1697bda4948259ea0721a5))
+
+
+
+
+
 ## [0.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.3.3-beta.1...@amplitude/analytics-client-common@0.3.3) (2022-10-25)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
