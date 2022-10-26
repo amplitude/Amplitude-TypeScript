@@ -44,7 +44,7 @@ export {
 } from './event';
 export { EventCallback } from './event-callback';
 export { EventBridge, EventBridgeChannel, EventBridgeContainer, EventBridgeReceiver } from './event-bridge';
-export { Logger, LogLevel, LogConfig } from './logger';
+export { Logger, LogLevel, LogConfig, DebugContext } from './logger';
 export { Payload } from './payload';
 export { Plan } from './plan';
 export { IngestionMetadata } from './ingestion-metadata';

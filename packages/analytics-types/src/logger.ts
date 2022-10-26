@@ -19,3 +19,14 @@ export interface LogConfig {
   logger: Logger;
   logLevel: LogLevel;
 }
+
+type TimeKey = 'start' | 'end';
+
+export interface DebugContext {
+  type: string;
+  name: string;
+  args: string[] | string;
+  stacktrace?: string[] | string;
+  time?: { [key in TimeKey]?: string };
+  states?: { [key: string]: any };
+}

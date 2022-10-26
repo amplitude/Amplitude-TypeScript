@@ -16,26 +16,26 @@ import { useDefaultConfig } from '../helpers/default';
 describe('debug', () => {
   describe('getStacktrace', () => {
     test('should get the stacktrace of a function call', () => {
-      let stacktrace = '';
+      let stacktrace: string[] = [];
       const twoSum = (a: number, b: number): number => {
         stacktrace = getStacktrace();
         return a + b;
       };
       twoSum(1, 2);
-      expect(stacktrace.includes('twoSum')).toBe(true);
+      expect(stacktrace[0].includes('twoSum')).toBe(true);
     });
 
     test('should return empty string when Error is not available', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       global.Error = jest.fn();
-      let stacktrace = '';
+      let stacktrace: string[] = [];
       const twoSum = (a: number, b: number): number => {
         stacktrace = getStacktrace();
         return a + b;
       };
       twoSum(1, 2);
-      expect(stacktrace).toBe('');
+      expect(stacktrace).toEqual([]);
     });
   });
 
@@ -139,14 +139,14 @@ describe('debug', () => {
       );
       const result = await wrappedFn();
       expect(result).toBe(1);
-      expect(logger.debug).toHaveBeenCalledTimes(6);
-      const debugCallParams = logger.debug.mock.calls;
-      expect(debugCallParams[0][0].includes('start time')).toEqual(true);
-      expect(debugCallParams[1][0].includes('function name "fn"')).toEqual(true);
-      expect(debugCallParams[2][0].includes('states')).toEqual(true);
-      expect(debugCallParams[3][0].includes('function stacktrace')).toEqual(true);
-      expect(debugCallParams[4][0].includes('states')).toEqual(true);
-      expect(debugCallParams[5][0].includes('end time')).toEqual(true);
+      expect(logger.debug).toHaveBeenCalledTimes(1);
+      const debugContext = JSON.parse(logger.debug.mock.calls[0] as string);
+      expect(debugContext.type).toBeDefined();
+      expect(debugContext.name).toEqual('fn');
+      expect(debugContext.args).toBeDefined();
+      expect(debugContext.stacktrace).toBeDefined();
+      expect(debugContext.time).toBeDefined();
+      expect(debugContext.states).toBeDefined();
     });
 
     test('should work with returnWrapper', async () => {
@@ -162,7 +162,7 @@ describe('debug', () => {
       );
       const result = await wrappedFn().promise;
       expect(result).toBe(1);
-      expect(logger.debug).toHaveBeenCalledTimes(6);
+      expect(logger.debug).toHaveBeenCalledTimes(1);
     });
   });
 });

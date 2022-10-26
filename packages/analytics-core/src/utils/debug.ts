@@ -1,16 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Config, LogLevel, LogConfig } from '@amplitude/analytics-types';
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { Config, LogLevel, LogConfig, DebugContext } from '@amplitude/analytics-types';
 import { AmplitudeCore } from '../core-client';
 
-export const getStacktrace = (ignoreDepth = 0): string => {
+export const getStacktrace = (ignoreDepth = 0): string[] => {
   const trace = new Error().stack || '';
   return trace
     .split('\n')
     .slice(2 + ignoreDepth)
-    .map((text) => text.trim())
-    .join('\n');
+    .map((text) => text.trim());
 };
 
 // This hook makes sure we always get the latest logger and logLevel.
@@ -58,33 +58,35 @@ export const debugWrapper =
     if ((logLevel && logLevel < LogLevel.Debug) || !logLevel || !logger) {
       return fn.apply(fnContext, args);
     }
-    const logs: string[] = [];
-    logs.push(`start time: ${new Date().toISOString()}`);
-    logs.push(`function name "${fnName}" called with args: ${JSON.stringify(args, null, 2)}`);
+    const debugContext: DebugContext = {
+      type: 'invoke public method',
+      name: fnName,
+      args,
+      stacktrace: getStacktrace(1),
+      time: {
+        start: new Date().toISOString(),
+      },
+      states: {},
+    };
     if (getStates) {
-      logs.push(`states before execution ${JSON.stringify(getStates(), null, 2)}`);
+      debugContext.states!.before = getStates();
     }
-    logs.push(`function stacktrace: ${getStacktrace(1)}`);
     const result = fn.apply(fnContext, args);
     if (result && (result as any).promise) {
       // if result is a promise, add the callback
       (result as any).promise.then(() => {
         if (getStates) {
-          logs.push(`states after execution ${JSON.stringify(getStates(), null, 2)}`);
+          debugContext.states!.after = getStates();
         }
-        logs.push(`end time: ${new Date().toISOString()}`);
-        for (const log of logs) {
-          logger.debug(log);
-        }
+        debugContext.time!.end = new Date().toISOString();
+        logger.debug(JSON.stringify(debugContext, null, 2));
       });
     } else {
       if (getStates) {
-        logs.push(`states after execution ${JSON.stringify(getStates(), null, 2)}`);
+        debugContext.states!.after = getStates();
       }
-      logs.push(`end time: ${new Date().toISOString()}`);
-      for (const log of logs) {
-        logger.debug(log);
-      }
+      debugContext.time!.end = new Date().toISOString();
+      logger.debug(JSON.stringify(debugContext, null, 2));
     }
     return result;
   };

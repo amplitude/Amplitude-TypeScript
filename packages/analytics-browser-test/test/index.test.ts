@@ -970,18 +970,16 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        expect(logger.debug).toHaveBeenCalledTimes(6);
-        const debugCallParams = logger.debug.mock.calls;
-        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-        /* eslint-disable @typescript-eslint/no-unsafe-call */
-        expect(debugCallParams[0][0].includes('start time')).toEqual(true);
-        expect(debugCallParams[1][0].includes('function name "track"')).toEqual(true);
-        expect(debugCallParams[2][0].includes('states')).toEqual(true);
-        expect(debugCallParams[3][0].includes('function stacktrace')).toEqual(true);
-        expect(debugCallParams[4][0].includes('states')).toEqual(true);
-        expect(debugCallParams[5][0].includes('end time')).toEqual(true);
-        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-        /* eslint-enable @typescript-eslint/no-unsafe-call */
+        expect(logger.debug).toHaveBeenCalledTimes(1);
+        /* eslint-disable */
+        const debugContext = JSON.parse(logger.debug.mock.calls[0]);
+        expect(debugContext.type).toBeDefined();
+        expect(debugContext.name).toEqual('track');
+        expect(debugContext.args).toBeDefined();
+        expect(debugContext.stacktrace).toBeDefined();
+        expect(debugContext.time).toBeDefined();
+        expect(debugContext.states).toBeDefined();
+        /* eslint-enable */
       });
 
       test('should enable debug mode for setOptOut', async () => {
@@ -1000,19 +998,16 @@ describe('integration', () => {
         }).promise;
         amplitude.setOptOut(true);
 
-        expect(logger.debug).toHaveBeenCalledTimes(6);
-        const debugCallParams = logger.debug.mock.calls;
-        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-        /* eslint-disable @typescript-eslint/no-unsafe-call */
-        expect(debugCallParams[0][0].includes('start time')).toEqual(true);
-        expect(debugCallParams[1][0].includes('function name "setOptOut"')).toEqual(true);
-        expect(debugCallParams[2][0].includes('states')).toEqual(true);
-        expect(debugCallParams[3][0].includes('function stacktrace')).toEqual(true);
-        expect(debugCallParams[4][0].includes('states')).toEqual(true);
-        expect(debugCallParams[4][0].includes('config')).toEqual(true);
-        expect(debugCallParams[5][0].includes('end time')).toEqual(true);
-        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-        /* eslint-enable @typescript-eslint/no-unsafe-call */
+        expect(logger.debug).toHaveBeenCalledTimes(1);
+        /* eslint-disable */
+        const debugContext = JSON.parse(logger.debug.mock.calls[0]);
+        expect(debugContext.type).toBeDefined();
+        expect(debugContext.name).toEqual('setOptOut');
+        expect(debugContext.args).toBeDefined();
+        expect(debugContext.stacktrace).toBeDefined();
+        expect(debugContext.time).toBeDefined();
+        expect(debugContext.states).toBeDefined();
+        /* eslint-enable */
       });
     });
   });
