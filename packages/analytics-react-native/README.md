@@ -36,7 +36,7 @@ amplitude.init(API_KEY);
 ### Set UserId
 
 Sets an `userId` (usually called after user logs in).
-``typescript
+```typescript
 import { setUserId } from '@amplitude/analytics-react-native';
 
 setUserId('xxxxx');
