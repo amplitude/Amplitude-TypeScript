@@ -3,7 +3,7 @@ import { getGlobalScope } from './global-scope';
 export const getQueryParams = (): Record<string, string | undefined> => {
   const globalScope = getGlobalScope();
   /* istanbul ignore if */
-  if (!globalScope?.location.search) {
+  if (!globalScope?.location?.search) {
     return {};
   }
   const pairs = globalScope.location.search.substring(1).split('&').filter(Boolean);
