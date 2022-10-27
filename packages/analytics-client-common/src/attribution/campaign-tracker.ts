@@ -42,7 +42,11 @@ export class CampaignTracker implements ICampaignTracker {
     this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
   }
 
-  isNewCampaign(current: Campaign, previous: Campaign | undefined) {
+  isNewCampaign(
+    current: Campaign,
+    previous: Campaign | undefined,
+    removeSubdomainsWhenComparingReferringDomains = false,
+  ) {
     const { referrer, referring_domain, ...currentCampaign } = current;
     const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
 
@@ -51,9 +55,11 @@ export class CampaignTracker implements ICampaignTracker {
     }
 
     const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
-    const hasNewDomain = domainWithoutSubdomain(referring_domain || "") !== domainWithoutSubdomain(prevReferringDomain || "");
+    const hasNewDomain = removeSubdomainsWhenComparingReferringDomains
+      ? domainWithoutSubdomain(referring_domain || '') !== domainWithoutSubdomain(prevReferringDomain || '')
+      : referring_domain !== prevReferringDomain;
 
-    return (!previous || hasNewCampaign || hasNewDomain);
+    return !previous || hasNewCampaign || hasNewDomain;
   }
 
   async saveCampaignToStorage(campaign: Campaign): Promise<void> {
@@ -118,4 +124,4 @@ const domainWithoutSubdomain = (domain: string) => {
   }
 
   return parts.slice(parts.length - 2, parts.length).join('.');
-}
+};

@@ -343,7 +343,7 @@ describe('CampaignTracker', () => {
     });
   });
 
-  describe('domain comparison', () => {
+  describe('domain comparison without subdomains', () => {
     const cases = [
       ['amplitude.com', 'www.amplitude.com', false] as const,
       ['google.com', 'amplitude.com', true] as const,
@@ -362,6 +362,7 @@ describe('CampaignTracker', () => {
         const result = campaignTracker.isNewCampaign(
           { referring_domain: domain1 } as Campaign,
           { referring_domain: domain2 } as Campaign,
+          true,
         );
         expect(result).toBe(isNewCampaign);
       });
