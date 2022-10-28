@@ -68,3 +68,31 @@ amplitude.add(webAttributionTracking);
 ```typescript
 amplitude.init('API_KEY');
 ```
+
+## Resulting web attribution event
+
+This plugin tracks campaign parameters based on your configuration. A web attribution event is composed of the following values:
+
+#### Event type
+* `"$idenfity"`
+
+#### User properties
+
+|Property|Description|
+|-|-|
+|`utm_source`|URL query parameter value for `utm_source`|
+|`utm_medium`|URL query parameter value for `utm_medium`|
+|`utm_campaign`|URL query parameter value for `utm_campaign`|
+|`utm_term`|URL query parameter value for `utm_term`|
+|`utm_content`|URL query parameter value for `utm_content`|
+|`referrer`|Referring webstite or `document.referrer`|
+|`referring_domain`|Referring website's domain, including subdomain|
+|`dclid`|URL query parameter value for `dclid`|
+|`gbraid`|URL query parameter value for `gbraid`|
+|`gclid`|URL query parameter value for `gclid`|
+|`fbclid`|URL query parameter value for `fbclid`|
+|`ko_click_id`|URL query parameter value for `ko_click_id`|
+|`msclkid`|URL query parameter value for `msclkid`|
+|`ttclid`|URL query parameter value for `ttclid`|
+|`twclid`|URL query parameter value for `twclid`|
+|`wbraid`|URL query parameter value for `wbraid`|

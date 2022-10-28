@@ -51,7 +51,7 @@ const pageViewTracking = pageViewTrackingPlugin(amplitude, {
 |Name|Type|Default|Description|
 |-|-|-|-|
 |`trackOn`|`"attribution"` or `() => boolean`|`undefined`|Use this option to control when to track a page view event. By default, a page view event is sent on each SDK initialization.<br/><br/>Use `() => boolean` to control sending page view events using custom conditional logic.<br/><br/>Use `"attribution"` to send page view events with attribution events. This option requires using [@amplitude/plugin-web-attribution-browser](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/plugin-web-attribution-browser).|
-|`trackHistoryChanges`|`"all"` or `"pathOnly"`|`undefined`|Use this option to subscribe to page view changes in a single page application like React.js. By default, page view changes in single page applications does not trigger a page view event.<br/><br/>Use `"all"` to compare the full url changes.<br/><br/>Use "pathOnly" to compare only url path changes.|
+|`trackHistoryChanges`|`"all"` or `"pathOnly"`|`undefined`|Use this option to subscribe to page view changes in a single page application like React.js. By default, page view changes in single page applications does not trigger a page view event.<br/><br/>Use `"all"` to compare the full url changes.<br/><br/>Use `"pathOnly"` to compare only url path changes.|
 
 ### 3. Install plugin to Amplitude SDK
 
@@ -64,3 +64,20 @@ amplitude.add(pageViewTracking);
 ```typescript
 amplitude.init('API_KEY');
 ```
+
+## Resulting page view event
+
+This plugin tracks page views based on your configuration. A page view event is composed of the following values:
+
+#### Event type
+* `"Page View"`
+
+#### Event properties
+
+|Property|Description|
+|-|-|
+|`page_domain`|The website's hostname or `location.hostname`|
+|`page_location`|The website's full url or `location.href`|
+|`page_path`|The website's pathname or `location.pathname`|
+|`page_title`|The website's title or `document.title`|
+|`page_url`|The website's url excluding query parameters|
