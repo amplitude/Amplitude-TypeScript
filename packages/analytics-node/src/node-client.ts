@@ -1,4 +1,11 @@
-import { AmplitudeCore, Destination, returnWrapper } from '@amplitude/analytics-core';
+import {
+  AmplitudeCore,
+  Destination,
+  returnWrapper,
+  debugWrapper,
+  getClientLogConfig,
+  getClientStates,
+} from '@amplitude/analytics-core';
 import { NodeClient, NodeConfig, NodeOptions } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useNodeConfig } from './config';
@@ -29,17 +36,72 @@ export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
 export const createInstance = (): NodeClient => {
   const client = new AmplitudeNode();
   return {
-    init: returnWrapper(client.init.bind(client)),
-    add: returnWrapper(client.add.bind(client)),
-    remove: returnWrapper(client.remove.bind(client)),
-    track: returnWrapper(client.track.bind(client)),
-    logEvent: returnWrapper(client.logEvent.bind(client)),
-    identify: returnWrapper(client.identify.bind(client)),
-    groupIdentify: returnWrapper(client.groupIdentify.bind(client)),
-    setGroup: returnWrapper(client.setGroup.bind(client)),
-    revenue: returnWrapper(client.revenue.bind(client)),
-    flush: returnWrapper(client.flush.bind(client)),
-    setOptOut: client.setOptOut.bind(client),
+    init: debugWrapper(
+      returnWrapper(client.init.bind(client)),
+      'init',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
+    add: debugWrapper(
+      returnWrapper(client.add.bind(client)),
+      'add',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.plugins']),
+    ),
+    remove: debugWrapper(
+      returnWrapper(client.remove.bind(client)),
+      'remove',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.plugins']),
+    ),
+    track: debugWrapper(
+      returnWrapper(client.track.bind(client)),
+      'track',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    logEvent: debugWrapper(
+      returnWrapper(client.logEvent.bind(client)),
+      'logEvent',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    identify: debugWrapper(
+      returnWrapper(client.identify.bind(client)),
+      'identify',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    groupIdentify: debugWrapper(
+      returnWrapper(client.groupIdentify.bind(client)),
+      'groupIdentify',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    setGroup: debugWrapper(
+      returnWrapper(client.setGroup.bind(client)),
+      'setGroup',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    revenue: debugWrapper(
+      returnWrapper(client.revenue.bind(client)),
+      'revenue',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    flush: debugWrapper(
+      returnWrapper(client.flush.bind(client)),
+      'flush',
+      getClientLogConfig(client),
+      getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
+    ),
+    setOptOut: debugWrapper(
+      client.setOptOut.bind(client),
+      'setOptOut',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
   };
 };
 

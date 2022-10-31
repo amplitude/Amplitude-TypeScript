@@ -2,6 +2,7 @@ import * as amplitude from '@amplitude/analytics-node';
 import { default as nock } from 'nock';
 import { success } from './responses';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
+import { LogLevel } from '@amplitude/analytics-types';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -474,6 +475,75 @@ describe('integration', () => {
         expect(response.code).toBe(200);
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
+      });
+    });
+
+    describe('debug mode', () => {
+      test('should enable debug mode for track', async () => {
+        const scope = nock(url).post(path).reply(200, success);
+
+        const logger = {
+          disable: jest.fn(),
+          enable: jest.fn(),
+          debug: jest.fn(),
+          log: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        };
+        amplitude.init('API_KEY', { ...opts, loggerProvider: logger, logLevel: LogLevel.Debug });
+
+        const response = await amplitude.track('test event', {
+          mode: 'test',
+        }).promise;
+        expect(response.event).toEqual({
+          time: number,
+          insert_id: uuid,
+          partner_id: undefined,
+          event_type: 'test event',
+          event_id: 0,
+          event_properties: {
+            mode: 'test',
+          },
+          library: library,
+        });
+        expect(response.code).toBe(200);
+        expect(response.message).toBe(SUCCESS_MESSAGE);
+        scope.done();
+
+        expect(logger.debug).toHaveBeenCalledTimes(1);
+        /* eslint-disable */
+        const debugContext = JSON.parse(logger.debug.mock.calls[0]);
+        expect(debugContext.type).toBeDefined();
+        expect(debugContext.name).toEqual('track');
+        expect(debugContext.args).toBeDefined();
+        expect(debugContext.stacktrace).toBeDefined();
+        expect(debugContext.time).toBeDefined();
+        expect(debugContext.states).toBeDefined();
+        /* eslint-enable */
+      });
+
+      test('should enable debug mode for setOptOut', async () => {
+        const logger = {
+          disable: jest.fn(),
+          enable: jest.fn(),
+          debug: jest.fn(),
+          log: jest.fn(),
+          warn: jest.fn(),
+          error: jest.fn(),
+        };
+        amplitude.init('API_KEY', { ...opts, loggerProvider: logger, logLevel: LogLevel.Debug });
+        amplitude.setOptOut(true);
+
+        expect(logger.debug).toHaveBeenCalledTimes(1);
+        /* eslint-disable */
+        const debugContext = JSON.parse(logger.debug.mock.calls[0]);
+        expect(debugContext.type).toBeDefined();
+        expect(debugContext.name).toEqual('setOptOut');
+        expect(debugContext.args).toBeDefined();
+        expect(debugContext.stacktrace).toBeDefined();
+        expect(debugContext.time).toBeDefined();
+        expect(debugContext.states).toBeDefined();
+        /* eslint-enable */
       });
     });
   });

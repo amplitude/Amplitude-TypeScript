@@ -37,4 +37,12 @@ export class Logger implements ILogger {
     }
     console.error(`${PREFIX}[Error]: ${args.join(' ')}`);
   }
+
+  debug(...args: any[]): void {
+    if (this.logLevel < LogLevel.Debug) {
+      return;
+    }
+    // console.debug output is hidden by default in chrome
+    console.log(`${PREFIX}[Debug]: ${args.join(' ')}`);
+  }
 }

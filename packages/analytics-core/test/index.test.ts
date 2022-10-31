@@ -6,6 +6,9 @@ import {
   Logger,
   AMPLITUDE_PREFIX,
   returnWrapper,
+  debugWrapper,
+  getClientLogConfig,
+  getClientStates,
   UUID,
   MemoryStorage,
   createIdentifyEvent,
@@ -29,6 +32,9 @@ describe('index', () => {
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
     expect(typeof returnWrapper).toBe('function');
+    expect(typeof debugWrapper).toBe('function');
+    expect(typeof getClientLogConfig).toBe('function');
+    expect(typeof getClientStates).toBe('function');
     expect(typeof UUID).toBe('function');
     expect(typeof MemoryStorage).toBe('function');
     expect(typeof createIdentifyEvent).toBe('function');
