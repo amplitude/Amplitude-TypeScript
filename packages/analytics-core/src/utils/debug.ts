@@ -68,24 +68,28 @@ export const debugWrapper =
       },
       states: {},
     };
-    if (getStates) {
-      debugContext.states!.before = getStates();
+    if (getStates && debugContext.states) {
+      debugContext.states.before = getStates();
     }
     const result = fn.apply(fnContext, args);
     if (result && (result as any).promise) {
       // if result is a promise, add the callback
       (result as any).promise.then(() => {
-        if (getStates) {
-          debugContext.states!.after = getStates();
+        if (getStates && debugContext.states) {
+          debugContext.states.after = getStates();
         }
-        debugContext.time!.end = new Date().toISOString();
+        if (debugContext.time) {
+          debugContext.time.end = new Date().toISOString();
+        }
         logger.debug(JSON.stringify(debugContext, null, 2));
       });
     } else {
-      if (getStates) {
-        debugContext.states!.after = getStates();
+      if (getStates && debugContext.states) {
+        debugContext.states.after = getStates();
       }
-      debugContext.time!.end = new Date().toISOString();
+      if (debugContext.time) {
+        debugContext.time.end = new Date().toISOString();
+      }
       logger.debug(JSON.stringify(debugContext, null, 2));
     }
     return result;
