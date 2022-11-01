@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.3.5...@amplitude/analytics-client-common@0.4.0) (2022-11-01)
+
+
+### Features
+
+* ignore subdomains when comparing newness of campaigns ([#260](https://github.com/amplitude/Amplitude-TypeScript/issues/260)) ([8bb2b76](https://github.com/amplitude/Amplitude-TypeScript/commit/8bb2b76faf37783a58e953391468bd31c089e3a3))
+
+
+
+
+
 ## [0.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.3.4...@amplitude/analytics-client-common@0.3.5) (2022-11-01)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
