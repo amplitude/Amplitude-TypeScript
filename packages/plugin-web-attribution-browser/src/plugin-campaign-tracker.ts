@@ -33,6 +33,7 @@ export class PluginCampaignTracker {
     const isNewCampaign = this.campaignTracker.isNewCampaign(
       currentCampaign,
       await this.campaignTracker.getCampaignFromStorage(),
+      true,
     );
     return {
       isNewCampaign,

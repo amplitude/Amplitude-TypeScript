@@ -42,17 +42,20 @@ export class CampaignTracker implements ICampaignTracker {
     this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
   }
 
-  isNewCampaign(current: Campaign, previous: Campaign | undefined) {
-    const { referrer: _referrer, ...currentCampaign } = current;
-    const { referrer: _previous_referrer, ...previousCampaign } = previous || {};
+  isNewCampaign(current: Campaign, previous: Campaign | undefined, ignoreSubdomainInReferrer = false) {
+    const { referrer, referring_domain, ...currentCampaign } = current;
+    const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
 
-    const isReferrerExcluded = Boolean(
-      currentCampaign.referring_domain && this.excludeReferrers.includes(currentCampaign.referring_domain),
-    );
+    if (current.referring_domain && this.excludeReferrers.includes(current.referring_domain)) {
+      return false;
+    }
 
     const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
+    const hasNewDomain = ignoreSubdomainInReferrer
+      ? domainWithoutSubdomain(referring_domain || '') !== domainWithoutSubdomain(prevReferringDomain || '')
+      : referring_domain !== prevReferringDomain;
 
-    return !isReferrerExcluded && (!previous || hasNewCampaign);
+    return !previous || hasNewCampaign || hasNewDomain;
   }
 
   async saveCampaignToStorage(campaign: Campaign): Promise<void> {
@@ -108,3 +111,13 @@ export class CampaignTracker implements ICampaignTracker {
     await this.saveCampaignToStorage(currentCampaign);
   }
 }
+
+const domainWithoutSubdomain = (domain: string) => {
+  const parts = domain.split('.');
+
+  if (parts.length <= 2) {
+    return domain;
+  }
+
+  return parts.slice(parts.length - 2, parts.length).join('.');
+};

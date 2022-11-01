@@ -23,6 +23,7 @@ module.exports = {
   rules: {
     '@typescript-eslint/member-delimiter-style': 0,
     '@typescript-eslint/no-explicit-any': 0,
+    '@typescript-eslint/no-unused-vars': ['error', { vars: 'all', args: 'none', ignoreRestSiblings: true }],
     '@typescript-eslint/semi': 0,
     '@typescript-eslint/space-before-function-paren': 0,
     '@typescript-eslint/require-await': 0,
