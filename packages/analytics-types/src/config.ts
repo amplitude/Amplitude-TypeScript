@@ -76,6 +76,7 @@ export interface TrackingOptions {
 export interface ReactNativeTrackingOptions extends TrackingOptions {
   adid?: boolean;
   carrier?: boolean;
+  sessionEvents?: boolean;
 }
 
 export interface AttributionOptions {

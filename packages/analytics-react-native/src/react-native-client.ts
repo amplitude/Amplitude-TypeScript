@@ -1,3 +1,4 @@
+import { AppState, AppStateStatus } from 'react-native';
 import {
   AmplitudeCore,
   Destination,
@@ -16,19 +17,28 @@ import {
   ReactNativeClient,
   Identify as IIdentify,
   EventOptions,
+  Event,
+  Result,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useReactNativeConfig, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 
+const START_SESSION_EVENT = 'session_start';
+const END_SESSION_EVENT = 'session_end';
+
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
+  appState: AppStateStatus = 'background';
+  explicitSessionId: number | undefined;
+
   async init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
     }
     this.initializing = true;
+    this.explicitSessionId = options?.sessionId;
 
     // Step 1: Read cookies stored by old SDK
     const oldCookies = await parseOldCookies(apiKey, options);
@@ -37,24 +47,11 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     const reactNativeOptions = await useReactNativeConfig(apiKey, userId || oldCookies.userId, {
       ...options,
       deviceId: oldCookies.deviceId ?? options?.deviceId,
-      sessionId: oldCookies.sessionId ?? options?.sessionId,
+      sessionId: oldCookies.sessionId,
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
     });
     await super._init(reactNativeOptions);
-
-    // Step 3: Manage session
-    let isNewSession = !this.config.lastEventTime;
-    if (
-      !this.config.sessionId ||
-      (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
-    ) {
-      // Either
-      // 1) No previous session; or
-      // 2) Previous session expired
-      this.setSessionId(Date.now());
-      isNewSession = true;
-    }
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -68,19 +65,28 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       deviceId: this.config.deviceId,
     });
 
-    // Step 4: Install plugins
+    // Step 3: Install plugins
     // Do not track any events before this
     await this.add(new Context());
     await this.add(new IdentityEventSender());
     await this.add(new Destination());
+
+    // Step 4: Manage session
+    this.appState = AppState.currentState;
+    const isNewSession = this.startNewSessionIfNeeded();
+    AppState.addEventListener('change', this.handleAppStateChange);
 
     this.initializing = false;
 
     // Step 5: Track attributions
     await this.runAttributionStrategy(options?.attribution, isNewSession);
 
-    // Step 6: Run queued dispatch functions
+    // Step 6: Run queued functions
     await this.runQueuedFunctions('dispatchQ');
+  }
+
+  shutdown() {
+    AppState.removeEventListener('change', this.handleAppStateChange);
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
@@ -88,7 +94,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       return;
     }
     const track = this.track.bind(this);
-    const onNewCampaign = this.setSessionId.bind(this, Date.now());
+    const onNewCampaign = this.setSessionId.bind(this, this.currentTimeMillis());
 
     const storage = await createFlexibleStorage<Campaign>(this.config);
     const campaignTracker = new CampaignTracker(this.config.apiKey, {
@@ -161,8 +167,98 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return;
     }
-    this.config.sessionId = sessionId;
+
+    this.explicitSessionId = sessionId;
+    void this.setSessionIdInternal(sessionId, this.currentTimeMillis());
   }
+
+  private setSessionIdInternal(sessionId: number, eventTime: number) {
+    const previousSessionId = this.config.sessionId;
+    if (previousSessionId === sessionId) {
+      return;
+    }
+
+    this.config.sessionId = sessionId;
+
+    if (this.config.trackingOptions.sessionEvents) {
+      if (previousSessionId !== undefined) {
+        const sessionEndEvent: Event = {
+          event_type: END_SESSION_EVENT,
+          time: this.config.lastEventTime !== undefined ? this.config.lastEventTime + 1 : sessionId, // increment lastEventTime to sort events properly in UI - session_end should be the last event in a session
+          session_id: previousSessionId,
+        };
+        void this.track(sessionEndEvent);
+      }
+
+      const sessionStartEvent: Event = {
+        event_type: START_SESSION_EVENT,
+        time: eventTime,
+        session_id: sessionId,
+      };
+      void this.track(sessionStartEvent);
+    }
+
+    this.config.lastEventTime = eventTime;
+  }
+
+  async process(event: Event): Promise<Result> {
+    if (!this.config.optOut) {
+      const eventTime = event.time ?? this.currentTimeMillis();
+      if (event.time === undefined) {
+        event = { ...event, time: eventTime };
+      }
+
+      if (event.event_type != START_SESSION_EVENT && event.event_type != END_SESSION_EVENT) {
+        if (this.appState !== 'active') {
+          this.startNewSessionIfNeeded(eventTime);
+        }
+      }
+      this.config.lastEventTime = eventTime;
+
+      if (event.session_id == undefined) {
+        event.session_id = this.getSessionId();
+      }
+    }
+
+    return super.process(event);
+  }
+
+  currentTimeMillis() {
+    return Date.now();
+  }
+
+  private startNewSessionIfNeeded(eventTime?: number): boolean {
+    eventTime = eventTime ?? this.currentTimeMillis();
+    const sessionId = this.explicitSessionId ?? eventTime;
+
+    if (
+      this.inSession() &&
+      (this.explicitSessionId === this.config.sessionId ||
+        (this.explicitSessionId === undefined && this.isWithinMinTimeBetweenSessions(sessionId)))
+    ) {
+      this.config.lastEventTime = eventTime;
+      return false;
+    }
+
+    this.setSessionIdInternal(sessionId, eventTime);
+    return true;
+  }
+
+  private isWithinMinTimeBetweenSessions(eventTime: number) {
+    return eventTime - (this.config.lastEventTime ?? 0) < this.config.sessionTimeout;
+  }
+
+  private inSession() {
+    return this.config.sessionId != undefined;
+  }
+
+  private readonly handleAppStateChange = (nextAppState: AppStateStatus) => {
+    const currentAppState = this.appState;
+    this.appState = nextAppState;
+    if (currentAppState !== nextAppState && nextAppState === 'active') {
+      this.startNewSessionIfNeeded();
+    }
+  };
 }
 
 export const createInstance = (): ReactNativeClient => {

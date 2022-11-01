@@ -30,6 +30,7 @@ export const getDefaultConfig = () => {
     osName: true,
     osVersion: true,
     platform: true,
+    sessionEvents: false,
   };
   return {
     cookieExpiration: 365,
