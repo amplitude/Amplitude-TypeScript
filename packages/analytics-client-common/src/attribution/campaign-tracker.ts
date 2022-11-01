@@ -42,11 +42,7 @@ export class CampaignTracker implements ICampaignTracker {
     this.initialEmptyValue = options.initialEmptyValue ?? EMPTY_VALUE;
   }
 
-  isNewCampaign(
-    current: Campaign,
-    previous: Campaign | undefined,
-    removeSubdomainsWhenComparingReferringDomains = false,
-  ) {
+  isNewCampaign(current: Campaign, previous: Campaign | undefined, ignoreSubdomainInReferrer = false) {
     const { referrer, referring_domain, ...currentCampaign } = current;
     const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
 
@@ -55,7 +51,7 @@ export class CampaignTracker implements ICampaignTracker {
     }
 
     const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
-    const hasNewDomain = removeSubdomainsWhenComparingReferringDomains
+    const hasNewDomain = ignoreSubdomainInReferrer
       ? domainWithoutSubdomain(referring_domain || '') !== domainWithoutSubdomain(prevReferringDomain || '')
       : referring_domain !== prevReferringDomain;
 
