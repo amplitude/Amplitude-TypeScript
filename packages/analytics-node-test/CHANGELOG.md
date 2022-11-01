@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node-test@0.0.22...@amplitude/analytics-node-test@0.1.0) (2022-11-01)
+
+
+### Features
+
+* enhance logger with debug information ([#254](https://github.com/amplitude/Amplitude-TypeScript/issues/254)) ([5c6175e](https://github.com/amplitude/Amplitude-TypeScript/commit/5c6175e9372cbeea264ddb34c6cc68148063d4f7))
+
+
+
+
+
 ## [0.0.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node-test@0.0.21...@amplitude/analytics-node-test@0.0.22) (2022-10-25)
 
 **Note:** Version bump only for package @amplitude/analytics-node-test

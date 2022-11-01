@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.5.8...@amplitude/analytics-node@0.6.0) (2022-11-01)
+
+
+### Features
+
+* enhance logger with debug information ([#254](https://github.com/amplitude/Amplitude-TypeScript/issues/254)) ([5c6175e](https://github.com/amplitude/Amplitude-TypeScript/commit/5c6175e9372cbeea264ddb34c6cc68148063d4f7))
+
+
+
+
+
 ## [0.5.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@0.5.7...@amplitude/analytics-node@0.5.8) (2022-10-25)
 
 

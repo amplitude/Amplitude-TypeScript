@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.1.11...@amplitude/analytics-browser-test@2.2.0) (2022-11-01)
+
+
+### Features
+
+* enhance logger with debug information ([#254](https://github.com/amplitude/Amplitude-TypeScript/issues/254)) ([5c6175e](https://github.com/amplitude/Amplitude-TypeScript/commit/5c6175e9372cbeea264ddb34c6cc68148063d4f7))
+
+
+
+
+
 ## [2.1.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.1.10...@amplitude/analytics-browser-test@2.1.11) (2022-10-26)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test
