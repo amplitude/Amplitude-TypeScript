@@ -58,10 +58,10 @@ describe('config', () => {
           osName: true,
           osVersion: true,
           platform: true,
-          sessionEvents: false,
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        trackingSessionEvents: false,
       });
     });
   });
@@ -118,10 +118,10 @@ describe('config', () => {
           osName: true,
           osVersion: true,
           platform: true,
-          sessionEvents: false,
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        trackingSessionEvents: false,
       });
     });
 
@@ -191,10 +191,10 @@ describe('config', () => {
           osName: true,
           osVersion: true,
           platform: true,
-          sessionEvents: false,
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        trackingSessionEvents: false,
       });
     });
   });

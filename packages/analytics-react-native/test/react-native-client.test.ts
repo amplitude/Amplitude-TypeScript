@@ -480,7 +480,7 @@ describe('react-native-client', () => {
     const clientOptions = (
       send: any,
       cookieStorage: core.MemoryStorage<UserSession>,
-      trackSessionEvents: boolean,
+      trackingSessionEvents: boolean,
       sessionId?: number,
     ) => ({
       transportProvider: {
@@ -490,9 +490,7 @@ describe('react-native-client', () => {
       cookieStorage,
       sessionTimeout: 100,
       sessionId,
-      trackingOptions: {
-        sessionEvents: trackSessionEvents,
-      },
+      trackingSessionEvents,
       ...attributionConfig,
     });
 

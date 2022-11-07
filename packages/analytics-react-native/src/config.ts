@@ -30,7 +30,6 @@ export const getDefaultConfig = () => {
     osName: true,
     osVersion: true,
     platform: true,
-    sessionEvents: false,
   };
   return {
     cookieExpiration: 365,
@@ -44,6 +43,7 @@ export const getDefaultConfig = () => {
     storageProvider: new MemoryStorage<Event[]>(),
     trackingOptions,
     transportProvider: new FetchTransport(),
+    trackingSessionEvents: false,
   };
 };
 
@@ -59,6 +59,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   sessionTimeout: number;
   trackingOptions: ReactNativeTrackingOptions;
   sessionManager: ISessionManager;
+  trackingSessionEvents: boolean;
 
   constructor(apiKey: string, userId?: string, options?: ReactNativeOptions) {
     const defaultConfig = getDefaultConfig();
@@ -88,6 +89,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.sessionId = options?.sessionId;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
     this.userId = userId;
+    this.trackingSessionEvents = options?.trackingSessionEvents ?? defaultConfig.trackingSessionEvents;
   }
 
   get deviceId() {

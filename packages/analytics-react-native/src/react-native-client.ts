@@ -180,7 +180,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
     this.config.sessionId = sessionId;
 
-    if (this.config.trackingOptions.sessionEvents) {
+    if (this.config.trackingSessionEvents) {
       if (previousSessionId !== undefined) {
         const sessionEndEvent: Event = {
           event_type: END_SESSION_EVENT,

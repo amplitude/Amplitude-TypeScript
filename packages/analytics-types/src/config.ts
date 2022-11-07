@@ -51,6 +51,7 @@ export interface BrowserConfig extends Config {
 
 export type ReactNativeConfig = Omit<BrowserConfig, 'trackingOptions'> & {
   trackingOptions: ReactNativeTrackingOptions;
+  trackingSessionEvents?: boolean;
 };
 
 export type NodeConfig = Config;
@@ -76,7 +77,6 @@ export interface TrackingOptions {
 export interface ReactNativeTrackingOptions extends TrackingOptions {
   adid?: boolean;
   carrier?: boolean;
-  sessionEvents?: boolean;
 }
 
 export interface AttributionOptions {
