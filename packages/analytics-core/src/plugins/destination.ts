@@ -35,7 +35,7 @@ export class Destination implements DestinationPlugin {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: Config;
-  scheduled = false;
+  scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
 
   async setup(config: Config): Promise<undefined> {
@@ -91,10 +91,8 @@ export class Destination implements DestinationPlugin {
 
   schedule(timeout: number) {
     if (this.scheduled) return;
-    this.scheduled = true;
-    setTimeout(() => {
+    this.scheduled = setTimeout(() => {
       void this.flush(true).then(() => {
-        this.scheduled = false;
         if (this.queue.length > 0) {
           this.schedule(timeout);
         }
@@ -107,6 +105,11 @@ export class Destination implements DestinationPlugin {
     const later: Context[] = [];
     this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
     this.queue = later;
+
+    if (this.scheduled) {
+      clearTimeout(this.scheduled);
+      this.scheduled = null;
+    }
 
     const batches = chunk(list, this.config.flushQueueSize);
     await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
