@@ -110,7 +110,7 @@ describe('destination', () => {
 
     test('should schedule a flush', async () => {
       const destination = new Destination();
-      destination.scheduled = false;
+      destination.scheduled = null;
       destination.queue = [
         {
           event: { event_type: 'event_type' },
@@ -121,7 +121,10 @@ describe('destination', () => {
       ];
       const flush = jest
         .spyOn(destination, 'flush')
-        .mockReturnValueOnce(Promise.resolve(undefined))
+        .mockImplementationOnce(() => {
+          destination.scheduled = null;
+          return Promise.resolve(undefined);
+        })
         .mockReturnValueOnce(Promise.resolve(undefined));
       destination.schedule(0);
       // exhause first setTimeout
@@ -135,7 +138,7 @@ describe('destination', () => {
 
     test('should not schedule if one is already in progress', () => {
       const destination = new Destination();
-      destination.scheduled = true;
+      destination.scheduled = setTimeout(jest.fn, 0);
       const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
       destination.schedule(0);
       expect(flush).toHaveBeenCalledTimes(0);
