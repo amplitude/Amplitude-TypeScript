@@ -24,5 +24,8 @@
     "strictBindCallApply": true,
     "target": "es5",
     "types": ["jest", "node"],
+    "paths": {
+      "@amplitude/analytics-node": ["./packages/analytics-node/"]
+    }
   }
 }
