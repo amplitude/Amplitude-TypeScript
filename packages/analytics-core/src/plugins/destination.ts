@@ -140,7 +140,17 @@ export class Destination implements DestinationPlugin {
         return;
       }
       if (!useRetry) {
-        this.fulfillRequest(list, res.statusCode, res.status);
+        if ('body' in res) {
+          let responseBody = '';
+          try {
+            responseBody = JSON.stringify(res.body, null, 2);
+          } catch {
+            // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
+          }
+          this.fulfillRequest(list, res.statusCode, `${res.status}: ${responseBody}`);
+        } else {
+          this.fulfillRequest(list, res.statusCode, res.status);
+        }
         return;
       }
       this.handleReponse(res, list);

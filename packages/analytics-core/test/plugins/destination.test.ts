@@ -335,6 +335,45 @@ describe('destination', () => {
       });
     });
 
+    test('should provide error details', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const body = {
+        error: 'Request missing required field',
+        missingField: 'user_id',
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Invalid,
+            statusCode: 400,
+            body,
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+      });
+      await destination.send([context], false);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 400,
+        message: `${Status.Invalid}: ${JSON.stringify(body, null, 2)}`,
+      });
+    });
+
     test('should handle no api key', async () => {
       const destination = new Destination();
       const callback = jest.fn();
