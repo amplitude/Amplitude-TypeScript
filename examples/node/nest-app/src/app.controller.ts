@@ -2,7 +2,7 @@ import { Controller, Get, Render } from '@nestjs/common';
 import { AppService } from './app.service';
 import * as amplitude from '@amplitude/analytics-node';
 
-const AMPLITUDE_API_KEY = 'API_KEY';
+const AMPLITUDE_API_KEY = '9f0e4a9f1c1233088b254e30ba3c80e1';
 
 @Controller()
 export class AppController {
@@ -52,6 +52,18 @@ export class AppController {
       new amplitude.Identify().set('technology', 'nest.js'),
       { user_id: 'test_user' },
     ).promise;
+    return 'Triggered, check console output...';
+  }
+
+  @Get('test')
+  async test(): Promise<string> {
+    const identifyObj = new amplitude.Identify();
+    identifyObj.set('email', 'marvin@test.com');
+    identifyObj.set('env', 'dev');
+    amplitude.identify(identifyObj);
+
+    amplitude.track('some event', undefined, { user_id: 'marvin' });
+    await amplitude.flush().promise;
     return 'Triggered, check console output...';
   }
 }
