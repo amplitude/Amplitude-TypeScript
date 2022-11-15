@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.5.1...@amplitude/analytics-react-native@0.6.0) (2022-11-15)
+
+
+### Features
+
+* auto-tracking session events ([#263](https://github.com/amplitude/Amplitude-TypeScript/issues/263)) ([75347c6](https://github.com/amplitude/Amplitude-TypeScript/commit/75347c61984832a6ade3ca9e6abe1bbd0faa6cde))
+
+
+
+
+
 ## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.5.0...@amplitude/analytics-react-native@0.5.1) (2022-11-01)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

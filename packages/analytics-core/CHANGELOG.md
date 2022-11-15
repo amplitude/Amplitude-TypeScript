@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.10.0...@amplitude/analytics-core@0.10.1) (2022-11-15)
+
+
+### Bug Fixes
+
+* clear open timeouts when flush is called ([0cebcb7](https://github.com/amplitude/Amplitude-TypeScript/commit/0cebcb72d10de9c4af8c6665a098434b511a6de1))
+* clear open timeouts when flush is called ([f404100](https://github.com/amplitude/Amplitude-TypeScript/commit/f4041003a6024875b9fe03806d487382d7f044d4))
+
+
+
+
+
 # [0.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.9.7...@amplitude/analytics-core@0.10.0) (2022-11-01)
 
 
