@@ -51,6 +51,7 @@ export interface BrowserConfig extends Config {
 
 export type ReactNativeConfig = Omit<BrowserConfig, 'trackingOptions'> & {
   trackingOptions: ReactNativeTrackingOptions;
+  trackingSessionEvents?: boolean;
 };
 
 export type NodeConfig = Config;

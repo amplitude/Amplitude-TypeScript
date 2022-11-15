@@ -61,6 +61,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        trackingSessionEvents: false,
       });
     });
   });
@@ -120,6 +121,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        trackingSessionEvents: false,
       });
     });
 
@@ -192,6 +194,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        trackingSessionEvents: false,
       });
     });
   });
