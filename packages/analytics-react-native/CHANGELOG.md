@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.6.0...@amplitude/analytics-react-native@0.6.1) (2022-11-16)
+
+
+### Bug Fixes
+
+* exclude '__mocks__' from typescript declarations ([#277](https://github.com/amplitude/Amplitude-TypeScript/issues/277)) ([b6ed565](https://github.com/amplitude/Amplitude-TypeScript/commit/b6ed565928943e3c25fb584b7cd71a0f6d734603))
+* set React Native default session timeout to 5 minutes (same for other mobile devices) ([#278](https://github.com/amplitude/Amplitude-TypeScript/issues/278)) ([a456471](https://github.com/amplitude/Amplitude-TypeScript/commit/a4564719ccd0628690427f198a8ca83d60ceb1ac))
+
+
+
+
+
 # [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.5.1...@amplitude/analytics-react-native@0.6.0) (2022-11-15)
 
 
