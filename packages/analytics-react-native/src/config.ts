@@ -39,7 +39,7 @@ export const getDefaultConfig = () => {
     disableCookies: false,
     domain: '',
     sessionManager: new SessionManager(cookieStorage, ''),
-    sessionTimeout: 30 * 60 * 1000,
+    sessionTimeout: 5 * 60 * 1000,
     storageProvider: new MemoryStorage<Event[]>(),
     trackingOptions,
     transportProvider: new FetchTransport(),

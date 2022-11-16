@@ -46,7 +46,7 @@ describe('config', () => {
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
-        sessionTimeout: 1800000,
+        sessionTimeout: 300000,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
           adid: true,
@@ -106,7 +106,7 @@ describe('config', () => {
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
         sessionManager,
-        sessionTimeout: 1800000,
+        sessionTimeout: 300000,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
           adid: true,
