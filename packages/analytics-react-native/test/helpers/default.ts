@@ -44,5 +44,5 @@ export const DEFAULT_OPTIONS: InitOptions<IReactNativeConfig> = {
     send: () => Promise.resolve(null),
   },
   sessionManager: new SessionManager(cookieStorage, API_KEY),
-  sessionTimeout: 30 * 60 * 1000,
+  sessionTimeout: 5 * 60 * 1000,
 };
