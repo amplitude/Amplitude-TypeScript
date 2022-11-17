@@ -78,4 +78,12 @@ export class SessionManager implements ISessionManager {
   setOptOut(optOut: boolean): void {
     this.setSession({ optOut });
   }
+
+  getLastEventId(): number | undefined {
+    return this.cache.lastEventId;
+  }
+
+  setLastEventId(lastEventId: number) {
+    this.setSession({ lastEventId });
+  }
 }
