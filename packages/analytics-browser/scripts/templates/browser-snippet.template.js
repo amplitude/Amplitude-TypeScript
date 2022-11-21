@@ -87,26 +87,29 @@ const snippet = (integrity, version) => `
       'revenue',
       'flush',
     ];
-    function setUpProxy(instance) {
-      function proxyMain(fn, isPromise) {
-        instance[fn] = function () {
-          var result = {
-            promise: new Promise((resolve) => {
-              instance._q.push({
-                name: fn,
-                args: Array.prototype.slice.call(arguments, 0),
-                resolve: resolve,
-              });
-            }),
-          };
-          if (isPromise) return result;
+    function getPromiseResult(instance, fn, args) {
+      return function (resolve) {
+        instance._q.push({
+          name: fn,
+          args: Array.prototype.slice.call(args, 0),
+          resolve: resolve,
+        });
+      };
+    }
+    function proxyMain(instance, fn, isPromise) {
+      var args = arguments;
+      instance[fn] = function () {
+        if (isPromise) return {
+          promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments))),
         };
-      }
+      };
+    }
+    function setUpProxy(instance) {
       for (var k = 0; k < funcs.length; k++) {
-        proxyMain(funcs[k], false);
+        proxyMain(instance, funcs[k], false);
       }
       for (var l = 0; l < funcsWithPromise.length; l++) {
-        proxyMain(funcsWithPromise[l], true);
+        proxyMain(instance, funcsWithPromise[l], true);
       }
     }
     setUpProxy(amplitude);
