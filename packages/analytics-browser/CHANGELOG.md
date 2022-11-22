@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.6.2...@amplitude/analytics-browser@1.6.3) (2022-11-22)
+
+
+### Bug Fixes
+
+* removed es6 syntax to support GTM usage ([#282](https://github.com/amplitude/Amplitude-TypeScript/issues/282)) ([29f885a](https://github.com/amplitude/Amplitude-TypeScript/commit/29f885ae2258949124c1a450354525c2cc5316cf))
+
+
+
+
+
 ## [1.6.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.6.1...@amplitude/analytics-browser@1.6.2) (2022-11-15)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
