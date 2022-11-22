@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { snippet } = require('../templates/browser-snippet.template');
 const { getName, getVersion } = require('../utils');
+const babel = require('@babel/core');
 
 // Setup input
 const inputDir = 'lib/scripts';
@@ -26,8 +27,11 @@ const encoding = 'base64';
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputText).digest(encoding);
 const outputText = header + snippet(getName(), integrity, getVersion());
+const { code: transpiledOutputText } = babel.transformSync(outputText, {
+  presets: ['env'],
+});
 
 // Write to disk
-fs.writeFileSync(outputPath, outputText);
+fs.writeFileSync(outputPath, transpiledOutputText);
 
 console.log(`Generated ${outputFile}`);
