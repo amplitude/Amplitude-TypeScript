@@ -218,6 +218,12 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       if (event.session_id == undefined) {
         event.session_id = this.getSessionId();
       }
+
+      if (event.event_id === undefined) {
+        const eventId = (this.config.sessionManager.getLastEventId() ?? -1) + 1;
+        event = { ...event, event_id: eventId };
+        this.config.sessionManager.setLastEventId(eventId);
+      }
     }
 
     return super.process(event);

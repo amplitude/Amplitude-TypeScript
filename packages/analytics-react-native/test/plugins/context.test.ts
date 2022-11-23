@@ -10,7 +10,6 @@ describe('context', () => {
       config.appVersion = '1.0.0';
       await context.setup(config);
       expect(context.config.appVersion).toEqual('1.0.0');
-      expect(context.eventId).toEqual(0);
       expect(context.uaResult).toBeDefined();
     });
 
@@ -19,7 +18,6 @@ describe('context', () => {
       const config = useDefaultConfig();
       await context.setup(config);
       expect(context.config.appVersion).toBeUndefined();
-      expect(context.eventId).toEqual(0);
       expect(context.uaResult).toBeDefined();
     });
   });
@@ -39,7 +37,6 @@ describe('context', () => {
       };
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
-      expect(firstContextEvent.event_id).toEqual(0);
       expect(firstContextEvent.event_type).toEqual('event_type');
       expect(firstContextEvent.insert_id).toBeDefined();
       /*
@@ -55,7 +52,8 @@ describe('context', () => {
       expect(firstContextEvent.user_id).toEqual('user@amplitude.com');
 
       const secondContextEvent = await context.execute(event);
-      expect(secondContextEvent.event_id).toEqual(1);
+      expect(secondContextEvent.insert_id).toBeDefined();
+      expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
     });
 
     test('should not return the properties when the tracking options are false', async () => {
@@ -83,7 +81,6 @@ describe('context', () => {
       };
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
-      expect(firstContextEvent.event_id).toEqual(0);
       expect(firstContextEvent.event_type).toEqual('event_type');
       expect(firstContextEvent.insert_id).toBeDefined();
 
@@ -98,7 +95,8 @@ describe('context', () => {
       expect(firstContextEvent.user_id).toEqual('user@amplitude.com');
 
       const secondContextEvent = await context.execute(event);
-      expect(secondContextEvent.event_id).toEqual(1);
+      expect(secondContextEvent.insert_id).toBeDefined();
+      expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
     });
 
     test('should be overwritten by the context', async () => {
@@ -116,13 +114,13 @@ describe('context', () => {
       };
       const firstContextEvent = await context.execute(event);
       expect(firstContextEvent.app_version).toEqual('1.0.0');
-      expect(firstContextEvent.event_id).toEqual(0);
       expect(firstContextEvent.event_type).toEqual('event_type');
       expect(firstContextEvent.insert_id).toBeDefined();
       expect(firstContextEvent.device_id).toEqual('new deviceId');
 
       const secondContextEvent = await context.execute(event);
-      expect(secondContextEvent.event_id).toEqual(1);
+      expect(secondContextEvent.insert_id).toBeDefined();
+      expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
     });
 
     describe('ingestionMetadata config', () => {
@@ -142,7 +140,6 @@ describe('context', () => {
           event_type: 'event_type',
         };
         const firstContextEvent = await context.execute(event);
-        expect(firstContextEvent.event_id).toEqual(0);
         expect(firstContextEvent.event_type).toEqual('event_type');
         expect(firstContextEvent.ingestion_metadata?.source_name).toEqual(sourceName);
         expect(firstContextEvent.ingestion_metadata?.source_version).toEqual(sourceVersion);
@@ -162,7 +159,6 @@ describe('context', () => {
           event_type: 'event_type',
         };
         const firstContextEvent = await context.execute(event);
-        expect(firstContextEvent.event_id).toEqual(0);
         expect(firstContextEvent.ingestion_metadata?.source_name).toBeUndefined();
         expect(firstContextEvent.ingestion_metadata?.source_version).toEqual(sourceVersion);
       });
@@ -181,7 +177,6 @@ describe('context', () => {
           event_type: 'event_type',
         };
         const firstContextEvent = await context.execute(event);
-        expect(firstContextEvent.event_id).toEqual(0);
         expect(firstContextEvent.ingestion_metadata?.source_name).toEqual(sourceName);
         expect(firstContextEvent.ingestion_metadata?.source_version).toBeUndefined();
       });

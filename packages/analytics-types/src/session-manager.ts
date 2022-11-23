@@ -4,6 +4,7 @@ export interface UserSession {
   sessionId?: number;
   lastEventTime?: number;
   optOut: boolean;
+  lastEventId?: number;
 }
 
 export interface SessionManagerOptions {
@@ -23,4 +24,6 @@ export interface SessionManager {
   setLastEventTime(lastEventTime?: number): void;
   getOptOut(): boolean;
   setOptOut(optOut: boolean): void;
+  getLastEventId(): number | undefined;
+  setLastEventId(lastEventId: number): void;
 }

@@ -76,10 +76,19 @@ describe('session-manager', () => {
   });
 
   describe('setOptOut/getOptOut', () => {
-    test('should set/get last event time', async () => {
+    test('should set/get OptOut', async () => {
       const sessionManager = await new SessionManager(new MemoryStorage(), API_KEY).load();
       sessionManager.setOptOut(true);
       expect(sessionManager.getOptOut()).toBe(true);
+    });
+  });
+
+  describe('setLastEventId/getLastEventId', () => {
+    test('should set/get last event id', async () => {
+      const sessionManager = await new SessionManager(new MemoryStorage(), API_KEY).load();
+      expect(sessionManager.getLastEventId()).toBeUndefined();
+      sessionManager.setLastEventId(12345);
+      expect(sessionManager.getLastEventId()).toBe(12345);
     });
   });
 });

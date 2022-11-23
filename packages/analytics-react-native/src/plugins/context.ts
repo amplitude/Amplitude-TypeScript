@@ -33,7 +33,6 @@ export class Context implements BeforePlugin {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: ReactNativeConfig;
-  eventId = 0;
   uaResult: UAParser.IResult;
   nativeModule: AmplitudeReactNative | undefined = NativeModules.AmplitudeReactNative as
     | AmplitudeReactNative
@@ -92,7 +91,6 @@ export class Context implements BeforePlugin {
         },
       }),
       ...context,
-      event_id: this.eventId++,
       library: this.library,
     };
     return event;
