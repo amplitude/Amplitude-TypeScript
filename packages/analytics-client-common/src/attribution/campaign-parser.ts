@@ -15,6 +15,7 @@ import {
   KO_CLICK_ID,
   GBRAID,
   WBRAID,
+  UTM_ID,
 } from './constants';
 import {
   Campaign,
@@ -37,18 +38,20 @@ export class CampaignParser implements ICampaignParser {
   getUtmParam(): UTMParameters {
     const params = getQueryParams();
 
-    const utmSource = params[UTM_SOURCE];
-    const utmMedium = params[UTM_MEDIUM];
     const utmCampaign = params[UTM_CAMPAIGN];
-    const utmTerm = params[UTM_TERM];
     const utmContent = params[UTM_CONTENT];
+    const utmId = params[UTM_ID];
+    const utmMedium = params[UTM_MEDIUM];
+    const utmSource = params[UTM_SOURCE];
+    const utmTerm = params[UTM_TERM];
 
     return {
-      utm_source: utmSource,
-      utm_medium: utmMedium,
       utm_campaign: utmCampaign,
-      utm_term: utmTerm,
       utm_content: utmContent,
+      utm_id: utmId,
+      utm_medium: utmMedium,
+      utm_source: utmSource,
+      utm_term: utmTerm,
     };
   }
 

@@ -169,6 +169,7 @@ describe('integration', () => {
                 initial_utm_medium: 'EMPTY',
                 initial_utm_source: 'EMPTY',
                 initial_utm_term: 'EMPTY',
+                initial_utm_id: 'EMPTY',
                 initial_wbraid: 'EMPTY',
               },
               $unset: {
@@ -184,6 +185,7 @@ describe('integration', () => {
                 twclid: '-',
                 utm_campaign: '-',
                 utm_content: '-',
+                utm_id: '-',
                 utm_medium: '-',
                 utm_source: '-',
                 utm_term: '-',
