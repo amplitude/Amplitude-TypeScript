@@ -3,11 +3,12 @@ import { AttributionOptions } from './config';
 import { Storage } from './storage';
 
 export interface UTMParameters {
-  utm_source: string | undefined;
-  utm_medium: string | undefined;
   utm_campaign: string | undefined;
-  utm_term: string | undefined;
   utm_content: string | undefined;
+  utm_id: string | undefined;
+  utm_medium: string | undefined;
+  utm_source: string | undefined;
+  utm_term: string | undefined;
 }
 
 export interface ReferrerParameters {
