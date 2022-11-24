@@ -74,6 +74,11 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     // Step 4: Manage session
     this.appState = AppState.currentState;
     const isNewSession = this.startNewSessionIfNeeded();
+    this.config.loggerProvider?.log(
+      `Init: startNewSessionIfNeeded = ${isNewSession ? 'yes' : 'no'}, sessionId = ${
+        this.getSessionId() ?? 'undefined'
+      }`,
+    );
     AppState.addEventListener('change', this.handleAppStateChange);
 
     this.initializing = false;
@@ -181,6 +186,8 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     this.config.sessionId = sessionId;
 
     if (this.config.trackingSessionEvents) {
+      this.config.loggerProvider?.log(`SESSION_END event: previousSessionId = ${previousSessionId ?? 'undefined'}`);
+
       if (previousSessionId !== undefined) {
         const sessionEndEvent: Event = {
           event_type: END_SESSION_EVENT,
@@ -190,6 +197,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
         void this.track(sessionEndEvent);
       }
 
+      this.config.loggerProvider?.log(`SESSION_START event: sessionId = ${sessionId}`);
       const sessionStartEvent: Event = {
         event_type: START_SESSION_EVENT,
         time: eventTime,
@@ -262,6 +270,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     const currentAppState = this.appState;
     this.appState = nextAppState;
     if (currentAppState !== nextAppState && nextAppState === 'active') {
+      this.config.loggerProvider?.log('App Activated');
       this.startNewSessionIfNeeded();
     }
   };
