@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.13.0...@amplitude/analytics-types@0.14.0) (2022-11-28)
+
+
+### Features
+
+* add utm_id tracking ([#284](https://github.com/amplitude/Amplitude-TypeScript/issues/284)) ([f72dcf1](https://github.com/amplitude/Amplitude-TypeScript/commit/f72dcf1788ebc84544aaee1dc41b1d1ba6e4c06e))
+* persisted event identifiers (React Native) ([#280](https://github.com/amplitude/Amplitude-TypeScript/issues/280)) ([bd35e73](https://github.com/amplitude/Amplitude-TypeScript/commit/bd35e73a0a08db6609938d27f00f54cbf77ff6c1))
+
+
+
+
+
 # [0.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.12.0...@amplitude/analytics-types@0.13.0) (2022-11-15)
 
 

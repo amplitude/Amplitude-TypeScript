@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.4.2...@amplitude/plugin-web-attribution-browser@0.5.0) (2022-11-28)
+
+
+### Features
+
+* add utm_id tracking ([#284](https://github.com/amplitude/Amplitude-TypeScript/issues/284)) ([f72dcf1](https://github.com/amplitude/Amplitude-TypeScript/commit/f72dcf1788ebc84544aaee1dc41b1d1ba6e4c06e))
+
+
+
+
+
 ## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.4.1...@amplitude/plugin-web-attribution-browser@0.4.2) (2022-11-22)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.10.1...@amplitude/analytics-core@0.11.0) (2022-11-28)
+
+
+### Features
+
+* add nest.js example app and improve response message with body content ([#275](https://github.com/amplitude/Amplitude-TypeScript/issues/275)) ([1379195](https://github.com/amplitude/Amplitude-TypeScript/commit/1379195677af0120a09cdf632c3bae36baa4fd1c))
+
+
+
+
+
 ## [0.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.10.0...@amplitude/analytics-core@0.10.1) (2022-11-15)
 
 
