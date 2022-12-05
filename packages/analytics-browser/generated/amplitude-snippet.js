@@ -56,10 +56,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-mZbC5oSuIiJYQZSa8Tw0uxURkeR+IW+xtQpcZWHa0cJWKfMXlobYbz0sJoMXOFXp';
+    as.integrity = 'sha384-4cOM8d9kejqAcMHMPVGDUGqPs1j4kbrMKwBFPCZSVoPdJv2bQCV8CrANpCU/5tNF';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.6.4-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.6.5-min.js.gz';
 
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
