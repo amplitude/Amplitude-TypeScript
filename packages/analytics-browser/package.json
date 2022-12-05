@@ -33,7 +33,7 @@
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "playground": "cp lib/scripts/amplitude-min.js playground/amplitude.js && http-server ./playground",
-    "publish": "node scripts/publish/upload-to-s3.js",
+    "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
     "version": "yarn version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/amplitude.js",
