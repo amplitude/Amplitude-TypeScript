@@ -56,10 +56,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-AYZPJxZPq0h42yLmht5F5nVjn0p3vWD2Ps6+M3LeHeI5QRbtFrGQ7tiBFvGmCcsc';
+    as.integrity = 'sha384-PPfHw98myKtJkA9OdPBMQ6n8yvUaYk0EyUQccFSIQGmB05K6aAMZwvv8z50a5hT2';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/marketing-analytics-browser-0.3.1-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/marketing-analytics-browser-0.3.2-min.js.gz';
 
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
