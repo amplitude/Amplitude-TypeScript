@@ -81,11 +81,11 @@ describe('core-client', () => {
 
       // add
       await client.add(plugin);
-      expect(register).toHaveBeenCalledTimes(1);
+      expect(register).toBeCalledTimes(1);
 
       // remove
       await client.remove(plugin.name);
-      expect(deregister).toHaveBeenCalledTimes(1);
+      expect(deregister).toBeCalledTimes(1);
     });
 
     test('should queue add/remove', async () => {
@@ -115,7 +115,7 @@ describe('core-client', () => {
       return new Promise<void>((resolve) => {
         client.dispatchWithCallback(event, (result) => {
           expect(result).toBe(success);
-          expect(push).toHaveBeenCalledTimes(1);
+          expect(push).toBeCalledTimes(1);
           resolve();
         });
       });
@@ -149,7 +149,7 @@ describe('core-client', () => {
 
       const result = await client.dispatch(event);
       expect(result).toBe(success);
-      expect(push).toHaveBeenCalledTimes(1);
+      expect(push).toBeCalledTimes(1);
     });
 
     test('should handle non-200 error', async () => {
@@ -160,7 +160,7 @@ describe('core-client', () => {
 
       const result = await client.dispatch(event);
       expect(result).toBe(badRequest);
-      expect(push).toHaveBeenCalledTimes(1);
+      expect(push).toBeCalledTimes(1);
     });
 
     test('should handle unexpected error', async () => {
@@ -177,7 +177,7 @@ describe('core-client', () => {
         message: 'Error',
         code: 0,
       });
-      expect(push).toHaveBeenCalledTimes(1);
+      expect(push).toBeCalledTimes(1);
     });
 
     test('should handle opt out', async () => {
@@ -193,7 +193,7 @@ describe('core-client', () => {
         message: OPT_OUT_MESSAGE,
         code: 0,
       });
-      expect(push).toHaveBeenCalledTimes(0);
+      expect(push).toBeCalledTimes(0);
     });
 
     test('should handle undefined config', async () => {
@@ -207,7 +207,7 @@ describe('core-client', () => {
       await client._init(useDefaultConfig());
       await client.runQueuedFunctions('dispatchQ');
       const result = await dispathPromise;
-      expect(push).toHaveBeenCalledTimes(1);
+      expect(push).toBeCalledTimes(1);
       expect(result).toBe(success);
     });
   });
@@ -241,7 +241,7 @@ describe('core-client', () => {
       // add
       await client.add(plugin);
       await client.flush();
-      expect(flush).toHaveBeenCalledTimes(1);
+      expect(flush).toBeCalledTimes(1);
     });
   });
 });

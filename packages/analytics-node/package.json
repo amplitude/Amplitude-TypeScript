@@ -38,7 +38,7 @@
   "dependencies": {
     "@amplitude/analytics-core": "^0.11.0",
     "@amplitude/analytics-types": "^0.14.0",
-    "tslib": "^2.4.1"
+    "tslib": "^2.3.1"
   },
   "files": [
     "lib"

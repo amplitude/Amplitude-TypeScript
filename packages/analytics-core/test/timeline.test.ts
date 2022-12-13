@@ -206,8 +206,8 @@ describe('timeline', () => {
       expect(timeline.queue.length).toBe(4);
       await timeline.flush();
       expect(timeline.queue.length).toBe(0);
-      expect(execute).toHaveBeenCalledTimes(4);
-      expect(flush).toHaveBeenCalledTimes(1);
+      expect(execute).toBeCalledTimes(4);
+      expect(flush).toBeCalledTimes(1);
     });
   });
 });
