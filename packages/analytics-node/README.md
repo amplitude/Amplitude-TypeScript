@@ -7,7 +7,7 @@
 
 # @amplitude/analytics-node
 
-Official Amplitude SDK for Node.js (Beta)
+Official Amplitude SDK for Node.js
 
 ## Installation
 
