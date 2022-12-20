@@ -3,6 +3,41 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.3.2...@amplitude/analytics-browser-test@2.3.3) (2022-12-10)
+
+**Note:** Version bump only for package @amplitude/analytics-browser-test
+
+
+
+
+
+## [2.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.3.1...@amplitude/analytics-browser-test@2.3.2) (2022-12-06)
+
+**Note:** Version bump only for package @amplitude/analytics-browser-test
+
+
+
+
+
+## [2.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.3.0...@amplitude/analytics-browser-test@2.3.1) (2022-12-05)
+
+**Note:** Version bump only for package @amplitude/analytics-browser-test
+
+
+
+
+
+# [2.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.2.3...@amplitude/analytics-browser-test@2.3.0) (2022-11-28)
+
+
+### Features
+
+* add utm_id tracking ([#284](https://github.com/amplitude/Amplitude-TypeScript/issues/284)) ([f72dcf1](https://github.com/amplitude/Amplitude-TypeScript/commit/f72dcf1788ebc84544aaee1dc41b1d1ba6e4c06e))
+
+
+
+
+
 ## [2.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.2.2...@amplitude/analytics-browser-test@2.2.3) (2022-11-22)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.6.1...@amplitude/analytics-react-native@0.7.0) (2022-11-28)
+
+
+### Features
+
+* persisted event identifiers (React Native) ([#280](https://github.com/amplitude/Amplitude-TypeScript/issues/280)) ([bd35e73](https://github.com/amplitude/Amplitude-TypeScript/commit/bd35e73a0a08db6609938d27f00f54cbf77ff6c1))
+
+
+
+
+
 ## [0.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.6.0...@amplitude/analytics-react-native@0.6.1) (2022-11-16)
 
 
