@@ -1,4 +1,4 @@
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, NativeEventSubscription } from 'react-native';
 import {
   AmplitudeCore,
   Destination,
@@ -30,6 +30,7 @@ const END_SESSION_EVENT = 'session_end';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   appState: AppStateStatus = 'background';
+  private appStateChangeHandler: NativeEventSubscription | undefined;
   explicitSessionId: number | undefined;
 
   async init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
@@ -74,7 +75,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     // Step 4: Manage session
     this.appState = AppState.currentState;
     const isNewSession = this.startNewSessionIfNeeded();
-    AppState.addEventListener('change', this.handleAppStateChange);
+    this.appStateChangeHandler = AppState.addEventListener('change', this.handleAppStateChange);
 
     this.initializing = false;
 
@@ -86,7 +87,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   }
 
   shutdown() {
-    AppState.removeEventListener('change', this.handleAppStateChange);
+    this.appStateChangeHandler?.remove();
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
