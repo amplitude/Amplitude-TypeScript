@@ -113,6 +113,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   }
 
   set sessionId(sessionId: number | undefined) {
+    this.loggerProvider?.log(`Set sessionId to ${sessionId ?? 'undefined'}`);
     this.sessionManager.setSessionId(sessionId);
   }
 
@@ -146,18 +147,29 @@ export const useReactNativeConfig = async (
   const queryParams = getQueryParams();
   const sessionManager = await new SessionManager(cookieStorage, apiKey).load();
 
-  return new ReactNativeConfig(apiKey, userId ?? cookies?.userId, {
+  const restoredSessionId = (await cookieStorage.get(cookieName))?.sessionId;
+  const optionsSessionId = options?.sessionId;
+
+  const config = new ReactNativeConfig(apiKey, userId ?? cookies?.userId, {
     ...options,
     cookieStorage,
     sessionManager,
     deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
     domain,
     optOut: options?.optOut ?? Boolean(cookies?.optOut),
-    sessionId: (await cookieStorage.get(cookieName))?.sessionId ?? options?.sessionId,
+    sessionId: restoredSessionId ?? optionsSessionId,
     storageProvider: await createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
     transportProvider: options?.transportProvider ?? new FetchTransport(),
   });
+
+  config.loggerProvider?.log(
+    `Init: storage=${cookieStorage.constructor.name} restoredSessionId = ${
+      restoredSessionId ?? 'undefined'
+    }, optionsSessionId = ${optionsSessionId ?? 'undefined'}`,
+  );
+
+  return config;
 };
 
 export const createCookieStorage = async (

@@ -4,7 +4,6 @@ import { getCookieName as getStorageKey } from './cookie-name';
 export class SessionManager implements ISessionManager {
   storageKey: string;
   cache: UserSession;
-  isSessionCacheValid = true;
 
   constructor(private storage: Storage<UserSession>, apiKey: string) {
     this.storageKey = getStorageKey(apiKey);
@@ -31,19 +30,10 @@ export class SessionManager implements ISessionManager {
   }
 
   getSessionId() {
-    this.isSessionCacheValid = true;
-    void this.storage.get(this.storageKey).then((userSession) => {
-      // Checks if session id has been set since the last get
-      if (this.isSessionCacheValid) {
-        this.cache.sessionId = userSession?.sessionId;
-      }
-    });
     return this.cache.sessionId;
   }
 
   setSessionId(sessionId: number) {
-    // Flags session id has been set
-    this.isSessionCacheValid = false;
     this.setSession({ sessionId });
   }
 

@@ -22,7 +22,6 @@ describe('config', () => {
         userId: undefined,
       });
       const sessionManager = await new SessionManager(cookieStorage, '').load();
-      sessionManager.isSessionCacheValid = false;
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = new Config.BrowserConfig('', undefined);
@@ -76,7 +75,6 @@ describe('config', () => {
         userId: undefined,
       });
       const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
-      sessionManager.isSessionCacheValid = false;
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
@@ -131,7 +129,6 @@ describe('config', () => {
         optOut: false,
       });
       const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
-      sessionManager.isSessionCacheValid = false;
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
