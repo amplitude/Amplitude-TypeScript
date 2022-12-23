@@ -30,7 +30,7 @@ const END_SESSION_EVENT = 'session_end';
 
 export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
   appState: AppStateStatus = 'background';
-  private appStateChangeHandler: NativeEventSubscription | undefined;
+  private appStateChangeHandler: NativeEventSubscription | undefined | void;
   explicitSessionId: number | undefined;
 
   async init(apiKey = '', userId?: string, options?: ReactNativeOptions) {

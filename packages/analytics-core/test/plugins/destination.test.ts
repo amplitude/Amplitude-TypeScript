@@ -110,7 +110,8 @@ describe('destination', () => {
 
     test('should schedule a flush', async () => {
       const destination = new Destination();
-      destination.scheduled = null;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (destination as any).scheduled = null;
       destination.queue = [
         {
           event: { event_type: 'event_type' },
@@ -122,7 +123,8 @@ describe('destination', () => {
       const flush = jest
         .spyOn(destination, 'flush')
         .mockImplementationOnce(() => {
-          destination.scheduled = null;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (destination as any).scheduled = null;
           return Promise.resolve(undefined);
         })
         .mockReturnValueOnce(Promise.resolve(undefined));
@@ -138,7 +140,8 @@ describe('destination', () => {
 
     test('should not schedule if one is already in progress', () => {
       const destination = new Destination();
-      destination.scheduled = setTimeout(jest.fn, 0);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (destination as any).scheduled = setTimeout(jest.fn, 0);
       const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
       destination.schedule(0);
       expect(flush).toHaveBeenCalledTimes(0);

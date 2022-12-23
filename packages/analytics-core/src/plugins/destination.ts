@@ -35,7 +35,7 @@ export class Destination implements DestinationPlugin {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: Config;
-  scheduled: ReturnType<typeof setTimeout> | null = null;
+  private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
 
   async setup(config: Config): Promise<undefined> {
