@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node-test@0.1.3...@amplitude/analytics-node-test@0.1.4) (2023-01-11)
+
+**Note:** Version bump only for package @amplitude/analytics-node-test
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node-test@0.1.2...@amplitude/analytics-node-test@0.1.3) (2022-12-21)
 
 ### Bug Fixes

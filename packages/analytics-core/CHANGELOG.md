@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.11.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.11.1...@amplitude/analytics-core@0.11.2) (2023-01-11)
+
+### Bug Fixes
+
+- avoid loading types node ([#301](https://github.com/amplitude/Amplitude-TypeScript/issues/301))
+  ([1141807](https://github.com/amplitude/Amplitude-TypeScript/commit/1141807e77ea86423b092943dbbe357813967bd0))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.11.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.11.0...@amplitude/analytics-core@0.11.1) (2022-12-21)
 
 ### Bug Fixes
