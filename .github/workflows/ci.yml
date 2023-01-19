@@ -41,6 +41,19 @@ jobs:
         run: |
           yarn build
 
+      # https://github.com/amplitude/Amplitude-TypeScript/issues/281
+      - name: Check module dependencies
+        run: |
+          if grep -rnw 'packages/analytics-core/lib' -e '/// <reference types="node" />'; then
+            exit 1
+          elif grep -rnw 'packages/analytics-browser/lib' -e '/// <reference types="node" />'; then
+            exit 1
+          elif grep -rnw 'packages/analytics-marketing-analytics-browser/lib' -e '/// <reference types="node" />'; then
+            exit 1
+          elif grep -rnw 'packages/analytics-react-native/lib' -e '/// <reference types="node" />'; then
+            exit 1
+          fi
+
       - name: Build docs
         run: |
           yarn docs:check
