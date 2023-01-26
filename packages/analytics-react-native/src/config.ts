@@ -36,6 +36,7 @@ export const getDefaultConfig = () => {
     cookieSameSite: 'Lax',
     cookieSecure: false,
     cookieStorage,
+    cookieUpgrade: true,
     disableCookies: false,
     domain: '',
     sessionManager: new SessionManager(cookieStorage, ''),
@@ -53,6 +54,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
   cookieSameSite: string;
   cookieSecure: boolean;
   cookieStorage: Storage<UserSession>;
+  cookieUpgrade: boolean;
   disableCookies: boolean;
   domain: string;
   partnerId?: string;
@@ -80,6 +82,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
+    this.cookieUpgrade = options?.cookieUpgrade ?? defaultConfig.cookieUpgrade;
     this.deviceId = options?.deviceId;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;

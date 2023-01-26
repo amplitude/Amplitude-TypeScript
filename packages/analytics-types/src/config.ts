@@ -38,6 +38,7 @@ export interface BrowserConfig extends Config {
   cookieSameSite: string;
   cookieSecure: boolean;
   cookieStorage: Storage<UserSession>;
+  cookieUpgrade?: boolean;
   disableCookies: boolean;
   domain: string;
   lastEventTime?: number;

@@ -1,4 +1,5 @@
-import { getOldCookieName } from '@amplitude/analytics-client-common';
+import { CookieStorage, getOldCookieName } from '@amplitude/analytics-client-common';
+import { Storage } from '@amplitude/analytics-types';
 import { decode, parseOldCookies, parseTime } from '../../src/cookie-migration';
 import * as LocalStorageModule from '../../src/storage/local-storage';
 
@@ -32,12 +33,13 @@ describe('cookie-migration', () => {
       });
     });
 
-    test('should old cookies', async () => {
+    test('should remove old cookies by default', async () => {
       const timestamp = 1650949309508;
       const time = timestamp.toString(32);
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
-      document.cookie = `${getOldCookieName(API_KEY)}=deviceId.${encodedUserId}..${time}.${time}`;
+      const oldCookieName = getOldCookieName(API_KEY);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
       const cookies = await parseOldCookies(API_KEY);
       expect(cookies).toEqual({
         deviceId: 'deviceId',
@@ -46,6 +48,56 @@ describe('cookie-migration', () => {
         lastEventTime: timestamp,
         optOut: false,
       });
+
+      const storage: Storage<string> = new CookieStorage<string>();
+      const cookies2 = await storage.getRaw(oldCookieName);
+      expect(cookies2).toBeUndefined();
+    });
+
+    test('should remove old cookies', async () => {
+      const timestamp = 1650949309508;
+      const time = timestamp.toString(32);
+      const userId = 'userId';
+      const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
+      const oldCookieName = getOldCookieName(API_KEY);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
+      const cookies = await parseOldCookies(API_KEY, {
+        cookieUpgrade: true,
+      });
+      expect(cookies).toEqual({
+        deviceId: 'deviceId',
+        userId: 'userId',
+        sessionId: timestamp,
+        lastEventTime: timestamp,
+        optOut: false,
+      });
+
+      const storage: Storage<string> = new CookieStorage<string>();
+      const cookies2 = await storage.getRaw(oldCookieName);
+      expect(cookies2).toBeUndefined();
+    });
+
+    test('should keep old cookies', async () => {
+      const timestamp = 1650949309508;
+      const time = timestamp.toString(32);
+      const userId = 'userId';
+      const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
+      const oldCookieName = getOldCookieName(API_KEY);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
+      const cookies = await parseOldCookies(API_KEY, {
+        cookieUpgrade: false,
+      });
+      expect(cookies).toEqual({
+        deviceId: 'deviceId',
+        userId: 'userId',
+        sessionId: timestamp,
+        lastEventTime: timestamp,
+        optOut: false,
+      });
+
+      const storage: Storage<string> = new CookieStorage<string>();
+      const cookies2 = await storage.getRaw(oldCookieName);
+      expect(cookies2).toBe(`deviceId.${encodedUserId}..${time}.${time}`);
     });
   });
 
