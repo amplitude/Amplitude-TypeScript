@@ -1,5 +1,5 @@
 buildscript {
-    ext.kotlinVersion = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : "1.5.30"
+    ext.kotlinVersion = "1.5.30"
     repositories {
         google()
         jcenter()
