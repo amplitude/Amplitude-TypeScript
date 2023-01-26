@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.4.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.3.5...@amplitude/analytics-browser-test@2.4.0-beta.0) (2023-01-26)
+
+### Features
+
+- allow opt out of deleting legacy sdk cookies
+  ([c6a82fb](https://github.com/amplitude/Amplitude-TypeScript/commit/c6a82fb52e1301e427116891d1f31208bcfc6548))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.3.4...@amplitude/analytics-browser-test@2.3.5) (2023-01-11)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test
