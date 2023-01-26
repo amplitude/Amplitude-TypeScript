@@ -4,6 +4,7 @@ import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
 import { PluginType, LogLevel } from '@amplitude/analytics-types';
+import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -16,9 +17,16 @@ describe('integration', () => {
     },
   };
 
+  let apiKey = '';
+
+  beforeEach(() => {
+    apiKey = UUID();
+  });
+
   afterEach(() => {
     // clean up cookies
     document.cookie = 'AMP_API_KEY=null; expires=-1';
+    document.cookie = `AMP_${apiKey.substring(0, 6)}=null; expires=-1`;
   });
 
   // WARNING: This test has to run first
@@ -860,16 +868,16 @@ describe('integration', () => {
   describe('cookie migration', () => {
     test('should use old cookies', async () => {
       const scope = nock(url).post(path).reply(200, success);
-      const API_KEY = 'asdfasdf';
       const timestamp = Date.now();
       const time = timestamp.toString(32);
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
-      document.cookie = `amp_${API_KEY.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
-      await amplitude.init(API_KEY, undefined, {
+      document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
+      const client = amplitude.createInstance();
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
-      const response = await amplitude.track('test event', {
+      const response = await client.track('test event', {
         mode: 'test',
       }).promise;
       expect(response.event).toEqual({
@@ -894,6 +902,48 @@ describe('integration', () => {
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
+      expect(document.cookie.includes('amp_')).toBe(false);
+      scope.done();
+    });
+
+    test('should retain old cookies', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+      const timestamp = Date.now();
+      const time = timestamp.toString(32);
+      const userId = 'userId';
+      const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
+      document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
+      const client = amplitude.createInstance();
+      await client.init(apiKey, undefined, {
+        ...opts,
+        cookieUpgrade: false,
+      }).promise;
+      const response = await client.track('test event', {
+        mode: 'test',
+      }).promise;
+      expect(response.event).toEqual({
+        user_id: userId,
+        device_id: 'deviceId',
+        session_id: timestamp,
+        time: number,
+        platform: 'Web',
+        os_name: 'WebKit',
+        os_version: '537.36',
+        device_manufacturer: undefined,
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 0,
+        event_properties: {
+          mode: 'test',
+        },
+        library: library,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      expect(document.cookie.includes('amp_')).toBe(true);
       scope.done();
     });
   });
