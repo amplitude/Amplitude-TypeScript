@@ -26,6 +26,16 @@ Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.
 
 ## Projects
 
-* [@amplitude/analytics-browser](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser): Amplitude SDK for Web
-* [@amplitude/analytics-node](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-node): Amplitude SDK for Node.js
-* [@amplitude/analytics-react-native](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-react-native): Amplitude SDK for React Native
+* Amplitude SDK for Web
+  * [@amplitude/analytics-browser](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser)
+  * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/typescript-browser/)
+* Amplitude SDK for Node.js
+  * [@amplitude/analytics-node](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-node)
+  * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/typescript-node/)
+* Amplitude SDK for React Native
+  * [@amplitude/analytics-react-native](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-react-native)
+  * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/typescript-react-native/)
+
+## Doc
+
+See our [Typescript SDK](https://amplitude.github.io/Amplitude-TypeScript/) Reference for a list and description of all available SDK methods.

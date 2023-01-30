@@ -9,6 +9,14 @@
 
 Official Amplitude SDK for Web
 
+# Doc
+
+See our [Typescript Analytics Browser SDK](https://amplitude.github.io/Amplitude-TypeScript/modules/_amplitude_analytics_browser.html) Reference for a list and description of all available SDK methods.
+
+# Installation and Quick Start
+
+Please visit our :100:[Developer Center](https://www.docs.developers.amplitude.com/data/sdks/typescript-browser/) for instructions on installing and using our the SDK.
+
 ## Installation
 
 To get started with using Amplitude Browser SDK, install the package to your project via NPM or script loader.

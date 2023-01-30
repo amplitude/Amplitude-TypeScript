@@ -9,6 +9,10 @@
 
 Official Amplitude SDK for React Native (Beta)
 
+# Installation and Quick Start
+
+Please visit our :100:[Developer Center](https://www.docs.developers.amplitude.com/data/sdks/typescript-react-native/) for instructions on installing and using our the SDK.
+
 ## Installation
 
 To get started with using Amplitude React Native SDK, install the package to your project via NPM. In addition, this package relies on `@react-native-async-storage/async-storage`, which must also be installed.
