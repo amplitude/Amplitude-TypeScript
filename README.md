@@ -36,6 +36,6 @@ Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.
   * [@amplitude/analytics-react-native](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-react-native)
   * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/typescript-react-native/)
 
-## Doc
+## Documentation
 
 See our [Typescript SDK](https://amplitude.github.io/Amplitude-TypeScript/) Reference for a list and description of all available SDK methods.
