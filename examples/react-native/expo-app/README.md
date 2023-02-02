@@ -1,5 +1,5 @@
 # React-Native Example App (Expo)
-## Docs
+## Documentation
 - [React Native SDK](https://www.docs.developers.amplitude.com/data/sdks/react-native-sdk/)
 
 ## Setup
