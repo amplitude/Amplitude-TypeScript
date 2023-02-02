@@ -4,6 +4,7 @@ import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
 import { PluginType, LogLevel } from '@amplitude/analytics-types';
+import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -16,15 +17,21 @@ describe('integration', () => {
     },
   };
 
-  afterEach(() => {
-    // clean up cookies
-    document.cookie = 'AMP_API_KEY=null; expires=-1';
+  let apiKey = '';
+  let client = amplitude.createInstance();
+
+  beforeEach(() => {
+    client = amplitude.createInstance();
+    apiKey = UUID();
   });
 
-  // WARNING: This test has to run first
-  // This test is under the assumption that amplitude has not be initiated at all
-  // To achieve this condition, it must run before any other tests
-  describe('FIRST TEST: defer initialization', () => {
+  afterEach(() => {
+    // clean up cookies
+    document.cookie = `AMP_${apiKey.substring(0, 6)}=null; expires=-1`;
+    document.cookie = `AMP_${apiKey.substring(0, 10)}=null; expires=-1`;
+  });
+
+  describe('defer initialization', () => {
     beforeAll(() => {
       Object.defineProperty(window, 'location', {
         value: {
@@ -56,10 +63,10 @@ describe('integration', () => {
         const deviceId = 'device-12345';
         const platform = 'Jest';
 
-        amplitude.setUserId(userId);
-        amplitude.setDeviceId(deviceId);
-        amplitude.setSessionId(sessionId);
-        amplitude.add({
+        client.setUserId(userId);
+        client.setDeviceId(deviceId);
+        client.setSessionId(sessionId);
+        client.add({
           type: PluginType.ENRICHMENT,
           name: 'custom',
           setup: async () => {
@@ -70,7 +77,7 @@ describe('integration', () => {
             return event;
           },
         });
-        void amplitude.track('Event Before Init').promise.then((response) => {
+        void client.track('Event Before Init').promise.then((response) => {
           expect(response.event).toEqual({
             device_id: deviceId, // NOTE: Device ID was set before init
             device_manufacturer: undefined,
@@ -95,7 +102,7 @@ describe('integration', () => {
           scope.done();
           resolve(undefined);
         });
-        amplitude.init('API_KEY', undefined, {
+        client.init(apiKey, undefined, {
           ...opts,
           serverUrl: url + path,
         });
@@ -123,13 +130,12 @@ describe('integration', () => {
       const userId = 'user@amplitude.com';
       const deviceId = 'device-12345';
 
-      const client = amplitude.createInstance();
       client.setUserId(userId);
       client.setDeviceId(deviceId);
       client.setSessionId(sessionId);
 
       const trackPromise = client.track('Event Before Init').promise;
-      await client.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
         attribution: {
           disabled: false,
@@ -138,7 +144,7 @@ describe('integration', () => {
       await trackPromise;
 
       expect(requestBody1).toEqual({
-        api_key: 'API_KEY',
+        api_key: apiKey,
         events: [
           {
             device_id: deviceId,
@@ -199,7 +205,7 @@ describe('integration', () => {
         options: {},
       });
       expect(requestBody2).toEqual({
-        api_key: 'API_KEY',
+        api_key: apiKey,
         events: [
           {
             device_id: deviceId,
@@ -228,10 +234,10 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
-      const response = await amplitude.track('test event', {
+      const response = await client.track('test event', {
         mode: 'test',
       }).promise;
       expect(response.event).toEqual({
@@ -262,12 +268,12 @@ describe('integration', () => {
     test('should track event with custom config', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', 'sdk.dev@amplitude.com', {
+      await client.init(apiKey, 'sdk.dev@amplitude.com', {
         deviceId: 'deviceId',
         sessionId: 1,
         ...opts,
       }).promise;
-      const response = await amplitude.track('test event').promise;
+      const response = await client.track('test event').promise;
       expect(response.event).toEqual({
         user_id: 'sdk.dev@amplitude.com',
         device_id: 'deviceId',
@@ -293,10 +299,10 @@ describe('integration', () => {
     test('should track event with event options', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
-      const response = await amplitude.track('test event', undefined, {
+      const response = await client.track('test event', undefined, {
         user_id: 'sdk.dev@amplitude.com',
         device_id: 'deviceId',
         session_id: 1,
@@ -328,14 +334,14 @@ describe('integration', () => {
 
       const sourceName = 'ampli';
       const sourceVersion = '2.0.0';
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
         ingestionMetadata: {
           sourceName,
           sourceVersion,
         },
       }).promise;
-      const response = await amplitude.track('test event', undefined, {
+      const response = await client.track('test event', undefined, {
         user_id: 'sdk.dev@amplitude.com',
         device_id: 'deviceId',
         session_id: 1,
@@ -369,10 +375,10 @@ describe('integration', () => {
     test('should track event with base event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
-      const response = await amplitude.track(
+      const response = await client.track(
         {
           event_type: 'test event',
           groups: {
@@ -423,13 +429,13 @@ describe('integration', () => {
         });
       const second = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         logLevel: 0,
         ...opts,
       }).promise;
       const response = await Promise.all([
-        amplitude.track('test event 1').promise,
-        amplitude.track('test event 2', undefined, {
+        client.track('test event 1').promise,
+        client.track('test event 2', undefined, {
           device_id: undefined,
         }).promise,
       ]);
@@ -482,15 +488,12 @@ describe('integration', () => {
       });
       const second = nock(url).post(path).times(2).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         logLevel: 0,
         flushQueueSize: 2,
         ...opts,
       }).promise;
-      const response = await Promise.all([
-        amplitude.track('test event 1').promise,
-        amplitude.track('test event 2').promise,
-      ]);
+      const response = await Promise.all([client.track('test event 1').promise, client.track('test event 2').promise]);
       expect(response[0].event).toEqual({
         user_id: undefined,
         device_id: uuid,
@@ -545,13 +548,13 @@ describe('integration', () => {
         });
       const second = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         logLevel: 0,
         ...opts,
       }).promise;
       const response = await Promise.all([
-        amplitude.track('test event 1').promise,
-        amplitude.track('test event 2', undefined, {
+        client.track('test event 1').promise,
+        client.track('test event 2', undefined, {
           device_id: 'throttled_device_id',
         }).promise,
       ]);
@@ -603,14 +606,11 @@ describe('integration', () => {
       });
       const second = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         logLevel: 0,
         ...opts,
       }).promise;
-      const response = await Promise.all([
-        amplitude.track('test event 1').promise,
-        amplitude.track('test event 2').promise,
-      ]);
+      const response = await Promise.all([client.track('test event 1').promise, client.track('test event 2').promise]);
       expect(response[0].event).toEqual({
         user_id: undefined,
         device_id: uuid,
@@ -658,12 +658,12 @@ describe('integration', () => {
         code: 500,
       });
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         logLevel: 0,
         flushMaxRetries: 3,
         ...opts,
       }).promise;
-      const response = await amplitude.track('test event').promise;
+      const response = await client.track('test event').promise;
       expect(response.event).toEqual({
         user_id: undefined,
         device_id: uuid,
@@ -687,22 +687,22 @@ describe('integration', () => {
     }, 10000);
 
     test('should handle missing api key', async () => {
-      await amplitude.init('', undefined, {
+      await client.init('', undefined, {
         logLevel: 0,
         ...opts,
       }).promise;
-      const response = await amplitude.track('test event').promise;
+      const response = await client.track('test event').promise;
       expect(response.code).toBe(400);
       expect(response.message).toBe('Event rejected due to missing API key');
     });
 
     test('should handle client opt out', async () => {
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         logLevel: 0,
         ...opts,
       }).promise;
-      amplitude.setOptOut(true);
-      const response = await amplitude.track('test event').promise;
+      client.setOptOut(true);
+      const response = await client.track('test event').promise;
       expect(response.code).toBe(0);
       expect(response.message).toBe('Event skipped due to optOut config');
     });
@@ -712,7 +712,7 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
       const id = new amplitude.Identify();
@@ -724,7 +724,7 @@ describe('integration', () => {
       id.preInsert('tasks_2', 'b');
       id.remove('company', 'x');
       id.add('employees', 1);
-      const response = await amplitude.identify(id).promise;
+      const response = await client.identify(id).promise;
       expect(response.event).toEqual({
         user_id: undefined,
         device_id: uuid,
@@ -778,7 +778,7 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
       const rev = new amplitude.Revenue();
@@ -787,7 +787,7 @@ describe('integration', () => {
       rev.setPrice(100);
       rev.setRevenueType('t');
       rev.setRevenue(200);
-      const response = await amplitude.revenue(rev).promise;
+      const response = await client.revenue(rev).promise;
       expect(response.event).toEqual({
         device_id: uuid,
         device_manufacturer: undefined,
@@ -822,10 +822,10 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await amplitude.init('API_KEY', undefined, {
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
-      const response = await amplitude.setGroup('org', 'engineering').promise;
+      const response = await client.setGroup('org', 'engineering').promise;
       expect(response.event).toEqual({
         device_id: uuid,
         device_manufacturer: undefined,
@@ -860,16 +860,15 @@ describe('integration', () => {
   describe('cookie migration', () => {
     test('should use old cookies', async () => {
       const scope = nock(url).post(path).reply(200, success);
-      const API_KEY = 'asdfasdf';
       const timestamp = Date.now();
       const time = timestamp.toString(32);
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
-      document.cookie = `amp_${API_KEY.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
-      await amplitude.init(API_KEY, undefined, {
+      document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
+      await client.init(apiKey, undefined, {
         ...opts,
       }).promise;
-      const response = await amplitude.track('test event', {
+      const response = await client.track('test event', {
         mode: 'test',
       }).promise;
       expect(response.event).toEqual({
@@ -894,6 +893,47 @@ describe('integration', () => {
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
+      expect(document.cookie.includes('amp_')).toBe(false);
+      scope.done();
+    });
+
+    test('should retain old cookies', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+      const timestamp = Date.now();
+      const time = timestamp.toString(32);
+      const userId = 'userId';
+      const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
+      document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
+      await client.init(apiKey, undefined, {
+        ...opts,
+        cookieUpgrade: false,
+      }).promise;
+      const response = await client.track('test event', {
+        mode: 'test',
+      }).promise;
+      expect(response.event).toEqual({
+        user_id: userId,
+        device_id: 'deviceId',
+        session_id: timestamp,
+        time: number,
+        platform: 'Web',
+        os_name: 'WebKit',
+        os_version: '537.36',
+        device_manufacturer: undefined,
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 0,
+        event_properties: {
+          mode: 'test',
+        },
+        library: library,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      expect(document.cookie.includes('amp_')).toBe(true);
       scope.done();
     });
   });
@@ -904,11 +944,11 @@ describe('integration', () => {
         const serverUrl = 'https://domain.com';
         const scope = nock(serverUrl).post(path).reply(200, success);
 
-        await amplitude.init('API_KEY', undefined, {
+        await client.init(apiKey, undefined, {
           ...opts,
           serverUrl: serverUrl + path,
         }).promise;
-        const response = await amplitude.track('test event').promise;
+        const response = await client.track('test event').promise;
         expect(response.event).toEqual({
           user_id: undefined,
           device_id: uuid,
@@ -944,13 +984,13 @@ describe('integration', () => {
           warn: jest.fn(),
           error: jest.fn(),
         };
-        await amplitude.init('API_KEY', undefined, {
+        await client.init(apiKey, undefined, {
           ...opts,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
         }).promise;
 
-        const response = await amplitude.track('test event').promise;
+        const response = await client.track('test event').promise;
         expect(response.event).toEqual({
           user_id: undefined,
           device_id: uuid,
@@ -993,12 +1033,12 @@ describe('integration', () => {
           warn: jest.fn(),
           error: jest.fn(),
         };
-        await amplitude.init('API_KEY', undefined, {
+        await client.init(apiKey, undefined, {
           ...opts,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
         }).promise;
-        amplitude.setOptOut(true);
+        client.setOptOut(true);
 
         expect(logger.debug).toHaveBeenCalledTimes(1);
         /* eslint-disable */

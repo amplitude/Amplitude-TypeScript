@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.8.0-beta.0...@amplitude/analytics-react-native@0.8.0) (2023-01-31)
+
+**Note:** Version bump only for package @amplitude/analytics-react-native
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [0.8.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.7.2...@amplitude/analytics-react-native@0.8.0-beta.0) (2023-01-26)
+
+### Bug Fixes
+
+- updates required kotlin version for react native SDK
+  ([9184714](https://github.com/amplitude/Amplitude-TypeScript/commit/9184714ed0173a468fda86429b734d9ef26d6f16))
+
+### Features
+
+- allow opt out of deleting legacy sdk cookies
+  ([c6a82fb](https://github.com/amplitude/Amplitude-TypeScript/commit/c6a82fb52e1301e427116891d1f31208bcfc6548))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.7.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@0.7.1...@amplitude/analytics-react-native@0.7.2) (2023-01-11)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

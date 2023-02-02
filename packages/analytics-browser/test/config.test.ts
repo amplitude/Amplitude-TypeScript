@@ -32,6 +32,7 @@ describe('config', () => {
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
+        cookieUpgrade: true,
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -88,6 +89,7 @@ describe('config', () => {
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
+        cookieUpgrade: true,
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -144,6 +146,7 @@ describe('config', () => {
           sourceVersion: '2.0.0',
         },
         sessionTimeout: 1,
+        cookieUpgrade: false,
       });
       expect(config).toEqual({
         apiKey: API_KEY,
@@ -152,6 +155,7 @@ describe('config', () => {
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
+        cookieUpgrade: false,
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,

@@ -9,6 +9,14 @@
 
 Official Amplitude SDK for Web and Marketing Analytics
 
+# Doc
+
+See our [Typescript Analytics Browser SDK](https://amplitude.github.io/Amplitude-TypeScript/modules/_amplitude_marketing_analytics_browser.html) Reference for a list and description of all available SDK methods.
+
+# Installation and Quick Start
+
+Please visit our :100:[Developer Center](https://www.docs.developers.amplitude.com/data/sdks/marketing-analytics-browser/) for instructions on installing and using our the SDK.
+
 ## Installation
 
 To get started with using Amplitude Marketing Analytics Browser SDK, install the package to your project via NPM or script loader.
@@ -32,7 +40,7 @@ Alternatively, the package is also distributed through a CDN. Copy and paste the
 <!-- README_SNIPPET_BLOCK -->
 ```html
 <script type="text/javascript">
-!function(){"use strict";!function(e,t){var n=e.amplitude||{_q:[],_iq:[]};if(n.invoked)e.console&&console.error&&console.error("Amplitude snippet has been loaded.");else{var r=function(e,t){e.prototype[t]=function(){return this._q.push({name:t,args:Array.prototype.slice.call(arguments,0)}),this}},s=function(e,t,n){return function(r){e._q.push({name:t,args:Array.prototype.slice.call(n,0),resolve:r})}},o=function(e,t,n){e[t]=function(){if(n)return{promise:new Promise(s(e,t,Array.prototype.slice.call(arguments)))}}},i=function(e){for(var t=0;t<g.length;t++)o(e,g[t],!1);for(var n=0;n<m.length;n++)o(e,m[n],!0)};n.invoked=!0;var c=t.createElement("script");c.type="text/javascript",c.integrity="sha384-gvnDkP+MgZ2tNqvb8oWcjWgWYclmLhct0qlcpWTsLTiKBEHVO+jZKXQ2tunudUWG",c.crossOrigin="anonymous",c.async=!0,c.src="https://cdn.amplitude.com/libs/marketing-analytics-browser-0.3.4-min.js.gz",c.onload=function(){e.amplitude.runQueuedFunctions||console.log("[Amplitude] Error: could not load SDK")};var a=t.getElementsByTagName("script")[0];a.parentNode.insertBefore(c,a);for(var u=function(){return this._q=[],this},l=["add","append","clearAll","prepend","set","setOnce","unset","preInsert","postInsert","remove","getUserProperties"],p=0;p<l.length;p++)r(u,l[p]);n.Identify=u;for(var d=function(){return this._q=[],this},v=["getEventProperties","setProductId","setQuantity","setPrice","setRevenue","setRevenueType","setEventProperties"],f=0;f<v.length;f++)r(d,v[f]);n.Revenue=d;var g=["getDeviceId","setDeviceId","getSessionId","setSessionId","getUserId","setUserId","setOptOut","setTransport","reset"],m=["init","add","remove","track","logEvent","identify","groupIdentify","setGroup","revenue","flush"];i(n),n.createInstance=function(){var e=n._iq.push({_q:[]})-1;return i(n._iq[e]),n._iq[e]},e.amplitude=n}}(window,document)}();
+!function(){"use strict";!function(e,t){var r=e.amplitude||{_q:[],_iq:[]};if(r.invoked)e.console&&console.error&&console.error("Amplitude snippet has been loaded.");else{var n=function(e,t){e.prototype[t]=function(){return this._q.push({name:t,args:Array.prototype.slice.call(arguments,0)}),this}},s=function(e,t,r){return function(n){e._q.push({name:t,args:Array.prototype.slice.call(r,0),resolve:n})}},o=function(e,t,r){e[t]=function(){if(r)return{promise:new Promise(s(e,t,Array.prototype.slice.call(arguments)))}}},i=function(e){for(var t=0;t<g.length;t++)o(e,g[t],!1);for(var r=0;r<m.length;r++)o(e,m[r],!0)};r.invoked=!0;var a=t.createElement("script");a.type="text/javascript",a.integrity="sha384-xjHPgoBodsW8zPC5eZKdXprIrYoq/m4VEiyJ4TOQYoeyTYS/rV/IybB94xzixKur",a.crossOrigin="anonymous",a.async=!0,a.src="https://cdn.amplitude.com/libs/marketing-analytics-browser-0.3.5-min.js.gz",a.onload=function(){e.amplitude.runQueuedFunctions||console.log("[Amplitude] Error: could not load SDK")};var u=t.getElementsByTagName("script")[0];u.parentNode.insertBefore(a,u);for(var c=function(){return this._q=[],this},p=["add","append","clearAll","prepend","set","setOnce","unset","preInsert","postInsert","remove","getUserProperties"],l=0;l<p.length;l++)n(c,p[l]);r.Identify=c;for(var d=function(){return this._q=[],this},v=["getEventProperties","setProductId","setQuantity","setPrice","setRevenue","setRevenueType","setEventProperties"],f=0;f<v.length;f++)n(d,v[f]);r.Revenue=d;var g=["getDeviceId","setDeviceId","getSessionId","setSessionId","getUserId","setUserId","setOptOut","setTransport","reset"],m=["init","add","remove","track","logEvent","identify","groupIdentify","setGroup","revenue","flush"];i(r),r.createInstance=function(){var e=r._iq.push({_q:[]})-1;return i(r._iq[e]),r._iq[e]},e.amplitude=r}}(window,document)}();
 
 amplitude.init("YOUR_API_KEY_HERE");
 </script>

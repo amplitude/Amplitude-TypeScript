@@ -1,6 +1,7 @@
 import { BrowserOptions, Storage, UserSession } from '@amplitude/analytics-types';
 import { getOldCookieName, CookieStorage } from '@amplitude/analytics-client-common';
 import { LocalStorage } from '../storage/local-storage';
+import { getDefaultConfig } from '../config';
 
 export const parseOldCookies = async (apiKey: string, options?: BrowserOptions): Promise<UserSession> => {
   let storage: Storage<string> = new CookieStorage<string>();
@@ -22,7 +23,9 @@ export const parseOldCookies = async (apiKey: string, options?: BrowserOptions):
     };
   }
 
-  await storage.remove(oldCookieName);
+  if (options?.cookieUpgrade ?? getDefaultConfig().cookieUpgrade) {
+    await storage.remove(oldCookieName);
+  }
   const [deviceId, userId, optOut, sessionId, lastEventTime] = cookies.split('.');
   return {
     deviceId,

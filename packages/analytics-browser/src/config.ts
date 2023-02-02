@@ -38,6 +38,7 @@ export const getDefaultConfig = () => {
     cookieSameSite: 'Lax',
     cookieSecure: false,
     cookieStorage,
+    cookieUpgrade: true,
     disableCookies: false,
     domain: '',
     sessionManager: new SessionManager(cookieStorage, ''),
@@ -54,6 +55,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieExpiration: number;
   cookieSameSite: string;
   cookieSecure: boolean;
+  cookieUpgrade: boolean;
   cookieStorage: Storage<UserSession>;
   disableCookies: boolean;
   domain: string;
@@ -82,6 +84,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
+    this.cookieUpgrade = options?.cookieUpgrade ?? defaultConfig.cookieUpgrade;
     this.deviceId = options?.deviceId;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;
