@@ -43,7 +43,6 @@ export const getDefaultConfig = () => {
     domain: '',
     sessionManager: new SessionManager(cookieStorage, ''),
     sessionTimeout: 30 * 60 * 1000,
-    storageProvider: new MemoryStorage<Event[]>(),
     trackingOptions,
     transportProvider: new FetchTransport(),
   };
@@ -64,16 +63,15 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   trackingOptions: TrackingOptions;
   sessionManager: ISessionManager;
 
-  constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
+  constructor(apiKey: string, options?: BrowserOptions) {
     const defaultConfig = getDefaultConfig();
     super({
       flushIntervalMillis: 1000,
       flushMaxRetries: 5,
       flushQueueSize: 30,
+      transportProvider: defaultConfig.transportProvider,
       ...options,
       apiKey,
-      storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,
-      transportProvider: options?.transportProvider ?? defaultConfig.transportProvider,
     });
     this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
     this.sessionManager = options?.sessionManager ?? defaultConfig.sessionManager;
@@ -93,7 +91,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.partnerId = options?.partnerId;
     this.sessionId = options?.sessionId;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
-    this.userId = userId;
+    this.userId = options?.userId;
   }
 
   get deviceId() {
@@ -137,11 +135,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 }
 
-export const useBrowserConfig = async (
-  apiKey: string,
-  userId?: string,
-  options?: BrowserOptions,
-): Promise<IBrowserConfig> => {
+export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions): Promise<IBrowserConfig> => {
   const defaultConfig = getDefaultConfig();
   const domain = options?.domain ?? (await getTopLevelDomain());
   const cookieStorage = await createCookieStorage({ ...options, domain });
@@ -150,7 +144,7 @@ export const useBrowserConfig = async (
   const queryParams = getQueryParams();
   const sessionManager = await new SessionManager(cookieStorage, apiKey).load();
 
-  return new BrowserConfig(apiKey, userId ?? cookies?.userId, {
+  return new BrowserConfig(apiKey, {
     ...options,
     cookieStorage,
     sessionManager,
@@ -161,6 +155,7 @@ export const useBrowserConfig = async (
     storageProvider: await createEventsStorage(options),
     trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
+    userId: options?.userId ?? cookies?.userId,
   });
 };
 
@@ -213,7 +208,7 @@ export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, i
   return idFromOptions || idFromQueryParams || idFromCookies || UUID();
 };
 
-export const createTransport = (transport?: TransportType) => {
+export const createTransport = (transport?: TransportType | keyof typeof TransportType) => {
   if (transport === TransportType.XHR) {
     return new XHRTransport();
   }
@@ -224,7 +219,7 @@ export const createTransport = (transport?: TransportType) => {
 };
 
 export const getTopLevelDomain = async (url?: string) => {
-  if (!(await new CookieStorage<string>().isEnabled()) || (!url && typeof location === 'undefined')) {
+  if (!(await new CookieStorage<number>().isEnabled()) || (!url && typeof location === 'undefined')) {
     return '';
   }
 
