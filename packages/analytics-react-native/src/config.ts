@@ -77,7 +77,7 @@ export class ReactNativeConfig extends Config implements IReactNativeConfig {
     // user session properties expect `cookieStorage` to be defined
     this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
     this.deviceId = options?.deviceId;
-    this.lastEventTime = options?.lastEventTime ?? options?.lastEventTime;
+    this.lastEventTime = options?.lastEventTime;
     this.optOut = Boolean(options?.optOut);
     this.sessionId = options?.sessionId;
     this.userId = options?.userId;
