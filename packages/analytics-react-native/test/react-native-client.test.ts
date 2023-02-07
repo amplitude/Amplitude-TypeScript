@@ -97,6 +97,7 @@ describe('react-native-client', () => {
         optOut: false,
       });
       const cookieStorage = new core.MemoryStorage<UserSession>();
+      jest.spyOn(cookieStorage, 'set').mockResolvedValue();
       jest.spyOn(cookieStorage, 'get').mockResolvedValue({
         sessionId: 1,
         deviceId: DEVICE_ID,
@@ -146,6 +147,7 @@ describe('react-native-client', () => {
 
     test('should set user id and device id in analytics connector', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
+      jest.spyOn(cookieStorage, 'set').mockResolvedValue();
       jest.spyOn(cookieStorage, 'get').mockResolvedValue({
         sessionId: 1,
         deviceId: DEVICE_ID,
@@ -505,39 +507,39 @@ describe('react-native-client', () => {
 
       expect(client1.config.sessionId).toEqual(1000);
       expect(client1.config.lastEventTime).toEqual(1000);
-      expect(client1.config.sessionManager.getLastEventId()).toEqual(2);
+      expect(client1.config.lastEventId).toEqual(2);
 
       void client1.track({ event_type: 'event-1', time: 1200 });
 
       expect(client1.config.sessionId).toEqual(1000);
       expect(client1.config.lastEventTime).toEqual(1200);
-      expect(client1.config.sessionManager.getLastEventId()).toEqual(3);
+      expect(client1.config.lastEventId).toEqual(3);
 
       const client2 = new AmplitudeReactNativeTest(1250);
       await client2.init(API_KEY, undefined, clientOptions(send, cookieStorage, true));
 
       expect(client2.config.sessionId).toEqual(1000);
       expect(client2.config.lastEventTime).toEqual(1250);
-      expect(client2.config.sessionManager.getLastEventId()).toEqual(3);
+      expect(client2.config.lastEventId).toEqual(3);
 
       void client2.track({ event_type: 'event-2', time: 1270 });
 
       expect(client2.config.sessionId).toEqual(1000);
       expect(client2.config.lastEventTime).toEqual(1270);
-      expect(client2.config.sessionManager.getLastEventId()).toEqual(4);
+      expect(client2.config.lastEventId).toEqual(4);
 
       const client3 = new AmplitudeReactNativeTest(1300);
       await client3.init(API_KEY, undefined, clientOptions(send, cookieStorage, true));
 
       expect(client3.config.sessionId).toEqual(1000);
       expect(client3.config.lastEventTime).toEqual(1300);
-      expect(client3.config.sessionManager.getLastEventId()).toEqual(4);
+      expect(client3.config.lastEventId).toEqual(4);
 
       client3.setActive(1500);
 
       expect(client3.config.sessionId).toEqual(1500);
       expect(client3.config.lastEventTime).toEqual(1500);
-      expect(client3.config.sessionManager.getLastEventId()).toEqual(6);
+      expect(client3.config.lastEventId).toEqual(6);
     });
 
     describe('track session events', () => {

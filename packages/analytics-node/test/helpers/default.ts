@@ -1,15 +1,15 @@
-import { NodeConfig as INodeConfig, InitOptions } from '@amplitude/analytics-types';
+import { NodeConfig as INodeConfig, NodeOptions } from '@amplitude/analytics-types';
 
 import { NodeConfig } from '../../src/config';
 
-export const useDefaultConfig = (overrides?: Partial<InitOptions<NodeConfig>>) =>
+export const useDefaultConfig = (overrides?: NodeOptions) =>
   new NodeConfig(API_KEY, { ...DEFAULT_OPTIONS, ...overrides });
 
 export const API_KEY = 'apiKey';
 
 export const USER_ID = 'userId';
 
-export const DEFAULT_OPTIONS: InitOptions<INodeConfig> = {
+export const DEFAULT_OPTIONS: Partial<INodeConfig> = {
   apiKey: API_KEY,
   storageProvider: {
     isEnabled: async () => true,

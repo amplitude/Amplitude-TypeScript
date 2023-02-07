@@ -7,16 +7,9 @@ import {
   TrackingOptions,
   TransportType,
   UserSession,
-  SessionManager as ISessionManager,
 } from '@amplitude/analytics-types';
 import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
-import {
-  CookieStorage,
-  getCookieName,
-  getQueryParams,
-  SessionManager,
-  FetchTransport,
-} from '@amplitude/analytics-client-common';
+import { CookieStorage, getCookieName, getQueryParams, FetchTransport } from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
 import { XHRTransport } from './transports/xhr';
@@ -41,9 +34,7 @@ export const getDefaultConfig = () => {
     cookieUpgrade: true,
     disableCookies: false,
     domain: '',
-    sessionManager: new SessionManager(cookieStorage, ''),
     sessionTimeout: 30 * 60 * 1000,
-    storageProvider: new MemoryStorage<Event[]>(),
     trackingOptions,
     transportProvider: new FetchTransport(),
   };
@@ -62,22 +53,33 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   partnerId?: string;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
-  sessionManager: ISessionManager;
 
-  constructor(apiKey: string, userId?: string, options?: BrowserOptions) {
+  // NOTE: These protected properties are used to cache values from async storage
+  protected _deviceId?: string;
+  protected _lastEventTime?: number;
+  protected _optOut = false;
+  protected _sessionId?: number;
+  protected _userId?: string;
+
+  constructor(apiKey: string, options?: BrowserOptions) {
     const defaultConfig = getDefaultConfig();
     super({
       flushIntervalMillis: 1000,
       flushMaxRetries: 5,
       flushQueueSize: 30,
+      transportProvider: defaultConfig.transportProvider,
       ...options,
       apiKey,
-      storageProvider: options?.storageProvider ?? defaultConfig.storageProvider,
-      transportProvider: options?.transportProvider ?? defaultConfig.transportProvider,
     });
+
+    // NOTE: Define `cookieStorage` first to persist user session
+    // user session properties expect `cookieStorage` to be defined
     this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
-    this.sessionManager = options?.sessionManager ?? defaultConfig.sessionManager;
-    this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
+    this.deviceId = options?.deviceId;
+    this.lastEventTime = options?.lastEventTime;
+    this.optOut = Boolean(options?.optOut);
+    this.sessionId = options?.sessionId;
+    this.userId = options?.userId;
 
     this.appVersion = options?.appVersion;
     this.attribution = options?.attribution;
@@ -85,82 +87,111 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
     this.cookieUpgrade = options?.cookieUpgrade ?? defaultConfig.cookieUpgrade;
-    this.deviceId = options?.deviceId;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;
-    this.lastEventTime = this.lastEventTime ?? options?.lastEventTime;
-    this.optOut = Boolean(options?.optOut);
     this.partnerId = options?.partnerId;
-    this.sessionId = options?.sessionId;
+    this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
     this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
-    this.userId = userId;
   }
 
   get deviceId() {
-    return this.sessionManager.getDeviceId();
+    return this._deviceId;
   }
 
   set deviceId(deviceId: string | undefined) {
-    this.sessionManager.setDeviceId(deviceId);
+    if (this._deviceId !== deviceId) {
+      this._deviceId = deviceId;
+      this.updateStorage();
+    }
   }
 
   get userId() {
-    return this.sessionManager.getUserId();
+    return this._userId;
   }
 
   set userId(userId: string | undefined) {
-    this.sessionManager.setUserId(userId);
+    if (this._userId !== userId) {
+      this._userId = userId;
+      this.updateStorage();
+    }
   }
 
   get sessionId() {
-    return this.sessionManager.getSessionId();
+    return this._sessionId;
   }
 
   set sessionId(sessionId: number | undefined) {
-    this.sessionManager.setSessionId(sessionId);
+    if (this._sessionId !== sessionId) {
+      this._sessionId = sessionId;
+      this.updateStorage();
+    }
   }
 
   get optOut() {
-    return this.sessionManager.getOptOut();
+    return this._optOut;
   }
 
   set optOut(optOut: boolean) {
-    this.sessionManager?.setOptOut(Boolean(optOut));
+    if (this._optOut !== optOut) {
+      this._optOut = optOut;
+      this.updateStorage();
+    }
   }
 
   get lastEventTime() {
-    return this.sessionManager.getLastEventTime();
+    return this._lastEventTime;
   }
 
   set lastEventTime(lastEventTime: number | undefined) {
-    this.sessionManager.setLastEventTime(lastEventTime);
+    if (this._lastEventTime !== lastEventTime) {
+      this._lastEventTime = lastEventTime;
+      this.updateStorage();
+    }
+  }
+
+  private updateStorage() {
+    const cache = {
+      deviceId: this._deviceId,
+      userId: this._userId,
+      sessionId: this._sessionId,
+      optOut: this._optOut,
+      lastEventTime: this._lastEventTime,
+    };
+    void this.cookieStorage?.set(getCookieName(this.apiKey), cache);
   }
 }
 
-export const useBrowserConfig = async (
-  apiKey: string,
-  userId?: string,
-  options?: BrowserOptions,
-): Promise<IBrowserConfig> => {
+export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions): Promise<IBrowserConfig> => {
   const defaultConfig = getDefaultConfig();
+
+  // create cookie storage
   const domain = options?.domain ?? (await getTopLevelDomain());
   const cookieStorage = await createCookieStorage({ ...options, domain });
-  const cookieName = getCookieName(apiKey);
-  const cookies = await cookieStorage.get(cookieName);
+  const previousCookies = await cookieStorage.get(getCookieName(apiKey));
   const queryParams = getQueryParams();
-  const sessionManager = await new SessionManager(cookieStorage, apiKey).load();
 
-  return new BrowserConfig(apiKey, userId ?? cookies?.userId, {
+  // reconcile user session
+  const deviceId = options?.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? UUID();
+  const lastEventTime = options?.lastEventTime ?? previousCookies?.lastEventTime;
+  const optOut = options?.optOut ?? Boolean(previousCookies?.optOut);
+  const sessionId = options?.sessionId ?? previousCookies?.sessionId;
+  const userId = options?.userId ?? previousCookies?.userId;
+
+  return new BrowserConfig(apiKey, {
     ...options,
     cookieStorage,
-    sessionManager,
-    deviceId: createDeviceId(cookies?.deviceId, options?.deviceId, queryParams.deviceId),
+    deviceId,
     domain,
-    optOut: options?.optOut ?? Boolean(cookies?.optOut),
-    sessionId: (await cookieStorage.get(cookieName))?.sessionId ?? options?.sessionId,
+    lastEventTime,
+    optOut,
+    sessionId,
     storageProvider: await createEventsStorage(options),
-    trackingOptions: { ...defaultConfig.trackingOptions, ...options?.trackingOptions },
+    trackingOptions: {
+      ...defaultConfig.trackingOptions,
+      ...options?.trackingOptions,
+    },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
+    userId,
   });
 };
 
@@ -209,11 +240,7 @@ export const createEventsStorage = async (overrides?: BrowserOptions): Promise<S
   return undefined;
 };
 
-export const createDeviceId = (idFromCookies?: string, idFromOptions?: string, idFromQueryParams?: string) => {
-  return idFromOptions || idFromQueryParams || idFromCookies || UUID();
-};
-
-export const createTransport = (transport?: TransportType) => {
+export const createTransport = (transport?: TransportType | keyof typeof TransportType) => {
   if (transport === TransportType.XHR) {
     return new XHRTransport();
   }
@@ -224,7 +251,7 @@ export const createTransport = (transport?: TransportType) => {
 };
 
 export const getTopLevelDomain = async (url?: string) => {
-  if (!(await new CookieStorage<string>().isEnabled()) || (!url && typeof location === 'undefined')) {
+  if (!(await new CookieStorage<number>().isEnabled()) || (!url && typeof location === 'undefined')) {
     return '';
   }
 

@@ -4,14 +4,10 @@ import { Http } from './transports/http';
 
 export class NodeConfig extends Config implements INodeConfig {
   constructor(apiKey: string, options?: NodeOptions) {
-    const storageProvider = options?.storageProvider;
-    const transportProvider = options?.transportProvider ?? new Http();
-
     super({
+      transportProvider: new Http(),
       ...options,
       apiKey,
-      storageProvider,
-      transportProvider,
     });
   }
 }

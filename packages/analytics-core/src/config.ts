@@ -2,13 +2,13 @@ import {
   Event,
   Config as IConfig,
   Logger as ILogger,
-  InitOptions,
   LogLevel,
   Storage,
   Transport,
   Plan,
   IngestionMetadata,
   ServerZone,
+  Options,
 } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_SERVER_URL,
@@ -42,12 +42,12 @@ export class Config implements IConfig {
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
-  serverZone?: ServerZone;
+  serverZone?: keyof typeof ServerZone;
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
 
-  private _optOut = false;
+  protected _optOut = false;
   get optOut() {
     return this._optOut;
   }
@@ -55,7 +55,7 @@ export class Config implements IConfig {
     this._optOut = optOut;
   }
 
-  constructor(options: InitOptions<IConfig>) {
+  constructor(options: Options) {
     const defaultConfig = getDefaultConfig();
     this.apiKey = options.apiKey;
     this.flushIntervalMillis = options.flushIntervalMillis || defaultConfig.flushIntervalMillis;
@@ -80,7 +80,7 @@ export class Config implements IConfig {
   }
 }
 
-export const getServerUrl = (serverZone: ServerZone, useBatch: boolean) => {
+export const getServerUrl = (serverZone: keyof typeof ServerZone, useBatch: boolean) => {
   if (serverZone === ServerZone.EU) {
     return useBatch ? EU_AMPLITUDE_BATCH_SERVER_URL : EU_AMPLITUDE_SERVER_URL;
   }
@@ -89,13 +89,13 @@ export const getServerUrl = (serverZone: ServerZone, useBatch: boolean) => {
 
 export const createServerConfig = (
   serverUrl = '',
-  serverZone: ServerZone = getDefaultConfig().serverZone,
+  serverZone: keyof typeof ServerZone = getDefaultConfig().serverZone,
   useBatch: boolean = getDefaultConfig().useBatch,
 ) => {
   if (serverUrl) {
     return { serverUrl, serverZone: undefined };
   }
-  const _serverZone = [ServerZone.US, ServerZone.EU].includes(serverZone) ? serverZone : getDefaultConfig().serverZone;
+  const _serverZone = ['US', 'EU'].includes(serverZone) ? serverZone : getDefaultConfig().serverZone;
   return {
     serverZone: _serverZone,
     serverUrl: getServerUrl(_serverZone, useBatch),

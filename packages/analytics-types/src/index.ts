@@ -16,14 +16,13 @@ export {
   BrowserConfig,
   BrowserOptions,
   Config,
-  InitOptions,
+  Options,
   NodeConfig,
   NodeOptions,
   ReactNativeConfig,
   ReactNativeOptions,
   ReactNativeTrackingOptions,
   TrackingOptions,
-  ServerZone,
 } from './config';
 export { CoreClient } from './core-client';
 export { DestinationContext } from './destination-context';
@@ -52,8 +51,9 @@ export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType }
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { QueueProxy, InstanceProxy } from './proxy';
-export { SessionManager, SessionManagerOptions, UserSession } from './session-manager';
+export { ServerZone } from './server-zone';
 export { Status } from './status';
 export { CookieStorageOptions, Storage } from './storage';
 export { Transport, TransportType } from './transport';
+export { UserSession } from './user-session';
 export { UTMData } from './utm';
