@@ -27,9 +27,10 @@ describe('context', () => {
     test('should execute plugin', async () => {
       const context = new Context();
       jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
-      const config = useDefaultConfig('user@amplitude.com', {
+      const config = useDefaultConfig({
         deviceId: 'deviceId',
         sessionId: 1,
+        userId: 'user@amplitude.com',
       });
       config.appVersion = '1.0.0';
       await context.setup(config);
@@ -58,7 +59,7 @@ describe('context', () => {
     test('should not return the properties when the tracking options are false', async () => {
       const context = new Context();
       jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
-      const config = useDefaultConfig('user@amplitude.com', {
+      const config = useDefaultConfig({
         deviceId: 'deviceId',
         sessionId: 1,
         trackingOptions: {
@@ -70,6 +71,7 @@ describe('context', () => {
           osVersion: false,
           platform: false,
         },
+        userId: 'user@amplitude.com',
       });
       config.appVersion = '1.0.0';
       await context.setup(config);
@@ -100,9 +102,10 @@ describe('context', () => {
     test('should be overwritten by the context', async () => {
       const context = new Context();
       jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
-      const config = useDefaultConfig('user@amplitude.com', {
+      const config = useDefaultConfig({
         deviceId: 'deviceId',
         sessionId: 1,
+        userId: 'user@amplitude.com',
       });
       config.appVersion = '1.0.0';
       await context.setup(config);
@@ -125,8 +128,9 @@ describe('context', () => {
     test('should create new session', async () => {
       const plugin = new Context();
       jest.spyOn(plugin, 'isSessionValid').mockReturnValue(false);
-      const config = useDefaultConfig('user@amplitude.com', {
+      const config = useDefaultConfig({
         sessionId: 1,
+        userId: 'user@amplitude.com',
       });
       await plugin.setup(config);
       const context = {
@@ -141,11 +145,12 @@ describe('context', () => {
         const sourceName = 'ampli';
         const sourceVersion = '2.0.0';
         const context = new Context();
-        const config = useDefaultConfig('user@amplitude.com', {
+        const config = useDefaultConfig({
           ingestionMetadata: {
             sourceName,
             sourceVersion,
           },
+          userId: 'user@amplitude.com',
         });
         await context.setup(config);
 
@@ -162,10 +167,11 @@ describe('context', () => {
       test('sourceName should be optional', async () => {
         const sourceVersion = '2.0.0';
         const context = new Context();
-        const config = useDefaultConfig('user@amplitude.com', {
+        const config = useDefaultConfig({
           ingestionMetadata: {
             sourceVersion,
           },
+          userId: 'user@amplitude.com',
         });
         await context.setup(config);
 
@@ -181,10 +187,11 @@ describe('context', () => {
       test('sourceVersion should be optional', async () => {
         const sourceName = 'ampli';
         const context = new Context();
-        const config = useDefaultConfig('user@amplitude.com', {
+        const config = useDefaultConfig({
           ingestionMetadata: {
             sourceName,
           },
+          userId: 'user@amplitude.com',
         });
         await context.setup(config);
 

@@ -47,7 +47,7 @@ export class Config implements IConfig {
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
 
-  private _optOut = false;
+  protected _optOut = false;
   get optOut() {
     return this._optOut;
   }

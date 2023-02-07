@@ -4,6 +4,7 @@ import { BrowserConfig, TrackingOptions } from './browser';
 export interface ReactNativeConfig extends BrowserConfig {
   trackingOptions: ReactNativeTrackingOptions;
   trackingSessionEvents?: boolean;
+  lastEventId?: number;
 }
 
 export interface ReactNativeTrackingOptions extends TrackingOptions {
@@ -11,6 +12,8 @@ export interface ReactNativeTrackingOptions extends TrackingOptions {
   carrier?: boolean;
 }
 
-export interface ReactNativeOptions extends Omit<Partial<ReactNativeConfig>, 'apiKey'> {
+type HiddenOptions = 'apiKey' | 'lastEventId';
+
+export interface ReactNativeOptions extends Omit<Partial<ReactNativeConfig>, HiddenOptions> {
   transport?: TransportType | keyof typeof TransportType;
 }

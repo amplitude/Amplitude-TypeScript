@@ -45,12 +45,13 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     const oldCookies = await parseOldCookies(apiKey, options);
 
     // Step 2: Create react native config
-    const reactNativeOptions = await useReactNativeConfig(apiKey, userId || oldCookies.userId, {
+    const reactNativeOptions = await useReactNativeConfig(apiKey, {
       ...options,
       deviceId: oldCookies.deviceId ?? options?.deviceId,
       sessionId: oldCookies.sessionId,
       optOut: options?.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
+      userId: userId || oldCookies.userId,
     });
     await super._init(reactNativeOptions);
 
@@ -229,9 +230,9 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
       }
 
       if (event.event_id === undefined) {
-        const eventId = (this.config.sessionManager.getLastEventId() ?? -1) + 1;
+        const eventId = (this.config.lastEventId ?? -1) + 1;
         event = { ...event, event_id: eventId };
-        this.config.sessionManager.setLastEventId(eventId);
+        this.config.lastEventId = eventId;
       }
     }
 

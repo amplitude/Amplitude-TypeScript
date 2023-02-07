@@ -1,11 +1,10 @@
 import { MemoryStorage } from '@amplitude/analytics-core';
 import { BrowserConfig as IBrowserConfig, BrowserOptions, UserSession } from '@amplitude/analytics-types';
-import { SessionManager } from '@amplitude/analytics-client-common';
 
 import { BrowserConfig } from '../../src/config';
 
-export const useDefaultConfig = (userId?: string, overrides?: BrowserOptions) =>
-  new BrowserConfig(API_KEY, userId || USER_ID, { ...DEFAULT_OPTIONS, ...overrides });
+export const useDefaultConfig = (overrides?: BrowserOptions) =>
+  new BrowserConfig(API_KEY, { ...DEFAULT_OPTIONS, ...overrides });
 
 export const API_KEY = 'apiKey';
 
@@ -41,6 +40,5 @@ export const DEFAULT_OPTIONS: Partial<IBrowserConfig> = {
   transportProvider: {
     send: () => Promise.resolve(null),
   },
-  sessionManager: new SessionManager(cookieStorage, API_KEY),
   sessionTimeout: 30 * 60 * 1000,
 };

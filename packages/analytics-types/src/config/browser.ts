@@ -1,4 +1,4 @@
-import { SessionManager, UserSession } from '../session-manager';
+import { UserSession } from '../user-session';
 import { Storage } from '../storage';
 import { TransportType } from '../transport';
 import { Config } from './core';
@@ -17,7 +17,6 @@ export interface BrowserConfig extends Config {
   lastEventTime?: number;
   partnerId?: string;
   sessionId?: number;
-  sessionManager: SessionManager;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
   userId?: string;

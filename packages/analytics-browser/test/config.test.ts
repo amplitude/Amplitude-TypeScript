@@ -3,31 +3,30 @@ import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, Storage, TransportType, UserSession } from '@amplitude/analytics-types';
 import * as BrowserUtils from '@amplitude/analytics-client-common';
-import { SessionManager, getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
+import { getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
 import { XHRTransport } from '../src/transports/xhr';
 import { createTransport } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
+import { uuidPattern } from './helpers/constants';
 
 describe('config', () => {
+  const someUUID: string = expect.stringMatching(uuidPattern) as string;
+  const someStorage: core.MemoryStorage<UserSession> = expect.any(
+    core.MemoryStorage,
+  ) as core.MemoryStorage<UserSession>;
+
   const API_KEY = 'apiKey';
 
   describe('BrowserConfig', () => {
-    test('should create overwrite config', async () => {
+    test('should create plain config', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      await cookieStorage.set(getCookieName(''), {
-        deviceId: undefined,
-        lastEventTime: undefined,
-        optOut: false,
-        sessionId: undefined,
-        userId: undefined,
-      });
-      const sessionManager = await new SessionManager(cookieStorage, '').load();
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = new Config.BrowserConfig('', undefined);
+      const config = new Config.BrowserConfig('');
       expect(config).toEqual({
         apiKey: '',
         appVersion: undefined,
+        attribution: undefined,
         cookieStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
@@ -47,9 +46,7 @@ describe('config', () => {
         ingestionMetadata: undefined,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionManager,
         sessionTimeout: 1800000,
-        storageProvider: new core.MemoryStorage(),
         trackingOptions: {
           deviceManufacturer: true,
           deviceModel: true,
@@ -67,29 +64,21 @@ describe('config', () => {
 
   describe('useBrowserConfig', () => {
     test('should create default config', async () => {
-      const cookieStorage = new core.MemoryStorage<UserSession>();
-      await cookieStorage.set(getCookieName(API_KEY), {
-        deviceId: 'deviceId',
-        lastEventTime: undefined,
-        optOut: false,
-        sessionId: undefined,
-        userId: undefined,
-      });
-      const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceId');
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = await Config.useBrowserConfig(API_KEY, undefined);
+      const config = await Config.useBrowserConfig(API_KEY);
       expect(config).toEqual({
         apiKey: API_KEY,
         appVersion: undefined,
-        cookieStorage,
+        attribution: undefined,
+        cookieStorage: someStorage,
         cookieExpiration: 365,
         cookieSameSite: 'Lax',
         cookieSecure: false,
         cookieUpgrade: true,
+        _deviceId: someUUID,
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
@@ -104,7 +93,6 @@ describe('config', () => {
         ingestionMetadata: undefined,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionManager,
         sessionTimeout: 1800000,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -125,18 +113,16 @@ describe('config', () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
       await cookieStorage.set(getCookieName(API_KEY), {
         deviceId: 'deviceIdFromCookies',
-        lastEventTime: Date.now(),
-        sessionId: undefined,
+        lastEventTime: 1,
+        sessionId: -1,
         userId: 'userIdFromCookies',
         optOut: false,
       });
-      const sessionManager = await new SessionManager(cookieStorage, API_KEY).load();
       jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
-      jest.spyOn(Config, 'createDeviceId').mockReturnValueOnce('deviceIdFromCookies');
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = await Config.useBrowserConfig(API_KEY, undefined, {
+      const config = await Config.useBrowserConfig(API_KEY, {
         partnerId: 'partnerId',
         plan: {
           version: '0',
@@ -156,11 +142,14 @@ describe('config', () => {
         cookieSameSite: 'Lax',
         cookieSecure: false,
         cookieUpgrade: false,
+        _deviceId: 'deviceIdFromCookies',
+
         disableCookies: false,
         domain: '',
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
+        _lastEventTime: 1,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
@@ -175,7 +164,7 @@ describe('config', () => {
         },
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionManager,
+        _sessionId: -1,
         sessionTimeout: 1,
         storageProvider: new core.MemoryStorage(),
         trackingOptions: {
@@ -189,6 +178,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        _userId: 'userIdFromCookies',
       });
     });
   });
@@ -273,28 +263,6 @@ describe('config', () => {
         storageProvider: undefined,
       });
       expect(storage).toBe(undefined);
-    });
-  });
-
-  describe('createDeviceId', () => {
-    test('should return device id from options', () => {
-      const deviceId = Config.createDeviceId('cookieDeviceId', 'optionsDeviceId', 'queryParamsDeviceId');
-      expect(deviceId).toBe('optionsDeviceId');
-    });
-
-    test('should return device id from query params', () => {
-      const deviceId = Config.createDeviceId('cookieDeviceId', undefined, 'queryParamsDeviceId');
-      expect(deviceId).toBe('queryParamsDeviceId');
-    });
-
-    test('should return device id from cookies', () => {
-      const deviceId = Config.createDeviceId('cookieDeviceId', undefined, undefined);
-      expect(deviceId).toBe('cookieDeviceId');
-    });
-
-    test('should return uuid', () => {
-      const deviceId = Config.createDeviceId(undefined, undefined, undefined);
-      expect(deviceId.substring(14, 15)).toEqual('4');
     });
   });
 
