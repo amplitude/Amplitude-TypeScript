@@ -1,6 +1,7 @@
 import { Event } from './event';
 import { Config } from './config';
 import { Result } from './result';
+import { BaseClient } from './client/base-client';
 
 export enum PluginType {
   BEFORE = 'before',
@@ -8,24 +9,24 @@ export enum PluginType {
   DESTINATION = 'destination',
 }
 
-export interface BeforePlugin {
+export interface BeforePlugin<T = BaseClient> {
   name: string;
   type: PluginType.BEFORE;
-  setup(config: Config): Promise<void>;
+  setup(config: Config, client?: T): Promise<void>;
   execute(context: Event): Promise<Event>;
 }
 
-export interface EnrichmentPlugin {
+export interface EnrichmentPlugin<T = BaseClient> {
   name: string;
   type: PluginType.ENRICHMENT;
-  setup(config: Config): Promise<void>;
+  setup(config: Config, client?: T): Promise<void>;
   execute(context: Event): Promise<Event>;
 }
 
-export interface DestinationPlugin {
+export interface DestinationPlugin<T = BaseClient> {
   name: string;
   type: PluginType.DESTINATION;
-  setup(config: Config): Promise<void>;
+  setup(config: Config, client?: T): Promise<void>;
   execute(context: Event): Promise<Result>;
   flush?(): Promise<void>;
 }
