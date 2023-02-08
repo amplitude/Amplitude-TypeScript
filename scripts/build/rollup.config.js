@@ -90,7 +90,6 @@ export const snippet = {
   plugins: [
     createSnippet(),
     terser(),
-    execute(`node ${base}/scripts/version/create-snippet-instructions.js`),
-    execute(`node ${base}/scripts/version/update-readme.js`),
+    execute(`node ${base}/scripts/version/create-snippet-instructions.js && node ${base}/scripts/version/update-readme.js`),
   ],
 };

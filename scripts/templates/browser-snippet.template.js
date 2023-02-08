@@ -1,6 +1,6 @@
 const snippet = (name, integrity, version) => `
 !(function (window, document) {
-  var amplitude = window.amplitude || { _q: [], _iq: [] };
+  var amplitude = window.amplitude || { _q: [], _iq: {} };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
@@ -113,10 +113,10 @@ const snippet = (name, integrity, version) => `
       }
     }
     setUpProxy(amplitude);
-    amplitude.createInstance = function () {
-      var index = amplitude._iq.push({ _q: [] }) - 1;
-      setUpProxy(amplitude._iq[index]);
-      return amplitude._iq[index];
+    amplitude.createInstance = function (instanceName) {
+      amplitude._iq[instanceName] = { _q: [] };
+      setUpProxy(amplitude._iq[instanceName]);
+      return amplitude._iq[instanceName];
     };
     window.amplitude = amplitude;
   }
