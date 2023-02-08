@@ -1,4 +1,3 @@
-import { SessionManager } from '@amplitude/analytics-client-common';
 import { Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { BrowserClient, BrowserConfig, LogLevel, UserSession } from '@amplitude/analytics-types';
 
@@ -27,7 +26,6 @@ export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
 export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {
   const apiKey = options?.apiKey ?? UUID();
   const cookieStorage = new MemoryStorage<UserSession>();
-  const sessionStorage = new SessionManager(cookieStorage, apiKey);
 
   return {
     // core config

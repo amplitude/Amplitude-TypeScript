@@ -53,7 +53,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
-            if (node.nodeName == 'A') {
+            if (node.nodeName === 'A') {
               addFileDownloadListener(node as HTMLAnchorElement);
             }
           });
