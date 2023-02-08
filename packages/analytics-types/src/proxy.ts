@@ -10,5 +10,5 @@ export type QueueProxy = Array<ProxyItem>;
 
 export interface InstanceProxy {
   _q: QueueProxy;
-  _iq: InstanceProxy[];
+  _iq: Record<string, InstanceProxy>;
 }
