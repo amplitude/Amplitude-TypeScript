@@ -63,7 +63,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
-            if (node.nodeName == 'FORM') {
+            if (node.nodeName === 'FORM') {
               addFormInteractionListener(node as HTMLFormElement);
             }
           });
