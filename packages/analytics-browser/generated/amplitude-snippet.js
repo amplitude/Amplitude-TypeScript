@@ -9,7 +9,7 @@
 !function (window, document) {
   var amplitude = window.amplitude || {
     _q: [],
-    _iq: []
+    _iq: {}
   };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');else {
     var proxy = function proxy(obj, fn) {
@@ -49,10 +49,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-VGVaPd/WFP2ZcSOFMKKZOvppGyxQptYNeG51uYimtOReY5Zz8aoYQBQ3kXUfF9OV';
+    as.integrity = 'sha384-IzqrjP/KY9TI8YODrPXv+MxbfCBnQdLZsSyOwYFlhR4BSBluZFciI52a820nFgzb';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.7.1-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-1.8.0-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -81,12 +81,12 @@
     var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset'];
     var funcsWithPromise = ['init', 'add', 'remove', 'track', 'logEvent', 'identify', 'groupIdentify', 'setGroup', 'revenue', 'flush'];
     setUpProxy(amplitude);
-    amplitude.createInstance = function () {
-      var index = amplitude._iq.push({
+    amplitude.createInstance = function (instanceName) {
+      amplitude._iq[instanceName] = {
         _q: []
-      }) - 1;
-      setUpProxy(amplitude._iq[index]);
-      return amplitude._iq[index];
+      };
+      setUpProxy(amplitude._iq[instanceName]);
+      return amplitude._iq[instanceName];
     };
     window.amplitude = amplitude;
   }

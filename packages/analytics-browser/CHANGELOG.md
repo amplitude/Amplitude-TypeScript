@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.7.1...@amplitude/analytics-browser@1.8.0) (2023-02-09)
+
+### Features
+
+- add file download tracker plugin ([#322](https://github.com/amplitude/Amplitude-TypeScript/issues/322))
+  ([1604409](https://github.com/amplitude/Amplitude-TypeScript/commit/16044091135b0983f2edb3931ddf5d2c213be3fc))
+- add form interaction event tracker plugin ([#323](https://github.com/amplitude/Amplitude-TypeScript/issues/323))
+  ([f6ee918](https://github.com/amplitude/Amplitude-TypeScript/commit/f6ee918a22138f6be260580a5b48ecff60ff950f))
+- add named instances for google tag manager use case
+  ([#326](https://github.com/amplitude/Amplitude-TypeScript/issues/326))
+  ([327ef9a](https://github.com/amplitude/Amplitude-TypeScript/commit/327ef9a3d097f892e41814cb02b90453e2d39ed5))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.7.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.7.0...@amplitude/analytics-browser@1.7.1) (2023-02-02)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

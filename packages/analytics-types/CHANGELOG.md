@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.15.0...@amplitude/analytics-types@0.16.0) (2023-02-09)
+
+### Features
+
+- add file download tracker plugin ([#322](https://github.com/amplitude/Amplitude-TypeScript/issues/322))
+  ([1604409](https://github.com/amplitude/Amplitude-TypeScript/commit/16044091135b0983f2edb3931ddf5d2c213be3fc))
+- add named instances for google tag manager use case
+  ([#326](https://github.com/amplitude/Amplitude-TypeScript/issues/326))
+  ([327ef9a](https://github.com/amplitude/Amplitude-TypeScript/commit/327ef9a3d097f892e41814cb02b90453e2d39ed5))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.15.0-beta.0...@amplitude/analytics-types@0.15.0) (2023-01-31)
 
 **Note:** Version bump only for package @amplitude/analytics-types

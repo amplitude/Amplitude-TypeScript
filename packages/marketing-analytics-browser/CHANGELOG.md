@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.3.6...@amplitude/marketing-analytics-browser@0.4.0) (2023-02-09)
+
+### Features
+
+- add named instances for google tag manager use case
+  ([#326](https://github.com/amplitude/Amplitude-TypeScript/issues/326))
+  ([327ef9a](https://github.com/amplitude/Amplitude-TypeScript/commit/327ef9a3d097f892e41814cb02b90453e2d39ed5))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.3.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.3.5...@amplitude/marketing-analytics-browser@0.3.6) (2023-02-02)
 
 **Note:** Version bump only for package @amplitude/marketing-analytics-browser
