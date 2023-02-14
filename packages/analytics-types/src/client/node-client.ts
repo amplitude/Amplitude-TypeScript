@@ -1,8 +1,8 @@
 import { AmplitudeReturn } from '../amplitude-promise';
 import { NodeOptions } from '../config';
-import { BaseClient } from './base-client';
+import { CoreClient } from './core-client';
 
-export interface NodeClient extends BaseClient {
+export interface NodeClient extends CoreClient {
   /**
    * Initializes the Amplitude SDK with your apiKey, optional configurations.
    * This method must be called before any other operations.

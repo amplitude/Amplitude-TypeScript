@@ -1,13 +1,13 @@
-import { AmplitudeCore, Destination, Identify, Revenue, UUID } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
 import { CampaignTracker, getAnalyticsConnector, IdentityEventSender } from '@amplitude/analytics-client-common';
 import {
   AttributionOptions,
+  BrowserClient,
   BrowserConfig,
   BrowserOptions,
   Campaign,
   EventOptions,
   Identify as IIdentify,
-  Result,
   Revenue as IRevenue,
   TransportType,
 } from '@amplitude/analytics-types';
@@ -16,8 +16,15 @@ import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport, createFlexibleStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 
-export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
-  async init(apiKey = '', userId?: string, options?: BrowserOptions) {
+export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  config: BrowserConfig;
+
+  init(apiKey = '', userId?: string, options?: BrowserOptions) {
+    return returnWrapper(this._init({ ...options, userId, apiKey }));
+  }
+  protected async _init(options: BrowserOptions & { apiKey: string }) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
@@ -25,16 +32,16 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     this.initializing = true;
 
     // Step 1: Read cookies stored by old SDK
-    const oldCookies = await parseOldCookies(apiKey, options);
+    const oldCookies = await parseOldCookies(options.apiKey, options);
 
     // Step 2: Create browser config
-    const browserOptions = await useBrowserConfig(apiKey, {
+    const browserOptions = await useBrowserConfig(options.apiKey, {
       ...options,
-      deviceId: oldCookies.deviceId ?? options?.deviceId,
-      sessionId: oldCookies.sessionId ?? options?.sessionId,
-      optOut: options?.optOut ?? oldCookies.optOut,
+      deviceId: oldCookies.deviceId ?? options.deviceId,
+      sessionId: oldCookies.sessionId ?? options.sessionId,
+      optOut: options.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
-      userId: userId ?? oldCookies.userId,
+      userId: options.userId ?? oldCookies.userId,
     });
 
     await super._init(browserOptions);
@@ -66,9 +73,9 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
 
     // Step 4: Install plugins
     // Do not track any events before this
-    await this.add(new Context());
-    await this.add(new IdentityEventSender());
-    await this.add(new Destination());
+    await this.add(new Destination()).promise;
+    await this.add(new Context()).promise;
+    await this.add(new IdentityEventSender()).promise;
 
     this.initializing = false;
 
@@ -80,7 +87,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
   }
 
   async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
-    const track = this.track.bind(this);
+    const track = (...args: Parameters<typeof this.track>) => this.track(...args).promise;
     const onNewCampaign = this.setSessionId.bind(this, Date.now());
 
     const storage = await createFlexibleStorage<Campaign>(this.config);
@@ -144,7 +151,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     this.config.transportProvider = createTransport(transport);
   }
 
-  identify(identify: IIdentify, eventOptions?: EventOptions): Promise<Result> {
+  identify(identify: IIdentify, eventOptions?: EventOptions) {
     if (isInstanceProxy(identify)) {
       const queue = identify._q;
       identify._q = [];
@@ -159,12 +166,7 @@ export class AmplitudeBrowser extends AmplitudeCore<BrowserConfig> {
     return super.identify(identify, eventOptions);
   }
 
-  groupIdentify(
-    groupType: string,
-    groupName: string | string[],
-    identify: IIdentify,
-    eventOptions?: EventOptions,
-  ): Promise<Result> {
+  groupIdentify(groupType: string, groupName: string | string[], identify: IIdentify, eventOptions?: EventOptions) {
     if (isInstanceProxy(identify)) {
       const queue = identify._q;
       identify._q = [];

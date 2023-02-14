@@ -2,12 +2,13 @@ import { Timeline } from '../src/timeline';
 import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
+import { AmplitudeCore } from '../src/core-client';
 
 describe('timeline', () => {
-  let timeline = new Timeline();
+  let timeline = new Timeline(new AmplitudeCore());
 
   beforeEach(() => {
-    timeline = new Timeline();
+    timeline = new Timeline(new AmplitudeCore());
   });
 
   test('should update event using before/enrichment plugin', async () => {

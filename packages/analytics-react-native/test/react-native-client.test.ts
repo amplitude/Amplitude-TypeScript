@@ -35,7 +35,7 @@ describe('react-native-client', () => {
       const client = new AmplitudeReactNative();
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
     });
 
@@ -47,7 +47,7 @@ describe('react-native-client', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await client.init(undefined as any, USER_ID, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
     });
 
@@ -64,7 +64,7 @@ describe('react-native-client', () => {
         optOut: false,
         cookieStorage,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
@@ -108,7 +108,7 @@ describe('react-native-client', () => {
         optOut: true,
         cookieStorage,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).not.toBe(1);
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
@@ -122,7 +122,7 @@ describe('react-native-client', () => {
       const runAttributionStrategy = jest
         .spyOn(client, 'runAttributionStrategy')
         .mockReturnValueOnce(Promise.resolve(undefined));
-      await client.init(API_KEY, USER_ID);
+      await client.init(API_KEY, USER_ID).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(runAttributionStrategy).toHaveBeenCalledTimes(1);
     });
@@ -140,7 +140,7 @@ describe('react-native-client', () => {
           excludeReferrers: [],
           initialEmptyValue: '',
         },
-      });
+      }).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(runAttributionStrategy).toHaveBeenCalledTimes(1);
     });
@@ -158,7 +158,7 @@ describe('react-native-client', () => {
         optOut: true,
         cookieStorage,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getUserId()).toBe(USER_ID);
       const identity = getAnalyticsConnector().identityStore.getIdentity();
@@ -171,16 +171,16 @@ describe('react-native-client', () => {
       await client.init(API_KEY, USER_ID, {
         optOut: false,
         ...attributionConfig,
-      });
-      const track = jest.spyOn(client, 'track').mockReturnValueOnce(
-        Promise.resolve({
+      }).promise;
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
           code: 200,
           message: '',
           event: {
             event_type: 'event_type',
           },
         }),
-      );
+      });
       getAnalyticsConnector().eventBridge.logEvent({
         eventType: 'event_type',
         eventProperties: {
@@ -195,20 +195,20 @@ describe('react-native-client', () => {
     describe('trackCampaign', () => {
       test('should track campaign', async () => {
         const client = new AmplitudeReactNative();
-        const track = jest.spyOn(client, 'track').mockReturnValueOnce(
-          Promise.resolve({
+        const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+          promise: Promise.resolve({
             code: 200,
             message: '',
             event: {
               event_type: 'event_type',
             },
           }),
-        );
+        });
         await client.init(API_KEY, USER_ID, {
           attribution: {
             disabled: false,
           },
-        });
+        }).promise;
         const result = await client.runAttributionStrategy();
         expect(result).toBe(undefined);
         expect(track).toHaveBeenCalledTimes(1);
@@ -221,7 +221,7 @@ describe('react-native-client', () => {
       const client = new AmplitudeReactNative();
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getUserId()).toBe(USER_ID);
     });
 
@@ -236,7 +236,7 @@ describe('react-native-client', () => {
       const client = new AmplitudeReactNative();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getUserId()).toBe(undefined);
       client.setUserId(USER_ID);
       expect(client.getUserId()).toBe(USER_ID);
@@ -249,7 +249,7 @@ describe('react-native-client', () => {
           .init(API_KEY, undefined, {
             ...attributionConfig,
           })
-          .then(() => {
+          .promise.then(() => {
             expect(client.getUserId()).toBe('user@amplitude.com');
             resolve();
           });
@@ -264,7 +264,7 @@ describe('react-native-client', () => {
       await client.init(API_KEY, undefined, {
         deviceId: DEVICE_ID,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
 
@@ -279,7 +279,7 @@ describe('react-native-client', () => {
       const client = new AmplitudeReactNative();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       client.setDeviceId(DEVICE_ID);
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
@@ -291,7 +291,7 @@ describe('react-native-client', () => {
           .init(API_KEY, undefined, {
             ...attributionConfig,
           })
-          .then(() => {
+          .promise.then(() => {
             expect(client.getDeviceId()).toBe('asdfg');
             resolve();
           });
@@ -303,7 +303,7 @@ describe('react-native-client', () => {
   describe('reset', () => {
     test('should reset user id and generate new device id config', async () => {
       const client = new AmplitudeReactNative();
-      await client.init(API_KEY);
+      await client.init(API_KEY).promise;
       client.setUserId(USER_ID);
       client.setDeviceId(DEVICE_ID);
       expect(client.getUserId()).toBe(USER_ID);
@@ -320,7 +320,7 @@ describe('react-native-client', () => {
       await client.init(API_KEY, undefined, {
         sessionId: 1,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getSessionId()).toBe(1);
     });
 
@@ -335,7 +335,7 @@ describe('react-native-client', () => {
       const client = new AmplitudeReactNative();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
     });
@@ -347,7 +347,7 @@ describe('react-native-client', () => {
           .init(API_KEY, undefined, {
             ...attributionConfig,
           })
-          .then(() => {
+          .promise.then(() => {
             expect(client.getSessionId()).toBe(1);
             resolve();
           });
@@ -361,7 +361,7 @@ describe('react-native-client', () => {
       const client = new AmplitudeReactNative();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       client.setOptOut(true);
       expect(client.config.optOut).toBe(true);
     });
@@ -384,9 +384,9 @@ describe('react-native-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const identifyObject = new core.Identify();
-      const result = await client.identify(identifyObject, { user_id: '123', device_id: '123' });
+      const result = await client.identify(identifyObject, { user_id: '123', device_id: '123' }).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -409,9 +409,9 @@ describe('react-native-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const identifyObject = new core.Identify();
-      const result = await client.groupIdentify('g', '1', identifyObject);
+      const result = await client.groupIdentify('g', '1', identifyObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -434,9 +434,9 @@ describe('react-native-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const revenueObject = new core.Revenue();
-      const result = await client.revenue(revenueObject);
+      const result = await client.revenue(revenueObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -501,7 +501,7 @@ describe('react-native-client', () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
 
       const client1 = new AmplitudeReactNativeTest(500);
-      await client1.init(API_KEY, undefined, clientOptions(send, cookieStorage, true));
+      await client1.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       client1.setActive(1000);
 
@@ -516,7 +516,7 @@ describe('react-native-client', () => {
       expect(client1.config.lastEventId).toEqual(3);
 
       const client2 = new AmplitudeReactNativeTest(1250);
-      await client2.init(API_KEY, undefined, clientOptions(send, cookieStorage, true));
+      await client2.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       expect(client2.config.sessionId).toEqual(1000);
       expect(client2.config.lastEventTime).toEqual(1250);
@@ -529,7 +529,7 @@ describe('react-native-client', () => {
       expect(client2.config.lastEventId).toEqual(4);
 
       const client3 = new AmplitudeReactNativeTest(1300);
-      await client3.init(API_KEY, undefined, clientOptions(send, cookieStorage, true));
+      await client3.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       expect(client3.config.sessionId).toEqual(1000);
       expect(client3.config.lastEventTime).toEqual(1300);
@@ -549,7 +549,7 @@ describe('react-native-client', () => {
         const cookieStorage = new core.MemoryStorage<UserSession>();
         await cookieStorage.set(getStorageKey(API_KEY), { sessionId: 500, lastEventTime: 850, optOut: false });
 
-        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true));
+        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
         void client.track({ event_type: 'event-1', time: 1000 });
         void client.track({ event_type: 'event-2', time: 1050 });
@@ -567,7 +567,7 @@ describe('react-native-client', () => {
 
         client.setActive(2050);
 
-        await client.track({ event_type: 'event-8', time: 2200 });
+        await client.track({ event_type: 'event-8', time: 2200 }).promise;
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
@@ -653,7 +653,7 @@ describe('react-native-client', () => {
         const cookieStorage = new core.MemoryStorage<UserSession>();
         await cookieStorage.set(getStorageKey(API_KEY), { sessionId: 500, lastEventTime: 850, optOut: false });
 
-        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true, 1000));
+        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true, 1000)).promise;
 
         void client.track({ event_type: 'event-1', time: 1000 });
         void client.track({ event_type: 'event-2', time: 1050 });
@@ -678,7 +678,7 @@ describe('react-native-client', () => {
 
         client.setActive(2050);
 
-        await client.track({ event_type: 'event-8', time: 2200 });
+        await client.track({ event_type: 'event-8', time: 2200 }).promise;
 
         client.setSessionId(6000);
 
@@ -752,7 +752,7 @@ describe('react-native-client', () => {
         const cookieStorage = new core.MemoryStorage<UserSession>();
         await cookieStorage.set(getStorageKey(API_KEY), { sessionId: 500, lastEventTime: 850, optOut: false });
 
-        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, false));
+        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, false)).promise;
 
         void client.track({ event_type: 'event-1', time: 1000 });
         void client.track({ event_type: 'event-2', time: 1050 });
@@ -770,7 +770,7 @@ describe('react-native-client', () => {
 
         client.setActive(2050);
 
-        await client.track({ event_type: 'event-8', time: 2200 });
+        await client.track({ event_type: 'event-8', time: 2200 }).promise;
 
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
@@ -816,7 +816,7 @@ describe('react-native-client', () => {
         const cookieStorage = new core.MemoryStorage<UserSession>();
         await cookieStorage.set(getStorageKey(API_KEY), { sessionId: 500, lastEventTime: 850, optOut: false });
 
-        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, false, 1000));
+        await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, false, 1000)).promise;
 
         void client.track({ event_type: 'event-1', time: 1000 });
         void client.track({ event_type: 'event-2', time: 1050 });
@@ -841,7 +841,7 @@ describe('react-native-client', () => {
 
         client.setActive(2050);
 
-        await client.track({ event_type: 'event-8', time: 2200 });
+        await client.track({ event_type: 'event-8', time: 2200 }).promise;
 
         client.setSessionId(6000);
 

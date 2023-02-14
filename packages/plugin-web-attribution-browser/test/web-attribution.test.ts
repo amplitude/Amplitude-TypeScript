@@ -1,12 +1,87 @@
 import { createInstance } from '@amplitude/analytics-browser';
+import { BASE_CAMPAIGN, CampaignParser } from '@amplitude/analytics-client-common';
 import { webAttributionPlugin } from '../src/web-attribution';
-import { PluginCampaignTracker } from '../src/plugin-campaign-tracker';
+import * as helpers from '../src/helpers';
+import { Logger } from '@amplitude/analytics-types';
+import { Config } from '@amplitude/analytics-core';
 
 describe('webAttributionPlugin', () => {
   const API_KEY = 'API_KEY';
   const USER_ID = 'USER_ID';
 
   describe('setup', () => {
+    let instance = createInstance();
+
+    beforeEach(async () => {
+      instance = createInstance();
+      await instance.init(API_KEY, USER_ID, {
+        attribution: {
+          disabled: true,
+        },
+      }).promise;
+    });
+
+    test('should handle expected BrowserClient, but got Options', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        error: jest.fn(),
+      };
+      const config: Partial<Config> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+
+      const plugin = webAttributionPlugin({
+        excludeReferrers: [],
+      });
+      await plugin.setup(config as Config);
+
+      expect(track).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledWith(
+        `Argument of type 'Options' is not assignable to parameter of type 'BrowserClient'.`,
+      );
+    });
+
+    test('should handle expected BrowserClient, but got undefined', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        error: jest.fn(),
+      };
+      const config: Partial<Config> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+
+      const plugin = webAttributionPlugin();
+      await plugin.setup(config as Config);
+
+      expect(track).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledWith(
+        `Argument of type 'undefined' is not assignable to parameter of type 'BrowserClient'.`,
+      );
+    });
+
+    test('should handle disabled plugin', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+      };
+      const config: Partial<Config> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+
+      const plugin = webAttributionPlugin({
+        disabled: true,
+      });
+      await plugin.setup(config as Config, instance);
+
+      expect(track).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.log).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.log).toHaveBeenCalledWith(
+        `@amplitude/plugin-web-attribution-browser is disabled. Attribution is not tracked.`,
+      );
+    });
+
     describe('should send an identify event', () => {
       test('when a campaign changes', async () => {
         const instance = createInstance();
@@ -20,9 +95,10 @@ describe('webAttributionPlugin', () => {
           }),
         });
 
-        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
-          isNewCampaign: true,
-          currentCampaign: { utm_source: 'amp-test' },
+        jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
+        jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+          ...BASE_CAMPAIGN,
+          utm_source: 'amp-test',
         });
 
         await instance.add(webAttributionPlugin(instance)).promise;
@@ -96,9 +172,10 @@ describe('webAttributionPlugin', () => {
           }),
         });
 
-        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
-          isNewCampaign: true,
-          currentCampaign: { utm_source: 'amp-test' },
+        jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
+        jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+          ...BASE_CAMPAIGN,
+          utm_source: 'amp-test',
         });
 
         const sessionId = instance.getSessionId();
@@ -178,9 +255,10 @@ describe('webAttributionPlugin', () => {
           }),
         });
 
-        jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
-          isNewCampaign: false,
-          currentCampaign: { utm_source: 'amp-test' },
+        jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(false);
+        jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+          ...BASE_CAMPAIGN,
+          utm_source: 'amp-test',
         });
 
         await instance.add(webAttributionPlugin(instance)).promise;
@@ -208,9 +286,10 @@ describe('webAttributionPlugin', () => {
     test('should return same event', async () => {
       const instance = createInstance();
 
-      jest.spyOn(PluginCampaignTracker.prototype as any, 'getCurrentState').mockReturnValue({
-        isNewCampaign: true,
-        currentCampaign: { utm_source: 'amp-test' },
+      jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
+      jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+        ...BASE_CAMPAIGN,
+        utm_source: 'amp-test',
       });
 
       const plugin = webAttributionPlugin(instance, {});

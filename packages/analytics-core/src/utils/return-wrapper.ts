@@ -1,5 +1,8 @@
-export const returnWrapper =
-  <T extends (...args: any) => any>(fn: T) =>
-  (...args: Parameters<T>) => ({
-    promise: fn(...args) as ReturnType<T>,
-  });
+import { AmplitudeReturn } from '@amplitude/analytics-types';
+
+export const returnWrapper: {
+  (): AmplitudeReturn<void>;
+  <T>(awaitable: Promise<T>): AmplitudeReturn<T>;
+} = <T>(awaitable?: Promise<T>) => ({
+  promise: awaitable || Promise.resolve(),
+});

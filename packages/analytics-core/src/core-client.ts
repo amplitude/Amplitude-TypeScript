@@ -19,13 +19,14 @@ import {
 import { Timeline } from './timeline';
 import { buildResult } from './utils/result-builder';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './messages';
+import { returnWrapper } from './utils/return-wrapper';
 
-export class AmplitudeCore<T extends Config> implements CoreClient<T> {
-  initializing = false;
-  name: string;
+export class AmplitudeCore implements CoreClient {
+  protected initializing = false;
+  protected name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  config: T;
+  config: Config;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   timeline: Timeline;
@@ -33,13 +34,13 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   protected dispatchQ: CallableFunction[] = [];
 
   constructor(name = '$default') {
-    this.timeline = new Timeline();
+    this.timeline = new Timeline(this);
     this.name = name;
   }
 
-  async _init(config: T) {
+  protected async _init(config: Config) {
     this.config = config;
-    this.timeline.reset();
+    this.timeline.reset(this);
     await this.runQueuedFunctions('q');
   }
 
@@ -53,45 +54,45 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
     const event = createTrackEvent(eventInput, eventProperties, eventOptions);
-    return this.dispatch(event);
+    return returnWrapper(this.dispatch(event));
   }
 
   logEvent = this.track.bind(this);
 
   identify(identify: Identify, eventOptions?: EventOptions) {
     const event = createIdentifyEvent(identify, eventOptions);
-    return this.dispatch(event);
+    return returnWrapper(this.dispatch(event));
   }
 
   groupIdentify(groupType: string, groupName: string | string[], identify: Identify, eventOptions?: EventOptions) {
     const event = createGroupIdentifyEvent(groupType, groupName, identify, eventOptions);
-    return this.dispatch(event);
+    return returnWrapper(this.dispatch(event));
   }
 
   setGroup(groupType: string, groupName: string | string[], eventOptions?: EventOptions) {
     const event = createGroupEvent(groupType, groupName, eventOptions);
-    return this.dispatch(event);
+    return returnWrapper(this.dispatch(event));
   }
 
   revenue(revenue: Revenue, eventOptions?: EventOptions) {
     const event = createRevenueEvent(revenue, eventOptions);
-    return this.dispatch(event);
+    return returnWrapper(this.dispatch(event));
   }
 
-  async add(plugin: Plugin) {
+  add(plugin: Plugin) {
     if (!this.config) {
       this.q.push(this.add.bind(this, plugin));
-      return;
+      return returnWrapper();
     }
-    return this.timeline.register(plugin, this.config);
+    return returnWrapper(this.timeline.register(plugin, this.config));
   }
 
-  async remove(pluginName: string) {
+  remove(pluginName: string) {
     if (!this.config) {
       this.q.push(this.remove.bind(this, pluginName));
-      return;
+      return returnWrapper();
     }
-    return this.timeline.deregister(pluginName);
+    return returnWrapper(this.timeline.deregister(pluginName));
   }
 
   dispatchWithCallback(event: Event, callback: (result: Result) => void): void {
@@ -143,6 +144,6 @@ export class AmplitudeCore<T extends Config> implements CoreClient<T> {
   }
 
   flush() {
-    return this.timeline.flush();
+    return returnWrapper(this.timeline.flush());
   }
 }

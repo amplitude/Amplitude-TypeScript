@@ -1,10 +1,11 @@
+// import { Config } from '../config';
 import { AmplitudeReturn } from '../amplitude-promise';
 import { BaseEvent, EventOptions } from '../base-event';
 import { Identify, Revenue } from '../event';
 import { Plugin } from '../plugin';
 import { Result } from '../result';
 
-export interface BaseClient {
+export interface CoreClient {
   /**
    * Adds a new plugin.
    *

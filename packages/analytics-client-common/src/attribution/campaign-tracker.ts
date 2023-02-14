@@ -12,6 +12,12 @@ import { getCookieName as getStorageKey } from '../cookie-name';
 import { CampaignParser } from './campaign-parser';
 import { BASE_CAMPAIGN, EMPTY_VALUE, MKTG } from './constants';
 
+/**
+ * @deprecated
+ * Campaign tracker has mixed logic from built-in and plugin web attribution
+ * features. Do not add more features here. The plan moving foward is to consolidate logic
+ * in @amplitude/plugin-web-attribution-browser with backward compatibility.
+ */
 export class CampaignTracker implements ICampaignTracker {
   storage: Storage<Campaign>;
   storageKey: string;

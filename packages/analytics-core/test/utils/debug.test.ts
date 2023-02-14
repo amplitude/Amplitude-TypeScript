@@ -43,7 +43,7 @@ describe('debug', () => {
     test('should get client log config', async () => {
       const client = new AmplitudeCore();
       const defaultConfig = useDefaultConfig();
-      await client._init(defaultConfig);
+      await (client as any)._init(defaultConfig);
       const getLogConfig = getClientLogConfig(client);
       const logConfig = getLogConfig();
       expect(logConfig.logLevel).toEqual(defaultConfig.logLevel);
@@ -71,7 +71,7 @@ describe('debug', () => {
     test('should get client states', async () => {
       const client = new AmplitudeCore();
       const defaultConfig = useDefaultConfig();
-      await client._init(defaultConfig);
+      await (client as any)._init(defaultConfig);
       const getStates = getClientStates(client, ['config', 'timeline.queue']);
       const clientStates = getStates();
       expect(clientStates['config']).toEqual(defaultConfig);
@@ -152,7 +152,7 @@ describe('debug', () => {
     test('should work with returnWrapper', async () => {
       const fn = jest.fn<Promise<number>, []>().mockReturnValueOnce(Promise.resolve(1));
       const wrappedFn = debugWrapper(
-        returnWrapper(fn),
+        () => returnWrapper(fn()),
         'fn',
         () => ({
           logger,
