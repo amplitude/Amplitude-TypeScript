@@ -3,7 +3,6 @@ import {
   BaseEvent,
   BrowserClient,
   BrowserConfig,
-  EnrichmentPlugin,
   Event,
   IdentifyOperation,
   IdentifyUserProperties,
@@ -11,12 +10,30 @@ import {
   PluginType,
 } from '@amplitude/analytics-types';
 import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
-import { Options } from './typings/page-view-tracking';
+import {
+  CreatePageViewTrackingPlugin,
+  CreatePageViewTrackingPluginParameters,
+  Options,
+} from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
-export const pageViewTrackingPlugin = (client: BrowserClient, options: Options = {}): EnrichmentPlugin => {
+export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
+  ...args: CreatePageViewTrackingPluginParameters
+) => {
+  let amplitude: BrowserClient | undefined;
+  let options: Options = {};
   const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
+
+  const [clientOrOptions, configOrUndefined] = args;
+  if (clientOrOptions && 'init' in clientOrOptions) {
+    amplitude = clientOrOptions;
+    if (configOrUndefined) {
+      options = configOrUndefined;
+    }
+  } else if (clientOrOptions) {
+    options = clientOrOptions;
+  }
 
   const shouldTrackOnPageLoad = () =>
     typeof options.trackOn === 'undefined' || (typeof options.trackOn === 'function' && options.trackOn());
@@ -29,7 +46,7 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
     if (shouldTrackHistoryPageView(options.trackHistoryChanges, newURL, previousURL || '') && shouldTrackOnPageLoad()) {
       /* istanbul ignore next */
       loggerProvider?.log('Tracking page view event');
-      client.track(await createPageViewEvent());
+      amplitude?.track(await createPageViewEvent());
     }
     previousURL = newURL;
   };
@@ -38,7 +55,16 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
     name: 'page-view-tracking',
     type: PluginType.ENRICHMENT as const,
 
-    setup: async (config: BrowserConfig) => {
+    setup: async (config: BrowserConfig, client?: BrowserClient) => {
+      amplitude = amplitude ?? client;
+      if (!amplitude) {
+        const receivedType = clientOrOptions ? 'Options' : 'undefined';
+        config.loggerProvider.error(
+          `Argument of type '${receivedType}' is not assignable to parameter of type 'BrowserClient'.`,
+        );
+        return;
+      }
+
       loggerProvider = config.loggerProvider;
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
 
@@ -47,7 +73,7 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
       // Turn off sending page view event by "runAttributionStrategy" function
       if (config.attribution?.trackPageViews) {
         loggerProvider.warn(
-          '@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser',
+          `@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser.Resolve by disabling page view tracking in @amplitude/analytics-browser.`,
         );
         config.attribution.trackPageViews = false;
       }
@@ -75,7 +101,7 @@ export const pageViewTrackingPlugin = (client: BrowserClient, options: Options =
       if (shouldTrackOnPageLoad()) {
         loggerProvider.log('Tracking page view event');
 
-        client.track(await createPageViewEvent());
+        amplitude.track(await createPageViewEvent());
       }
     },
 
