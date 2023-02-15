@@ -29,7 +29,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
     });
 
@@ -41,7 +41,7 @@ describe('browser-client', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await client.init(undefined as any, USER_ID, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
     });
 
@@ -58,7 +58,7 @@ describe('browser-client', () => {
         optOut: false,
         cookieStorage,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
@@ -80,7 +80,7 @@ describe('browser-client', () => {
         optOut: true,
         cookieStorage,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
@@ -116,7 +116,7 @@ describe('browser-client', () => {
       const runAttributionStrategy = jest
         .spyOn(client, 'runAttributionStrategy')
         .mockReturnValueOnce(Promise.resolve(undefined));
-      await client.init(API_KEY, USER_ID);
+      await client.init(API_KEY, USER_ID).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(runAttributionStrategy).toHaveBeenCalledTimes(1);
     });
@@ -134,7 +134,7 @@ describe('browser-client', () => {
           excludeReferrers: [],
           initialEmptyValue: '',
         },
-      });
+      }).promise;
       expect(parseOldCookies).toHaveBeenCalledTimes(1);
       expect(runAttributionStrategy).toHaveBeenCalledTimes(1);
     });
@@ -152,7 +152,7 @@ describe('browser-client', () => {
         optOut: true,
         cookieStorage,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getUserId()).toBe(USER_ID);
       const identity = getAnalyticsConnector().identityStore.getIdentity();
@@ -165,16 +165,16 @@ describe('browser-client', () => {
       await client.init(API_KEY, USER_ID, {
         optOut: false,
         ...attributionConfig,
-      });
-      const track = jest.spyOn(client, 'track').mockReturnValueOnce(
-        Promise.resolve({
+      }).promise;
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
           code: 200,
           message: '',
           event: {
             event_type: 'event_type',
           },
         }),
-      );
+      });
       getAnalyticsConnector().eventBridge.logEvent({
         eventType: 'event_type',
         eventProperties: {
@@ -188,20 +188,20 @@ describe('browser-client', () => {
   describe('trackCampaign', () => {
     test('should track campaign', async () => {
       const client = new AmplitudeBrowser();
-      const track = jest.spyOn(client, 'track').mockReturnValueOnce(
-        Promise.resolve({
+      const track = jest.spyOn(client, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
           code: 200,
           message: '',
           event: {
             event_type: 'event_type',
           },
         }),
-      );
+      });
       await client.init(API_KEY, USER_ID, {
         attribution: {
           disabled: false,
         },
-      });
+      }).promise;
       const result = await client.runAttributionStrategy();
       expect(result).toBe(undefined);
       expect(track).toHaveBeenCalledTimes(1);
@@ -213,7 +213,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getUserId()).toBe(USER_ID);
     });
 
@@ -228,7 +228,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getUserId()).toBe(undefined);
       client.setUserId(USER_ID);
       expect(client.getUserId()).toBe(USER_ID);
@@ -241,7 +241,7 @@ describe('browser-client', () => {
           .init(API_KEY, undefined, {
             ...attributionConfig,
           })
-          .then(() => {
+          .promise.then(() => {
             expect(client.getUserId()).toBe('user@amplitude.com');
             resolve();
           });
@@ -256,7 +256,7 @@ describe('browser-client', () => {
       await client.init(API_KEY, undefined, {
         deviceId: DEVICE_ID,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
 
@@ -271,7 +271,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       client.setDeviceId(DEVICE_ID);
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
@@ -283,7 +283,7 @@ describe('browser-client', () => {
           .init(API_KEY, undefined, {
             ...attributionConfig,
           })
-          .then(() => {
+          .promise.then(() => {
             expect(client.getDeviceId()).toBe('asdfg');
             resolve();
           });
@@ -295,7 +295,7 @@ describe('browser-client', () => {
   describe('reset', () => {
     test('should reset user id and generate new device id config', async () => {
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY);
+      await client.init(API_KEY).promise;
       client.setUserId(USER_ID);
       client.setDeviceId(DEVICE_ID);
       expect(client.getUserId()).toBe(USER_ID);
@@ -312,7 +312,7 @@ describe('browser-client', () => {
       await client.init(API_KEY, undefined, {
         sessionId: 1,
         ...attributionConfig,
-      });
+      }).promise;
       expect(client.getSessionId()).toBe(1);
     });
 
@@ -327,7 +327,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
     });
@@ -339,7 +339,7 @@ describe('browser-client', () => {
           .init(API_KEY, undefined, {
             ...attributionConfig,
           })
-          .then(() => {
+          .promise.then(() => {
             expect(client.getSessionId()).toBe(1);
             resolve();
           });
@@ -355,7 +355,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
-      });
+      }).promise;
       client.setTransport(TransportType.Fetch);
       expect(createTransport).toHaveBeenCalledTimes(2);
     });
@@ -369,7 +369,7 @@ describe('browser-client', () => {
           .init(API_KEY, undefined, {
             ...attributionConfig,
           })
-          .then(() => {
+          .promise.then(() => {
             expect(createTransport).toHaveBeenCalledTimes(2);
             resolve();
           });
@@ -395,9 +395,9 @@ describe('browser-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const identifyObject = new core.Identify();
-      const result = await client.identify(identifyObject, { user_id: '123', device_id: '123' });
+      const result = await client.identify(identifyObject, { user_id: '123', device_id: '123' }).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -421,13 +421,13 @@ describe('browser-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const identifyObject = {
         _q: [],
       };
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore to verify behavior in snippet installation
-      const result = await client.identify(identifyObject);
+      const result = await client.identify(identifyObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
@@ -451,9 +451,9 @@ describe('browser-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const identifyObject = new core.Identify();
-      const result = await client.groupIdentify('g', '1', identifyObject);
+      const result = await client.groupIdentify('g', '1', identifyObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -477,13 +477,13 @@ describe('browser-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const identifyObject = {
         _q: [],
       };
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore to verify behavior in snippet installation
-      const result = await client.groupIdentify('g', '1', identifyObject);
+      const result = await client.groupIdentify('g', '1', identifyObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
@@ -507,9 +507,9 @@ describe('browser-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const revenueObject = new core.Revenue();
-      const result = await client.revenue(revenueObject);
+      const result = await client.revenue(revenueObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -533,13 +533,13 @@ describe('browser-client', () => {
           send,
         },
         ...attributionConfig,
-      });
+      }).promise;
       const revenueObject = {
         _q: [],
       };
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore to verify behavior in snippet installation
-      const result = await client.revenue(revenueObject);
+      const result = await client.revenue(revenueObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);

@@ -28,30 +28,36 @@ import { isNative } from './utils/platform';
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
 
-export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
+export class AmplitudeReactNative extends AmplitudeCore {
   appState: AppStateStatus = 'background';
   private appStateChangeHandler: NativeEventSubscription | undefined;
   explicitSessionId: number | undefined;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  config: ReactNativeConfig;
 
-  async init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
+  init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
+    return returnWrapper(this._init({ ...options, userId, apiKey }));
+  }
+  protected async _init(options: ReactNativeOptions & { apiKey: string }) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
     }
     this.initializing = true;
-    this.explicitSessionId = options?.sessionId;
+    this.explicitSessionId = options.sessionId;
 
     // Step 1: Read cookies stored by old SDK
-    const oldCookies = await parseOldCookies(apiKey, options);
+    const oldCookies = await parseOldCookies(options.apiKey, options);
 
     // Step 2: Create react native config
-    const reactNativeOptions = await useReactNativeConfig(apiKey, {
+    const reactNativeOptions = await useReactNativeConfig(options.apiKey, {
       ...options,
-      deviceId: oldCookies.deviceId ?? options?.deviceId,
+      deviceId: oldCookies.deviceId ?? options.deviceId,
       sessionId: oldCookies.sessionId,
-      optOut: options?.optOut ?? oldCookies.optOut,
+      optOut: options.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
-      userId: userId || oldCookies.userId,
+      userId: options.userId || oldCookies.userId,
     });
     await super._init(reactNativeOptions);
 
@@ -69,9 +75,9 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
 
     // Step 3: Install plugins
     // Do not track any events before this
-    await this.add(new Context());
-    await this.add(new IdentityEventSender());
-    await this.add(new Destination());
+    await this.add(new Destination()).promise;
+    await this.add(new Context()).promise;
+    await this.add(new IdentityEventSender()).promise;
 
     // Step 4: Manage session
     this.appState = AppState.currentState;
@@ -86,7 +92,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     this.initializing = false;
 
     // Step 5: Track attributions
-    await this.runAttributionStrategy(options?.attribution, isNewSession);
+    await this.runAttributionStrategy(options.attribution, isNewSession);
 
     // Step 6: Run queued functions
     await this.runQueuedFunctions('dispatchQ');
@@ -100,7 +106,7 @@ export class AmplitudeReactNative extends AmplitudeCore<ReactNativeConfig> {
     if (isNative()) {
       return;
     }
-    const track = this.track.bind(this);
+    const track = (...args: Parameters<typeof this.track>) => this.track(...args).promise;
     const onNewCampaign = this.setSessionId.bind(this, this.currentTimeMillis());
 
     const storage = await createFlexibleStorage<Campaign>(this.config);
@@ -282,61 +288,61 @@ export const createInstance = (): ReactNativeClient => {
   const client = new AmplitudeReactNative();
   return {
     init: debugWrapper(
-      returnWrapper(client.init.bind(client)),
+      client.init.bind(client),
       'init',
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
     add: debugWrapper(
-      returnWrapper(client.add.bind(client)),
+      client.add.bind(client),
       'add',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.plugins']),
     ),
     remove: debugWrapper(
-      returnWrapper(client.remove.bind(client)),
+      client.remove.bind(client),
       'remove',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.plugins']),
     ),
     track: debugWrapper(
-      returnWrapper(client.track.bind(client)),
+      client.track.bind(client),
       'track',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     logEvent: debugWrapper(
-      returnWrapper(client.logEvent.bind(client)),
+      client.logEvent.bind(client),
       'logEvent',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     identify: debugWrapper(
-      returnWrapper(client.identify.bind(client)),
+      client.identify.bind(client),
       'identify',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     groupIdentify: debugWrapper(
-      returnWrapper(client.groupIdentify.bind(client)),
+      client.groupIdentify.bind(client),
       'groupIdentify',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     setGroup: debugWrapper(
-      returnWrapper(client.setGroup.bind(client)),
+      client.setGroup.bind(client),
       'setGroup',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     revenue: debugWrapper(
-      returnWrapper(client.revenue.bind(client)),
+      client.revenue.bind(client),
       'revenue',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     flush: debugWrapper(
-      returnWrapper(client.flush.bind(client)),
+      client.flush.bind(client),
       'flush',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),

@@ -1,9 +1,9 @@
 import { AmplitudeReturn } from '../amplitude-promise';
 import { BrowserOptions, ReactNativeOptions } from '../config';
 import { TransportType } from '../transport';
-import { BaseClient } from './base-client';
+import { CoreClient } from './core-client';
 
-interface Client extends BaseClient {
+interface Client extends CoreClient {
   /**
    * Returns current user ID.
    *

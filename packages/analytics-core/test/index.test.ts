@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   AmplitudeCore,
   BaseTransport,
@@ -17,7 +18,7 @@ import {
 describe('index', () => {
   test('should expose apis', () => {
     const client = new AmplitudeCore();
-    expect(typeof client._init).toBe('function');
+    expect(typeof (client as any)._init).toBe('function');
     expect(typeof client.track).toBe('function');
     expect(typeof client.logEvent).toBe('function');
     expect(typeof client.identify).toBe('function');

@@ -9,7 +9,7 @@ import { BrowserOptions } from '@amplitude/analytics-types';
 export const createInstance = (): Client => {
   const client = createBaseInstance();
 
-  const init = async (apiKey: string, userId?: string, options: Options = {}) => {
+  const _init = async (options: Options & { apiKey: string }) => {
     const { attribution, pageViewTracking, ...restOfOptions } = options;
     const browserOptions: BrowserOptions = restOfOptions;
 
@@ -29,12 +29,19 @@ export const createInstance = (): Client => {
       disabled: true,
     };
 
-    await client.init(apiKey, userId, browserOptions).promise;
+    await client.init(options.apiKey, options.userId, browserOptions).promise;
   };
 
   return {
     ...client,
-    init: returnWrapper(init.bind(client)),
+    init: (apiKey: string, userId?: string, options: Options = {}) =>
+      returnWrapper(
+        _init({
+          ...options,
+          userId,
+          apiKey,
+        }),
+      ),
   };
 };
 

@@ -10,22 +10,29 @@ import { NodeClient, NodeConfig, NodeOptions } from '@amplitude/analytics-types'
 import { Context } from './plugins/context';
 import { useNodeConfig } from './config';
 
-export class AmplitudeNode extends AmplitudeCore<NodeConfig> {
-  async init(apiKey = '', options?: NodeOptions) {
+export class AmplitudeNode extends AmplitudeCore {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  config: NodeConfig;
+
+  init(apiKey = '', options?: NodeOptions) {
+    return returnWrapper(this._init({ ...options, apiKey }));
+  }
+  protected async _init(options: NodeOptions & { apiKey: string }) {
     // Step 0: Block concurrent initialization
     if (this.initializing) {
       return;
     }
     this.initializing = true;
 
-    const nodeOptions = useNodeConfig(apiKey, {
+    const nodeOptions = useNodeConfig(options.apiKey, {
       ...options,
     });
 
     await super._init(nodeOptions);
 
-    await this.add(new Context());
-    await this.add(new Destination());
+    await this.add(new Destination()).promise;
+    await this.add(new Context()).promise;
 
     this.initializing = false;
 
@@ -37,61 +44,61 @@ export const createInstance = (): NodeClient => {
   const client = new AmplitudeNode();
   return {
     init: debugWrapper(
-      returnWrapper(client.init.bind(client)),
+      client.init.bind(client),
       'init',
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
     add: debugWrapper(
-      returnWrapper(client.add.bind(client)),
+      client.add.bind(client),
       'add',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.plugins']),
     ),
     remove: debugWrapper(
-      returnWrapper(client.remove.bind(client)),
+      client.remove.bind(client),
       'remove',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.plugins']),
     ),
     track: debugWrapper(
-      returnWrapper(client.track.bind(client)),
+      client.track.bind(client),
       'track',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     logEvent: debugWrapper(
-      returnWrapper(client.logEvent.bind(client)),
+      client.logEvent.bind(client),
       'logEvent',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     identify: debugWrapper(
-      returnWrapper(client.identify.bind(client)),
+      client.identify.bind(client),
       'identify',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     groupIdentify: debugWrapper(
-      returnWrapper(client.groupIdentify.bind(client)),
+      client.groupIdentify.bind(client),
       'groupIdentify',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     setGroup: debugWrapper(
-      returnWrapper(client.setGroup.bind(client)),
+      client.setGroup.bind(client),
       'setGroup',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     revenue: debugWrapper(
-      returnWrapper(client.revenue.bind(client)),
+      client.revenue.bind(client),
       'revenue',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     flush: debugWrapper(
-      returnWrapper(client.flush.bind(client)),
+      client.flush.bind(client),
       'flush',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),

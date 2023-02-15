@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
 import { useDefaultConfig } from './helpers/default';
@@ -11,7 +13,7 @@ describe('core-client', () => {
   describe('init', () => {
     test('should call init', async () => {
       expect(client.config).toBeUndefined();
-      await client._init(useDefaultConfig());
+      await (client as any)._init(useDefaultConfig());
       expect(client.config).toBeDefined();
     });
   });
@@ -21,7 +23,7 @@ describe('core-client', () => {
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const eventType = 'eventType';
       const eventProperties = { event: 'test' };
-      const response = await client.track(eventType, eventProperties);
+      const response = await client.track(eventType, eventProperties).promise;
       expect(response).toEqual(success);
       expect(dispatch).toHaveBeenCalledTimes(1);
     });
@@ -31,7 +33,7 @@ describe('core-client', () => {
     test('should call identify', async () => {
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify: Identify = new Identify();
-      const response = await client.identify(identify, undefined);
+      const response = await client.identify(identify, undefined).promise;
       expect(response).toEqual(success);
       expect(dispatch).toHaveBeenCalledTimes(1);
     });
@@ -41,7 +43,7 @@ describe('core-client', () => {
     test('should call groupIdentify', async () => {
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const identify = new Identify();
-      const response = await client.groupIdentify('groupType', 'groupName', identify, undefined);
+      const response = await client.groupIdentify('groupType', 'groupName', identify, undefined).promise;
       expect(response).toEqual(success);
       expect(dispatch).toHaveBeenCalledTimes(1);
     });
@@ -50,7 +52,7 @@ describe('core-client', () => {
   describe('setGroup', () => {
     test('should call setGroup', async () => {
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
-      const response = await client.setGroup('groupType', 'groupName');
+      const response = await client.setGroup('groupType', 'groupName').promise;
       expect(response).toEqual(success);
       expect(dispatch).toHaveBeenCalledTimes(1);
     });
@@ -60,7 +62,7 @@ describe('core-client', () => {
     test('should call revenue', async () => {
       const dispatch = jest.spyOn(client, 'dispatch').mockReturnValueOnce(Promise.resolve(success));
       const revenue = new Revenue();
-      const response = await client.revenue(revenue);
+      const response = await client.revenue(revenue).promise;
       expect(response).toEqual(success);
       expect(dispatch).toHaveBeenCalledTimes(1);
     });
@@ -80,11 +82,11 @@ describe('core-client', () => {
       };
 
       // add
-      await client.add(plugin);
+      await client.add(plugin).promise;
       expect(register).toHaveBeenCalledTimes(1);
 
       // remove
-      await client.remove(plugin.name);
+      await client.remove(plugin.name).promise;
       expect(deregister).toHaveBeenCalledTimes(1);
     });
 
@@ -97,9 +99,9 @@ describe('core-client', () => {
         type: PluginType.BEFORE,
         setup: jest.fn(),
         execute: jest.fn(),
-      });
-      await client.remove('example');
-      await client._init(useDefaultConfig());
+      }).promise;
+      await client.remove('example').promise;
+      await (client as any)._init(useDefaultConfig());
       expect(register).toHaveBeenCalledTimes(1);
       expect(deregister).toHaveBeenCalledTimes(1);
     });
@@ -204,7 +206,7 @@ describe('core-client', () => {
       };
 
       const dispathPromise = client.dispatch(event);
-      await client._init(useDefaultConfig());
+      await (client as any)._init(useDefaultConfig());
       await client.runQueuedFunctions('dispatchQ');
       const result = await dispathPromise;
       expect(push).toHaveBeenCalledTimes(1);
@@ -221,7 +223,7 @@ describe('core-client', () => {
     test('should defer update opt out value', async () => {
       const client = new AmplitudeCore();
       client.setOptOut(true);
-      await client._init(useDefaultConfig());
+      await (client as any)._init(useDefaultConfig());
       expect(client.config.optOut).toBe(true);
     });
   });
@@ -239,8 +241,8 @@ describe('core-client', () => {
       };
 
       // add
-      await client.add(plugin);
-      await client.flush();
+      await client.add(plugin).promise;
+      await client.flush().promise;
       expect(flush).toHaveBeenCalledTimes(1);
     });
   });

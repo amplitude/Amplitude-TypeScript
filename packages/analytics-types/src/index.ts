@@ -24,7 +24,7 @@ export {
   ReactNativeTrackingOptions,
   TrackingOptions,
 } from './config';
-export { CoreClient } from './core-client';
+export { CoreClient } from './client/core-client';
 export { DestinationContext } from './destination-context';
 export {
   Event,

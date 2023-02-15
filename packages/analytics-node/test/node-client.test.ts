@@ -11,7 +11,7 @@ describe('node-client', () => {
       const client = new AmplitudeNode();
       await client.init(API_KEY, {
         flushIntervalMillis: 1000,
-      });
+      }).promise;
       expect(client.config).toBeDefined();
     });
 
@@ -20,7 +20,7 @@ describe('node-client', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await client.init(undefined as any, {
         flushIntervalMillis: 1000,
-      });
+      }).promise;
       expect(client.config).toBeDefined();
     });
 
@@ -36,7 +36,7 @@ describe('node-client', () => {
   describe('setOptOut', () => {
     test('should set opt out', async () => {
       const client = new AmplitudeNode();
-      await client.init(API_KEY);
+      await client.init(API_KEY).promise;
       client.setOptOut(true);
       expect(client.config.optOut).toBe(true);
     });
@@ -59,9 +59,9 @@ describe('node-client', () => {
         transportProvider: {
           send,
         },
-      });
+      }).promise;
       const identifyObject = new core.Identify();
-      const result = await client.identify(identifyObject);
+      const result = await client.identify(identifyObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -84,9 +84,9 @@ describe('node-client', () => {
         transportProvider: {
           send,
         },
-      });
+      }).promise;
       const identifyObject = new core.Identify();
-      const result = await client.groupIdentify('g', '1', identifyObject);
+      const result = await client.groupIdentify('g', '1', identifyObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -109,9 +109,9 @@ describe('node-client', () => {
         transportProvider: {
           send,
         },
-      });
+      }).promise;
       const revenueObject = new core.Revenue();
-      const result = await client.revenue(revenueObject);
+      const result = await client.revenue(revenueObject).promise;
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
     });

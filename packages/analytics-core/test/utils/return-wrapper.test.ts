@@ -1,10 +1,16 @@
 import { returnWrapper } from '../../src/utils/return-wrapper';
 
 describe('return-wrapper', () => {
-  test('should wrap with amplitude return wrapper', async () => {
-    const fn = jest.fn<Promise<number>, []>().mockReturnValueOnce(Promise.resolve(1));
-    const wrappedFn = returnWrapper(fn);
-    const result = await wrappedFn().promise;
-    expect(result).toBe(1);
+  test('should undefined in promise interface', async () => {
+    const value = await returnWrapper().promise;
+    expect(value).toEqual(undefined);
+  });
+
+  test('should value in promise interface', async () => {
+    const fn = async () => {
+      return 1;
+    };
+    const value = await returnWrapper(fn()).promise;
+    expect(value).toEqual(1);
   });
 });

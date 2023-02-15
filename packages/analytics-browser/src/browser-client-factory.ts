@@ -1,4 +1,4 @@
-import { debugWrapper, getClientLogConfig, getClientStates, returnWrapper } from '@amplitude/analytics-core';
+import { debugWrapper, getClientLogConfig, getClientStates } from '@amplitude/analytics-core';
 import { BrowserClient } from '@amplitude/analytics-types';
 import { AmplitudeBrowser } from './browser-client';
 
@@ -6,61 +6,61 @@ export const createInstance = (): BrowserClient => {
   const client = new AmplitudeBrowser();
   return {
     init: debugWrapper(
-      returnWrapper(client.init.bind(client)),
+      client.init.bind(client),
       'init',
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
     add: debugWrapper(
-      returnWrapper(client.add.bind(client)),
+      client.add.bind(client),
       'add',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.plugins']),
     ),
     remove: debugWrapper(
-      returnWrapper(client.remove.bind(client)),
+      client.remove.bind(client),
       'remove',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.plugins']),
     ),
     track: debugWrapper(
-      returnWrapper(client.track.bind(client)),
+      client.track.bind(client),
       'track',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     logEvent: debugWrapper(
-      returnWrapper(client.logEvent.bind(client)),
+      client.logEvent.bind(client),
       'logEvent',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     identify: debugWrapper(
-      returnWrapper(client.identify.bind(client)),
+      client.identify.bind(client),
       'identify',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     groupIdentify: debugWrapper(
-      returnWrapper(client.groupIdentify.bind(client)),
+      client.groupIdentify.bind(client),
       'groupIdentify',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     setGroup: debugWrapper(
-      returnWrapper(client.setGroup.bind(client)),
+      client.setGroup.bind(client),
       'setGroup',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     revenue: debugWrapper(
-      returnWrapper(client.revenue.bind(client)),
+      client.revenue.bind(client),
       'revenue',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),
     ),
     flush: debugWrapper(
-      returnWrapper(client.flush.bind(client)),
+      client.flush.bind(client),
       'flush',
       getClientLogConfig(client),
       getClientStates(client, ['config.apiKey', 'timeline.queue.length']),

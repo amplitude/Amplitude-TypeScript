@@ -1,6 +1,7 @@
 import {
   BeforePlugin,
   Config,
+  CoreClient,
   DestinationPlugin,
   EnrichmentPlugin,
   Event,
@@ -19,8 +20,10 @@ export class Timeline {
   // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
 
+  constructor(private client: CoreClient) {}
+
   async register(plugin: Plugin, config: Config) {
-    await plugin.setup(config);
+    await plugin.setup(config, this.client);
     this.plugins.push(plugin);
   }
 
@@ -32,9 +35,10 @@ export class Timeline {
     return Promise.resolve();
   }
 
-  reset() {
+  reset(client: CoreClient) {
     this.applying = false;
     this.plugins = [];
+    this.client = client;
   }
 
   push(event: Event) {
