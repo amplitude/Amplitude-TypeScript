@@ -133,6 +133,7 @@ describe('config', () => {
         },
         sessionTimeout: 1,
         cookieUpgrade: false,
+        disableCookies: true,
       });
       expect(config).toEqual({
         apiKey: API_KEY,
@@ -143,8 +144,7 @@ describe('config', () => {
         cookieSecure: false,
         cookieUpgrade: false,
         _deviceId: 'deviceIdFromCookies',
-
-        disableCookies: false,
+        disableCookies: true,
         domain: '',
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
@@ -180,6 +180,13 @@ describe('config', () => {
         useBatch: false,
         _userId: 'userIdFromCookies',
       });
+    });
+
+    test('should use custom domain', async () => {
+      const config = await Config.useBrowserConfig(API_KEY, {
+        domain: 'amplitude.com',
+      });
+      expect(config.domain).toEqual('amplitude.com');
     });
   });
 

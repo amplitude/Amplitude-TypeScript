@@ -127,7 +127,7 @@ describe('browser-client', () => {
     test('should set user id and device id in analytics connector', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
       jest.spyOn(cookieStorage, 'set').mockResolvedValue(undefined);
-      jest.spyOn(cookieStorage, 'get').mockResolvedValue({
+      jest.spyOn(cookieStorage, 'get').mockResolvedValueOnce(undefined).mockResolvedValue({
         sessionId: 1,
         deviceId: DEVICE_ID,
         optOut: false,

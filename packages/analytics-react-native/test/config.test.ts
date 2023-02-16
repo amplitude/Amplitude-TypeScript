@@ -136,6 +136,7 @@ describe('config', () => {
         },
         sessionTimeout: 1,
         cookieUpgrade: false,
+        disableCookies: true,
       });
       expect(config).toEqual({
         apiKey: API_KEY,
@@ -146,7 +147,7 @@ describe('config', () => {
         cookieSecure: false,
         cookieUpgrade: false,
         _deviceId: 'deviceIdFromCookies',
-        disableCookies: false,
+        disableCookies: true,
         domain: '',
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
