@@ -73,7 +73,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
       // Turn off sending page view event by "runAttributionStrategy" function
       if (config.attribution?.trackPageViews) {
         loggerProvider.warn(
-          `@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser.Resolve by disabling page view tracking in @amplitude/analytics-browser.`,
+          `@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser. Resolve by disabling page view tracking in @amplitude/analytics-browser.`,
         );
         config.attribution.trackPageViews = false;
       }
