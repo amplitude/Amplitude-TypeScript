@@ -1,4 +1,5 @@
 import { createInstance } from '@amplitude/analytics-browser';
+import { Config, Logger } from '@amplitude/analytics-types';
 import { pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 
 describe('pageViewTrackingPlugin', () => {
@@ -27,6 +28,55 @@ describe('pageViewTrackingPlugin', () => {
   const USER_ID = 'USER_ID';
 
   describe('setup', () => {
+    let instance = createInstance();
+
+    beforeEach(async () => {
+      instance = createInstance();
+      await instance.init(API_KEY, USER_ID, {
+        attribution: {
+          disabled: true,
+        },
+      }).promise;
+    });
+
+    test('should handle expected BrowserClient, but got Options', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        error: jest.fn(),
+      };
+      const config: Partial<Config> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+
+      const plugin = pageViewTrackingPlugin({});
+      await plugin.setup(config as Config);
+
+      expect(track).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledWith(
+        `Argument of type 'Options' is not assignable to parameter of type 'BrowserClient'.`,
+      );
+    });
+
+    test('should handle expected BrowserClient, but got undefined', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        error: jest.fn(),
+      };
+      const config: Partial<Config> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup(config as Config);
+
+      expect(track).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.error).toHaveBeenCalledWith(
+        `Argument of type 'undefined' is not assignable to parameter of type 'BrowserClient'.`,
+      );
+    });
+
     describe('should send a page view event', () => {
       test('when attribution event is sent and trackOn is "attribution"', async () => {
         const instance = createInstance();

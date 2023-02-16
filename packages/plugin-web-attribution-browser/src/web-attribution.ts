@@ -56,7 +56,7 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (
       // Disable "runAttributionStrategy" function
       if (!config.attribution?.disabled) {
         config.loggerProvider.warn(
-          '@amplitude/plugin-web-attribution-browser overrides web attribution behavior defined in @amplitude/analytics-browser.',
+          '@amplitude/plugin-web-attribution-browser overrides web attribution behavior defined in @amplitude/analytics-browser. Resolve by disabling web attribution tracking in @amplitude/analytics-browser.',
         );
         config.attribution = {
           disabled: true,
