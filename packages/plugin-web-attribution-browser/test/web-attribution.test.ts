@@ -2,8 +2,8 @@ import { createInstance } from '@amplitude/analytics-browser';
 import { BASE_CAMPAIGN, CampaignParser } from '@amplitude/analytics-client-common';
 import { webAttributionPlugin } from '../src/web-attribution';
 import * as helpers from '../src/helpers';
-import { Logger } from '@amplitude/analytics-types';
-import { Config } from '@amplitude/analytics-core';
+import { BrowserConfig, Logger } from '@amplitude/analytics-types';
+import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
 
 describe('webAttributionPlugin', () => {
   const API_KEY = 'API_KEY';
@@ -80,6 +80,72 @@ describe('webAttributionPlugin', () => {
       expect(loggerProvider.log).toHaveBeenCalledWith(
         `@amplitude/plugin-web-attribution-browser is disabled. Attribution is not tracked.`,
       );
+    });
+
+    test.each([undefined, { disabled: false }])(
+      'should handle overlapping behavior from core and plugin',
+      async (attribution) => {
+        const track = jest.spyOn(instance, 'track');
+        const loggerProvider: Partial<Logger> = {
+          warn: jest.fn(),
+          log: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          apiKey: UUID(),
+          loggerProvider: loggerProvider as Logger,
+          cookieStorage: new MemoryStorage(),
+          attribution,
+        };
+
+        const plugin = webAttributionPlugin(instance);
+        await plugin.setup(config as Config);
+
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(loggerProvider.log).toHaveBeenCalledTimes(2);
+        expect(loggerProvider.log).toHaveBeenCalledWith(`Installing @amplitude/plugin-web-attribution-browser.`);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
+        expect(loggerProvider.warn).toHaveBeenCalledWith(
+          `@amplitude/plugin-web-attribution-browser overrides web attribution behavior defined in @amplitude/analytics-browser. Resolve by disabling web attribution tracking in @amplitude/analytics-browser.`,
+        );
+      },
+    );
+
+    test('internal: should force not to track', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        apiKey: UUID(),
+        loggerProvider: loggerProvider as Logger,
+        cookieStorage: new MemoryStorage(),
+      };
+
+      const plugin = webAttributionPlugin();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (plugin as any).__pluginEnabledOverride = false;
+      await plugin.setup(config as Config, instance);
+
+      expect(track).toHaveBeenCalledTimes(0);
+    });
+
+    test('internal: should force to track', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        apiKey: UUID(),
+        loggerProvider: loggerProvider as Logger,
+        cookieStorage: new MemoryStorage(),
+      };
+
+      const plugin = webAttributionPlugin();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (plugin as any).__pluginEnabledOverride = true;
+      await plugin.setup(config as Config, instance);
+
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     describe('should send an identify event', () => {
@@ -277,7 +343,7 @@ describe('webAttributionPlugin', () => {
         }).promise;
 
         expect(track).toHaveBeenCalledTimes(0);
-        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(0);
       });
     });
   });

@@ -9,3 +9,10 @@ export { IdentityEventSender } from './plugins/identity';
 export { getLanguage } from './language';
 export { BASE_CAMPAIGN } from './attribution/constants';
 export { getGlobalScope } from './global-scope';
+export {
+  getPageViewTrackingConfig,
+  isFileDownloadTrackingEnabled,
+  isFormInteractionTrackingEnabled,
+  isPageViewTrackingEnabled,
+  isSessionTrackingEnabled,
+} from './default-tracking';
