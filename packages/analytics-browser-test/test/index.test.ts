@@ -1,9 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as amplitude from '@amplitude/analytics-browser';
 import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
-import { PluginType, LogLevel } from '@amplitude/analytics-types';
+import { PluginType, LogLevel, BaseEvent, Status } from '@amplitude/analytics-types';
 import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
@@ -848,6 +851,626 @@ describe('integration', () => {
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
       scope.done();
+    });
+  });
+
+  describe('session handler', () => {
+    test('should send session events and replaced with known user', () => {
+      let payload: any = undefined;
+      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        payload = p;
+        return {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        };
+      });
+      client.init(apiKey, 'user1@amplitude.com', {
+        defaultTracking: {
+          sessions: true,
+        },
+        transportProvider: {
+          send,
+        },
+        sessionTimeout: 500,
+        flushIntervalMillis: 3000,
+        trackingOptions: {
+          deviceModel: false,
+        },
+      });
+      // Sends `session_start` event
+      client.track('Event in first session');
+
+      setTimeout(() => {
+        client.track('Event in next session');
+        // Sends `session_end` event for previous session
+        // Sends `session_start` event for next session
+      }, 1000);
+
+      setTimeout(() => {
+        client.setUserId('user2@amplitude.com'); // effectively creates a new session
+        // Sends `session_end` event for previous user and session
+        // Sends `session_start` event for next user and session
+      }, 2000);
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          // Tranform events to be grouped by session and ordered by time
+          // Helps assert that events will show up correctly on Amplitude UI
+          const compactEvents: { eventType: string; userId: string; sessionId: number; time: number }[] =
+            payload.events.map((e: BaseEvent) => ({
+              eventType: e.event_type,
+              userId: e.user_id,
+              sessionId: e.session_id,
+              time: e.time,
+            }));
+          const compactEventsBySessionAndTime = Object.values(
+            compactEvents.reduce<
+              Record<string, { eventType: string; userId: string; sessionId: number; time: number }[]>
+            >((acc, curr) => {
+              if (!acc[curr.sessionId]) {
+                acc[curr.sessionId] = [];
+              }
+              acc[curr.sessionId].push(curr);
+              return acc;
+            }, {}),
+          )
+            .map((c) => c.sort((a, b) => a.time - b.time))
+            .map((group) => group.map((c) => ({ eventType: c.eventType, userId: c.userId })));
+
+          // The order of events in the payload is sorted by time of track fn invokation
+          // and not consistent with the time property
+          // Session events have overwritten time property
+          // Assert that events grouped by session and ordered by time
+          expect(compactEventsBySessionAndTime).toEqual([
+            [
+              {
+                eventType: 'session_start',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: '$identify',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'Event in first session',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'session_end',
+                userId: 'user1@amplitude.com',
+              },
+            ],
+            [
+              {
+                eventType: 'session_start',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'Event in next session',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'session_end',
+                userId: 'user1@amplitude.com',
+              },
+            ],
+            [
+              {
+                eventType: 'session_start',
+                userId: 'user2@amplitude.com',
+              },
+            ],
+          ]);
+          expect(payload).toEqual({
+            api_key: apiKey,
+            events: [
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 0,
+                event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 1,
+                event_type: '$identify',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+                user_properties: {
+                  $setOnce: {
+                    initial_dclid: 'EMPTY',
+                    initial_fbclid: 'EMPTY',
+                    initial_gbraid: 'EMPTY',
+                    initial_gclid: 'EMPTY',
+                    initial_ko_click_id: 'EMPTY',
+                    initial_msclkid: 'EMPTY',
+                    initial_referrer: 'EMPTY',
+                    initial_referring_domain: 'EMPTY',
+                    initial_ttclid: 'EMPTY',
+                    initial_twclid: 'EMPTY',
+                    initial_utm_campaign: 'EMPTY',
+                    initial_utm_content: 'EMPTY',
+                    initial_utm_id: 'EMPTY',
+                    initial_utm_medium: 'EMPTY',
+                    initial_utm_source: 'EMPTY',
+                    initial_utm_term: 'EMPTY',
+                    initial_wbraid: 'EMPTY',
+                  },
+                  $unset: {
+                    dclid: '-',
+                    fbclid: '-',
+                    gbraid: '-',
+                    gclid: '-',
+                    ko_click_id: '-',
+                    msclkid: '-',
+                    referrer: '-',
+                    referring_domain: '-',
+                    ttclid: '-',
+                    twclid: '-',
+                    utm_campaign: '-',
+                    utm_content: '-',
+                    utm_id: '-',
+                    utm_medium: '-',
+                    utm_source: '-',
+                    utm_term: '-',
+                    wbraid: '-',
+                  },
+                },
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 2,
+                event_type: 'Event in first session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 3,
+                event_type: 'Event in next session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 4,
+                event_type: 'session_end',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 5,
+                event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 6,
+                event_type: 'session_end',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library: 'amplitude-ts/1.8.0',
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 7,
+                event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library: 'amplitude-ts/1.8.0',
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user2@amplitude.com',
+              },
+            ],
+            options: {
+              min_id_length: undefined,
+            },
+          });
+          resolve();
+        }, 4000);
+      });
+    });
+
+    test('should send session events and replaced with unknown user', () => {
+      let payload: any = undefined;
+      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        payload = p;
+        return {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        };
+      });
+      client.init(apiKey, 'user1@amplitude.com', {
+        defaultTracking: {
+          sessions: true,
+        },
+        transportProvider: {
+          send,
+        },
+        sessionTimeout: 500,
+        flushIntervalMillis: 3000,
+        trackingOptions: {
+          deviceModel: false,
+        },
+      });
+      // Sends `session_start` event
+      client.track('Event in first session');
+
+      setTimeout(() => {
+        client.track('Event in next session');
+        // Sends `session_end` event for previous session
+        // Sends `session_start` event for next session
+      }, 1000);
+
+      setTimeout(() => {
+        client.reset(); // effectively creates a new session
+        // Sends `session_end` event for previous user and session
+        // Sends `session_start` event for next user and session
+      }, 2000);
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          // Tranform events to be grouped by session and ordered by time
+          // Helps assert that events will show up correctly on Amplitude UI
+          const compactEvents: { eventType: string; userId: string; sessionId: number; time: number }[] =
+            payload.events.map((e: BaseEvent) => ({
+              eventType: e.event_type,
+              userId: e.user_id,
+              sessionId: e.session_id,
+              time: e.time,
+            }));
+          const compactEventsBySessionAndTime = Object.values(
+            compactEvents.reduce<
+              Record<string, { eventType: string; userId: string; sessionId: number; time: number }[]>
+            >((acc, curr) => {
+              if (!acc[curr.sessionId]) {
+                acc[curr.sessionId] = [];
+              }
+              acc[curr.sessionId].push(curr);
+              return acc;
+            }, {}),
+          )
+            .map((c) => c.sort((a, b) => a.time - b.time))
+            .map((group) => group.map((c) => ({ eventType: c.eventType, userId: c.userId })));
+
+          // The order of events in the payload is sorted by time of track fn invokation
+          // and not consistent with the time property
+          // Session events have overwritten time property
+          // Assert that events grouped by session and ordered by time
+          expect(compactEventsBySessionAndTime).toEqual([
+            [
+              {
+                eventType: 'session_start',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: '$identify',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'Event in first session',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'session_end',
+                userId: 'user1@amplitude.com',
+              },
+            ],
+            [
+              {
+                eventType: 'session_start',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'Event in next session',
+                userId: 'user1@amplitude.com',
+              },
+              {
+                eventType: 'session_end',
+                userId: 'user1@amplitude.com',
+              },
+            ],
+            [
+              {
+                eventType: 'session_start',
+                userId: undefined,
+              },
+            ],
+          ]);
+          expect(payload).toEqual({
+            api_key: apiKey,
+            events: [
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 0,
+                event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 1,
+                event_type: '$identify',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+                user_properties: {
+                  $setOnce: {
+                    initial_dclid: 'EMPTY',
+                    initial_fbclid: 'EMPTY',
+                    initial_gbraid: 'EMPTY',
+                    initial_gclid: 'EMPTY',
+                    initial_ko_click_id: 'EMPTY',
+                    initial_msclkid: 'EMPTY',
+                    initial_referrer: 'EMPTY',
+                    initial_referring_domain: 'EMPTY',
+                    initial_ttclid: 'EMPTY',
+                    initial_twclid: 'EMPTY',
+                    initial_utm_campaign: 'EMPTY',
+                    initial_utm_content: 'EMPTY',
+                    initial_utm_id: 'EMPTY',
+                    initial_utm_medium: 'EMPTY',
+                    initial_utm_source: 'EMPTY',
+                    initial_utm_term: 'EMPTY',
+                    initial_wbraid: 'EMPTY',
+                  },
+                  $unset: {
+                    dclid: '-',
+                    fbclid: '-',
+                    gbraid: '-',
+                    gclid: '-',
+                    ko_click_id: '-',
+                    msclkid: '-',
+                    referrer: '-',
+                    referring_domain: '-',
+                    ttclid: '-',
+                    twclid: '-',
+                    utm_campaign: '-',
+                    utm_content: '-',
+                    utm_id: '-',
+                    utm_medium: '-',
+                    utm_source: '-',
+                    utm_term: '-',
+                    wbraid: '-',
+                  },
+                },
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 2,
+                event_type: 'Event in first session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 3,
+                event_type: 'Event in next session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 4,
+                event_type: 'session_end',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 5,
+                event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 6,
+                event_type: 'session_end',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library: 'amplitude-ts/1.8.0',
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 7,
+                event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library: 'amplitude-ts/1.8.0',
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: undefined,
+              },
+            ],
+            options: {
+              min_id_length: undefined,
+            },
+          });
+          resolve();
+        }, 4000);
+      });
     });
   });
 

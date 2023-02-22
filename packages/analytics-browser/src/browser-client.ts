@@ -3,6 +3,7 @@ import {
   getAnalyticsConnector,
   getPageViewTrackingConfig,
   IdentityEventSender,
+  isSessionTrackingEnabled,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -19,11 +20,13 @@ import { useBrowserConfig, createTransport } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
+import { sessionHandlerPlugin, START_SESSION_EVENT, END_SESSION_EVENT } from './plugins/session-handler';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
+  previousSessionUserId: string | undefined;
 
   init(apiKey = '', userId?: string, options?: BrowserOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -79,6 +82,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Do not track any events before this
     await this.add(new Destination()).promise;
     await this.add(new Context()).promise;
+    await this.add(sessionHandlerPlugin()).promise;
     await this.add(new IdentityEventSender()).promise;
 
     // Add web attribution plugin
@@ -116,7 +120,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.q.push(this.setUserId.bind(this, userId));
       return;
     }
-    this.config.userId = userId;
+    if (userId !== this.config.userId) {
+      this.previousSessionUserId = this.config.userId;
+      this.config.userId = userId;
+      this.setSessionId(Date.now());
+    }
   }
 
   getDeviceId() {
@@ -145,8 +153,30 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return;
     }
+    const previousSessionId = this.getSessionId();
+    const previousLastEventTime = this.config.lastEventTime;
+
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
+
+    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+      if (previousSessionId && previousLastEventTime) {
+        const eventOptions: EventOptions = {
+          session_id: previousSessionId,
+          time: previousLastEventTime + 1,
+        };
+        if (this.previousSessionUserId) {
+          eventOptions.user_id = this.previousSessionUserId;
+        }
+        this.track(END_SESSION_EVENT, undefined, eventOptions);
+        this.previousSessionUserId = undefined;
+      }
+
+      this.track(START_SESSION_EVENT, undefined, {
+        session_id: sessionId,
+        time: sessionId - 1,
+      });
+    }
   }
 
   setTransport(transport: TransportType) {

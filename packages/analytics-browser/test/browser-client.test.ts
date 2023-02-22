@@ -192,6 +192,59 @@ describe('browser-client', () => {
       expect(client.getUserId()).toBe(USER_ID);
     });
 
+    test('should not set user id', async () => {
+      const client = new AmplitudeBrowser();
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      await client.init(API_KEY, USER_ID, {
+        ...attributionConfig,
+      }).promise;
+
+      // Reset mock to isolate mock for `setUserId(...)` call
+      // `setUserId(...)` may have been called on `init(...)`
+      // We do not want to depend on init behavior
+      setSessionId.mockReset();
+
+      expect(client.getUserId()).toBe(USER_ID);
+      client.setUserId(USER_ID);
+      expect(setSessionId).toHaveBeenCalledTimes(0);
+      expect(client.getUserId()).toBe(USER_ID);
+    });
+
+    test('should set user and session id with start and end session event', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+        sessionId: 1,
+        lastEventTime: Date.now() - 1000,
+      });
+      const client = new AmplitudeBrowser();
+      const result = {
+        promise: Promise.resolve({
+          code: 200,
+          event: {
+            event_type: 'a',
+          },
+          message: 'success',
+        }),
+      };
+      const track = jest.spyOn(client, 'track').mockReturnValue(result);
+      await client.init(API_KEY, USER_ID, {
+        sessionTimeout: 5000,
+        defaultTracking: {
+          sessions: true,
+        },
+        ...attributionConfig,
+      }).promise;
+
+      // Reset mock to isolate mock for `track(...)` call
+      // `track(...)` may have been called on `init(...)`
+      // We do not want to depend on init behavior
+      track.mockReset();
+
+      client.setUserId(undefined);
+      expect(client.getUserId()).toBe(undefined);
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
     test('should defer set user id', () => {
       return new Promise<void>((resolve) => {
         const client = new AmplitudeBrowser();
@@ -253,7 +306,9 @@ describe('browser-client', () => {
   describe('reset', () => {
     test('should reset user id and generate new device id config', async () => {
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY).promise;
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      }).promise;
       client.setUserId(USER_ID);
       client.setDeviceId(DEVICE_ID);
       expect(client.getUserId()).toBe(USER_ID);
@@ -288,6 +343,59 @@ describe('browser-client', () => {
       }).promise;
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
+    });
+
+    test('should set session id with start session event', async () => {
+      const client = new AmplitudeBrowser();
+      const result = {
+        promise: Promise.resolve({
+          code: 200,
+          event: {
+            event_type: 'a',
+          },
+          message: 'success',
+        }),
+      };
+      const track = jest.spyOn(client, 'track').mockReturnValue(result);
+      await client.init(API_KEY, undefined, {
+        sessionId: 1,
+        defaultTracking: {
+          sessions: true,
+        },
+        ...attributionConfig,
+      }).promise;
+      client.setSessionId(2);
+      expect(client.getSessionId()).toBe(2);
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should set session id with start and end session event', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+        sessionId: 1,
+        lastEventTime: Date.now() - 1000,
+      });
+      const client = new AmplitudeBrowser();
+      const result = {
+        promise: Promise.resolve({
+          code: 200,
+          event: {
+            event_type: 'a',
+          },
+          message: 'success',
+        }),
+      };
+      const track = jest.spyOn(client, 'track').mockReturnValue(result);
+      await client.init(API_KEY, undefined, {
+        sessionTimeout: 5000,
+        defaultTracking: {
+          sessions: true,
+        },
+        ...attributionConfig,
+      }).promise;
+      client.setSessionId(2);
+      expect(client.getSessionId()).toBe(2);
+      expect(track).toHaveBeenCalledTimes(2);
     });
 
     test('should defer set session id', () => {

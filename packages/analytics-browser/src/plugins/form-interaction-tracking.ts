@@ -5,7 +5,7 @@ const FORM_START_EVENT = 'form_start';
 const FORM_SUBMIT_EVENT = 'form_submit';
 
 export const formInteractionTracking = (): EnrichmentPlugin => {
-  const name = 'formInteractionTracking';
+  const name = '@amplitude/plugin-form-interaction-tracking-browser';
   const type = PluginType.ENRICHMENT;
   const setup = async (config: BrowserConfig, amplitude?: BrowserClient) => {
     /* istanbul ignore if */
