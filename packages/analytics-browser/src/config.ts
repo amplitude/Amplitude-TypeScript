@@ -3,7 +3,7 @@ import {
   Event,
   BrowserOptions,
   BrowserConfig as IBrowserConfig,
-  DefaultTrackingOptions,
+  AutoTrackingOptions,
   Storage,
   TrackingOptions,
   TransportType,
@@ -49,7 +49,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieSecure: boolean;
   cookieUpgrade: boolean;
   cookieStorage: Storage<UserSession>;
-  defaultTracking?: DefaultTrackingOptions | boolean;
+  autoTracking?: AutoTrackingOptions | boolean;
   disableCookies: boolean;
   domain: string;
   partnerId?: string;
@@ -89,7 +89,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
     this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
     this.cookieUpgrade = options?.cookieUpgrade ?? defaultConfig.cookieUpgrade;
-    this.defaultTracking = options?.defaultTracking;
+    this.autoTracking = options?.autoTracking;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
     this.domain = options?.domain ?? defaultConfig.domain;
     this.partnerId = options?.partnerId;

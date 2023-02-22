@@ -16,7 +16,7 @@ export {
   BrowserConfig,
   BrowserOptions,
   Config,
-  DefaultTrackingOptions,
+  AutoTrackingOptions,
   Options,
   NodeConfig,
   NodeOptions,

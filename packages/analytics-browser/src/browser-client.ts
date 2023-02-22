@@ -159,7 +159,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
 
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+    if (isSessionTrackingEnabled(this.config.autoTracking)) {
       if (previousSessionId && previousLastEventTime) {
         const eventOptions: EventOptions = {
           session_id: previousSessionId,

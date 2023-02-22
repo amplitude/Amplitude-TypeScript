@@ -15,4 +15,4 @@ export {
   isFormInteractionTrackingEnabled,
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
-} from './default-tracking';
+} from './auto-tracking';

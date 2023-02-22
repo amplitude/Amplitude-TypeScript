@@ -871,7 +871,7 @@ describe('integration', () => {
         };
       });
       client.init(apiKey, 'user1@amplitude.com', {
-        defaultTracking: {
+        autoTracking: {
           sessions: true,
         },
         transportProvider: {
@@ -1180,7 +1180,7 @@ describe('integration', () => {
         };
       });
       client.init(apiKey, 'user1@amplitude.com', {
-        defaultTracking: {
+        autoTracking: {
           sessions: true,
         },
         transportProvider: {

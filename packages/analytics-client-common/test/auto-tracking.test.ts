@@ -4,7 +4,7 @@ import {
   isFormInteractionTrackingEnabled,
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
-} from '../src/default-tracking';
+} from '../src/auto-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
   test('should return true with boolean parameter', () => {
@@ -100,7 +100,7 @@ describe('getPageViewTrackingConfig', () => {
 
   test('should return always track config', () => {
     const config = getPageViewTrackingConfig({
-      defaultTracking: {
+      autoTracking: {
         pageViews: true,
       },
     });

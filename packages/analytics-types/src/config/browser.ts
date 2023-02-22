@@ -6,7 +6,7 @@ import { Config } from './core';
 export interface BrowserConfig extends Config {
   appVersion?: string;
   attribution?: AttributionOptions;
-  defaultTracking?: boolean | DefaultTrackingOptions;
+  autoTracking?: boolean | AutoTrackingOptions;
   deviceId?: string;
   cookieExpiration: number;
   cookieSameSite: string;
@@ -23,7 +23,7 @@ export interface BrowserConfig extends Config {
   userId?: string;
 }
 
-export interface DefaultTrackingOptions {
+export interface AutoTrackingOptions {
   fileDownloads?: boolean;
   formInteractions?: boolean;
   pageViews?: boolean;

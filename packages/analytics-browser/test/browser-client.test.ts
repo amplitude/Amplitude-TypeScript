@@ -229,7 +229,7 @@ describe('browser-client', () => {
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
       await client.init(API_KEY, USER_ID, {
         sessionTimeout: 5000,
-        defaultTracking: {
+        autoTracking: {
           sessions: true,
         },
         ...attributionConfig,
@@ -359,7 +359,7 @@ describe('browser-client', () => {
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
       await client.init(API_KEY, undefined, {
         sessionId: 1,
-        defaultTracking: {
+        autoTracking: {
           sessions: true,
         },
         ...attributionConfig,
@@ -388,7 +388,7 @@ describe('browser-client', () => {
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
       await client.init(API_KEY, undefined, {
         sessionTimeout: 5000,
-        defaultTracking: {
+        autoTracking: {
           sessions: true,
         },
         ...attributionConfig,

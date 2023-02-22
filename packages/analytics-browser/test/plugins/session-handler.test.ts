@@ -62,7 +62,7 @@ describe('sessionHandlerPlugin', () => {
       sessionId: 1,
       lastEventTime: time - 1001,
       sessionTimeout: 1000,
-      defaultTracking: {
+      autoTracking: {
         sessions: true,
       },
     });
@@ -82,7 +82,7 @@ describe('sessionHandlerPlugin', () => {
       sessionId: 1,
       lastEventTime: time - 1001,
       sessionTimeout: 1000,
-      defaultTracking: {
+      autoTracking: {
         sessions: true,
       },
     });
