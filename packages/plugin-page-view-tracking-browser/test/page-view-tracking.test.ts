@@ -1,5 +1,6 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { Config, Logger } from '@amplitude/analytics-types';
+import { MemoryStorage, UUID } from '@amplitude/analytics-core';
+import { BrowserConfig, Config, Logger } from '@amplitude/analytics-types';
 import { pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 
 describe('pageViewTrackingPlugin', () => {
@@ -75,6 +76,54 @@ describe('pageViewTrackingPlugin', () => {
       expect(loggerProvider.error).toHaveBeenCalledWith(
         `Argument of type 'undefined' is not assignable to parameter of type 'BrowserClient'.`,
       );
+    });
+
+    test('should handle overlapping behavior from core and plugin', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        warn: jest.fn(),
+        log: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        apiKey: UUID(),
+        loggerProvider: loggerProvider as Logger,
+        cookieStorage: new MemoryStorage(),
+        attribution: {
+          trackPageViews: true,
+        },
+      };
+
+      const plugin = pageViewTrackingPlugin(instance);
+      await plugin.setup(config as Config);
+
+      expect(track).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.log).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.log).toHaveBeenCalledWith(`Installing @amplitude/plugin-page-view-tracking-browser`);
+      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.warn).toHaveBeenCalledWith(
+        `@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser. Resolve by disabling page view tracking in @amplitude/analytics-browser.`,
+      );
+    });
+
+    test('should handle non-overlapping behavior from core and plugin', async () => {
+      const track = jest.spyOn(instance, 'track');
+      const loggerProvider: Partial<Logger> = {
+        warn: jest.fn(),
+        log: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        apiKey: UUID(),
+        loggerProvider: loggerProvider as Logger,
+        cookieStorage: new MemoryStorage(),
+      };
+
+      const plugin = pageViewTrackingPlugin(instance);
+      await plugin.setup(config as Config);
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.log).toHaveBeenCalledTimes(2);
+      expect(loggerProvider.log).toHaveBeenCalledWith(`Installing @amplitude/plugin-page-view-tracking-browser`);
+      expect(loggerProvider.warn).toHaveBeenCalledTimes(0);
     });
 
     describe('should send a page view event', () => {

@@ -1,11 +1,13 @@
 import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
-import { CampaignTracker, getAnalyticsConnector, IdentityEventSender } from '@amplitude/analytics-client-common';
 import {
-  AttributionOptions,
+  getAnalyticsConnector,
+  getPageViewTrackingConfig,
+  IdentityEventSender,
+} from '@amplitude/analytics-client-common';
+import {
   BrowserClient,
   BrowserConfig,
   BrowserOptions,
-  Campaign,
   EventOptions,
   Identify as IIdentify,
   Revenue as IRevenue,
@@ -13,8 +15,10 @@ import {
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport, createFlexibleStorage } from './config';
+import { useBrowserConfig, createTransport } from './config';
 import { parseOldCookies } from './cookie-migration';
+import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
+import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -77,28 +81,30 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 
-    this.initializing = false;
+    // Add web attribution plugin
+    const webAttribution = webAttributionPlugin({
+      disabled: this.config.attribution?.disabled,
+      excludeReferrers: this.config.attribution?.excludeReferrers,
+      initialEmptyValue: this.config.attribution?.initialEmptyValue,
+      resetSessionOnNewCampaign: this.config.attribution?.resetSessionOnNewCampaign,
+    });
 
-    // Step 5: Track attributions
-    await this.runAttributionStrategy(browserOptions.attribution, isNewSession);
+    // For Amplitude-internal functionality
+    // if pluginEnabledOverride === undefined then use plugin default logic
+    // if pluginEnabledOverride === true then track attribution
+    // if pluginEnabledOverride === false then do not track attribution
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    (webAttribution as any).__pluginEnabledOverride =
+      isNewSession || this.config.attribution?.trackNewCampaigns ? undefined : false;
+    await this.add(webAttribution).promise;
+
+    // Add page view plugin
+    await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+
+    this.initializing = false;
 
     // Step 6: Run queued dispatch functions
     await this.runQueuedFunctions('dispatchQ');
-  }
-
-  async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
-    const track = (...args: Parameters<typeof this.track>) => this.track(...args).promise;
-    const onNewCampaign = this.setSessionId.bind(this, Date.now());
-
-    const storage = await createFlexibleStorage<Campaign>(this.config);
-    const campaignTracker = new CampaignTracker(this.config.apiKey, {
-      ...attributionConfig,
-      storage,
-      track,
-      onNewCampaign,
-    });
-
-    await campaignTracker.send(isNewSession);
   }
 
   getUserId() {

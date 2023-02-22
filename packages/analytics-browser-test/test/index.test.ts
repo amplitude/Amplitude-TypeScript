@@ -117,13 +117,6 @@ describe('integration', () => {
           return true;
         })
         .reply(200, success);
-      let requestBody2: Record<string, any> = {};
-      const scope2 = nock(url)
-        .post(path, (body: Record<string, any>) => {
-          requestBody2 = body;
-          return true;
-        })
-        .reply(200, success);
 
       // NOTE: Values to assert on
       const sessionId = Date.now() - 1000;
@@ -139,6 +132,7 @@ describe('integration', () => {
         ...opts,
         attribution: {
           disabled: false,
+          trackPageViews: true,
         },
       }).promise;
       await trackPromise;
@@ -157,7 +151,14 @@ describe('integration', () => {
             language: 'en-US',
             ip: '$remote',
             insert_id: uuid,
-            event_type: '$identify',
+            event_type: 'Page View',
+            event_properties: {
+              page_domain: '',
+              page_location: '',
+              page_path: '',
+              page_title: '',
+              page_url: '',
+            },
             user_properties: {
               $setOnce: {
                 initial_dclid: 'EMPTY',
@@ -201,12 +202,6 @@ describe('integration', () => {
             event_id: 0,
             library: library,
           },
-        ],
-        options: {},
-      });
-      expect(requestBody2).toEqual({
-        api_key: apiKey,
-        events: [
           {
             device_id: deviceId,
             session_id: sessionId,
@@ -226,7 +221,6 @@ describe('integration', () => {
         options: {},
       });
       scope1.done();
-      scope2.done();
     });
   });
 

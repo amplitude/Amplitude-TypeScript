@@ -3,6 +3,7 @@ import {
   Event,
   BrowserOptions,
   BrowserConfig as IBrowserConfig,
+  DefaultTrackingOptions,
   Storage,
   TrackingOptions,
   TransportType,
@@ -48,6 +49,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieSecure: boolean;
   cookieUpgrade: boolean;
   cookieStorage: Storage<UserSession>;
+  defaultTracking?: DefaultTrackingOptions;
   disableCookies: boolean;
   domain: string;
   partnerId?: string;

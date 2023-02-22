@@ -46,6 +46,8 @@
     "@amplitude/analytics-client-common": "^0.5.4",
     "@amplitude/analytics-core": "^0.11.4",
     "@amplitude/analytics-types": "^0.16.0",
+    "@amplitude/plugin-page-view-tracking-browser": "^0.5.7",
+    "@amplitude/plugin-web-attribution-browser": "^0.5.7",
     "@amplitude/ua-parser-js": "^0.7.31",
     "tslib": "^2.4.1"
   },
