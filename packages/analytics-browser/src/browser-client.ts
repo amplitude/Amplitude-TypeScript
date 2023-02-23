@@ -4,6 +4,8 @@ import {
   getPageViewTrackingConfig,
   IdentityEventSender,
   isSessionTrackingEnabled,
+  isFileDownloadTrackingEnabled,
+  isFormInteractionTrackingEnabled,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -21,6 +23,8 @@ import { parseOldCookies } from './cookie-migration';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { sessionHandlerPlugin, START_SESSION_EVENT, END_SESSION_EVENT } from './plugins/session-handler';
+import { formInteractionTracking } from './plugins/form-interaction-tracking';
+import { fileDownloadTracking } from './plugins/file-download-tracking';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -84,6 +88,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     await this.add(new Context()).promise;
     await this.add(sessionHandlerPlugin()).promise;
     await this.add(new IdentityEventSender()).promise;
+
+    if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
+      await this.add(fileDownloadTracking()).promise;
+    }
+
+    if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
+      await this.add(formInteractionTracking()).promise;
+    }
 
     // Add web attribution plugin
     const webAttribution = webAttributionPlugin({

@@ -5,6 +5,8 @@ import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
 import { FetchTransport, getAnalyticsConnector } from '@amplitude/analytics-client-common';
 import * as SnippetHelper from '../src/utils/snippet-helper';
+import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
+import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 
 describe('browser-client', () => {
   const API_KEY = 'API_KEY';
@@ -163,6 +165,34 @@ describe('browser-client', () => {
         },
       });
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should add file download and form interaction tracking plugins', async () => {
+      const client = new AmplitudeBrowser();
+      const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
+      const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
+      await client.init(API_KEY, USER_ID, {
+        optOut: false,
+        ...attributionConfig,
+        autoTracking: {
+          fileDownloads: true,
+          formInteractions: true,
+        },
+      }).promise;
+      expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(1);
+      expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT add file download and form interaction tracking plugins', async () => {
+      const client = new AmplitudeBrowser();
+      const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
+      const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
+      await client.init(API_KEY, USER_ID, {
+        optOut: false,
+        ...attributionConfig,
+      }).promise;
+      expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(0);
+      expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
     });
   });
 
