@@ -10,7 +10,7 @@ export interface Client extends AnalyticsBrowserClient {
   init(apiKey: string, userId?: string, options?: Options): AmplitudeReturn<void>;
 }
 
-export type Options = AnalyticsBrowserOptions & AttributionOptions & PageViewTracking;
+export type Options = Omit<AnalyticsBrowserOptions, 'defaultTracking'> & AttributionOptions & PageViewTracking;
 
 export type AttributionOptions = {
   attribution?: WebAttributionPluginTypes.Options;

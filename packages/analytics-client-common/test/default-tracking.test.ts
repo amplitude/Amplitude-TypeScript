@@ -55,6 +55,16 @@ describe('isPageViewTrackingEnabled', () => {
     ).toBe(true);
   });
 
+  test('should return true with nested object parameter', () => {
+    expect(
+      isPageViewTrackingEnabled({
+        pageViews: {
+          trackOn: 'attribution',
+        },
+      }),
+    ).toBe(true);
+  });
+
   test('should return false', () => {
     expect(isPageViewTrackingEnabled(undefined)).toBe(false);
   });
@@ -118,5 +128,20 @@ describe('getPageViewTrackingConfig', () => {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore asserts that track on is a function that returns a boolean
     expect(config.trackOn()).toBe(false);
+  });
+
+  test('should return advanced options', () => {
+    const config = getPageViewTrackingConfig({
+      defaultTracking: {
+        pageViews: {
+          trackOn: 'attribution',
+          trackHistoryChanges: 'all',
+        },
+      },
+    });
+
+    expect(typeof config.trackOn).toBe('string');
+    expect(config.trackOn).toBe('attribution');
+    expect(config.trackHistoryChanges).toBe('all');
   });
 });

@@ -26,7 +26,12 @@ export interface BrowserConfig extends Config {
 export interface DefaultTrackingOptions {
   fileDownloads?: boolean;
   formInteractions?: boolean;
-  pageViews?: boolean;
+  pageViews?:
+    | boolean
+    | {
+        trackOn?: 'attribution' | (() => boolean);
+        trackHistoryChanges?: 'all' | 'pathOnly';
+      };
   sessions?: boolean;
 }
 

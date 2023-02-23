@@ -7,6 +7,7 @@ import { FetchTransport, getAnalyticsConnector } from '@amplitude/analytics-clie
 import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
+import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
 
 describe('browser-client', () => {
   const API_KEY = 'API_KEY';
@@ -174,7 +175,7 @@ describe('browser-client', () => {
       await client.init(API_KEY, USER_ID, {
         optOut: false,
         ...attributionConfig,
-        autoTracking: {
+        defaultTracking: {
           fileDownloads: true,
           formInteractions: true,
         },
@@ -193,6 +194,60 @@ describe('browser-client', () => {
       }).promise;
       expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(0);
       expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should add web attribution tracking plugin', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+        lastEventTime: Date.now(),
+      });
+      const client = new AmplitudeBrowser();
+      const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
+      await client.init(API_KEY, USER_ID, {
+        optOut: false,
+        attribution: {},
+        sessionId: Date.now(),
+        transportProvider: {
+          send: async () => ({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: 0,
+              payloadSizeBytes: 0,
+              serverUploadTime: 0,
+            },
+          }),
+        },
+      }).promise;
+      expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should add web attribution tracking plugin with new campaign config', async () => {
+      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+        optOut: false,
+        lastEventTime: Date.now(),
+      });
+      const client = new AmplitudeBrowser();
+      const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
+      await client.init(API_KEY, USER_ID, {
+        optOut: false,
+        attribution: {
+          trackNewCampaigns: true,
+        },
+        sessionId: Date.now(),
+        transportProvider: {
+          send: async () => ({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: 0,
+              payloadSizeBytes: 0,
+              serverUploadTime: 0,
+            },
+          }),
+        },
+      }).promise;
+      expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
     });
   });
 

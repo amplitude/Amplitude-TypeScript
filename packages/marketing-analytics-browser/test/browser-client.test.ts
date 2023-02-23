@@ -83,36 +83,7 @@ describe('browser-client', () => {
       expect(init).toHaveBeenCalledTimes(1);
     });
 
-    test('should add page view tracking plugin when pageViewTracking is true', async () => {
-      const init = jest.fn().mockImplementation(() => ({
-        promise: Promise.resolve(),
-      }));
-      const add = jest.fn().mockImplementation(() => ({
-        promise: Promise.resolve(),
-      }));
-
-      jest.spyOn(browser, 'createInstance').mockImplementation(() => {
-        const client = {} as BrowserClient;
-        client.init = init;
-        client.add = add;
-
-        return client;
-      });
-
-      const client = createInstance();
-
-      await client.init(API_KEY, USER_ID, {
-        attribution: {
-          disabled: true,
-        },
-        pageViewTracking: true,
-      }).promise;
-
-      expect(add).toHaveBeenCalledTimes(2);
-      expect(init).toHaveBeenCalledTimes(1);
-    });
-
-    test('should add page view tracking plugin when pageViewTracking is set', async () => {
+    test('should transform config for page view tracking', async () => {
       const init = jest.fn().mockImplementation(() => ({
         promise: Promise.resolve(),
       }));
@@ -139,37 +110,18 @@ describe('browser-client', () => {
         },
       }).promise;
 
-      expect(add).toHaveBeenCalledTimes(2);
+      expect(add).toHaveBeenCalledTimes(1);
       expect(init).toHaveBeenCalledTimes(1);
-    });
-
-    test('should not add page view tracking plugin when pageViewTracking is false', async () => {
-      const init = jest.fn().mockImplementation(() => ({
-        promise: Promise.resolve(),
-      }));
-      const add = jest.fn().mockImplementation(() => ({
-        promise: Promise.resolve(),
-      }));
-
-      jest.spyOn(browser, 'createInstance').mockImplementation(() => {
-        const client = {} as BrowserClient;
-        client.init = init;
-        client.add = add;
-
-        return client;
-      });
-
-      const client = createInstance();
-
-      await client.init(API_KEY, USER_ID, {
+      expect(init).toHaveBeenNthCalledWith(1, API_KEY, USER_ID, {
         attribution: {
           disabled: true,
         },
-        pageViewTracking: false,
-      }).promise;
-
-      expect(add).toHaveBeenCalledTimes(1);
-      expect(init).toHaveBeenCalledTimes(1);
+        defaultTracking: {
+          pageViews: {
+            trackOn: 'attribution',
+          },
+        },
+      });
     });
   });
 });
