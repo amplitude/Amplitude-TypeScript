@@ -91,6 +91,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.cookieUpgrade = options?.cookieUpgrade ?? defaultConfig.cookieUpgrade;
     this.defaultTracking = options?.defaultTracking;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
+    this.defaultTracking = options?.defaultTracking;
     this.domain = options?.domain ?? defaultConfig.domain;
     this.partnerId = options?.partnerId;
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;

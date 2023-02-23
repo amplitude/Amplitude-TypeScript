@@ -1,6 +1,5 @@
 import { createInstance as createBaseInstance } from '@amplitude/analytics-browser';
 import { returnWrapper } from '@amplitude/analytics-core';
-import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { context } from './plugins/context';
 import { Client, Options } from './typings/browser-client';
@@ -10,23 +9,23 @@ export const createInstance = (): Client => {
   const client = createBaseInstance();
 
   const _init = async (options: Options & { apiKey: string }) => {
-    const { attribution, pageViewTracking, ...restOfOptions } = options;
+    const { attribution, pageViewTracking, apiKey, userId, ...restOfOptions } = options;
     const browserOptions: BrowserOptions = restOfOptions;
 
     if (!attribution?.disabled) {
+      // Install web attribution plugin
       await client.add(webAttributionPlugin(client, attribution)).promise;
     }
-
-    if (pageViewTracking) {
-      const pageViewTrackingOptions = typeof pageViewTracking === 'boolean' ? {} : pageViewTracking;
-      await client.add(pageViewTrackingPlugin(client, pageViewTrackingOptions)).promise;
-    }
+    // Transform config to disable web attribution plugin in browser SDK
+    // Browser SDK has a slightly different implementation of web attribution
+    browserOptions.attribution = {
+      disabled: true,
+    };
 
     await client.add(context()).promise;
 
-    // NOTE: Explicitly disable core web attribution logic in favor of web attribution plugin
-    browserOptions.attribution = {
-      disabled: true,
+    browserOptions.defaultTracking = {
+      pageViews: pageViewTracking,
     };
 
     await client.init(options.apiKey, options.userId, browserOptions).promise;

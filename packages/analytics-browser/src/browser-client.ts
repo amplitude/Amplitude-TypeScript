@@ -98,21 +98,22 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     // Add web attribution plugin
-    const webAttribution = webAttributionPlugin({
-      disabled: this.config.attribution?.disabled,
-      excludeReferrers: this.config.attribution?.excludeReferrers,
-      initialEmptyValue: this.config.attribution?.initialEmptyValue,
-      resetSessionOnNewCampaign: this.config.attribution?.resetSessionOnNewCampaign,
-    });
+    if (!this.config.attribution?.disabled) {
+      const webAttribution = webAttributionPlugin({
+        excludeReferrers: this.config.attribution?.excludeReferrers,
+        initialEmptyValue: this.config.attribution?.initialEmptyValue,
+        resetSessionOnNewCampaign: this.config.attribution?.resetSessionOnNewCampaign,
+      });
 
-    // For Amplitude-internal functionality
-    // if pluginEnabledOverride === undefined then use plugin default logic
-    // if pluginEnabledOverride === true then track attribution
-    // if pluginEnabledOverride === false then do not track attribution
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (webAttribution as any).__pluginEnabledOverride =
-      isNewSession || this.config.attribution?.trackNewCampaigns ? undefined : false;
-    await this.add(webAttribution).promise;
+      // For Amplitude-internal functionality
+      // if pluginEnabledOverride === undefined then use plugin default logic
+      // if pluginEnabledOverride === true then track attribution
+      // if pluginEnabledOverride === false then do not track attribution
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (webAttribution as any).__pluginEnabledOverride =
+        isNewSession || this.config.attribution?.trackNewCampaigns ? undefined : false;
+      await this.add(webAttribution).promise;
+    }
 
     // Add page view plugin
     await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
