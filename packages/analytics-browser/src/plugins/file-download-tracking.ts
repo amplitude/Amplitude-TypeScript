@@ -4,7 +4,7 @@ import { BrowserConfig } from '../config';
 const FILE_DOWNLOAD_EVENT = 'file_download';
 
 export const fileDownloadTracking = (): EnrichmentPlugin => {
-  const name = 'fileDownloadTracking';
+  const name = '@amplitude/plugin-file-download-tracking-browser';
   const type = PluginType.ENRICHMENT;
   const setup = async (config: BrowserConfig, amplitude?: BrowserClient) => {
     /* istanbul ignore if */

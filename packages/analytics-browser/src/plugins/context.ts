@@ -34,15 +34,6 @@ export class Context implements BeforePlugin {
   }
 
   async execute(context: Event): Promise<Event> {
-    /**
-     * Manages user session triggered by new events
-     */
-    if (!this.isSessionValid()) {
-      // Creates new session
-      this.config.sessionId = Date.now();
-    } // else use previously creates session
-    // Updates last event time to extend time-based session
-    this.config.lastEventTime = Date.now();
     const time = new Date().getTime();
     const osName = this.uaResult.browser.name;
     const osVersion = this.uaResult.browser.version;
@@ -76,11 +67,5 @@ export class Context implements BeforePlugin {
       library: this.library,
     };
     return event;
-  }
-
-  isSessionValid() {
-    const lastEventTime = this.config.lastEventTime || Date.now();
-    const timeSinceLastEvent = Date.now() - lastEventTime;
-    return timeSinceLastEvent < this.config.sessionTimeout;
   }
 }

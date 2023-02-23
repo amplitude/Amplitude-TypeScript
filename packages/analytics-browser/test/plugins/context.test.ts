@@ -26,7 +26,6 @@ describe('context', () => {
   describe('execute', () => {
     test('should execute plugin', async () => {
       const context = new Context();
-      jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
       const config = useDefaultConfig({
         deviceId: 'deviceId',
         sessionId: 1,
@@ -58,7 +57,6 @@ describe('context', () => {
 
     test('should not return the properties when the tracking options are false', async () => {
       const context = new Context();
-      jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
       const config = useDefaultConfig({
         deviceId: 'deviceId',
         sessionId: 1,
@@ -101,7 +99,6 @@ describe('context', () => {
 
     test('should be overwritten by the context', async () => {
       const context = new Context();
-      jest.spyOn(context, 'isSessionValid').mockReturnValue(true);
       const config = useDefaultConfig({
         deviceId: 'deviceId',
         sessionId: 1,
@@ -123,21 +120,6 @@ describe('context', () => {
 
       const secondContextEvent = await context.execute(event);
       expect(secondContextEvent.event_id).toEqual(1);
-    });
-
-    test('should create new session', async () => {
-      const plugin = new Context();
-      jest.spyOn(plugin, 'isSessionValid').mockReturnValue(false);
-      const config = useDefaultConfig({
-        sessionId: 1,
-        userId: 'user@amplitude.com',
-      });
-      await plugin.setup(config);
-      const context = {
-        event_type: 'event_type',
-      };
-      const event = await plugin.execute(context);
-      expect(event.session_id).not.toBe(1);
     });
 
     describe('ingestionMetadata config', () => {
