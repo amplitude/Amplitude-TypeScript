@@ -1,9 +1,12 @@
 import { BrowserOptions, UserSession } from '@amplitude/analytics-types';
 import { getOldCookieName } from '@amplitude/analytics-client-common';
-import { createCookieStorage, getDefaultConfig } from '../config';
+import { createCookieStorage, getDefaultConfig, getTopLevelDomain } from '../config';
 
 export const parseOldCookies = async (apiKey: string, options?: BrowserOptions): Promise<UserSession> => {
-  const storage = await createCookieStorage<string>(options);
+  const storage = await createCookieStorage<string>({
+    ...options,
+    domain: options?.disableCookies ? '' : options?.domain ?? (await getTopLevelDomain()),
+  });
   const oldCookieName = getOldCookieName(apiKey);
   const cookies = await storage.getRaw(oldCookieName);
 

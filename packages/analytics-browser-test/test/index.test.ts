@@ -1128,7 +1128,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1146,7 +1146,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1437,7 +1437,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1455,7 +1455,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1675,12 +1675,10 @@ describe('integration', () => {
 
   describe('browser cookie existence', () => {
     test('should create cookies', async () => {
-      // intercept for attribution event
+      // intercept for attribution event and identify event
       const scope1 = nock(url).post(path).reply(200, success);
-      // intercept for identify event
-      const scope2 = nock(url).post(path).reply(200, success);
       // intercept for test event
-      const scope3 = nock(url).post(path).reply(200, success);
+      const scope2 = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
         disableCookies: false,
       }).promise;
@@ -1690,16 +1688,13 @@ describe('integration', () => {
       expect(document.cookie).toContain(`AMP_MKTG_${apiKey.substring(0, 10)}`);
       scope1.done();
       scope2.done();
-      scope3.done();
     });
 
     test('should not create cookies', async () => {
-      // intercept for attribution event
+      // intercept for attribution event and identify event
       const scope1 = nock(url).post(path).reply(200, success);
-      // intercept for identify event
-      const scope2 = nock(url).post(path).reply(200, success);
       // intercept for test event
-      const scope3 = nock(url).post(path).reply(200, success);
+      const scope2 = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
         disableCookies: true,
       }).promise;
@@ -1709,7 +1704,6 @@ describe('integration', () => {
       expect(document.cookie).not.toContain(`AMP_MKTG_${apiKey.substring(0, 10)}`);
       scope1.done();
       scope2.done();
-      scope3.done();
     });
   });
 });
