@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.5.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.4.2...@amplitude/analytics-browser-test@2.5.0-beta.0) (2023-02-24)
+
+### Features
+
+- add session start/end event tracker ([#332](https://github.com/amplitude/Amplitude-TypeScript/issues/332))
+  ([e26cf15](https://github.com/amplitude/Amplitude-TypeScript/commit/e26cf15503c59d3b25bd54391bb330a8c634eca3))
+- retrofit web attribution and page view plugins to browser SDK
+  ([#331](https://github.com/amplitude/Amplitude-TypeScript/issues/331))
+  ([ba845d3](https://github.com/amplitude/Amplitude-TypeScript/commit/ba845d3329bd6bebe3b89f24f4f316088c2d62b9))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.4.1...@amplitude/analytics-browser-test@2.4.2) (2023-02-09)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test

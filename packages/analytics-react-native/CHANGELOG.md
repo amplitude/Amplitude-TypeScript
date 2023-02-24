@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.1.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.0.1...@amplitude/analytics-react-native@1.1.0-beta.0) (2023-02-24)
+
+### Features
+
+- pass amplitude instance to plugin.setup for enhanced plugin capabilities
+  ([#328](https://github.com/amplitude/Amplitude-TypeScript/issues/328))
+  ([91eeaa0](https://github.com/amplitude/Amplitude-TypeScript/commit/91eeaa0d6bff6bde39538bb54548a938df784462))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.0.0...@amplitude/analytics-react-native@1.0.1) (2023-02-09)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

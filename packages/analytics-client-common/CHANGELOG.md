@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.5.4...@amplitude/analytics-client-common@0.6.0-beta.0) (2023-02-24)
+
+### Bug Fixes
+
+- consolidate web attribution and page view tracking plugins for marketing analytics use case
+  ([c268997](https://github.com/amplitude/Amplitude-TypeScript/commit/c26899787611daeda7fca288e260bbc42a831130))
+
+### Features
+
+- allow custom page view event type ([#335](https://github.com/amplitude/Amplitude-TypeScript/issues/335))
+  ([0a4f8ed](https://github.com/amplitude/Amplitude-TypeScript/commit/0a4f8ede6e30ec3450ac0a468cf22b9266b0b23c))
+- pass amplitude instance to plugin.setup for enhanced plugin capabilities
+  ([#328](https://github.com/amplitude/Amplitude-TypeScript/issues/328))
+  ([91eeaa0](https://github.com/amplitude/Amplitude-TypeScript/commit/91eeaa0d6bff6bde39538bb54548a938df784462))
+- retrofit web attribution and page view plugins to browser SDK
+  ([#331](https://github.com/amplitude/Amplitude-TypeScript/issues/331))
+  ([ba845d3](https://github.com/amplitude/Amplitude-TypeScript/commit/ba845d3329bd6bebe3b89f24f4f316088c2d62b9))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.5.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@0.5.3...@amplitude/analytics-client-common@0.5.4) (2023-02-09)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common

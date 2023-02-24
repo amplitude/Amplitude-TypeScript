@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.5.7...@amplitude/plugin-page-view-tracking-browser@0.6.0-beta.0) (2023-02-24)
+
+### Bug Fixes
+
+- remove client parameter requirement for page view tracking plugin
+  ([#329](https://github.com/amplitude/Amplitude-TypeScript/issues/329))
+  ([1e01575](https://github.com/amplitude/Amplitude-TypeScript/commit/1e015750b52880ca63afa5162cb482995f04d1c6))
+
+### Features
+
+- allow custom page view event type ([#335](https://github.com/amplitude/Amplitude-TypeScript/issues/335))
+  ([0a4f8ed](https://github.com/amplitude/Amplitude-TypeScript/commit/0a4f8ede6e30ec3450ac0a468cf22b9266b0b23c))
+- retrofit web attribution and page view plugins to browser SDK
+  ([#331](https://github.com/amplitude/Amplitude-TypeScript/issues/331))
+  ([ba845d3](https://github.com/amplitude/Amplitude-TypeScript/commit/ba845d3329bd6bebe3b89f24f4f316088c2d62b9))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.5.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.5.6...@amplitude/plugin-page-view-tracking-browser@0.5.7) (2023-02-09)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
