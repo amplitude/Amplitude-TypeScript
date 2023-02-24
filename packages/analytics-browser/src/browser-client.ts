@@ -22,9 +22,10 @@ import { useBrowserConfig, createTransport } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
-import { sessionHandlerPlugin, START_SESSION_EVENT, END_SESSION_EVENT } from './plugins/session-handler';
+import { sessionHandlerPlugin } from './plugins/session-handler';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
+import { DEFAULT_PAGE_VIEW_EVENT, DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -116,7 +117,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     // Add page view plugin
-    await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+    const pageViewTrackingOptions = getPageViewTrackingConfig(this.config);
+    pageViewTrackingOptions.eventType = pageViewTrackingOptions.eventType || DEFAULT_PAGE_VIEW_EVENT;
+    await this.add(pageViewTrackingPlugin(pageViewTrackingOptions)).promise;
 
     this.initializing = false;
 
@@ -181,11 +184,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         if (this.previousSessionUserId) {
           eventOptions.user_id = this.previousSessionUserId;
         }
-        this.track(END_SESSION_EVENT, undefined, eventOptions);
+        this.track(DEFAULT_SESSION_END_EVENT, undefined, eventOptions);
         this.previousSessionUserId = undefined;
       }
 
-      this.track(START_SESSION_EVENT, undefined, {
+      this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         session_id: sessionId,
         time: sessionId - 1,
       });

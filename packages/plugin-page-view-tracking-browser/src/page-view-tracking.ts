@@ -1,6 +1,5 @@
 import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-common';
 import {
-  BaseEvent,
   BrowserClient,
   BrowserConfig,
   Event,
@@ -34,6 +33,20 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
   } else if (clientOrOptions) {
     options = clientOrOptions;
   }
+
+  const createPageViewEvent = async (): Promise<Event> => {
+    return {
+      event_type: options.eventType ?? 'Page View',
+      event_properties: {
+        ...(await getCampaignParams()),
+        page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+        page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
+        page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
+        page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+        page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
+      },
+    };
+  };
 
   const shouldTrackOnPageLoad = () =>
     typeof options.trackOn === 'undefined' || (typeof options.trackOn === 'function' && options.trackOn());
@@ -127,21 +140,6 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
 };
 
 const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
-
-const createPageViewEvent = async (): Promise<Event> => {
-  const pageViewEvent: BaseEvent = {
-    event_type: 'Page View',
-    event_properties: {
-      ...(await getCampaignParams()),
-      page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-      page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
-      page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
-      page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-      page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
-    },
-  };
-  return pageViewEvent;
-};
 
 const isCampaignEvent = (event: Event) => {
   if (event.event_type === '$identify' && event.user_properties) {

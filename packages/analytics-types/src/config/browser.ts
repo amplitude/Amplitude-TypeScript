@@ -2,6 +2,7 @@ import { UserSession } from '../user-session';
 import { Storage } from '../storage';
 import { TransportType } from '../transport';
 import { Config } from './core';
+import { PageTrackingOptions } from '../page-view-tracking';
 
 export interface BrowserConfig extends Config {
   appVersion?: string;
@@ -26,12 +27,7 @@ export interface BrowserConfig extends Config {
 export interface DefaultTrackingOptions {
   fileDownloads?: boolean;
   formInteractions?: boolean;
-  pageViews?:
-    | boolean
-    | {
-        trackOn?: 'attribution' | (() => boolean);
-        trackHistoryChanges?: 'all' | 'pathOnly';
-      };
+  pageViews?: boolean | PageTrackingOptions;
   sessions?: boolean;
 }
 

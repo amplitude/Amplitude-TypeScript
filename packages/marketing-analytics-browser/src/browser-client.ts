@@ -24,9 +24,22 @@ export const createInstance = (): Client => {
 
     await client.add(context()).promise;
 
-    browserOptions.defaultTracking = {
-      pageViews: pageViewTracking,
-    };
+    delete browserOptions.defaultTracking;
+    if (pageViewTracking === true) {
+      browserOptions.defaultTracking = {
+        pageViews: {
+          eventType: 'Page View',
+        },
+      };
+    } else if (typeof pageViewTracking === 'object' && pageViewTracking) {
+      browserOptions.defaultTracking = {
+        pageViews: {
+          trackOn: pageViewTracking.trackOn,
+          trackHistoryChanges: pageViewTracking.trackHistoryChanges,
+          eventType: pageViewTracking.eventType || 'Page View',
+        },
+      };
+    }
 
     await client.init(options.apiKey, options.userId, browserOptions).promise;
   };
