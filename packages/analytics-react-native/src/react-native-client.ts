@@ -21,7 +21,7 @@ import {
   Result,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
-import { useReactNativeConfig, createFlexibleStorage } from './config';
+import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
 
@@ -109,7 +109,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
     const track = (...args: Parameters<typeof this.track>) => this.track(...args).promise;
     const onNewCampaign = this.setSessionId.bind(this, this.currentTimeMillis());
 
-    const storage = await createFlexibleStorage<Campaign>(this.config);
+    const storage = await createCookieStorage<Campaign>(this.config);
     const campaignTracker = new CampaignTracker(this.config.apiKey, {
       ...attributionConfig,
       storage,

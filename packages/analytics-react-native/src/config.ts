@@ -181,8 +181,8 @@ export const useReactNativeConfig = async (
   const defaultConfig = getDefaultConfig();
 
   // create cookie storage
-  const domain = options?.domain ?? (await getTopLevelDomain());
-  const cookieStorage = await createCookieStorage({ ...options, domain });
+  const domain = options?.disableCookies ? '' : options?.domain ?? (await getTopLevelDomain());
+  const cookieStorage = await createCookieStorage<UserSession>({ ...options, domain });
   const previousCookies = await cookieStorage.get(getCookieName(apiKey));
   const queryParams = getQueryParams();
 
@@ -221,19 +221,19 @@ export const useReactNativeConfig = async (
   return config;
 };
 
-export const createCookieStorage = async (
+export const createCookieStorage = async <T>(
   overrides?: ReactNativeOptions,
   baseConfig = getDefaultConfig(),
-): Promise<Storage<UserSession>> => {
+): Promise<Storage<T>> => {
   const options = { ...baseConfig, ...overrides };
-  const cookieStorage = overrides?.cookieStorage;
+  const cookieStorage = overrides?.cookieStorage as Storage<T>;
   if (!cookieStorage || !(await cookieStorage.isEnabled())) {
-    return createFlexibleStorage<UserSession>(options);
+    return createFlexibleStorage<T>(options);
   }
   return cookieStorage;
 };
 
-export const createFlexibleStorage = async <T>(options: ReactNativeOptions): Promise<Storage<T>> => {
+const createFlexibleStorage = async <T>(options: ReactNativeOptions): Promise<Storage<T>> => {
   let storage: Storage<T> = new CookieStorage({
     domain: options.domain,
     expirationDays: options.cookieExpiration,

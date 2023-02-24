@@ -72,7 +72,7 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (
 
       // Share cookie storage with user session storage
       const storage = config.cookieStorage as unknown as Storage<Campaign>;
-      const storageKey = getStorageKey(config.apiKey);
+      const storageKey = getStorageKey(config.apiKey, 'MKTG');
 
       const [currentCampaign, previousCampaign] = await Promise.all([
         new CampaignParser().parse(),

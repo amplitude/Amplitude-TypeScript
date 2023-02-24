@@ -30,8 +30,9 @@ describe('integration', () => {
 
   afterEach(() => {
     // clean up cookies
-    document.cookie = `AMP_${apiKey.substring(0, 6)}=null; expires=-1`;
-    document.cookie = `AMP_${apiKey.substring(0, 10)}=null; expires=-1`;
+    document.cookie = `amp_${apiKey.substring(0, 6)}=null; expires=1 Jan 1970 00:00:00 GMT`;
+    document.cookie = `AMP_${apiKey.substring(0, 10)}=null; expires=1 Jan 1970 00:00:00 GMT`;
+    document.cookie = `AMP_MKTG_${apiKey.substring(0, 10)}=null; expires=1 Jan 1970 00:00:00 GMT`;
   });
 
   describe('defer initialization', () => {
@@ -691,6 +692,7 @@ describe('integration', () => {
       const response = await client.track('test event').promise;
       expect(response.code).toBe(400);
       expect(response.message).toBe('Event rejected due to missing API key');
+      document.cookie = `AMP=null; expires=1 Jan 1970 00:00:00 GMT`;
     });
 
     test('should handle client opt out', async () => {
@@ -1126,7 +1128,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1144,7 +1146,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1435,7 +1437,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1453,7 +1455,7 @@ describe('integration', () => {
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
-                library: 'amplitude-ts/1.8.0',
+                library,
                 os_name: 'WebKit',
                 os_version: '537.36',
                 partner_id: undefined,
@@ -1668,6 +1670,40 @@ describe('integration', () => {
         expect(debugContext.states).toBeDefined();
         /* eslint-enable */
       });
+    });
+  });
+
+  describe('browser cookie existence', () => {
+    test('should create cookies', async () => {
+      // intercept for attribution event and identify event
+      const scope1 = nock(url).post(path).reply(200, success);
+      // intercept for test event
+      const scope2 = nock(url).post(path).reply(200, success);
+      await client.init(apiKey, undefined, {
+        disableCookies: false,
+      }).promise;
+      await client.identify(new amplitude.Identify().set('a', 'b')).promise;
+      await client.track('Test Event').promise;
+      expect(document.cookie).toContain(`AMP_${apiKey.substring(0, 10)}`);
+      expect(document.cookie).toContain(`AMP_MKTG_${apiKey.substring(0, 10)}`);
+      scope1.done();
+      scope2.done();
+    });
+
+    test('should not create cookies', async () => {
+      // intercept for attribution event and identify event
+      const scope1 = nock(url).post(path).reply(200, success);
+      // intercept for test event
+      const scope2 = nock(url).post(path).reply(200, success);
+      await client.init(apiKey, undefined, {
+        disableCookies: true,
+      }).promise;
+      await client.identify(new amplitude.Identify().set('a', 'b')).promise;
+      await client.track('Test Event').promise;
+      expect(document.cookie).not.toContain(`AMP_${apiKey.substring(0, 10)}`);
+      expect(document.cookie).not.toContain(`AMP_MKTG_${apiKey.substring(0, 10)}`);
+      scope1.done();
+      scope2.done();
     });
   });
 });
