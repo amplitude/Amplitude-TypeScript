@@ -35,6 +35,5 @@ const { code: transpiledOutputText } = babel.transformSync(outputText, {
 if (!version.includes('beta')) {
   // Write to disk
   fs.writeFileSync(outputPath, transpiledOutputText);
+  console.log(`Generated ${outputFile}`);
 }
-
-console.log(`Generated ${outputFile}`);
