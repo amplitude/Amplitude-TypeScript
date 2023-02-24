@@ -285,6 +285,7 @@ describe('pageViewTrackingPlugin', () => {
         await instance.add(
           pageViewTrackingPlugin(instance, {
             trackOn: () => true,
+            eventType: '[Amplitude] Page View',
           }),
         ).promise;
 
@@ -302,7 +303,7 @@ describe('pageViewTrackingPlugin', () => {
             page_title: '',
             page_url: '',
           },
-          event_type: 'Page View',
+          event_type: '[Amplitude] Page View',
         });
         expect(track).toHaveBeenCalledTimes(1);
       });

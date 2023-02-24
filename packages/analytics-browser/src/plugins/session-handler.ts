@@ -1,7 +1,5 @@
 import { BeforePlugin, BrowserClient, BrowserConfig, Event, PluginType } from '@amplitude/analytics-types';
-
-export const START_SESSION_EVENT = 'session_start';
-export const END_SESSION_EVENT = 'session_end';
+import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from '../constants';
 
 export const sessionHandlerPlugin = (): BeforePlugin => {
   // browserConfig is defined in setup() which will always be called first
@@ -25,7 +23,7 @@ export const sessionHandlerPlugin = (): BeforePlugin => {
   const execute = async (event: Event) => {
     const now = Date.now();
 
-    if (event.event_type === START_SESSION_EVENT || event.event_type === END_SESSION_EVENT) {
+    if (event.event_type === DEFAULT_SESSION_START_EVENT || event.event_type === DEFAULT_SESSION_END_EVENT) {
       browserConfig.lastEventTime = now;
       return event;
     }

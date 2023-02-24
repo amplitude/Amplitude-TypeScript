@@ -1,8 +1,6 @@
 import { BrowserClient, PluginType, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { DEFAULT_FORM_START_EVENT, DEFAULT_FORM_SUBMIT_EVENT } from '../constants';
 import { BrowserConfig } from '../config';
-
-const FORM_START_EVENT = '[Amplitude] Form Start';
-const FORM_SUBMIT_EVENT = '[Amplitude] Form Submit';
 
 export const formInteractionTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
@@ -24,7 +22,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         'change',
         () => {
           if (!hasFormChanged) {
-            amplitude.track(FORM_START_EVENT, {
+            amplitude.track(DEFAULT_FORM_START_EVENT, {
               form_id: form.id,
               form_name: form.name,
               form_destination: form.action,
@@ -37,14 +35,14 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
 
       form.addEventListener('submit', () => {
         if (!hasFormChanged) {
-          amplitude.track(FORM_START_EVENT, {
+          amplitude.track(DEFAULT_FORM_START_EVENT, {
             form_id: form.id,
             form_name: form.name,
             form_destination: form.action,
           });
         }
 
-        amplitude.track(FORM_SUBMIT_EVENT, {
+        amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
           form_id: form.id,
           form_name: form.name,
           form_destination: form.action,

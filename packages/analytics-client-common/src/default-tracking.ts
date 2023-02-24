@@ -1,4 +1,10 @@
-import { BrowserOptions, DefaultTrackingOptions } from '@amplitude/analytics-types';
+import {
+  BrowserOptions,
+  DefaultTrackingOptions,
+  PageTrackingHistoryChanges,
+  PageTrackingOptions,
+  PageTrackingTrackOn,
+} from '@amplitude/analytics-types';
 
 export const isFileDownloadTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
   if (typeof defaultTracking === 'boolean') {
@@ -29,7 +35,10 @@ export const isPageViewTrackingEnabled = (defaultTracking: DefaultTrackingOption
     return defaultTracking;
   }
 
-  if (defaultTracking?.pageViews === true || typeof defaultTracking?.pageViews === 'object') {
+  if (
+    defaultTracking?.pageViews === true ||
+    (defaultTracking?.pageViews && typeof defaultTracking.pageViews === 'object')
+  ) {
     return true;
   }
 
@@ -63,17 +72,22 @@ export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions
  * if config.attribution.trackPageViews and config.defaultTracking.pageViews are both FALSE
  * then never track page views
  */
-export const getPageViewTrackingConfig = (config: BrowserOptions) => {
-  let trackOn: undefined | 'attribution' | (() => boolean) = config.attribution?.trackPageViews
-    ? 'attribution'
-    : () => false;
-  let trackHistoryChanges: undefined | 'all' | 'pathOnly' = undefined;
+export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingOptions => {
+  let trackOn: PageTrackingTrackOn | undefined = config.attribution?.trackPageViews ? 'attribution' : () => false;
+  let trackHistoryChanges: PageTrackingHistoryChanges | undefined = undefined;
+  let eventType: string | undefined = 'Page View';
 
   const isDefaultPageViewTrackingEnabled = isPageViewTrackingEnabled(config.defaultTracking);
   if (isDefaultPageViewTrackingEnabled) {
-    trackOn = () => true;
+    trackOn = undefined;
+    eventType = undefined;
 
-    if (typeof config.defaultTracking === 'object' && typeof config.defaultTracking.pageViews === 'object') {
+    if (
+      config.defaultTracking &&
+      typeof config.defaultTracking === 'object' &&
+      config.defaultTracking.pageViews &&
+      typeof config.defaultTracking.pageViews === 'object'
+    ) {
       if ('trackOn' in config.defaultTracking.pageViews) {
         trackOn = config.defaultTracking.pageViews.trackOn;
       }
@@ -81,11 +95,16 @@ export const getPageViewTrackingConfig = (config: BrowserOptions) => {
       if ('trackHistoryChanges' in config.defaultTracking.pageViews) {
         trackHistoryChanges = config.defaultTracking.pageViews.trackHistoryChanges;
       }
+
+      if ('eventType' in config.defaultTracking.pageViews && config.defaultTracking.pageViews.eventType) {
+        eventType = config.defaultTracking.pageViews.eventType;
+      }
     }
   }
 
   return {
     trackOn,
     trackHistoryChanges,
+    eventType,
   };
 };

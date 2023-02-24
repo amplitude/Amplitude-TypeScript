@@ -8,6 +8,7 @@ import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
+import * as pageViewTrackingPlugin from '@amplitude/plugin-page-view-tracking-browser';
 
 describe('browser-client', () => {
   const API_KEY = 'API_KEY';
@@ -166,6 +167,22 @@ describe('browser-client', () => {
         },
       });
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should add page view tracking with default event type', async () => {
+      const client = new AmplitudeBrowser();
+      const pageViewTracking = jest.spyOn(pageViewTrackingPlugin, 'pageViewTrackingPlugin');
+      await client.init(API_KEY, USER_ID, {
+        optOut: false,
+        ...attributionConfig,
+        defaultTracking: {
+          pageViews: {},
+        },
+      }).promise;
+      expect(pageViewTracking).toHaveBeenCalledTimes(1);
+      expect(pageViewTracking).toHaveBeenNthCalledWith(1, {
+        eventType: '[Amplitude] Page View',
+      });
     });
 
     test('should add file download and form interaction tracking plugins', async () => {

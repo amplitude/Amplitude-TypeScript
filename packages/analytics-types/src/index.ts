@@ -58,3 +58,4 @@ export { CookieStorageOptions, Storage } from './storage';
 export { Transport, TransportType } from './transport';
 export { UserSession } from './user-session';
 export { UTMData } from './utm';
+export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './page-view-tracking';
