@@ -26,12 +26,15 @@ const algorithm = 'sha384';
 const encoding = 'base64';
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputText).digest(encoding);
+const version = getVersion() || '';
 const outputText = header + snippet(getName(), integrity, getVersion());
 const { code: transpiledOutputText } = babel.transformSync(outputText, {
   presets: ['env'],
 });
 
-// Write to disk
-fs.writeFileSync(outputPath, transpiledOutputText);
+if (!version.includes('beta')) {
+  // Write to disk
+  fs.writeFileSync(outputPath, transpiledOutputText);
+}
 
 console.log(`Generated ${outputFile}`);
