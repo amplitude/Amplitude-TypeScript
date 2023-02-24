@@ -24,6 +24,7 @@ export const createInstance = (): Client => {
 
     await client.add(context()).promise;
 
+    delete browserOptions.defaultTracking;
     if (pageViewTracking === true) {
       browserOptions.defaultTracking = {
         pageViews: {
