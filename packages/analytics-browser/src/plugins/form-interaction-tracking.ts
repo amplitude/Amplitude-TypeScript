@@ -1,8 +1,8 @@
 import { BrowserClient, PluginType, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
 import { BrowserConfig } from '../config';
 
-const FORM_START_EVENT = 'form_start';
-const FORM_SUBMIT_EVENT = 'form_submit';
+const FORM_START_EVENT = '[Amplitude] Form Start';
+const FORM_SUBMIT_EVENT = '[Amplitude] Form Submit';
 
 export const formInteractionTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-form-interaction-tracking-browser';

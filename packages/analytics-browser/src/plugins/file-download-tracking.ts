@@ -1,7 +1,7 @@
 import { BrowserClient, PluginType, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
 import { BrowserConfig } from '../config';
 
-const FILE_DOWNLOAD_EVENT = 'file_download';
+const FILE_DOWNLOAD_EVENT = '[Amplitude] File Download';
 
 export const fileDownloadTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-file-download-tracking-browser';
