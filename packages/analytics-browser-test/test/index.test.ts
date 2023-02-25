@@ -1213,16 +1213,22 @@ describe('integration', () => {
         setTimeout(() => {
           // Tranform events to be grouped by session and ordered by time
           // Helps assert that events will show up correctly on Amplitude UI
-          const compactEvents: { eventType: string; userId: string; sessionId: number; time: number }[] =
-            payload.events.map((e: BaseEvent) => ({
-              eventType: e.event_type,
-              userId: e.user_id,
-              sessionId: e.session_id,
-              time: e.time,
-            }));
+          const compactEvents: {
+            eventType: string;
+            userId: string;
+            sessionId: number;
+            time: number;
+            deviceId: string;
+          }[] = payload.events.map((e: BaseEvent) => ({
+            eventType: e.event_type,
+            userId: e.user_id,
+            sessionId: e.session_id,
+            deviceId: e.device_id,
+            time: e.time,
+          }));
           const compactEventsBySessionAndTime = Object.values(
             compactEvents.reduce<
-              Record<string, { eventType: string; userId: string; sessionId: number; time: number }[]>
+              Record<string, { eventType: string; userId: string; sessionId: number; time: number; deviceId: string }[]>
             >((acc, curr) => {
               if (!acc[curr.sessionId]) {
                 acc[curr.sessionId] = [];
@@ -1232,8 +1238,15 @@ describe('integration', () => {
             }, {}),
           )
             .map((c) => c.sort((a, b) => a.time - b.time))
-            .map((group) => group.map((c) => ({ eventType: c.eventType, userId: c.userId })));
-
+            .map((group) => group.map((c) => ({ eventType: c.eventType, userId: c.userId, deviceId: c.deviceId })));
+          const deviceIds = compactEventsBySessionAndTime.flat().map((c) => c.deviceId);
+          expect(deviceIds[0]).toEqual(deviceIds[1]);
+          expect(deviceIds[1]).toEqual(deviceIds[2]);
+          expect(deviceIds[2]).toEqual(deviceIds[3]);
+          expect(deviceIds[3]).toEqual(deviceIds[4]);
+          expect(deviceIds[4]).toEqual(deviceIds[5]);
+          expect(deviceIds[5]).toEqual(deviceIds[6]);
+          expect(deviceIds[6]).not.toEqual(deviceIds[7]);
           // The order of events in the payload is sorted by time of track fn invokation
           // and not consistent with the time property
           // Session events have overwritten time property
@@ -1243,38 +1256,46 @@ describe('integration', () => {
               {
                 eventType: 'session_start',
                 userId: 'user1@amplitude.com',
+                deviceId: uuid,
               },
               {
                 eventType: '$identify',
                 userId: 'user1@amplitude.com',
+                deviceId: uuid,
               },
               {
                 eventType: 'Event in first session',
                 userId: 'user1@amplitude.com',
+                deviceId: uuid,
               },
               {
                 eventType: 'session_end',
                 userId: 'user1@amplitude.com',
+                deviceId: uuid,
               },
             ],
             [
               {
                 eventType: 'session_start',
                 userId: 'user1@amplitude.com',
+                deviceId: uuid,
               },
               {
                 eventType: 'Event in next session',
                 userId: 'user1@amplitude.com',
+                deviceId: uuid,
               },
               {
                 eventType: 'session_end',
                 userId: 'user1@amplitude.com',
+                deviceId: uuid,
               },
             ],
             [
               {
                 eventType: 'session_start',
                 userId: undefined,
+                deviceId: uuid,
               },
             ],
           ]);

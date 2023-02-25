@@ -64,7 +64,6 @@ describe('config', () => {
 
   describe('useBrowserConfig', () => {
     test('should create default config', async () => {
-      jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(new core.MemoryStorage());
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
@@ -112,17 +111,20 @@ describe('config', () => {
     test('should create using cookies/overwrite', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
       await cookieStorage.set(getCookieName(API_KEY), {
-        deviceId: 'deviceIdFromCookies',
-        lastEventTime: 1,
+        deviceId: 'device-device-device',
         sessionId: -1,
-        userId: 'userIdFromCookies',
+        userId: 'user-user-user',
+        lastEventTime: 1,
         optOut: false,
       });
-      jest.spyOn(Config, 'createCookieStorage').mockResolvedValueOnce(cookieStorage);
       jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = await Config.useBrowserConfig(API_KEY, {
+        deviceId: 'device-device-device',
+        sessionId: -1,
+        userId: 'user-user-user',
+        lastEventTime: 1,
         partnerId: 'partnerId',
         plan: {
           version: '0',
@@ -143,7 +145,7 @@ describe('config', () => {
         cookieSameSite: 'Lax',
         cookieSecure: false,
         cookieUpgrade: false,
-        _deviceId: 'deviceIdFromCookies',
+        _deviceId: 'device-device-device',
         disableCookies: true,
         domain: '',
         flushIntervalMillis: 1000,
@@ -178,7 +180,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
-        _userId: 'userIdFromCookies',
+        _userId: 'user-user-user',
       });
     });
 

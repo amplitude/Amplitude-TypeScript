@@ -10,7 +10,7 @@ import {
   UserSession,
 } from '@amplitude/analytics-types';
 import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
-import { CookieStorage, getCookieName, getQueryParams, FetchTransport } from '@amplitude/analytics-client-common';
+import { CookieStorage, getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
 import { XHRTransport } from './transports/xhr';
@@ -168,18 +168,14 @@ export class BrowserConfig extends Config implements IBrowserConfig {
 export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions): Promise<IBrowserConfig> => {
   const defaultConfig = getDefaultConfig();
 
-  // create cookie storage
-  const domain = options?.disableCookies ? '' : options?.domain ?? (await getTopLevelDomain());
-  const cookieStorage = await createCookieStorage<UserSession>({ ...options, domain });
-  const previousCookies = await cookieStorage.get(getCookieName(apiKey));
-  const queryParams = getQueryParams();
-
   // reconcile user session
-  const deviceId = options?.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? UUID();
-  const lastEventTime = options?.lastEventTime ?? previousCookies?.lastEventTime;
-  const optOut = options?.optOut ?? Boolean(previousCookies?.optOut);
-  const sessionId = options?.sessionId ?? previousCookies?.sessionId;
-  const userId = options?.userId ?? previousCookies?.userId;
+  const deviceId = options?.deviceId ?? UUID();
+  const lastEventTime = options?.lastEventTime;
+  const optOut = options?.optOut;
+  const sessionId = options?.sessionId;
+  const userId = options?.userId;
+  const cookieStorage = options?.cookieStorage;
+  const domain = options?.domain;
 
   return new BrowserConfig(apiKey, {
     ...options,

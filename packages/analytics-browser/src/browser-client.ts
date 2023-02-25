@@ -6,6 +6,8 @@ import {
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
+  getCookieName,
+  getQueryParams,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -15,11 +17,12 @@ import {
   Identify as IIdentify,
   Revenue as IRevenue,
   TransportType,
+  UserSession,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport } from './config';
-import { parseOldCookies } from './cookie-migration';
+import { useBrowserConfig, createTransport, getTopLevelDomain, createCookieStorage } from './config';
+import { parseLegacyCookies } from './cookie-migration';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { sessionHandlerPlugin } from './plugins/session-handler';
@@ -31,6 +34,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
+  previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
 
   init(apiKey = '', userId?: string, options?: BrowserOptions) {
@@ -43,17 +47,31 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
     this.initializing = true;
 
-    // Step 1: Read cookies stored by old SDK
-    const oldCookies = await parseOldCookies(options.apiKey, options);
+    // Step 1: Read cookies stored by SDK
+    options.domain = options.disableCookies ? '' : options.domain ?? (await getTopLevelDomain());
+    const legacyCookies = await parseLegacyCookies(options.apiKey, options);
+    const cookieStorage = await createCookieStorage<UserSession>(options);
+    const previousCookies = await cookieStorage.get(getCookieName(options.apiKey));
+    const queryParams = getQueryParams();
 
     // Step 2: Create browser config
+    const deviceId = options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId;
+    const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
+    const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
+    const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
+    const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
+
+    this.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
+    this.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
+
     const browserOptions = await useBrowserConfig(options.apiKey, {
       ...options,
-      deviceId: oldCookies.deviceId ?? options.deviceId,
-      sessionId: oldCookies.sessionId ?? options.sessionId,
-      optOut: options.optOut ?? oldCookies.optOut,
-      lastEventTime: oldCookies.lastEventTime,
-      userId: options.userId ?? oldCookies.userId,
+      deviceId,
+      sessionId,
+      optOut,
+      lastEventTime,
+      userId,
+      cookieStorage,
     });
 
     await super._init(browserOptions);
@@ -136,8 +154,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.q.push(this.setUserId.bind(this, userId));
       return;
     }
-    if (userId !== this.config.userId) {
-      this.previousSessionUserId = this.config.userId;
+    if (userId !== this.config.userId || userId === undefined) {
       this.config.userId = userId;
       this.setSessionId(Date.now());
     }
@@ -156,8 +173,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   reset() {
-    this.setUserId(undefined);
     this.setDeviceId(UUID());
+    this.setUserId(undefined);
   }
 
   getSessionId() {
@@ -181,17 +198,17 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
           session_id: previousSessionId,
           time: previousLastEventTime + 1,
         };
-        if (this.previousSessionUserId) {
-          eventOptions.user_id = this.previousSessionUserId;
-        }
+        eventOptions.device_id = this.previousSessionDeviceId;
+        eventOptions.user_id = this.previousSessionUserId;
         this.track(DEFAULT_SESSION_END_EVENT, undefined, eventOptions);
-        this.previousSessionUserId = undefined;
       }
 
       this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         session_id: sessionId,
         time: sessionId - 1,
       });
+      this.previousSessionDeviceId = this.config.deviceId;
+      this.previousSessionUserId = this.config.userId;
     }
   }
 
