@@ -27,18 +27,19 @@ describe('browser-client', () => {
 
   describe('init', () => {
     test('should initialize client', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
+        disableCookies: true,
         ...attributionConfig,
       }).promise;
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
     test('should initialize with existing session', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         lastEventTime: Date.now(),
       });
@@ -46,11 +47,11 @@ describe('browser-client', () => {
       await client.init(API_KEY, USER_ID, {
         sessionId: Date.now(),
       }).promise;
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
     test('should initialize without error when apiKey is undefined', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const client = new AmplitudeBrowser();
@@ -58,11 +59,11 @@ describe('browser-client', () => {
       await client.init(undefined as any, USER_ID, {
         ...attributionConfig,
       }).promise;
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
-    test('should read from old cookies config', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+    test('should init from legacy cookies config', async () => {
+      const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         deviceId: DEVICE_ID,
         sessionId: 1,
@@ -77,11 +78,11 @@ describe('browser-client', () => {
       }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
-    test('should read from new cookies config', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+    test('should init from new cookies config', async () => {
+      const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const cookieStorage = new core.MemoryStorage<UserSession>();
@@ -90,20 +91,22 @@ describe('browser-client', () => {
         sessionId: 1,
         deviceId: DEVICE_ID,
         optOut: false,
+        lastEventTime: Date.now(),
+        userId: USER_ID,
       });
       const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
-        optOut: true,
+      await client.init(API_KEY, undefined, {
         cookieStorage,
         ...attributionConfig,
       }).promise;
+      expect(client.getUserId()).toBe(USER_ID);
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
     test('should call prevent concurrent init executions', async () => {
-      const parseOldCookies = jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
       });
       const useBrowserConfig = jest.spyOn(Config, 'useBrowserConfig');
@@ -111,16 +114,16 @@ describe('browser-client', () => {
       await Promise.all([
         client.init(API_KEY, USER_ID, {
           ...attributionConfig,
-        }),
+        }).promise,
         client.init(API_KEY, USER_ID, {
           ...attributionConfig,
-        }),
+        }).promise,
         client.init(API_KEY, USER_ID, {
           ...attributionConfig,
-        }),
+        }).promise,
       ]);
-      // NOTE: `parseOldCookies` and `useBrowserConfig` are only called once despite multiple init calls
-      expect(parseOldCookies).toHaveBeenCalledTimes(1);
+      // NOTE: `parseLegacyCookies` and `useBrowserConfig` are only called once despite multiple init calls
+      expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
       expect(useBrowserConfig).toHaveBeenCalledTimes(1);
     });
 
@@ -214,7 +217,7 @@ describe('browser-client', () => {
     });
 
     test('should add web attribution tracking plugin', async () => {
-      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         lastEventTime: Date.now(),
       });
@@ -240,7 +243,7 @@ describe('browser-client', () => {
     });
 
     test('should add web attribution tracking plugin with new campaign config', async () => {
-      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         lastEventTime: Date.now(),
       });
@@ -313,7 +316,7 @@ describe('browser-client', () => {
     });
 
     test('should set user and session id with start and end session event', async () => {
-      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         sessionId: 1,
         lastEventTime: Date.now() - 1000,
@@ -472,7 +475,7 @@ describe('browser-client', () => {
     });
 
     test('should set session id with start and end session event', async () => {
-      jest.spyOn(CookieMigration, 'parseOldCookies').mockResolvedValueOnce({
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         sessionId: 1,
         lastEventTime: Date.now() - 1000,

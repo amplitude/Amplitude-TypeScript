@@ -1,6 +1,6 @@
 import { CookieStorage, getOldCookieName } from '@amplitude/analytics-client-common';
 import { Storage } from '@amplitude/analytics-types';
-import { decode, parseOldCookies, parseTime } from '../../src/cookie-migration';
+import { decode, parseLegacyCookies, parseTime } from '../../src/cookie-migration';
 import * as LocalStorageModule from '../../src/storage/local-storage';
 
 describe('cookie-migration', () => {
@@ -10,9 +10,9 @@ describe('cookie-migration', () => {
     document.cookie = `${getOldCookieName(API_KEY)}=null; expires=-1`;
   });
 
-  describe('parseOldCookies', () => {
+  describe('parseLegacyCookies', () => {
     test('should return default values', async () => {
-      const cookies = await parseOldCookies(API_KEY, { disableCookies: true });
+      const cookies = await parseLegacyCookies(API_KEY, { disableCookies: true });
       expect(cookies).toEqual({
         optOut: false,
       });
@@ -27,7 +27,7 @@ describe('cookie-migration', () => {
         remove: async () => undefined,
         reset: async () => undefined,
       });
-      const cookies = await parseOldCookies(API_KEY, { disableCookies: true });
+      const cookies = await parseLegacyCookies(API_KEY, { disableCookies: true });
       expect(cookies).toEqual({
         optOut: false,
       });
@@ -40,7 +40,7 @@ describe('cookie-migration', () => {
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
       document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
-      const cookies = await parseOldCookies(API_KEY);
+      const cookies = await parseLegacyCookies(API_KEY);
       expect(cookies).toEqual({
         deviceId: 'deviceId',
         userId: 'userId',
@@ -61,7 +61,7 @@ describe('cookie-migration', () => {
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
       document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
-      const cookies = await parseOldCookies(API_KEY, {
+      const cookies = await parseLegacyCookies(API_KEY, {
         cookieUpgrade: true,
       });
       expect(cookies).toEqual({
@@ -84,7 +84,7 @@ describe('cookie-migration', () => {
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
       document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
-      const cookies = await parseOldCookies(API_KEY, {
+      const cookies = await parseLegacyCookies(API_KEY, {
         cookieUpgrade: false,
       });
       expect(cookies).toEqual({
