@@ -46,7 +46,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
     if (shouldTrackHistoryPageView(options.trackHistoryChanges, newURL, previousURL || '') && shouldTrackOnPageLoad()) {
       /* istanbul ignore next */
       loggerProvider?.log('Tracking page view event');
-      amplitude?.track(await createPageViewEvent());
+      amplitude && amplitude?.track(await createPageViewEvent());
     }
     previousURL = newURL;
   };

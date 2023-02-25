@@ -82,7 +82,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     await this.add(new IdentityEventSender()).promise;
 
     // Add web attribution plugin
-    const webAttribution = webAttributionPlugin({
+    const webAttribution = webAttributionPlugin(this, {
       disabled: this.config.attribution?.disabled,
       excludeReferrers: this.config.attribution?.excludeReferrers,
       initialEmptyValue: this.config.attribution?.initialEmptyValue,
@@ -99,7 +99,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     await this.add(webAttribution).promise;
 
     // Add page view plugin
-    await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+    if (typeof options.defaultTracking !== 'boolean') {
+      if (options.defaultTracking?.remote) {
+        await this.load(options.defaultTracking?.remote.sourceId, options.defaultTracking?.remote.envId);
+      }
+      await this.add(pageViewTrackingPlugin(this, getPageViewTrackingConfig(this.config))).promise;
+    }
 
     this.initializing = false;
 
@@ -188,5 +193,24 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       revenue = convertProxyObjectToRealObject(new Revenue(), queue);
     }
     return super.revenue(revenue, eventOptions);
+  }
+
+  async load(sourceId: string, envId: string): Promise<void> {
+    const response = await fetch(`http://localhost:4000/sources/${sourceId}`, {
+      method: 'GET', // *GET, POST, PUT, DELETE, etc.
+      mode: 'cors', // no-cors, *cors, same-origin
+      cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+      credentials: 'same-origin', // include, *same-origin, omit
+      headers: {
+        'Content-Type': 'application/json'
+      },
+    });
+    const settings = (await response.json())["settings"];
+    const curSettings = settings[envId];
+    if (curSettings && "pageViews" in curSettings) {
+      this.config.defaultTracking = {
+        pageViews: curSettings["pageViews"]
+      };
+    }
   }
 }

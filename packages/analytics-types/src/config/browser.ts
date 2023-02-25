@@ -28,6 +28,10 @@ export interface DefaultTrackingOptions {
   formInteractions?: boolean;
   pageViews?: boolean;
   sessions?: boolean;
+  remote?: {
+    sourceId: string;
+    envId: string;
+  };
 }
 
 export interface TrackingOptions {
