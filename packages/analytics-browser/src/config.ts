@@ -174,12 +174,14 @@ export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions)
   const optOut = options?.optOut;
   const sessionId = options?.sessionId;
   const userId = options?.userId;
+  const cookieStorage = options?.cookieStorage;
+  const domain = options?.domain;
 
   return new BrowserConfig(apiKey, {
     ...options,
-    cookieStorage: options?.cookieStorage,
+    cookieStorage,
     deviceId,
-    domain: options?.domain,
+    domain,
     lastEventTime,
     optOut,
     sessionId,
