@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.9.0-beta.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.0-beta.1...@amplitude/analytics-browser@1.9.0-beta.2) (2023-02-25)
+
+### Bug Fixes
+
+- inconsistent user and device id on session events
+  ([#337](https://github.com/amplitude/Amplitude-TypeScript/issues/337))
+  ([0dfbc6c](https://github.com/amplitude/Amplitude-TypeScript/commit/0dfbc6c78335a7578fc0207d91c1ef9845950f16))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.9.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.0-beta.0...@amplitude/analytics-browser@1.9.0-beta.1) (2023-02-24)
 
 ### Bug Fixes
