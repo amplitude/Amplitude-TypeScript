@@ -18,8 +18,10 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
     const addFileDownloadListener = (a: HTMLAnchorElement) => {
       let url: URL;
       try {
-        url = new URL(a.href);
+        // eslint-disable-next-line no-restricted-globals
+        url = new URL(a.href, window.location.href);
       } catch {
+        /* istanbul ignore next */
         return;
       }
       const result = ext.exec(url.href);
