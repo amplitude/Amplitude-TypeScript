@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.9.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.0-beta.2...@amplitude/analytics-browser@1.9.0-beta.3) (2023-02-26)
+
+### Bug Fixes
+
+- improve error handling for file download tracking
+  ([#338](https://github.com/amplitude/Amplitude-TypeScript/issues/338))
+  ([46cf131](https://github.com/amplitude/Amplitude-TypeScript/commit/46cf131945539ec634a74b257088bf7fe67e2181))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.9.0-beta.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.0-beta.1...@amplitude/analytics-browser@1.9.0-beta.2) (2023-02-25)
 
 ### Bug Fixes
