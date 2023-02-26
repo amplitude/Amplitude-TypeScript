@@ -72,6 +72,41 @@ describe('fileDownloadTracking', () => {
     });
   });
 
+  test('should track file_download event for a dynamically added nested achor tag', async () => {
+    // setup
+    const config = createConfigurationMock();
+    const plugin = fileDownloadTracking();
+    await plugin.setup(config, amplitude);
+
+    // add anchor element dynamically
+    const link = document.createElement('a');
+    link.setAttribute('id', 'my-link-2-id');
+    link.setAttribute('class', 'my-link-2-class');
+    link.setAttribute('href', 'https://analytics.amplitude.com/files/my-file-2.pdf');
+    link.text = 'my-link-2-text';
+
+    // add parent element
+    const div = document.createElement('div');
+
+    div.appendChild(link);
+    document.body.appendChild(div);
+
+    // allow mutation observer to execute and event listener to be attached
+    await new Promise((r) => r(undefined)); // basically, await next clock tick
+    // trigger change event
+    link.dispatchEvent(new Event('click'));
+
+    // assert file download event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Download', {
+      file_extension: 'pdf',
+      file_name: '/files/my-file-2.pdf',
+      link_id: 'my-link-2-id',
+      link_text: 'my-link-2-text',
+      link_url: 'https://analytics.amplitude.com/files/my-file-2.pdf',
+    });
+  });
+
   test('should not track file_download event', async () => {
     // setup
     document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.png');

@@ -58,6 +58,9 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
             if (node.nodeName === 'A') {
               addFileDownloadListener(node as HTMLAnchorElement);
             }
+            if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
+              Array.from(node.querySelectorAll('a') as HTMLAnchorElement[]).map(addFileDownloadListener);
+            }
           });
         });
       });

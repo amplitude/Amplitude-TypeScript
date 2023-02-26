@@ -64,6 +64,9 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
             if (node.nodeName === 'FORM') {
               addFormInteractionListener(node as HTMLFormElement);
             }
+            if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
+              Array.from(node.querySelectorAll('form') as HTMLFormElement[]).map(addFormInteractionListener);
+            }
           });
         });
       });
