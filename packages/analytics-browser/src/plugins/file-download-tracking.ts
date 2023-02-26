@@ -16,26 +16,29 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
     }
 
     const addFileDownloadListener = (a: HTMLAnchorElement) => {
+      let url: URL;
       try {
-        const url = new URL(a.href);
-        const result = ext.exec(url.href);
-        const fileExtension = result?.[1];
-
-        if (fileExtension) {
-          a.addEventListener('click', () => {
-            if (fileExtension) {
-              amplitude.track(DEFAULT_FILE_DOWNLOAD_EVENT, {
-                file_extension: fileExtension,
-                file_name: url.pathname,
-                link_id: a.id,
-                link_text: a.text,
-                link_url: a.href,
-              });
-            }
-          });
-        }
+        // eslint-disable-next-line no-restricted-globals
+        url = new URL(a.href, window.location.href);
       } catch {
-        config.loggerProvider.error(`Something went wrong. File download events are not tracked for a#{a.id}`);
+        /* istanbul ignore next */
+        return;
+      }
+      const result = ext.exec(url.href);
+      const fileExtension = result?.[1];
+
+      if (fileExtension) {
+        a.addEventListener('click', () => {
+          if (fileExtension) {
+            amplitude.track(DEFAULT_FILE_DOWNLOAD_EVENT, {
+              file_extension: fileExtension,
+              file_name: url.pathname,
+              link_id: a.id,
+              link_text: a.text,
+              link_url: a.href,
+            });
+          }
+        });
       }
     };
 
