@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.9.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.0-beta.3...@amplitude/analytics-browser@1.9.0-beta.4) (2023-02-27)
+
+### Bug Fixes
+
+- attach listener to nested nodes ([#339](https://github.com/amplitude/Amplitude-TypeScript/issues/339))
+  ([f6d19c4](https://github.com/amplitude/Amplitude-TypeScript/commit/f6d19c4ef72d44fac6072e677d4de87fd198e5dd))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.9.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.0-beta.2...@amplitude/analytics-browser@1.9.0-beta.3) (2023-02-26)
 
 ### Bug Fixes

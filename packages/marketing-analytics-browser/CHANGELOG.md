@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.5.0-beta.3...@amplitude/marketing-analytics-browser@0.5.0-beta.4) (2023-02-27)
+
+**Note:** Version bump only for package @amplitude/marketing-analytics-browser
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.5.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.5.0-beta.2...@amplitude/marketing-analytics-browser@0.5.0-beta.3) (2023-02-26)
 
 **Note:** Version bump only for package @amplitude/marketing-analytics-browser
