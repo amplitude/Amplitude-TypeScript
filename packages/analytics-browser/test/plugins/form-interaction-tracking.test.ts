@@ -42,7 +42,7 @@ describe('formInteractionTracking', () => {
 
     // assert first event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Start', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
       form_id: 'my-form-id',
       form_name: 'my-form-name',
       form_destination: 'http://localhost/submit',
@@ -86,7 +86,7 @@ describe('formInteractionTracking', () => {
 
     // assert first event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Start', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
       form_id: 'my-form-2-id',
       form_name: 'my-form-2-name',
       form_destination: 'http://localhost/submit',
@@ -134,7 +134,7 @@ describe('formInteractionTracking', () => {
 
     // assert first event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Start', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
       form_id: 'my-form-2-id',
       form_name: 'my-form-2-name',
       form_destination: 'http://localhost/submit',
@@ -158,12 +158,12 @@ describe('formInteractionTracking', () => {
 
     // assert both events were tracked
     expect(amplitude.track).toHaveBeenCalledTimes(2);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Start', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
       form_id: 'my-form-id',
       form_name: 'my-form-name',
       form_destination: 'http://localhost/submit',
     });
-    expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submit', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
       form_id: 'my-form-id',
       form_name: 'my-form-name',
       form_destination: 'http://localhost/submit',
@@ -181,7 +181,7 @@ describe('formInteractionTracking', () => {
 
     // assert first event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Start', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
       form_id: 'my-form-id',
       form_name: 'my-form-name',
       form_destination: 'http://localhost/submit',
@@ -192,7 +192,7 @@ describe('formInteractionTracking', () => {
 
     // assert second event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(2);
-    expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submit', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(2, '[Amplitude] Form Submitted', {
       form_id: 'my-form-id',
       form_name: 'my-form-name',
       form_destination: 'http://localhost/submit',

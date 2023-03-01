@@ -33,7 +33,7 @@ describe('fileDownloadTracking', () => {
 
     // assert file download event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Download', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Downloaded', {
       file_extension: 'pdf',
       file_name: '/files/my-file.pdf',
       link_id: 'my-link-id',
@@ -63,7 +63,7 @@ describe('fileDownloadTracking', () => {
 
     // assert file download event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Download', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Downloaded', {
       file_extension: 'pdf',
       file_name: '/files/my-file-2.pdf',
       link_id: 'my-link-2-id',
@@ -98,7 +98,7 @@ describe('fileDownloadTracking', () => {
 
     // assert file download event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
-    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Download', {
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Downloaded', {
       file_extension: 'pdf',
       file_name: '/files/my-file-2.pdf',
       link_id: 'my-link-2-id',

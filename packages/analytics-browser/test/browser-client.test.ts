@@ -184,7 +184,7 @@ describe('browser-client', () => {
       }).promise;
       expect(pageViewTracking).toHaveBeenCalledTimes(1);
       expect(pageViewTracking).toHaveBeenNthCalledWith(1, {
-        eventType: '[Amplitude] Page View',
+        eventType: '[Amplitude] Page Viewed',
       });
     });
 
