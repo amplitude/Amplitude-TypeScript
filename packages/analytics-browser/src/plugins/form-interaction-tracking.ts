@@ -1,5 +1,11 @@
 import { BrowserClient, PluginType, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
-import { DEFAULT_FORM_START_EVENT, DEFAULT_FORM_SUBMIT_EVENT } from '../constants';
+import {
+  DEFAULT_FORM_START_EVENT,
+  DEFAULT_FORM_SUBMIT_EVENT,
+  FORM_ID,
+  FORM_NAME,
+  FORM_DESTINATION,
+} from '../constants';
 import { BrowserConfig } from '../config';
 
 export const formInteractionTracking = (): EnrichmentPlugin => {
@@ -23,9 +29,9 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         () => {
           if (!hasFormChanged) {
             amplitude.track(DEFAULT_FORM_START_EVENT, {
-              form_id: form.id,
-              form_name: form.name,
-              form_destination: form.action,
+              [FORM_ID]: form.id,
+              [FORM_NAME]: form.name,
+              [FORM_DESTINATION]: form.action,
             });
           }
           hasFormChanged = true;
@@ -36,16 +42,16 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       form.addEventListener('submit', () => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
-            form_id: form.id,
-            form_name: form.name,
-            form_destination: form.action,
+            [FORM_ID]: form.id,
+            [FORM_NAME]: form.name,
+            [FORM_DESTINATION]: form.action,
           });
         }
 
         amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
-          form_id: form.id,
-          form_name: form.name,
-          form_destination: form.action,
+          [FORM_ID]: form.id,
+          [FORM_NAME]: form.name,
+          [FORM_DESTINATION]: form.action,
         });
         hasFormChanged = false;
       });

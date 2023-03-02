@@ -2,6 +2,7 @@
 
 import { createAmplitudeMock, createConfigurationMock } from '../helpers/mock';
 import { fileDownloadTracking } from '../../src/plugins/file-download-tracking';
+import { FILE_EXTENSION, FILE_NAME, LINK_ID, LINK_TEXT, LINK_URL } from '../../src/constants';
 
 describe('fileDownloadTracking', () => {
   let amplitude = createAmplitudeMock();
@@ -34,11 +35,11 @@ describe('fileDownloadTracking', () => {
     // assert file download event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
     expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Downloaded', {
-      file_extension: 'pdf',
-      file_name: '/files/my-file.pdf',
-      link_id: 'my-link-id',
-      link_text: 'my-link-text',
-      link_url: 'https://analytics.amplitude.com/files/my-file.pdf',
+      [FILE_EXTENSION]: 'pdf',
+      [FILE_NAME]: '/files/my-file.pdf',
+      [LINK_ID]: 'my-link-id',
+      [LINK_TEXT]: 'my-link-text',
+      [LINK_URL]: 'https://analytics.amplitude.com/files/my-file.pdf',
     });
   });
 
@@ -64,11 +65,11 @@ describe('fileDownloadTracking', () => {
     // assert file download event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
     expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Downloaded', {
-      file_extension: 'pdf',
-      file_name: '/files/my-file-2.pdf',
-      link_id: 'my-link-2-id',
-      link_text: 'my-link-2-text',
-      link_url: 'https://analytics.amplitude.com/files/my-file-2.pdf',
+      [FILE_EXTENSION]: 'pdf',
+      [FILE_NAME]: '/files/my-file-2.pdf',
+      [LINK_ID]: 'my-link-2-id',
+      [LINK_TEXT]: 'my-link-2-text',
+      [LINK_URL]: 'https://analytics.amplitude.com/files/my-file-2.pdf',
     });
   });
 
@@ -99,11 +100,11 @@ describe('fileDownloadTracking', () => {
     // assert file download event was tracked
     expect(amplitude.track).toHaveBeenCalledTimes(1);
     expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] File Downloaded', {
-      file_extension: 'pdf',
-      file_name: '/files/my-file-2.pdf',
-      link_id: 'my-link-2-id',
-      link_text: 'my-link-2-text',
-      link_url: 'https://analytics.amplitude.com/files/my-file-2.pdf',
+      [FILE_EXTENSION]: 'pdf',
+      [FILE_NAME]: '/files/my-file-2.pdf',
+      [LINK_ID]: 'my-link-2-id',
+      [LINK_TEXT]: 'my-link-2-text',
+      [LINK_URL]: 'https://analytics.amplitude.com/files/my-file-2.pdf',
     });
   });
 

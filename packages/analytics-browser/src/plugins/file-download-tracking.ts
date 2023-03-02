@@ -1,5 +1,5 @@
 import { BrowserClient, PluginType, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
-import { DEFAULT_FILE_DOWNLOAD_EVENT } from '../constants';
+import { DEFAULT_FILE_DOWNLOAD_EVENT, FILE_EXTENSION, FILE_NAME, LINK_ID, LINK_TEXT, LINK_URL } from '../constants';
 import { BrowserConfig } from '../config';
 
 export const fileDownloadTracking = (): EnrichmentPlugin => {
@@ -31,11 +31,11 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
         a.addEventListener('click', () => {
           if (fileExtension) {
             amplitude.track(DEFAULT_FILE_DOWNLOAD_EVENT, {
-              file_extension: fileExtension,
-              file_name: url.pathname,
-              link_id: a.id,
-              link_text: a.text,
-              link_url: a.href,
+              [FILE_EXTENSION]: fileExtension,
+              [FILE_NAME]: url.pathname,
+              [LINK_ID]: a.id,
+              [LINK_TEXT]: a.text,
+              [LINK_URL]: a.href,
             });
           }
         });

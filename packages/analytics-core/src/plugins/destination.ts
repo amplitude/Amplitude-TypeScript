@@ -38,7 +38,7 @@ export class Destination implements DestinationPlugin {
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
 
-  async setup(config: Config): Promise<undefined> {
+  async setup(config: Config): Promise<void> {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
@@ -48,7 +48,7 @@ export class Destination implements DestinationPlugin {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
 
-    return Promise.resolve(undefined);
+    return Promise.resolve();
   }
 
   execute(event: Event): Promise<Result> {
