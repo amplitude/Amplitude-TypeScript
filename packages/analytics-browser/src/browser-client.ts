@@ -29,6 +29,7 @@ import { sessionHandlerPlugin } from './plugins/session-handler';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_PAGE_VIEW_EVENT, DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
+import { defaultPageViewEventEnrichment } from './plugins/default-page-view-event-enrichment';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -138,6 +139,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     const pageViewTrackingOptions = getPageViewTrackingConfig(this.config);
     pageViewTrackingOptions.eventType = pageViewTrackingOptions.eventType || DEFAULT_PAGE_VIEW_EVENT;
     await this.add(pageViewTrackingPlugin(pageViewTrackingOptions)).promise;
+    await this.add(defaultPageViewEventEnrichment()).promise;
 
     this.initializing = false;
 
