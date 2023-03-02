@@ -8,7 +8,13 @@ import {
   getClientLogConfig,
   getClientStates,
 } from '@amplitude/analytics-core';
-import { CampaignTracker, IdentityEventSender, getAnalyticsConnector } from '@amplitude/analytics-client-common';
+import {
+  CampaignTracker,
+  IdentityEventSender,
+  getAnalyticsConnector,
+  setConnectorDeviceId,
+  setConnectorUserId,
+} from '@amplitude/analytics-client-common';
 import {
   ReactNativeConfig,
   Campaign,
@@ -130,12 +136,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
       return;
     }
     this.config.userId = userId;
-    getAnalyticsConnector()
-      .identityStore.editIdentity()
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      .setUserId(userId)
-      .commit();
+    setConnectorUserId(userId);
   }
 
   getDeviceId() {
@@ -148,12 +149,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
       return;
     }
     this.config.deviceId = deviceId;
-    getAnalyticsConnector()
-      .identityStore.editIdentity()
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      .setDeviceId(deviceId)
-      .commit();
+    setConnectorDeviceId(deviceId);
   }
 
   identify(identify: IIdentify, eventOptions?: EventOptions) {
