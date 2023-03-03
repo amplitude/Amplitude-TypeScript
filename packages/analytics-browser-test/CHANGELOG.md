@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.1-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.5.1-beta.0...@amplitude/analytics-browser-test@2.5.1-beta.1) (2023-03-03)
+
+### Bug Fixes
+
+- event types and properties for default events ([#341](https://github.com/amplitude/Amplitude-TypeScript/issues/341))
+  ([707522d](https://github.com/amplitude/Amplitude-TypeScript/commit/707522d440d5aa3be48809afcb44a4147f103903))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.5.1-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.5.0...@amplitude/analytics-browser-test@2.5.1-beta.0) (2023-03-03)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test
