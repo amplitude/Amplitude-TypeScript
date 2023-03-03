@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.1-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.0...@amplitude/analytics-react-native@1.1.1-beta.0) (2023-03-03)
+
+### Bug Fixes
+
+- push user id and device id changes to analytics connector
+  ([#342](https://github.com/amplitude/Amplitude-TypeScript/issues/342))
+  ([3214b08](https://github.com/amplitude/Amplitude-TypeScript/commit/3214b0836eb03e39b5753b1e6be30e1c2f5770ca))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.0-beta.1...@amplitude/analytics-react-native@1.1.0) (2023-02-27)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
