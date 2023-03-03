@@ -8,6 +8,8 @@ import {
   isFormInteractionTrackingEnabled,
   getCookieName,
   getQueryParams,
+  setConnectorDeviceId,
+  setConnectorUserId,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -157,6 +159,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (userId !== this.config.userId || userId === undefined) {
       this.config.userId = userId;
       this.setSessionId(Date.now());
+      setConnectorUserId(userId);
     }
   }
 
@@ -170,6 +173,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       return;
     }
     this.config.deviceId = deviceId;
+    setConnectorDeviceId(deviceId);
   }
 
   reset() {
