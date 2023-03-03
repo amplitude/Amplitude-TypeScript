@@ -21,21 +21,19 @@ describe('defaultPageViewEventEnrichment', () => {
           page_path: '/',
           page_title: 'Amplitude',
           page_url: 'https://amplitude.com/',
-          not_transformed: 'not_transformed',
         },
       };
       const plugin = defaultPageViewEventEnrichment();
       expect(await plugin.execute(event)).toEqual({
         event_type: '[Amplitude] Page Viewed',
         event_properties: {
-          '[Amplitude] UTM Campaign': 'google',
-          '[Amplitude] UTM ID': '123',
+          utm_campaign: 'google',
+          utm_id: '123',
           '[Amplitude] Page Domain': 'amplitude.com',
           '[Amplitude] Page Location': 'https://amplitude.com/',
           '[Amplitude] Page Path': '/',
           '[Amplitude] Page Title': 'Amplitude',
           '[Amplitude] Page URL': 'https://amplitude.com/',
-          not_transformed: 'not_transformed',
         },
       });
     });

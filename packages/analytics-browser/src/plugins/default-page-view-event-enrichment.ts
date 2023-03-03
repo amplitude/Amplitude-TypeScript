@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { BaseEvent, Campaign, EnrichmentPlugin, PluginType } from '@amplitude/analytics-types';
+import { BaseEvent, EnrichmentPlugin, PluginType } from '@amplitude/analytics-types';
 import { DEFAULT_EVENT_PREFIX, DEFAULT_PAGE_VIEW_EVENT } from '../constants';
 
-interface PageViewEventProperties extends Required<Campaign> {
+interface PageViewEventProperties extends Record<string, string | undefined> {
   page_domain: string;
   page_location: string;
   page_path: string;
@@ -11,23 +11,6 @@ interface PageViewEventProperties extends Required<Campaign> {
 }
 
 const eventPropertyMap: PageViewEventProperties = {
-  utm_campaign: `${DEFAULT_EVENT_PREFIX} UTM Campaign`,
-  utm_content: `${DEFAULT_EVENT_PREFIX} UTM Content`,
-  utm_id: `${DEFAULT_EVENT_PREFIX} UTM ID`,
-  utm_medium: `${DEFAULT_EVENT_PREFIX} UTM Medium`,
-  utm_source: `${DEFAULT_EVENT_PREFIX} UTM Source`,
-  utm_term: `${DEFAULT_EVENT_PREFIX} UTM Term`,
-  referrer: `${DEFAULT_EVENT_PREFIX} Referrer`,
-  referring_domain: `${DEFAULT_EVENT_PREFIX} Referring Domain`,
-  dclid: `${DEFAULT_EVENT_PREFIX} DCLID`,
-  gbraid: `${DEFAULT_EVENT_PREFIX} GBRAID`,
-  gclid: `${DEFAULT_EVENT_PREFIX} GCLID`,
-  fbclid: `${DEFAULT_EVENT_PREFIX} FBCLID`,
-  ko_click_id: `${DEFAULT_EVENT_PREFIX} KO Click ID`,
-  msclkid: `${DEFAULT_EVENT_PREFIX} MSCLKID`,
-  ttclid: `${DEFAULT_EVENT_PREFIX} TTCLID`,
-  twclid: `${DEFAULT_EVENT_PREFIX} TWCLID`,
-  wbraid: `${DEFAULT_EVENT_PREFIX} WBRAID`,
   page_domain: `${DEFAULT_EVENT_PREFIX} Page Domain`,
   page_location: `${DEFAULT_EVENT_PREFIX} Page Location`,
   page_path: `${DEFAULT_EVENT_PREFIX} Page Path`,
