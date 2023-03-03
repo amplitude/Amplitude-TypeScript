@@ -119,6 +119,7 @@ describe('browser-client', () => {
         defaultTracking: {
           pageViews: {
             trackOn: 'attribution',
+            trackHistoryChanges: undefined,
             eventType: 'Page View',
           },
         },

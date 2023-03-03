@@ -1497,6 +1497,294 @@ describe('integration', () => {
     });
   });
 
+  describe('default page view tracking', () => {
+    test('should send classic page view on attribution', () => {
+      let payload: any = undefined;
+      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        payload = p;
+        return {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        };
+      });
+      client.init(apiKey, 'user1@amplitude.com', {
+        attribution: {
+          trackPageViews: true,
+        },
+        transportProvider: {
+          send,
+        },
+        trackingOptions: {
+          deviceModel: false,
+        },
+      });
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(payload).toEqual({
+            api_key: apiKey,
+            events: [
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 0,
+                event_properties: {
+                  page_domain: '',
+                  page_location: '',
+                  page_path: '',
+                  page_title: '',
+                  page_url: '',
+                },
+                event_type: 'Page View',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+                user_properties: {
+                  $setOnce: {
+                    initial_dclid: 'EMPTY',
+                    initial_fbclid: 'EMPTY',
+                    initial_gbraid: 'EMPTY',
+                    initial_gclid: 'EMPTY',
+                    initial_ko_click_id: 'EMPTY',
+                    initial_msclkid: 'EMPTY',
+                    initial_referrer: 'EMPTY',
+                    initial_referring_domain: 'EMPTY',
+                    initial_ttclid: 'EMPTY',
+                    initial_twclid: 'EMPTY',
+                    initial_utm_campaign: 'EMPTY',
+                    initial_utm_content: 'EMPTY',
+                    initial_utm_id: 'EMPTY',
+                    initial_utm_medium: 'EMPTY',
+                    initial_utm_source: 'EMPTY',
+                    initial_utm_term: 'EMPTY',
+                    initial_wbraid: 'EMPTY',
+                  },
+                  $unset: {
+                    dclid: '-',
+                    fbclid: '-',
+                    gbraid: '-',
+                    gclid: '-',
+                    ko_click_id: '-',
+                    msclkid: '-',
+                    referrer: '-',
+                    referring_domain: '-',
+                    ttclid: '-',
+                    twclid: '-',
+                    utm_campaign: '-',
+                    utm_content: '-',
+                    utm_id: '-',
+                    utm_medium: '-',
+                    utm_source: '-',
+                    utm_term: '-',
+                    wbraid: '-',
+                  },
+                },
+              },
+            ],
+            options: {
+              min_id_length: undefined,
+            },
+          });
+          resolve();
+        }, 2000);
+      });
+    });
+
+    test('should send DET page view', () => {
+      let payload: any = undefined;
+      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        payload = p;
+        return {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        };
+      });
+      client.init(apiKey, 'user1@amplitude.com', {
+        attribution: {
+          disabled: true,
+        },
+        defaultTracking: {
+          pageViews: true,
+        },
+        transportProvider: {
+          send,
+        },
+        trackingOptions: {
+          deviceModel: false,
+        },
+      });
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(payload).toEqual({
+            api_key: apiKey,
+            events: [
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 0,
+                event_properties: {
+                  '[Amplitude] Page Domain': '',
+                  '[Amplitude] Page Location': '',
+                  '[Amplitude] Page Path': '',
+                  '[Amplitude] Page Title': '',
+                  '[Amplitude] Page URL': '',
+                },
+                event_type: '[Amplitude] Page Viewed',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+              },
+            ],
+            options: {
+              min_id_length: undefined,
+            },
+          });
+          resolve();
+        }, 2000);
+      });
+    });
+
+    test('should send DET page view on attribution', () => {
+      let payload: any = undefined;
+      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        payload = p;
+        return {
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        };
+      });
+      client.init(apiKey, 'user1@amplitude.com', {
+        defaultTracking: {
+          pageViews: {
+            trackOn: 'attribution',
+          },
+        },
+        transportProvider: {
+          send,
+        },
+        trackingOptions: {
+          deviceModel: false,
+        },
+      });
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(payload).toEqual({
+            api_key: apiKey,
+            events: [
+              {
+                device_id: uuid,
+                device_manufacturer: undefined,
+                event_id: 0,
+                event_properties: {
+                  '[Amplitude] Page Domain': '',
+                  '[Amplitude] Page Location': '',
+                  '[Amplitude] Page Path': '',
+                  '[Amplitude] Page Title': '',
+                  '[Amplitude] Page URL': '',
+                },
+                event_type: '[Amplitude] Page Viewed',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_id: 'user1@amplitude.com',
+                user_properties: {
+                  $setOnce: {
+                    initial_dclid: 'EMPTY',
+                    initial_fbclid: 'EMPTY',
+                    initial_gbraid: 'EMPTY',
+                    initial_gclid: 'EMPTY',
+                    initial_ko_click_id: 'EMPTY',
+                    initial_msclkid: 'EMPTY',
+                    initial_referrer: 'EMPTY',
+                    initial_referring_domain: 'EMPTY',
+                    initial_ttclid: 'EMPTY',
+                    initial_twclid: 'EMPTY',
+                    initial_utm_campaign: 'EMPTY',
+                    initial_utm_content: 'EMPTY',
+                    initial_utm_id: 'EMPTY',
+                    initial_utm_medium: 'EMPTY',
+                    initial_utm_source: 'EMPTY',
+                    initial_utm_term: 'EMPTY',
+                    initial_wbraid: 'EMPTY',
+                  },
+                  $unset: {
+                    dclid: '-',
+                    fbclid: '-',
+                    gbraid: '-',
+                    gclid: '-',
+                    ko_click_id: '-',
+                    msclkid: '-',
+                    referrer: '-',
+                    referring_domain: '-',
+                    ttclid: '-',
+                    twclid: '-',
+                    utm_campaign: '-',
+                    utm_content: '-',
+                    utm_id: '-',
+                    utm_medium: '-',
+                    utm_source: '-',
+                    utm_term: '-',
+                    wbraid: '-',
+                  },
+                },
+              },
+            ],
+            options: {
+              min_id_length: undefined,
+            },
+          });
+          resolve();
+        }, 2000);
+      });
+    });
+  });
+
   describe('cookie migration', () => {
     test('should use old cookies', async () => {
       const scope = nock(url).post(path).reply(200, success);
