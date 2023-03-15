@@ -8,6 +8,7 @@ import {
   TrackingOptions,
   TransportType,
   UserSession,
+  VisualTrackingOptions,
 } from '@amplitude/analytics-types';
 import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
@@ -50,6 +51,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   cookieUpgrade: boolean;
   cookieStorage: Storage<UserSession>;
   defaultTracking?: DefaultTrackingOptions | boolean;
+  visualTracking?: VisualTrackingOptions;
   disableCookies: boolean;
   domain: string;
   partnerId?: string;
@@ -91,7 +93,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.cookieUpgrade = options?.cookieUpgrade ?? defaultConfig.cookieUpgrade;
     this.defaultTracking = options?.defaultTracking;
     this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
-    this.defaultTracking = options?.defaultTracking;
+    this.visualTracking = options?.visualTracking;
     this.domain = options?.domain ?? defaultConfig.domain;
     this.partnerId = options?.partnerId;
     this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;

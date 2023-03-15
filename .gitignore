@@ -16,3 +16,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# temp change for testing
+!packages/analytics-browser/lib
+packages/analytics-browser/lib/*
+!packages/analytics-browser/lib/scripts
+packages/analytics-browser/lib/scripts/*
+!packages/analytics-browser/lib/scripts/amplitude-min.js

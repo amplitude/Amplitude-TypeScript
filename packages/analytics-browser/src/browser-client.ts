@@ -20,6 +20,7 @@ import {
   Revenue as IRevenue,
   TransportType,
   UserSession,
+  VisualTag,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -32,6 +33,7 @@ import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_PAGE_VIEW_EVENT, DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { defaultPageViewEventEnrichment } from './plugins/default-page-view-event-enrichment';
+import { visualTracking } from './plugins/visual-tracking';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -142,6 +144,17 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     pageViewTrackingOptions.eventType = pageViewTrackingOptions.eventType || DEFAULT_PAGE_VIEW_EVENT;
     await this.add(pageViewTrackingPlugin(pageViewTrackingOptions)).promise;
     await this.add(defaultPageViewEventEnrichment()).promise;
+
+    // Add visual tracking plugin
+    if (options?.visualTracking?.enabled) {
+      let remoteTags: VisualTag[] = [];
+      if (options?.visualTracking?.remote?.sourceId) {
+        remoteTags = await this.load(options.visualTracking?.remote?.sourceId);
+      }
+      options.visualTracking.tags = options?.visualTracking?.tags ?? [];
+      options?.visualTracking?.tags.push(...remoteTags);
+      await this.add(visualTracking()).promise;
+    }
 
     this.initializing = false;
 
@@ -257,5 +270,21 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       revenue = convertProxyObjectToRealObject(new Revenue(), queue);
     }
     return super.revenue(revenue, eventOptions);
+  }
+
+  async load(sourceId: string): Promise<VisualTag[]> {
+    const response = await fetch(`http://localhost:4000/sources/${sourceId}/tags`, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const tags = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return tags;
   }
 }

@@ -8,6 +8,7 @@ export interface BrowserConfig extends Config {
   appVersion?: string;
   attribution?: AttributionOptions;
   defaultTracking?: boolean | DefaultTrackingOptions;
+  visualTracking?: VisualTrackingOptions;
   deviceId?: string;
   cookieExpiration: number;
   cookieSameSite: string;
@@ -29,6 +30,21 @@ export interface DefaultTrackingOptions {
   formInteractions?: boolean;
   pageViews?: boolean | PageTrackingOptions;
   sessions?: boolean;
+}
+
+export interface VisualTag {
+  name: string;
+  action: string;
+  element: string;
+  page: string;
+}
+
+export interface VisualTrackingOptions {
+  enabled?: boolean;
+  remote?: {
+    sourceId?: string;
+  };
+  tags?: VisualTag[];
 }
 
 export interface TrackingOptions {

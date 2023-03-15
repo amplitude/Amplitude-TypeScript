@@ -17,6 +17,8 @@ export {
   BrowserOptions,
   Config,
   DefaultTrackingOptions,
+  VisualTrackingOptions,
+  VisualTag,
   Options,
   NodeConfig,
   NodeOptions,
