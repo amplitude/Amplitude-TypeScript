@@ -23,3 +23,4 @@ packages/analytics-browser/lib/*
 !packages/analytics-browser/lib/scripts
 packages/analytics-browser/lib/scripts/*
 !packages/analytics-browser/lib/scripts/amplitude-min.js
+!packages/analytics-browser/lib/scripts/builder.js
