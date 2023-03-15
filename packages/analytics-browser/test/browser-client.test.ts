@@ -369,25 +369,32 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         ...attributionConfig,
+        deviceId: DEVICE_ID,
       }).promise;
       expect(client.getUserId()).toBe(USER_ID);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
 
       client.setUserId(undefined);
       expect(client.getUserId()).toBe(undefined);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
 
     test('should be able to unset user id to undefined after setUserId()', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         ...attributionConfig,
+        deviceId: DEVICE_ID,
       }).promise;
       expect(client.getUserId()).toBe(undefined);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
 
       client.setUserId(USER_ID);
       expect(client.getUserId()).toBe(USER_ID);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
 
       client.setUserId(undefined);
       expect(client.getUserId()).toBe(undefined);
+      expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
   });
 
