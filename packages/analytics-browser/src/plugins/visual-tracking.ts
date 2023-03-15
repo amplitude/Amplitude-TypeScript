@@ -25,7 +25,12 @@ export const visualTracking = (): EnrichmentPlugin => {
       el.addEventListener('click', () => {
         for (const tag of tags) {
           // eslint-disable-next-line no-restricted-globals
-          if (tag.action === 'click' && window.location.href === tag.page && tag.element && el.matches(tag.element)) {
+          if (
+            tag.action === 'click' &&
+            window.location.href.startsWith(tag.page) &&
+            tag.element &&
+            el.matches(tag.element)
+          ) {
             amplitude.track(`[VisualTag] ${tag.name}`, {
               action: tag.action,
               page: tag.page,
@@ -38,7 +43,12 @@ export const visualTracking = (): EnrichmentPlugin => {
       el.addEventListener('change', () => {
         for (const tag of tags) {
           // eslint-disable-next-line no-restricted-globals
-          if (tag.action === 'change' && window.location.href === tag.page && tag.element && el.matches(tag.element)) {
+          if (
+            tag.action === 'change' &&
+            window.location.href.startsWith(tag.page) &&
+            tag.element &&
+            el.matches(tag.element)
+          ) {
             amplitude.track(`[VisualTag] ${tag.name}`, {
               action: tag.action,
               page: tag.page,
