@@ -51,11 +51,13 @@ Events represent how users interact with your application. For example, "Button 
 import { track } from '@amplitude/analytics-node';
 
 // Track a basic event
-track('Button Clicked');
+track('Button Clicked', undefined, {
+  user_id: 'user@amplitude.com',
+});
 
-// Track events with optional properties
+// Track events with additional properties
 const eventProperties = {
-  buttonColor: 'primary',
+  selectedColors: ['red', 'blue'],
 };
 track('Button Clicked', eventProperties, {
   user_id: 'user@amplitude.com',
