@@ -93,3 +93,60 @@ export const snippet = {
     execute(`node ${base}/scripts/version/create-snippet-instructions.js && node ${base}/scripts/version/update-readme.js`),
   ],
 };
+
+const createGTMSnippet = () => {
+  return {
+    name: 'amplitude-gtm-snippet',
+    options: (opt) => {
+      return new Promise((resolve) => {
+        opt.input = 'generated/amplitude-gtm-snippet.js';
+        if (process.env.GENERATE_SNIPPET !== 'true') return resolve(opt);
+        exec(`node ${base}/scripts/version/create-snippet.js --inputFile=amplitude-gtm-min.js --outputFile=amplitude-gtm-snippet.js --globalVar=amplitudeGTM`, (err) => {
+          if (err) {
+            throw err;
+          }
+          resolve(opt);
+        });
+      });
+    },
+  };
+};
+
+export const iifeGTM = {
+  input: 'src/gtm-snippet-index.ts',
+  output: {
+    name: 'amplitudeGTM',
+    file: 'lib/scripts/amplitude-gtm-min.js',
+    format: 'iife',
+  },
+  plugins: [
+    typescript({
+      module: 'es6',
+      noEmit: false,
+      outDir: 'lib/script',
+      rootDir: 'src',
+    }),
+    resolve({
+      browser: true,
+    }),
+    commonjs(),
+    terser({
+      output: {
+        comments: false,
+      },
+    }),
+    gzip(),
+  ],
+};
+
+export const snippetGTM = {
+  output: {
+    name: 'amplitudeGTM', // the name of the window variable
+    file: 'lib/scripts/amplitude-gtm-snippet-min.js',
+    format: 'iife',
+  },
+  plugins: [
+    createGTMSnippet(),
+    terser(),
+  ],
+};
