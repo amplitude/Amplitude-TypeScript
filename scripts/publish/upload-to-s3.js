@@ -12,7 +12,8 @@ let deployedCount = 0;
 console.log('[Publish to AWS S3] START');
 const promises = files.map((file) => {
   const body = fs.readFileSync(path.join(location, file));
-  const key = `libs/${file.replace('amplitude', `${getName()}-${getVersion()}`)}`;
+  const suffix = (file === 'amplitude-gtm-min.js.gz') ? `-gtm` : ``;
+  const key = `libs/${file.replace('amplitude', `${getName()}${suffix}-${getVersion()}`)}`;
   const client = new S3Client();
 
   const headObject = new HeadObjectCommand({
