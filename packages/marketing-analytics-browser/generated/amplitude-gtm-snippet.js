@@ -89,5 +89,8 @@
       return amplitude._iq[instanceName];
     };
     window.amplitudeGTM = amplitude;
+    if (!window.amplitude) {
+      window.amplitude = window.amplitudeGTM;
+    }
   }
 }(window, document);
