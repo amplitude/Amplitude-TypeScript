@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-node",
-  "version": "1.1.1-beta.0",
+  "version": "1.1.1",
   "description": "Official Amplitude SDK for NodeJS",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
