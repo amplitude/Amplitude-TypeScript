@@ -101,7 +101,7 @@ const createGTMSnippet = () => {
       return new Promise((resolve) => {
         opt.input = 'generated/amplitude-gtm-snippet.js';
         if (process.env.GENERATE_SNIPPET !== 'true') return resolve(opt);
-        exec(`node ${base}/scripts/version/create-snippet.js --inputFile=amplitude-gtm-min.js --outputFile=amplitude-gtm-snippet.js --globalVar=amplitudeGTM`, (err) => {
+        exec(`node ${base}/scripts/version/create-snippet.js --inputFile=amplitude-gtm-min.js --outputFile=amplitude-gtm-snippet.js --globalVar=amplitudeGTM --nameSuffix=-gtm`, (err) => {
           if (err) {
             throw err;
           }

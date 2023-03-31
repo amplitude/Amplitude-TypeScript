@@ -52,7 +52,7 @@
     as.integrity = 'sha384-Wqt2UF+dsXV1+aXBwElGjtnsGnCAOSzCzSWJaZBF4caVlEBQpRDb7y51uNRgMgNU';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/marketing-analytics-browser-0.5.2-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/marketing-analytics-browser-gtm-0.5.2-min.js.gz';
     as.onload = function () {
       if (!window.amplitudeGTM.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');

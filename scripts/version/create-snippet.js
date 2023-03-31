@@ -19,6 +19,8 @@ const outputFile = argv.outputFile ?? 'amplitude-snippet.js';
 const outputPath = path.join(process.cwd(), outputDir, outputFile);
 
 const globalVar = argv.globalVar ?? 'amplitude';
+const nameSuffix = argv.nameSuffix ?? '';
+
 // Generate output contents
 const header = `/**
  * Imported in client browser via <script> tag
@@ -31,7 +33,7 @@ const encoding = 'base64';
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputText).digest(encoding);
 const version = getVersion() || '';
-const outputText = header + snippet(getName(), integrity, getVersion(), globalVar);
+const outputText = header + snippet(getName()+nameSuffix, integrity, getVersion(), globalVar);
 const { code: transpiledOutputText } = babel.transformSync(outputText, {
   presets: ['env'],
 });
