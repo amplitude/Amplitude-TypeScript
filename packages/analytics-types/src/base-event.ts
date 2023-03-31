@@ -3,10 +3,10 @@ import { IngestionMetadataEventProperty } from './ingestion-metadata';
 
 export interface BaseEvent extends EventOptions {
   event_type: string;
-  event_properties?: { [key: string]: any };
-  user_properties?: { [key: string]: any };
-  group_properties?: { [key: string]: any };
-  groups?: { [key: string]: any };
+  event_properties?: { [key: string]: any } | undefined;
+  user_properties?: { [key: string]: any } | undefined;
+  group_properties?: { [key: string]: any } | undefined;
+  groups?: { [key: string]: any } | undefined;
 }
 
 export interface EventOptions {
