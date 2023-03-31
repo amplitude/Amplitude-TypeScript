@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.17.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.17.0...@amplitude/analytics-types@0.17.1) (2023-03-31)
+
+### Bug Fixes
+
+- add support for exactOptionalPropertyTypes TypeScript compiler option to BaseEvent
+  ([#362](https://github.com/amplitude/Amplitude-TypeScript/issues/362))
+  ([de6073c](https://github.com/amplitude/Amplitude-TypeScript/commit/de6073c07037bae845d88a4e61a0c739cd55e8c9))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.17.0-beta.0...@amplitude/analytics-types@0.17.0) (2023-02-27)
 
 **Note:** Version bump only for package @amplitude/analytics-types
