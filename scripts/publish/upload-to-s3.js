@@ -5,14 +5,18 @@ const { getName, getVersion } = require('../utils');
 
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
+const gtmTemplate = location.includes('marketing-analytics-browser') ? `amplitude-gtm-min.js.gz` : ``;
 const files = ['amplitude-min.js.gz', 'amplitude-min.umd.js.gz'];
+if (gtmTemplate) files.push(gtmTemplate);
 
 let deployedCount = 0;
 
 console.log('[Publish to AWS S3] START');
 const promises = files.map((file) => {
   const body = fs.readFileSync(path.join(location, file));
-  const key = `libs/${file.replace('amplitude', `${getName()}-${getVersion()}`)}`;
+  const suffix = file === gtmTemplate ? `-gtm` : ``;
+  const replacement = suffix ?  `amplitude-gtm` : `amplitude`; 
+  const key = `libs/${file.replace(replacement, `${getName()}${suffix}-${getVersion()}`)}`;
   const client = new S3Client();
 
   const headObject = new HeadObjectCommand({

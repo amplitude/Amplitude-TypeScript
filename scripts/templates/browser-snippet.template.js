@@ -1,6 +1,6 @@
-const snippet = (name, integrity, version) => `
+const snippet = (name, integrity, version, globalVar) => `
 !(function (window, document) {
-  var amplitude = window.amplitude || { _q: [], _iq: {} };
+  var amplitude = window.${globalVar} || { _q: [], _iq: {} };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
@@ -11,7 +11,7 @@ const snippet = (name, integrity, version) => `
     as.async = true;
     as.src = 'https://cdn.amplitude.com/libs/${name}-${version}-min.js.gz';
     as.onload = function () {
-      if (!window.amplitude.runQueuedFunctions) {
+      if (!window.${globalVar}.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
     };
@@ -118,7 +118,7 @@ const snippet = (name, integrity, version) => `
       setUpProxy(amplitude._iq[instanceName]);
       return amplitude._iq[instanceName];
     };
-    window.amplitude = amplitude;
+    window.${globalVar} = amplitude;
   }
 })(window, document);
 `;
