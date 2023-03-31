@@ -184,6 +184,158 @@ describe('timeline', () => {
       expect(destinationExecute).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledTimes(1);
     });
+
+    test('should stop if a before plugin returns null', async () => {
+      const beforeExecute1 = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const beforeExecute2 = jest.fn().mockImplementationOnce(() => {
+        return Promise.resolve(null);
+      });
+      const beforeExecute3 = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const before1: Plugin = {
+        name: 'plugin:before:1',
+        type: PluginType.BEFORE,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: beforeExecute1,
+      };
+      const before2: Plugin = {
+        name: 'plugin:before:2',
+        type: PluginType.BEFORE,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: beforeExecute2,
+      };
+      const before3: Plugin = {
+        name: 'plugin:before:3',
+        type: PluginType.BEFORE,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: beforeExecute3,
+      };
+
+      const enrichmentExecute = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const enrichment: Plugin = {
+        name: 'plugin:enrichment',
+        type: PluginType.ENRICHMENT,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: enrichmentExecute,
+      };
+
+      const destinationExecute = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const destination: Plugin = {
+        name: 'plugin:destination',
+        type: PluginType.DESTINATION,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: destinationExecute,
+      };
+
+      const config = useDefaultConfig();
+      await timeline.register(before1, config);
+      await timeline.register(before2, config);
+      await timeline.register(before3, config);
+      await timeline.register(enrichment, config);
+      await timeline.register(destination, config);
+
+      const event = {
+        event_type: 'some-event',
+      };
+      const callback = jest.fn();
+      await timeline.apply([event, callback]);
+
+      await timeline.deregister(before1.name);
+      await timeline.deregister(before2.name);
+      await timeline.deregister(before3.name);
+      await timeline.deregister(enrichment.name);
+      await timeline.deregister(destination.name);
+
+      expect(beforeExecute1).toHaveBeenCalledTimes(1);
+      expect(beforeExecute2).toHaveBeenCalledTimes(1);
+      expect(beforeExecute3).toHaveBeenCalledTimes(0);
+      expect(enrichmentExecute).toHaveBeenCalledTimes(0);
+      expect(destinationExecute).toHaveBeenCalledTimes(0);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    test('should stop if an enrichment plugin returns null', async () => {
+      const beforeExecute = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const before: Plugin = {
+        name: 'plugin:before',
+        type: PluginType.BEFORE,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: beforeExecute,
+      };
+
+      const enrichmentExecute1 = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const enrichmentExecute2 = jest.fn().mockImplementationOnce(() => {
+        return Promise.resolve(null);
+      });
+      const enrichmentExecute3 = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const enrichment1: Plugin = {
+        name: 'plugin:enrichment:1',
+        type: PluginType.ENRICHMENT,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: enrichmentExecute1,
+      };
+      const enrichment2: Plugin = {
+        name: 'plugin:enrichment:2',
+        type: PluginType.ENRICHMENT,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: enrichmentExecute2,
+      };
+      const enrichment3: Plugin = {
+        name: 'plugin:enrichment:3',
+        type: PluginType.ENRICHMENT,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: enrichmentExecute3,
+      };
+
+      const destinationExecute = jest.fn().mockImplementationOnce((event: Event) => {
+        return Promise.resolve(event);
+      });
+      const destination: Plugin = {
+        name: 'plugin:destination',
+        type: PluginType.DESTINATION,
+        setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
+        execute: destinationExecute,
+      };
+
+      const config = useDefaultConfig();
+      await timeline.register(before, config);
+      await timeline.register(enrichment1, config);
+      await timeline.register(enrichment2, config);
+      await timeline.register(enrichment3, config);
+      await timeline.register(destination, config);
+
+      const event = {
+        event_type: 'some-event',
+      };
+      const callback = jest.fn();
+      await timeline.apply([event, callback]);
+
+      await timeline.deregister(before.name);
+      await timeline.deregister(enrichment1.name);
+      await timeline.deregister(enrichment2.name);
+      await timeline.deregister(enrichment3.name);
+      await timeline.deregister(destination.name);
+
+      expect(beforeExecute).toHaveBeenCalledTimes(1);
+      expect(enrichmentExecute1).toHaveBeenCalledTimes(1);
+      expect(enrichmentExecute2).toHaveBeenCalledTimes(1);
+      expect(enrichmentExecute3).toHaveBeenCalledTimes(0);
+      expect(destinationExecute).toHaveBeenCalledTimes(0);
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('flush', () => {

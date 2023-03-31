@@ -13,14 +13,14 @@ export interface BeforePlugin<T = CoreClient> {
   name: string;
   type: PluginType.BEFORE;
   setup(config: Config, client?: T): Promise<void>;
-  execute(context: Event): Promise<Event>;
+  execute(context: Event): Promise<Event | null>;
 }
 
 export interface EnrichmentPlugin<T = CoreClient> {
   name: string;
   type: PluginType.ENRICHMENT;
   setup(config: Config, client?: T): Promise<void>;
-  execute(context: Event): Promise<Event>;
+  execute(context: Event): Promise<Event | null>;
 }
 
 export interface DestinationPlugin<T = CoreClient> {
