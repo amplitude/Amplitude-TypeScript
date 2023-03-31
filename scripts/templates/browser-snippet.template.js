@@ -119,6 +119,10 @@ const snippet = (name, integrity, version, globalVar) => `
       return amplitude._iq[instanceName];
     };
     window.${globalVar} = amplitude;
+    ${globalVar !== 'amplitude' ?
+    `if (!window.amplitude) {
+      window.amplitude = window.${globalVar};
+    }`: ``}
   }
 })(window, document);
 `;
