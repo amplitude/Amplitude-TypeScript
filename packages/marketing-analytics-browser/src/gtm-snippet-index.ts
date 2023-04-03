@@ -18,7 +18,7 @@ import { runQueuedFunctions } from '@amplitude/analytics-browser';
     if (GlobalScope && GlobalScope.amplitudeGTM && GlobalScope.amplitudeGTM._iq && instanceName) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      GlobalScope.amplitude._iq[instanceName] = instance;
+      GlobalScope.amplitudeGTM._iq[instanceName] = instance;
     }
     return instance;
   };
