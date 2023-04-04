@@ -75,7 +75,7 @@ export class Timeline {
 
     for (const plugin of before) {
       const e = await plugin.execute({ ...event });
-      if (e == null) {
+      if (e === null) {
         resolve({ event, code: 0, message: '' });
         return;
       } else {
@@ -89,7 +89,7 @@ export class Timeline {
 
     for (const plugin of enrichment) {
       const e = await plugin.execute({ ...event });
-      if (e == null) {
+      if (e === null) {
         resolve({ event, code: 0, message: '' });
         return;
       } else {
