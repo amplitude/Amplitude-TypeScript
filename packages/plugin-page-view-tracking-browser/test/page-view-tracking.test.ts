@@ -195,7 +195,7 @@ describe('pageViewTrackingPlugin', () => {
             },
           },
         });
-        expect(event.event_type).toBe('Page View');
+        expect(event?.event_type).toBe('Page View');
         expect(track).toHaveBeenCalledTimes(0);
       });
 
@@ -266,7 +266,7 @@ describe('pageViewTrackingPlugin', () => {
             },
           },
         });
-        expect(event.event_type).toBe('Page View');
+        expect(event?.event_type).toBe('Page View');
         expect(track).toHaveBeenCalledTimes(0);
       });
 

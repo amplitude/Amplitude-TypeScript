@@ -9,7 +9,7 @@ describe('remove-event-key-enrichment', () => {
         time: Date.now(),
       };
       const result = await plugin.execute(mockEvent);
-      expect(result.time).toBeUndefined();
+      expect(result?.time).toBeUndefined();
     });
 
     test('should not remove keys from event payload', async () => {
@@ -19,7 +19,7 @@ describe('remove-event-key-enrichment', () => {
         time: Date.now(),
       };
       const result = await plugin.execute(mockEvent);
-      expect(result.time).toBeDefined();
+      expect(result?.time).toBeDefined();
     });
   });
 });

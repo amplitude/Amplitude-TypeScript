@@ -74,7 +74,13 @@ export class Timeline {
     );
 
     for (const plugin of before) {
-      event = await plugin.execute({ ...event });
+      const e = await plugin.execute({ ...event });
+      if (e === null) {
+        resolve({ event, code: 0, message: '' });
+        return;
+      } else {
+        event = e;
+      }
     }
 
     const enrichment = this.plugins.filter<EnrichmentPlugin>(
@@ -82,7 +88,13 @@ export class Timeline {
     );
 
     for (const plugin of enrichment) {
-      event = await plugin.execute({ ...event });
+      const e = await plugin.execute({ ...event });
+      if (e === null) {
+        resolve({ event, code: 0, message: '' });
+        return;
+      } else {
+        event = e;
+      }
     }
 
     const destination = this.plugins.filter<DestinationPlugin>(
