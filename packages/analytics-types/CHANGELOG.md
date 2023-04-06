@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.17.1...@amplitude/analytics-types@0.18.0) (2023-04-06)
+
+### Features
+
+- update Plugin implementation to allow for dropping events
+  ([#361](https://github.com/amplitude/Amplitude-TypeScript/issues/361))
+  ([3db4d13](https://github.com/amplitude/Amplitude-TypeScript/commit/3db4d1327e87ebcf7a2a8c1d50a62e5c8bc2b418))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.17.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@0.17.0...@amplitude/analytics-types@0.17.1) (2023-03-31)
 
 ### Bug Fixes

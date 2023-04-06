@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.12.1...@amplitude/analytics-core@0.13.0) (2023-04-06)
+
+### Features
+
+- update Plugin implementation to allow for dropping events
+  ([#361](https://github.com/amplitude/Amplitude-TypeScript/issues/361))
+  ([3db4d13](https://github.com/amplitude/Amplitude-TypeScript/commit/3db4d1327e87ebcf7a2a8c1d50a62e5c8bc2b418))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.12.0...@amplitude/analytics-core@0.12.1) (2023-03-31)
 
 **Note:** Version bump only for package @amplitude/analytics-core
