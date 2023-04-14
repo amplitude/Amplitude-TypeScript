@@ -57,6 +57,18 @@ export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions
   return false;
 };
 
+export const isClickTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
+  if (typeof defaultTracking === 'boolean') {
+    return defaultTracking;
+  }
+
+  if (defaultTracking?.clicks) {
+    return true;
+  }
+
+  return false;
+};
+
 /**
  * Returns page view tracking config
  *

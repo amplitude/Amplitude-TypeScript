@@ -29,6 +29,7 @@ export interface DefaultTrackingOptions {
   formInteractions?: boolean;
   pageViews?: boolean | PageTrackingOptions;
   sessions?: boolean;
+  clicks?: boolean;
 }
 
 export interface TrackingOptions {

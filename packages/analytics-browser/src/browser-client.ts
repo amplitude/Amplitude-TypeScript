@@ -10,6 +10,7 @@ import {
   getQueryParams,
   setConnectorDeviceId,
   setConnectorUserId,
+  isClickTrackingEnabled,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -30,6 +31,7 @@ import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-bro
 import { sessionHandlerPlugin } from './plugins/session-handler';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
+import { clickTracking } from './plugins/click-tracking';
 import { DEFAULT_PAGE_VIEW_EVENT, DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { defaultPageViewEventEnrichment } from './plugins/default-page-view-event-enrichment';
 
@@ -117,6 +119,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
       await this.add(formInteractionTracking()).promise;
+    }
+
+    if (isClickTrackingEnabled(this.config.defaultTracking)) {
+      await this.add(clickTracking()).promise;
     }
 
     // Add web attribution plugin
