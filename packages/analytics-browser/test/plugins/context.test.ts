@@ -7,9 +7,10 @@ describe('context', () => {
       const context = new Context();
       const config = useDefaultConfig();
       config.appVersion = '1.0.0';
+      config.lastEventId = 1;
       await context.setup(config);
       expect(context.config.appVersion).toEqual('1.0.0');
-      expect(context.eventId).toEqual(0);
+      expect(context.eventId).toEqual(2);
       expect(context.uaResult).toBeDefined();
     });
 

@@ -4,7 +4,6 @@ import { BrowserConfig, TrackingOptions } from './browser';
 export interface ReactNativeConfig extends BrowserConfig {
   trackingOptions: ReactNativeTrackingOptions;
   trackingSessionEvents?: boolean;
-  lastEventId?: number;
 }
 
 export interface ReactNativeTrackingOptions extends TrackingOptions {

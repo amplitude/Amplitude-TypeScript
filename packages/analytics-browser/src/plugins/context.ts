@@ -29,6 +29,7 @@ export class Context implements BeforePlugin {
 
   setup(config: BrowserConfig): Promise<undefined> {
     this.config = config;
+    this.eventId = this.config.lastEventId ? this.config.lastEventId + 1 : 0;
 
     return Promise.resolve(undefined);
   }
@@ -39,6 +40,7 @@ export class Context implements BeforePlugin {
     const osVersion = this.uaResult.browser.version;
     const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
     const deviceVendor = this.uaResult.device.vendor;
+    this.config.lastEventId = this.eventId;
 
     const event: Event = {
       user_id: this.config.userId,

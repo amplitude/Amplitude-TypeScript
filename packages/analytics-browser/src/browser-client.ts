@@ -61,6 +61,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     const deviceId = options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId;
     const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
     const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
+    const lastEventId = previousCookies?.lastEventId;
     const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
     const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
 
@@ -72,6 +73,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       deviceId,
       sessionId,
       optOut,
+      lastEventId,
       lastEventTime,
       userId,
       cookieStorage,
