@@ -67,6 +67,7 @@ describe('e2e', () => {
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
+              user_agent: expectString,
               user_properties: {
                 $setOnce: {
                   initial_dclid: 'EMPTY',
@@ -163,6 +164,7 @@ describe('e2e', () => {
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
+              user_agent: expectString,
               user_properties: {
                 $setOnce: {
                   initial_dclid: 'EMPTY',
@@ -260,6 +262,7 @@ describe('e2e', () => {
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
+              user_agent: expectString,
             },
           ],
           options: {},
@@ -308,6 +311,7 @@ describe('e2e', () => {
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
+              user_agent: expectString,
               user_properties: {
                 $setOnce: {
                   initial_dclid: 'EMPTY',
@@ -370,6 +374,7 @@ describe('e2e', () => {
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
+              user_agent: expectString,
             },
           ],
           options: {},
