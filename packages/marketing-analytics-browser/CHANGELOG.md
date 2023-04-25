@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.6.0...@amplitude/marketing-analytics-browser@0.7.0) (2023-04-25)
+
+### Features
+
+- send user_agent with events ([#375](https://github.com/amplitude/Amplitude-TypeScript/issues/375))
+  ([26086b5](https://github.com/amplitude/Amplitude-TypeScript/commit/26086b543d7f0ee2d35e09b43199b5c26ed24e36))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/marketing-analytics-browser@0.5.4...@amplitude/marketing-analytics-browser@0.6.0) (2023-04-06)
 
 ### Features

@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.4...@amplitude/analytics-browser@1.10.0) (2023-04-25)
+
+### Features
+
+- persist last event id - to be used on next initialization
+  ([#374](https://github.com/amplitude/Amplitude-TypeScript/issues/374))
+  ([4fd7691](https://github.com/amplitude/Amplitude-TypeScript/commit/4fd76911142969bbc76d6d6e2cb986331201af37))
+- send user_agent with events ([#375](https://github.com/amplitude/Amplitude-TypeScript/issues/375))
+  ([26086b5](https://github.com/amplitude/Amplitude-TypeScript/commit/26086b543d7f0ee2d35e09b43199b5c26ed24e36))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.9.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.9.3...@amplitude/analytics-browser@1.9.4) (2023-04-06)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
