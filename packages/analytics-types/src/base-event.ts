@@ -46,5 +46,6 @@ export interface EventOptions {
   plan?: Plan;
   ingestion_metadata?: IngestionMetadataEventProperty;
   partner_id?: string;
+  user_agent?: string;
   extra?: { [key: string]: any };
 }

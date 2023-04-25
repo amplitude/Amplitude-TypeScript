@@ -15,16 +15,16 @@ export class Context implements BeforePlugin {
   // @ts-ignore
   config: BrowserConfig;
   eventId = 0;
+  userAgent: string | undefined;
   uaResult: UAParser.IResult;
   library = `amplitude-ts/${VERSION}`;
 
   constructor() {
-    let agent: string | undefined;
     /* istanbul ignore else */
     if (typeof navigator !== 'undefined') {
-      agent = navigator.userAgent;
+      this.userAgent = navigator.userAgent;
     }
-    this.uaResult = new UAParser(agent).getResult();
+    this.uaResult = new UAParser(this.userAgent).getResult();
   }
 
   setup(config: BrowserConfig): Promise<undefined> {
@@ -67,6 +67,7 @@ export class Context implements BeforePlugin {
       ...context,
       event_id: this.eventId++,
       library: this.library,
+      user_agent: this.userAgent,
     };
     return event;
   }

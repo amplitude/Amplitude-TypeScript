@@ -13,6 +13,7 @@ describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
   const library = expect.stringMatching(/^amplitude-ts\/.+/) as string;
   const number = expect.any(Number) as number;
+  const userAgent = expect.any(String) as string;
   const opts = {
     trackingOptions: { deviceModel: false },
     attribution: {
@@ -100,6 +101,7 @@ describe('integration', () => {
             session_id: sessionId, // NOTE: Session ID was set before init
             time: number,
             user_id: userId, // NOTE: User ID was set before init
+            user_agent: userAgent,
           });
           expect(response.code).toBe(200);
           expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -163,6 +165,7 @@ describe('integration', () => {
               page_title: '',
               page_url: '',
             },
+            user_agent: userAgent,
             user_properties: {
               $setOnce: {
                 initial_dclid: 'EMPTY',
@@ -220,6 +223,7 @@ describe('integration', () => {
             event_type: 'Event Before Init',
             event_id: 1,
             library: library,
+            user_agent: userAgent,
           },
         ],
         options: {},
@@ -257,6 +261,7 @@ describe('integration', () => {
           mode: 'test',
         },
         library: library,
+        user_agent: userAgent,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -288,6 +293,7 @@ describe('integration', () => {
         event_type: 'test event',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -321,6 +327,7 @@ describe('integration', () => {
         event_type: 'test event',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -364,6 +371,7 @@ describe('integration', () => {
           source_name: sourceName,
           source_version: sourceVersion,
         },
+        user_agent: userAgent,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -409,6 +417,7 @@ describe('integration', () => {
         groups: {
           org: '15',
         },
+        user_agent: userAgent,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -453,6 +462,7 @@ describe('integration', () => {
         event_type: 'test event 1',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[0].code).toBe(200);
       expect(response[0].message).toBe(SUCCESS_MESSAGE);
@@ -472,6 +482,7 @@ describe('integration', () => {
         event_type: 'test event 2',
         event_id: 1,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[1].code).toBe(400);
       expect(response[1].message).toBe('Invalid field values on some events');
@@ -508,6 +519,7 @@ describe('integration', () => {
         event_type: 'test event 1',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[0].code).toBe(200);
       expect(response[0].message).toBe(SUCCESS_MESSAGE);
@@ -527,6 +539,7 @@ describe('integration', () => {
         event_type: 'test event 2',
         event_id: 1,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[1].code).toBe(200);
       expect(response[1].message).toBe(SUCCESS_MESSAGE);
@@ -572,6 +585,7 @@ describe('integration', () => {
         event_type: 'test event 1',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[0].code).toBe(200);
       expect(response[0].message).toBe(SUCCESS_MESSAGE);
@@ -591,6 +605,7 @@ describe('integration', () => {
         event_type: 'test event 2',
         event_id: 1,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[1].code).toBe(429);
       expect(response[1].message).toBe('Too many requests for some devices and users');
@@ -625,6 +640,7 @@ describe('integration', () => {
         event_type: 'test event 1',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[0].code).toBe(200);
       expect(response[0].message).toBe(SUCCESS_MESSAGE);
@@ -644,6 +660,7 @@ describe('integration', () => {
         event_type: 'test event 2',
         event_id: 1,
         library: library,
+        user_agent: userAgent,
       });
       expect(response[0].code).toBe(200);
       expect(response[0].message).toBe(SUCCESS_MESSAGE);
@@ -678,6 +695,7 @@ describe('integration', () => {
         event_type: 'test event',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
       });
       expect(response.code).toBe(500);
       expect(response.message).toBe('Event rejected due to exceeded retry count');
@@ -740,6 +758,7 @@ describe('integration', () => {
         event_type: '$identify',
         event_id: 0,
         library: library,
+        user_agent: userAgent,
         user_properties: {
           $add: {
             employees: 1,
@@ -809,6 +828,7 @@ describe('integration', () => {
         platform: 'Web',
         session_id: number,
         time: number,
+        user_agent: userAgent,
         user_id: undefined,
       });
       expect(response.code).toBe(200);
@@ -843,6 +863,7 @@ describe('integration', () => {
         platform: 'Web',
         session_id: number,
         time: number,
+        user_agent: userAgent,
         user_id: undefined,
         user_properties: {
           $set: {
@@ -988,6 +1009,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1006,6 +1028,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
                 user_properties: {
                   $setOnce: {
@@ -1064,6 +1087,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1082,6 +1106,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1100,6 +1125,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1118,6 +1144,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1136,6 +1163,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1154,6 +1182,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user2@amplitude.com',
               },
             ],
@@ -1318,6 +1347,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1336,6 +1366,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
                 user_properties: {
                   $setOnce: {
@@ -1394,6 +1425,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1412,6 +1444,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1430,6 +1463,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1448,6 +1482,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1466,6 +1501,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
               {
@@ -1484,6 +1520,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: undefined,
               },
             ],
@@ -1553,6 +1590,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
                 user_properties: {
                   $setOnce: {
@@ -1663,6 +1701,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
               },
             ],
@@ -1732,6 +1771,7 @@ describe('integration', () => {
                 platform: 'Web',
                 session_id: number,
                 time: number,
+                user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
                 user_properties: {
                   $setOnce: {
@@ -1818,6 +1858,7 @@ describe('integration', () => {
           mode: 'test',
         },
         library: library,
+        user_agent: userAgent,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -1858,6 +1899,7 @@ describe('integration', () => {
           mode: 'test',
         },
         library: library,
+        user_agent: userAgent,
       });
       expect(response.code).toBe(200);
       expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -1893,6 +1935,7 @@ describe('integration', () => {
           event_type: 'test event',
           event_id: 0,
           library: library,
+          user_agent: userAgent,
         });
         expect(response.code).toBe(200);
         expect(response.message).toBe(SUCCESS_MESSAGE);
@@ -1935,6 +1978,7 @@ describe('integration', () => {
           event_type: 'test event',
           event_id: 0,
           library: library,
+          user_agent: userAgent,
         });
         expect(response.code).toBe(200);
         expect(response.message).toBe(SUCCESS_MESSAGE);
