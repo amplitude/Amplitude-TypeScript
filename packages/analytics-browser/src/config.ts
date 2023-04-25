@@ -58,6 +58,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
+  protected _lastEventId?: number;
   protected _lastEventTime?: number;
   protected _optOut = false;
   protected _sessionId?: number;
@@ -78,6 +79,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     // user session properties expect `cookieStorage` to be defined
     this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
     this.deviceId = options?.deviceId;
+    this.lastEventId = options?.lastEventId;
     this.lastEventTime = options?.lastEventTime;
     this.optOut = Boolean(options?.optOut);
     this.sessionId = options?.sessionId;
@@ -153,6 +155,17 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     }
   }
 
+  get lastEventId() {
+    return this._lastEventId;
+  }
+
+  set lastEventId(lastEventId: number | undefined) {
+    if (this._lastEventId !== lastEventId) {
+      this._lastEventId = lastEventId;
+      this.updateStorage();
+    }
+  }
+
   private updateStorage() {
     const cache = {
       deviceId: this._deviceId,
@@ -160,6 +173,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       sessionId: this._sessionId,
       optOut: this._optOut,
       lastEventTime: this._lastEventTime,
+      lastEventId: this._lastEventId,
     };
     void this.cookieStorage?.set(getCookieName(this.apiKey), cache);
   }
@@ -170,6 +184,7 @@ export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions)
 
   // reconcile user session
   const deviceId = options?.deviceId ?? UUID();
+  const lastEventId = options?.lastEventId;
   const lastEventTime = options?.lastEventTime;
   const optOut = options?.optOut;
   const sessionId = options?.sessionId;
@@ -182,6 +197,7 @@ export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions)
     cookieStorage,
     deviceId,
     domain,
+    lastEventId,
     lastEventTime,
     optOut,
     sessionId,

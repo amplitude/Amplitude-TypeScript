@@ -17,6 +17,7 @@ export interface BrowserConfig extends Config {
   disableCookies: boolean;
   domain: string;
   lastEventTime?: number;
+  lastEventId?: number;
   partnerId?: string;
   sessionId?: number;
   sessionTimeout: number;
