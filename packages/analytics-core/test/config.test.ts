@@ -109,4 +109,15 @@ describe('config', () => {
       });
     });
   });
+
+  test('should not overwrite flushIntervalMillis=0 with default value', () => {
+    const defaultConfig = useDefaultConfig();
+    const config = new Config({
+      apiKey: API_KEY,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+      flushIntervalMillis: 0,
+    });
+    expect(config.flushIntervalMillis).toEqual(0);
+  });
 });
