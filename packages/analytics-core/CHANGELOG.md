@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.13.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.13.1...@amplitude/analytics-core@0.13.2) (2023-04-27)
+
+### Bug Fixes
+
+- do not overwrite flushIntervalMillis=0 with default value (10 seconds)
+  ([#377](https://github.com/amplitude/Amplitude-TypeScript/issues/377))
+  ([02dc428](https://github.com/amplitude/Amplitude-TypeScript/commit/02dc428a5b5b453a245d893a4baaf7ef8757d7ca))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.13.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.13.0...@amplitude/analytics-core@0.13.1) (2023-04-25)
 
 **Note:** Version bump only for package @amplitude/analytics-core
