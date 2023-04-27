@@ -58,7 +58,7 @@ export class Config implements IConfig {
   constructor(options: Options) {
     const defaultConfig = getDefaultConfig();
     this.apiKey = options.apiKey;
-    this.flushIntervalMillis = options.flushIntervalMillis || defaultConfig.flushIntervalMillis;
+    this.flushIntervalMillis = options.flushIntervalMillis ?? defaultConfig.flushIntervalMillis;
     this.flushMaxRetries = options.flushMaxRetries || defaultConfig.flushMaxRetries;
     this.flushQueueSize = options.flushQueueSize || defaultConfig.flushQueueSize;
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
