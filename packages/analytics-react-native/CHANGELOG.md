@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.5...@amplitude/analytics-react-native@1.1.6) (2023-04-27)
+
+### Bug Fixes
+
+- add connector event listener after plugins and queued functions
+  ([#378](https://github.com/amplitude/Amplitude-TypeScript/issues/378))
+  ([a2fc8b6](https://github.com/amplitude/Amplitude-TypeScript/commit/a2fc8b6a7ec87dd8eab6538c1e9929c57804b899))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.1.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.4...@amplitude/analytics-react-native@1.1.5) (2023-04-27)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native

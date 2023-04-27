@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.6.6...@amplitude/plugin-web-attribution-browser@0.6.7) (2023-04-27)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.6.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.6.5...@amplitude/plugin-web-attribution-browser@0.6.6) (2023-04-27)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
