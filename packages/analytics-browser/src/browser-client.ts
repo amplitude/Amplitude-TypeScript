@@ -98,9 +98,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
     const connector = getAnalyticsConnector();
-    connector.eventBridge.setEventReceiver((event) => {
-      void this.track(event.eventType, event.eventProperties);
-    });
     connector.identityStore.setIdentity({
       userId: this.config.userId,
       deviceId: this.config.deviceId,
@@ -149,6 +146,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 6: Run queued dispatch functions
     await this.runQueuedFunctions('dispatchQ');
+
+    // Step 7: Add the event receiver after running remaining queued functions.
+    connector.eventBridge.setEventReceiver((event) => {
+      void this.track(event.eventType, event.eventProperties);
+    });
   }
 
   getUserId() {

@@ -71,9 +71,6 @@ export class AmplitudeReactNative extends AmplitudeCore {
     // Send events from the experiment SDK and forward identifies to the
     // identity store.
     const connector = getAnalyticsConnector();
-    connector.eventBridge.setEventReceiver((event) => {
-      void this.track(event.eventType, event.eventProperties);
-    });
     connector.identityStore.setIdentity({
       userId: this.config.userId,
       deviceId: this.config.deviceId,
@@ -102,6 +99,11 @@ export class AmplitudeReactNative extends AmplitudeCore {
 
     // Step 6: Run queued functions
     await this.runQueuedFunctions('dispatchQ');
+
+    // Step 7: Add the event receiver after running remaining queued functions.
+    connector.eventBridge.setEventReceiver((event) => {
+      void this.track(event.eventType, event.eventProperties);
+    });
   }
 
   shutdown() {
