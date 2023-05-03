@@ -12,6 +12,7 @@ export const FBCLID = 'fbclid';
 export const GBRAID = 'gbraid';
 export const GCLID = 'gclid';
 export const KO_CLICK_ID = 'ko_click_id';
+export const LI_FAT_ID = 'li_fat_id';
 export const MSCLKID = 'msclkid';
 export const TTCLID = 'ttclid';
 export const TWCLID = 'twclid';
@@ -33,6 +34,7 @@ export const BASE_CAMPAIGN: Campaign = {
   gclid: undefined,
   fbclid: undefined,
   ko_click_id: undefined,
+  li_fat_id: undefined,
   msclkid: undefined,
   ttclid: undefined,
   twclid: undefined,

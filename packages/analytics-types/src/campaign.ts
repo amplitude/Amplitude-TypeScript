@@ -22,6 +22,7 @@ export interface ClickIdParameters {
   gbraid: string | undefined;
   gclid: string | undefined;
   ko_click_id: string | undefined;
+  li_fat_id: string | undefined;
   msclkid: string | undefined;
   ttclid: string | undefined;
   twclid: string | undefined;
