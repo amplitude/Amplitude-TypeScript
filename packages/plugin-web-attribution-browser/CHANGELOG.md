@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.6.7...@amplitude/plugin-web-attribution-browser@0.7.0) (2023-05-04)
+
+### Features
+
+- add attribution tracking for linkedin click id li_fat_id
+  ([ca81f3d](https://github.com/amplitude/Amplitude-TypeScript/commit/ca81f3d75ece7e0e23a1bc1b6889107d53a60a86))
+- add rtd_cid for Reddit campaign tracking/attribution
+  ([784e080](https://github.com/amplitude/Amplitude-TypeScript/commit/784e080aa129c37e850d7f34115beb9770044e4e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.6.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.6.6...@amplitude/plugin-web-attribution-browser@0.6.7) (2023-04-27)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
