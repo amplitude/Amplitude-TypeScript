@@ -71,12 +71,8 @@ export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {
     sessionManager: sessionStorage,
     sessionTimeout: 30 * 60 * 1000,
     trackingOptions: {
-      deviceManufacturer: true,
-      deviceModel: true,
       ipAddress: true,
       language: true,
-      osName: true,
-      osVersion: true,
       platform: true,
     },
     trackingSessionEvents: false,

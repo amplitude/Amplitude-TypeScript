@@ -19,12 +19,8 @@ import { SendBeaconTransport } from './transports/send-beacon';
 export const getDefaultConfig = () => {
   const cookieStorage = new MemoryStorage<UserSession>();
   const trackingOptions: Required<TrackingOptions> = {
-    deviceManufacturer: true,
-    deviceModel: true,
     ipAddress: true,
     language: true,
-    osName: true,
-    osVersion: true,
     platform: true,
   };
   return {
