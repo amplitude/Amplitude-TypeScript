@@ -29,12 +29,8 @@ export const DEFAULT_OPTIONS: Partial<IBrowserConfig> = {
     getRaw: async () => undefined,
   },
   trackingOptions: {
-    deviceManufacturer: true,
-    deviceModel: true,
     ipAddress: true,
     language: true,
-    osName: true,
-    osVersion: true,
     platform: true,
   },
   transportProvider: {

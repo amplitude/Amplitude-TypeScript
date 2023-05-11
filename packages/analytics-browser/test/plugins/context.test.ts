@@ -11,7 +11,6 @@ describe('context', () => {
       await context.setup(config);
       expect(context.config.appVersion).toEqual('1.0.0');
       expect(context.eventId).toEqual(2);
-      expect(context.uaResult).toBeDefined();
     });
 
     test('should setup plugin without app version', async () => {
@@ -20,7 +19,6 @@ describe('context', () => {
       await context.setup(config);
       expect(context.config.appVersion).toBeUndefined();
       expect(context.eventId).toEqual(0);
-      expect(context.uaResult).toBeDefined();
     });
   });
 
@@ -44,8 +42,6 @@ describe('context', () => {
       expect(firstContextEvent.event_type).toEqual('event_type');
       expect(firstContextEvent.insert_id).toBeDefined();
       expect(firstContextEvent.platform).toEqual('Web');
-      expect(firstContextEvent.os_name).toBeDefined();
-      expect(firstContextEvent.os_version).toBeDefined();
       expect(firstContextEvent.language).toBeDefined();
       expect(firstContextEvent.ip).toEqual('$remote');
       expect(firstContextEvent.device_id).toEqual('deviceId');
@@ -62,12 +58,8 @@ describe('context', () => {
         deviceId: 'deviceId',
         sessionId: 1,
         trackingOptions: {
-          deviceManufacturer: false,
-          deviceModel: false,
           ipAddress: false,
           language: false,
-          osName: false,
-          osVersion: false,
           platform: false,
         },
         userId: 'user@amplitude.com',
@@ -86,8 +78,6 @@ describe('context', () => {
 
       // tracking options should not be included
       expect(firstContextEvent.platform).toBeUndefined();
-      expect(firstContextEvent.os_name).toBeUndefined();
-      expect(firstContextEvent.os_version).toBeUndefined();
       expect(firstContextEvent.language).toBeUndefined();
       expect(firstContextEvent.ip).toBeUndefined();
       expect(firstContextEvent.device_id).toEqual('deviceId');

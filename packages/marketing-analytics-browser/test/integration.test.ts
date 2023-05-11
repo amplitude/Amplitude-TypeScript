@@ -22,11 +22,6 @@ describe('e2e', () => {
   const expectString = expect.any(String) as string;
   const expectLibrary = expect.stringMatching(/^amplitude-ma-ts\/.+/) as string;
   const expectNumber = expect.any(Number) as number;
-  const opts = {
-    trackingOptions: {
-      deviceModel: false,
-    },
-  };
 
   beforeEach(() => {
     unsetCookie('AMP_API_KEY');
@@ -47,7 +42,7 @@ describe('e2e', () => {
       .reply(200, success);
 
     const client = createInstance();
-    client.init('API_KEY', undefined, { ...opts });
+    client.init('API_KEY');
 
     return new Promise<void>((resolve) => {
       scope.on('replied', () => {
@@ -62,8 +57,6 @@ describe('e2e', () => {
               ip: '$remote',
               language: 'en-US',
               library: expectLibrary,
-              os_name: 'WebKit',
-              os_version: '537.36',
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
@@ -137,7 +130,6 @@ describe('e2e', () => {
 
     const client = createInstance();
     client.init('API_KEY', undefined, {
-      ...opts,
       pageViewTracking: {
         trackOn: 'attribution',
       },
@@ -163,8 +155,6 @@ describe('e2e', () => {
               ip: '$remote',
               language: 'en-US',
               library: expectLibrary,
-              os_name: 'WebKit',
-              os_version: '537.36',
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
@@ -238,7 +228,6 @@ describe('e2e', () => {
 
     const client = createInstance();
     client.init('API_KEY', undefined, {
-      ...opts,
       attribution: {
         disabled: true,
       },
@@ -265,8 +254,6 @@ describe('e2e', () => {
               ip: '$remote',
               language: 'en-US',
               library: expectLibrary,
-              os_name: 'WebKit',
-              os_version: '537.36',
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
@@ -296,7 +283,6 @@ describe('e2e', () => {
 
     const client = createInstance();
     client.init('API_KEY', undefined, {
-      ...opts,
       pageViewTracking: true,
     });
 
@@ -314,8 +300,6 @@ describe('e2e', () => {
               ip: '$remote',
               language: 'en-US',
               library: expectLibrary,
-              os_name: 'WebKit',
-              os_version: '537.36',
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,
@@ -381,8 +365,6 @@ describe('e2e', () => {
               ip: '$remote',
               language: 'en-US',
               library: expectLibrary,
-              os_name: 'WebKit',
-              os_version: '537.36',
               platform: 'Web',
               session_id: expectNumber,
               time: expectNumber,

@@ -1,5 +1,4 @@
 import { BeforePlugin, BrowserConfig, Event, PluginType } from '@amplitude/analytics-types';
-import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '@amplitude/analytics-core';
 import { getLanguage } from '@amplitude/analytics-client-common';
 import { VERSION } from '../version';
@@ -16,7 +15,6 @@ export class Context implements BeforePlugin {
   config: BrowserConfig;
   eventId = 0;
   userAgent: string | undefined;
-  uaResult: UAParser.IResult;
   library = `amplitude-ts/${VERSION}`;
 
   constructor() {
@@ -24,7 +22,6 @@ export class Context implements BeforePlugin {
     if (typeof navigator !== 'undefined') {
       this.userAgent = navigator.userAgent;
     }
-    this.uaResult = new UAParser(this.userAgent).getResult();
   }
 
   setup(config: BrowserConfig): Promise<undefined> {
@@ -36,10 +33,6 @@ export class Context implements BeforePlugin {
 
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
-    const osName = this.uaResult.browser.name;
-    const osVersion = this.uaResult.browser.version;
-    const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
-    const deviceVendor = this.uaResult.device.vendor;
     this.config.lastEventId = this.eventId;
 
     const event: Event = {
@@ -49,10 +42,6 @@ export class Context implements BeforePlugin {
       time,
       ...(this.config.appVersion && { app_version: this.config.appVersion }),
       ...(this.config.trackingOptions.platform && { platform: BROWSER_PLATFORM }),
-      ...(this.config.trackingOptions.osName && { os_name: osName }),
-      ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
-      ...(this.config.trackingOptions.deviceManufacturer && { device_manufacturer: deviceVendor }),
-      ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
       ...(this.config.trackingOptions.language && { language: getLanguage() }),
       ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
       insert_id: UUID(),
