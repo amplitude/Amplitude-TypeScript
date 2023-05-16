@@ -1,8 +1,10 @@
 import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
 import {
   getAnalyticsConnector,
+  getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   IdentityEventSender,
+  isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
@@ -82,7 +84,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     await super._init(browserOptions);
 
     // Step 3: Manage session
-    let isNewSession = !this.config.lastEventTime;
     if (
       !this.config.sessionId ||
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
@@ -91,7 +92,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       // 1) No previous session; or
       // 2) Previous session expired
       this.setSessionId(Date.now());
-      isNewSession = true;
     }
 
     // Set up the analytics connector to integrate with the experiment SDK.
@@ -119,20 +119,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     // Add web attribution plugin
-    if (!this.config.attribution?.disabled) {
-      const webAttribution = webAttributionPlugin({
-        excludeReferrers: this.config.attribution?.excludeReferrers,
-        initialEmptyValue: this.config.attribution?.initialEmptyValue,
-        resetSessionOnNewCampaign: this.config.attribution?.resetSessionOnNewCampaign,
-      });
-
-      // For Amplitude-internal functionality
-      // if pluginEnabledOverride === undefined then use plugin default logic
-      // if pluginEnabledOverride === true then track attribution
-      // if pluginEnabledOverride === false then do not track attribution
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (webAttribution as any).__pluginEnabledOverride =
-        isNewSession || this.config.attribution?.trackNewCampaigns ? undefined : false;
+    if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
+      const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
+      const webAttribution = webAttributionPlugin(attributionTrackingOptions);
       await this.add(webAttribution).promise;
     }
 

@@ -72,7 +72,7 @@ export class CampaignTracker implements ICampaignTracker {
     return await this.storage.get(this.storageKey);
   }
 
-  createCampaignEvent(campaign: Campaign) {
+  createCampaignEvent(campaign: Campaign): BaseEvent {
     const campaignParameters: Campaign = {
       // This object definition allows undefined keys to be iterated on
       // in .reduce() to build indentify object

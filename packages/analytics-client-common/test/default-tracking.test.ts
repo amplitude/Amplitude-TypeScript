@@ -1,5 +1,7 @@
 import {
+  getAttributionTrackingConfig,
   getPageViewTrackingConfig,
+  isAttributionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isPageViewTrackingEnabled,
@@ -88,26 +90,25 @@ describe('isSessionTrackingEnabled', () => {
   });
 });
 
+describe('isAttributionTrackingEnabled', () => {
+  test('should return true with boolean parameter', () => {
+    expect(isAttributionTrackingEnabled(true)).toBe(true);
+  });
+
+  test('should return true with object parameter', () => {
+    expect(
+      isAttributionTrackingEnabled({
+        attribution: true,
+      }),
+    ).toBe(true);
+  });
+
+  test('should return false', () => {
+    expect(isAttributionTrackingEnabled(undefined)).toBe(false);
+  });
+});
+
 describe('getPageViewTrackingConfig', () => {
-  test('should return track on attribution config', () => {
-    const config = getPageViewTrackingConfig({
-      attribution: {
-        trackPageViews: true,
-      },
-    });
-
-    expect(config.trackOn).toBe('attribution');
-  });
-
-  test('should return never track config', () => {
-    const config = getPageViewTrackingConfig({});
-
-    expect(typeof config.trackOn).toBe('function');
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore asserts that track on is a function that returns a boolean
-    expect(config.trackOn()).toBe(false);
-  });
-
   test('should return always track config', () => {
     const config = getPageViewTrackingConfig({
       defaultTracking: {
@@ -142,5 +143,50 @@ describe('getPageViewTrackingConfig', () => {
     expect(config.trackOn).toBe('attribution');
     expect(config.trackHistoryChanges).toBe('all');
     expect(config.eventType).toBe('Page View');
+  });
+});
+
+describe('getAttributionTrackingConfig', () => {
+  test('should return disabled config', () => {
+    const config = getAttributionTrackingConfig({
+      defaultTracking: {
+        attribution: false,
+      },
+    });
+    expect(config).toEqual({
+      excludeReferrers: undefined,
+      initialEmptyValue: undefined,
+      resetSessionOnNewCampaign: undefined,
+    });
+  });
+
+  test('should return default config', () => {
+    const config = getAttributionTrackingConfig({
+      defaultTracking: {
+        attribution: {},
+      },
+    });
+    expect(config).toEqual({
+      excludeReferrers: undefined,
+      initialEmptyValue: undefined,
+      resetSessionOnNewCampaign: undefined,
+    });
+  });
+
+  test('should return custom config', () => {
+    const config = getAttributionTrackingConfig({
+      defaultTracking: {
+        attribution: {
+          excludeReferrers: [],
+          initialEmptyValue: 'EMPTY',
+          resetSessionOnNewCampaign: true,
+        },
+      },
+    });
+    expect(config).toEqual({
+      excludeReferrers: [],
+      initialEmptyValue: 'EMPTY',
+      resetSessionOnNewCampaign: true,
+    });
   });
 });

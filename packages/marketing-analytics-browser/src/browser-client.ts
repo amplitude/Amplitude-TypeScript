@@ -1,52 +1,21 @@
 import { createInstance as createBaseInstance } from '@amplitude/analytics-browser';
 import { returnWrapper } from '@amplitude/analytics-core';
-import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { context } from './plugins/context';
-import { Client, Options } from './typings/browser-client';
-import { BrowserOptions } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserOptions } from '@amplitude/analytics-types';
 
-export const createInstance = (): Client => {
+export const createInstance = (): BrowserClient => {
   const client = createBaseInstance();
 
-  const _init = async (options: Options & { apiKey: string }) => {
-    const { attribution, pageViewTracking, apiKey, userId, ...restOfOptions } = options;
+  const _init = async (options: BrowserOptions & { apiKey: string }) => {
+    const { apiKey, userId, ...restOfOptions } = options;
     const browserOptions: BrowserOptions = restOfOptions;
-
-    if (!attribution?.disabled) {
-      // Install web attribution plugin
-      await client.add(webAttributionPlugin(client, attribution)).promise;
-    }
-    // Transform config to disable web attribution plugin in browser SDK
-    // Browser SDK has a slightly different implementation of web attribution
-    browserOptions.attribution = {
-      disabled: true,
-    };
-
     await client.add(context()).promise;
-
-    delete browserOptions.defaultTracking;
-    if (pageViewTracking === true) {
-      browserOptions.defaultTracking = {
-        pageViews: {
-          eventType: 'Page View',
-        },
-      };
-    } else if (typeof pageViewTracking === 'object' && pageViewTracking) {
-      browserOptions.defaultTracking = {
-        pageViews: {
-          trackOn: pageViewTracking.trackOn,
-          trackHistoryChanges: pageViewTracking.trackHistoryChanges,
-          eventType: pageViewTracking.eventType || 'Page View',
-        },
-      };
-    }
-
     await client.init(options.apiKey, options.userId, browserOptions).promise;
   };
 
   return {
     ...client,
-    init: (apiKey: string, userId?: string, options: Options = {}) =>
+    init: (apiKey: string, userId?: string, options: BrowserOptions = {}) =>
       returnWrapper(
         _init({
           ...options,

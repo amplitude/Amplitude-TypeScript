@@ -9,34 +9,17 @@ import {
   PluginType,
 } from '@amplitude/analytics-types';
 import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
-import {
-  CreatePageViewTrackingPlugin,
-  CreatePageViewTrackingPluginParameters,
-  Options,
-} from './typings/page-view-tracking';
+import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
-export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
-  ...args: CreatePageViewTrackingPluginParameters
-) => {
+export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Options = {}) => {
   let amplitude: BrowserClient | undefined;
-  let options: Options = {};
   const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
 
-  const [clientOrOptions, configOrUndefined] = args;
-  if (clientOrOptions && 'init' in clientOrOptions) {
-    amplitude = clientOrOptions;
-    if (configOrUndefined) {
-      options = configOrUndefined;
-    }
-  } else if (clientOrOptions) {
-    options = clientOrOptions;
-  }
-
   const createPageViewEvent = async (): Promise<Event> => {
     return {
-      event_type: options.eventType ?? 'Page View',
+      event_type: options.eventType ?? '[Amplitude] Page Viewed',
       event_properties: {
         ...(await getCampaignParams()),
         page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
@@ -65,30 +48,14 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
   };
 
   const plugin = {
-    name: 'page-view-tracking',
+    name: '@amplitude/plugin-page-view-tracking-browser',
     type: PluginType.ENRICHMENT as const,
 
-    setup: async (config: BrowserConfig, client?: BrowserClient) => {
-      amplitude = amplitude ?? client;
-      if (!amplitude) {
-        const receivedType = clientOrOptions ? 'Options' : 'undefined';
-        config.loggerProvider.error(
-          `Argument of type '${receivedType}' is not assignable to parameter of type 'BrowserClient'.`,
-        );
-        return;
-      }
+    setup: async (config: BrowserConfig, client: BrowserClient) => {
+      amplitude = client;
 
       loggerProvider = config.loggerProvider;
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
-
-      options.trackOn = config.attribution?.trackPageViews ? 'attribution' : options.trackOn;
-
-      if (!client && config.attribution?.trackPageViews) {
-        loggerProvider.warn(
-          `@amplitude/plugin-page-view-tracking-browser overrides page view tracking behavior defined in @amplitude/analytics-browser. Resolve by disabling page view tracking in @amplitude/analytics-browser.`,
-        );
-        config.attribution.trackPageViews = false;
-      }
 
       if (options.trackHistoryChanges && globalScope) {
         /* istanbul ignore next */

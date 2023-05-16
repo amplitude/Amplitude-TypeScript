@@ -14,10 +14,8 @@ describe('browser-client', () => {
   const API_KEY = 'API_KEY';
   const USER_ID = 'USER_ID';
   const DEVICE_ID = 'DEVICE_ID';
-  const attributionConfig = {
-    attribution: {
-      disabled: true,
-    },
+  const defaultTracking = {
+    attribution: true,
   };
 
   afterEach(() => {
@@ -33,7 +31,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         disableCookies: true,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
@@ -57,7 +55,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       await client.init(undefined as any, USER_ID, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
@@ -74,7 +72,7 @@ describe('browser-client', () => {
       await client.init(API_KEY, USER_ID, {
         optOut: false,
         cookieStorage,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getSessionId()).toBe(1);
@@ -97,7 +95,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         cookieStorage,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(client.getUserId()).toBe(USER_ID);
       expect(client.getDeviceId()).toBe(DEVICE_ID);
@@ -113,13 +111,13 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await Promise.all([
         client.init(API_KEY, USER_ID, {
-          ...attributionConfig,
+          defaultTracking,
         }).promise,
         client.init(API_KEY, USER_ID, {
-          ...attributionConfig,
+          defaultTracking,
         }).promise,
         client.init(API_KEY, USER_ID, {
-          ...attributionConfig,
+          defaultTracking,
         }).promise,
       ]);
       // NOTE: `parseLegacyCookies` and `useBrowserConfig` are only called once despite multiple init calls
@@ -139,7 +137,7 @@ describe('browser-client', () => {
       await client.init(API_KEY, USER_ID, {
         optOut: true,
         cookieStorage,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
       expect(client.getUserId()).toBe(USER_ID);
@@ -152,7 +150,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         optOut: false,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       const track = jest.spyOn(client, 'track').mockReturnValueOnce({
         promise: Promise.resolve({
@@ -177,8 +175,8 @@ describe('browser-client', () => {
       const pageViewTracking = jest.spyOn(pageViewTrackingPlugin, 'pageViewTrackingPlugin');
       await client.init(API_KEY, USER_ID, {
         optOut: false,
-        ...attributionConfig,
         defaultTracking: {
+          ...defaultTracking,
           pageViews: {},
         },
       }).promise;
@@ -194,8 +192,8 @@ describe('browser-client', () => {
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
       await client.init(API_KEY, USER_ID, {
         optOut: false,
-        ...attributionConfig,
         defaultTracking: {
+          ...defaultTracking,
           fileDownloads: true,
           formInteractions: true,
         },
@@ -210,7 +208,7 @@ describe('browser-client', () => {
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
       await client.init(API_KEY, USER_ID, {
         optOut: false,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(0);
       expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
@@ -225,34 +223,8 @@ describe('browser-client', () => {
       const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
       await client.init(API_KEY, USER_ID, {
         optOut: false,
-        attribution: {},
-        sessionId: Date.now(),
-        transportProvider: {
-          send: async () => ({
-            status: Status.Success,
-            statusCode: 200,
-            body: {
-              eventsIngested: 0,
-              payloadSizeBytes: 0,
-              serverUploadTime: 0,
-            },
-          }),
-        },
-      }).promise;
-      expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
-    });
-
-    test('should add web attribution tracking plugin with new campaign config', async () => {
-      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
-        optOut: false,
-        lastEventTime: Date.now(),
-      });
-      const client = new AmplitudeBrowser();
-      const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
-      await client.init(API_KEY, USER_ID, {
-        optOut: false,
-        attribution: {
-          trackNewCampaigns: true,
+        defaultTracking: {
+          attribution: {},
         },
         sessionId: Date.now(),
         transportProvider: {
@@ -275,7 +247,7 @@ describe('browser-client', () => {
     test('should get user id', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(client.getUserId()).toBe(USER_ID);
     });
@@ -290,7 +262,7 @@ describe('browser-client', () => {
     test('should set user id', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(client.getUserId()).toBe(undefined);
       client.setUserId(USER_ID);
@@ -301,7 +273,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       const setSessionId = jest.spyOn(client, 'setSessionId');
       await client.init(API_KEY, USER_ID, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
 
       // Reset mock to isolate mock for `setUserId(...)` call
@@ -335,9 +307,9 @@ describe('browser-client', () => {
       await client.init(API_KEY, USER_ID, {
         sessionTimeout: 5000,
         defaultTracking: {
+          ...defaultTracking,
           sessions: true,
         },
-        ...attributionConfig,
       }).promise;
 
       // Reset mock to isolate mock for `track(...)` call
@@ -355,7 +327,7 @@ describe('browser-client', () => {
         const client = new AmplitudeBrowser();
         void client
           .init(API_KEY, undefined, {
-            ...attributionConfig,
+            defaultTracking,
           })
           .promise.then(() => {
             expect(client.getUserId()).toBe('user@amplitude.com');
@@ -368,7 +340,7 @@ describe('browser-client', () => {
     test('should be able to unset user id to undefined', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
-        ...attributionConfig,
+        defaultTracking,
         deviceId: DEVICE_ID,
       }).promise;
       expect(client.getUserId()).toBe(USER_ID);
@@ -382,7 +354,7 @@ describe('browser-client', () => {
     test('should be able to unset user id to undefined after setUserId()', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
-        ...attributionConfig,
+        defaultTracking,
         deviceId: DEVICE_ID,
       }).promise;
       expect(client.getUserId()).toBe(undefined);
@@ -403,7 +375,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         deviceId: DEVICE_ID,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(client.getDeviceId()).toBe(DEVICE_ID);
     });
@@ -418,7 +390,7 @@ describe('browser-client', () => {
     test('should set device id config', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       client.setDeviceId(DEVICE_ID);
       expect(client.getDeviceId()).toBe(DEVICE_ID);
@@ -429,7 +401,7 @@ describe('browser-client', () => {
         const client = new AmplitudeBrowser();
         void client
           .init(API_KEY, undefined, {
-            ...attributionConfig,
+            defaultTracking,
           })
           .promise.then(() => {
             expect(client.getDeviceId()).toBe('asdfg');
@@ -444,7 +416,7 @@ describe('browser-client', () => {
     test('should reset user id and generate new device id config', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       client.setUserId(USER_ID);
       client.setDeviceId(DEVICE_ID);
@@ -461,7 +433,7 @@ describe('browser-client', () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
         sessionId: 1,
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       expect(client.getSessionId()).toBe(1);
     });
@@ -476,7 +448,7 @@ describe('browser-client', () => {
     test('should set session id', async () => {
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
@@ -497,9 +469,9 @@ describe('browser-client', () => {
       await client.init(API_KEY, undefined, {
         sessionId: 1,
         defaultTracking: {
+          ...defaultTracking,
           sessions: true,
         },
-        ...attributionConfig,
       }).promise;
       client.setSessionId(2);
       expect(client.getSessionId()).toBe(2);
@@ -526,9 +498,9 @@ describe('browser-client', () => {
       await client.init(API_KEY, undefined, {
         sessionTimeout: 5000,
         defaultTracking: {
+          ...defaultTracking,
           sessions: true,
         },
-        ...attributionConfig,
       }).promise;
       client.setSessionId(2);
       expect(client.getSessionId()).toBe(2);
@@ -540,7 +512,7 @@ describe('browser-client', () => {
         const client = new AmplitudeBrowser();
         void client
           .init(API_KEY, undefined, {
-            ...attributionConfig,
+            defaultTracking,
           })
           .promise.then(() => {
             expect(client.getSessionId()).toBe(1);
@@ -557,7 +529,7 @@ describe('browser-client', () => {
       const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       client.setTransport(TransportType.Fetch);
       expect(createTransport).toHaveBeenCalledTimes(2);
@@ -570,7 +542,7 @@ describe('browser-client', () => {
         const client = new AmplitudeBrowser();
         void client
           .init(API_KEY, undefined, {
-            ...attributionConfig,
+            defaultTracking,
           })
           .promise.then(() => {
             expect(createTransport).toHaveBeenCalledTimes(2);
@@ -597,7 +569,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       const identifyObject = new core.Identify();
       const result = await client.identify(identifyObject, { user_id: '123', device_id: '123' }).promise;
@@ -623,7 +595,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       const identifyObject = {
         _q: [],
@@ -653,7 +625,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       const identifyObject = new core.Identify();
       const result = await client.groupIdentify('g', '1', identifyObject).promise;
@@ -679,7 +651,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       const identifyObject = {
         _q: [],
@@ -709,7 +681,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       const revenueObject = new core.Revenue();
       const result = await client.revenue(revenueObject).promise;
@@ -735,7 +707,7 @@ describe('browser-client', () => {
         transportProvider: {
           send,
         },
-        ...attributionConfig,
+        defaultTracking,
       }).promise;
       const revenueObject = {
         _q: [],

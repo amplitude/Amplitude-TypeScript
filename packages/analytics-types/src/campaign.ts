@@ -1,5 +1,5 @@
 import { BaseEvent } from './base-event';
-import { AttributionOptions } from './config';
+import { ReactNativeAttributionOptions } from './config';
 import { Storage } from './storage';
 
 export interface UTMParameters {
@@ -40,7 +40,7 @@ export interface CampaignParser {
   parse(): Promise<Campaign>;
 }
 
-export interface CampaignTrackerOptions extends AttributionOptions {
+export interface CampaignTrackerOptions extends ReactNativeAttributionOptions {
   storage: Storage<Campaign>;
   track: CampaignTrackFunction;
   onNewCampaign: (campaign: Campaign) => unknown;
