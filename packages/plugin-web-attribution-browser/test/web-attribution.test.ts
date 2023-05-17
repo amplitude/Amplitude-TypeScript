@@ -1,157 +1,44 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { BASE_CAMPAIGN, CampaignParser } from '@amplitude/analytics-client-common';
+import { BASE_CAMPAIGN, CampaignParser, CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { webAttributionPlugin } from '../src/web-attribution';
 import * as helpers from '../src/helpers';
-import { BrowserConfig, Logger } from '@amplitude/analytics-types';
-import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
+import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import { Logger, UUID } from '@amplitude/analytics-core';
 
 describe('webAttributionPlugin', () => {
-  const API_KEY = 'API_KEY';
-  const USER_ID = 'USER_ID';
+  const mockConfig: BrowserConfig = {
+    apiKey: UUID(),
+    flushIntervalMillis: 0,
+    flushMaxRetries: 0,
+    flushQueueSize: 0,
+    logLevel: LogLevel.None,
+    loggerProvider: new Logger(),
+    optOut: false,
+    serverUrl: undefined,
+    transportProvider: new FetchTransport(),
+    useBatch: false,
+
+    cookieExpiration: 365,
+    cookieSameSite: 'Lax',
+    cookieSecure: false,
+    cookieStorage: new CookieStorage(),
+    cookieUpgrade: true,
+    disableCookies: false,
+    domain: '.amplitude.com',
+    sessionTimeout: 30 * 60 * 1000,
+    trackingOptions: {
+      ipAddress: true,
+      language: true,
+      platform: true,
+    },
+  };
 
   describe('setup', () => {
-    let instance = createInstance();
-
-    beforeEach(async () => {
-      instance = createInstance();
-      await instance.init(API_KEY, USER_ID, {
-        attribution: {
-          disabled: true,
-        },
-      }).promise;
-    });
-
-    test('should handle expected BrowserClient, but got Options', async () => {
-      const track = jest.spyOn(instance, 'track');
-      const loggerProvider: Partial<Logger> = {
-        error: jest.fn(),
-      };
-      const config: Partial<Config> = {
-        loggerProvider: loggerProvider as Logger,
-      };
-
-      const plugin = webAttributionPlugin({
-        excludeReferrers: [],
-      });
-      await plugin.setup(config as Config);
-
-      expect(track).toHaveBeenCalledTimes(0);
-      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.error).toHaveBeenCalledWith(
-        `Argument of type 'Options' is not assignable to parameter of type 'BrowserClient'.`,
-      );
-    });
-
-    test('should handle expected BrowserClient, but got undefined', async () => {
-      const track = jest.spyOn(instance, 'track');
-      const loggerProvider: Partial<Logger> = {
-        error: jest.fn(),
-      };
-      const config: Partial<Config> = {
-        loggerProvider: loggerProvider as Logger,
-      };
-
-      const plugin = webAttributionPlugin();
-      await plugin.setup(config as Config);
-
-      expect(track).toHaveBeenCalledTimes(0);
-      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.error).toHaveBeenCalledWith(
-        `Argument of type 'undefined' is not assignable to parameter of type 'BrowserClient'.`,
-      );
-    });
-
-    test('should handle disabled plugin', async () => {
-      const track = jest.spyOn(instance, 'track');
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-      };
-      const config: Partial<Config> = {
-        loggerProvider: loggerProvider as Logger,
-      };
-
-      const plugin = webAttributionPlugin({
-        disabled: true,
-      });
-      await plugin.setup(config as Config, instance);
-
-      expect(track).toHaveBeenCalledTimes(0);
-      expect(loggerProvider.log).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.log).toHaveBeenCalledWith(
-        `@amplitude/plugin-web-attribution-browser is disabled. Attribution is not tracked.`,
-      );
-    });
-
-    test.each([undefined, { disabled: false }])(
-      'should handle overlapping behavior from core and plugin',
-      async (attribution) => {
-        const track = jest.spyOn(instance, 'track');
-        const loggerProvider: Partial<Logger> = {
-          warn: jest.fn(),
-          log: jest.fn(),
-        };
-        const config: Partial<BrowserConfig> = {
-          apiKey: UUID(),
-          loggerProvider: loggerProvider as Logger,
-          cookieStorage: new MemoryStorage(),
-          attribution,
-        };
-
-        const plugin = webAttributionPlugin(instance);
-        await plugin.setup(config as Config);
-
-        expect(track).toHaveBeenCalledTimes(1);
-        expect(loggerProvider.log).toHaveBeenCalledTimes(2);
-        expect(loggerProvider.log).toHaveBeenCalledWith(`Installing @amplitude/plugin-web-attribution-browser.`);
-        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-        expect(loggerProvider.warn).toHaveBeenCalledWith(
-          `@amplitude/plugin-web-attribution-browser overrides web attribution behavior defined in @amplitude/analytics-browser. Resolve by disabling web attribution tracking in @amplitude/analytics-browser.`,
-        );
-      },
-    );
-
-    test('internal: should force not to track', async () => {
-      const track = jest.spyOn(instance, 'track');
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        apiKey: UUID(),
-        loggerProvider: loggerProvider as Logger,
-        cookieStorage: new MemoryStorage(),
-      };
-
-      const plugin = webAttributionPlugin();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (plugin as any).__pluginEnabledOverride = false;
-      await plugin.setup(config as Config, instance);
-
-      expect(track).toHaveBeenCalledTimes(0);
-    });
-
-    test('internal: should force to track', async () => {
-      const track = jest.spyOn(instance, 'track');
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        apiKey: UUID(),
-        loggerProvider: loggerProvider as Logger,
-        cookieStorage: new MemoryStorage(),
-      };
-
-      const plugin = webAttributionPlugin();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (plugin as any).__pluginEnabledOverride = true;
-      await plugin.setup(config as Config, instance);
-
-      expect(track).toHaveBeenCalledTimes(1);
-    });
-
     describe('should send an identify event', () => {
       test('when a campaign changes', async () => {
-        const instance = createInstance();
-        const track = jest.spyOn(instance, 'track').mockReturnValueOnce({
+        const amplitude = createInstance();
+        const setSessionId = jest.spyOn(amplitude, 'setSessionId');
+        const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
           promise: Promise.resolve({
             code: 200,
             message: '',
@@ -160,23 +47,14 @@ describe('webAttributionPlugin', () => {
             },
           }),
         });
-
         jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
         jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
           ...BASE_CAMPAIGN,
           utm_source: 'amp-test',
         });
 
-        await instance.add(webAttributionPlugin(instance)).promise;
-
-        await instance.init(API_KEY, USER_ID, {
-          attribution: {
-            disabled: true,
-          },
-        }).promise;
-
-        const sessionId = instance.getSessionId();
-
+        const plugin = webAttributionPlugin();
+        await plugin.setup(mockConfig, amplitude);
         expect(track).toHaveBeenCalledWith({
           event_type: '$identify',
           user_properties: {
@@ -227,12 +105,13 @@ describe('webAttributionPlugin', () => {
           },
         });
         expect(track).toHaveBeenCalledTimes(1);
-        expect(sessionId).toBe(sessionId);
+        expect(setSessionId).toHaveBeenCalledTimes(0);
       });
 
       test('when a campaign changes and reset session id', async () => {
-        const instance = createInstance();
-        const track = jest.spyOn(instance, 'track').mockReturnValueOnce({
+        const amplitude = createInstance();
+        const setSessionId = jest.spyOn(amplitude, 'setSessionId');
+        const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
           promise: Promise.resolve({
             code: 200,
             message: '',
@@ -241,27 +120,16 @@ describe('webAttributionPlugin', () => {
             },
           }),
         });
-
         jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
         jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
           ...BASE_CAMPAIGN,
           utm_source: 'amp-test',
         });
 
-        const sessionId = instance.getSessionId();
-
-        await instance.add(
-          webAttributionPlugin(instance, {
-            resetSessionOnNewCampaign: true,
-          }),
-        ).promise;
-
-        await instance.init(API_KEY, USER_ID, {
-          attribution: {
-            disabled: true,
-          },
-        }).promise;
-
+        const plugin = webAttributionPlugin({
+          resetSessionOnNewCampaign: true,
+        });
+        await plugin.setup(mockConfig, amplitude);
         expect(track).toHaveBeenCalledWith({
           event_type: '$identify',
           user_properties: {
@@ -312,14 +180,14 @@ describe('webAttributionPlugin', () => {
           },
         });
         expect(track).toHaveBeenCalledTimes(1);
-        expect(instance.getSessionId()).not.toBe(sessionId);
+        expect(setSessionId).toHaveBeenCalledTimes(1);
       });
     });
 
     describe('should not send an identify event', () => {
       test('when a campaign does not change', async () => {
-        const instance = createInstance();
-        const track = jest.spyOn(instance, 'track').mockReturnValueOnce({
+        const amplitude = createInstance();
+        const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
           promise: Promise.resolve({
             code: 200,
             message: '',
@@ -328,45 +196,29 @@ describe('webAttributionPlugin', () => {
             },
           }),
         });
-
         jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(false);
         jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
           ...BASE_CAMPAIGN,
           utm_source: 'amp-test',
         });
 
-        await instance.add(webAttributionPlugin(instance)).promise;
-
-        const loggerProvider = {
-          enable: jest.fn(),
-          disable: jest.fn(),
-          log: jest.fn(),
-          warn: jest.fn(),
-          error: jest.fn(),
-          debug: jest.fn(),
-        };
-
-        await instance.init(API_KEY, USER_ID, {
-          loggerProvider,
-        }).promise;
-
+        const plugin = webAttributionPlugin({
+          excludeReferrers: [],
+        });
+        await plugin.setup(mockConfig, amplitude);
         expect(track).toHaveBeenCalledTimes(0);
-        expect(loggerProvider.warn).toHaveBeenCalledTimes(0);
       });
     });
   });
 
   describe('execute', () => {
     test('should return same event', async () => {
-      const instance = createInstance();
-
       jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
       jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
         ...BASE_CAMPAIGN,
         utm_source: 'amp-test',
       });
-
-      const plugin = webAttributionPlugin(instance, {});
+      const plugin = webAttributionPlugin({});
       const event = {
         event_properties: {
           page_location: '',

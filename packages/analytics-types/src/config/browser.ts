@@ -6,7 +6,6 @@ import { PageTrackingOptions } from '../page-view-tracking';
 
 export interface BrowserConfig extends Config {
   appVersion?: string;
-  attribution?: AttributionOptions;
   defaultTracking?: boolean | DefaultTrackingOptions;
   deviceId?: string;
   cookieExpiration: number;
@@ -26,6 +25,7 @@ export interface BrowserConfig extends Config {
 }
 
 export interface DefaultTrackingOptions {
+  attribution?: boolean | AttributionOptions;
   fileDownloads?: boolean;
   formInteractions?: boolean;
   pageViews?: boolean | PageTrackingOptions;
@@ -39,12 +39,9 @@ export interface TrackingOptions {
 }
 
 export interface AttributionOptions {
-  disabled?: boolean;
   excludeReferrers?: string[];
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
-  trackNewCampaigns?: boolean;
-  trackPageViews?: boolean;
 }
 
 export interface BrowserOptions extends Omit<Partial<BrowserConfig>, 'apiKey'> {

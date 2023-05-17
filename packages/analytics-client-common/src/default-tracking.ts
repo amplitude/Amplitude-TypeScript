@@ -57,25 +57,10 @@ export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions
   return false;
 };
 
-/**
- * Returns page view tracking config
- *
- * if config.attribution.trackPageViews and config.defaultTracking.pageViews are both TRUE
- * then always track page views
- *
- * if config.attribution.trackPageViews is TRUE and config.defaultTracking.pageViews is FALSE
- * then only track page views on attribution
- *
- * if config.attribution.trackPageViews is FALSE and config.defaultTracking.pageViews is TRUE
- * then always track page views
- *
- * if config.attribution.trackPageViews and config.defaultTracking.pageViews are both FALSE
- * then never track page views
- */
 export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingOptions => {
-  let trackOn: PageTrackingTrackOn | undefined = config.attribution?.trackPageViews ? 'attribution' : () => false;
+  let trackOn: PageTrackingTrackOn | undefined = () => false;
   let trackHistoryChanges: PageTrackingHistoryChanges | undefined = undefined;
-  let eventType: string | undefined = 'Page View';
+  let eventType: string | undefined;
 
   const isDefaultPageViewTrackingEnabled = isPageViewTrackingEnabled(config.defaultTracking);
   if (isDefaultPageViewTrackingEnabled) {
@@ -106,5 +91,47 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
     trackOn,
     trackHistoryChanges,
     eventType,
+  };
+};
+
+export const isAttributionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
+  if (typeof defaultTracking === 'boolean') {
+    return defaultTracking;
+  }
+
+  if (defaultTracking?.attribution) {
+    return true;
+  }
+
+  return false;
+};
+
+export const getAttributionTrackingConfig = (
+  config: BrowserOptions,
+): {
+  excludeReferrers?: string[];
+  initialEmptyValue?: string;
+  resetSessionOnNewCampaign?: boolean;
+} => {
+  let excludeReferrers: string[] | undefined;
+  let initialEmptyValue: string | undefined;
+  let resetSessionOnNewCampaign: boolean | undefined;
+
+  if (
+    isAttributionTrackingEnabled(config.defaultTracking) &&
+    config.defaultTracking &&
+    typeof config.defaultTracking === 'object' &&
+    config.defaultTracking.attribution &&
+    typeof config.defaultTracking.attribution === 'object'
+  ) {
+    excludeReferrers = config.defaultTracking.attribution.excludeReferrers;
+    initialEmptyValue = config.defaultTracking.attribution.initialEmptyValue;
+    resetSessionOnNewCampaign = config.defaultTracking.attribution.resetSessionOnNewCampaign;
+  }
+
+  return {
+    excludeReferrers,
+    initialEmptyValue,
+    resetSessionOnNewCampaign,
   };
 };

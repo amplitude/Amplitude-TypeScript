@@ -11,6 +11,8 @@ export { BASE_CAMPAIGN } from './attribution/constants';
 export { getGlobalScope } from './global-scope';
 export {
   getPageViewTrackingConfig,
+  getAttributionTrackingConfig,
+  isAttributionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isPageViewTrackingEnabled,

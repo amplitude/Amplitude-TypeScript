@@ -1,6 +1,7 @@
 import { createInstance } from '../src';
 import { default as nock } from 'nock';
 import 'isomorphic-fetch';
+import { UUID } from '@amplitude/analytics-core';
 
 const setCookie = (key: string, value: Record<string, string | number | boolean>) => {
   document.cookie = `${key}=${btoa(encodeURIComponent(JSON.stringify(value)))}`;
@@ -11,6 +12,7 @@ const unsetCookie = (key: string) => {
 };
 
 describe('e2e', () => {
+  let apiKey = '';
   const url = 'https://api2.amplitude.com';
   const path = '/2/httpapi';
   const success = {
@@ -24,12 +26,13 @@ describe('e2e', () => {
   const expectNumber = expect.any(Number) as number;
 
   beforeEach(() => {
-    unsetCookie('AMP_API_KEY');
-    unsetCookie('AMP_MKTG_API_KEY');
+    apiKey = UUID();
+    unsetCookie(`AMP_${apiKey}`);
+    unsetCookie(`AMP_MKTG_${apiKey}`);
   });
 
   test('should track attribution', () => {
-    setCookie('AMP_MKTG_API_KEY', {
+    setCookie(`AMP_MKTG_${apiKey}`, {
       utm_campaign: '123',
     });
 
@@ -42,12 +45,16 @@ describe('e2e', () => {
       .reply(200, success);
 
     const client = createInstance();
-    client.init('API_KEY');
+    client.init(apiKey, undefined, {
+      defaultTracking: {
+        attribution: true,
+      },
+    });
 
     return new Promise<void>((resolve) => {
       scope.on('replied', () => {
         expect(requestBody).toEqual({
-          api_key: 'API_KEY',
+          api_key: apiKey,
           events: [
             {
               device_id: expectString,
@@ -116,7 +123,7 @@ describe('e2e', () => {
   });
 
   test('should track page view on attribution', () => {
-    setCookie('AMP_MKTG_API_KEY', {
+    setCookie(`AMP_MKTG_${apiKey}`, {
       utm_campaign: '123',
     });
 
@@ -129,28 +136,31 @@ describe('e2e', () => {
       .reply(200, success);
 
     const client = createInstance();
-    client.init('API_KEY', undefined, {
-      pageViewTracking: {
-        trackOn: 'attribution',
+    client.init(apiKey, undefined, {
+      defaultTracking: {
+        attribution: true,
+        pageViews: {
+          trackOn: 'attribution',
+        },
       },
     });
 
     return new Promise<void>((resolve) => {
       scope.on('replied', () => {
         expect(requestBody).toEqual({
-          api_key: 'API_KEY',
+          api_key: apiKey,
           events: [
             {
               device_id: expectString,
               event_id: 0,
               event_properties: {
-                page_domain: 'localhost',
-                page_location: 'http://localhost/',
-                page_path: '/',
-                page_title: '',
-                page_url: 'http://localhost/',
+                '[Amplitude] Page Domain': 'localhost',
+                '[Amplitude] Page Location': 'http://localhost/',
+                '[Amplitude] Page Path': '/',
+                '[Amplitude] Page Title': '',
+                '[Amplitude] Page URL': 'http://localhost/',
               },
-              event_type: 'Page View',
+              event_type: '[Amplitude] Page Viewed',
               insert_id: expectString,
               ip: '$remote',
               language: 'en-US',
@@ -214,7 +224,7 @@ describe('e2e', () => {
   });
 
   test('should track page view on load', () => {
-    setCookie('AMP_MKTG_API_KEY', {
+    setCookie(`AMP_MKTG_${apiKey}`, {
       utm_campaign: '123',
     });
 
@@ -227,29 +237,29 @@ describe('e2e', () => {
       .reply(200, success);
 
     const client = createInstance();
-    client.init('API_KEY', undefined, {
-      attribution: {
-        disabled: true,
+    client.init(apiKey, undefined, {
+      defaultTracking: {
+        attribution: false,
+        pageViews: true,
       },
-      pageViewTracking: true,
     });
 
     return new Promise<void>((resolve) => {
       scope.on('replied', () => {
         expect(requestBody).toEqual({
-          api_key: 'API_KEY',
+          api_key: apiKey,
           events: [
             {
               device_id: expectString,
               event_id: 0,
               event_properties: {
-                page_domain: 'localhost',
-                page_location: 'http://localhost/',
-                page_path: '/',
-                page_title: '',
-                page_url: 'http://localhost/',
+                '[Amplitude] Page Domain': 'localhost',
+                '[Amplitude] Page Location': 'http://localhost/',
+                '[Amplitude] Page Path': '/',
+                '[Amplitude] Page Title': '',
+                '[Amplitude] Page URL': 'http://localhost/',
               },
-              event_type: 'Page View',
+              event_type: '[Amplitude] Page Viewed',
               insert_id: expectString,
               ip: '$remote',
               language: 'en-US',
@@ -269,7 +279,7 @@ describe('e2e', () => {
   });
 
   test('should track attribution and page view on load (separately)', () => {
-    setCookie('AMP_MKTG_API_KEY', {
+    setCookie(`AMP_MKTG_${apiKey}`, {
       utm_campaign: '123',
     });
 
@@ -282,14 +292,17 @@ describe('e2e', () => {
       .reply(200, success);
 
     const client = createInstance();
-    client.init('API_KEY', undefined, {
-      pageViewTracking: true,
+    client.init(apiKey, undefined, {
+      defaultTracking: {
+        attribution: true,
+        pageViews: true,
+      },
     });
 
     return new Promise<void>((resolve) => {
       scope.on('replied', () => {
         expect(requestBody).toEqual({
-          api_key: 'API_KEY',
+          api_key: apiKey,
           events: [
             // NOTE: We want `$identify` event first, before `Page View` event
             {
@@ -354,13 +367,13 @@ describe('e2e', () => {
               device_id: expectString,
               event_id: 1,
               event_properties: {
-                page_domain: 'localhost',
-                page_location: 'http://localhost/',
-                page_path: '/',
-                page_title: '',
-                page_url: 'http://localhost/',
+                '[Amplitude] Page Domain': 'localhost',
+                '[Amplitude] Page Location': 'http://localhost/',
+                '[Amplitude] Page Path': '/',
+                '[Amplitude] Page Title': '',
+                '[Amplitude] Page URL': 'http://localhost/',
               },
-              event_type: 'Page View',
+              event_type: '[Amplitude] Page Viewed',
               insert_id: expectString,
               ip: '$remote',
               language: 'en-US',

@@ -6,6 +6,10 @@ import { success } from './responses';
 import 'isomorphic-fetch';
 
 describe('Storage options', () => {
+  const defaultTracking = {
+    attribution: false,
+  };
+
   afterEach(() => {
     // clean up storage
     document.cookie = 'AMP_API_KEY=null; expires=1 Jan 1970 00:00:00 GMT';
@@ -17,9 +21,7 @@ describe('Storage options', () => {
 
     const amplitude = createInstance();
     await amplitude.init('API_KEY', undefined, {
-      attribution: {
-        disabled: true,
-      },
+      defaultTracking,
     }).promise;
 
     await amplitude.track('Event').promise;
@@ -43,9 +45,7 @@ describe('Storage options', () => {
 
     const amplitude = createInstance();
     await amplitude.init('API_KEY', undefined, {
-      attribution: {
-        disabled: true,
-      },
+      defaultTracking,
       disableCookies: true,
     }).promise;
 
@@ -72,9 +72,7 @@ describe('Storage options', () => {
 
     const amplitude = createInstance();
     await amplitude.init('API_KEY', undefined, {
-      attribution: {
-        disabled: true,
-      },
+      defaultTracking,
       cookieStorage: new MemoryStorage(),
       storageProvider: new MemoryStorage(),
     }).promise;

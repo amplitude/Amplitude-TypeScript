@@ -76,8 +76,8 @@ This plugin tracks page views based on your configuration. A page view event is 
 
 |Property|Description|
 |-|-|
-|`page_domain`|The website's hostname or `location.hostname`|
-|`page_location`|The website's full url or `location.href`|
-|`page_path`|The website's pathname or `location.pathname`|
-|`page_title`|The website's title or `document.title`|
-|`page_url`|The website's url excluding query parameters|
+|`'[Amplitude] Page Domain'`|The website's hostname or `location.hostname`|
+|`'[Amplitude] Page Location'`|The website's full url or `location.href`|
+|`'[Amplitude] Page Path'`|The website's pathname or `location.pathname`|
+|`'[Amplitude] Page Title'`|The website's title or `document.title`|
+|`'[Amplitude] Page URL'`|The website's url excluding query parameters|
