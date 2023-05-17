@@ -124,17 +124,9 @@ export const getAttributionTrackingConfig = (
     config.defaultTracking.attribution &&
     typeof config.defaultTracking.attribution === 'object'
   ) {
-    if ('excludeReferrers' in config.defaultTracking.attribution) {
-      excludeReferrers = config.defaultTracking.attribution.excludeReferrers;
-    }
-
-    if ('initialEmptyValue' in config.defaultTracking.attribution) {
-      initialEmptyValue = config.defaultTracking.attribution.initialEmptyValue;
-    }
-
-    if ('resetSessionOnNewCampaign' in config.defaultTracking.attribution) {
-      resetSessionOnNewCampaign = config.defaultTracking.attribution.resetSessionOnNewCampaign;
-    }
+    excludeReferrers = config.defaultTracking.attribution.excludeReferrers;
+    initialEmptyValue = config.defaultTracking.attribution.initialEmptyValue;
+    resetSessionOnNewCampaign = config.defaultTracking.attribution.resetSessionOnNewCampaign;
   }
 
   return {

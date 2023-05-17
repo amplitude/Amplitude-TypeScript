@@ -129,11 +129,11 @@ describe('pageViewTrackingPlugin', () => {
         await plugin.setup(mockConfig, amplitude);
         expect(track).toHaveBeenCalledWith({
           event_properties: {
-            page_domain: '',
-            page_location: '',
-            page_path: '',
-            page_title: '',
-            page_url: '',
+            '[Amplitude] Page Domain': '',
+            '[Amplitude] Page Location': '',
+            '[Amplitude] Page Path': '',
+            '[Amplitude] Page Title': '',
+            '[Amplitude] Page URL': '',
           },
           event_type: 'Page Viewed',
         });
@@ -157,11 +157,11 @@ describe('pageViewTrackingPlugin', () => {
         await plugin.setup(mockConfig, amplitude);
         expect(track).toHaveBeenCalledWith({
           event_properties: {
-            page_domain: '',
-            page_location: '',
-            page_path: '',
-            page_title: '',
-            page_url: '',
+            '[Amplitude] Page Domain': '',
+            '[Amplitude] Page Location': '',
+            '[Amplitude] Page Path': '',
+            '[Amplitude] Page Title': '',
+            '[Amplitude] Page URL': '',
           },
           event_type: '[Amplitude] Page Viewed',
         });
@@ -212,11 +212,11 @@ describe('pageViewTrackingPlugin', () => {
       await plugin.setup(mockConfig, amplitude);
       expect(track).toHaveBeenCalledWith({
         event_properties: {
-          page_domain: hostname,
-          page_location: url.toString(),
-          page_path: pathname,
-          page_title: '',
-          page_url: `https://${hostname}${pathname}`,
+          '[Amplitude] Page Domain': hostname,
+          '[Amplitude] Page Location': url.toString(),
+          '[Amplitude] Page Path': pathname,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': `https://${hostname}${pathname}`,
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -248,11 +248,11 @@ describe('pageViewTrackingPlugin', () => {
 
       expect(track).toHaveBeenCalledWith({
         event_properties: {
-          page_domain: '',
-          page_location: '',
-          page_path: '',
-          page_title: '',
-          page_url: '',
+          '[Amplitude] Page Domain': '',
+          '[Amplitude] Page Location': '',
+          '[Amplitude] Page Path': '',
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': '',
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -265,11 +265,11 @@ describe('pageViewTrackingPlugin', () => {
 
       expect(track).toHaveBeenCalledWith({
         event_properties: {
-          page_domain: mockURL.hostname,
-          page_location: mockURL.toString(),
-          page_path: mockURL.pathname,
-          page_title: '',
-          page_url: mockURL.toString(),
+          '[Amplitude] Page Domain': mockURL.hostname,
+          '[Amplitude] Page Location': mockURL.toString(),
+          '[Amplitude] Page Path': mockURL.pathname,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': mockURL.toString(),
         },
         event_type: '[Amplitude] Page Viewed',
       });

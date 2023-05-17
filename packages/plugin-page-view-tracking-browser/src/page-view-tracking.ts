@@ -22,11 +22,15 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       event_type: options.eventType ?? '[Amplitude] Page Viewed',
       event_properties: {
         ...(await getCampaignParams()),
-        page_domain: /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-        page_location: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
-        page_path: /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
-        page_title: /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-        page_url: /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
+        '[Amplitude] Page Domain':
+          /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+        '[Amplitude] Page Location':
+          /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
+        '[Amplitude] Page Path':
+          /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
+        '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+        '[Amplitude] Page URL':
+          /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
       },
     };
   };
