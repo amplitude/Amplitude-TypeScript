@@ -10,16 +10,28 @@ import * as formInteractionTracking from '../src/plugins/form-interaction-tracki
 import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
 
 describe('browser-client', () => {
-  const API_KEY = 'API_KEY';
-  const USER_ID = 'USER_ID';
-  const DEVICE_ID = 'DEVICE_ID';
+  let apiKey = '';
+  let userId = '';
+  let deviceId = '';
+  let client = new AmplitudeBrowser();
   const defaultTracking = {
-    attribution: true,
+    attribution: false,
+    fileDownloadTracking: false,
+    formInteractionTracking: false,
+    pageViews: false,
+    sessions: false,
   };
+
+  beforeEach(() => {
+    client = new AmplitudeBrowser();
+    apiKey = core.UUID();
+    userId = core.UUID();
+    deviceId = core.UUID();
+  });
 
   afterEach(() => {
     // clean up cookies
-    document.cookie = 'AMP_API_KEY=null; expires=-1';
+    document.cookie = 'AMP_apiKey=null; expires=-1';
   });
 
   describe('init', () => {
@@ -27,8 +39,7 @@ describe('browser-client', () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
       });
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         disableCookies: true,
         defaultTracking,
       }).promise;
@@ -40,9 +51,9 @@ describe('browser-client', () => {
         optOut: false,
         lastEventTime: Date.now(),
       });
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         sessionId: Date.now(),
+        defaultTracking,
       }).promise;
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
@@ -51,9 +62,8 @@ describe('browser-client', () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
       });
-      const client = new AmplitudeBrowser();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      await client.init(undefined as any, USER_ID, {
+      await client.init(undefined as any, userId, {
         defaultTracking,
       }).promise;
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
@@ -62,18 +72,17 @@ describe('browser-client', () => {
     test('should init from legacy cookies config', async () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
-        deviceId: DEVICE_ID,
+        deviceId,
         sessionId: 1,
         lastEventTime: Date.now() - 1000,
       });
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         optOut: false,
         cookieStorage,
         defaultTracking,
       }).promise;
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getDeviceId()).toBe(deviceId);
       expect(client.getSessionId()).toBe(1);
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
@@ -86,18 +95,17 @@ describe('browser-client', () => {
       jest.spyOn(cookieStorage, 'set').mockResolvedValue(undefined);
       jest.spyOn(cookieStorage, 'get').mockResolvedValue({
         sessionId: 1,
-        deviceId: DEVICE_ID,
+        deviceId,
         optOut: false,
         lastEventTime: Date.now(),
-        userId: USER_ID,
+        userId: userId,
       });
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
         cookieStorage,
         defaultTracking,
       }).promise;
-      expect(client.getUserId()).toBe(USER_ID);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getUserId()).toBe(userId);
+      expect(client.getDeviceId()).toBe(deviceId);
       expect(client.getSessionId()).toBe(1);
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
@@ -107,17 +115,10 @@ describe('browser-client', () => {
         optOut: false,
       });
       const useBrowserConfig = jest.spyOn(Config, 'useBrowserConfig');
-      const client = new AmplitudeBrowser();
       await Promise.all([
-        client.init(API_KEY, USER_ID, {
-          defaultTracking,
-        }).promise,
-        client.init(API_KEY, USER_ID, {
-          defaultTracking,
-        }).promise,
-        client.init(API_KEY, USER_ID, {
-          defaultTracking,
-        }).promise,
+        client.init(apiKey, userId, { defaultTracking }).promise,
+        client.init(apiKey, userId, { defaultTracking }).promise,
+        client.init(apiKey, userId, { defaultTracking }).promise,
       ]);
       // NOTE: `parseLegacyCookies` and `useBrowserConfig` are only called once despite multiple init calls
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
@@ -129,25 +130,23 @@ describe('browser-client', () => {
       jest.spyOn(cookieStorage, 'set').mockResolvedValue(undefined);
       jest.spyOn(cookieStorage, 'get').mockResolvedValueOnce(undefined).mockResolvedValue({
         sessionId: 1,
-        deviceId: DEVICE_ID,
+        deviceId,
         optOut: false,
       });
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         optOut: true,
         cookieStorage,
         defaultTracking,
       }).promise;
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
-      expect(client.getUserId()).toBe(USER_ID);
+      expect(client.getDeviceId()).toBe(deviceId);
+      expect(client.getUserId()).toBe(userId);
       const identity = getAnalyticsConnector().identityStore.getIdentity();
-      expect(identity.deviceId).toBe(DEVICE_ID);
-      expect(identity.userId).toBe(USER_ID);
+      expect(identity.deviceId).toBe(deviceId);
+      expect(identity.userId).toBe(userId);
     });
 
     test('should set up event bridge and track events', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         optOut: false,
         defaultTracking,
       }).promise;
@@ -170,10 +169,9 @@ describe('browser-client', () => {
     });
 
     test('should add file download and form interaction tracking plugins', async () => {
-      const client = new AmplitudeBrowser();
       const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         optOut: false,
         defaultTracking: {
           ...defaultTracking,
@@ -186,12 +184,15 @@ describe('browser-client', () => {
     });
 
     test('should NOT add file download and form interaction tracking plugins', async () => {
-      const client = new AmplitudeBrowser();
       const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         optOut: false,
-        defaultTracking,
+        defaultTracking: {
+          ...defaultTracking,
+          fileDownloads: false,
+          formInteractions: false,
+        },
       }).promise;
       expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(0);
       expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
@@ -202,11 +203,11 @@ describe('browser-client', () => {
         optOut: false,
         lastEventTime: Date.now(),
       });
-      const client = new AmplitudeBrowser();
       const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         optOut: false,
         defaultTracking: {
+          ...defaultTracking,
           attribution: {},
         },
         sessionId: Date.now(),
@@ -228,46 +229,36 @@ describe('browser-client', () => {
 
   describe('getUserId', () => {
     test('should get user id', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
-        defaultTracking,
-      }).promise;
-      expect(client.getUserId()).toBe(USER_ID);
+      await client.init(apiKey, userId, { defaultTracking }).promise;
+      expect(client.getUserId()).toBe(userId);
     });
 
     test('should handle undefined config', async () => {
-      const client = new AmplitudeBrowser();
       expect(client.getUserId()).toBe(undefined);
     });
   });
 
   describe('setUserId', () => {
     test('should set user id', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
-        defaultTracking,
-      }).promise;
+      await client.init(apiKey, undefined, { defaultTracking }).promise;
       expect(client.getUserId()).toBe(undefined);
-      client.setUserId(USER_ID);
-      expect(client.getUserId()).toBe(USER_ID);
+      client.setUserId(userId);
+      expect(client.getUserId()).toBe(userId);
     });
 
     test('should not set user id', async () => {
-      const client = new AmplitudeBrowser();
       const setSessionId = jest.spyOn(client, 'setSessionId');
-      await client.init(API_KEY, USER_ID, {
-        defaultTracking,
-      }).promise;
+      await client.init(apiKey, userId, { defaultTracking }).promise;
 
       // Reset mock to isolate mock for `setUserId(...)` call
       // `setUserId(...)` may have been called on `init(...)`
       // We do not want to depend on init behavior
       setSessionId.mockReset();
 
-      expect(client.getUserId()).toBe(USER_ID);
-      client.setUserId(USER_ID);
+      expect(client.getUserId()).toBe(userId);
+      client.setUserId(userId);
       expect(setSessionId).toHaveBeenCalledTimes(0);
-      expect(client.getUserId()).toBe(USER_ID);
+      expect(client.getUserId()).toBe(userId);
     });
 
     test('should set user and session id with start and end session event', async () => {
@@ -276,7 +267,6 @@ describe('browser-client', () => {
         sessionId: 1,
         lastEventTime: Date.now() - 1000,
       });
-      const client = new AmplitudeBrowser();
       const result = {
         promise: Promise.resolve({
           code: 200,
@@ -287,7 +277,7 @@ describe('browser-client', () => {
         }),
       };
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         sessionTimeout: 5000,
         defaultTracking: {
           ...defaultTracking,
@@ -307,89 +297,72 @@ describe('browser-client', () => {
 
     test('should defer set user id', () => {
       return new Promise<void>((resolve) => {
-        const client = new AmplitudeBrowser();
-        void client
-          .init(API_KEY, undefined, {
-            defaultTracking,
-          })
-          .promise.then(() => {
-            expect(client.getUserId()).toBe('user@amplitude.com');
-            resolve();
-          });
+        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+          expect(client.getUserId()).toBe('user@amplitude.com');
+          resolve();
+        });
         client.setUserId('user@amplitude.com');
       });
     });
 
     test('should be able to unset user id to undefined', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, USER_ID, {
+      await client.init(apiKey, userId, {
         defaultTracking,
-        deviceId: DEVICE_ID,
+        deviceId,
       }).promise;
-      expect(client.getUserId()).toBe(USER_ID);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getUserId()).toBe(userId);
+      expect(client.getDeviceId()).toBe(deviceId);
 
       client.setUserId(undefined);
       expect(client.getUserId()).toBe(undefined);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getDeviceId()).toBe(deviceId);
     });
 
     test('should be able to unset user id to undefined after setUserId()', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
         defaultTracking,
-        deviceId: DEVICE_ID,
+        deviceId,
       }).promise;
       expect(client.getUserId()).toBe(undefined);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getDeviceId()).toBe(deviceId);
 
-      client.setUserId(USER_ID);
-      expect(client.getUserId()).toBe(USER_ID);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      client.setUserId(userId);
+      expect(client.getUserId()).toBe(userId);
+      expect(client.getDeviceId()).toBe(deviceId);
 
       client.setUserId(undefined);
       expect(client.getUserId()).toBe(undefined);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getDeviceId()).toBe(deviceId);
     });
   });
 
   describe('getDeviceId', () => {
     test('should get device id', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
-        deviceId: DEVICE_ID,
+      await client.init(apiKey, undefined, {
         defaultTracking,
+        deviceId,
       }).promise;
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      expect(client.getDeviceId()).toBe(deviceId);
     });
 
     test('should handle undefined config', async () => {
-      const client = new AmplitudeBrowser();
       expect(client.getDeviceId()).toBe(undefined);
     });
   });
 
   describe('setDeviceId', () => {
     test('should set device id config', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
-        defaultTracking,
-      }).promise;
-      client.setDeviceId(DEVICE_ID);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      await client.init(apiKey, undefined, { defaultTracking }).promise;
+      client.setDeviceId(deviceId);
+      expect(client.getDeviceId()).toBe(deviceId);
     });
 
     test('should defer set device id', () => {
       return new Promise<void>((resolve) => {
-        const client = new AmplitudeBrowser();
-        void client
-          .init(API_KEY, undefined, {
-            defaultTracking,
-          })
-          .promise.then(() => {
-            expect(client.getDeviceId()).toBe('asdfg');
-            resolve();
-          });
+        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+          expect(client.getDeviceId()).toBe('asdfg');
+          resolve();
+        });
         client.setDeviceId('asdfg');
       });
     });
@@ -397,48 +370,39 @@ describe('browser-client', () => {
 
   describe('reset', () => {
     test('should reset user id and generate new device id config', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
-        defaultTracking,
-      }).promise;
-      client.setUserId(USER_ID);
-      client.setDeviceId(DEVICE_ID);
-      expect(client.getUserId()).toBe(USER_ID);
-      expect(client.getDeviceId()).toBe(DEVICE_ID);
+      await client.init(apiKey, undefined, { defaultTracking }).promise;
+      client.setUserId(userId);
+      client.setDeviceId(deviceId);
+      expect(client.getUserId()).toBe(userId);
+      expect(client.getDeviceId()).toBe(deviceId);
       client.reset();
       expect(client.getUserId()).toBe(undefined);
-      expect(client.getDeviceId()).not.toBe(DEVICE_ID);
+      expect(client.getDeviceId()).not.toBe(deviceId);
     });
   });
 
   describe('getSessionId', () => {
     test('should get session id', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
-        sessionId: 1,
+      await client.init(apiKey, undefined, {
         defaultTracking,
+        sessionId: 1,
       }).promise;
       expect(client.getSessionId()).toBe(1);
     });
 
     test('should handle undefined config', async () => {
-      const client = new AmplitudeBrowser();
       expect(client.getSessionId()).toBe(undefined);
     });
   });
 
   describe('setSessionId', () => {
     test('should set session id', async () => {
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
-        defaultTracking,
-      }).promise;
+      await client.init(apiKey, undefined, { defaultTracking }).promise;
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
     });
 
     test('should set session id with start session event', async () => {
-      const client = new AmplitudeBrowser();
       const result = {
         promise: Promise.resolve({
           code: 200,
@@ -449,10 +413,12 @@ describe('browser-client', () => {
         }),
       };
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
         sessionId: 1,
         defaultTracking: {
           ...defaultTracking,
+          attribution: false,
+          pageViews: false,
           sessions: true,
         },
       }).promise;
@@ -467,7 +433,6 @@ describe('browser-client', () => {
         sessionId: 1,
         lastEventTime: Date.now() - 1000,
       });
-      const client = new AmplitudeBrowser();
       const result = {
         promise: Promise.resolve({
           code: 200,
@@ -478,10 +443,12 @@ describe('browser-client', () => {
         }),
       };
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
         sessionTimeout: 5000,
         defaultTracking: {
           ...defaultTracking,
+          attribution: false,
+          pageViews: false,
           sessions: true,
         },
       }).promise;
@@ -492,15 +459,10 @@ describe('browser-client', () => {
 
     test('should defer set session id', () => {
       return new Promise<void>((resolve) => {
-        const client = new AmplitudeBrowser();
-        void client
-          .init(API_KEY, undefined, {
-            defaultTracking,
-          })
-          .promise.then(() => {
-            expect(client.getSessionId()).toBe(1);
-            resolve();
-          });
+        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+          expect(client.getSessionId()).toBe(1);
+          resolve();
+        });
         client.setSessionId(1);
       });
     });
@@ -510,10 +472,7 @@ describe('browser-client', () => {
     test('should set transport', async () => {
       const fetch = new FetchTransport();
       const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
-        defaultTracking,
-      }).promise;
+      await client.init(apiKey, undefined, { defaultTracking }).promise;
       client.setTransport(TransportType.Fetch);
       expect(createTransport).toHaveBeenCalledTimes(2);
     });
@@ -522,15 +481,10 @@ describe('browser-client', () => {
       return new Promise<void>((resolve) => {
         const fetch = new FetchTransport();
         const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
-        const client = new AmplitudeBrowser();
-        void client
-          .init(API_KEY, undefined, {
-            defaultTracking,
-          })
-          .promise.then(() => {
-            expect(createTransport).toHaveBeenCalledTimes(2);
-            resolve();
-          });
+        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+          expect(createTransport).toHaveBeenCalledTimes(2);
+          resolve();
+        });
         client.setTransport(TransportType.Fetch);
       });
     });
@@ -547,12 +501,11 @@ describe('browser-client', () => {
           serverUploadTime: 1,
         },
       });
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
+        defaultTracking,
         transportProvider: {
           send,
         },
-        defaultTracking,
       }).promise;
       const identifyObject = new core.Identify();
       const result = await client.identify(identifyObject, { user_id: '123', device_id: '123' }).promise;
@@ -573,12 +526,11 @@ describe('browser-client', () => {
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Identify());
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
+        defaultTracking,
         transportProvider: {
           send,
         },
-        defaultTracking,
       }).promise;
       const identifyObject = {
         _q: [],
@@ -603,12 +555,11 @@ describe('browser-client', () => {
           serverUploadTime: 1,
         },
       });
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
+        defaultTracking,
         transportProvider: {
           send,
         },
-        defaultTracking,
       }).promise;
       const identifyObject = new core.Identify();
       const result = await client.groupIdentify('g', '1', identifyObject).promise;
@@ -629,12 +580,11 @@ describe('browser-client', () => {
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Identify());
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
+        defaultTracking,
         transportProvider: {
           send,
         },
-        defaultTracking,
       }).promise;
       const identifyObject = {
         _q: [],
@@ -659,12 +609,11 @@ describe('browser-client', () => {
           serverUploadTime: 1,
         },
       });
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
+        defaultTracking,
         transportProvider: {
           send,
         },
-        defaultTracking,
       }).promise;
       const revenueObject = new core.Revenue();
       const result = await client.revenue(revenueObject).promise;
@@ -685,12 +634,11 @@ describe('browser-client', () => {
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Revenue());
-      const client = new AmplitudeBrowser();
-      await client.init(API_KEY, undefined, {
+      await client.init(apiKey, undefined, {
+        defaultTracking,
         transportProvider: {
           send,
         },
-        defaultTracking,
       }).promise;
       const revenueObject = {
         _q: [],

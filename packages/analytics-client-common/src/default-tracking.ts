@@ -6,56 +6,39 @@ import {
   PageTrackingTrackOn,
 } from '@amplitude/analytics-types';
 
-export const isFileDownloadTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
+/**
+ * Returns false if defaultTracking === false or if defaultTracking[event],
+ * otherwise returns true
+ */
+const isTrackingEnabled = (
+  defaultTracking: DefaultTrackingOptions | boolean | undefined,
+  event: keyof DefaultTrackingOptions,
+) => {
   if (typeof defaultTracking === 'boolean') {
     return defaultTracking;
   }
 
-  if (defaultTracking?.fileDownloads) {
-    return true;
+  if (defaultTracking?.[event] === false) {
+    return false;
   }
 
-  return false;
+  return true;
 };
 
-export const isFormInteractionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
-  if (typeof defaultTracking === 'boolean') {
-    return defaultTracking;
-  }
+export const isAttributionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
+  isTrackingEnabled(defaultTracking, 'attribution');
 
-  if (defaultTracking?.formInteractions) {
-    return true;
-  }
+export const isFileDownloadTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
+  isTrackingEnabled(defaultTracking, 'fileDownloads');
 
-  return false;
-};
+export const isFormInteractionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
+  isTrackingEnabled(defaultTracking, 'formInteractions');
 
-export const isPageViewTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
-  if (typeof defaultTracking === 'boolean') {
-    return defaultTracking;
-  }
+export const isPageViewTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
+  isTrackingEnabled(defaultTracking, 'pageViews');
 
-  if (
-    defaultTracking?.pageViews === true ||
-    (defaultTracking?.pageViews && typeof defaultTracking.pageViews === 'object')
-  ) {
-    return true;
-  }
-
-  return false;
-};
-
-export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
-  if (typeof defaultTracking === 'boolean') {
-    return defaultTracking;
-  }
-
-  if (defaultTracking?.sessions) {
-    return true;
-  }
-
-  return false;
-};
+export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
+  isTrackingEnabled(defaultTracking, 'sessions');
 
 export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingOptions => {
   let trackOn: PageTrackingTrackOn | undefined = () => false;
@@ -92,18 +75,6 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
     trackHistoryChanges,
     eventType,
   };
-};
-
-export const isAttributionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
-  if (typeof defaultTracking === 'boolean') {
-    return defaultTracking;
-  }
-
-  if (defaultTracking?.attribution) {
-    return true;
-  }
-
-  return false;
 };
 
 export const getAttributionTrackingConfig = (
