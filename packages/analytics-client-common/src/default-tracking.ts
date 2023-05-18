@@ -11,11 +11,7 @@ export const isFileDownloadTrackingEnabled = (defaultTracking: DefaultTrackingOp
     return defaultTracking;
   }
 
-  if (defaultTracking?.fileDownloads) {
-    return true;
-  }
-
-  return false;
+  return defaultTracking?.fileDownloads !== false;
 };
 
 export const isFormInteractionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
@@ -23,11 +19,7 @@ export const isFormInteractionTrackingEnabled = (defaultTracking: DefaultTrackin
     return defaultTracking;
   }
 
-  if (defaultTracking?.formInteractions) {
-    return true;
-  }
-
-  return false;
+  return defaultTracking?.formInteractions !== false;
 };
 
 export const isPageViewTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
@@ -35,14 +27,7 @@ export const isPageViewTrackingEnabled = (defaultTracking: DefaultTrackingOption
     return defaultTracking;
   }
 
-  if (
-    defaultTracking?.pageViews === true ||
-    (defaultTracking?.pageViews && typeof defaultTracking.pageViews === 'object')
-  ) {
-    return true;
-  }
-
-  return false;
+  return defaultTracking?.pageViews !== false;
 };
 
 export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) => {
@@ -50,11 +35,7 @@ export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions
     return defaultTracking;
   }
 
-  if (defaultTracking?.sessions) {
-    return true;
-  }
-
-  return false;
+  return defaultTracking?.sessions !== false;
 };
 
 export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingOptions => {
@@ -99,11 +80,7 @@ export const isAttributionTrackingEnabled = (defaultTracking: DefaultTrackingOpt
     return defaultTracking;
   }
 
-  if (defaultTracking?.attribution) {
-    return true;
-  }
-
-  return false;
+  return defaultTracking?.attribution !== false;
 };
 
 export const getAttributionTrackingConfig = (

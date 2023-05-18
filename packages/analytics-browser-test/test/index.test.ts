@@ -16,6 +16,10 @@ describe('integration', () => {
   const userAgent = expect.any(String) as string;
   const defaultTracking = {
     attribution: false,
+    fileDownloads: false,
+    formInteractions: false,
+    pageViews: false,
+    sessions: false,
   };
 
   let apiKey = '';
@@ -130,6 +134,7 @@ describe('integration', () => {
       const trackPromise = client.track('Event Before Init').promise;
       await client.init(apiKey, undefined, {
         defaultTracking: {
+          ...defaultTracking,
           attribution: true,
           pageViews: {
             trackOn: 'attribution',
@@ -839,6 +844,7 @@ describe('integration', () => {
       });
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
+          ...defaultTracking,
           attribution: true,
           sessions: true,
         },
@@ -1134,6 +1140,7 @@ describe('integration', () => {
       });
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
+          ...defaultTracking,
           attribution: true,
           sessions: true,
         },
@@ -1435,7 +1442,7 @@ describe('integration', () => {
   });
 
   describe('default page view tracking', () => {
-    test('should send classic page view on attribution', () => {
+    test('should send page view on attribution', () => {
       let payload: any = undefined;
       const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1452,6 +1459,7 @@ describe('integration', () => {
       });
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
+          ...defaultTracking,
           attribution: true,
           pageViews: {
             trackOn: 'attribution',
@@ -1544,7 +1552,7 @@ describe('integration', () => {
       });
     });
 
-    test('should send DET page view', () => {
+    test('should send page view', () => {
       let payload: any = undefined;
       const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1596,115 +1604,6 @@ describe('integration', () => {
                 time: number,
                 user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
-              },
-            ],
-            options: {
-              min_id_length: undefined,
-            },
-          });
-          resolve();
-        }, 2000);
-      });
-    });
-
-    test('should send DET page view on attribution', () => {
-      let payload: any = undefined;
-      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload = p;
-        return {
-          status: Status.Success,
-          statusCode: 200,
-          body: {
-            eventsIngested: 1,
-            payloadSizeBytes: 1,
-            serverUploadTime: 1,
-          },
-        };
-      });
-      client.init(apiKey, 'user1@amplitude.com', {
-        defaultTracking: {
-          attribution: true,
-          pageViews: {
-            trackOn: 'attribution',
-          },
-        },
-        transportProvider: {
-          send,
-        },
-      });
-
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          expect(payload).toEqual({
-            api_key: apiKey,
-            events: [
-              {
-                device_id: uuid,
-                event_id: 0,
-                event_properties: {
-                  '[Amplitude] Page Domain': '',
-                  '[Amplitude] Page Location': '',
-                  '[Amplitude] Page Path': '',
-                  '[Amplitude] Page Title': '',
-                  '[Amplitude] Page URL': '',
-                },
-                event_type: '[Amplitude] Page Viewed',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-                user_properties: {
-                  $setOnce: {
-                    initial_dclid: 'EMPTY',
-                    initial_fbclid: 'EMPTY',
-                    initial_gbraid: 'EMPTY',
-                    initial_gclid: 'EMPTY',
-                    initial_ko_click_id: 'EMPTY',
-                    initial_li_fat_id: 'EMPTY',
-                    initial_msclkid: 'EMPTY',
-                    initial_referrer: 'EMPTY',
-                    initial_referring_domain: 'EMPTY',
-                    initial_rtd_cid: 'EMPTY',
-                    initial_ttclid: 'EMPTY',
-                    initial_twclid: 'EMPTY',
-                    initial_utm_campaign: 'EMPTY',
-                    initial_utm_content: 'EMPTY',
-                    initial_utm_id: 'EMPTY',
-                    initial_utm_medium: 'EMPTY',
-                    initial_utm_source: 'EMPTY',
-                    initial_utm_term: 'EMPTY',
-                    initial_wbraid: 'EMPTY',
-                  },
-                  $unset: {
-                    dclid: '-',
-                    fbclid: '-',
-                    gbraid: '-',
-                    gclid: '-',
-                    ko_click_id: '-',
-                    li_fat_id: '-',
-                    msclkid: '-',
-                    referrer: '-',
-                    referring_domain: '-',
-                    rtd_cid: '-',
-                    ttclid: '-',
-                    twclid: '-',
-                    utm_campaign: '-',
-                    utm_content: '-',
-                    utm_id: '-',
-                    utm_medium: '-',
-                    utm_source: '-',
-                    utm_term: '-',
-                    wbraid: '-',
-                  },
-                },
               },
             ],
             options: {
@@ -1914,9 +1813,6 @@ describe('integration', () => {
       const scope2 = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
         disableCookies: false,
-        defaultTracking: {
-          attribution: true,
-        },
       }).promise;
       await client.identify(new amplitude.Identify().set('a', 'b')).promise;
       await client.track('Test Event').promise;

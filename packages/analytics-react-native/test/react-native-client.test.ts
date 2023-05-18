@@ -303,7 +303,9 @@ describe('react-native-client', () => {
   describe('reset', () => {
     test('should reset user id and generate new device id config', async () => {
       const client = new AmplitudeReactNative();
-      await client.init(API_KEY).promise;
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      }).promise;
       client.setUserId(USER_ID);
       client.setDeviceId(DEVICE_ID);
       expect(client.getUserId()).toBe(USER_ID);

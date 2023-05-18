@@ -9,8 +9,16 @@ import {
 } from '../src/default-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
-  test('should return true with boolean parameter', () => {
+  test('should return true with true parameter', () => {
     expect(isFileDownloadTrackingEnabled(true)).toBe(true);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isFileDownloadTrackingEnabled(undefined)).toBe(true);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isFileDownloadTrackingEnabled(false)).toBe(false);
   });
 
   test('should return true with object parameter', () => {
@@ -21,14 +29,26 @@ describe('isFileDownloadTrackingEnabled', () => {
     ).toBe(true);
   });
 
-  test('should return false', () => {
-    expect(isFileDownloadTrackingEnabled(undefined)).toBe(false);
+  test('should return false with object parameter', () => {
+    expect(
+      isFileDownloadTrackingEnabled({
+        fileDownloads: false,
+      }),
+    ).toBe(false);
   });
 });
 
 describe('isFormInteractionTrackingEnabled', () => {
-  test('should return true with boolean parameter', () => {
+  test('should return true with true parameter', () => {
     expect(isFormInteractionTrackingEnabled(true)).toBe(true);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isFormInteractionTrackingEnabled(undefined)).toBe(true);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isFormInteractionTrackingEnabled(false)).toBe(false);
   });
 
   test('should return true with object parameter', () => {
@@ -39,14 +59,26 @@ describe('isFormInteractionTrackingEnabled', () => {
     ).toBe(true);
   });
 
-  test('should return false', () => {
-    expect(isFormInteractionTrackingEnabled(undefined)).toBe(false);
+  test('should return false with object parameter', () => {
+    expect(
+      isFormInteractionTrackingEnabled({
+        formInteractions: false,
+      }),
+    ).toBe(false);
   });
 });
 
 describe('isPageViewTrackingEnabled', () => {
-  test('should return true with boolean parameter', () => {
+  test('should return true with true parameter', () => {
     expect(isPageViewTrackingEnabled(true)).toBe(true);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isPageViewTrackingEnabled(undefined)).toBe(true);
+  });
+
+  test('should return true with false parameter', () => {
+    expect(isPageViewTrackingEnabled(false)).toBe(false);
   });
 
   test('should return true with object parameter', () => {
@@ -57,24 +89,34 @@ describe('isPageViewTrackingEnabled', () => {
     ).toBe(true);
   });
 
+  test('should return false with object parameter', () => {
+    expect(
+      isPageViewTrackingEnabled({
+        pageViews: false,
+      }),
+    ).toBe(false);
+  });
+
   test('should return true with nested object parameter', () => {
     expect(
       isPageViewTrackingEnabled({
-        pageViews: {
-          trackOn: 'attribution',
-        },
+        pageViews: {},
       }),
     ).toBe(true);
-  });
-
-  test('should return false', () => {
-    expect(isPageViewTrackingEnabled(undefined)).toBe(false);
   });
 });
 
 describe('isSessionTrackingEnabled', () => {
-  test('should return true with boolean parameter', () => {
+  test('should return true with true parameter', () => {
     expect(isSessionTrackingEnabled(true)).toBe(true);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isSessionTrackingEnabled(undefined)).toBe(true);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isSessionTrackingEnabled(false)).toBe(false);
   });
 
   test('should return true with object parameter', () => {
@@ -85,14 +127,26 @@ describe('isSessionTrackingEnabled', () => {
     ).toBe(true);
   });
 
-  test('should return false', () => {
-    expect(isSessionTrackingEnabled(undefined)).toBe(false);
+  test('should return false with object parameter', () => {
+    expect(
+      isSessionTrackingEnabled({
+        sessions: false,
+      }),
+    ).toBe(false);
   });
 });
 
 describe('isAttributionTrackingEnabled', () => {
-  test('should return true with boolean parameter', () => {
+  test('should return true with true parameter', () => {
     expect(isAttributionTrackingEnabled(true)).toBe(true);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isAttributionTrackingEnabled(undefined)).toBe(true);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isAttributionTrackingEnabled(false)).toBe(false);
   });
 
   test('should return true with object parameter', () => {
@@ -103,13 +157,17 @@ describe('isAttributionTrackingEnabled', () => {
     ).toBe(true);
   });
 
-  test('should return false', () => {
-    expect(isAttributionTrackingEnabled(undefined)).toBe(false);
+  test('should return false with object parameter', () => {
+    expect(
+      isAttributionTrackingEnabled({
+        attribution: false,
+      }),
+    ).toBe(false);
   });
 });
 
 describe('getPageViewTrackingConfig', () => {
-  test('should return always track config', () => {
+  test('should return undefined trackOn config', () => {
     const config = getPageViewTrackingConfig({
       defaultTracking: {
         pageViews: true,
@@ -119,8 +177,12 @@ describe('getPageViewTrackingConfig', () => {
     expect(config.trackOn).toBe(undefined);
   });
 
-  test('should return never track config with default tracking', () => {
-    const config = getPageViewTrackingConfig({});
+  test('should return trackOn config returning false', () => {
+    const config = getPageViewTrackingConfig({
+      defaultTracking: {
+        pageViews: false,
+      },
+    });
 
     expect(typeof config.trackOn).toBe('function');
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment

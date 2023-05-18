@@ -24,6 +24,13 @@ describe('e2e', () => {
   const expectString = expect.any(String) as string;
   const expectLibrary = expect.stringMatching(/^amplitude-ma-ts\/.+/) as string;
   const expectNumber = expect.any(Number) as number;
+  const defaultTracking = {
+    attribution: false,
+    fileDownloads: false,
+    formInteractions: false,
+    pageViews: false,
+    sessions: false,
+  };
 
   beforeEach(() => {
     apiKey = UUID();
@@ -47,6 +54,7 @@ describe('e2e', () => {
     const client = createInstance();
     client.init(apiKey, undefined, {
       defaultTracking: {
+        ...defaultTracking,
         attribution: true,
       },
     });
@@ -138,6 +146,7 @@ describe('e2e', () => {
     const client = createInstance();
     client.init(apiKey, undefined, {
       defaultTracking: {
+        ...defaultTracking,
         attribution: true,
         pageViews: {
           trackOn: 'attribution',
@@ -239,6 +248,7 @@ describe('e2e', () => {
     const client = createInstance();
     client.init(apiKey, undefined, {
       defaultTracking: {
+        ...defaultTracking,
         attribution: false,
         pageViews: true,
       },
@@ -294,6 +304,7 @@ describe('e2e', () => {
     const client = createInstance();
     client.init(apiKey, undefined, {
       defaultTracking: {
+        ...defaultTracking,
         attribution: true,
         pageViews: true,
       },
