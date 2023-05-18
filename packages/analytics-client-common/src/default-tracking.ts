@@ -12,7 +12,7 @@ import {
  */
 const isTrackingEnabled = (
   defaultTracking: DefaultTrackingOptions | boolean | undefined,
-  event: 'attribution' | 'fileDownloads' | 'formInteractions' | 'pageViews' | 'sessions',
+  event: keyof DefaultTrackingOptions,
 ) => {
   if (typeof defaultTracking === 'boolean') {
     return defaultTracking;
