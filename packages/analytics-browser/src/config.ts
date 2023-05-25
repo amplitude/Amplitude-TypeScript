@@ -25,6 +25,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
+
 export class BrowserConfig extends Config implements IBrowserConfig {
   protected _cookieStorage: Storage<UserSession>;
   protected _deviceId?: string;
