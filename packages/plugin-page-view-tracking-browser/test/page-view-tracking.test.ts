@@ -17,13 +17,14 @@ describe('pageViewTrackingPlugin', () => {
     transportProvider: new FetchTransport(),
     useBatch: false,
 
-    cookieExpiration: 365,
-    cookieSameSite: 'Lax',
-    cookieSecure: false,
+    cookieOptions: {
+      domain: '.amplitude.com',
+      expiration: 365,
+      sameSite: 'Lax',
+      secure: false,
+      upgrade: true,
+    },
     cookieStorage: new CookieStorage(),
-    cookieUpgrade: true,
-    disableCookies: false,
-    domain: '.amplitude.com',
     sessionTimeout: 30 * 60 * 1000,
     trackingOptions: {
       ipAddress: true,

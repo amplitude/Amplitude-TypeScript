@@ -8,8 +8,6 @@ import {
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
-  getCookieName,
-  getQueryParams,
   setConnectorDeviceId,
   setConnectorUserId,
 } from '@amplitude/analytics-client-common';
@@ -21,12 +19,10 @@ import {
   Identify as IIdentify,
   Revenue as IRevenue,
   TransportType,
-  UserSession,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport, getTopLevelDomain, createCookieStorage } from './config';
-import { parseLegacyCookies } from './cookie-migration';
+import { useBrowserConfig, createTransport } from './config';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { sessionHandlerPlugin } from './plugins/session-handler';
@@ -38,48 +34,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
-  previousSessionDeviceId: string | undefined;
-  previousSessionUserId: string | undefined;
 
   init(apiKey = '', userId?: string, options?: BrowserOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
   protected async _init(options: BrowserOptions & { apiKey: string }) {
-    // Step 0: Block concurrent initialization
+    // Step 1: Block concurrent initialization
     if (this.initializing) {
       return;
     }
     this.initializing = true;
 
-    // Step 1: Read cookies stored by SDK
-    options.domain = options.disableCookies ? '' : options.domain ?? (await getTopLevelDomain());
-    const legacyCookies = await parseLegacyCookies(options.apiKey, options);
-    const cookieStorage = await createCookieStorage<UserSession>(options);
-    const previousCookies = await cookieStorage.get(getCookieName(options.apiKey));
-    const queryParams = getQueryParams();
-
     // Step 2: Create browser config
-    const deviceId = options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId;
-    const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
-    const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
-    const lastEventId = previousCookies?.lastEventId;
-    const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
-    const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
-
-    this.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
-    this.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
-
-    const browserOptions = await useBrowserConfig(options.apiKey, {
-      ...options,
-      deviceId,
-      sessionId,
-      optOut,
-      lastEventId,
-      lastEventTime,
-      userId,
-      cookieStorage,
-    });
-
+    const browserOptions = await useBrowserConfig(options.apiKey, options);
     await super._init(browserOptions);
 
     // Step 3: Manage session
@@ -193,8 +160,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
           session_id: previousSessionId,
           time: previousLastEventTime + 1,
         };
-        eventOptions.device_id = this.previousSessionDeviceId;
-        eventOptions.user_id = this.previousSessionUserId;
+        eventOptions.device_id = this.config.lastSessionDeviceId;
+        eventOptions.user_id = this.config.lastSessionUserId;
         this.track(DEFAULT_SESSION_END_EVENT, undefined, eventOptions);
       }
 
@@ -202,8 +169,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         session_id: sessionId,
         time: sessionId - 1,
       });
-      this.previousSessionDeviceId = this.config.deviceId;
-      this.previousSessionUserId = this.config.userId;
+      this.config.lastSessionDeviceId = this.config.deviceId;
+      this.config.lastSessionUserId = this.config.userId;
     }
   }
 

@@ -52,9 +52,9 @@ export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType }
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { QueueProxy, InstanceProxy } from './proxy';
-export { ServerZone } from './server-zone';
+export { ServerZone, ServerZoneType } from './server-zone';
 export { Status } from './status';
-export { CookieStorageOptions, Storage } from './storage';
+export { CookieStorageOptions, IdentityStorageType, Storage } from './storage';
 export { Transport, TransportType } from './transport';
 export { UserSession } from './user-session';
 export { UTMData } from './utm';

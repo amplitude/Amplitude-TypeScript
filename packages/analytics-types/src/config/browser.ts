@@ -1,27 +1,32 @@
 import { UserSession } from '../user-session';
-import { Storage } from '../storage';
-import { TransportType } from '../transport';
+import { IdentityStorageType, Storage } from '../storage';
+import { Transport } from '../transport';
 import { Config } from './core';
 import { PageTrackingOptions } from '../page-view-tracking';
 
-export interface BrowserConfig extends Config {
+export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
+
+export interface ExternalBrowserConfig extends Config {
   appVersion?: string;
   defaultTracking?: boolean | DefaultTrackingOptions;
   deviceId?: string;
-  cookieExpiration: number;
-  cookieSameSite: string;
-  cookieSecure: boolean;
-  cookieStorage: Storage<UserSession>;
-  cookieUpgrade: boolean;
-  disableCookies: boolean;
-  domain: string;
-  lastEventTime?: number;
-  lastEventId?: number;
+  cookieOptions?: CookieOptions;
+  identityStorage?: IdentityStorageType;
   partnerId?: string;
   sessionId?: number;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
+  transport?: 'fetch' | 'xhr' | 'beacon';
   userId?: string;
+}
+
+interface InternalBrowserConfig {
+  cookieStorage: Storage<UserSession>;
+  lastEventTime?: number;
+  lastEventId?: number;
+  lastSessionDeviceId?: string;
+  lastSessionUserId?: string;
+  transportProvider: Transport;
 }
 
 export interface DefaultTrackingOptions {
@@ -44,6 +49,15 @@ export interface AttributionOptions {
   resetSessionOnNewCampaign?: boolean;
 }
 
-export interface BrowserOptions extends Omit<Partial<BrowserConfig>, 'apiKey'> {
-  transport?: TransportType | keyof typeof TransportType;
+export interface CookieOptions {
+  domain?: string;
+  expiration?: number;
+  sameSite?: 'Strict' | 'Lax' | 'None';
+  secure?: boolean;
+  upgrade?: boolean;
 }
+
+type HiddenOptions = 'apiKey';
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface BrowserOptions extends Omit<Partial<ExternalBrowserConfig>, HiddenOptions> {}

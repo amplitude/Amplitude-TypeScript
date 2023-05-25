@@ -7,50 +7,25 @@ import {
   TrackingOptions,
   TransportType,
   UserSession,
+  Transport,
+  Logger as ILogger,
+  LogLevel,
+  Plan,
+  IngestionMetadata,
+  IdentityStorageType,
+  ServerZoneType,
 } from '@amplitude/analytics-types';
-import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
-import { CookieStorage, getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
+import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
+import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
-
-export const getDefaultConfig = () => {
-  const cookieStorage = new MemoryStorage<UserSession>();
-  const trackingOptions: Required<TrackingOptions> = {
-    ipAddress: true,
-    language: true,
-    platform: true,
-  };
-  return {
-    cookieExpiration: 365,
-    cookieSameSite: 'Lax',
-    cookieSecure: false,
-    cookieStorage,
-    cookieUpgrade: true,
-    disableCookies: false,
-    domain: '',
-    sessionTimeout: 30 * 60 * 1000,
-    trackingOptions,
-    transportProvider: new FetchTransport(),
-  };
-};
-
+import { parseLegacyCookies } from './cookie-migration';
+import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
+import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 export class BrowserConfig extends Config implements IBrowserConfig {
-  appVersion?: string;
-  cookieExpiration: number;
-  cookieSameSite: string;
-  cookieSecure: boolean;
-  cookieUpgrade: boolean;
-  cookieStorage: Storage<UserSession>;
-  defaultTracking?: DefaultTrackingOptions | boolean;
-  disableCookies: boolean;
-  domain: string;
-  partnerId?: string;
-  sessionTimeout: number;
-  trackingOptions: TrackingOptions;
-
-  // NOTE: These protected properties are used to cache values from async storage
+  protected _cookieStorage: Storage<UserSession>;
   protected _deviceId?: string;
   protected _lastEventId?: number;
   protected _lastEventTime?: number;
@@ -58,39 +33,69 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _sessionId?: number;
   protected _userId?: string;
 
-  constructor(apiKey: string, options?: BrowserOptions) {
-    const defaultConfig = getDefaultConfig();
-    super({
-      flushIntervalMillis: 1000,
-      flushMaxRetries: 5,
-      flushQueueSize: 30,
-      transportProvider: defaultConfig.transportProvider,
-      ...options,
-      apiKey,
-    });
+  constructor(
+    public apiKey: string,
+    public appVersion?: string,
+    cookieStorage: Storage<UserSession> = new MemoryStorage(),
+    public cookieOptions: CookieOptions = {
+      domain: '',
+      expiration: 365,
+      sameSite: 'Lax' as const,
+      secure: false,
+      upgrade: true,
+    },
+    public defaultTracking: boolean | DefaultTrackingOptions = true,
+    deviceId?: string,
+    public flushIntervalMillis: number = 1000,
+    public flushMaxRetries: number = 5,
+    public flushQueueSize: number = 30,
+    public identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
+    public ingestionMetadata?: IngestionMetadata,
+    lastEventId?: number,
+    lastEventTime?: number,
+    public lastSessionDeviceId?: string,
+    public lastSessionUserId?: string,
+    public loggerProvider: ILogger = new Logger(),
+    public logLevel: LogLevel = LogLevel.Warn,
+    public minIdLength?: number,
+    optOut = false,
+    public partnerId?: string,
+    public plan?: Plan,
+    public serverUrl: string = '',
+    public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
+    sessionId?: number,
+    public sessionTimeout: number = 30 * 60 * 1000,
+    public storageProvider: Storage<Event[]> = new LocalStorage(),
+    public trackingOptions: Required<TrackingOptions> = {
+      ipAddress: true,
+      language: true,
+      platform: true,
+    },
+    public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
+    public transportProvider: Transport = new FetchTransport(),
+    public useBatch: boolean = false,
+    userId?: string,
+  ) {
+    super({ apiKey, storageProvider, transportProvider });
+    this._cookieStorage = cookieStorage;
+    this.deviceId = deviceId;
+    this.lastEventId = lastEventId;
+    this.lastEventTime = lastEventTime;
+    this.optOut = optOut;
+    this.sessionId = sessionId;
+    this.userId = userId;
+    this.loggerProvider.enable(this.logLevel);
+  }
 
-    // NOTE: Define `cookieStorage` first to persist user session
-    // user session properties expect `cookieStorage` to be defined
-    this.cookieStorage = options?.cookieStorage ?? defaultConfig.cookieStorage;
-    this.deviceId = options?.deviceId;
-    this.lastEventId = options?.lastEventId;
-    this.lastEventTime = options?.lastEventTime;
-    this.optOut = Boolean(options?.optOut);
-    this.sessionId = options?.sessionId;
-    this.userId = options?.userId;
+  get cookieStorage() {
+    return this._cookieStorage;
+  }
 
-    this.appVersion = options?.appVersion;
-    this.cookieExpiration = options?.cookieExpiration ?? defaultConfig.cookieExpiration;
-    this.cookieSameSite = options?.cookieSameSite ?? defaultConfig.cookieSameSite;
-    this.cookieSecure = options?.cookieSecure ?? defaultConfig.cookieSecure;
-    this.cookieUpgrade = options?.cookieUpgrade ?? defaultConfig.cookieUpgrade;
-    this.defaultTracking = options?.defaultTracking;
-    this.disableCookies = options?.disableCookies ?? defaultConfig.disableCookies;
-    this.defaultTracking = options?.defaultTracking;
-    this.domain = options?.domain ?? defaultConfig.domain;
-    this.partnerId = options?.partnerId;
-    this.sessionTimeout = options?.sessionTimeout ?? defaultConfig.sessionTimeout;
-    this.trackingOptions = options?.trackingOptions ?? defaultConfig.trackingOptions;
+  set cookieStorage(cookieStorage: Storage<UserSession>) {
+    if (this._cookieStorage !== cookieStorage) {
+      this._cookieStorage = cookieStorage;
+      this.updateStorage();
+    }
   }
 
   get deviceId() {
@@ -168,85 +173,93 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
     };
-    void this.cookieStorage?.set(getCookieName(this.apiKey), cache);
+    void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
 }
 
-export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions): Promise<IBrowserConfig> => {
-  const defaultConfig = getDefaultConfig();
+export const useBrowserConfig = async (apiKey: string, options: BrowserOptions = {}): Promise<IBrowserConfig> => {
+  // Step 1: Create identity storage instance
+  const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
+  const cookieOptions = {
+    ...options.cookieOptions,
+    domain:
+      identityStorage !== DEFAULT_IDENTITY_STORAGE ? '' : options.cookieOptions?.domain ?? (await getTopLevelDomain()),
+    expiration: 365,
+    sameSite: 'Lax' as const,
+    secure: false,
+    upgrade: true,
+  };
+  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
 
-  // reconcile user session
-  const deviceId = options?.deviceId ?? UUID();
-  const lastEventId = options?.lastEventId;
-  const lastEventTime = options?.lastEventTime;
-  const optOut = options?.optOut;
-  const sessionId = options?.sessionId;
-  const userId = options?.userId;
-  const cookieStorage = options?.cookieStorage;
-  const domain = options?.domain;
+  // Step 1: Parse cookies using identity storage instance
+  const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
+  const previousCookies = await cookieStorage.get(getCookieName(apiKey));
+  const queryParams = getQueryParams();
 
-  return new BrowserConfig(apiKey, {
-    ...options,
+  // Step 3: Reconcile user identity
+  const deviceId =
+    options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId ?? UUID();
+  const lastEventId = previousCookies?.lastEventId;
+  const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
+  const lastSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
+  const lastSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
+  const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
+  const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
+  const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
+
+  const trackingOptions = {
+    ...options.trackingOptions,
+    ipAddress: true,
+    language: true,
+    platform: true,
+  };
+
+  return new BrowserConfig(
+    apiKey,
+    options.appVersion,
     cookieStorage,
+    cookieOptions,
+    options.defaultTracking,
     deviceId,
-    domain,
+    options.flushIntervalMillis,
+    options.flushMaxRetries,
+    options.flushQueueSize,
+    identityStorage,
+    options.ingestionMetadata,
     lastEventId,
     lastEventTime,
+    lastSessionDeviceId,
+    lastSessionUserId,
+    options.loggerProvider,
+    options.logLevel,
+    options.minIdLength,
     optOut,
+    options.partnerId,
+    options.plan,
+    options.serverUrl,
+    options.serverZone,
     sessionId,
-    storageProvider: await createEventsStorage(options),
-    trackingOptions: {
-      ...defaultConfig.trackingOptions,
-      ...options?.trackingOptions,
-    },
-    transportProvider: options?.transportProvider ?? createTransport(options?.transport),
+    options.sessionTimeout,
+    options.storageProvider,
+    trackingOptions,
+    options.transport,
+    options.transportProvider,
+    options.useBatch,
     userId,
-  });
+  );
 };
 
-export const createCookieStorage = async <T>(
-  overrides?: BrowserOptions,
-  baseConfig = getDefaultConfig(),
-): Promise<Storage<T>> => {
-  const options = { ...baseConfig, ...overrides };
-  const cookieStorage = overrides?.cookieStorage as Storage<T>;
-  if (!cookieStorage || !(await cookieStorage.isEnabled())) {
-    return createFlexibleStorage<T>(options);
+export const createCookieStorage = <T>(
+  identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
+  cookieOptions: CookieOptions = {},
+) => {
+  if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
+    return new CookieStorage<T>(cookieOptions);
   }
-  return cookieStorage;
-};
-
-const createFlexibleStorage = async <T>(options: BrowserOptions): Promise<Storage<T>> => {
-  let storage: Storage<T> = new CookieStorage({
-    domain: options.domain,
-    expirationDays: options.cookieExpiration,
-    sameSite: options.cookieSameSite,
-    secure: options.cookieSecure,
-  });
-  if (options.disableCookies || !(await storage.isEnabled())) {
-    storage = new LocalStorage();
-    if (!(await storage.isEnabled())) {
-      storage = new MemoryStorage();
-    }
+  if (identityStorage === 'localStorage') {
+    return new LocalStorage<T>();
   }
-  return storage;
-};
-
-export const createEventsStorage = async (overrides?: BrowserOptions): Promise<Storage<Event[]> | undefined> => {
-  const hasStorageProviderProperty = overrides && Object.prototype.hasOwnProperty.call(overrides, 'storageProvider');
-  // If storageProperty is explicitly undefined `{ storageProperty: undefined }`
-  // then storageProvider is undefined
-  // If storageProvider is implicitly undefined `{ }`
-  // then storageProvider is LocalStorage
-  // Otherwise storageProvider is overriden
-  if (!hasStorageProviderProperty || overrides.storageProvider) {
-    for (const storage of [overrides?.storageProvider, new LocalStorage<Event[]>()]) {
-      if (storage && (await storage.isEnabled())) {
-        return storage;
-      }
-    }
-  }
-  return undefined;
+  return new MemoryStorage<T>();
 };
 
 export const createTransport = (transport?: TransportType | keyof typeof TransportType) => {
@@ -256,7 +269,7 @@ export const createTransport = (transport?: TransportType | keyof typeof Transpo
   if (transport === TransportType.SendBeacon) {
     return new SendBeaconTransport();
   }
-  return getDefaultConfig().transportProvider;
+  return new FetchTransport();
 };
 
 export const getTopLevelDomain = async (url?: string) => {

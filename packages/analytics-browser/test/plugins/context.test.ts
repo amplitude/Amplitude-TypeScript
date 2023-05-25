@@ -1,11 +1,18 @@
+import { BrowserConfig } from '../../src/config';
 import { Context } from '../../src/plugins/context';
-import { useDefaultConfig } from '../helpers/default';
+import { UUID } from '@amplitude/analytics-core';
 
 describe('context', () => {
+  let apiKey = '';
+
+  beforeEach(() => {
+    apiKey = UUID();
+  });
+
   describe('setup', () => {
     test('should setup plugin', async () => {
       const context = new Context();
-      const config = useDefaultConfig();
+      const config = new BrowserConfig(apiKey);
       config.appVersion = '1.0.0';
       config.lastEventId = 1;
       await context.setup(config);
@@ -15,7 +22,7 @@ describe('context', () => {
 
     test('should setup plugin without app version', async () => {
       const context = new Context();
-      const config = useDefaultConfig();
+      const config = new BrowserConfig(apiKey);
       await context.setup(config);
       expect(context.config.appVersion).toBeUndefined();
       expect(context.eventId).toEqual(0);
@@ -25,12 +32,11 @@ describe('context', () => {
   describe('execute', () => {
     test('should execute plugin', async () => {
       const context = new Context();
-      const config = useDefaultConfig({
-        deviceId: 'deviceId',
-        sessionId: 1,
-        userId: 'user@amplitude.com',
-      });
+      const config = new BrowserConfig(apiKey);
       config.appVersion = '1.0.0';
+      config.deviceId = 'deviceId';
+      config.sessionId = 1;
+      config.userId = 'user@amplitude.com';
       await context.setup(config);
 
       const event = {
@@ -54,17 +60,16 @@ describe('context', () => {
 
     test('should not return the properties when the tracking options are false', async () => {
       const context = new Context();
-      const config = useDefaultConfig({
-        deviceId: 'deviceId',
-        sessionId: 1,
-        trackingOptions: {
-          ipAddress: false,
-          language: false,
-          platform: false,
-        },
-        userId: 'user@amplitude.com',
-      });
+      const config = new BrowserConfig(apiKey);
       config.appVersion = '1.0.0';
+      config.deviceId = 'deviceId';
+      config.sessionId = 1;
+      config.trackingOptions = {
+        ipAddress: false,
+        language: false,
+        platform: false,
+      };
+      config.userId = 'user@amplitude.com';
       await context.setup(config);
 
       const event = {
@@ -90,12 +95,11 @@ describe('context', () => {
 
     test('should be overwritten by the context', async () => {
       const context = new Context();
-      const config = useDefaultConfig({
-        deviceId: 'deviceId',
-        sessionId: 1,
-        userId: 'user@amplitude.com',
-      });
+      const config = new BrowserConfig(apiKey);
       config.appVersion = '1.0.0';
+      config.deviceId = 'deviceId';
+      config.sessionId = 1;
+      config.userId = 'user@amplitude.com';
       await context.setup(config);
 
       const event = {
@@ -118,13 +122,12 @@ describe('context', () => {
         const sourceName = 'ampli';
         const sourceVersion = '2.0.0';
         const context = new Context();
-        const config = useDefaultConfig({
-          ingestionMetadata: {
-            sourceName,
-            sourceVersion,
-          },
-          userId: 'user@amplitude.com',
-        });
+        const config = new BrowserConfig(apiKey);
+        config.ingestionMetadata = {
+          sourceName,
+          sourceVersion,
+        };
+        config.userId = 'user@amplitude.com';
         await context.setup(config);
 
         const event = {
@@ -140,12 +143,11 @@ describe('context', () => {
       test('sourceName should be optional', async () => {
         const sourceVersion = '2.0.0';
         const context = new Context();
-        const config = useDefaultConfig({
-          ingestionMetadata: {
-            sourceVersion,
-          },
-          userId: 'user@amplitude.com',
-        });
+        const config = new BrowserConfig(apiKey);
+        config.ingestionMetadata = {
+          sourceVersion,
+        };
+        config.userId = 'user@amplitude.com';
         await context.setup(config);
 
         const event = {
@@ -160,12 +162,11 @@ describe('context', () => {
       test('sourceVersion should be optional', async () => {
         const sourceName = 'ampli';
         const context = new Context();
-        const config = useDefaultConfig({
-          ingestionMetadata: {
-            sourceName,
-          },
-          userId: 'user@amplitude.com',
-        });
+        const config = new BrowserConfig(apiKey);
+        config.ingestionMetadata = {
+          sourceName,
+        };
+        config.userId = 'user@amplitude.com';
         await context.setup(config);
 
         const event = {
