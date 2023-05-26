@@ -53,8 +53,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public ingestionMetadata?: IngestionMetadata,
     lastEventId?: number,
     lastEventTime?: number,
-    public lastSessionDeviceId?: string,
-    public lastSessionUserId?: string,
+    public previousSessionDeviceId?: string,
+    public previousSessionUserId?: string,
     public loggerProvider: ILogger = new Logger(),
     public logLevel: LogLevel = LogLevel.Warn,
     public minIdLength?: number,
@@ -201,8 +201,8 @@ export const useBrowserConfig = async (apiKey: string, options: BrowserOptions =
     options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId ?? UUID();
   const lastEventId = previousCookies?.lastEventId;
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
-  const lastSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
-  const lastSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
+  const previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
+  const previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
   const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
@@ -228,8 +228,8 @@ export const useBrowserConfig = async (apiKey: string, options: BrowserOptions =
     options.ingestionMetadata,
     lastEventId,
     lastEventTime,
-    lastSessionDeviceId,
-    lastSessionUserId,
+    previousSessionDeviceId,
+    previousSessionUserId,
     options.loggerProvider,
     options.logLevel,
     options.minIdLength,
@@ -253,13 +253,15 @@ export const createCookieStorage = <T>(
   identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
   cookieOptions: CookieOptions = {},
 ) => {
-  if (identityStorage === DEFAULT_IDENTITY_STORAGE) {
-    return new CookieStorage<T>(cookieOptions);
+  switch (identityStorage) {
+    case 'localStorage':
+      return new LocalStorage<T>();
+    case 'none':
+      return new MemoryStorage<T>();
+    case 'cookie':
+    default:
+      return new CookieStorage<T>(cookieOptions);
   }
-  if (identityStorage === 'localStorage') {
-    return new LocalStorage<T>();
-  }
-  return new MemoryStorage<T>();
 };
 
 export const createTransport = (transport?: TransportType | keyof typeof TransportType) => {

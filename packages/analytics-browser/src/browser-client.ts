@@ -160,8 +160,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
           session_id: previousSessionId,
           time: previousLastEventTime + 1,
         };
-        eventOptions.device_id = this.config.lastSessionDeviceId;
-        eventOptions.user_id = this.config.lastSessionUserId;
+        eventOptions.device_id = this.config.previousSessionDeviceId;
+        eventOptions.user_id = this.config.previousSessionUserId;
         this.track(DEFAULT_SESSION_END_EVENT, undefined, eventOptions);
       }
 
@@ -169,8 +169,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         session_id: sessionId,
         time: sessionId - 1,
       });
-      this.config.lastSessionDeviceId = this.config.deviceId;
-      this.config.lastSessionUserId = this.config.userId;
+      this.config.previousSessionDeviceId = this.config.deviceId;
+      this.config.previousSessionUserId = this.config.userId;
     }
   }
 
