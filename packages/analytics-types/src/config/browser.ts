@@ -42,7 +42,7 @@ export interface TrackingOptions {
 }
 
 export interface AttributionOptions {
-  excludeReferrers?: string[];
+  excludeReferrers?: (string | RegExp)[];
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
 }

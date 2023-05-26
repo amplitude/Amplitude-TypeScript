@@ -1,7 +1,7 @@
 import { BeforePlugin } from '@amplitude/analytics-types';
 
 export interface Options {
-  excludeReferrers?: string[];
+  excludeReferrers?: (string | RegExp)[];
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
 }

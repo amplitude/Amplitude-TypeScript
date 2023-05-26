@@ -1,5 +1,11 @@
 import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
-import { getStorageKey, isNewCampaign, createCampaignEvent } from '../src/helpers';
+import {
+  getStorageKey,
+  isNewCampaign,
+  createCampaignEvent,
+  getDefaultExcludedReferrers,
+  isExcludedReferrer,
+} from '../src/helpers';
 
 describe('getStorageKey', () => {
   test('should return storage key without explicit suffix and limit', () => {
@@ -37,17 +43,47 @@ describe('isNewCampaign', () => {
     expect(isNewCampaign(currentCampaign, previousCampaign, {})).toBe(true);
   });
 
-  test('should return false for excluded referrer', () => {
+  test('should return false for string excluded referrer', () => {
     const previousCampaign = {
       ...BASE_CAMPAIGN,
     };
     const currentCampaign = {
       ...BASE_CAMPAIGN,
-      referring_domain: 'a',
+      referring_domain: 'amplitude.com',
     };
     expect(
       isNewCampaign(currentCampaign, previousCampaign, {
-        excludeReferrers: ['a'],
+        excludeReferrers: ['amplitude.com'],
+      }),
+    ).toBe(false);
+  });
+
+  test('should return false for regexp excluded referrer', () => {
+    const previousCampaign = {
+      ...BASE_CAMPAIGN,
+    };
+    const currentCampaign = {
+      ...BASE_CAMPAIGN,
+      referring_domain: 'amplitude.com',
+    };
+    expect(
+      isNewCampaign(currentCampaign, previousCampaign, {
+        excludeReferrers: getDefaultExcludedReferrers('.amplitude.com'),
+      }),
+    ).toBe(false);
+  });
+
+  test('should return false for cross subdomain regexp excluded referrer', () => {
+    const previousCampaign = {
+      ...BASE_CAMPAIGN,
+    };
+    const currentCampaign = {
+      ...BASE_CAMPAIGN,
+      referring_domain: 'analytics.amplitude.com',
+    };
+    expect(
+      isNewCampaign(currentCampaign, previousCampaign, {
+        excludeReferrers: getDefaultExcludedReferrers('.amplitude.com'),
       }),
     ).toBe(false);
   });
@@ -75,6 +111,16 @@ describe('isNewCampaign', () => {
         excludeReferrers: ['a'],
       }),
     ).toBe(false);
+  });
+});
+
+describe('isExcludedReferrer', () => {
+  test('should return true with string excluded referrer', () => {
+    expect(isExcludedReferrer(['data.amplitude.com'], 'data.amplitude.com')).toEqual(true);
+  });
+
+  test('should return true with regexp excluded referrer', () => {
+    expect(isExcludedReferrer(getDefaultExcludedReferrers('.amplitude.com'), 'data.amplitude.com')).toEqual(true);
   });
 });
 
@@ -199,5 +245,22 @@ describe('createCampaignEvent', () => {
         },
       },
     });
+  });
+});
+
+describe('getDefaultExcludedReferrers', () => {
+  test('should return empty array', () => {
+    const excludedReferrers = getDefaultExcludedReferrers(undefined);
+    expect(excludedReferrers).toEqual([]);
+  });
+
+  test('should return array with regex 1', () => {
+    const excludedReferrers = getDefaultExcludedReferrers('amplitude.com');
+    expect(excludedReferrers).toEqual([new RegExp('amplitude\\.com$')]);
+  });
+
+  test('should return array with regex 2', () => {
+    const excludedReferrers = getDefaultExcludedReferrers('.amplitude.com');
+    expect(excludedReferrers).toEqual([new RegExp('amplitude\\.com$')]);
   });
 });

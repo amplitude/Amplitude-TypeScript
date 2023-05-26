@@ -19,7 +19,6 @@ import {
   ReactNativeConfig,
   Campaign,
   ReactNativeOptions,
-  AttributionOptions,
   ReactNativeClient,
   Identify as IIdentify,
   EventOptions,
@@ -30,6 +29,7 @@ import { Context } from './plugins/context';
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import { ReactNativeAttributionOptions } from '@amplitude/analytics-types/lib/esm/config';
 
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
@@ -110,7 +110,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
     this.appStateChangeHandler?.remove();
   }
 
-  async runAttributionStrategy(attributionConfig?: AttributionOptions, isNewSession = false) {
+  async runAttributionStrategy(attributionConfig?: ReactNativeAttributionOptions, isNewSession = false) {
     if (isNative()) {
       return;
     }

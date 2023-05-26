@@ -21,16 +21,20 @@ export const isNewCampaign = (current: Campaign, previous: Campaign | undefined,
   const { referrer, referring_domain, ...currentCampaign } = current;
   const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
 
-  if (current.referring_domain && options.excludeReferrers?.includes(current.referring_domain)) {
+  if (isExcludedReferrer(options.excludeReferrers, current.referring_domain)) {
     return false;
   }
-
   const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
-
   const hasNewDomain =
     domainWithoutSubdomain(referring_domain || '') !== domainWithoutSubdomain(prevReferringDomain || '');
 
   return !previous || hasNewCampaign || hasNewDomain;
+};
+
+export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], referringDomain = '') => {
+  return excludeReferrers.some((value) =>
+    value instanceof RegExp ? value.test(referringDomain) : value === referringDomain,
+  );
 };
 
 export const createCampaignEvent = (campaign: Campaign, options: Options) => {
@@ -49,4 +53,15 @@ export const createCampaignEvent = (campaign: Campaign, options: Options) => {
   }, new Identify());
 
   return createIdentifyEvent(identifyEvent);
+};
+
+export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) => {
+  let domain = cookieDomain;
+  if (domain) {
+    if (domain.startsWith('.')) {
+      domain = domain.substring(1);
+    }
+    return [new RegExp(`${domain.replace('.', '\\.')}$`)];
+  }
+  return [];
 };
