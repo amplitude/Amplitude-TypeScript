@@ -61,7 +61,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       loggerProvider = config.loggerProvider;
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
 
-      if (options.trackHistoryChanges && globalScope) {
+      if (globalScope) {
         /* istanbul ignore next */
         globalScope.addEventListener('popstate', () => {
           void trackHistoryPageView();
