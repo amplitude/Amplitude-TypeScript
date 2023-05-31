@@ -229,7 +229,44 @@ describe('pageViewTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('track SPA page view on history push', async () => {
+    test('should add popstate event listener with default options', async () => {
+      // Note: existence of popstate event listener validates that client-side routing changes are tracked
+      // unless prevented by `options.trackOn`
+      const amplitude = createInstance();
+      const addEventListener = jest.spyOn(window, 'addEventListener');
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup(mockConfig, amplitude);
+      expect(addEventListener).toHaveBeenCalledTimes(1);
+      expect(addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+    });
+
+    test('should add popstate event listener with trackHistoryChanges: "all"', async () => {
+      // Note: existence of popstate event listener validates that client-side routing changes are tracked
+      // unless prevented by `options.trackOn`
+      const amplitude = createInstance();
+      const addEventListener = jest.spyOn(window, 'addEventListener');
+      const plugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'all',
+      });
+      await plugin.setup(mockConfig, amplitude);
+      expect(addEventListener).toHaveBeenCalledTimes(1);
+      expect(addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+    });
+
+    test('should add popstate event listener with trackHistoryChanges: "pathOnly"', async () => {
+      // Note: existence of popstate event listener validates that client-side routing changes are tracked
+      // unless prevented by `options.trackOn` or non-path changes to the URL
+      const amplitude = createInstance();
+      const addEventListener = jest.spyOn(window, 'addEventListener');
+      const plugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'pathOnly',
+      });
+      await plugin.setup(mockConfig, amplitude);
+      expect(addEventListener).toHaveBeenCalledTimes(1);
+      expect(addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+    });
+
+    test('should track SPA page view on history push', async () => {
       const amplitude = createInstance();
       const track = jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
