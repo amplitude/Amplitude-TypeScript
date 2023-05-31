@@ -34,6 +34,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
+  previousSessionDeviceId: string | undefined;
+  previousSessionUserId: string | undefined;
 
   init(apiKey = '', userId?: string, options?: BrowserOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -46,7 +48,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.initializing = true;
 
     // Step 2: Create browser config
-    const browserOptions = await useBrowserConfig(options.apiKey, options);
+    const browserOptions = await useBrowserConfig(options.apiKey, options, this);
     await super._init(browserOptions);
 
     // Step 3: Manage session
@@ -160,8 +162,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
           session_id: previousSessionId,
           time: previousLastEventTime + 1,
         };
-        eventOptions.device_id = this.config.previousSessionDeviceId;
-        eventOptions.user_id = this.config.previousSessionUserId;
+        eventOptions.device_id = this.previousSessionDeviceId;
+        eventOptions.user_id = this.previousSessionUserId;
         this.track(DEFAULT_SESSION_END_EVENT, undefined, eventOptions);
       }
 
@@ -169,8 +171,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         session_id: sessionId,
         time: sessionId - 1,
       });
-      this.config.previousSessionDeviceId = this.config.deviceId;
-      this.config.previousSessionUserId = this.config.userId;
+      this.previousSessionDeviceId = this.config.deviceId;
+      this.previousSessionUserId = this.config.userId;
     }
   }
 

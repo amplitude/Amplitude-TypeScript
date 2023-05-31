@@ -9,6 +9,7 @@ import { createTransport } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
+import { AmplitudeBrowser } from '../src/browser-client';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -53,8 +54,6 @@ describe('config', () => {
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
-        previousSessionDeviceId: undefined,
-        previousSessionUserId: undefined,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
@@ -81,7 +80,7 @@ describe('config', () => {
     test('should create default config', async () => {
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = await Config.useBrowserConfig(apiKey);
+      const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
       expect(config).toEqual({
         _cookieStorage: someCookieStorage,
         _deviceId: someUUID,
@@ -101,8 +100,6 @@ describe('config', () => {
         },
         defaultTracking: true,
         identityStorage: DEFAULT_IDENTITY_STORAGE,
-        previousSessionDeviceId: undefined,
-        previousSessionUserId: undefined,
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
@@ -138,23 +135,27 @@ describe('config', () => {
       });
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = await Config.useBrowserConfig(apiKey, {
-        deviceId: 'device-device-device',
-        sessionId: -1,
-        userId: 'user-user-user',
-        partnerId: 'partnerId',
-        plan: {
-          version: '0',
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          deviceId: 'device-device-device',
+          sessionId: -1,
+          userId: 'user-user-user',
+          partnerId: 'partnerId',
+          plan: {
+            version: '0',
+          },
+          ingestionMetadata: {
+            sourceName: 'ampli',
+            sourceVersion: '2.0.0',
+          },
+          sessionTimeout: 1,
+          cookieOptions: {
+            upgrade: false,
+          },
         },
-        ingestionMetadata: {
-          sourceName: 'ampli',
-          sourceVersion: '2.0.0',
-        },
-        sessionTimeout: 1,
-        cookieOptions: {
-          upgrade: false,
-        },
-      });
+        new AmplitudeBrowser(),
+      );
       expect(config).toEqual({
         _cookieStorage: someCookieStorage,
         _deviceId: 'device-device-device',
@@ -181,8 +182,6 @@ describe('config', () => {
           sourceName: 'ampli',
           sourceVersion: '2.0.0',
         },
-        previousSessionDeviceId: undefined,
-        previousSessionUserId: undefined,
         logLevel: 2,
         loggerProvider: logger,
         minIdLength: undefined,
@@ -206,9 +205,13 @@ describe('config', () => {
     });
 
     test('should change storage', async () => {
-      const config = await Config.useBrowserConfig(apiKey, {
-        userId: 'user@amplitude.com',
-      });
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          userId: 'user@amplitude.com',
+        },
+        new AmplitudeBrowser(),
+      );
       expect(config.cookieStorage).toEqual(someCookieStorage);
       const cookie1 = await config.cookieStorage.get(getCookieName(apiKey));
       expect(cookie1?.userId).toEqual('user@amplitude.com');
@@ -219,11 +222,15 @@ describe('config', () => {
     });
 
     test('should use custom domain', async () => {
-      const config = await Config.useBrowserConfig(apiKey, {
-        cookieOptions: {
-          domain: 'amplitude.com',
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          cookieOptions: {
+            domain: 'amplitude.com',
+          },
         },
-      });
+        new AmplitudeBrowser(),
+      );
       expect(config.cookieOptions?.domain).toEqual('amplitude.com');
     });
   });

@@ -24,6 +24,7 @@ import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
 import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
+import { AmplitudeBrowser } from './browser-client';
 export class BrowserConfig extends Config implements IBrowserConfig {
   protected _cookieStorage: Storage<UserSession>;
   protected _deviceId?: string;
@@ -53,8 +54,6 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public ingestionMetadata?: IngestionMetadata,
     lastEventId?: number,
     lastEventTime?: number,
-    public previousSessionDeviceId?: string,
-    public previousSessionUserId?: string,
     public loggerProvider: ILogger = new Logger(),
     public logLevel: LogLevel = LogLevel.Warn,
     public minIdLength?: number,
@@ -177,7 +176,11 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   }
 }
 
-export const useBrowserConfig = async (apiKey: string, options: BrowserOptions = {}): Promise<IBrowserConfig> => {
+export const useBrowserConfig = async (
+  apiKey: string,
+  options: BrowserOptions = {},
+  amplitudeInstance: AmplitudeBrowser,
+): Promise<IBrowserConfig> => {
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
   const cookieOptions = {
@@ -201,11 +204,11 @@ export const useBrowserConfig = async (apiKey: string, options: BrowserOptions =
     options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId ?? UUID();
   const lastEventId = previousCookies?.lastEventId;
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
-  const previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
-  const previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
   const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
+  amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
+  amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
 
   const trackingOptions = {
     ...options.trackingOptions,
@@ -228,8 +231,6 @@ export const useBrowserConfig = async (apiKey: string, options: BrowserOptions =
     options.ingestionMetadata,
     lastEventId,
     lastEventTime,
-    previousSessionDeviceId,
-    previousSessionUserId,
     options.loggerProvider,
     options.logLevel,
     options.minIdLength,

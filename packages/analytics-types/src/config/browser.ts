@@ -24,8 +24,6 @@ interface InternalBrowserConfig {
   cookieStorage: Storage<UserSession>;
   lastEventTime?: number;
   lastEventId?: number;
-  previousSessionDeviceId?: string;
-  previousSessionUserId?: string;
   transportProvider: Transport;
 }
 
