@@ -1,6 +1,7 @@
 import { BaseTransport } from '@amplitude/analytics-core';
 import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Status } from '@amplitude/analytics-types';
 import { record } from 'rrweb';
+import { shouldSplitEventsList } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, MISSING_API_KEY_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
 import { SessionReplayContext } from './typings/session-replay';
 
@@ -20,45 +21,52 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async setup(config: BrowserConfig) {
     console.log('setup called', config);
-    this.events = [];
+    this.events = [[]];
     this.config = config;
 
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
   }
 
   async execute(event: Event) {
-    // console.log('event', event);
     // todo: this should be a constant/type
     if (event.event_type === 'session_start') {
-      this.events.push([]);
+      this.events = [[]];
       console.log('starting new session', this.events);
       record({
         emit: (event) => {
-          console.log('events in emit', this.events);
-          this.events[this.events.length - 1].push(JSON.stringify(event));
+          const eventString = JSON.stringify(event);
+          const shouldSplit = shouldSplitEventsList(this.events[this.events.length - 1], eventString);
+          if (shouldSplit) {
+            this.sendEventsList(this.events[this.events.length - 1], this.events.length - 1);
+            this.events.push([]);
+          }
+          this.events[this.events.length - 1].push(eventString);
         },
         maskAllInputs: true,
       });
     } else if (event.event_type === 'session_end' && this.events.length) {
       console.log('ending session', this.events);
-      try {
-        this.addToQueue({
-          events: this.events[this.events.length - 1],
-          index: this.events.length - 1,
-          attempts: 0,
-          timeout: 0,
-        });
-      } catch (e) {
-        this.config.loggerProvider.error(e);
-      }
+      this.sendEventsList(this.events[this.events.length - 1], this.events.length - 1);
     }
 
     return event;
   }
 
+  sendEventsList(events: string[], index: number) {
+    try {
+      this.addToQueue({
+        events,
+        index,
+        attempts: 0,
+        timeout: 0,
+      });
+    } catch (e) {
+      this.config.loggerProvider.error(e);
+    }
+  }
+
   addToQueue(...list: SessionReplayContext[]) {
     const tryable = list.filter((context) => {
-      console.log('this.config.flushMaxRetries', this.config.flushMaxRetries);
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
         return true;
@@ -78,8 +86,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         this.schedule(0);
       }, context.timeout);
     });
-
-    // this.saveEvents();
   }
 
   schedule(timeout: number) {
