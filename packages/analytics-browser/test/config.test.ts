@@ -54,8 +54,6 @@ describe('config', () => {
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
-        lastSessionDeviceId: undefined,
-        lastSessionUserId: undefined,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
