@@ -1663,7 +1663,9 @@ describe('integration', () => {
       document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
       await client.init(apiKey, undefined, {
         defaultTracking,
-        cookieUpgrade: false,
+        cookieOptions: {
+          upgrade: false,
+        },
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
@@ -1812,7 +1814,7 @@ describe('integration', () => {
       // intercept for test event
       const scope2 = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
-        disableCookies: false,
+        identityStorage: 'cookie',
       }).promise;
       await client.identify(new amplitude.Identify().set('a', 'b')).promise;
       await client.track('Test Event').promise;
@@ -1828,7 +1830,7 @@ describe('integration', () => {
       // intercept for test event
       const scope2 = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
-        disableCookies: true,
+        identityStorage: 'localStorage',
       }).promise;
       await client.identify(new amplitude.Identify().set('a', 'b')).promise;
       await client.track('Test Event').promise;

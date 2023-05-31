@@ -1,20 +1,20 @@
-import { BrowserOptions, UserSession } from '@amplitude/analytics-types';
+import { Storage, UserSession } from '@amplitude/analytics-types';
 import { getOldCookieName } from '@amplitude/analytics-client-common';
-import { createCookieStorage, getDefaultConfig } from '../config';
 
-export const parseLegacyCookies = async (apiKey: string, options?: BrowserOptions): Promise<UserSession> => {
-  const storage = await createCookieStorage<string>(options);
-  const oldCookieName = getOldCookieName(apiKey);
-  const cookies = await storage.getRaw(oldCookieName);
-
+export const parseLegacyCookies = async (
+  apiKey: string,
+  cookieStorage: Storage<UserSession>,
+  deleteLegacyCookies = true,
+): Promise<UserSession> => {
+  const cookieName = getOldCookieName(apiKey);
+  const cookies = await cookieStorage.getRaw(cookieName);
   if (!cookies) {
     return {
       optOut: false,
     };
   }
-
-  if (options?.cookieUpgrade ?? getDefaultConfig().cookieUpgrade) {
-    await storage.remove(oldCookieName);
+  if (deleteLegacyCookies) {
+    await cookieStorage.remove(cookieName);
   }
   const [deviceId, userId, optOut, sessionId, lastEventTime] = cookies.split('.');
   return {

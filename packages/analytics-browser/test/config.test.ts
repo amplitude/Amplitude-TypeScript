@@ -8,50 +8,68 @@ import { XHRTransport } from '../src/transports/xhr';
 import { createTransport } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
+import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
+import { AmplitudeBrowser } from '../src/browser-client';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
-  const someStorage: core.MemoryStorage<UserSession> = expect.any(
-    core.MemoryStorage,
-  ) as core.MemoryStorage<UserSession>;
+  const someCookieStorage: BrowserUtils.CookieStorage<UserSession> = expect.any(
+    BrowserUtils.CookieStorage,
+  ) as BrowserUtils.CookieStorage<UserSession>;
+  const someLocalStorage: LocalStorageModule.LocalStorage<UserSession> = expect.any(
+    LocalStorageModule.LocalStorage,
+  ) as LocalStorageModule.LocalStorage<UserSession>;
 
-  const API_KEY = 'apiKey';
+  let apiKey = '';
+
+  beforeEach(() => {
+    apiKey = core.UUID();
+  });
 
   describe('BrowserConfig', () => {
-    test('should create plain config', async () => {
+    test('should create empty config', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = new Config.BrowserConfig('');
+      const config = new Config.BrowserConfig(apiKey);
       expect(config).toEqual({
-        apiKey: '',
+        _cookieStorage: cookieStorage,
+        _deviceId: undefined,
+        _lastEventId: undefined,
+        _lastEventTime: undefined,
+        _optOut: false,
+        _sessionId: undefined,
+        _userId: undefined,
+        apiKey,
         appVersion: undefined,
-        attribution: undefined,
-        cookieStorage,
-        cookieExpiration: 365,
-        cookieSameSite: 'Lax',
-        cookieSecure: false,
-        cookieUpgrade: true,
-        disableCookies: false,
-        domain: '',
+        cookieOptions: {
+          domain: '',
+          expiration: 365,
+          sameSite: 'Lax',
+          secure: false,
+          upgrade: true,
+        },
+        defaultTracking: true,
+        identityStorage: DEFAULT_IDENTITY_STORAGE,
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
-        _optOut: false,
         partnerId: undefined,
         plan: undefined,
         ingestionMetadata: undefined,
-        serverUrl: 'https://api2.amplitude.com/2/httpapi',
-        serverZone: 'US',
+        serverUrl: '',
+        serverZone: DEFAULT_SERVER_ZONE,
         sessionTimeout: 1800000,
+        storageProvider: new LocalStorageModule.LocalStorage(),
         trackingOptions: {
           ipAddress: true,
           language: true,
           platform: true,
         },
+        transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
       });
@@ -60,41 +78,47 @@ describe('config', () => {
 
   describe('useBrowserConfig', () => {
     test('should create default config', async () => {
-      jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = await Config.useBrowserConfig(API_KEY);
+      const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
       expect(config).toEqual({
-        apiKey: API_KEY,
-        appVersion: undefined,
-        attribution: undefined,
-        cookieStorage: someStorage,
-        cookieExpiration: 365,
-        cookieSameSite: 'Lax',
-        cookieSecure: false,
-        cookieUpgrade: true,
+        _cookieStorage: someCookieStorage,
         _deviceId: someUUID,
-        disableCookies: false,
-        domain: '',
+        _lastEventId: undefined,
+        _lastEventTime: undefined,
+        _optOut: false,
+        _sessionId: undefined,
+        _userId: undefined,
+        apiKey,
+        appVersion: undefined,
+        cookieOptions: {
+          domain: '',
+          expiration: 365,
+          sameSite: 'Lax',
+          secure: false,
+          upgrade: true,
+        },
+        defaultTracking: true,
+        identityStorage: DEFAULT_IDENTITY_STORAGE,
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
-        _optOut: false,
         partnerId: undefined,
         plan: undefined,
         ingestionMetadata: undefined,
-        serverUrl: 'https://api2.amplitude.com/2/httpapi',
-        serverZone: 'US',
+        serverUrl: '',
+        serverZone: DEFAULT_SERVER_ZONE,
         sessionTimeout: 1800000,
-        storageProvider: new core.MemoryStorage(),
+        storageProvider: someLocalStorage,
         trackingOptions: {
           ipAddress: true,
           language: true,
           platform: true,
         },
+        transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
       });
@@ -102,164 +126,129 @@ describe('config', () => {
 
     test('should create using cookies/overwrite', async () => {
       const cookieStorage = new core.MemoryStorage<UserSession>();
-      await cookieStorage.set(getCookieName(API_KEY), {
+      await cookieStorage.set(getCookieName(apiKey), {
         deviceId: 'device-device-device',
         sessionId: -1,
         userId: 'user-user-user',
         lastEventTime: 1,
         optOut: false,
       });
-      jest.spyOn(Config, 'createEventsStorage').mockResolvedValueOnce(new core.MemoryStorage());
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      const config = await Config.useBrowserConfig(API_KEY, {
-        deviceId: 'device-device-device',
-        sessionId: -1,
-        userId: 'user-user-user',
-        lastEventTime: 1,
-        partnerId: 'partnerId',
-        plan: {
-          version: '0',
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          deviceId: 'device-device-device',
+          sessionId: -1,
+          userId: 'user-user-user',
+          partnerId: 'partnerId',
+          plan: {
+            version: '0',
+          },
+          ingestionMetadata: {
+            sourceName: 'ampli',
+            sourceVersion: '2.0.0',
+          },
+          sessionTimeout: 1,
+          cookieOptions: {
+            upgrade: false,
+          },
         },
-        ingestionMetadata: {
-          sourceName: 'ampli',
-          sourceVersion: '2.0.0',
-        },
-        sessionTimeout: 1,
-        cookieUpgrade: false,
-        disableCookies: true,
-      });
+        new AmplitudeBrowser(),
+      );
       expect(config).toEqual({
-        apiKey: API_KEY,
-        appVersion: undefined,
-        cookieStorage,
-        cookieExpiration: 365,
-        cookieSameSite: 'Lax',
-        cookieSecure: false,
-        cookieUpgrade: false,
+        _cookieStorage: someCookieStorage,
         _deviceId: 'device-device-device',
-        disableCookies: true,
-        domain: '',
+        _lastEventId: undefined,
+        _lastEventTime: undefined,
+        _optOut: false,
+        _sessionId: -1,
+        _userId: 'user-user-user',
+        apiKey,
+        appVersion: undefined,
+        cookieOptions: {
+          domain: '',
+          expiration: 365,
+          sameSite: 'Lax',
+          secure: false,
+          upgrade: true,
+        },
+        defaultTracking: true,
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
-        _lastEventTime: 1,
-        loggerProvider: logger,
-        logLevel: LogLevel.Warn,
-        minIdLength: undefined,
-        _optOut: false,
-        partnerId: 'partnerId',
-        plan: {
-          version: '0',
-        },
+        identityStorage: DEFAULT_IDENTITY_STORAGE,
         ingestionMetadata: {
           sourceName: 'ampli',
           sourceVersion: '2.0.0',
         },
-        serverUrl: 'https://api2.amplitude.com/2/httpapi',
-        serverZone: 'US',
-        _sessionId: -1,
+        logLevel: 2,
+        loggerProvider: logger,
+        minIdLength: undefined,
+        partnerId: 'partnerId',
+        plan: {
+          version: '0',
+        },
+        serverUrl: '',
+        serverZone: DEFAULT_SERVER_ZONE,
         sessionTimeout: 1,
-        storageProvider: new core.MemoryStorage(),
+        storageProvider: someLocalStorage,
         trackingOptions: {
           ipAddress: true,
           language: true,
           platform: true,
         },
+        transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
-        _userId: 'user-user-user',
       });
     });
 
+    test('should change storage', async () => {
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          userId: 'user@amplitude.com',
+        },
+        new AmplitudeBrowser(),
+      );
+      expect(config.cookieStorage).toEqual(someCookieStorage);
+      const cookie1 = await config.cookieStorage.get(getCookieName(apiKey));
+      expect(cookie1?.userId).toEqual('user@amplitude.com');
+      config.cookieStorage = new LocalStorageModule.LocalStorage();
+      expect(config.cookieStorage).toEqual(someLocalStorage);
+      const cookie2 = await config.cookieStorage.get(getCookieName(apiKey));
+      expect(cookie2?.userId).toEqual('user@amplitude.com');
+    });
+
     test('should use custom domain', async () => {
-      const config = await Config.useBrowserConfig(API_KEY, {
-        domain: 'amplitude.com',
-      });
-      expect(config.domain).toEqual('amplitude.com');
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          cookieOptions: {
+            domain: 'amplitude.com',
+          },
+        },
+        new AmplitudeBrowser(),
+      );
+      expect(config.cookieOptions?.domain).toEqual('amplitude.com');
     });
   });
 
   describe('createCookieStorage', () => {
-    test('should return custom', async () => {
-      const cookieStorage = {
-        options: {},
-        isEnabled: async () => true,
-        get: async () => ({
-          optOut: false,
-        }),
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-        getRaw: async () => undefined,
-      };
-      const storage = await Config.createCookieStorage({
-        cookieStorage,
-      });
-      expect(storage).toBe(cookieStorage);
-    });
-
     test('should return cookies', async () => {
-      const storage = await Config.createCookieStorage();
+      const storage = Config.createCookieStorage(DEFAULT_IDENTITY_STORAGE);
       expect(storage).toBeInstanceOf(BrowserUtils.CookieStorage);
     });
 
     test('should use return storage', async () => {
-      const storage = await Config.createCookieStorage({ disableCookies: true });
+      const storage = Config.createCookieStorage('localStorage');
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
     });
 
     test('should use memory', async () => {
-      const cookiesConstructor = jest.spyOn(BrowserUtils, 'CookieStorage').mockReturnValueOnce({
-        options: {},
-        isEnabled: async () => false,
-        get: async () => '',
-        getRaw: async () => '',
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-      });
-      const localStorageConstructor = jest.spyOn(LocalStorageModule, 'LocalStorage').mockReturnValueOnce({
-        isEnabled: async () => false,
-        get: async () => '',
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-        getRaw: async () => undefined,
-      });
-      const storage = await Config.createCookieStorage();
+      const storage = Config.createCookieStorage('none');
       expect(storage).toBeInstanceOf(core.MemoryStorage);
-      expect(cookiesConstructor).toHaveBeenCalledTimes(1);
-      expect(localStorageConstructor).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  describe('createEventsStorage', () => {
-    test('should return custom', async () => {
-      const storageProvider = {
-        isEnabled: async () => true,
-        get: async () => [],
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-        getRaw: async () => undefined,
-      };
-      const storage = await Config.createEventsStorage({
-        storageProvider,
-      });
-      expect(storage).toBe(storageProvider);
-    });
-
-    test('should use return storage', async () => {
-      const storage = await Config.createEventsStorage();
-      expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
-    });
-
-    test('should return undefined storage', async () => {
-      const storage = await Config.createEventsStorage({
-        storageProvider: undefined,
-      });
-      expect(storage).toBe(undefined);
     });
   });
 

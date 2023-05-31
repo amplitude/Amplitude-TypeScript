@@ -3,7 +3,12 @@ import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport, getAnalyticsConnector } from '@amplitude/analytics-client-common';
+import {
+  CookieStorage,
+  FetchTransport,
+  getAnalyticsConnector,
+  getCookieName,
+} from '@amplitude/analytics-client-common';
 import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
@@ -31,7 +36,7 @@ describe('browser-client', () => {
 
   afterEach(() => {
     // clean up cookies
-    document.cookie = 'AMP_apiKey=null; expires=-1';
+    document.cookie = `AMP_${apiKey}=null; expires=-1`;
   });
 
   describe('init', () => {
@@ -40,8 +45,8 @@ describe('browser-client', () => {
         optOut: false,
       });
       await client.init(apiKey, userId, {
-        disableCookies: true,
         defaultTracking,
+        identityStorage: 'localStorage',
       }).promise;
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
@@ -76,11 +81,10 @@ describe('browser-client', () => {
         sessionId: 1,
         lastEventTime: Date.now() - 1000,
       });
-      const cookieStorage = new core.MemoryStorage<UserSession>();
       await client.init(apiKey, userId, {
         optOut: false,
-        cookieStorage,
         defaultTracking,
+        identityStorage: 'none',
       }).promise;
       expect(client.getDeviceId()).toBe(deviceId);
       expect(client.getSessionId()).toBe(1);
@@ -91,17 +95,15 @@ describe('browser-client', () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
       });
-      const cookieStorage = new core.MemoryStorage<UserSession>();
-      jest.spyOn(cookieStorage, 'set').mockResolvedValue(undefined);
-      jest.spyOn(cookieStorage, 'get').mockResolvedValue({
-        sessionId: 1,
+      const cookieStorage = new CookieStorage<UserSession>();
+      await cookieStorage.set(getCookieName(apiKey), {
         deviceId,
-        optOut: false,
         lastEventTime: Date.now(),
-        userId: userId,
+        optOut: false,
+        sessionId: 1,
+        userId,
       });
       await client.init(apiKey, undefined, {
-        cookieStorage,
         defaultTracking,
       }).promise;
       expect(client.getUserId()).toBe(userId);
@@ -126,17 +128,11 @@ describe('browser-client', () => {
     });
 
     test('should set user id and device id in analytics connector', async () => {
-      const cookieStorage = new core.MemoryStorage<UserSession>();
-      jest.spyOn(cookieStorage, 'set').mockResolvedValue(undefined);
-      jest.spyOn(cookieStorage, 'get').mockResolvedValueOnce(undefined).mockResolvedValue({
-        sessionId: 1,
-        deviceId,
-        optOut: false,
-      });
       await client.init(apiKey, userId, {
         optOut: true,
-        cookieStorage,
         defaultTracking,
+        deviceId,
+        identityStorage: 'none',
       }).promise;
       expect(client.getDeviceId()).toBe(deviceId);
       expect(client.getUserId()).toBe(userId);
@@ -474,7 +470,7 @@ describe('browser-client', () => {
       const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
       await client.init(apiKey, undefined, { defaultTracking }).promise;
       client.setTransport(TransportType.Fetch);
-      expect(createTransport).toHaveBeenCalledTimes(2);
+      expect(createTransport).toHaveBeenCalledTimes(1);
     });
 
     test('should defer set transport', () => {
@@ -482,7 +478,7 @@ describe('browser-client', () => {
         const fetch = new FetchTransport();
         const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
         void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
-          expect(createTransport).toHaveBeenCalledTimes(2);
+          expect(createTransport).toHaveBeenCalledTimes(1);
           resolve();
         });
         client.setTransport(TransportType.Fetch);
