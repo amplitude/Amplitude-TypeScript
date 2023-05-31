@@ -8,31 +8,21 @@ import {
   PluginType,
   Storage,
 } from '@amplitude/analytics-types';
-import { createCampaignEvent, getStorageKey, isNewCampaign } from './helpers';
+import { createCampaignEvent, getDefaultExcludedReferrers, getStorageKey, isNewCampaign } from './helpers';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 
 export const webAttributionPlugin: CreateWebAttributionPlugin = function (options: Options = {}) {
-  let amplitude: BrowserClient | undefined;
-
-  const excludeReferrers = options.excludeReferrers ?? [];
-  if (typeof location !== 'undefined') {
-    excludeReferrers.unshift(location.hostname);
-  }
-
-  options = {
-    initialEmptyValue: 'EMPTY',
-    resetSessionOnNewCampaign: false,
-    ...options,
-    excludeReferrers,
-  };
-
   const plugin: BeforePlugin = {
     name: '@amplitude/plugin-web-attribution-browser',
     type: PluginType.BEFORE,
 
-    setup: async function (config: BrowserConfig, client: BrowserClient) {
-      amplitude = client;
-
+    setup: async function (config: BrowserConfig, amplitude: BrowserClient) {
+      const pluginConfig = {
+        initialEmptyValue: 'EMPTY',
+        resetSessionOnNewCampaign: false,
+        excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain),
+        ...options,
+      };
       config.loggerProvider.log('Installing @amplitude/plugin-web-attribution-browser.');
 
       // Share cookie storage with user session storage
@@ -44,13 +34,13 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
         storage.get(storageKey),
       ]);
 
-      if (isNewCampaign(currentCampaign, previousCampaign, options)) {
-        if (options.resetSessionOnNewCampaign) {
+      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig)) {
+        if (pluginConfig.resetSessionOnNewCampaign) {
           amplitude.setSessionId(Date.now());
           config.loggerProvider.log('Created a new session for new campaign.');
         }
         config.loggerProvider.log('Tracking attribution.');
-        const campaignEvent = createCampaignEvent(currentCampaign, options);
+        const campaignEvent = createCampaignEvent(currentCampaign, pluginConfig);
         amplitude.track(campaignEvent);
         void storage.set(storageKey, currentCampaign);
       }

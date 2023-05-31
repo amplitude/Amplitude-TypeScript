@@ -44,7 +44,7 @@ describe('webAttributionPlugin', () => {
             code: 200,
             message: '',
             event: {
-              event_type: 'event_type',
+              event_type: '$identify',
             },
           }),
         });
@@ -55,7 +55,11 @@ describe('webAttributionPlugin', () => {
         });
 
         const plugin = webAttributionPlugin();
-        await plugin.setup(mockConfig, amplitude);
+        const overrideMockConfig = {
+          ...mockConfig,
+          cookieOptions: undefined,
+        };
+        await plugin.setup(overrideMockConfig, amplitude);
         expect(track).toHaveBeenCalledWith({
           event_type: '$identify',
           user_properties: {
@@ -117,7 +121,7 @@ describe('webAttributionPlugin', () => {
             code: 200,
             message: '',
             event: {
-              event_type: 'event_type',
+              event_type: '$identify',
             },
           }),
         });
@@ -193,7 +197,7 @@ describe('webAttributionPlugin', () => {
             code: 200,
             message: '',
             event: {
-              event_type: 'event_type',
+              event_type: '$identify',
             },
           }),
         });
@@ -212,6 +216,34 @@ describe('webAttributionPlugin', () => {
     });
   });
 
+  test('should not send attribution event on default excluded referrer', async () => {
+    const amplitude = createInstance();
+    const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
+      promise: Promise.resolve({
+        code: 200,
+        message: '',
+        event: {
+          event_type: '$identify',
+        },
+      }),
+    });
+    jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+      ...BASE_CAMPAIGN,
+      referring_domain: 'amplitude.com',
+    });
+
+    const overrideMockConfig = {
+      ...mockConfig,
+      cookieOptions: {
+        ...mockConfig.cookieOptions,
+        domain: '.amplitude.com',
+      },
+    };
+    const plugin = webAttributionPlugin();
+    await plugin.setup(overrideMockConfig, amplitude);
+    expect(track).toHaveBeenCalledTimes(0);
+  });
+
   describe('execute', () => {
     test('should return same event', async () => {
       jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
@@ -226,7 +258,7 @@ describe('webAttributionPlugin', () => {
           page_path: '',
           page_title: '',
         },
-        event_type: 'Page View',
+        event_type: '[Amplitude] Page Viewed',
       };
       const result = await plugin.execute(event);
 

@@ -1,4 +1,5 @@
 import {
+  AttributionOptions,
   BrowserOptions,
   DefaultTrackingOptions,
   PageTrackingHistoryChanges,
@@ -77,17 +78,7 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
   };
 };
 
-export const getAttributionTrackingConfig = (
-  config: BrowserOptions,
-): {
-  excludeReferrers?: string[];
-  initialEmptyValue?: string;
-  resetSessionOnNewCampaign?: boolean;
-} => {
-  let excludeReferrers: string[] | undefined;
-  let initialEmptyValue: string | undefined;
-  let resetSessionOnNewCampaign: boolean | undefined;
-
+export const getAttributionTrackingConfig = (config: BrowserOptions): AttributionOptions => {
   if (
     isAttributionTrackingEnabled(config.defaultTracking) &&
     config.defaultTracking &&
@@ -95,14 +86,10 @@ export const getAttributionTrackingConfig = (
     config.defaultTracking.attribution &&
     typeof config.defaultTracking.attribution === 'object'
   ) {
-    excludeReferrers = config.defaultTracking.attribution.excludeReferrers;
-    initialEmptyValue = config.defaultTracking.attribution.initialEmptyValue;
-    resetSessionOnNewCampaign = config.defaultTracking.attribution.resetSessionOnNewCampaign;
+    return {
+      ...config.defaultTracking.attribution,
+    };
   }
 
-  return {
-    excludeReferrers,
-    initialEmptyValue,
-    resetSessionOnNewCampaign,
-  };
+  return {};
 };
