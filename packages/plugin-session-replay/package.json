@@ -38,6 +38,7 @@
   "dependencies": {
     "@amplitude/analytics-client-common": "^1.0.0-beta.0",
     "@amplitude/analytics-types": "^1.0.0-beta.0",
+    "idb-keyval": "^6.2.1",
     "rrweb": "^2.0.0-alpha.4",
     "tslib": "^2.4.1"
   },

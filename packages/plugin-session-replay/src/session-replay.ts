@@ -1,12 +1,13 @@
-import { BaseTransport } from '@amplitude/analytics-core';
+import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
 import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Status } from '@amplitude/analytics-types';
+import { get, update } from 'idb-keyval';
 import { record } from 'rrweb';
 import { shouldSplitEventsList } from './helpers';
-import { MAX_RETRIES_EXCEEDED_MESSAGE, MISSING_API_KEY_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
-import { SessionReplayContext } from './typings/session-replay';
+import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE } from './messages';
+import { Events, IDBStore, SessionReplayContext } from './typings/session-replay';
 
-export const SESSION_REPLAY_SERVER_URL = 'https://api2.amplitude.com/sessions/track';
-
+const SESSION_REPLAY_SERVER_URL = 'https://api2.amplitude.com/sessions/track';
+const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 export class SessionReplayPlugin implements EnrichmentPlugin {
   name = '@amplitude/plugin-session-replay';
   type = PluginType.ENRICHMENT as const;
@@ -14,55 +15,89 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
+  storageKey = '';
   retryTimeout = 1000;
-  events: string[][] = [];
+  events: Events = [];
+  currentSequenceId = 0;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: SessionReplayContext[] = [];
 
   async setup(config: BrowserConfig) {
-    console.log('setup called', config);
-    this.events = [[]];
-    this.config = config;
-
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
+    this.config = config;
+    this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
+
+    await this.emptyStoreAndReset();
+
+    this.recordEvents();
   }
 
   async execute(event: Event) {
-    // todo: this should be a constant/type
-    if (event.event_type === 'session_start') {
-      this.events = [[]];
-      console.log('starting new session', this.events);
-      record({
-        emit: (event) => {
-          const eventString = JSON.stringify(event);
-          const shouldSplit = shouldSplitEventsList(this.events[this.events.length - 1], eventString);
-          if (shouldSplit) {
-            this.sendEventsList(this.events[this.events.length - 1], this.events.length - 1);
-            this.events.push([]);
-          }
-          this.events[this.events.length - 1].push(eventString);
-        },
-        maskAllInputs: true,
-      });
-    } else if (event.event_type === 'session_end' && this.events.length) {
-      console.log('ending session', this.events);
-      this.sendEventsList(this.events[this.events.length - 1], this.events.length - 1);
+    // TODO: this should be a constant/type
+    if (event.event_type === 'session_end') {
+      if (event.session_id) {
+        this.sendEventsList({
+          events: this.events,
+          sequenceId: this.currentSequenceId,
+          sessionId: event.session_id,
+        });
+      }
+      this.events = [];
+      this.currentSequenceId = 0;
     }
 
     return event;
   }
 
-  sendEventsList(events: string[], index: number) {
-    try {
-      this.addToQueue({
-        events,
-        index,
-        attempts: 0,
-        timeout: 0,
-      });
-    } catch (e) {
-      this.config.loggerProvider.error(e);
+  async emptyStoreAndReset() {
+    const storedReplaySessions = await this.getAllSessionEventsFromStore();
+    if (storedReplaySessions) {
+      for (const sessionId in storedReplaySessions) {
+        const storedReplayEvents = storedReplaySessions[sessionId];
+        if (storedReplayEvents.events.length) {
+          this.sendEventsList({
+            events: storedReplayEvents.events,
+            sequenceId: storedReplayEvents.sequenceId,
+            sessionId: parseInt(sessionId, 10),
+          });
+        }
+      }
+      this.events = [];
+      const currentSessionStoredEvents = this.config.sessionId && storedReplaySessions[this.config.sessionId];
+      this.currentSequenceId = currentSessionStoredEvents ? currentSessionStoredEvents.sequenceId + 1 : 0;
+      this.storeEventsForSession([], this.currentSequenceId);
     }
+  }
+
+  recordEvents() {
+    record({
+      emit: (event) => {
+        const eventString = JSON.stringify(event);
+        const shouldSplit = shouldSplitEventsList(this.events, eventString);
+        if (shouldSplit) {
+          this.sendEventsList({
+            events: this.events,
+            sequenceId: this.currentSequenceId,
+            sessionId: this.config.sessionId as number,
+          });
+          this.events = [];
+          this.currentSequenceId++;
+        }
+        this.events.push(eventString);
+        this.storeEventsForSession(this.events, this.currentSequenceId);
+      },
+      maskAllInputs: true,
+    });
+  }
+
+  sendEventsList({ events, sequenceId, sessionId }: { events: string[]; sequenceId: number; sessionId: number }) {
+    this.addToQueue({
+      events,
+      sequenceId,
+      attempts: 0,
+      timeout: 0,
+      sessionId,
+    });
   }
 
   addToQueue(...list: SessionReplayContext[]) {
@@ -71,9 +106,13 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         context.attempts += 1;
         return true;
       }
-      throw new Error(`${MAX_RETRIES_EXCEEDED_MESSAGE}, batch index, ${context.index}`);
+      // TODO: should we keep events in indexdb to retry on a refresh? Whats destination behavior?
+      this.completeRequest({
+        context,
+        err: `${MAX_RETRIES_EXCEEDED_MESSAGE}, batch sequence id, ${context.sequenceId}`,
+      });
+      return false;
     });
-    console.log('tryable items', tryable);
     tryable.forEach((context) => {
       this.queue = this.queue.concat(context);
       if (context.timeout === 0) {
@@ -110,27 +149,19 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       this.scheduled = null;
     }
 
-    // const batches = chunk(list, this.config.flushQueueSize); // todo do we need to chunk
-    try {
-      await Promise.all(list.map((context) => this.send(context, useRetry)));
-    } catch (e) {
-      this.config.loggerProvider.error(e);
-    }
+    await Promise.all(list.map((context) => this.send(context, useRetry)));
   }
 
   async send(context: SessionReplayContext, useRetry = true) {
-    if (!this.config.apiKey) {
-      return Promise.reject(new Error(MISSING_API_KEY_MESSAGE));
-    }
     const payload = {
       api_key: this.config.apiKey,
       device_id: this.config.deviceId,
-      session_id: this.config.sessionId,
-      start_timestamp: this.config.sessionId,
+      session_id: context.sessionId,
+      start_timestamp: context.sessionId,
       events_batch: {
         version: 1,
         events: context.events,
-        seq_number: context.index,
+        seq_number: context.sequenceId,
       },
     };
     try {
@@ -143,9 +174,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         method: 'POST',
       };
       const res = await fetch(SESSION_REPLAY_SERVER_URL, options);
-      console.log('res', res);
       if (res === null) {
-        return Promise.reject(new Error(UNEXPECTED_ERROR_MESSAGE));
+        this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE, removeEvents: false });
       }
       if (!useRetry) {
         let responseBody = '';
@@ -154,40 +184,98 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         } catch {
           // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
         }
-        return Promise.resolve(`${res.status}: ${responseBody}`);
+        this.completeRequest({ context, success: `${res.status}: ${responseBody}` });
+      } else {
+        this.handleReponse(res, context);
       }
-      return this.handleReponse(res, context);
     } catch (e) {
-      return Promise.reject(e);
+      this.completeRequest({ context, err: e as string, removeEvents: false });
     }
   }
 
-  async handleReponse(res: Response, context: SessionReplayContext) {
+  handleReponse(res: Response, context: SessionReplayContext) {
     const { status } = res;
     const parsedStatus = new BaseTransport().buildStatus(status);
     switch (parsedStatus) {
       case Status.Success:
-        return this.handleSuccessResponse(res);
+        this.handleSuccessResponse(res, context);
         break;
-
       default:
-        return this.handleOtherResponse(context);
+        this.handleOtherResponse(context);
     }
   }
 
-  async handleSuccessResponse(res: Response) {
-    return Promise.resolve(`${res.status}`);
+  handleSuccessResponse(res: Response, context: SessionReplayContext) {
+    this.completeRequest({ context, success: `${res.status}` });
   }
 
-  async handleOtherResponse(context: SessionReplayContext) {
+  handleOtherResponse(context: SessionReplayContext) {
+    this.addToQueue({
+      ...context,
+      timeout: context.attempts * this.retryTimeout,
+    });
+  }
+
+  async getAllSessionEventsFromStore() {
     try {
-      this.addToQueue({
-        ...context,
-        timeout: context.attempts * this.retryTimeout,
+      const storedReplaySessionContexts: IDBStore | undefined = await get(this.storageKey);
+
+      return storedReplaySessionContexts;
+    } catch (e) {
+      this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+    return undefined;
+  }
+
+  storeEventsForSession(events: Events, sequenceId: number) {
+    try {
+      void update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
+        if (this.config.sessionId) {
+          return {
+            ...sessionMap,
+            [this.config.sessionId]: {
+              events: events,
+              sequenceId,
+            },
+          };
+        }
+        return sessionMap || {};
       });
     } catch (e) {
-      return Promise.reject(new Error(e as string));
+      this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
     }
-    return Promise.resolve(`Retrying batch at index ${context.index}`);
+  }
+
+  removeSessionEventsStore(sessionId: number | undefined) {
+    if (sessionId) {
+      try {
+        void update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
+          sessionMap = sessionMap || {};
+          delete sessionMap[sessionId];
+          return sessionMap;
+        });
+      } catch (e) {
+        this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+      }
+    }
+  }
+
+  completeRequest({
+    context,
+    err,
+    success,
+    removeEvents = true,
+  }: {
+    context: SessionReplayContext;
+    err?: string;
+    success?: string;
+    removeEvents?: boolean;
+  }) {
+    removeEvents && this.removeSessionEventsStore(context.sessionId);
+    if (err) {
+      this.config.loggerProvider.error(err);
+    } else if (success) {
+      this.config.loggerProvider.log(success);
+    }
   }
 }

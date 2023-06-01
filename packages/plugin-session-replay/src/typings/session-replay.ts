@@ -11,8 +11,15 @@ export type Events = string[];
 
 export interface SessionReplayContext {
   events: Events;
-  index: number;
+  sequenceId: number;
   attempts: number;
   timeout: number;
-  //todo callback?
+  sessionId: number;
+}
+
+export interface IDBStore {
+  [sessionId: number]: {
+    events: Events;
+    sequenceId: number;
+  };
 }
