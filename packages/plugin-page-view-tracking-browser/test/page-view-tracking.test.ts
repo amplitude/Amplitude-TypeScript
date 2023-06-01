@@ -142,6 +142,8 @@ describe('pageViewTrackingPlugin', () => {
       mockWindowLocationFromURL(newURL);
       window.history.pushState(undefined, newURL.href);
 
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(track).toHaveBeenNthCalledWith(2, {
@@ -186,6 +188,8 @@ describe('pageViewTrackingPlugin', () => {
       mockWindowLocationFromURL(newURL);
       window.history.pushState(undefined, newURL.href);
 
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(track).toHaveBeenCalledTimes(1);
