@@ -55,144 +55,17 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   describe('setup', () => {
-    describe('should send a page view event', () => {
-      test('when attribution event is sent and trackOn is "attribution"', async () => {
-        const plugin = pageViewTrackingPlugin({
-          trackOn: 'attribution',
-        });
-        const event = await plugin.execute({
-          event_type: '$identify',
-          user_properties: {
-            $set: {
-              utm_source: 'amp-test',
-            },
-            $setOnce: {
-              initial_dclid: 'EMPTY',
-              initial_fbclid: 'EMPTY',
-              initial_gbraid: 'EMPTY',
-              initial_gclid: 'EMPTY',
-              initial_ko_click_id: 'EMPTY',
-              initial_li_fat_id: 'EMPTY',
-              initial_msclkid: 'EMPTY',
-              initial_wbraid: 'EMPTY',
-              initial_referrer: 'EMPTY',
-              initial_referring_domain: 'EMPTY',
-              initial_rtd_cid: 'EMPTY',
-              initial_ttclid: 'EMPTY',
-              initial_twclid: 'EMPTY',
-              initial_utm_campaign: 'EMPTY',
-              initial_utm_content: 'EMPTY',
-              initial_utm_id: 'EMPTY',
-              initial_utm_medium: 'EMPTY',
-              initial_utm_source: 'amp-test',
-              initial_utm_term: 'EMPTY',
-            },
-            $unset: {
-              dclid: '-',
-              fbclid: '-',
-              gbraid: '-',
-              gclid: '-',
-              ko_click_id: '-',
-              li_fat_id: '-',
-              msclkid: '-',
-              wbraid: '-',
-              referrer: '-',
-              referring_domain: '-',
-              rtd_cid: '-',
-              ttclid: '-',
-              twclid: '-',
-              utm_campaign: '-',
-              utm_content: '-',
-              utm_id: '-',
-              utm_medium: '-',
-              utm_term: '-',
-            },
-          },
-        });
-        expect(event?.event_type).toBe('[Amplitude] Page Viewed');
-      });
-
-      test('when trackOn is a function and it returns true', async () => {
-        const amplitude = createInstance();
-        const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
-          promise: Promise.resolve({
-            code: 200,
-            message: '',
-            event: {
-              event_type: 'Page Viewed',
-            },
-          }),
-        });
-        const plugin = pageViewTrackingPlugin({
-          trackOn: () => true,
-          eventType: 'Page Viewed',
-        });
-        await plugin.setup(mockConfig, amplitude);
-        expect(track).toHaveBeenCalledWith({
-          event_properties: {
-            '[Amplitude] Page Domain': '',
-            '[Amplitude] Page Location': '',
-            '[Amplitude] Page Path': '',
-            '[Amplitude] Page Title': '',
-            '[Amplitude] Page URL': '',
-          },
-          event_type: 'Page Viewed',
-        });
-        expect(track).toHaveBeenCalledTimes(1);
-      });
-
-      test('when trackOn is undefined', async () => {
-        const amplitude = createInstance();
-        const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
-          promise: Promise.resolve({
-            code: 200,
-            message: '',
-            event: {
-              event_type: '[Amplitude] Page Viewed',
-            },
-          }),
-        });
-        const plugin = pageViewTrackingPlugin({
-          trackOn: undefined,
-        });
-        await plugin.setup(mockConfig, amplitude);
-        expect(track).toHaveBeenCalledWith({
-          event_properties: {
-            '[Amplitude] Page Domain': '',
-            '[Amplitude] Page Location': '',
-            '[Amplitude] Page Path': '',
-            '[Amplitude] Page Title': '',
-            '[Amplitude] Page URL': '',
-          },
-          event_type: '[Amplitude] Page Viewed',
-        });
-        expect(track).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    describe('should not send a page view event', () => {
-      test('when attribution event is not sent and trackOn is "attribution"', async () => {
-        const amplitude = createInstance();
-        const track = jest.spyOn(amplitude, 'track');
-        const plugin = pageViewTrackingPlugin({
-          trackOn: 'attribution',
-        });
-        await plugin.setup(mockConfig, amplitude);
-        expect(track).toHaveBeenCalledTimes(0);
-      });
-
-      test('when trackOn is a function and it returns false', async () => {
-        const amplitude = createInstance();
-        const track = jest.spyOn(amplitude, 'track');
-        const plugin = pageViewTrackingPlugin({
-          trackOn: () => false,
-        });
-        await plugin.setup(mockConfig, amplitude);
-        expect(track).toHaveBeenCalledTimes(0);
-      });
-    });
-
-    test('should send utm parameters from URL in page view event', async () => {
+    test.each([
+      undefined,
+      {},
+      {
+        trackOn: undefined,
+      },
+      {
+        trackOn: () => true,
+        eventType: 'Page Viewed',
+      },
+    ])('should track initial page view', async (options) => {
       const amplitude = createInstance();
       const search = 'utm_source=google&utm_medium=cpc&utm_campaign=brand&utm_term=keyword&utm_content=adcopy';
       const hostname = 'www.example.com';
@@ -208,8 +81,7 @@ describe('pageViewTrackingPlugin', () => {
           },
         }),
       });
-
-      const plugin = pageViewTrackingPlugin();
+      const plugin = pageViewTrackingPlugin(options);
       await plugin.setup(mockConfig, amplitude);
       expect(track).toHaveBeenCalledWith({
         event_properties: {
@@ -224,49 +96,31 @@ describe('pageViewTrackingPlugin', () => {
           utm_term: 'keyword',
           utm_content: 'adcopy',
         },
-        event_type: '[Amplitude] Page Viewed',
+        event_type: options?.eventType ?? '[Amplitude] Page Viewed',
       });
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should add popstate event listener with default options', async () => {
-      // Note: existence of popstate event listener validates that client-side routing changes are tracked
-      // unless prevented by `options.trackOn`
+    test.each([
+      {
+        trackOn: 'attribution' as const,
+      },
+      {
+        trackOn: () => false,
+      },
+    ])('should not track initial page view', async (options) => {
       const amplitude = createInstance();
-      const addEventListener = jest.spyOn(window, 'addEventListener');
-      const plugin = pageViewTrackingPlugin();
+      const track = jest.spyOn(amplitude, 'track');
+      const plugin = pageViewTrackingPlugin(options);
       await plugin.setup(mockConfig, amplitude);
-      expect(addEventListener).toHaveBeenCalledTimes(1);
-      expect(addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+      expect(track).toHaveBeenCalledTimes(0);
     });
 
-    test('should add popstate event listener with trackHistoryChanges: "all"', async () => {
-      // Note: existence of popstate event listener validates that client-side routing changes are tracked
-      // unless prevented by `options.trackOn`
-      const amplitude = createInstance();
-      const addEventListener = jest.spyOn(window, 'addEventListener');
-      const plugin = pageViewTrackingPlugin({
-        trackHistoryChanges: 'all',
-      });
-      await plugin.setup(mockConfig, amplitude);
-      expect(addEventListener).toHaveBeenCalledTimes(1);
-      expect(addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
-    });
-
-    test('should add popstate event listener with trackHistoryChanges: "pathOnly"', async () => {
-      // Note: existence of popstate event listener validates that client-side routing changes are tracked
-      // unless prevented by `options.trackOn` or non-path changes to the URL
-      const amplitude = createInstance();
-      const addEventListener = jest.spyOn(window, 'addEventListener');
-      const plugin = pageViewTrackingPlugin({
-        trackHistoryChanges: 'pathOnly',
-      });
-      await plugin.setup(mockConfig, amplitude);
-      expect(addEventListener).toHaveBeenCalledTimes(1);
-      expect(addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
-    });
-
-    test('should track SPA page view on history push', async () => {
+    test.each([
+      { trackHistoryChanges: undefined },
+      { trackHistoryChanges: 'pathOnly' as const },
+      { trackHistoryChanges: 'all' as const },
+    ])('should track dynamic page view', async (options) => {
       const amplitude = createInstance();
       const track = jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
@@ -278,56 +132,127 @@ describe('pageViewTrackingPlugin', () => {
         }),
       });
 
-      const plugin = pageViewTrackingPlugin({
-        trackHistoryChanges: 'all',
-        trackOn: () => window.location.hostname !== 'www.google.com',
-      });
+      const oldURL = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(oldURL);
+
+      const plugin = pageViewTrackingPlugin(options);
       await plugin.setup(mockConfig, amplitude);
 
-      expect(track).toHaveBeenCalledWith({
+      const newURL = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(track).toHaveBeenNthCalledWith(2, {
         event_properties: {
-          '[Amplitude] Page Domain': '',
-          '[Amplitude] Page Location': '',
-          '[Amplitude] Page Path': '',
+          '[Amplitude] Page Domain': newURL.hostname,
+          '[Amplitude] Page Location': newURL.toString(),
+          '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
-          '[Amplitude] Page URL': '',
+          '[Amplitude] Page URL': newURL.toString(),
         },
         event_type: '[Amplitude] Page Viewed',
       });
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test.each([
+      { trackHistoryChanges: 'pathOnly' as const },
+      {
+        trackOn: () => {
+          return !location.search.includes('about');
+        },
+      },
+    ])('should not track dynamic page view', async (options) => {
+      const amplitude = createInstance();
+      const track = jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: '[Amplitude] Page Viewed',
+          },
+        }),
+      });
+
+      const oldURL = new URL('https://www.example.com?page=home');
+      mockWindowLocationFromURL(oldURL);
+
+      const plugin = pageViewTrackingPlugin(options);
+      await plugin.setup(mockConfig, amplitude);
+
+      const newURL = new URL('https://www.example.com?page=about');
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       expect(track).toHaveBeenCalledTimes(1);
-
-      const mockURL = new URL('https://www.example.com/path/to/page');
-      mockWindowLocationFromURL(mockURL);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      await (plugin as any).__trackHistoryPageView();
-
-      expect(track).toHaveBeenCalledWith({
-        event_properties: {
-          '[Amplitude] Page Domain': mockURL.hostname,
-          '[Amplitude] Page Location': mockURL.toString(),
-          '[Amplitude] Page Path': mockURL.pathname,
-          '[Amplitude] Page Title': '',
-          '[Amplitude] Page URL': mockURL.toString(),
-        },
-        event_type: '[Amplitude] Page Viewed',
-      });
-      expect(track).toHaveBeenCalledTimes(2);
-
-      // Check that revisiting same url won't send another page view
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      await (plugin as any).__trackHistoryPageView();
-      expect(track).toHaveBeenCalledTimes(2);
-
-      // Validate filter works
-      const mockGoogleURL = new URL('https://www.google.com/path/to/page');
-      mockWindowLocationFromURL(mockGoogleURL);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-      await (plugin as any).__trackHistoryPageView();
-      expect(track).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('execute', () => {
+    test('should track page view on attribution', async () => {
+      const plugin = pageViewTrackingPlugin({
+        trackOn: 'attribution',
+      });
+      const event = await plugin.execute({
+        event_type: '$identify',
+        user_properties: {
+          $set: {
+            utm_source: 'amp-test',
+          },
+          $setOnce: {
+            initial_dclid: 'EMPTY',
+            initial_fbclid: 'EMPTY',
+            initial_gbraid: 'EMPTY',
+            initial_gclid: 'EMPTY',
+            initial_ko_click_id: 'EMPTY',
+            initial_li_fat_id: 'EMPTY',
+            initial_msclkid: 'EMPTY',
+            initial_wbraid: 'EMPTY',
+            initial_referrer: 'EMPTY',
+            initial_referring_domain: 'EMPTY',
+            initial_rtd_cid: 'EMPTY',
+            initial_ttclid: 'EMPTY',
+            initial_twclid: 'EMPTY',
+            initial_utm_campaign: 'EMPTY',
+            initial_utm_content: 'EMPTY',
+            initial_utm_id: 'EMPTY',
+            initial_utm_medium: 'EMPTY',
+            initial_utm_source: 'amp-test',
+            initial_utm_term: 'EMPTY',
+          },
+          $unset: {
+            dclid: '-',
+            fbclid: '-',
+            gbraid: '-',
+            gclid: '-',
+            ko_click_id: '-',
+            li_fat_id: '-',
+            msclkid: '-',
+            wbraid: '-',
+            referrer: '-',
+            referring_domain: '-',
+            rtd_cid: '-',
+            ttclid: '-',
+            twclid: '-',
+            utm_campaign: '-',
+            utm_content: '-',
+            utm_id: '-',
+            utm_medium: '-',
+            utm_term: '-',
+          },
+        },
+      });
+      expect(event?.event_type).toBe('[Amplitude] Page Viewed');
+    });
+
     test('should return same event if it is not attribution event', async () => {
       const plugin = pageViewTrackingPlugin({
         trackOn: 'attribution',
