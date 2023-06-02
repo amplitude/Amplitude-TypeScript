@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.8.0...@amplitude/plugin-page-view-tracking-browser@0.8.1) (2023-06-02)
+
+### Bug Fixes
+
+- dyanamic page view tracking to run after navigation
+  ([#396](https://github.com/amplitude/Amplitude-TypeScript/issues/396))
+  ([31d6435](https://github.com/amplitude/Amplitude-TypeScript/commit/31d6435b0f50da89302e83431a6fb5c1b46ec71b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.7.3...@amplitude/plugin-page-view-tracking-browser@0.8.0) (2023-05-04)
 
 ### Features
