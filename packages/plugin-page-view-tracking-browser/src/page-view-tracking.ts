@@ -51,7 +51,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
   const shouldTrackOnPageLoad = () =>
     typeof options.trackOn === 'undefined' || (typeof options.trackOn === 'function' && options.trackOn());
 
-  let previousURL: string | null = null;
+  let previousURL: string | null = location.href;
 
   const trackHistoryPageView = async (): Promise<void> => {
     const newURL = location.href;
@@ -103,9 +103,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
         // eslint-disable-next-line @typescript-eslint/unbound-method
         globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
           apply: (target, thisArg, [state, unused, url]) => {
+            target.apply(thisArg, [state, unused, url]);
             void trackHistoryPageView();
-
-            return target.apply(thisArg, [state, unused, url]);
           },
         });
       }
