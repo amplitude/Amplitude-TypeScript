@@ -157,14 +157,16 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return this.config?.userId;
   }
 
-  setUserId(userId: string | undefined) {
+  setUserId(userId: string | undefined, startNewSession = false) {
     if (!this.config) {
       this.q.push(this.setUserId.bind(this, userId));
       return;
     }
     if (userId !== this.config.userId || userId === undefined) {
       this.config.userId = userId;
-      this.setSessionId(Date.now());
+      if (startNewSession) {
+        this.setSessionId(Date.now());
+      }
       setConnectorUserId(userId);
     }
   }
