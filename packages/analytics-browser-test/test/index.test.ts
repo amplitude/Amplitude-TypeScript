@@ -1283,7 +1283,7 @@ describe('integration', () => {
           expect(deviceIds[3]).toEqual(deviceIds[4]);
           expect(deviceIds[4]).toEqual(deviceIds[5]);
           expect(deviceIds[5]).not.toBe(deviceIds[6]);
-          expect(deviceIds[6]).not.toEqual(deviceIds[7]);
+          expect(deviceIds[6]).not.toBe(deviceIds[7]);
           // The order of events in the payload is sorted by time of track fn invokation
           // and not consistent with the time property
           // Session events have overwritten time property
