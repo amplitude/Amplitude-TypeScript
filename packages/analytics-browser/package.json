@@ -43,11 +43,11 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^1.0.0-beta.0",
-    "@amplitude/analytics-core": "^0.13.3",
-    "@amplitude/analytics-types": "^1.0.0-beta.0",
-    "@amplitude/plugin-page-view-tracking-browser": "^1.0.0-beta.0",
-    "@amplitude/plugin-web-attribution-browser": "^1.0.0-beta.0",
+    "@amplitude/analytics-client-common": "^2.0.0-beta.0",
+    "@amplitude/analytics-core": "^2.0.0-beta.0",
+    "@amplitude/analytics-types": "^2.0.0-beta.0",
+    "@amplitude/plugin-page-view-tracking-browser": "^2.0.0-beta.0",
+    "@amplitude/plugin-web-attribution-browser": "^2.0.0-beta.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

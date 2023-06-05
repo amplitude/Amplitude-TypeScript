@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser-test",
-  "version": "2.7.0",
+  "version": "2.8.0-beta.0",
   "private": true,
   "description": "",
   "author": "Amplitude Inc",
