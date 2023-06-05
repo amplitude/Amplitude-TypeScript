@@ -920,7 +920,7 @@ describe('integration', () => {
       }, 1000);
 
       setTimeout(() => {
-        client.setUserId('user2@amplitude.com', true); // effectively creates a new session
+        client.setUserId('user2@amplitude.com'); // effectively creates a new session
         // Sends `session_end` event for previous user and session
         // Sends `session_start` event for next user and session
       }, 2000);
