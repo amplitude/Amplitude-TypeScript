@@ -34,7 +34,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async execute(event: Event) {
     // TODO: this should be a constant/type
-    if (event.event_type === 'session_end') {
+    if (event.event_type === 'session_start') {
+      event.event_properties = {
+        ...event.event_properties,
+        session_replay_enabled: true,
+      };
+    } else if (event.event_type === 'session_end') {
       if (event.session_id) {
         this.sendEventsList({
           events: this.events,
@@ -45,7 +50,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       this.events = [];
       this.currentSequenceId = 0;
     }
-
     return event;
   }
 
@@ -84,6 +88,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
           this.currentSequenceId++;
         }
         this.events.push(eventString);
+        console.log('this.events', this.events);
         this.storeEventsForSession(this.events, this.currentSequenceId);
       },
       maskAllInputs: true,
