@@ -21,6 +21,7 @@ interface Client extends CoreClient {
    * ```
    */
   setUserId(userId: string | undefined): void;
+  setUserId(userId: string | undefined, startNewSession: boolean): void;
 
   /**
    * Returns current device ID.
