@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.8.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.8.1...@amplitude/plugin-page-view-tracking-browser@0.8.2) (2023-06-05)
+
+### Bug Fixes
+
+- Reference error for location ([#398](https://github.com/amplitude/Amplitude-TypeScript/issues/398))
+  ([85f063e](https://github.com/amplitude/Amplitude-TypeScript/commit/85f063e65165b3571366e96dfecb866c6286670b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.8.0...@amplitude/plugin-page-view-tracking-browser@0.8.1) (2023-06-02)
 
 ### Bug Fixes
