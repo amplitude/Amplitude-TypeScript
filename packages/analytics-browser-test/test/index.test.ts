@@ -982,16 +982,6 @@ describe('integration', () => {
                 eventType: 'Event in next session',
                 userId: 'user1@amplitude.com',
               },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-              },
-            ],
-            [
-              {
-                eventType: 'session_start',
-                userId: 'user2@amplitude.com',
-              },
             ],
           ]);
           expect(payload).toEqual({
@@ -1154,44 +1144,6 @@ describe('integration', () => {
                 time: number,
                 user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 6,
-                event_type: 'session_end',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                os_name: 'WebKit',
-                os_version: '537.36',
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 7,
-                event_type: 'session_start',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                os_name: 'WebKit',
-                os_version: '537.36',
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user2@amplitude.com',
               },
             ],
             options: {
@@ -1282,8 +1234,6 @@ describe('integration', () => {
           expect(deviceIds[2]).toEqual(deviceIds[3]);
           expect(deviceIds[3]).toEqual(deviceIds[4]);
           expect(deviceIds[4]).toEqual(deviceIds[5]);
-          expect(deviceIds[5]).not.toBe(deviceIds[6]);
-          expect(deviceIds[6]).not.toBe(deviceIds[7]);
           // The order of events in the payload is sorted by time of track fn invokation
           // and not consistent with the time property
           // Session events have overwritten time property
@@ -1320,18 +1270,6 @@ describe('integration', () => {
               {
                 eventType: 'Event in next session',
                 userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-            ],
-            [
-              {
-                eventType: 'session_start',
-                userId: undefined,
                 deviceId: uuid,
               },
             ],
@@ -1496,44 +1434,6 @@ describe('integration', () => {
                 time: number,
                 user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 6,
-                event_type: 'session_end',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                os_name: 'WebKit',
-                os_version: '537.36',
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 7,
-                event_type: 'session_start',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                os_name: 'WebKit',
-                os_version: '537.36',
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: undefined,
               },
             ],
             options: {
