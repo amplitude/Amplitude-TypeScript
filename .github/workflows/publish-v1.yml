@@ -1,0 +1,117 @@
+name: Publish v1.x
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        type: choice
+        description: Release Type
+        options:
+          - release
+          - prerelease
+          - graduate
+
+jobs:
+  authorize:
+    name: Authorize
+    runs-on: ubuntu-latest
+    steps:
+      - name: ${{ github.actor }} permission check to do a release
+        uses: 'lannonbr/repo-permission-check-action@2.0.2'
+        with:
+          permission: 'write'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [authorize]
+    permissions:
+      id-token: write
+      contents: write
+    env:
+      RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: v1.x
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Build all packages
+        run: |
+          yarn build
+
+      - name: Test all packages
+        run: |
+          yarn test
+
+      - name: Lint all packages
+        run: |
+          yarn lint
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name amplitude-sdk-bot
+          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
+
+      - name: Configure NPM User
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
+          npm whoami
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
+          aws-region: us-west-2
+
+      # https://www.npmjs.com/package/@lerna/version#--conventional-prerelease
+      # patch: 1.0.0 -> 1.0.1-alpha.0
+      # minor: 1.0.0 -> 1.1.0-alpha.0
+      # major: 1.0.0 -> 2.0.0-alpha.0
+      - name: Create pre-release version
+        if: ${{ env.RELEASE_TYPE == 'prerelease'}}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --conventional-prerelease
+
+      # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
+      # 1.0.0-alpha.0 -> 1.0.1
+      - name: Create graduate version
+        if: ${{ env.RELEASE_TYPE == 'graduate'}}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --conventional-graduate
+
+      # Use 'release' for the usual deployment
+      # NOTE: You probably want this
+      - name: Create release version
+        if: ${{ env.RELEASE_TYPE == 'release'}}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y
+
+      # Use 'from git' option if `lerna version` has already been run
+      - name: Publish Release to NPM
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
