@@ -345,7 +345,7 @@ describe('browser-client', () => {
       // We do not want to depend on init behavior
       track.mockReset();
 
-      client.setUserId(undefined);
+      client.setUserId(undefined, true);
       expect(client.getUserId()).toBe(undefined);
       expect(track).toHaveBeenCalledTimes(2);
     });
