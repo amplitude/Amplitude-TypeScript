@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-node-test",
-  "version": "0.1.14",
+  "version": "1.0.0-beta.0",
   "private": true,
   "description": "",
   "author": "Amplitude Inc",
