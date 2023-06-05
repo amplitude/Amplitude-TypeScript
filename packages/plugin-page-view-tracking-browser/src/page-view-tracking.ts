@@ -51,7 +51,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
   const shouldTrackOnPageLoad = () =>
     typeof options.trackOn === 'undefined' || (typeof options.trackOn === 'function' && options.trackOn());
 
-  let previousURL: string | null = location.href;
+  let previousURL: string | null = location?.href ?? null;
 
   const trackHistoryPageView = async (): Promise<void> => {
     const newURL = location.href;
