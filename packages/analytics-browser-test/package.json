@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser-test",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "description": "",
   "author": "Amplitude Inc",
@@ -16,7 +16,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-browser": "^1.10.6"
+    "@amplitude/analytics-browser": "^1.10.7"
   },
   "devDependencies": {
     "nock": "^13.2.4"

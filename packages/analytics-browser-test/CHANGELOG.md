@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@1.4.0...@amplitude/analytics-browser-test@1.4.1) (2023-06-06)
+
+### Bug Fixes
+
+- don't automatically start new session on setUserId
+  ([#400](https://github.com/amplitude/Amplitude-TypeScript/issues/400))
+  ([ce17aab](https://github.com/amplitude/Amplitude-TypeScript/commit/ce17aabe3e0d04386ed201e6b9795ca8d42bd711))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@1.4.0-beta.1...@amplitude/analytics-browser-test@1.4.0) (2023-06-06)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test
