@@ -21,9 +21,14 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   currentSequenceId = 0;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: SessionReplayContext[] = [];
+  shouldLogReplayEnabled = false;
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
+    if (!config.sessionId) {
+      this.shouldLogReplayEnabled = true;
+    }
+
     this.config = config;
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
 
@@ -32,13 +37,14 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     this.recordEvents();
   }
 
-  async execute(event: Event) {
+  execute(event: Event) {
     // TODO: this should be a constant/type
-    if (event.event_type === 'session_start') {
+    if (event.event_type === 'session_start' || this.shouldLogReplayEnabled) {
       event.event_properties = {
         ...event.event_properties,
         session_replay_enabled: true,
       };
+      this.shouldLogReplayEnabled = false;
     } else if (event.event_type === 'session_end') {
       if (event.session_id) {
         this.sendEventsList({
@@ -50,7 +56,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       this.events = [];
       this.currentSequenceId = 0;
     }
-    return event;
+    return Promise.resolve(event);
   }
 
   async emptyStoreAndReset() {
@@ -88,7 +94,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
           this.currentSequenceId++;
         }
         this.events.push(eventString);
-        console.log('this.events', this.events);
         this.storeEventsForSession(this.events, this.currentSequenceId);
       },
       maskAllInputs: true,
