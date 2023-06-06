@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Event, Plugin, PluginType, Status } from '@amplitude/analytics-types';
+import { Event, Plugin, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
 import { useDefaultConfig } from './helpers/default';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/messages';
@@ -76,7 +76,7 @@ describe('core-client', () => {
       const execute = jest.fn();
       const plugin: Plugin = {
         name: 'plugin',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: setup,
         execute: execute,
       };
@@ -86,7 +86,7 @@ describe('core-client', () => {
       expect(register).toHaveBeenCalledTimes(1);
 
       // remove
-      await client.remove(plugin.name).promise;
+      await client.remove('plugin').promise;
       expect(deregister).toHaveBeenCalledTimes(1);
     });
 
@@ -96,7 +96,7 @@ describe('core-client', () => {
       const deregister = jest.spyOn(client.timeline, 'deregister');
       await client.add({
         name: 'example',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: jest.fn(),
         execute: jest.fn(),
       }).promise;
@@ -235,7 +235,7 @@ describe('core-client', () => {
       const execute = jest.fn();
       const plugin: Plugin = {
         name: 'plugin',
-        type: PluginType.DESTINATION,
+        type: 'destination',
         setup: setup,
         execute: execute,
       };

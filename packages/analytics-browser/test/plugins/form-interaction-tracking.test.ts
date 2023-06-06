@@ -36,7 +36,7 @@ describe('formInteractionTracking', () => {
     // setup
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // trigger change event
     document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
@@ -60,7 +60,7 @@ describe('formInteractionTracking', () => {
     // setup
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // add form elemen dynamically
     const form = document.createElement('form');
@@ -104,7 +104,7 @@ describe('formInteractionTracking', () => {
     // setup
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // add form elemen dynamically
     const form = document.createElement('form');
@@ -152,7 +152,7 @@ describe('formInteractionTracking', () => {
     // setup
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // trigger change event
     document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));
@@ -175,7 +175,7 @@ describe('formInteractionTracking', () => {
     // setup
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // trigger change event again
     document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
@@ -205,7 +205,7 @@ describe('formInteractionTracking', () => {
       event_type: 'page_view',
     };
     const plugin = formInteractionTracking();
-    const result = await plugin.execute(input);
+    const result = await plugin.execute?.(input);
     expect(result).toEqual(input);
   });
 });

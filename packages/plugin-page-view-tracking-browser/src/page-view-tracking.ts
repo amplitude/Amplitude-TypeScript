@@ -2,11 +2,11 @@ import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-comm
 import {
   BrowserClient,
   BrowserConfig,
+  EnrichmentPlugin,
   Event,
   IdentifyOperation,
   IdentifyUserProperties,
   Logger,
-  PluginType,
 } from '@amplitude/analytics-types';
 import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
@@ -52,9 +52,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     previousURL = newURL;
   };
 
-  const plugin = {
+  const plugin: EnrichmentPlugin = {
     name: '@amplitude/plugin-page-view-tracking-browser',
-    type: PluginType.ENRICHMENT as const,
+    type: 'enrichment',
 
     setup: async (config: BrowserConfig, client: BrowserClient) => {
       amplitude = client;

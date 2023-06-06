@@ -7,7 +7,6 @@ import {
   TrackingOptions,
   TransportType,
   UserSession,
-  Transport,
   Logger as ILogger,
   LogLevel,
   Plan,
@@ -72,11 +71,10 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       platform: true,
     },
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
-    public transportProvider: Transport = new FetchTransport(),
     public useBatch: boolean = false,
     userId?: string,
   ) {
-    super({ apiKey, storageProvider, transportProvider });
+    super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
     this.deviceId = deviceId;
     this.lastEventId = lastEventId;
@@ -245,7 +243,6 @@ export const useBrowserConfig = async (
     options.storageProvider,
     trackingOptions,
     options.transport,
-    options.transportProvider,
     options.useBatch,
     userId,
   );
@@ -266,11 +263,11 @@ export const createCookieStorage = <T>(
   }
 };
 
-export const createTransport = (transport?: TransportType | keyof typeof TransportType) => {
-  if (transport === TransportType.XHR) {
+export const createTransport = (transport?: TransportType) => {
+  if (transport === 'xhr') {
     return new XHRTransport();
   }
-  if (transport === TransportType.SendBeacon) {
+  if (transport === 'beacon') {
     return new SendBeaconTransport();
   }
   return new FetchTransport();

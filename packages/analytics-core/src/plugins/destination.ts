@@ -5,7 +5,6 @@ import {
   Event,
   InvalidResponse,
   PayloadTooLargeResponse,
-  PluginType,
   RateLimitResponse,
   Response,
   Result,
@@ -26,7 +25,7 @@ import { createServerConfig } from '../config';
 
 export class Destination implements DestinationPlugin {
   name = 'amplitude';
-  type = PluginType.DESTINATION as const;
+  type = 'destination' as const;
 
   retryTimeout = 1000;
   throttleTimeout = 30000;

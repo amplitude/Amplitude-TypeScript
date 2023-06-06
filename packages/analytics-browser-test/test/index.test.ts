@@ -6,7 +6,7 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
-import { PluginType, LogLevel, BaseEvent, Status } from '@amplitude/analytics-types';
+import { LogLevel, BaseEvent } from '@amplitude/analytics-types';
 import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
@@ -73,7 +73,7 @@ describe('integration', () => {
         client.setDeviceId(deviceId);
         client.setSessionId(sessionId);
         client.add({
-          type: PluginType.ENRICHMENT,
+          type: 'enrichment',
           name: 'custom',
           setup: async () => {
             return undefined;
@@ -829,27 +829,17 @@ describe('integration', () => {
   describe('session handler', () => {
     test('should send session events and replaced with known user', () => {
       let payload: any = undefined;
-      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload = p;
-        return {
-          status: Status.Success,
-          statusCode: 200,
-          body: {
-            eventsIngested: 1,
-            payloadSizeBytes: 1,
-            serverUploadTime: 1,
-          },
-        };
-      });
+      const scope = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          payload = body;
+          return true;
+        })
+        .reply(200, success);
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
           ...defaultTracking,
           attribution: true,
           sessions: true,
-        },
-        transportProvider: {
-          send,
         },
         sessionTimeout: 500,
         flushIntervalMillis: 3000,
@@ -1118,6 +1108,7 @@ describe('integration', () => {
               min_id_length: undefined,
             },
           });
+          scope.done();
           resolve();
         }, 4000);
       });
@@ -1125,27 +1116,17 @@ describe('integration', () => {
 
     test('should send session events and replaced with unknown user', () => {
       let payload: any = undefined;
-      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload = p;
-        return {
-          status: Status.Success,
-          statusCode: 200,
-          body: {
-            eventsIngested: 1,
-            payloadSizeBytes: 1,
-            serverUploadTime: 1,
-          },
-        };
-      });
+      const scope = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          payload = body;
+          return true;
+        })
+        .reply(200, success);
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
           ...defaultTracking,
           attribution: true,
           sessions: true,
-        },
-        transportProvider: {
-          send,
         },
         sessionTimeout: 500,
         flushIntervalMillis: 3000,
@@ -1435,6 +1416,7 @@ describe('integration', () => {
               min_id_length: undefined,
             },
           });
+          scope.done();
           resolve();
         }, 4000);
       });
@@ -1444,19 +1426,12 @@ describe('integration', () => {
   describe('default page view tracking', () => {
     test('should send page view on attribution', () => {
       let payload: any = undefined;
-      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload = p;
-        return {
-          status: Status.Success,
-          statusCode: 200,
-          body: {
-            eventsIngested: 1,
-            payloadSizeBytes: 1,
-            serverUploadTime: 1,
-          },
-        };
-      });
+      const scope = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          payload = body;
+          return true;
+        })
+        .reply(200, success);
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
           ...defaultTracking,
@@ -1464,9 +1439,6 @@ describe('integration', () => {
           pageViews: {
             trackOn: 'attribution',
           },
-        },
-        transportProvider: {
-          send,
         },
       });
 
@@ -1547,6 +1519,7 @@ describe('integration', () => {
               min_id_length: undefined,
             },
           });
+          scope.done();
           resolve();
         }, 2000);
       });
@@ -1554,26 +1527,16 @@ describe('integration', () => {
 
     test('should send page view', () => {
       let payload: any = undefined;
-      const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        payload = p;
-        return {
-          status: Status.Success,
-          statusCode: 200,
-          body: {
-            eventsIngested: 1,
-            payloadSizeBytes: 1,
-            serverUploadTime: 1,
-          },
-        };
-      });
+      const scope = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          payload = body;
+          return true;
+        })
+        .reply(200, success);
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
           ...defaultTracking,
           pageViews: true,
-        },
-        transportProvider: {
-          send,
         },
       });
 
@@ -1610,6 +1573,7 @@ describe('integration', () => {
               min_id_length: undefined,
             },
           });
+          scope.done();
           resolve();
         }, 2000);
       });

@@ -1,4 +1,4 @@
-import { BrowserClient, PluginType, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { BrowserClient, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
 import {
   DEFAULT_FORM_START_EVENT,
   DEFAULT_FORM_SUBMIT_EVENT,
@@ -10,8 +10,8 @@ import { BrowserConfig } from '../config';
 
 export const formInteractionTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
-  const type = PluginType.ENRICHMENT;
-  const setup = async (config: BrowserConfig, amplitude?: BrowserClient) => {
+  const type = 'enrichment';
+  const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
     /* istanbul ignore if */
     if (!amplitude) {
       // TODO: Add required minimum version of @amplitude/analytics-browser

@@ -7,8 +7,8 @@ import {
   Transport,
   Plan,
   IngestionMetadata,
-  ServerZone,
   Options,
+  ServerZoneType,
 } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_SERVER_URL,
@@ -27,7 +27,7 @@ export const getDefaultConfig = () => ({
   loggerProvider: new Logger(),
   optOut: false,
   serverUrl: AMPLITUDE_SERVER_URL,
-  serverZone: ServerZone.US,
+  serverZone: 'US' as ServerZoneType,
   useBatch: false,
 });
 
@@ -42,7 +42,7 @@ export class Config implements IConfig {
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
-  serverZone?: keyof typeof ServerZone;
+  serverZone?: ServerZoneType;
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
@@ -80,8 +80,8 @@ export class Config implements IConfig {
   }
 }
 
-export const getServerUrl = (serverZone: keyof typeof ServerZone, useBatch: boolean) => {
-  if (serverZone === ServerZone.EU) {
+export const getServerUrl = (serverZone: ServerZoneType, useBatch: boolean) => {
+  if (serverZone === 'EU') {
     return useBatch ? EU_AMPLITUDE_BATCH_SERVER_URL : EU_AMPLITUDE_SERVER_URL;
   }
   return useBatch ? AMPLITUDE_BATCH_SERVER_URL : AMPLITUDE_SERVER_URL;
@@ -89,7 +89,7 @@ export const getServerUrl = (serverZone: keyof typeof ServerZone, useBatch: bool
 
 export const createServerConfig = (
   serverUrl = '',
-  serverZone: keyof typeof ServerZone = getDefaultConfig().serverZone,
+  serverZone: ServerZoneType = getDefaultConfig().serverZone,
   useBatch: boolean = getDefaultConfig().useBatch,
 ) => {
   if (serverUrl) {

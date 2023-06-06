@@ -1,9 +1,9 @@
-import { BeforePlugin, Config, Event, PluginType } from '@amplitude/analytics-types';
+import { BeforePlugin, Config, Event } from '@amplitude/analytics-types';
 import { getAnalyticsConnector } from '../analytics-connector';
 
 export class IdentityEventSender implements BeforePlugin {
   name = 'identity';
-  type = PluginType.BEFORE as const;
+  type = 'before' as const;
 
   identityStore = getAnalyticsConnector().identityStore;
 

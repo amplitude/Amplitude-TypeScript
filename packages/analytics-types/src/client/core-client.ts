@@ -12,7 +12,7 @@ export interface CoreClient {
    * ```typescript
    * const plugin = {
    *   name: 'myPlugin',
-   *   type: PluginType.ENRICHMENT,
+   *   type: 'enrichment',
    *   setup(config: Config) {
    *     return;
    *   },

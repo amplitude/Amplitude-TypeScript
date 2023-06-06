@@ -47,5 +47,5 @@ export interface ReactNativeAttributionOptions {
 type HiddenOptions = 'apiKey' | 'lastEventId';
 
 export interface ReactNativeOptions extends Omit<Partial<ReactNativeConfig>, HiddenOptions> {
-  transport?: TransportType | keyof typeof TransportType;
+  transport?: TransportType;
 }

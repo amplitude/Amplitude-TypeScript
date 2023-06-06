@@ -3,30 +3,29 @@ import { Config } from './config';
 import { Result } from './result';
 import { CoreClient } from './client/core-client';
 
-export enum PluginType {
-  BEFORE = 'before',
-  ENRICHMENT = 'enrichment',
-  DESTINATION = 'destination',
+type BeforePluginType = 'before';
+type EnrichmentPluginType = 'enrichment';
+type DestinationPluginType = 'destination';
+export type PluginType = BeforePluginType | EnrichmentPluginType | DestinationPluginType;
+
+interface PluginBase<T = CoreClient> {
+  name?: string;
+  type?: PluginType;
+  setup?(config: Config, client: T): Promise<void>;
 }
 
-export interface BeforePlugin<T = CoreClient> {
-  name: string;
-  type: PluginType.BEFORE;
-  setup(config: Config, client?: T): Promise<void>;
-  execute(context: Event): Promise<Event | null>;
+export interface BeforePlugin extends PluginBase {
+  type: BeforePluginType;
+  execute?(context: Event): Promise<Event | null>;
 }
 
-export interface EnrichmentPlugin<T = CoreClient> {
-  name: string;
-  type: PluginType.ENRICHMENT;
-  setup(config: Config, client?: T): Promise<void>;
-  execute(context: Event): Promise<Event | null>;
+export interface EnrichmentPlugin extends PluginBase {
+  type?: EnrichmentPluginType;
+  execute?(context: Event): Promise<Event | null>;
 }
 
-export interface DestinationPlugin<T = CoreClient> {
-  name: string;
-  type: PluginType.DESTINATION;
-  setup(config: Config, client?: T): Promise<void>;
+export interface DestinationPlugin extends PluginBase {
+  type: DestinationPluginType;
   execute(context: Event): Promise<Result>;
   flush?(): Promise<void>;
 }
