@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.7.0...@amplitude/plugin-web-attribution-browser@2.0.0-beta.1) (2023-06-06)
+
+### Bug Fixes
+
+- dependency tree
+  ([d7ce659](https://github.com/amplitude/Amplitude-TypeScript/commit/d7ce659c72321c373346bab0f4c0e6d23304e1b6))
+
+### Features
+
+- allow cross subdomain excluded referrer ([#391](https://github.com/amplitude/Amplitude-TypeScript/issues/391))
+  ([f34f64b](https://github.com/amplitude/Amplitude-TypeScript/commit/f34f64b68bbd328da354afae61ca416d7055a734))
+- simplify browser SDK options and plugin options interface
+  ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384))
+  ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
+- simplify user identity storage options/configuration
+  ([#390](https://github.com/amplitude/Amplitude-TypeScript/issues/390))
+  ([f8cf0cc](https://github.com/amplitude/Amplitude-TypeScript/commit/f8cf0cca8c2a17738f13878642fa5b37c0070f77))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@0.6.7...@amplitude/plugin-web-attribution-browser@0.7.0) (2023-05-04)
 
 ### Features

@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.8.2...@amplitude/plugin-page-view-tracking-browser@2.0.0-beta.1) (2023-06-06)
+
+### Bug Fixes
+
+- dependency tree
+  ([d7ce659](https://github.com/amplitude/Amplitude-TypeScript/commit/d7ce659c72321c373346bab0f4c0e6d23304e1b6))
+- dyanamic page view tracking to run after navigation
+  ([#395](https://github.com/amplitude/Amplitude-TypeScript/issues/395))
+  ([484d8f6](https://github.com/amplitude/Amplitude-TypeScript/commit/484d8f61955e7bf169576b3a0c588bf9f440e726))
+
+### Features
+
+- simplify browser SDK options and plugin options interface
+  ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384))
+  ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
+- simplify user identity storage options/configuration
+  ([#390](https://github.com/amplitude/Amplitude-TypeScript/issues/390))
+  ([f8cf0cc](https://github.com/amplitude/Amplitude-TypeScript/commit/f8cf0cca8c2a17738f13878642fa5b37c0070f77))
+- track page dynamic page views in single page applications be default
+  ([#394](https://github.com/amplitude/Amplitude-TypeScript/issues/394))
+  ([7ce6b3a](https://github.com/amplitude/Amplitude-TypeScript/commit/7ce6b3ac610cded95e817a16d22fac82ec21c4e4))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.8.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@0.8.1...@amplitude/plugin-page-view-tracking-browser@0.8.2) (2023-06-05)
 
 ### Bug Fixes

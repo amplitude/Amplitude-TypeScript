@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.10.5...@amplitude/analytics-browser@2.0.0-beta.1) (2023-06-06)
+
+### Features
+
+- allow cross subdomain excluded referrer ([#391](https://github.com/amplitude/Amplitude-TypeScript/issues/391))
+  ([f34f64b](https://github.com/amplitude/Amplitude-TypeScript/commit/f34f64b68bbd328da354afae61ca416d7055a734))
+- make default event tracking enabled by default ([#386](https://github.com/amplitude/Amplitude-TypeScript/issues/386))
+  ([242f42d](https://github.com/amplitude/Amplitude-TypeScript/commit/242f42dd2e46eaec95c827795e04f74fba39c35f))
+- simplify browser SDK options and plugin options interface
+  ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384))
+  ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
+- simplify user identity storage options/configuration
+  ([#390](https://github.com/amplitude/Amplitude-TypeScript/issues/390))
+  ([f8cf0cc](https://github.com/amplitude/Amplitude-TypeScript/commit/f8cf0cca8c2a17738f13878642fa5b37c0070f77))
+- use server side user agent parser ([#382](https://github.com/amplitude/Amplitude-TypeScript/issues/382))
+  ([69bd255](https://github.com/amplitude/Amplitude-TypeScript/commit/69bd2558cb37d027064b6459cc2887c219196973))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.10.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.10.4...@amplitude/analytics-browser@1.10.5) (2023-06-05)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

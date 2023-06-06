@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.13.3...@amplitude/analytics-core@2.0.0-beta.1) (2023-06-06)
+
+### Features
+
+- simplify browser SDK options and plugin options interface
+  ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384))
+  ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.13.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@0.13.2...@amplitude/analytics-core@0.13.3) (2023-05-04)
 
 **Note:** Version bump only for package @amplitude/analytics-core
