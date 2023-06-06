@@ -3,10 +3,10 @@ import { Config } from './config';
 import { Result } from './result';
 import { CoreClient } from './client/core-client';
 
-type BeforePluginType = 'before';
-type EnrichmentPluginType = 'enrichment';
-type DestinationPluginType = 'destination';
-export type PluginType = BeforePluginType | EnrichmentPluginType | DestinationPluginType;
+type PluginTypeBefore = 'before';
+type PluginTypeEnrichment = 'enrichment';
+type PluginTypeDestination = 'destination';
+export type PluginType = PluginTypeBefore | PluginTypeEnrichment | PluginTypeDestination;
 
 interface PluginBase<T = CoreClient> {
   name?: string;
@@ -15,17 +15,17 @@ interface PluginBase<T = CoreClient> {
 }
 
 export interface BeforePlugin extends PluginBase {
-  type: BeforePluginType;
+  type: PluginTypeBefore;
   execute?(context: Event): Promise<Event | null>;
 }
 
 export interface EnrichmentPlugin extends PluginBase {
-  type?: EnrichmentPluginType;
+  type?: PluginTypeEnrichment;
   execute?(context: Event): Promise<Event | null>;
 }
 
 export interface DestinationPlugin extends PluginBase {
-  type: DestinationPluginType;
+  type: PluginTypeDestination;
   execute(context: Event): Promise<Result>;
   flush?(): Promise<void>;
 }
