@@ -12,7 +12,7 @@ import * as crypto from 'crypto';
 const hex: Array<string> = Array.from({ length: 256 }, (_, index) => index.toString(16).padStart(2, '0'));
 
 export const UUID = (): string => {
-  const r: Uint8Array = crypto.getRandomValues(new Uint8Array(16));
+  const r: Buffer = crypto.randomBytes(16);
 
   r[6] = (r[6] & 0x0f) | 0x40;
   r[8] = (r[8] & 0x3f) | 0x80;
