@@ -902,29 +902,11 @@ describe('integration', () => {
                 eventType: 'Event in first session',
                 userId: 'user1@amplitude.com',
               },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-              },
             ],
             [
-              {
-                eventType: 'session_start',
-                userId: 'user1@amplitude.com',
-              },
               {
                 eventType: 'Event in next session',
                 userId: 'user1@amplitude.com',
-              },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-              },
-            ],
-            [
-              {
-                eventType: 'session_start',
-                userId: 'user2@amplitude.com',
               },
             ],
           ]);
@@ -1182,8 +1164,6 @@ describe('integration', () => {
           expect(deviceIds[2]).toEqual(deviceIds[3]);
           expect(deviceIds[3]).toEqual(deviceIds[4]);
           expect(deviceIds[4]).toEqual(deviceIds[5]);
-          expect(deviceIds[5]).toEqual(deviceIds[6]);
-          expect(deviceIds[6]).not.toEqual(deviceIds[7]);
           // The order of events in the payload is sorted by time of track fn invokation
           // and not consistent with the time property
           // Session events have overwritten time property
@@ -1205,33 +1185,11 @@ describe('integration', () => {
                 userId: 'user1@amplitude.com',
                 deviceId: uuid,
               },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
             ],
             [
-              {
-                eventType: 'session_start',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
               {
                 eventType: 'Event in next session',
                 userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-            ],
-            [
-              {
-                eventType: 'session_start',
-                userId: undefined,
                 deviceId: uuid,
               },
             ],

@@ -255,7 +255,7 @@ describe('browser-client', () => {
       expect(client.getUserId()).toBe(userId);
     });
 
-    test('should set user and session id with start and end session event', async () => {
+    test('should not send session events on set user', async () => {
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         sessionId: 1,
@@ -286,7 +286,7 @@ describe('browser-client', () => {
 
       client.setUserId(undefined);
       expect(client.getUserId()).toBe(undefined);
-      expect(track).toHaveBeenCalledTimes(2);
+      expect(track).toHaveBeenCalledTimes(0);
     });
 
     test('should defer set user id', () => {
