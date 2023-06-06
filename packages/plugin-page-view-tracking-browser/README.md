@@ -23,24 +23,22 @@ yarn add @amplitude/plugin-page-view-tracking-browser
 
 ## Usage
 
-This plugin works on top of Amplitude Browser SDK and adds page view tracking features to built-in features. To use this plugin, you need to install `@amplitude/analytics-browser` version `v1.4.0` or later.
+This plugin works on top of Amplitude Browser SDK and adds page view tracking features to built-in features. To use this plugin, you need to install `@amplitude/analytics-browser` version `v2.0.0` or later.
 
 ### 1. Import Amplitude packages
 
-* `@amplitude/analytics-browser`
 * `@amplitude/plugin-page-view-tracking-browser`
 
 ```typescript
-import * as amplitude from '@amplitude/analytics-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 ```
 
 ### 2. Instantiate page view plugin
 
-The plugin requires 1 parameter, which is the `amplitude` instance. The plugin also accepts an optional second parameter, which is an `Object` to configure the plugin based on your use case.
+The plugin accepts an optional parameter of type `Object` to configure the plugin based on your use case.
 
 ```typescript
-const pageViewTracking = pageViewTrackingPlugin(amplitude, {
+const pageViewTracking = pageViewTrackingPlugin({
   trackOn: undefined,
   trackHistoryChanges: undefined,
 });
@@ -51,7 +49,7 @@ const pageViewTracking = pageViewTrackingPlugin(amplitude, {
 |Name|Type|Default|Description|
 |-|-|-|-|
 |`trackOn`|`"attribution"` or `() => boolean`|`undefined`|Use this option to control when to track a page view event. By default, a page view event is sent on each SDK initialization.<br/><br/>Use `() => boolean` to control sending page view events using custom conditional logic.<br/><br/>Use `"attribution"` to send page view events with attribution events. This option requires using [@amplitude/plugin-web-attribution-browser](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/plugin-web-attribution-browser).|
-|`trackHistoryChanges`|`"all"` or `"pathOnly"`|`undefined`|Use this option to subscribe to page view changes in a single page application like React.js. By default, page view changes in single page applications does not trigger a page view event.<br/><br/>Use `"all"` to compare the full url changes.<br/><br/>Use `"pathOnly"` to compare only url path changes.|
+|`trackHistoryChanges`|`"all"` or `"pathOnly"`|`undefined`|Use this option to subscribe to page view changes based on full URL or URL path in a single page application like React.js. By default, page view changes are based on full URL.<br/><br/>Use `"all"` to compare the full url changes.<br/><br/>Use `"pathOnly"` to compare only url path changes.|
 
 ### 3. Install plugin to Amplitude SDK
 
@@ -70,7 +68,7 @@ amplitude.init('API_KEY');
 This plugin tracks page views based on your configuration. A page view event is composed of the following values:
 
 #### Event type
-* `"Page View"`
+* `"[Amplitude ]Page Viewed"`
 
 #### Event properties
 
