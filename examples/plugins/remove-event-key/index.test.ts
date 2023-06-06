@@ -8,7 +8,7 @@ describe('remove-event-key-enrichment', () => {
         event_type: 'Custom Event',
         time: Date.now(),
       };
-      const result = await plugin.execute(mockEvent);
+      const result = await plugin.execute?.(mockEvent);
       expect(result?.time).toBeUndefined();
     });
 
@@ -18,7 +18,7 @@ describe('remove-event-key-enrichment', () => {
         event_type: 'Custom Event',
         time: Date.now(),
       };
-      const result = await plugin.execute(mockEvent);
+      const result = await plugin.execute?.(mockEvent);
       expect(result?.time).toBeDefined();
     });
   });
