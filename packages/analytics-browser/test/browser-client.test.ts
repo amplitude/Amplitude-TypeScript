@@ -2,7 +2,7 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
+import { UserSession } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -200,6 +200,15 @@ describe('browser-client', () => {
         lastEventTime: Date.now(),
       });
       const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
+      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
       await client.init(apiKey, userId, {
         optOut: false,
         defaultTracking: {
@@ -207,17 +216,6 @@ describe('browser-client', () => {
           attribution: {},
         },
         sessionId: Date.now(),
-        transportProvider: {
-          send: async () => ({
-            status: Status.Success,
-            statusCode: 200,
-            body: {
-              eventsIngested: 0,
-              payloadSizeBytes: 0,
-              serverUploadTime: 0,
-            },
-          }),
-        },
       }).promise;
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
     });
@@ -469,8 +467,8 @@ describe('browser-client', () => {
       const fetch = new FetchTransport();
       const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
       await client.init(apiKey, undefined, { defaultTracking }).promise;
-      client.setTransport(TransportType.Fetch);
-      expect(createTransport).toHaveBeenCalledTimes(1);
+      client.setTransport('fetch');
+      expect(createTransport).toHaveBeenCalledTimes(2);
     });
 
     test('should defer set transport', () => {
@@ -478,55 +476,49 @@ describe('browser-client', () => {
         const fetch = new FetchTransport();
         const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
         void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
-          expect(createTransport).toHaveBeenCalledTimes(1);
+          expect(createTransport).toHaveBeenCalledTimes(2);
           resolve();
         });
-        client.setTransport(TransportType.Fetch);
+        client.setTransport('fetch');
       });
     });
   });
 
   describe('identify', () => {
     test('should track identify', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
       await client.init(apiKey, undefined, {
         defaultTracking,
-        transportProvider: {
-          send,
-        },
       }).promise;
       const identifyObject = new core.Identify();
       const result = await client.identify(identifyObject, { user_id: '123', device_id: '123' }).promise;
       expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     test('should track identify using proxy', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Identify());
       await client.init(apiKey, undefined, {
         defaultTracking,
-        transportProvider: {
-          send,
-        },
       }).promise;
       const identifyObject = {
         _q: [],
@@ -535,52 +527,46 @@ describe('browser-client', () => {
       // @ts-ignore to verify behavior in snippet installation
       const result = await client.identify(identifyObject).promise;
       expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('groupIdentify', () => {
     test('should track group identify', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
       await client.init(apiKey, undefined, {
         defaultTracking,
-        transportProvider: {
-          send,
-        },
       }).promise;
       const identifyObject = new core.Identify();
       const result = await client.groupIdentify('g', '1', identifyObject).promise;
       expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     test('should track group identify using proxy', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Identify());
       await client.init(apiKey, undefined, {
         defaultTracking,
-        transportProvider: {
-          send,
-        },
       }).promise;
       const identifyObject = {
         _q: [],
@@ -589,52 +575,46 @@ describe('browser-client', () => {
       // @ts-ignore to verify behavior in snippet installation
       const result = await client.groupIdentify('g', '1', identifyObject).promise;
       expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('revenue', () => {
     test('should track revenue', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
       await client.init(apiKey, undefined, {
         defaultTracking,
-        transportProvider: {
-          send,
-        },
       }).promise;
       const revenueObject = new core.Revenue();
       const result = await client.revenue(revenueObject).promise;
       expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     test('should track revenue using proxy', async () => {
-      const send = jest.fn().mockReturnValueOnce({
-        status: Status.Success,
-        statusCode: 200,
-        body: {
-          eventsIngested: 1,
-          payloadSizeBytes: 1,
-          serverUploadTime: 1,
-        },
-      });
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Revenue());
       await client.init(apiKey, undefined, {
         defaultTracking,
-        transportProvider: {
-          send,
-        },
       }).promise;
       const revenueObject = {
         _q: [],
@@ -643,7 +623,7 @@ describe('browser-client', () => {
       // @ts-ignore to verify behavior in snippet installation
       const result = await client.revenue(revenueObject).promise;
       expect(result.code).toEqual(200);
-      expect(send).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
     });
   });

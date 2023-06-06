@@ -18,8 +18,8 @@ describe('sessionHandlerPlugin', () => {
       lastEventTime: time - 999,
       sessionTimeout: 1000,
     });
-    await plugin.setup(config, amplitude);
-    await plugin.execute({
+    await plugin.setup?.(config, amplitude);
+    await plugin.execute?.({
       event_type: 'Test Event',
     });
 
@@ -40,8 +40,8 @@ describe('sessionHandlerPlugin', () => {
       lastEventTime: undefined,
       sessionTimeout: 1000,
     });
-    await plugin.setup(config, amplitude);
-    await plugin.execute({
+    await plugin.setup?.(config, amplitude);
+    await plugin.execute?.({
       event_type: 'Test Event',
     });
 
@@ -66,8 +66,8 @@ describe('sessionHandlerPlugin', () => {
         sessions: true,
       },
     });
-    await plugin.setup(config, amplitude);
-    await plugin.execute({
+    await plugin.setup?.(config, amplitude);
+    await plugin.execute?.({
       event_type: 'Test Event',
     });
 
@@ -86,8 +86,8 @@ describe('sessionHandlerPlugin', () => {
         sessions: true,
       },
     });
-    await plugin.setup(config, amplitude);
-    await plugin.execute({
+    await plugin.setup?.(config, amplitude);
+    await plugin.execute?.({
       event_type: eventType,
     });
 

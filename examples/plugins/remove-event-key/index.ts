@@ -1,5 +1,5 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { EnrichmentPlugin, PluginType } from '@amplitude/analytics-types';
+import { EnrichmentPlugin } from '@amplitude/analytics-types';
 import { BaseEvent } from '@amplitude/analytics-types/src';
 
 type KeyOfEvent = keyof BaseEvent;
@@ -19,7 +19,7 @@ type KeyOfEvent = keyof BaseEvent;
 export const removeEventKeyEnrichment = (keysToRemove: KeyOfEvent[] = []): EnrichmentPlugin => {
   return {
     name: 'remove-event-key-enrichment',
-    type: PluginType.ENRICHMENT,
+    type: 'enrichment',
     setup: async () => undefined,
     execute: async (event) => {
       for (var key of keysToRemove) {

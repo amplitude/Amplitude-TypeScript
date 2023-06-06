@@ -1,7 +1,7 @@
 import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, TransportType, UserSession } from '@amplitude/analytics-types';
+import { LogLevel, Storage, UserSession } from '@amplitude/analytics-types';
 import * as BrowserUtils from '@amplitude/analytics-client-common';
 import { getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
 import { XHRTransport } from '../src/transports/xhr';
@@ -73,6 +73,11 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
       });
+    });
+
+    test('shoud return _optOut', () => {
+      const config = new Config.BrowserConfig(apiKey);
+      expect(config.optOut).toBe(false);
     });
   });
 
@@ -254,15 +259,15 @@ describe('config', () => {
 
   describe('createTransport', () => {
     test('should return xhr', () => {
-      expect(createTransport(TransportType.XHR)).toBeInstanceOf(XHRTransport);
+      expect(createTransport('xhr')).toBeInstanceOf(XHRTransport);
     });
 
     test('should return beacon', () => {
-      expect(createTransport(TransportType.SendBeacon)).toBeInstanceOf(SendBeaconTransport);
+      expect(createTransport('beacon')).toBeInstanceOf(SendBeaconTransport);
     });
 
     test('should return fetch', () => {
-      expect(createTransport(TransportType.Fetch)).toBeInstanceOf(FetchTransport);
+      expect(createTransport('fetch')).toBeInstanceOf(FetchTransport);
     });
   });
 

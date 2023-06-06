@@ -82,7 +82,7 @@ describe('pageViewTrackingPlugin', () => {
         }),
       });
       const plugin = pageViewTrackingPlugin(options);
-      await plugin.setup(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, amplitude);
       expect(track).toHaveBeenCalledWith({
         event_properties: {
           '[Amplitude] Page Domain': hostname,
@@ -112,7 +112,7 @@ describe('pageViewTrackingPlugin', () => {
       const amplitude = createInstance();
       const track = jest.spyOn(amplitude, 'track');
       const plugin = pageViewTrackingPlugin(options);
-      await plugin.setup(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, amplitude);
       expect(track).toHaveBeenCalledTimes(0);
     });
 
@@ -136,7 +136,7 @@ describe('pageViewTrackingPlugin', () => {
       mockWindowLocationFromURL(oldURL);
 
       const plugin = pageViewTrackingPlugin(options);
-      await plugin.setup(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, amplitude);
 
       const newURL = new URL('https://www.example.com/about');
       mockWindowLocationFromURL(newURL);
@@ -182,7 +182,7 @@ describe('pageViewTrackingPlugin', () => {
       mockWindowLocationFromURL(oldURL);
 
       const plugin = pageViewTrackingPlugin(options);
-      await plugin.setup(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, amplitude);
 
       const newURL = new URL('https://www.example.com?page=about');
       mockWindowLocationFromURL(newURL);
@@ -201,7 +201,7 @@ describe('pageViewTrackingPlugin', () => {
       const plugin = pageViewTrackingPlugin({
         trackOn: 'attribution',
       });
-      const event = await plugin.execute({
+      const event = await plugin.execute?.({
         event_type: '$identify',
         user_properties: {
           $set: {
@@ -261,7 +261,7 @@ describe('pageViewTrackingPlugin', () => {
         event_type: '$identify',
         user_properties: {},
       };
-      const event = await plugin.execute(sentEvent);
+      const event = await plugin.execute?.(sentEvent);
       expect(event).toBe(sentEvent);
     });
 
@@ -273,7 +273,7 @@ describe('pageViewTrackingPlugin', () => {
       const sentEvent = {
         event_type: '$identify',
       };
-      const event = await plugin.execute(sentEvent);
+      const event = await plugin.execute?.(sentEvent);
       expect(event).toBe(sentEvent);
     });
 
@@ -285,7 +285,7 @@ describe('pageViewTrackingPlugin', () => {
       const sentEvent = {
         event_type: '[Amplitude] Page Viewed',
       };
-      const event = await plugin.execute(sentEvent);
+      const event = await plugin.execute?.(sentEvent);
       expect(event).toBe(sentEvent);
     });
   });

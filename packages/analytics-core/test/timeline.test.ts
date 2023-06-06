@@ -1,5 +1,5 @@
 import { Timeline } from '../src/timeline';
-import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
+import { DestinationPlugin, Event, Plugin } from '@amplitude/analytics-types';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
 import { AmplitudeCore } from '../src/core-client';
@@ -9,6 +9,15 @@ describe('timeline', () => {
 
   beforeEach(() => {
     timeline = new Timeline(new AmplitudeCore());
+  });
+
+  describe('register', () => {
+    test('should accept empty plugin', async () => {
+      const config = useDefaultConfig();
+      await timeline.register({}, config);
+      expect(timeline.plugins[0].name).toBeDefined();
+      expect(timeline.plugins[0].type).toBe('enrichment');
+    });
   });
 
   test('should update event using before/enrichment plugin', async () => {
@@ -21,7 +30,7 @@ describe('timeline', () => {
     );
     const before: Plugin = {
       name: 'plugin:before',
-      type: PluginType.BEFORE,
+      type: 'before',
       setup: beforeSetup,
       execute: beforeExecute,
     };
@@ -34,7 +43,7 @@ describe('timeline', () => {
     );
     const enrichment: Plugin = {
       name: 'plugin:enrichment',
-      type: PluginType.ENRICHMENT,
+      type: 'enrichment',
       setup: enrichmentSetup,
       execute: enrichmentExecute,
     };
@@ -56,7 +65,7 @@ describe('timeline', () => {
       });
     const destination: Plugin = {
       name: 'plugin:destination',
-      type: PluginType.DESTINATION,
+      type: 'destination',
       setup: destinationSetup,
       execute: destinationExecute,
     };
@@ -90,9 +99,9 @@ describe('timeline', () => {
     expect(destinationExecute).toHaveBeenCalledTimes(10);
 
     // deregister
-    await timeline.deregister(before.name);
-    await timeline.deregister(enrichment.name);
-    await timeline.deregister(destination.name);
+    await timeline.deregister('plugin:before');
+    await timeline.deregister('plugin:enrichment');
+    await timeline.deregister('plugin:destination');
     expect(timeline.plugins.length).toBe(0);
   });
 
@@ -118,14 +127,14 @@ describe('timeline', () => {
       );
       const before: Plugin = {
         name: 'plugin:before',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: beforeSetup,
         execute: beforeExecute,
       };
       const config = useDefaultConfig();
       await timeline.register(before, config);
       await timeline.apply(undefined);
-      await timeline.deregister(before.name);
+      await timeline.deregister('plugin:before');
       expect(beforeExecute).toHaveBeenCalledTimes(0);
     });
 
@@ -136,7 +145,7 @@ describe('timeline', () => {
       });
       const before: Plugin = {
         name: 'plugin:before',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: beforeExecute,
       };
@@ -147,7 +156,7 @@ describe('timeline', () => {
       });
       const enrichment: Plugin = {
         name: 'plugin:enrichment',
-        type: PluginType.ENRICHMENT,
+        type: 'enrichment',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: enrichmentExecute,
       };
@@ -158,7 +167,7 @@ describe('timeline', () => {
       });
       const destination: Plugin = {
         name: 'plugin:destination',
-        type: PluginType.DESTINATION,
+        type: 'destination',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: destinationExecute,
       };
@@ -175,9 +184,9 @@ describe('timeline', () => {
       const callback = jest.fn();
       await timeline.apply([event, callback]);
 
-      await timeline.deregister(before.name);
-      await timeline.deregister(enrichment.name);
-      await timeline.deregister(destination.name);
+      await timeline.deregister('plugin:before');
+      await timeline.deregister('plugin:enrichment');
+      await timeline.deregister('plugin:destination');
 
       expect(beforeExecute).toHaveBeenCalledTimes(1);
       expect(enrichmentExecute).toHaveBeenCalledTimes(1);
@@ -197,19 +206,19 @@ describe('timeline', () => {
       });
       const before1: Plugin = {
         name: 'plugin:before:1',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: beforeExecute1,
       };
       const before2: Plugin = {
         name: 'plugin:before:2',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: beforeExecute2,
       };
       const before3: Plugin = {
         name: 'plugin:before:3',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: beforeExecute3,
       };
@@ -219,7 +228,7 @@ describe('timeline', () => {
       });
       const enrichment: Plugin = {
         name: 'plugin:enrichment',
-        type: PluginType.ENRICHMENT,
+        type: 'enrichment',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: enrichmentExecute,
       };
@@ -229,7 +238,7 @@ describe('timeline', () => {
       });
       const destination: Plugin = {
         name: 'plugin:destination',
-        type: PluginType.DESTINATION,
+        type: 'destination',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: destinationExecute,
       };
@@ -247,11 +256,11 @@ describe('timeline', () => {
       const callback = jest.fn();
       await timeline.apply([event, callback]);
 
-      await timeline.deregister(before1.name);
-      await timeline.deregister(before2.name);
-      await timeline.deregister(before3.name);
-      await timeline.deregister(enrichment.name);
-      await timeline.deregister(destination.name);
+      await timeline.deregister('plugin:before:1');
+      await timeline.deregister('plugin:before:2');
+      await timeline.deregister('plugin:before:3');
+      await timeline.deregister('plugin:enrichment');
+      await timeline.deregister('plugin:destination');
 
       expect(beforeExecute1).toHaveBeenCalledTimes(1);
       expect(beforeExecute2).toHaveBeenCalledTimes(1);
@@ -267,7 +276,7 @@ describe('timeline', () => {
       });
       const before: Plugin = {
         name: 'plugin:before',
-        type: PluginType.BEFORE,
+        type: 'before',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: beforeExecute,
       };
@@ -283,19 +292,19 @@ describe('timeline', () => {
       });
       const enrichment1: Plugin = {
         name: 'plugin:enrichment:1',
-        type: PluginType.ENRICHMENT,
+        type: 'enrichment',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: enrichmentExecute1,
       };
       const enrichment2: Plugin = {
         name: 'plugin:enrichment:2',
-        type: PluginType.ENRICHMENT,
+        type: 'enrichment',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: enrichmentExecute2,
       };
       const enrichment3: Plugin = {
         name: 'plugin:enrichment:3',
-        type: PluginType.ENRICHMENT,
+        type: 'enrichment',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: enrichmentExecute3,
       };
@@ -305,7 +314,7 @@ describe('timeline', () => {
       });
       const destination: Plugin = {
         name: 'plugin:destination',
-        type: PluginType.DESTINATION,
+        type: 'destination',
         setup: jest.fn().mockReturnValueOnce(Promise.resolve()),
         execute: destinationExecute,
       };
@@ -323,11 +332,11 @@ describe('timeline', () => {
       const callback = jest.fn();
       await timeline.apply([event, callback]);
 
-      await timeline.deregister(before.name);
-      await timeline.deregister(enrichment1.name);
-      await timeline.deregister(enrichment2.name);
-      await timeline.deregister(enrichment3.name);
-      await timeline.deregister(destination.name);
+      await timeline.deregister('plugin:before');
+      await timeline.deregister('plugin:enrichment:1');
+      await timeline.deregister('plugin:enrichment:2');
+      await timeline.deregister('plugin:enrichment:3');
+      await timeline.deregister('plugin:destination');
 
       expect(beforeExecute).toHaveBeenCalledTimes(1);
       expect(enrichmentExecute1).toHaveBeenCalledTimes(1);
@@ -343,9 +352,9 @@ describe('timeline', () => {
       const setup = jest.fn().mockReturnValueOnce(Promise.resolve(undefined));
       const execute = jest.fn().mockReturnValue(Promise.resolve(undefined));
       const flush = jest.fn().mockReturnValue(Promise.resolve(undefined));
-      const plugin = {
+      const plugin: DestinationPlugin = {
         name: 'mock',
-        type: PluginType.DESTINATION,
+        type: 'destination',
         setup,
         execute,
         flush,

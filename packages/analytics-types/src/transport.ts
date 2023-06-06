@@ -5,11 +5,4 @@ export interface Transport {
   send(serverUrl: string, payload: Payload): Promise<Response | null>;
 }
 
-/**
- * @deprecated
- */
-export enum TransportType {
-  XHR = 'xhr',
-  SendBeacon = 'beacon',
-  Fetch = 'fetch',
-}
+export type TransportType = 'xhr' | 'beacon' | 'fetch';

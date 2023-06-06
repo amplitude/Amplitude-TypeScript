@@ -1,4 +1,4 @@
-import { BeforePlugin, BrowserClient, BrowserConfig, Event, PluginType } from '@amplitude/analytics-types';
+import { BeforePlugin, BrowserClient, BrowserConfig, Event } from '@amplitude/analytics-types';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from '../constants';
 
 export const sessionHandlerPlugin = (): BeforePlugin => {
@@ -13,7 +13,7 @@ export const sessionHandlerPlugin = (): BeforePlugin => {
 
   const name = '@amplitude/plugin-session-handler';
 
-  const type = PluginType.BEFORE;
+  const type = 'before';
 
   const setup = async (config: BrowserConfig, client: BrowserClient) => {
     browserConfig = config;

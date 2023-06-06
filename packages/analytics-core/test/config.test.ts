@@ -1,4 +1,4 @@
-import { LogLevel, ServerZone } from '@amplitude/analytics-types';
+import { LogLevel } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_BATCH_SERVER_URL,
   AMPLITUDE_SERVER_URL,
@@ -79,16 +79,16 @@ describe('config', () => {
 
   describe('getServerUrl', () => {
     test('should return eu batch url', () => {
-      expect(getServerUrl(ServerZone.EU, true)).toBe(EU_AMPLITUDE_BATCH_SERVER_URL);
+      expect(getServerUrl('EU', true)).toBe(EU_AMPLITUDE_BATCH_SERVER_URL);
     });
     test('should return eu http url', () => {
-      expect(getServerUrl(ServerZone.EU, false)).toBe(EU_AMPLITUDE_SERVER_URL);
+      expect(getServerUrl('EU', false)).toBe(EU_AMPLITUDE_SERVER_URL);
     });
     test('should return us batch url', () => {
-      expect(getServerUrl(ServerZone.US, true)).toBe(AMPLITUDE_BATCH_SERVER_URL);
+      expect(getServerUrl('US', true)).toBe(AMPLITUDE_BATCH_SERVER_URL);
     });
     test('should return us http url', () => {
-      expect(getServerUrl(ServerZone.US, false)).toBe(AMPLITUDE_SERVER_URL);
+      expect(getServerUrl('US', false)).toBe(AMPLITUDE_SERVER_URL);
     });
   });
 
@@ -104,7 +104,7 @@ describe('config', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore to test invalid values
       expect(createServerConfig('', '', undefined)).toEqual({
-        serverZone: ServerZone.US,
+        serverZone: 'US',
         serverUrl: AMPLITUDE_SERVER_URL,
       });
     });

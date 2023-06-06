@@ -59,7 +59,7 @@ describe('webAttributionPlugin', () => {
           ...mockConfig,
           cookieOptions: undefined,
         };
-        await plugin.setup(overrideMockConfig, amplitude);
+        await plugin.setup?.(overrideMockConfig, amplitude);
         expect(track).toHaveBeenCalledWith({
           event_type: '$identify',
           user_properties: {
@@ -134,7 +134,7 @@ describe('webAttributionPlugin', () => {
         const plugin = webAttributionPlugin({
           resetSessionOnNewCampaign: true,
         });
-        await plugin.setup(mockConfig, amplitude);
+        await plugin.setup?.(mockConfig, amplitude);
         expect(track).toHaveBeenCalledWith({
           event_type: '$identify',
           user_properties: {
@@ -210,7 +210,7 @@ describe('webAttributionPlugin', () => {
         const plugin = webAttributionPlugin({
           excludeReferrers: [],
         });
-        await plugin.setup(mockConfig, amplitude);
+        await plugin.setup?.(mockConfig, amplitude);
         expect(track).toHaveBeenCalledTimes(0);
       });
     });
@@ -240,7 +240,7 @@ describe('webAttributionPlugin', () => {
       },
     };
     const plugin = webAttributionPlugin();
-    await plugin.setup(overrideMockConfig, amplitude);
+    await plugin.setup?.(overrideMockConfig, amplitude);
     expect(track).toHaveBeenCalledTimes(0);
   });
 
@@ -260,7 +260,7 @@ describe('webAttributionPlugin', () => {
         },
         event_type: '[Amplitude] Page Viewed',
       };
-      const result = await plugin.execute(event);
+      const result = await plugin.execute?.(event);
 
       expect(result).toBe(event);
     });

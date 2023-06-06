@@ -27,7 +27,7 @@ describe('fileDownloadTracking', () => {
     document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // trigger change event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
@@ -47,7 +47,7 @@ describe('fileDownloadTracking', () => {
     // setup
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // add anchor element dynamically
     const link = document.createElement('a');
@@ -77,7 +77,7 @@ describe('fileDownloadTracking', () => {
     // setup
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // add anchor element dynamically
     const link = document.createElement('a');
@@ -113,7 +113,7 @@ describe('fileDownloadTracking', () => {
     document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.png');
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
-    await plugin.setup(config, amplitude);
+    await plugin.setup?.(config, amplitude);
 
     // trigger change event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
@@ -127,7 +127,7 @@ describe('fileDownloadTracking', () => {
       event_type: 'page_view',
     };
     const plugin = fileDownloadTracking();
-    const result = await plugin.execute(input);
+    const result = await plugin.execute?.(input);
     expect(result).toEqual(input);
   });
 });

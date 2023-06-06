@@ -7,10 +7,10 @@ import {
   Event,
   EventCallback,
   Plugin,
-  PluginType,
   Result,
 } from '@amplitude/analytics-types';
 import { buildResult } from './utils/result-builder';
+import { UUID } from './utils/uuid';
 
 export class Timeline {
   queue: [Event, EventCallback][] = [];
@@ -23,7 +23,9 @@ export class Timeline {
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: Config) {
-    await plugin.setup(config, this.client);
+    plugin.name = plugin.name ?? UUID();
+    plugin.type = plugin.type ?? 'enrichment';
+    await plugin.setup?.(config, this.client);
     this.plugins.push(plugin);
   }
 
@@ -70,10 +72,15 @@ export class Timeline {
     const [, resolve] = item;
 
     const before = this.plugins.filter<BeforePlugin>(
-      (plugin: Plugin): plugin is BeforePlugin => plugin.type === PluginType.BEFORE,
+      (plugin: Plugin): plugin is BeforePlugin => plugin.type === 'before',
     );
 
     for (const plugin of before) {
+      /* istanbul ignore if */
+      if (!plugin.execute) {
+        // do nothing
+        continue;
+      }
       const e = await plugin.execute({ ...event });
       if (e === null) {
         resolve({ event, code: 0, message: '' });
@@ -84,10 +91,15 @@ export class Timeline {
     }
 
     const enrichment = this.plugins.filter<EnrichmentPlugin>(
-      (plugin: Plugin): plugin is EnrichmentPlugin => plugin.type === PluginType.ENRICHMENT,
+      (plugin: Plugin): plugin is EnrichmentPlugin => plugin.type === 'enrichment' || plugin.type === undefined,
     );
 
     for (const plugin of enrichment) {
+      /* istanbul ignore if */
+      if (!plugin.execute) {
+        // do nothing
+        continue;
+      }
       const e = await plugin.execute({ ...event });
       if (e === null) {
         resolve({ event, code: 0, message: '' });
@@ -98,7 +110,7 @@ export class Timeline {
     }
 
     const destination = this.plugins.filter<DestinationPlugin>(
-      (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
+      (plugin: Plugin): plugin is DestinationPlugin => plugin.type === 'destination',
     );
 
     const executeDestinations = destination.map((plugin) => {
@@ -120,7 +132,7 @@ export class Timeline {
     await Promise.all(queue.map((item) => this.apply(item)));
 
     const destination = this.plugins.filter<DestinationPlugin>(
-      (plugin: Plugin): plugin is DestinationPlugin => plugin.type === PluginType.DESTINATION,
+      (plugin: Plugin): plugin is DestinationPlugin => plugin.type === 'destination',
     );
 
     const executeDestinations = destination.map((plugin) => {

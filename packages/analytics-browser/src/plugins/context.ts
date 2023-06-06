@@ -1,4 +1,4 @@
-import { BeforePlugin, BrowserConfig, Event, PluginType } from '@amplitude/analytics-types';
+import { BeforePlugin, BrowserConfig, Event } from '@amplitude/analytics-types';
 import { UUID } from '@amplitude/analytics-core';
 import { getLanguage } from '@amplitude/analytics-client-common';
 import { VERSION } from '../version';
@@ -6,8 +6,8 @@ import { VERSION } from '../version';
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
 export class Context implements BeforePlugin {
-  name = 'context';
-  type = PluginType.BEFORE as const;
+  name = '@amplitude/plugin-context-browser';
+  type = 'before' as const;
 
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
