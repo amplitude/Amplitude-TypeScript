@@ -1,7 +1,7 @@
 import { Event } from '../event';
 import { IngestionMetadata } from '../ingestion-metadata';
 import { Plan } from '../plan';
-import { ServerZoneType } from '../server-zone';
+import { ServerZone, ServerZoneType } from '../server-zone';
 import { Storage } from '../storage';
 import { Transport } from '../transport';
 import { Logger, LogLevel } from '../logger';
@@ -18,7 +18,7 @@ export interface Config {
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl?: string;
-  serverZone?: ServerZoneType;
+  serverZone?: ServerZone | ServerZoneType;
   storageProvider?: Storage<Event[]>;
   transportProvider: Transport;
   useBatch: boolean;

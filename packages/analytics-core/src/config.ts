@@ -8,6 +8,7 @@ import {
   Plan,
   IngestionMetadata,
   Options,
+  ServerZone,
   ServerZoneType,
 } from '@amplitude/analytics-types';
 import {
@@ -42,7 +43,7 @@ export class Config implements IConfig {
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
-  serverZone?: ServerZoneType;
+  serverZone?: ServerZone | ServerZoneType;
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
