@@ -28,7 +28,6 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json"
   },
