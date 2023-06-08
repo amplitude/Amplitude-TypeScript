@@ -14,7 +14,8 @@
   "types": "lib/esm/index.d.ts",
   "sideEffects": false,
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v1"
   },
   "repository": {
     "type": "git",
