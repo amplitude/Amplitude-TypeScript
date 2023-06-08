@@ -27,7 +27,7 @@ describe('Storage options', () => {
     const scope = nock(url).post(path).reply(200, success);
 
     const amplitude = createInstance();
-    await amplitude.init(apiKey, undefined, {
+    await amplitude.init(apiKey, {
       defaultTracking,
     }).promise;
 
@@ -51,7 +51,7 @@ describe('Storage options', () => {
     const scope = nock(url).post(path).reply(200, success);
 
     const amplitude = createInstance();
-    await amplitude.init(apiKey, undefined, {
+    await amplitude.init(apiKey, {
       defaultTracking,
       identityStorage: 'localStorage',
     }).promise;
@@ -78,7 +78,7 @@ describe('Storage options', () => {
     const scope = nock(url).post(path).reply(200, success);
 
     const amplitude = createInstance();
-    await amplitude.init(apiKey, undefined, {
+    await amplitude.init(apiKey, {
       defaultTracking,
       identityStorage: 'none',
       storageProvider: new MemoryStorage(),

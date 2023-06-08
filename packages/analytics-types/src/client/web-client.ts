@@ -87,6 +87,7 @@ export interface BrowserClient extends Client {
    * await init(API_KEY, options).promise;
    * ```
    */
+  init(apiKey: string, options?: BrowserOptions): AmplitudeReturn<void>;
   init(apiKey: string, userId?: string, options?: BrowserOptions): AmplitudeReturn<void>;
 
   /**

@@ -106,7 +106,7 @@ describe('integration', () => {
           scope.done();
           resolve(undefined);
         });
-        client.init(apiKey, undefined, {
+        client.init(apiKey, {
           defaultTracking,
           serverUrl: url + path,
         });
@@ -132,7 +132,7 @@ describe('integration', () => {
       client.setSessionId(sessionId);
 
       const trackPromise = client.track('Event Before Init').promise;
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking: {
           ...defaultTracking,
           attribution: true,
@@ -236,7 +236,7 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const response = await client.track('test event', {
@@ -297,7 +297,7 @@ describe('integration', () => {
     test('should track event with event options', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const response = await client.track('test event', undefined, {
@@ -330,7 +330,7 @@ describe('integration', () => {
 
       const sourceName = 'ampli';
       const sourceVersion = '2.0.0';
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
         ingestionMetadata: {
           sourceName,
@@ -369,7 +369,7 @@ describe('integration', () => {
     test('should track event with base event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const response = await client.track(
@@ -421,7 +421,7 @@ describe('integration', () => {
         });
       const second = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
       }).promise;
@@ -476,7 +476,7 @@ describe('integration', () => {
       });
       const second = nock(url).post(path).times(2).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         logLevel: 0,
         flushQueueSize: 2,
         defaultTracking,
@@ -532,7 +532,7 @@ describe('integration', () => {
         });
       const second = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
       }).promise;
@@ -586,7 +586,7 @@ describe('integration', () => {
       });
       const second = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
       }).promise;
@@ -634,7 +634,7 @@ describe('integration', () => {
         code: 500,
       });
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         logLevel: 0,
         flushMaxRetries: 3,
         defaultTracking,
@@ -672,7 +672,7 @@ describe('integration', () => {
     });
 
     test('should handle client opt out', async () => {
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         logLevel: 0,
         defaultTracking,
       }).promise;
@@ -687,7 +687,7 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const id = new amplitude.Identify();
@@ -751,7 +751,7 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const rev = new amplitude.Revenue();
@@ -793,7 +793,7 @@ describe('integration', () => {
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const response = await client.setGroup('org', 'engineering').promise;
@@ -1588,7 +1588,7 @@ describe('integration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const response = await client.track('test event', {
@@ -1625,7 +1625,7 @@ describe('integration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
         cookieOptions: {
           upgrade: false,
@@ -1665,7 +1665,7 @@ describe('integration', () => {
         const serverUrl = 'https://domain.com';
         const scope = nock(serverUrl).post(path).reply(200, success);
 
-        await client.init(apiKey, undefined, {
+        await client.init(apiKey, {
           defaultTracking,
           serverUrl: serverUrl + path,
         }).promise;
@@ -1703,7 +1703,7 @@ describe('integration', () => {
           warn: jest.fn(),
           error: jest.fn(),
         };
-        await client.init(apiKey, undefined, {
+        await client.init(apiKey, {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
@@ -1750,7 +1750,7 @@ describe('integration', () => {
           warn: jest.fn(),
           error: jest.fn(),
         };
-        await client.init(apiKey, undefined, {
+        await client.init(apiKey, {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
@@ -1777,7 +1777,7 @@ describe('integration', () => {
       const scope1 = nock(url).post(path).reply(200, success);
       // intercept for test event
       const scope2 = nock(url).post(path).reply(200, success);
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         identityStorage: 'cookie',
       }).promise;
       await client.identify(new amplitude.Identify().set('a', 'b')).promise;
@@ -1793,7 +1793,7 @@ describe('integration', () => {
       const scope1 = nock(url).post(path).reply(200, success);
       // intercept for test event
       const scope2 = nock(url).post(path).reply(200, success);
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         identityStorage: 'localStorage',
       }).promise;
       await client.identify(new amplitude.Identify().set('a', 'b')).promise;

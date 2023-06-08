@@ -103,7 +103,7 @@ describe('browser-client', () => {
         sessionId: 1,
         userId,
       });
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       expect(client.getUserId()).toBe(userId);
@@ -234,7 +234,7 @@ describe('browser-client', () => {
 
   describe('setUserId', () => {
     test('should set user id', async () => {
-      await client.init(apiKey, undefined, { defaultTracking }).promise;
+      await client.init(apiKey, { defaultTracking }).promise;
       expect(client.getUserId()).toBe(undefined);
       client.setUserId(userId);
       expect(client.getUserId()).toBe(userId);
@@ -291,7 +291,7 @@ describe('browser-client', () => {
 
     test('should defer set user id', () => {
       return new Promise<void>((resolve) => {
-        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+        void client.init(apiKey, { defaultTracking }).promise.then(() => {
           expect(client.getUserId()).toBe('user@amplitude.com');
           resolve();
         });
@@ -313,7 +313,7 @@ describe('browser-client', () => {
     });
 
     test('should be able to unset user id to undefined after setUserId()', async () => {
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
         deviceId,
       }).promise;
@@ -332,7 +332,7 @@ describe('browser-client', () => {
 
   describe('getDeviceId', () => {
     test('should get device id', async () => {
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
         deviceId,
       }).promise;
@@ -346,14 +346,14 @@ describe('browser-client', () => {
 
   describe('setDeviceId', () => {
     test('should set device id config', async () => {
-      await client.init(apiKey, undefined, { defaultTracking }).promise;
+      await client.init(apiKey, { defaultTracking }).promise;
       client.setDeviceId(deviceId);
       expect(client.getDeviceId()).toBe(deviceId);
     });
 
     test('should defer set device id', () => {
       return new Promise<void>((resolve) => {
-        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+        void client.init(apiKey, { defaultTracking }).promise.then(() => {
           expect(client.getDeviceId()).toBe('asdfg');
           resolve();
         });
@@ -364,7 +364,7 @@ describe('browser-client', () => {
 
   describe('reset', () => {
     test('should reset user id and generate new device id config', async () => {
-      await client.init(apiKey, undefined, { defaultTracking }).promise;
+      await client.init(apiKey, { defaultTracking }).promise;
       client.setUserId(userId);
       client.setDeviceId(deviceId);
       expect(client.getUserId()).toBe(userId);
@@ -377,7 +377,7 @@ describe('browser-client', () => {
 
   describe('getSessionId', () => {
     test('should get session id', async () => {
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
         sessionId: 1,
       }).promise;
@@ -391,7 +391,7 @@ describe('browser-client', () => {
 
   describe('setSessionId', () => {
     test('should set session id', async () => {
-      await client.init(apiKey, undefined, { defaultTracking }).promise;
+      await client.init(apiKey, { defaultTracking }).promise;
       client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
     });
@@ -407,7 +407,7 @@ describe('browser-client', () => {
         }),
       };
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         sessionId: 1,
         defaultTracking: {
           ...defaultTracking,
@@ -437,7 +437,7 @@ describe('browser-client', () => {
         }),
       };
       const track = jest.spyOn(client, 'track').mockReturnValue(result);
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         sessionTimeout: 5000,
         defaultTracking: {
           ...defaultTracking,
@@ -453,7 +453,7 @@ describe('browser-client', () => {
 
     test('should defer set session id', () => {
       return new Promise<void>((resolve) => {
-        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+        void client.init(apiKey, { defaultTracking }).promise.then(() => {
           expect(client.getSessionId()).toBe(1);
           resolve();
         });
@@ -466,7 +466,7 @@ describe('browser-client', () => {
     test('should set transport', async () => {
       const fetch = new FetchTransport();
       const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
-      await client.init(apiKey, undefined, { defaultTracking }).promise;
+      await client.init(apiKey, { defaultTracking }).promise;
       client.setTransport('fetch');
       expect(createTransport).toHaveBeenCalledTimes(2);
     });
@@ -475,7 +475,7 @@ describe('browser-client', () => {
       return new Promise<void>((resolve) => {
         const fetch = new FetchTransport();
         const createTransport = jest.spyOn(Config, 'createTransport').mockReturnValueOnce(fetch);
-        void client.init(apiKey, undefined, { defaultTracking }).promise.then(() => {
+        void client.init(apiKey, { defaultTracking }).promise.then(() => {
           expect(createTransport).toHaveBeenCalledTimes(2);
           resolve();
         });
@@ -495,7 +495,7 @@ describe('browser-client', () => {
           },
         }),
       );
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const identifyObject = new core.Identify();
@@ -517,7 +517,7 @@ describe('browser-client', () => {
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Identify());
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const identifyObject = {
@@ -543,7 +543,7 @@ describe('browser-client', () => {
           },
         }),
       );
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const identifyObject = new core.Identify();
@@ -565,7 +565,7 @@ describe('browser-client', () => {
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Identify());
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const identifyObject = {
@@ -591,7 +591,7 @@ describe('browser-client', () => {
           },
         }),
       );
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const revenueObject = new core.Revenue();
@@ -613,7 +613,7 @@ describe('browser-client', () => {
       const convertProxyObjectToRealObject = jest
         .spyOn(SnippetHelper, 'convertProxyObjectToRealObject')
         .mockReturnValueOnce(new core.Revenue());
-      await client.init(apiKey, undefined, {
+      await client.init(apiKey, {
         defaultTracking,
       }).promise;
       const revenueObject = {
