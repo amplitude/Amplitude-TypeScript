@@ -1,5 +1,5 @@
 import { Destination } from '../../src/plugins/destination';
-import { DestinationContext, Payload, Status } from '@amplitude/analytics-types';
+import { DestinationContext, Payload, Status, Logger, Config } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -831,6 +831,177 @@ describe('destination', () => {
       expect(results[0].code).toBe(500);
       expect(results[1].code).toBe(500);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('logging', () => {
+    const getMockLogger = (): Logger => ({
+      log: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      enable: jest.fn(),
+      disable: jest.fn(),
+    });
+
+    test('should handle null loggerProvider', async () => {
+      class Http {
+        send = jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              message: 'success',
+            },
+          });
+        });
+      }
+
+      const transportProvider = new Http();
+      const destination = new Destination();
+
+      const config: Config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 1,
+        flushIntervalMillis: 1,
+        transportProvider,
+      };
+      await destination.setup(config);
+      const event = {
+        event_type: 'event_type',
+      };
+      const result = await destination.execute(event);
+      expect(result).toEqual({
+        event,
+        message: SUCCESS_MESSAGE,
+        code: 200,
+      });
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      {
+        statusCode: 400,
+        status: Status.Invalid,
+        body: {
+          error: 'error',
+          missingField: 'key',
+          eventsWithInvalidFields: {},
+          eventsWithMissingFields: {},
+          silencedEvents: [],
+        },
+      },
+      {
+        statusCode: 413,
+        status: Status.PayloadTooLarge,
+        body: {
+          code: 413,
+          error: 'error',
+        },
+      },
+      {
+        statusCode: 429,
+        status: Status.RateLimit,
+        body: {
+          error: 'error',
+          epsThreshold: 1,
+          throttledDevices: {},
+          throttledUsers: {},
+          exceededDailyQuotaDevices: {
+            '1': 1,
+          },
+          exceededDailyQuotaUsers: {
+            '2': 1,
+          },
+          throttledEvents: [0],
+        },
+      },
+    ])('should log response body for $statusCode $status', async ({ statusCode, status, body }) => {
+      const response = {
+        status,
+        statusCode,
+        body,
+      };
+
+      class Http {
+        send = jest
+          .fn()
+          .mockImplementationOnce(() => {
+            return Promise.resolve(response);
+          })
+          .mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.Success,
+              code: 200,
+              body: {
+                message: SUCCESS_MESSAGE,
+              },
+            });
+          });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination();
+      const loggerProvider = getMockLogger();
+
+      const config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 1,
+        flushIntervalMillis: 1,
+        transportProvider,
+        loggerProvider,
+      };
+      await destination.setup(config);
+      destination.retryTimeout = 10;
+      destination.throttleTimeout = 1;
+      const event = {
+        event_type: 'event_type',
+      };
+      const result = await destination.execute(event);
+      if (statusCode === 429) {
+        await destination.execute(event);
+      }
+      expect(result).toEqual({
+        event,
+        message: response.body.error,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        code: response.body.code ?? statusCode,
+      });
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
+      expect(loggerProvider.warn).toHaveBeenCalledWith(JSON.stringify(response.body));
+    });
+
+    test('should log unexpected error', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+        },
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          throw new Error('Error');
+        }),
+      };
+      const loggerProvider = getMockLogger();
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        loggerProvider,
+      });
+      await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(loggerProvider.error).toHaveBeenCalledWith('Error');
     });
   });
 });

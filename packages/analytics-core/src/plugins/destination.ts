@@ -24,6 +24,11 @@ import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig } from '../config';
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
 export class Destination implements DestinationPlugin {
   name = 'amplitude';
   type = PluginType.DESTINATION as const;
@@ -155,31 +160,46 @@ export class Destination implements DestinationPlugin {
       }
       this.handleReponse(res, list);
     } catch (e) {
+      this.config.loggerProvider.error(getErrorMessage(e));
       this.fulfillRequest(list, 0, String(e));
     }
   }
 
   handleReponse(res: Response, list: Context[]) {
     const { status } = res;
+    let responseBodyString;
+    try {
+      responseBodyString = 'body' in res ? JSON.stringify(res.body) : undefined;
+    } catch {
+      // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
+    }
+
     switch (status) {
-      case Status.Success:
+      case Status.Success: {
+        this.config.loggerProvider.log(responseBodyString);
         this.handleSuccessResponse(res, list);
         break;
-
-      case Status.Invalid:
+      }
+      case Status.Invalid: {
+        this.config.loggerProvider.warn(responseBodyString);
         this.handleInvalidResponse(res, list);
         break;
-
-      case Status.PayloadTooLarge:
+      }
+      case Status.PayloadTooLarge: {
+        this.config.loggerProvider.warn(responseBodyString);
         this.handlePayloadTooLargeResponse(res, list);
         break;
-
-      case Status.RateLimit:
+      }
+      case Status.RateLimit: {
+        this.config.loggerProvider.warn(responseBodyString);
         this.handleRateLimitResponse(res, list);
         break;
-
-      default:
+      }
+      default: {
+        this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
         this.handleOtherReponse(list);
+        break;
+      }
     }
   }
 
