@@ -1,3 +1,6 @@
+/**
+ * @deprecated use ServerZoneType instead
+ */
 export enum ServerZone {
   US = 'US',
   EU = 'EU',
