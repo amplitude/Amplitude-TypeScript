@@ -169,7 +169,8 @@ export class Destination implements DestinationPlugin {
     const { status } = res;
     let responseBodyString;
     try {
-      responseBodyString = 'body' in res ? JSON.stringify(res.body) : undefined;
+      responseBodyString =
+        'body' in res ? JSON.stringify({ code: res.statusCode, ...res.body }) : { code: res.statusCode };
     } catch {
       // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
     }

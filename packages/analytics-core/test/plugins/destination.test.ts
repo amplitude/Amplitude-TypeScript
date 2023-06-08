@@ -977,7 +977,7 @@ describe('destination', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
-      expect(loggerProvider.warn).toHaveBeenCalledWith(JSON.stringify(response.body));
+      expect(loggerProvider.warn).toHaveBeenCalledWith(JSON.stringify({ code: statusCode, ...response.body }));
     });
 
     test.each([
