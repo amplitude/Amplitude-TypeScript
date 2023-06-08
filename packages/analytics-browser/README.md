@@ -27,10 +27,10 @@ This package is published on NPM registry and is available to be installed using
 
 ```sh
 # npm
-npm install @amplitude/analytics-browser
+npm install @amplitude/analytics-browser@^1.0.0
 
 # yarn
-yarn add @amplitude/analytics-browser
+yarn add @amplitude/analytics-browser@^1.0.0
 ```
 
 ### Using script loader
