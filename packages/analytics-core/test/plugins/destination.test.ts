@@ -983,7 +983,7 @@ describe('destination', () => {
     test.each([
       { err: new Error('Error'), message: 'Error' },
       { err: 'string error', message: 'string error' },
-    ])('should log unexpected error "%message"', async ({ err, message }) => {
+    ])('should log unexpected error "$message"', async ({ err, message }) => {
       const destination = new Destination();
       const callback = jest.fn();
       const context = {

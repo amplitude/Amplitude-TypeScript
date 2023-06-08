@@ -27,7 +27,7 @@ export class Http extends BaseTransport implements Transport {
       port: url.port,
       protocol: url.protocol,
     };
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const req = protocol.request(options, (res) => {
         res.setEncoding('utf8');
         let responsePayload = '';
@@ -43,13 +43,13 @@ export class Http extends BaseTransport implements Transport {
               const result = this.buildResponse(parsedResponsePayload);
               resolve(result);
               return;
-            } catch {
-              resolve(null);
+            } catch (e) {
+              reject(e);
             }
           }
         });
       });
-      req.on('error', this.buildResponse.bind(this));
+      req.on('error', reject);
       req.end(requestPayload);
     });
   }
