@@ -45,7 +45,7 @@ When writing commit message, follow [PR Commit Title Conventions](#PR-Commit-Tit
 
 Once you are finished with your changes and feel good about the proposed changes, create a pull request. A team member will assist in getting them reviewed. We are excited to work with you on this.
 
-For contributions to version `1.x`, open a pull request off `v1.x`. For contributions to the `2.x` (latest) version, open a pull request to `main`.
+For contributions to version `1.x`, open a pull request against `v1.x`. For contributions to the `2.x` (latest) version, open a pull request against `main`.
 
 #### Merge
 
