@@ -1,5 +1,5 @@
-import { Destination } from '../../src/plugins/destination';
-import { DestinationContext, Payload, Status, Logger, Config } from '@amplitude/analytics-types';
+import { Destination, getResponseBodyString } from '../../src/plugins/destination';
+import { Config, DestinationContext, Logger, Payload, Result, Status } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -7,6 +7,8 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
+
+const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
 describe('destination', () => {
   describe('setup', () => {
@@ -373,7 +375,7 @@ describe('destination', () => {
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 400,
-        message: `${Status.Invalid}: ${JSON.stringify(body, null, 2)}`,
+        message: `${Status.Invalid}: ${jsons(body)}`,
       });
     });
 
@@ -881,19 +883,19 @@ describe('destination', () => {
 
     test.each([
       {
-        recoverable: false,
         statusCode: 400,
         status: Status.Invalid,
         body: {
+          code: 400,
           error: 'error',
-          missingField: 'key',
+          missingField: undefined,
           eventsWithInvalidFields: {},
           eventsWithMissingFields: {},
+          eventsWithInvalidIdLengths: {},
           silencedEvents: [],
         },
       },
       {
-        recoverable: false,
         statusCode: 413,
         status: Status.PayloadTooLarge,
         body: {
@@ -902,10 +904,10 @@ describe('destination', () => {
         },
       },
       {
-        recoverable: true,
         statusCode: 429,
         status: Status.RateLimit,
         body: {
+          code: 429,
           error: 'error',
           epsThreshold: 1,
           throttledDevices: {},
@@ -919,66 +921,77 @@ describe('destination', () => {
           throttledEvents: [0],
         },
       },
-    ])('should log response body for $statusCode $status', async ({ recoverable, statusCode, status, body }) => {
-      const response = {
-        status,
-        statusCode,
-        body,
-      };
+    ])(
+      'should log intermediate response body for retries of $statusCode $status',
+      async ({ statusCode, status, body }) => {
+        const response = {
+          status,
+          statusCode,
+          body,
+        };
 
-      class Http {
-        send = jest
-          .fn()
-          .mockImplementationOnce(() => {
-            return Promise.resolve(response);
-          })
-          .mockImplementationOnce(() => {
-            return Promise.resolve({
-              status: Status.Success,
-              statusCode: 200,
-              body: {
-                message: SUCCESS_MESSAGE,
-              },
+        class Http {
+          send = jest
+            .fn()
+            .mockImplementationOnce(() => {
+              return Promise.resolve(response);
+            })
+            .mockImplementationOnce(() => {
+              return Promise.resolve({
+                status: Status.Success,
+                statusCode: 200,
+                body: {
+                  message: SUCCESS_MESSAGE,
+                },
+              });
             });
+        }
+        const transportProvider = new Http();
+        const destination = new Destination();
+        const loggerProvider = getMockLogger();
+        const eventCount = status === Status.PayloadTooLarge ? 2 : 1;
+        const config = {
+          ...useDefaultConfig(),
+          flushQueueSize: eventCount,
+          flushIntervalMillis: 1,
+          transportProvider,
+          loggerProvider,
+        };
+        await destination.setup(config);
+        destination.retryTimeout = 10;
+        destination.throttleTimeout = 1;
+        const event = {
+          event_type: 'event_type',
+        };
+        let result;
+        if (eventCount > 1) {
+          // Need 2 events for 413 to retry, send them both at the same time
+          result = await new Promise((resolve) => {
+            const context: DestinationContext = {
+              event,
+              attempts: 0,
+              callback: (result: Result) => resolve(result),
+              timeout: 0,
+            };
+            void destination.addToQueue(context, context);
           });
-      }
-      const transportProvider = new Http();
-      const destination = new Destination();
-      const loggerProvider = getMockLogger();
+        } else {
+          result = await destination.execute(event);
+        }
 
-      const config = {
-        ...useDefaultConfig(),
-        flushQueueSize: 1,
-        flushIntervalMillis: 1,
-        transportProvider,
-        loggerProvider,
-      };
-      await destination.setup(config);
-      destination.retryTimeout = 10;
-      destination.throttleTimeout = 1;
-      const event = {
-        event_type: 'event_type',
-      };
-      const result = await destination.execute(event);
-      const expectedResult = recoverable
-        ? {
-            event,
-            message: SUCCESS_MESSAGE,
-            code: 200,
-          }
-        : {
-            event,
-            message: response.body.error,
-            code: response.body.code ?? statusCode,
-          };
-      expect(result).toEqual(expectedResult);
+        expect(result).toEqual({
+          event,
+          message: SUCCESS_MESSAGE,
+          code: 200,
+        });
 
-      expect(transportProvider.send).toHaveBeenCalledTimes(recoverable ? 2 : 1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
-      expect(loggerProvider.warn).toHaveBeenCalledWith(JSON.stringify({ code: statusCode, ...response.body }));
-    });
+        expect(transportProvider.send).toHaveBeenCalledTimes(eventCount == 1 ? 2 : 3);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
+        // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
+        expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
+      },
+    );
 
     test.each([
       { err: new Error('Error'), message: 'Error' },
@@ -1012,6 +1025,14 @@ describe('destination', () => {
       expect(loggerProvider.error).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(loggerProvider.error).toHaveBeenCalledWith(message);
+    });
+
+    test('should parse response without body', async () => {
+      const result = getResponseBodyString({
+        status: Status.Unknown,
+        statusCode: 700,
+      });
+      expect(result).toBe('');
     });
   });
 });

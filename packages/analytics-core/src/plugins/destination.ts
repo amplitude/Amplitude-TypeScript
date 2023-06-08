@@ -29,6 +29,18 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
+export function getResponseBodyString(res: Response) {
+  let responseBodyString = '';
+  try {
+    if ('body' in res) {
+      responseBodyString = JSON.stringify(res.body, null, 2);
+    }
+  } catch {
+    // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
+  }
+  return responseBodyString;
+}
+
 export class Destination implements DestinationPlugin {
   name = 'amplitude';
   type = PluginType.DESTINATION as const;
@@ -146,13 +158,7 @@ export class Destination implements DestinationPlugin {
       }
       if (!useRetry) {
         if ('body' in res) {
-          let responseBody = '';
-          try {
-            responseBody = JSON.stringify(res.body, null, 2);
-          } catch {
-            // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
-          }
-          this.fulfillRequest(list, res.statusCode, `${res.status}: ${responseBody}`);
+          this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
           this.fulfillRequest(list, res.statusCode, res.status);
         }
@@ -168,13 +174,6 @@ export class Destination implements DestinationPlugin {
 
   handleResponse(res: Response, list: Context[]) {
     const { status } = res;
-    let responseBodyString;
-    try {
-      responseBodyString =
-        'body' in res ? JSON.stringify({ code: res.statusCode, ...res.body }) : { code: res.statusCode };
-    } catch {
-      // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
-    }
 
     switch (status) {
       case Status.Success: {
@@ -182,17 +181,14 @@ export class Destination implements DestinationPlugin {
         break;
       }
       case Status.Invalid: {
-        this.config.loggerProvider.warn(responseBodyString);
         this.handleInvalidResponse(res, list);
         break;
       }
       case Status.PayloadTooLarge: {
-        this.config.loggerProvider.warn(responseBodyString);
         this.handlePayloadTooLargeResponse(res, list);
         break;
       }
       case Status.RateLimit: {
-        this.config.loggerProvider.warn(responseBodyString);
         this.handleRateLimitResponse(res, list);
         break;
       }
@@ -230,6 +226,10 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
+    if (retry.length > 0) {
+      // log intermediate event status before retry
+      this.config.loggerProvider.warn(getResponseBodyString(res));
+    }
     this.addToQueue(...retry);
   }
 
@@ -238,6 +238,10 @@ export class Destination implements DestinationPlugin {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
+
+    // log intermediate event status before retry
+    this.config.loggerProvider.warn(getResponseBodyString(res));
+
     this.config.flushQueueSize /= 2;
     this.addToQueue(...list);
   }
@@ -264,10 +268,18 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
+    if (retry.length > 0) {
+      // log intermediate event status before retry
+      this.config.loggerProvider.warn(getResponseBodyString(res));
+    }
+
     this.addToQueue(...retry);
   }
 
   handleOtherResponse(list: Context[]) {
+    // log intermediate event status before retry
+    this.config.loggerProvider.warn(`{code: 0, error: "${UNEXPECTED_ERROR_MESSAGE}"}`);
+
     this.addToQueue(
       ...list.map((context) => {
         context.timeout = context.attempts * this.retryTimeout;
