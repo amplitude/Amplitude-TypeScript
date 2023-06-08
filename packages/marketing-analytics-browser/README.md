@@ -27,10 +27,10 @@ This package is published on NPM registry and is available to be installed using
 
 ```sh
 # npm
-npm install @amplitude/marketing-analytics-browser
+npm install @amplitude/marketing-analytics-browser@^1.0.0
 
 # yarn
-yarn add @amplitude/marketing-analytics-browser
+yarn add @amplitude/marketing-analytics-browser@^1.0.0
 ```
 
 ### Using script loader

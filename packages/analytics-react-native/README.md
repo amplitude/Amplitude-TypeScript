@@ -19,11 +19,11 @@ To get started with using Amplitude React Native SDK, install the package to you
 
 ```sh
 # npm
-npm install @amplitude/analytics-react-native
+npm install @amplitude/analytics-react-native@^1.0.0
 npm install @react-native-async-storage/async-storage
 
 # yarn
-yarn add @amplitude/analytics-react-native
+yarn add @amplitude/analytics-react-native@^1.0.0
 yarn add @react-native-async-storage/async-storage
 ```
 

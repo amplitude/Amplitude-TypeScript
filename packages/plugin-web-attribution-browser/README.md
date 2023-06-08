@@ -15,10 +15,10 @@ This package is published on NPM registry and is available to be installed using
 
 ```sh
 # npm
-npm install @amplitude/plugin-web-attribution-browser
+npm install @amplitude/plugin-web-attribution-browser@^1.0.0
 
 # yarn
-yarn add @amplitude/plugin-web-attribution-browser
+yarn add @amplitude/plugin-web-attribution-browser@^1.0.0
 ```
 
 ## Usage
