@@ -41,10 +41,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
 
-    if (arguments.length === 3) {
+    if (arguments.length > 2) {
       userId = userIdOrOptions as string | undefined;
       options = maybeOptions;
-    } else if (arguments.length === 2) {
+    } else {
       if (typeof userIdOrOptions === 'string') {
         userId = userIdOrOptions;
         options = undefined;
