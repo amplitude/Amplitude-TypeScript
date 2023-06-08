@@ -6,7 +6,7 @@ import { shouldSplitEventsList } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE } from './messages';
 import { Events, IDBStore, SessionReplayContext } from './typings/session-replay';
 
-const SESSION_REPLAY_SERVER_URL = 'https://api2.amplitude.com/sessions/track';
+const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
 const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 export class SessionReplayPlugin implements EnrichmentPlugin {
   name = '@amplitude/plugin-session-replay';
@@ -21,13 +21,10 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   currentSequenceId = 0;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: SessionReplayContext[] = [];
-  shouldLogReplayEnabled = false;
+  stopRecordingEvents: ReturnType<typeof record> | null = null;
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
-    if (!config.sessionId) {
-      this.shouldLogReplayEnabled = true;
-    }
 
     this.config = config;
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
@@ -38,13 +35,14 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   }
 
   execute(event: Event) {
-    // TODO: this should be a constant/type
-    if (event.event_type === 'session_start' || this.shouldLogReplayEnabled) {
-      event.event_properties = {
-        ...event.event_properties,
-        session_replay_enabled: true,
-      };
-      this.shouldLogReplayEnabled = false;
+    event.event_properties = {
+      ...event.event_properties,
+      session_replay_enabled: true,
+    };
+
+    if (event.event_type === 'session_start' && this.stopRecordingEvents) {
+      this.stopRecordingEvents();
+      this.recordEvents();
     } else if (event.event_type === 'session_end') {
       if (event.session_id) {
         this.sendEventsList({
@@ -80,8 +78,9 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   }
 
   recordEvents() {
-    record({
+    this.stopRecordingEvents = record({
       emit: (event) => {
+        console.log('event', event);
         const eventString = JSON.stringify(event);
         const shouldSplit = shouldSplitEventsList(this.events, eventString);
         if (shouldSplit) {
@@ -96,7 +95,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         this.events.push(eventString);
         this.storeEventsForSession(this.events, this.currentSequenceId);
       },
-      maskAllInputs: true,
     });
   }
 
