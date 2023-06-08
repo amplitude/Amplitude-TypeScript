@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.4...@amplitude/analytics-browser@2.0.0-beta.5) (2023-06-08)
+
+### Features
+
+- simplify init interface ([#416](https://github.com/amplitude/Amplitude-TypeScript/issues/416))
+  ([93752da](https://github.com/amplitude/Amplitude-TypeScript/commit/93752da1e6ed521263c6d5295a37fc5dc7f3de86))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.3...@amplitude/analytics-browser@2.0.0-beta.4) (2023-06-07)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

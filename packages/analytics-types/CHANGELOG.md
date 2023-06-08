@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.0.0-beta.3...@amplitude/analytics-types@2.0.0-beta.4) (2023-06-08)
+
+### Bug Fixes
+
+- expose server zone enum ([#414](https://github.com/amplitude/Amplitude-TypeScript/issues/414))
+  ([386ebdf](https://github.com/amplitude/Amplitude-TypeScript/commit/386ebdf8658ff4de8fe5f1d30626eb61f3f776e3))
+
+### Features
+
+- simplify init interface ([#416](https://github.com/amplitude/Amplitude-TypeScript/issues/416))
+  ([93752da](https://github.com/amplitude/Amplitude-TypeScript/commit/93752da1e6ed521263c6d5295a37fc5dc7f3de86))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.0.0-beta.2...@amplitude/analytics-types@2.0.0-beta.3) (2023-06-07)
 
 **Note:** Version bump only for package @amplitude/analytics-types
