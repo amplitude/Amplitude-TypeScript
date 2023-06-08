@@ -51,13 +51,27 @@ describe('browser-client', () => {
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
-    test('should set user id using top level parameter', async () => {
+    test('should set user id using top level parameter 1', async () => {
       client.setOptOut(true);
       await client.init(apiKey, userId).promise;
       expect(client.getUserId()).toBe(userId);
     });
 
-    test('should set user id using config', async () => {
+    test('should set user id using top level parameter 2', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey, undefined, {
+        userId,
+      }).promise;
+      expect(client.getUserId()).toBe(undefined);
+    });
+
+    test('should set user id to undefined using top level parameter 1', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey, undefined).promise;
+      expect(client.getUserId()).toBe(undefined);
+    });
+
+    test('should set user id using config 1', async () => {
       client.setOptOut(true);
       await client.init(apiKey, {
         userId,

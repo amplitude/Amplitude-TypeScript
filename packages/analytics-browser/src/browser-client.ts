@@ -41,12 +41,17 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
 
-    if (typeof userIdOrOptions === 'string') {
-      userId = userIdOrOptions;
+    if (arguments.length === 3) {
+      userId = userIdOrOptions as string | undefined;
       options = maybeOptions;
-    } else {
-      userId = userIdOrOptions?.userId;
-      options = userIdOrOptions;
+    } else if (arguments.length === 2) {
+      if (typeof userIdOrOptions === 'string') {
+        userId = userIdOrOptions;
+        options = undefined;
+      } else {
+        userId = userIdOrOptions?.userId;
+        options = userIdOrOptions;
+      }
     }
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
