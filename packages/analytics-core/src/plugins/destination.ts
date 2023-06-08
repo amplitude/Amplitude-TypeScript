@@ -158,14 +158,14 @@ export class Destination implements DestinationPlugin {
         }
         return;
       }
-      this.handleReponse(res, list);
+      this.handleResponse(res, list);
     } catch (e) {
       this.config.loggerProvider.error(getErrorMessage(e));
       this.fulfillRequest(list, 0, String(e));
     }
   }
 
-  handleReponse(res: Response, list: Context[]) {
+  handleResponse(res: Response, list: Context[]) {
     const { status } = res;
     let responseBodyString;
     try {
@@ -198,7 +198,7 @@ export class Destination implements DestinationPlugin {
       }
       default: {
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
-        this.handleOtherReponse(list);
+        this.handleOtherResponse(list);
         break;
       }
     }
@@ -267,7 +267,7 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...retry);
   }
 
-  handleOtherReponse(list: Context[]) {
+  handleOtherResponse(list: Context[]) {
     this.addToQueue(
       ...list.map((context) => {
         context.timeout = context.attempts * this.retryTimeout;
