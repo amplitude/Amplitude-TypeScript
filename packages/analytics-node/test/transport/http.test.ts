@@ -121,7 +121,7 @@ describe('http transport', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
-  test('should re-throw unexpected error', async () => {
+  test('should handle unexpected error', async () => {
     const provider = new Http();
     const url = 'http://localhost:3000';
     const payload = {
@@ -151,7 +151,8 @@ describe('http transport', () => {
       } as any;
     });
 
-    await expect(provider.send(url, payload)).rejects.toThrow('Unexpected token < in JSON at position 0');
+    const response = await provider.send(url, payload);
+    expect(response).toBe(null);
     expect(request).toHaveBeenCalledTimes(1);
   });
 });
