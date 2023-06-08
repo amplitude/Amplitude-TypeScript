@@ -19,166 +19,51 @@ Please visit our :100:[Developer Center](https://www.docs.developers.amplitude.c
 
 ## Installation
 
-To get started with using Amplitude Browser SDK, install the package to your project via NPM or script loader.
+To get started with using Amplitude Browser SDK, install the package to your project via npm, yarn or script loader.
 
-### Using Node package
+### Installing via package manager
 
-This package is published on NPM registry and is available to be installed using npm and yarn.
+This SDK is available as a package on npm registry named `@amplitude/analytics-browser`. You can install the package using npm or yarn CLI.
 
+#### Using npm CLI
 ```sh
-# npm
 npm install @amplitude/analytics-browser
+```
 
+#### Using yarn CLI
+```sh
 # yarn
 yarn add @amplitude/analytics-browser
 ```
 
-### Using script loader
+Import the package into your project and initialize it with your API key.
 
-Alternatively, the package is also distributed through a CDN. Copy and paste the script below to your html file.
+```ts
+import * as amplitude from '@amplitude/analytics-browser';
+
+amplitude.init('<YOUR_API_KEY>');
+```
+
+### Installing via script loader
+
+This SDK is also available through CDN. Copy the script loader below and paste before the `</head>` tag of every page you want to track and initialize it with your API key.
 
 <!-- README_SNIPPET_BLOCK -->
 ```html
 <script type="text/javascript">
 !function(){"use strict";!function(e,t){var r=e.amplitude||{_q:[],_iq:{}};if(r.invoked)e.console&&console.error&&console.error("Amplitude snippet has been loaded.");else{var n=function(e,t){e.prototype[t]=function(){return this._q.push({name:t,args:Array.prototype.slice.call(arguments,0)}),this}},s=function(e,t,r){return function(n){e._q.push({name:t,args:Array.prototype.slice.call(r,0),resolve:n})}},o=function(e,t,r){e[t]=function(){if(r)return{promise:new Promise(s(e,t,Array.prototype.slice.call(arguments)))}}},i=function(e){for(var t=0;t<g.length;t++)o(e,g[t],!1);for(var r=0;r<m.length;r++)o(e,m[r],!0)};r.invoked=!0;var a=t.createElement("script");a.type="text/javascript",a.integrity="sha384-Q7BpoNgh9vSl0jANHiGzOS9exch95VkMc1CsfqaZ/l0NdtBjTblyhmBrye8inB88",a.crossOrigin="anonymous",a.async=!0,a.src="https://cdn.amplitude.com/libs/analytics-browser-2.0.0-beta.5-min.js.gz",a.onload=function(){e.amplitude.runQueuedFunctions||console.log("[Amplitude] Error: could not load SDK")};var c=t.getElementsByTagName("script")[0];c.parentNode.insertBefore(a,c);for(var u=function(){return this._q=[],this},l=["add","append","clearAll","prepend","set","setOnce","unset","preInsert","postInsert","remove","getUserProperties"],p=0;p<l.length;p++)n(u,l[p]);r.Identify=u;for(var d=function(){return this._q=[],this},f=["getEventProperties","setProductId","setQuantity","setPrice","setRevenue","setRevenueType","setEventProperties"],v=0;v<f.length;v++)n(d,f[v]);r.Revenue=d;var g=["getDeviceId","setDeviceId","getSessionId","setSessionId","getUserId","setUserId","setOptOut","setTransport","reset"],m=["init","add","remove","track","logEvent","identify","groupIdentify","setGroup","revenue","flush"];i(r),r.createInstance=function(e){return r._iq[e]={_q:[]},i(r._iq[e]),r._iq[e]},e.amplitude=r}}(window,document)}();
 
-amplitude.init("YOUR_API_KEY_HERE");
+amplitude.init("<YOUR_API_KEY>");
 </script>
 ```
 <!-- / OF README_SNIPPET_BLOCK -->
 
-## Usage
+## Tracking events
 
-### Initializing SDK
+Once the SDK is initialize, you can start tracking events.
 
-Initialization is necessary before any instrumentation is done. The API key for your Amplitude project is required.
-
-```typescript
-amplitude.init(API_KEY);
+```ts
+amplitude.track('Page Viewed');
 ```
 
-### Tracking an Event
-
-Events represent how users interact with your application. For example, "Button Clicked" may be an action you want to note.
-
-```typescript
-import { track } from '@amplitude/analytics-browser';
-
-// Track a basic event
-track('Button Clicked');
-
-// Track events with additional properties
-const eventProperties = {
-  selectedColors: ['red', 'blue'],
-};
-track('Button Clicked', eventProperties);
-```
-
-### User Properties
-
-User properties help you understand your users at the time they performed some action within your app such as their device details, their preferences, or language.
-
-```typescript
-import { Identify, identify } from '@amplitude/analytics-browser';
-
-const event = new Identify();
-
-// sets the value of a user property
-event.set('key1', 'value1');
-
-// sets the value of a user property only once
-event.setOnce('key1', 'value1');
-
-// increments a user property by some numerical value.
-event.add('value1', 10);
-
-// pre inserts a value or values to a user property
-event.preInsert('ab-tests', 'new-user-test');
-
-// post inserts a value or values to a user property
-event.postInsert('ab-tests', 'new-user-test');
-
-// removes a value or values to a user property
-event.remove('ab-tests', 'new-user-test')
-
-// sends identify event
-identify(event);
-```
-
-### prepend/append
-
-* append will append a value or values to a user property array.
-* prepend will prepend a value or values to a user property.
-
-### User Groups
-
-```typescript
-import { setGroup } from '@amplitude/analytics-browser';
-
-// set group with single group name
-setGroup('orgId', '15');
-
-// set group with multiple group names
-setGroup('sport', ['soccer', 'tennis']);
-```
-
-### Group Identify
-
-This feature is only available to Growth and Enterprise customers who have purchased the [Accounts add-on](https://amplitude.zendesk.com/hc/en-us/articles/115001765532).
-
-Use the Group Identify API to set or update properties of particular groups. However, these updates will only affect events going forward.
-
-```typescript
-import { Identify, groupIdentify } from '@amplitude/analytics-browser';
-
-const groupType = 'plan';
-const groupName = 'enterprise';
-const identity = new Identify()
-identity.set('key1', 'value1');
-
-groupIdentify(groupType, groupName, identity);
-```
-
-### Track Revenue
-
-Revenue instances will store each revenue transaction and allow you to define several special revenue properties (such as 'revenueType', 'productIdentifier', etc.) that are used in Amplitude's Event Segmentation and Revenue LTV charts. These Revenue instance objects are then passed into `revenue` to send as revenue events to Amplitude. This allows us to automatically display data relevant to revenue in the platform. You can use this to track both in-app and non-in-app purchases.
-
-```typescript
-import { Revenue, revenue } from '@amplitude/analytics-browser';
-
-const event = new Revenue()
-  .setProductId('com.company.productId')
-  .setPrice(3.99)
-  .setQuantity(3);
-
-revenue(event);
-```
-
-### Callback
-
-All asynchronous API are optionally awaitable through a specific Promise interface. This also serves as callback interface.
-
-```typescript
-// Using async/await
-const results = await track('Button Clicked').promise;
-result.event; // {...} (The final event object sent to Amplitude)
-result.code; // 200 (The HTTP response status code of the request.
-result.message; // "Event tracked successfully" (The response message)
-
-// Using promises
-track('Button Clicked').promise.then((result) => {
-  result.event; // {...} (The final event object sent to Amplitude)
-  result.code; // 200 (The HTTP response status code of the request.
-  result.message; // "Event tracked successfully" (The response message)
-});
-```
-
-### User Log out
-
-This updates user ID and device ID. After calling `reset()` the succeeding events now belong to a new user identity.
-
-```typescript
-import { reset } from '@amplitude/analytics-browser';
-
-reset();
-```
+For in-depth documentation, please visit to our [Developer Center](https://www.docs.developers.amplitude.com/data/sdks/sdk-quickstart/#browser).
