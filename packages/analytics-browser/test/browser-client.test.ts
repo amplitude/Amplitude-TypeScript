@@ -51,13 +51,25 @@ describe('browser-client', () => {
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
-    test('should set user id using top level parameter 1', async () => {
+    test('should initialize w/o user id and config', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey).promise;
+      expect(client.getUserId()).toBe(undefined);
+    });
+
+    test('should set initalize with undefined user id', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey, undefined).promise;
+      expect(client.getUserId()).toBe(undefined);
+    });
+
+    test('should initialize w/o config', async () => {
       client.setOptOut(true);
       await client.init(apiKey, userId).promise;
       expect(client.getUserId()).toBe(userId);
     });
 
-    test('should set user id using top level parameter 2', async () => {
+    test('should set user id with top level parameter', async () => {
       client.setOptOut(true);
       await client.init(apiKey, undefined, {
         userId,
@@ -65,13 +77,7 @@ describe('browser-client', () => {
       expect(client.getUserId()).toBe(undefined);
     });
 
-    test('should set user id to undefined using top level parameter 1', async () => {
-      client.setOptOut(true);
-      await client.init(apiKey, undefined).promise;
-      expect(client.getUserId()).toBe(undefined);
-    });
-
-    test('should set user id using config 1', async () => {
+    test('should set user to options.userId', async () => {
       client.setOptOut(true);
       await client.init(apiKey, {
         userId,
@@ -85,12 +91,6 @@ describe('browser-client', () => {
         userId: 'user@amplitude.com',
       }).promise;
       expect(client.getUserId()).toBe(userId);
-    });
-
-    test('should not set user id', async () => {
-      client.setOptOut(true);
-      await client.init(apiKey).promise;
-      expect(client.getUserId()).toBe(undefined);
     });
 
     test('should initialize with existing session', async () => {
