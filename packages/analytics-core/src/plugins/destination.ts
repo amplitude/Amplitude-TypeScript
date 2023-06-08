@@ -193,7 +193,9 @@ export class Destination implements DestinationPlugin {
         break;
       }
       default: {
+        // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
+
         this.handleOtherResponse(list);
         break;
       }
@@ -277,9 +279,6 @@ export class Destination implements DestinationPlugin {
   }
 
   handleOtherResponse(list: Context[]) {
-    // log intermediate event status before retry
-    this.config.loggerProvider.warn(`{code: 0, error: "${UNEXPECTED_ERROR_MESSAGE}"}`);
-
     this.addToQueue(
       ...list.map((context) => {
         context.timeout = context.attempts * this.retryTimeout;
