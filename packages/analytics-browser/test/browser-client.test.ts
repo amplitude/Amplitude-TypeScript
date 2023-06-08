@@ -51,6 +51,34 @@ describe('browser-client', () => {
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
+    test('should set user id using top level parameter', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey, userId).promise;
+      expect(client.getUserId()).toBe(userId);
+    });
+
+    test('should set user id using config', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey, {
+        userId,
+      }).promise;
+      expect(client.getUserId()).toBe(userId);
+    });
+
+    test('should set user id using top level parameter as priority', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey, userId, {
+        userId: 'user@amplitude.com',
+      }).promise;
+      expect(client.getUserId()).toBe(userId);
+    });
+
+    test('should not set user id', async () => {
+      client.setOptOut(true);
+      await client.init(apiKey).promise;
+      expect(client.getUserId()).toBe(undefined);
+    });
+
     test('should initialize with existing session', async () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,

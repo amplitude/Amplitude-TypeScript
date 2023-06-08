@@ -45,6 +45,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       userId = userIdOrOptions;
       options = maybeOptions;
     } else {
+      userId = userIdOrOptions?.userId;
       options = userIdOrOptions;
     }
     return returnWrapper(this._init({ ...options, userId, apiKey }));
