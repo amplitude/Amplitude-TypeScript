@@ -49,7 +49,7 @@ export class Http extends BaseTransport implements Transport {
           }
         });
       });
-      req.on('error', this.buildResponse.bind(this));
+      req.on('error', () => resolve(null));
       req.end(requestPayload);
     });
   }

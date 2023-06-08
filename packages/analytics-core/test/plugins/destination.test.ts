@@ -1,5 +1,5 @@
-import { Destination } from '../../src/plugins/destination';
-import { DestinationContext, Payload, Status } from '@amplitude/analytics-types';
+import { Destination, getResponseBodyString } from '../../src/plugins/destination';
+import { Config, DestinationContext, Logger, Payload, Result, Status } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -7,6 +7,8 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
+
+const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
 describe('destination', () => {
   describe('setup', () => {
@@ -373,7 +375,7 @@ describe('destination', () => {
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 400,
-        message: `${Status.Invalid}: ${JSON.stringify(body, null, 2)}`,
+        message: `${Status.Invalid}: ${jsons(body)}`,
       });
     });
 
@@ -831,6 +833,206 @@ describe('destination', () => {
       expect(results[0].code).toBe(500);
       expect(results[1].code).toBe(500);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('logging', () => {
+    const getMockLogger = (): Logger => ({
+      log: jest.fn(),
+      debug: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      enable: jest.fn(),
+      disable: jest.fn(),
+    });
+
+    test('should handle null loggerProvider', async () => {
+      class Http {
+        send = jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              message: 'success',
+            },
+          });
+        });
+      }
+
+      const transportProvider = new Http();
+      const destination = new Destination();
+
+      const config: Config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 1,
+        flushIntervalMillis: 1,
+        transportProvider,
+      };
+      await destination.setup(config);
+      const event = {
+        event_type: 'event_type',
+      };
+      const result = await destination.execute(event);
+      expect(result).toEqual({
+        event,
+        message: SUCCESS_MESSAGE,
+        code: 200,
+      });
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      {
+        statusCode: 400,
+        status: Status.Invalid,
+        body: {
+          code: 400,
+          error: 'error',
+          missingField: undefined,
+          eventsWithInvalidFields: {},
+          eventsWithMissingFields: {},
+          eventsWithInvalidIdLengths: {},
+          silencedEvents: [],
+        },
+      },
+      {
+        statusCode: 413,
+        status: Status.PayloadTooLarge,
+        body: {
+          code: 413,
+          error: 'error',
+        },
+      },
+      {
+        statusCode: 429,
+        status: Status.RateLimit,
+        body: {
+          code: 429,
+          error: 'error',
+          epsThreshold: 1,
+          throttledDevices: {},
+          throttledUsers: {},
+          exceededDailyQuotaDevices: {
+            '1': 1,
+          },
+          exceededDailyQuotaUsers: {
+            '2': 1,
+          },
+          throttledEvents: [0],
+        },
+      },
+    ])(
+      'should log intermediate response body for retries of $statusCode $status',
+      async ({ statusCode, status, body }) => {
+        const response = {
+          status,
+          statusCode,
+          body,
+        };
+
+        class Http {
+          send = jest
+            .fn()
+            .mockImplementationOnce(() => {
+              return Promise.resolve(response);
+            })
+            .mockImplementationOnce(() => {
+              return Promise.resolve({
+                status: Status.Success,
+                statusCode: 200,
+                body: {
+                  message: SUCCESS_MESSAGE,
+                },
+              });
+            });
+        }
+        const transportProvider = new Http();
+        const destination = new Destination();
+        const loggerProvider = getMockLogger();
+        const eventCount = status === Status.PayloadTooLarge ? 2 : 1;
+        const config = {
+          ...useDefaultConfig(),
+          flushQueueSize: eventCount,
+          flushIntervalMillis: 1,
+          transportProvider,
+          loggerProvider,
+        };
+        await destination.setup(config);
+        destination.retryTimeout = 10;
+        destination.throttleTimeout = 1;
+        const event = {
+          event_type: 'event_type',
+        };
+        let result;
+        if (eventCount > 1) {
+          // Need 2 events for 413 to retry, send them both at the same time
+          result = await new Promise((resolve) => {
+            const context: DestinationContext = {
+              event,
+              attempts: 0,
+              callback: (result: Result) => resolve(result),
+              timeout: 0,
+            };
+            void destination.addToQueue(context, context);
+          });
+        } else {
+          result = await destination.execute(event);
+        }
+
+        expect(result).toEqual({
+          event,
+          message: SUCCESS_MESSAGE,
+          code: 200,
+        });
+
+        expect(transportProvider.send).toHaveBeenCalledTimes(eventCount + 1);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
+        // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
+        expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
+      },
+    );
+
+    test.each([
+      { err: new Error('Error'), message: 'Error' },
+      { err: 'string error', message: 'string error' },
+    ])('should log unexpected error "$message"', async ({ err, message }) => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+        },
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          throw err;
+        }),
+      };
+      const loggerProvider = getMockLogger();
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        loggerProvider,
+      });
+      await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(loggerProvider.error).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(loggerProvider.error).toHaveBeenCalledWith(message);
+    });
+
+    test('should parse response without body', async () => {
+      const result = getResponseBodyString({
+        status: Status.Unknown,
+        statusCode: 700,
+      });
+      expect(result).toBe('');
     });
   });
 });

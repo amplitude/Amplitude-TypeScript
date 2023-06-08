@@ -24,6 +24,23 @@ import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig } from '../config';
 
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+export function getResponseBodyString(res: Response) {
+  let responseBodyString = '';
+  try {
+    if ('body' in res) {
+      responseBodyString = JSON.stringify(res.body, null, 2);
+    }
+  } catch {
+    // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
+  }
+  return responseBodyString;
+}
+
 export class Destination implements DestinationPlugin {
   name = 'amplitude';
   type = PluginType.DESTINATION as const;
@@ -141,45 +158,47 @@ export class Destination implements DestinationPlugin {
       }
       if (!useRetry) {
         if ('body' in res) {
-          let responseBody = '';
-          try {
-            responseBody = JSON.stringify(res.body, null, 2);
-          } catch {
-            // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
-          }
-          this.fulfillRequest(list, res.statusCode, `${res.status}: ${responseBody}`);
+          this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
           this.fulfillRequest(list, res.statusCode, res.status);
         }
         return;
       }
-      this.handleReponse(res, list);
+      this.handleResponse(res, list);
     } catch (e) {
-      this.fulfillRequest(list, 0, String(e));
+      const errorMessage = getErrorMessage(e);
+      this.config.loggerProvider.error(errorMessage);
+      this.fulfillRequest(list, 0, errorMessage);
     }
   }
 
-  handleReponse(res: Response, list: Context[]) {
+  handleResponse(res: Response, list: Context[]) {
     const { status } = res;
+
     switch (status) {
-      case Status.Success:
+      case Status.Success: {
         this.handleSuccessResponse(res, list);
         break;
-
-      case Status.Invalid:
+      }
+      case Status.Invalid: {
         this.handleInvalidResponse(res, list);
         break;
-
-      case Status.PayloadTooLarge:
+      }
+      case Status.PayloadTooLarge: {
         this.handlePayloadTooLargeResponse(res, list);
         break;
-
-      case Status.RateLimit:
+      }
+      case Status.RateLimit: {
         this.handleRateLimitResponse(res, list);
         break;
+      }
+      default: {
+        // log intermediate event status before retry
+        this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
 
-      default:
-        this.handleOtherReponse(list);
+        this.handleOtherResponse(list);
+        break;
+      }
     }
   }
 
@@ -209,6 +228,10 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
+    if (retry.length > 0) {
+      // log intermediate event status before retry
+      this.config.loggerProvider.warn(getResponseBodyString(res));
+    }
     this.addToQueue(...retry);
   }
 
@@ -217,6 +240,10 @@ export class Destination implements DestinationPlugin {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
+
+    // log intermediate event status before retry
+    this.config.loggerProvider.warn(getResponseBodyString(res));
+
     this.config.flushQueueSize /= 2;
     this.addToQueue(...list);
   }
@@ -243,10 +270,15 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
+    if (retry.length > 0) {
+      // log intermediate event status before retry
+      this.config.loggerProvider.warn(getResponseBodyString(res));
+    }
+
     this.addToQueue(...retry);
   }
 
-  handleOtherReponse(list: Context[]) {
+  handleOtherResponse(list: Context[]) {
     this.addToQueue(
       ...list.map((context) => {
         context.timeout = context.attempts * this.retryTimeout;
