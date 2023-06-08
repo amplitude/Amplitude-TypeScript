@@ -881,6 +881,7 @@ describe('destination', () => {
 
     test.each([
       {
+        recoverable: false,
         statusCode: 400,
         status: Status.Invalid,
         body: {
@@ -892,6 +893,7 @@ describe('destination', () => {
         },
       },
       {
+        recoverable: false,
         statusCode: 413,
         status: Status.PayloadTooLarge,
         body: {
@@ -900,6 +902,7 @@ describe('destination', () => {
         },
       },
       {
+        recoverable: true,
         statusCode: 429,
         status: Status.RateLimit,
         body: {
@@ -916,7 +919,7 @@ describe('destination', () => {
           throttledEvents: [0],
         },
       },
-    ])('should log response body for $statusCode $status', async ({ statusCode, status, body }) => {
+    ])('should log response body for $statusCode $status', async ({ recoverable, statusCode, status, body }) => {
       const response = {
         status,
         statusCode,
@@ -932,7 +935,7 @@ describe('destination', () => {
           .mockImplementationOnce(() => {
             return Promise.resolve({
               status: Status.Success,
-              code: 200,
+              statusCode: 200,
               body: {
                 message: SUCCESS_MESSAGE,
               },
@@ -957,23 +960,30 @@ describe('destination', () => {
         event_type: 'event_type',
       };
       const result = await destination.execute(event);
-      if (statusCode === 429) {
-        await destination.execute(event);
-      }
-      expect(result).toEqual({
-        event,
-        message: response.body.error,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        code: response.body.code ?? statusCode,
-      });
-      expect(transportProvider.send).toHaveBeenCalledTimes(1);
+      const expectedResult = recoverable
+        ? {
+            event,
+            message: SUCCESS_MESSAGE,
+            code: 200,
+          }
+        : {
+            event,
+            message: response.body.error,
+            code: response.body.code ?? statusCode,
+          };
+      expect(result).toEqual(expectedResult);
+
+      expect(transportProvider.send).toHaveBeenCalledTimes(recoverable ? 2 : 1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
       expect(loggerProvider.warn).toHaveBeenCalledWith(JSON.stringify(response.body));
     });
 
-    test('should log unexpected error', async () => {
+    test.each([
+      { err: new Error('Error'), message: 'Error' },
+      { err: 'string error', message: 'string error' },
+    ])('should log unexpected error "%message"', async ({ err, message }) => {
       const destination = new Destination();
       const callback = jest.fn();
       const context = {
@@ -986,7 +996,7 @@ describe('destination', () => {
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
-          throw new Error('Error');
+          throw err;
         }),
       };
       const loggerProvider = getMockLogger();
@@ -1001,7 +1011,7 @@ describe('destination', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(loggerProvider.error).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(loggerProvider.error).toHaveBeenCalledWith('Error');
+      expect(loggerProvider.error).toHaveBeenCalledWith(message);
     });
   });
 });
