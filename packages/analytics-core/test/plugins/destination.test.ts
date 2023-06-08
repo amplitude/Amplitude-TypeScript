@@ -985,7 +985,7 @@ describe('destination', () => {
           code: 200,
         });
 
-        expect(transportProvider.send).toHaveBeenCalledTimes(eventCount == 1 ? 2 : 3);
+        expect(transportProvider.send).toHaveBeenCalledTimes(eventCount + 1);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
