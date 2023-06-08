@@ -178,7 +178,6 @@ export class Destination implements DestinationPlugin {
 
     switch (status) {
       case Status.Success: {
-        this.config.loggerProvider.log(responseBodyString);
         this.handleSuccessResponse(res, list);
         break;
       }
