@@ -561,7 +561,7 @@ describe('browser-client', () => {
         flushQueueSize: 1,
         flushIntervalMillis: 1,
       }).promise;
-      // assert last event time was updated
+      // assert sessionId is set
       expect(client.config.sessionId).toBe(firstSessionId);
       expect(client.config.lastEventTime).toBeUndefined();
 
