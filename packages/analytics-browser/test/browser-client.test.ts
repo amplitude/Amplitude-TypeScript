@@ -613,6 +613,28 @@ describe('browser-client', () => {
       expect(client.config.sessionId).not.toBe(firstSessionId);
       expect(client.config.sessionId ?? -1 > firstSessionId).toBeTruthy();
     });
+
+    test('should extendSession using proxy', async () => {
+      const firstSessionId = 1;
+      const client = new AmplitudeBrowser();
+
+      // call extendSession() before init()
+      client.extendSession();
+
+      // init
+      await client.init(API_KEY, undefined, {
+        sessionTimeout: 20,
+        sessionId: firstSessionId,
+        flushQueueSize: 1,
+        flushIntervalMillis: 1,
+        lastEventTime: 0,
+      }).promise;
+
+      // assert sessionId is unchanged
+      expect(client.config.sessionId).toBe(firstSessionId);
+      // assert last event time was updated
+      expect(client.config.lastEventTime).not.toBe(0);
+    });
   });
 
   describe('setTransport', () => {
