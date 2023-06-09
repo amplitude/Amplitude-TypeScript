@@ -259,7 +259,10 @@ export const createCookieStorage = <T>(
       return new MemoryStorage<T>();
     case 'cookie':
     default:
-      return new CookieStorage<T>(cookieOptions);
+      return new CookieStorage<T>({
+        ...cookieOptions,
+        expirationDays: cookieOptions.expiration,
+      });
   }
 };
 
