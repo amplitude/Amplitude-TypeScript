@@ -570,7 +570,7 @@ describe('browser-client', () => {
       const eventTime1 = client.config.lastEventTime ?? -1;
       expect(eventTime1 > 0).toBeTruthy();
 
-      // wait for session to almost expire
+      // wait for session to almost expire, then extend it
       await new Promise<void>((resolve) =>
         setTimeout(() => {
           client.extendSession();
@@ -578,29 +578,32 @@ describe('browser-client', () => {
         }, 15),
       );
 
+      // assert session id is unchanged
+      expect(client.config.sessionId).toBe(firstSessionId);
       // assert last event time was updated
       const extendedLastEventTime = client.config.lastEventTime ?? -1;
-      expect(client.config.sessionId).toBe(firstSessionId);
       expect(extendedLastEventTime > 0).toBeTruthy();
       expect(extendedLastEventTime > eventTime1).toBeTruthy();
 
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      // send another event just before session expires (again)
       await new Promise<void>((resolve) =>
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         setTimeout(async () => {
           await client.track('test 2').promise;
           resolve();
         }, 15),
       );
 
-      const eventTime2 = client.config.lastEventTime ?? -1;
       // assert session id is unchanged
       expect(client.config.sessionId).toBe(firstSessionId);
+      // assert last event time was updated
+      const eventTime2 = client.config.lastEventTime ?? -1;
       expect(eventTime2 > 0).toBeTruthy();
       expect(eventTime2 > extendedLastEventTime).toBeTruthy();
 
       // Wait for session to timeout, without extendSession()
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       await new Promise<void>((resolve) =>
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         setTimeout(async () => {
           await client.track('test 3').promise;
           resolve();
