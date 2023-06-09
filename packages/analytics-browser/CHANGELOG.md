@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.5...@amplitude/analytics-browser@2.0.0-beta.6) (2023-06-09)
+
+### Bug Fixes
+
+- set cookie expiration from options ([#423](https://github.com/amplitude/Amplitude-TypeScript/issues/423))
+  ([69e8e70](https://github.com/amplitude/Amplitude-TypeScript/commit/69e8e700b929b02eb1792f1a4f6b8e6eb306cd7f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0-beta.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.4...@amplitude/analytics-browser@2.0.0-beta.5) (2023-06-08)
 
 ### Features
