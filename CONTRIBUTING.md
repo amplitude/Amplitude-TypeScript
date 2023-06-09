@@ -30,7 +30,7 @@ $ yarn build
 
 This repo contains mutliple major versions of all packages. For contributions to version `1.x`, create a branch off `v1.x`. For contributions to the `2.x` (latest) version, create a branch off `main`. Refer to the table below for more infomation about the release status of each package.
 
-|Package|Version|Status|Dev Branch
+|Package|Version|Status|Dev Branch|
 |-|-|-|-|
 |Browser SDK|
 |`@amplitude/analytics-browser`|V2|Beta|`main`|
