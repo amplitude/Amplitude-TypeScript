@@ -18,15 +18,30 @@ If you find any existing issues that you are interested in fixing, you are welco
 
 Getting setup is quick and easy. Follow the steps below to get your your dev environment up.
 
-1. Clone GitHub repo
+1. Fork GitHub repo
 2. Install dependencies
-3. Build and link packages
+3. Build packages
 
 ```
-$ git clone git@github.com:amplitude/Amplitude-TypeScript.git
+$ git clone <HTTPS_OR_GIT_URL>
 $ yarn
 $ yarn build
 ```
+
+This repo contains mutliple major versions of all packages. For contributions to version `1.x`, create a branch off `v1.x`. For contributions to the `2.x` (latest) version, create a branch off `main`. Refer to the table below for more infomation about the release status of each package.
+
+|Package|Version|Status|Dev Branch|
+|-|-|-|-|
+|Browser SDK|
+|`@amplitude/analytics-browser`|V2|Beta|`main`|
+|`@amplitude/analytics-browser`|V1|Current|`v1.x`|
+|`@amplitude/marketing-analytics-browser`|V1|Current|`v1.x`|
+|Node SDK|
+|`@amplitude/analytics-node`|V2|Unreleased|`main`|
+|`@amplitude/analytics-node`|V1|Current|`v1.x`|
+|ReactNative SDK|
+|`@amplitude/analytics-react-native`|V2|Unreleased|`main`|
+|`@amplitude/analytics-react-native`|V1|Current|`v1.x`|
 
 #### Test your changes
 
@@ -42,6 +57,8 @@ When writing commit message, follow [PR Commit Title Conventions](#PR-Commit-Tit
 #### Open a PR
 
 Once you are finished with your changes and feel good about the proposed changes, create a pull request. A team member will assist in getting them reviewed. We are excited to work with you on this.
+
+For contributions to version `1.x`, open a pull request against `v1.x`. For contributions to the `2.x` (latest) version, open a pull request against `main`.
 
 #### Merge
 

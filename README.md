@@ -27,7 +27,8 @@ Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.
 ## Projects
 
 * Amplitude SDK for Web
-  * [@amplitude/analytics-browser](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser)
+  * [@amplitude/analytics-browser@^2](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-browser)
+  * [@amplitude/analytics-browser@^1](https://github.com/amplitude/Amplitude-TypeScript/tree/v1.x/packages/analytics-browser)
   * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/typescript-browser/)
 * Amplitude SDK for Node.js
   * [@amplitude/analytics-node](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-node)
