@@ -221,6 +221,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
   }
 
+  extendSession() {
+    this.config.lastEventTime = Date.now();
+  }
+
   setTransport(transport: TransportType) {
     if (!this.config) {
       this.q.push(this.setTransport.bind(this, transport));
