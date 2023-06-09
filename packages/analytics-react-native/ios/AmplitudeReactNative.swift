@@ -13,7 +13,7 @@ class ReactNative: NSObject {
 
     @objc
     func getApplicationContext(
-        _ Bool shouldTrackAdid,
+        _ shouldTrackAdid: Bool,
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
