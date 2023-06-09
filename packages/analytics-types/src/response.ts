@@ -65,7 +65,7 @@ export interface TimeoutResponse {
   statusCode: number;
 }
 
-export interface OtherReponse {
+export interface OtherResponse {
   status: Exclude<Status, StatusWithResponseBody>;
   statusCode: number;
 }
@@ -76,4 +76,4 @@ export type Response =
   | PayloadTooLargeResponse
   | RateLimitResponse
   | TimeoutResponse
-  | OtherReponse;
+  | OtherResponse;
