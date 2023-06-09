@@ -28,7 +28,19 @@ $ yarn
 $ yarn build
 ```
 
-This repo supports mutliple major versions of all packages. For contributions to version `1.x`, create a branch off `v1.x`. For contributions to the `2.x` (latest) version, create a branch off `main`.
+This repo contains mutliple major versions of all packages. For contributions to version `1.x`, create a branch off `v1.x`. For contributions to the `2.x` (latest) version, create a branch off `main`. Refer to the table below for more infomation about the release status of each package.
+
+|Package|Version|Status|Dev Branch
+|-|-|-|-|
+|Browser SDK|
+|`@amplitude/analytics-browser`|V2|Beta|`main`|
+|`@amplitude/analytics-browser`|V1|Current|`v1.x`|
+|Node SDK|
+|`@amplitude/analytics-node`|V2|Unreleased|`main`|
+|`@amplitude/analytics-node`|V1|Current|`v1.x`|
+|ReactNative SDK|
+|`@amplitude/analytics-react-native`|V2|Unreleased|`main`|
+|`@amplitude/analytics-react-native`|V1|Current|`v1.x`|
 
 #### Test your changes
 
