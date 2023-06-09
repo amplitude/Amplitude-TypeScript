@@ -22,7 +22,7 @@ type NativeContext = {
 };
 
 export interface AmplitudeReactNative {
-  getApplicationContext(): Promise<NativeContext>;
+  getApplicationContext(shouldTrackAdid: boolean): Promise<NativeContext>;
 }
 
 export class Context implements BeforePlugin {
@@ -55,7 +55,7 @@ export class Context implements BeforePlugin {
 
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
-    const nativeContext = await this.nativeModule?.getApplicationContext();
+    const nativeContext = await this.nativeModule?.getApplicationContext(this.config.trackingOptions.adid ?? false);
     const appVersion = nativeContext?.version || this.config.appVersion;
     const platform = nativeContext?.platform || BROWSER_PLATFORM;
     const osName = nativeContext?.osName || this.uaResult.browser.name;
