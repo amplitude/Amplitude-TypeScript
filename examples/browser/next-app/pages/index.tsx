@@ -15,7 +15,7 @@ const Home: NextPage = () => {
 
       <main className={styles.main}>
         <h1 className={styles.title}>
-          Amplitude Analytics Browser Example with React
+          Amplitude Analytics Browser Example with Next
         </h1>
 
         <button onClick={() => identify(new Identify().set('role', 'engineer'))}>
