@@ -35,6 +35,7 @@ This repo contains mutliple major versions of all packages. For contributions to
 |Browser SDK|
 |`@amplitude/analytics-browser`|V2|Beta|`main`|
 |`@amplitude/analytics-browser`|V1|Current|`v1.x`|
+|`@amplitude/marketing-analytics-browser`|V1|Current|`v1.x`|
 |Node SDK|
 |`@amplitude/analytics-node`|V2|Unreleased|`main`|
 |`@amplitude/analytics-node`|V1|Current|`v1.x`|
