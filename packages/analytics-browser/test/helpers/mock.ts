@@ -19,6 +19,7 @@ export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
   setDeviceId: jest.fn(),
   getSessionId: jest.fn(),
   setSessionId: jest.fn(),
+  extendSession: jest.fn(),
   reset: jest.fn(),
   setTransport: jest.fn(),
 });

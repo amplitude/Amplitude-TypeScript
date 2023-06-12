@@ -551,6 +551,92 @@ describe('browser-client', () => {
     });
   });
 
+  describe('extendSession', () => {
+    test('should extend the current session without sending events', async () => {
+      const firstSessionId = 1;
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        sessionTimeout: 20,
+        sessionId: firstSessionId,
+        flushQueueSize: 1,
+        flushIntervalMillis: 1,
+      }).promise;
+      // assert sessionId is set
+      expect(client.config.sessionId).toBe(firstSessionId);
+      expect(client.config.lastEventTime).toBeUndefined();
+
+      // send an event
+      await client.track('test 1').promise;
+      const eventTime1 = client.config.lastEventTime ?? -1;
+      expect(eventTime1 > 0).toBeTruthy();
+
+      // wait for session to almost expire, then extend it
+      await new Promise<void>((resolve) =>
+        setTimeout(() => {
+          client.extendSession();
+          resolve();
+        }, 15),
+      );
+
+      // assert session id is unchanged
+      expect(client.config.sessionId).toBe(firstSessionId);
+      // assert last event time was updated
+      const extendedLastEventTime = client.config.lastEventTime ?? -1;
+      expect(extendedLastEventTime > 0).toBeTruthy();
+      expect(extendedLastEventTime > eventTime1).toBeTruthy();
+
+      // send another event just before session expires (again)
+      await new Promise<void>((resolve) =>
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        setTimeout(async () => {
+          await client.track('test 2').promise;
+          resolve();
+        }, 15),
+      );
+
+      // assert session id is unchanged
+      expect(client.config.sessionId).toBe(firstSessionId);
+      // assert last event time was updated
+      const eventTime2 = client.config.lastEventTime ?? -1;
+      expect(eventTime2 > 0).toBeTruthy();
+      expect(eventTime2 > extendedLastEventTime).toBeTruthy();
+
+      // Wait for session to timeout, without extendSession()
+      await new Promise<void>((resolve) =>
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        setTimeout(async () => {
+          await client.track('test 3').promise;
+          resolve();
+        }, 21),
+      );
+      // assert session id is changed
+      expect(client.config.sessionId).not.toBe(firstSessionId);
+      expect(client.config.sessionId ?? -1 > firstSessionId).toBeTruthy();
+    });
+
+    test('should extendSession using proxy', async () => {
+      const firstSessionId = 1;
+      const client = new AmplitudeBrowser();
+
+      // call extendSession() before init()
+      client.extendSession();
+
+      // init
+      await client.init(API_KEY, undefined, {
+        sessionTimeout: 20,
+        sessionId: firstSessionId,
+        flushQueueSize: 1,
+        flushIntervalMillis: 1,
+        lastEventTime: 0,
+      }).promise;
+
+      // assert sessionId is unchanged
+      expect(client.config.sessionId).toBe(firstSessionId);
+      // assert last event time was updated
+      expect(client.config.lastEventTime).not.toBe(0);
+    });
+  });
+
   describe('setTransport', () => {
     test('should set transport', async () => {
       const fetch = new FetchTransport();

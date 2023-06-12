@@ -1,6 +1,7 @@
 import {
   add,
   createInstance,
+  extendSession,
   flush,
   getDeviceId,
   getSessionId,
@@ -28,6 +29,7 @@ describe('index', () => {
   test('should expose apis', () => {
     expect(typeof add).toBe('function');
     expect(typeof createInstance).toBe('function');
+    expect(typeof extendSession).toBe('function');
     expect(typeof flush).toBe('function');
     expect(typeof groupIdentify).toBe('function');
     expect(typeof getDeviceId).toBe('function');

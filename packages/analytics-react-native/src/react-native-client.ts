@@ -183,6 +183,14 @@ export class AmplitudeReactNative extends AmplitudeCore {
     void this.setSessionIdInternal(sessionId, this.currentTimeMillis());
   }
 
+  extendSession() {
+    if (!this.config) {
+      this.q.push(this.extendSession.bind(this));
+      return;
+    }
+    this.config.lastEventTime = this.currentTimeMillis();
+  }
+
   private setSessionIdInternal(sessionId: number, eventTime: number) {
     const previousSessionId = this.config.sessionId;
     if (previousSessionId === sessionId) {
@@ -384,6 +392,12 @@ export const createInstance = (): ReactNativeClient => {
     setSessionId: debugWrapper(
       client.setSessionId.bind(client),
       'setSessionId',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
+    extendSession: debugWrapper(
+      client.extendSession.bind(client),
+      'extendSession',
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
