@@ -460,13 +460,14 @@ describe('browser-client', () => {
       }).promise;
       client.setSessionId(2);
       expect(client.getSessionId()).toBe(2);
-      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(3);
     });
 
     test('should set session id with start and end session event', async () => {
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         sessionId: 1,
+        lastEventId: 100,
         lastEventTime: Date.now() - 1000,
       });
       const result = {
@@ -667,6 +668,54 @@ describe('browser-client', () => {
       expect(result.code).toEqual(200);
       expect(track).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('process', () => {
+    test('should proceed with unexpired session', async () => {
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      await client.init(apiKey, {
+        optOut: true,
+        defaultTracking: false,
+      }).promise;
+      const result = await client.process({
+        event_type: 'event',
+      });
+      // once on init
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(result.code).toBe(0);
+    });
+
+    test('should proceed with overriden session ID', async () => {
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      await client.init(apiKey, {
+        optOut: true,
+        defaultTracking: false,
+      }).promise;
+      const result = await client.process({
+        event_type: 'event',
+        session_id: -1,
+      });
+      // once on init
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(result.code).toBe(0);
+    });
+
+    test('should reset session due to expired session', async () => {
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      await client.init(apiKey, {
+        optOut: true,
+        defaultTracking: false,
+        // force session to always be expired
+        sessionTimeout: -1,
+      }).promise;
+      const result = await client.process({
+        event_type: 'event',
+      });
+      // once on init
+      // and once on process
+      expect(setSessionId).toHaveBeenCalledTimes(2);
+      expect(result.code).toBe(0);
     });
   });
 });

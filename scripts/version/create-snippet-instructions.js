@@ -17,7 +17,7 @@ const outputPath = path.join(cwd, outputDir, outputFile);
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const outputText = `<script type="text/javascript">
 ${inputText}
-amplitude.init("YOUR_API_KEY_HERE");
+amplitude.init("<YOUR_API_KEY>");
 </script>
 `;
 

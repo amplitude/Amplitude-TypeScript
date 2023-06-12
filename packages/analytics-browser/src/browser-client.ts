@@ -15,6 +15,7 @@ import {
   BrowserClient,
   BrowserConfig,
   BrowserOptions,
+  Event,
   EventOptions,
   Identify as IIdentify,
   Revenue as IRevenue,
@@ -25,7 +26,6 @@ import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
-import { sessionHandlerPlugin } from './plugins/session-handler';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
@@ -66,16 +66,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
     await super._init(browserOptions);
 
-    // Step 3: Manage session
-    if (
-      !this.config.sessionId ||
-      (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
-    ) {
-      // Either
-      // 1) No previous session; or
-      // 2) Previous session expired
-      this.setSessionId(Date.now());
-    }
+    // Step 3: Set session ID
+    // Priority 1: `options.sessionId`
+    // Priority 2: last known sessionId from user identity storage
+    // Default: `Date.now()`
+    // Session ID is handled differently than device ID and user ID due to session events
+    this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -90,7 +86,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Do not track any events before this
     await this.add(new Destination()).promise;
     await this.add(new Context()).promise;
-    await this.add(sessionHandlerPlugin()).promise;
     await this.add(new IdentityEventSender()).promise;
 
     if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
@@ -164,30 +159,40 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return;
     }
+
+    // Prevents starting a new session with the same session ID
+    if (sessionId === this.config.sessionId) {
+      return;
+    }
+
     const previousSessionId = this.getSessionId();
-    const previousLastEventTime = this.config.lastEventTime;
+    const lastEventTime = this.config.lastEventTime;
+    let lastEventId = this.config.lastEventId ?? -1;
 
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      if (previousSessionId && previousLastEventTime) {
-        const eventOptions: EventOptions = {
+      if (previousSessionId && lastEventTime) {
+        this.track(DEFAULT_SESSION_END_EVENT, undefined, {
+          device_id: this.previousSessionDeviceId,
+          event_id: ++lastEventId,
           session_id: previousSessionId,
-          time: previousLastEventTime + 1,
-        };
-        eventOptions.device_id = this.previousSessionDeviceId;
-        eventOptions.user_id = this.previousSessionUserId;
-        this.track(DEFAULT_SESSION_END_EVENT, undefined, eventOptions);
+          time: lastEventTime + 1,
+          user_id: this.previousSessionUserId,
+        });
       }
 
+      this.config.lastEventTime = this.config.sessionId;
       this.track(DEFAULT_SESSION_START_EVENT, undefined, {
-        session_id: sessionId,
-        time: sessionId - 1,
+        event_id: ++lastEventId,
+        session_id: this.config.sessionId,
+        time: this.config.lastEventTime,
       });
-      this.previousSessionDeviceId = this.config.deviceId;
-      this.previousSessionUserId = this.config.userId;
     }
+
+    this.previousSessionDeviceId = this.config.deviceId;
+    this.previousSessionUserId = this.config.userId;
   }
 
   setTransport(transport: TransportType) {
@@ -229,5 +234,22 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       revenue = convertProxyObjectToRealObject(new Revenue(), queue);
     }
     return super.revenue(revenue, eventOptions);
+  }
+
+  async process(event: Event) {
+    const currentTime = Date.now();
+    const lastEventTime = this.config.lastEventTime || Date.now();
+    const timeSinceLastEvent = currentTime - lastEventTime;
+
+    if (
+      event.event_type !== DEFAULT_SESSION_START_EVENT &&
+      event.event_type !== DEFAULT_SESSION_END_EVENT &&
+      (!event.session_id || event.session_id === this.getSessionId()) &&
+      timeSinceLastEvent > this.config.sessionTimeout
+    ) {
+      this.setSessionId(currentTime);
+    }
+
+    return super.process(event);
   }
 }
