@@ -74,6 +74,7 @@ const snippet = (name, integrity, version, globalVar) => `
       'setOptOut',
       'setTransport',
       'reset',
+      'extendSession',
     ];
     var funcsWithPromise = [
       'init',
@@ -119,10 +120,13 @@ const snippet = (name, integrity, version, globalVar) => `
       return amplitude._iq[instanceName];
     };
     window.${globalVar} = amplitude;
-    ${globalVar !== 'amplitude' ?
-    `if (!window.amplitude) {
+    ${
+      globalVar !== 'amplitude'
+        ? `if (!window.amplitude) {
       window.amplitude = window.${globalVar};
-    }`: ``}
+    }`
+        : ``
+    }
   }
 })(window, document);
 `;

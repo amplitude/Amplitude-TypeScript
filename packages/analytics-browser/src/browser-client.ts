@@ -195,6 +195,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.previousSessionUserId = this.config.userId;
   }
 
+  extendSession() {
+    if (!this.config) {
+      this.q.push(this.extendSession.bind(this));
+      return;
+    }
+    this.config.lastEventTime = Date.now();
+  }
+
   setTransport(transport: TransportType) {
     if (!this.config) {
       this.q.push(this.setTransport.bind(this, transport));

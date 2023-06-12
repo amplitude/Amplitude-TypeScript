@@ -107,6 +107,12 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    extendSession: debugWrapper(
+      client.extendSession.bind(client),
+      'extendSession',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
     setOptOut: debugWrapper(
       client.setOptOut.bind(client),
       'setOptOut',
