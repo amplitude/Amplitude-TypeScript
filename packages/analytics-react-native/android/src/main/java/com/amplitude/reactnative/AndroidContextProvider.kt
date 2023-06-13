@@ -20,8 +20,9 @@ import java.util.Locale
 import java.util.UUID
 import kotlin.collections.ArrayList
 
-class AndroidContextProvider(private val context: Context, locationListening: Boolean) {
+class AndroidContextProvider(private val context: Context, locationListening: Boolean, shouldTrackAdid: Boolean) {
   var isLocationListening = true
+  var shouldTrackAdid = true
   private var cachedInfo: CachedInfo? = null
     private get() {
       if (field == null) {
@@ -34,7 +35,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
    * Internal class serves as a cache
    */
   inner class CachedInfo {
-    var advertisingId: String
+    var advertisingId: String?
     val country: String?
     val versionName: String?
     val osName: String
@@ -201,7 +202,11 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
       return locale.language
     }
 
-    private fun fetchAdvertisingId(): String {
+    private fun fetchAdvertisingId(): String? {
+      if (!shouldTrackAdid) {
+        return null
+      }
+
       // This should not be called on the main thread.
       return if ("Amazon" == fetchManufacturer()) {
         fetchAndCacheAmazonAdvertisingId
@@ -237,14 +242,14 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
       return appSetId
     }
 
-    private val fetchAndCacheAmazonAdvertisingId: String
+    private val fetchAndCacheAmazonAdvertisingId: String?
       private get() {
         val cr = context.contentResolver
         limitAdTrackingEnabled = Secure.getInt(cr, SETTING_LIMIT_AD_TRACKING, 0) == 1
         advertisingId = Secure.getString(cr, SETTING_ADVERTISING_ID)
         return advertisingId
       }
-    private val fetchAndCacheGoogleAdvertisingId: String
+    private val fetchAndCacheGoogleAdvertisingId: String?
       private get() {
         try {
           val AdvertisingIdClient = Class
@@ -340,7 +345,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
     get() = cachedInfo!!.country
   val language: String
     get() = cachedInfo!!.language
-  val advertisingId: String
+  val advertisingId: String?
     get() = cachedInfo!!.advertisingId
   val appSetId: String
     get() = cachedInfo!!.appSetId // other causes// failed to get providers list
@@ -416,5 +421,6 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
 
   init {
     isLocationListening = locationListening
+    this.shouldTrackAdid = shouldTrackAdid
   }
 }
