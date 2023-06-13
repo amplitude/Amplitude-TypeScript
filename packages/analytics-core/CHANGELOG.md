@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.0-beta.5...@amplitude/analytics-core@2.0.0-beta.6) (2023-06-13)
+
+### Features
+
+- add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428))
+  ([1a8ff7d](https://github.com/amplitude/Amplitude-TypeScript/commit/1a8ff7d665d2a936db7cb42f4cde5350379b7cae))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0-beta.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.0-beta.4...@amplitude/analytics-core@2.0.0-beta.5) (2023-06-13)
 
 ### Features
