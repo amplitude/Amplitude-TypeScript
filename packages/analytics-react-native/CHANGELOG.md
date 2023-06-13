@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.2.0...@amplitude/analytics-react-native@1.2.1) (2023-06-13)
+
+### Bug Fixes
+
+- do not fetch advertising Id if adid tracking is disabled
+  ([#424](https://github.com/amplitude/Amplitude-TypeScript/issues/424))
+  ([52f7b08](https://github.com/amplitude/Amplitude-TypeScript/commit/52f7b08cc9501e41a8e421c7f84458dea78db972))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.9...@amplitude/analytics-react-native@1.2.0) (2023-06-13)
 
 ### Features
