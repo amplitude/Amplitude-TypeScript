@@ -14,7 +14,6 @@ export class Context implements BeforePlugin {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
-  eventId = 0;
   userAgent: string | undefined;
   uaResult: UAParser.IResult;
   library = `amplitude-ts/${VERSION}`;
@@ -29,18 +28,24 @@ export class Context implements BeforePlugin {
 
   setup(config: BrowserConfig): Promise<undefined> {
     this.config = config;
-    this.eventId = this.config.lastEventId ? this.config.lastEventId + 1 : 0;
 
     return Promise.resolve(undefined);
   }
 
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
+
     const osName = this.uaResult.browser.name;
     const osVersion = this.uaResult.browser.version;
     const deviceModel = this.uaResult.device.model || this.uaResult.os.name;
     const deviceVendor = this.uaResult.device.vendor;
-    this.config.lastEventId = this.eventId;
+
+    const lastEventId = this.config.lastEventId ?? -1;
+    const nextEventId = context.event_id ?? lastEventId + 1;
+    this.config.lastEventId = nextEventId;
+    if (!context.time) {
+      this.config.lastEventTime = time;
+    }
 
     const event: Event = {
       user_id: this.config.userId,
@@ -65,7 +70,7 @@ export class Context implements BeforePlugin {
         },
       }),
       ...context,
-      event_id: this.eventId++,
+      event_id: nextEventId,
       library: this.library,
       user_agent: this.userAgent,
     };
