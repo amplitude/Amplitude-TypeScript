@@ -17,7 +17,6 @@ describe('context', () => {
       config.lastEventId = 1;
       await context.setup(config);
       expect(context.config.appVersion).toEqual('1.0.0');
-      expect(context.eventId).toEqual(2);
     });
 
     test('should setup plugin without app version', async () => {
@@ -25,7 +24,6 @@ describe('context', () => {
       const config = new BrowserConfig(apiKey);
       await context.setup(config);
       expect(context.config.appVersion).toBeUndefined();
-      expect(context.eventId).toEqual(0);
     });
   });
 
@@ -106,15 +104,18 @@ describe('context', () => {
         event_type: 'event_type',
         device_id: 'new deviceId',
       };
-      const firstContextEvent = await context.execute(event);
+      const firstContextEvent = await context.execute({
+        ...event,
+        event_id: 100,
+      });
       expect(firstContextEvent.app_version).toEqual('1.0.0');
-      expect(firstContextEvent.event_id).toEqual(0);
+      expect(firstContextEvent.event_id).toEqual(100);
       expect(firstContextEvent.event_type).toEqual('event_type');
       expect(firstContextEvent.insert_id).toBeDefined();
       expect(firstContextEvent.device_id).toEqual('new deviceId');
 
       const secondContextEvent = await context.execute(event);
-      expect(secondContextEvent.event_id).toEqual(1);
+      expect(secondContextEvent.event_id).toEqual(101);
     });
 
     describe('ingestionMetadata config', () => {

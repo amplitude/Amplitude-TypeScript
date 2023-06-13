@@ -135,11 +135,13 @@ describe('config', () => {
         deviceId: 'device-device-device',
         sessionId: -1,
         userId: 'user-user-user',
+        lastEventId: 100,
         lastEventTime: 1,
         optOut: false,
       });
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
+      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
       const config = await Config.useBrowserConfig(
         apiKey,
         {
@@ -162,10 +164,10 @@ describe('config', () => {
         new AmplitudeBrowser(),
       );
       expect(config).toEqual({
-        _cookieStorage: someCookieStorage,
+        _cookieStorage: cookieStorage,
         _deviceId: 'device-device-device',
-        _lastEventId: undefined,
-        _lastEventTime: undefined,
+        _lastEventId: 100,
+        _lastEventTime: 1,
         _optOut: false,
         _sessionId: -1,
         _userId: 'user-user-user',

@@ -40,13 +40,15 @@ describe('cookie-migration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
-      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
+      const lastEventId = (0).toString(32);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`;
       const cookieStorage: Storage<UserSession> = new CookieStorage<UserSession>();
       const cookies = await parseLegacyCookies(API_KEY, cookieStorage);
       expect(cookies).toEqual({
         deviceId: 'deviceId',
         userId: 'userId',
         sessionId: timestamp,
+        lastEventId: 0,
         lastEventTime: timestamp,
         optOut: false,
       });
@@ -60,7 +62,8 @@ describe('cookie-migration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
-      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
+      const lastEventId = (0).toString(32);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`;
       const cookieStorage: Storage<UserSession> = new CookieStorage<UserSession>();
       const cookies = await parseLegacyCookies(API_KEY, cookieStorage, true);
       expect(cookies).toEqual({
@@ -68,6 +71,7 @@ describe('cookie-migration', () => {
         userId: 'userId',
         sessionId: timestamp,
         lastEventTime: timestamp,
+        lastEventId: 0,
         optOut: false,
       });
 
@@ -82,7 +86,8 @@ describe('cookie-migration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
-      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
+      const lastEventId = (0).toString(32);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`;
       const cookieStorage: Storage<UserSession> = new CookieStorage<UserSession>();
       const cookies = await parseLegacyCookies(API_KEY, cookieStorage, false);
       expect(cookies).toEqual({
@@ -90,12 +95,13 @@ describe('cookie-migration', () => {
         userId: 'userId',
         sessionId: timestamp,
         lastEventTime: timestamp,
+        lastEventId: 0,
         optOut: false,
       });
 
       const storage: Storage<string> = new CookieStorage<string>();
       const cookies2 = await storage.getRaw(oldCookieName);
-      expect(cookies2).toBe(`deviceId.${encodedUserId}..${time}.${time}`);
+      expect(cookies2).toBe(`deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`);
     });
   });
 

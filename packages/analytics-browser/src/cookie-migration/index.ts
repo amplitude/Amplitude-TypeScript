@@ -16,11 +16,12 @@ export const parseLegacyCookies = async (
   if (deleteLegacyCookies) {
     await cookieStorage.remove(cookieName);
   }
-  const [deviceId, userId, optOut, sessionId, lastEventTime] = cookies.split('.');
+  const [deviceId, userId, optOut, sessionId, lastEventTime, lastEventId] = cookies.split('.');
   return {
     deviceId,
     userId: decode(userId),
     sessionId: parseTime(sessionId),
+    lastEventId: parseTime(lastEventId),
     lastEventTime: parseTime(lastEventTime),
     optOut: Boolean(optOut),
   };

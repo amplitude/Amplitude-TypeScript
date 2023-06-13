@@ -201,10 +201,10 @@ export const useBrowserConfig = async (
   // Step 3: Reconcile user identity
   const deviceId =
     options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId ?? UUID();
-  const lastEventId = previousCookies?.lastEventId;
+  const lastEventId = previousCookies?.lastEventId ?? legacyCookies.lastEventId;
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
-  const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
+  const sessionId = previousCookies?.sessionId ?? legacyCookies.sessionId;
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
   amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
