@@ -23,6 +23,7 @@ export const getDefaultConfig = () => ({
   flushMaxRetries: 12,
   flushQueueSize: 200,
   flushIntervalMillis: 10000,
+  instanceName: '$default_instance',
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
   optOut: false,
@@ -36,6 +37,7 @@ export class Config implements IConfig {
   flushIntervalMillis: number;
   flushMaxRetries: number;
   flushQueueSize: number;
+  instanceName?: string;
   loggerProvider: ILogger;
   logLevel: LogLevel;
   minIdLength?: number;
@@ -61,6 +63,7 @@ export class Config implements IConfig {
     this.flushIntervalMillis = options.flushIntervalMillis ?? defaultConfig.flushIntervalMillis;
     this.flushMaxRetries = options.flushMaxRetries || defaultConfig.flushMaxRetries;
     this.flushQueueSize = options.flushQueueSize || defaultConfig.flushQueueSize;
+    this.instanceName = options.instanceName || defaultConfig.instanceName;
     this.loggerProvider = options.loggerProvider || defaultConfig.loggerProvider;
     this.logLevel = options.logLevel ?? defaultConfig.logLevel;
     this.minIdLength = options.minIdLength;

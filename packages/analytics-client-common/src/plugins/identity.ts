@@ -15,7 +15,9 @@ export class IdentityEventSender implements BeforePlugin {
     return context;
   }
 
-  setup(_: Config): Promise<undefined> {
-    return Promise.resolve(undefined);
+  async setup(config: Config) {
+    if (config.instanceName) {
+      this.identityStore = getAnalyticsConnector(config.instanceName).identityStore;
+    }
   }
 }

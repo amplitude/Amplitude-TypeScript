@@ -8,21 +8,7 @@ describe('identity', () => {
       getAnalyticsConnector().identityStore.setIdentity({ userProperties: {} });
     });
 
-    test('should set identity in analytics connector on identify', async () => {
-      const plugin = new IdentityEventSender();
-      await plugin.setup({} as Config);
-      const event = {
-        event_type: '$identify',
-        user_properties: {
-          $set: { k: 'v' },
-        },
-      };
-      void (await plugin.execute(event));
-      const identity = getAnalyticsConnector().identityStore.getIdentity();
-      expect(identity.userProperties).toEqual({ k: 'v' });
-    });
-
-    test('should not modify event on identify', async () => {
+    test('should set identity in analytics connector on identify with default instance', async () => {
       const plugin = new IdentityEventSender();
       await plugin.setup({} as Config);
       const event = {
@@ -32,7 +18,26 @@ describe('identity', () => {
         },
       };
       const result = await plugin.execute(event);
+      const identity = getAnalyticsConnector().identityStore.getIdentity();
       expect(result).toEqual(event);
+      expect(identity.userProperties).toEqual({ k: 'v' });
+    });
+
+    test('should set identity in analytics connector on identify with instance name', async () => {
+      const plugin = new IdentityEventSender();
+      await plugin.setup({
+        instanceName: 'env',
+      } as Config);
+      const event = {
+        event_type: '$identify',
+        user_properties: {
+          $set: { k: 'v' },
+        },
+      };
+      const result = await plugin.execute(event);
+      const identity = getAnalyticsConnector('env').identityStore.getIdentity();
+      expect(result).toEqual(event);
+      expect(identity.userProperties).toEqual({ k: 'v' });
     });
 
     test('should do nothing on track event', async () => {
