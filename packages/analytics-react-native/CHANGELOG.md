@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.9...@amplitude/analytics-react-native@1.2.0) (2023-06-13)
+
+### Features
+
+- added extendSession() method to Browser Client ([#425](https://github.com/amplitude/Amplitude-TypeScript/issues/425))
+  ([c6c82ba](https://github.com/amplitude/Amplitude-TypeScript/commit/c6c82bae762493a07922e08baca5db1bd91e483e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.1.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.8...@amplitude/analytics-react-native@1.1.9) (2023-06-08)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
