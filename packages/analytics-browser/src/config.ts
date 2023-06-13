@@ -25,6 +25,7 @@ import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 
+// Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
   protected _cookieStorage: Storage<UserSession>;
   protected _deviceId?: string;
@@ -52,6 +53,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public flushQueueSize: number = 30,
     public identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
     public ingestionMetadata?: IngestionMetadata,
+    public instanceName?: string,
     lastEventId?: number,
     lastEventTime?: number,
     public loggerProvider: ILogger = new Logger(),
@@ -228,6 +230,7 @@ export const useBrowserConfig = async (
     options.flushQueueSize,
     identityStorage,
     options.ingestionMetadata,
+    options.instanceName,
     lastEventId,
     lastEventTime,
     options.loggerProvider,

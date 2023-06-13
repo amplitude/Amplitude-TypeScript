@@ -11,6 +11,7 @@ export interface Config {
   flushIntervalMillis: number;
   flushMaxRetries: number;
   flushQueueSize: number;
+  instanceName?: string;
   logLevel: LogLevel;
   loggerProvider: Logger;
   minIdLength?: number;

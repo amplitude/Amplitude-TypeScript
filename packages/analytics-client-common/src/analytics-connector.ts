@@ -1,15 +1,15 @@
 import { AnalyticsConnector } from '@amplitude/analytics-connector';
 
-export const getAnalyticsConnector = (): AnalyticsConnector => {
-  return AnalyticsConnector.getInstance('$default_instance');
+export const getAnalyticsConnector = (instanceName = '$default_instance'): AnalyticsConnector => {
+  return AnalyticsConnector.getInstance(instanceName);
 };
 
-export const setConnectorUserId = (userId: string | undefined): void => {
+export const setConnectorUserId = (userId: string | undefined, instanceName?: string): void => {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  getAnalyticsConnector().identityStore.editIdentity().setUserId(userId).commit();
+  getAnalyticsConnector(instanceName).identityStore.editIdentity().setUserId(userId).commit();
 };
 
-export const setConnectorDeviceId = (deviceId: string): void => {
-  getAnalyticsConnector().identityStore.editIdentity().setDeviceId(deviceId).commit();
+export const setConnectorDeviceId = (deviceId: string, instanceName?: string): void => {
+  getAnalyticsConnector(instanceName).identityStore.editIdentity().setDeviceId(deviceId).commit();
 };
