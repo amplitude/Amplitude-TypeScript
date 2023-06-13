@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.6...@amplitude/analytics-browser@2.0.0-beta.7) (2023-06-13)
+
+### Bug Fixes
+
+- don't automatically start new session on setUserId
+  ([#427](https://github.com/amplitude/Amplitude-TypeScript/issues/427))
+  ([d40b5c3](https://github.com/amplitude/Amplitude-TypeScript/commit/d40b5c305e1d67d988e70608ba01789b8f0abb2b))
+- sest sion end events being assigned to a different session id
+  ([#426](https://github.com/amplitude/Amplitude-TypeScript/issues/426))
+  ([7d52037](https://github.com/amplitude/Amplitude-TypeScript/commit/7d52037280159ddb176e5e1ef64577bd97edfc36))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0-beta.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.5...@amplitude/analytics-browser@2.0.0-beta.6) (2023-06-09)
 
 ### Bug Fixes
