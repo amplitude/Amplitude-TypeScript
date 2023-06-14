@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@1.4.3...@amplitude/analytics-browser-test@1.4.4) (2023-06-14)
+
+### Bug Fixes
+
+- session end events being assigned to a different session id
+  ([#426](https://github.com/amplitude/Amplitude-TypeScript/issues/426))
+  ([#431](https://github.com/amplitude/Amplitude-TypeScript/issues/431))
+  ([b46f2f4](https://github.com/amplitude/Amplitude-TypeScript/commit/b46f2f4ff9cce2848bdd9bf554377ca7ed47983c))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.4.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@1.4.2...@amplitude/analytics-browser-test@1.4.3) (2023-06-13)
 
 **Note:** Version bump only for package @amplitude/analytics-browser-test
