@@ -34,6 +34,9 @@ export class Context implements BeforePlugin {
     const lastEventId = this.config.lastEventId ?? -1;
     const nextEventId = context.event_id ?? lastEventId + 1;
     this.config.lastEventId = nextEventId;
+    if (!context.time) {
+      this.config.lastEventTime = time;
+    }
 
     const event: Event = {
       user_id: this.config.userId,
