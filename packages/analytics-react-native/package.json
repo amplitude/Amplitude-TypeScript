@@ -17,6 +17,9 @@
   "types": "lib/typescript/index.d.ts",
   "react-native": "src/index",
   "private": true,
+  "publishConfig": {
+    "tag": "beta"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
