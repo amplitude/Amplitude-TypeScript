@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@1.1.1...@amplitude/analytics-core@1.1.2) (2023-06-14)
+
+### Bug Fixes
+
+- compact logged response body's for AMP-77261 ([#430](https://github.com/amplitude/Amplitude-TypeScript/issues/430))
+  ([bab630d](https://github.com/amplitude/Amplitude-TypeScript/commit/bab630dec042d01eb703bd92530e632052f2fe33))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@1.1.0...@amplitude/analytics-core@1.1.1) (2023-06-13)
 
 **Note:** Version bump only for package @amplitude/analytics-core
