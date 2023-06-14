@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.8...@amplitude/analytics-browser@2.0.0-beta.9) (2023-06-14)
+
+### Bug Fixes
+
+- extend session on new events ([#432](https://github.com/amplitude/Amplitude-TypeScript/issues/432))
+  ([8bb049d](https://github.com/amplitude/Amplitude-TypeScript/commit/8bb049df4c6b99ff44303cf2aaeb7357ae90b362))
+
+### Features
+
+- added extendSession() method to Browser Client ([#425](https://github.com/amplitude/Amplitude-TypeScript/issues/425))
+  ([#433](https://github.com/amplitude/Amplitude-TypeScript/issues/433))
+  ([0f5fccc](https://github.com/amplitude/Amplitude-TypeScript/commit/0f5fccc83d3f7f0a80adc4a0807fbd7e71c72e4a))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0-beta.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0-beta.7...@amplitude/analytics-browser@2.0.0-beta.8) (2023-06-13)
 
 ### Features

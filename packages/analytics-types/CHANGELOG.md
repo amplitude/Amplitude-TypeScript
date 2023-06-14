@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.0.0-beta.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.0.0-beta.6...@amplitude/analytics-types@2.0.0-beta.7) (2023-06-14)
+
+### Features
+
+- added extendSession() method to Browser Client ([#425](https://github.com/amplitude/Amplitude-TypeScript/issues/425))
+  ([#433](https://github.com/amplitude/Amplitude-TypeScript/issues/433))
+  ([0f5fccc](https://github.com/amplitude/Amplitude-TypeScript/commit/0f5fccc83d3f7f0a80adc4a0807fbd7e71c72e4a))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0-beta.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.0.0-beta.5...@amplitude/analytics-types@2.0.0-beta.6) (2023-06-13)
 
 ### Features

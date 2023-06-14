@@ -49,10 +49,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-wLBDtkz4rxFXK/pT6KNJ5ini31YuE2dBYaPytOv0sfJMEGq4AJ1AJ5E7CGsqHegL';
+    as.integrity = 'sha384-4bPZsEW8626m5WhGKDNwzudZor20gto7ZSXtjL6+6bwQZV7cmXoKuyT/iYhRWxkh';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.0.0-beta.8-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.0.0-beta.9-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -78,7 +78,7 @@
       proxy(Revenue, revenueFuncs[j]);
     }
     amplitude.Revenue = Revenue;
-    var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset'];
+    var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset', 'extendSession'];
     var funcsWithPromise = ['init', 'add', 'remove', 'track', 'logEvent', 'identify', 'groupIdentify', 'setGroup', 'revenue', 'flush'];
     setUpProxy(amplitude);
     amplitude.createInstance = function (instanceName) {
