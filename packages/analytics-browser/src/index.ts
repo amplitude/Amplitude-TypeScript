@@ -3,6 +3,7 @@ import client from './browser-client-factory';
 export { createInstance } from './browser-client-factory';
 export const {
   add,
+  extendSession,
   flush,
   getDeviceId,
   getSessionId,

@@ -53,13 +53,25 @@ interface Client extends CoreClient {
 
   /**
    * Sets a new session ID.
-   * When settign a custom session ID, make sure the value is in milliseconds since epoch (Unix Timestamp).
+   * When setting a custom session ID, make sure the value is in milliseconds since epoch (Unix Timestamp).
    *
    * ```typescript
    * setSessionId(Date.now());
    * ```
    */
   setSessionId(sessionId: number): void;
+
+  /**
+   * Extends the current session (advanced)
+   *
+   * Normally sessions are extended automatically by track()'ing events. If you want to extend the session without
+   * tracking and event, this will set the last user interaction to the current time.
+   *
+   * ```typescript
+   * extendSession();
+   * ```
+   */
+  extendSession(): void;
 
   /**
    * Anonymizes users after they log out, by:
