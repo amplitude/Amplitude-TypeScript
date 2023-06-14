@@ -1383,7 +1383,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 101,
+        event_id: 100,
         event_properties: {
           mode: 'test',
         },
@@ -1420,7 +1420,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 101,
+        event_id: 100,
         event_properties: {
           mode: 'test',
         },
@@ -1456,7 +1456,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 101,
+        event_id: 100,
         event_properties: {
           mode: 'test',
         },
