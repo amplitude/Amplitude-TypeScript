@@ -8,8 +8,6 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
 
-const jsons = (obj: any) => JSON.stringify(obj, null, 2);
-
 describe('destination', () => {
   describe('setup', () => {
     test('should setup plugin', async () => {
@@ -375,7 +373,7 @@ describe('destination', () => {
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 400,
-        message: `${Status.Invalid}: ${jsons(body)}`,
+        message: `${Status.Invalid}: ${JSON.stringify(body)}`,
       });
     });
 
@@ -989,7 +987,7 @@ describe('destination', () => {
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
-        expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
+        expect(loggerProvider.warn).toHaveBeenCalledWith(JSON.stringify(response.body));
       },
     );
 

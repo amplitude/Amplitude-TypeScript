@@ -33,7 +33,7 @@ export function getResponseBodyString(res: Response) {
   let responseBodyString = '';
   try {
     if ('body' in res) {
-      responseBodyString = JSON.stringify(res.body, null, 2);
+      responseBodyString = JSON.stringify(res.body);
     }
   } catch {
     // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
