@@ -1094,6 +1094,14 @@ describe('integration', () => {
           ].forEach((deviceId) => {
             expect(deviceId).toEqual(deviceId0);
           });
+          const sessionId0 = payload.events[0].session_id;
+          [payload.events[1].session_id, payload.events[2].session_id, payload.events[3].session_id].forEach(
+            (sessionId) => {
+              expect(sessionId).toEqual(sessionId0);
+            },
+          );
+          expect(sessionId0).not.toEqual(payload.events[4].session_id);
+          expect(payload.events[4].session_id).toEqual(payload.events[5].session_id);
           expect(payload).toEqual({
             api_key: apiKey,
             events: [
@@ -1193,7 +1201,6 @@ describe('integration', () => {
                 device_id: uuid,
                 event_id: 3,
                 event_type: 'session_end',
-
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
@@ -1234,6 +1241,100 @@ describe('integration', () => {
                 plan: undefined,
                 platform: 'Web',
                 session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+            ],
+            options: {
+              min_id_length: undefined,
+            },
+          });
+          scope.done();
+          resolve();
+        }, 4000);
+      });
+    });
+
+    test('should extend session with new event', () => {
+      let payload: any = undefined;
+      const scope = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          payload = body;
+          return true;
+        })
+        .reply(200, success);
+      client.init(apiKey, 'user1@amplitude.com', {
+        deviceId: UUID(),
+        defaultTracking: {
+          ...defaultTracking,
+        },
+        sessionId: 1,
+        sessionTimeout: 1000,
+        flushIntervalMillis: 3000,
+      });
+      client.track('First event in first session');
+
+      setTimeout(() => {
+        // Track event before first session expires
+        client.track('Second event in first session');
+      }, 800);
+
+      setTimeout(() => {
+        // Track event before extended session expires
+        // Without second event, session should have expired
+        client.track('Third event in first session');
+      }, 1600);
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(payload).toEqual({
+            api_key: apiKey,
+            events: [
+              {
+                device_id: uuid,
+                event_id: 100,
+                event_type: 'First event in first session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: 1,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 101,
+                event_type: 'Second event in first session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: 1,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 102,
+                event_type: 'Third event in first session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: 1,
                 time: number,
                 user_agent: userAgent,
                 user_id: 'user1@amplitude.com',
