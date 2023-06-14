@@ -1365,6 +1365,7 @@ describe('integration', () => {
     test('should handle expired session', async () => {
       const scope = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
+        ...opts,
         defaultTracking,
       }).promise;
       const response = await client.track('test event', {
@@ -1400,6 +1401,7 @@ describe('integration', () => {
     test('should handle expired session and set with options.sessionId', async () => {
       const scope = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
+        ...opts,
         defaultTracking,
         sessionId: 1,
       }).promise;
@@ -1436,6 +1438,7 @@ describe('integration', () => {
     test('should handle expired session and set with setSessionId', async () => {
       const scope = nock(url).post(path).reply(200, success);
       await client.init(apiKey, undefined, {
+        ...opts,
         defaultTracking,
       }).promise;
       client.setSessionId(1);
