@@ -18,7 +18,7 @@
   "react-native": "src/index",
   "publishConfig": {
     "access": "public",
-    "tag": "v1"
+    "tag": "latest"
   },
   "repository": {
     "type": "git",
