@@ -3,7 +3,7 @@ import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
 import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport, getAnalyticsConnector } from '@amplitude/analytics-client-common';
+import { FetchTransport, getAnalyticsConnector, getCookieName } from '@amplitude/analytics-client-common';
 import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
@@ -19,6 +19,13 @@ describe('browser-client', () => {
       disabled: true,
     },
   };
+  let apiKey = '';
+  let client = new AmplitudeBrowser();
+
+  beforeEach(() => {
+    apiKey = core.UUID();
+    client = new AmplitudeBrowser();
+  });
 
   afterEach(() => {
     // clean up cookies
@@ -43,9 +50,15 @@ describe('browser-client', () => {
         optOut: false,
         lastEventTime: Date.now(),
       });
+      const cookieStorage = new core.MemoryStorage<UserSession>();
+      await cookieStorage.set(getCookieName(API_KEY), {
+        optOut: false,
+        lastEventId: 100,
+      });
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, USER_ID, {
         sessionId: Date.now(),
+        cookieStorage,
       }).promise;
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
@@ -68,6 +81,7 @@ describe('browser-client', () => {
         deviceId: DEVICE_ID,
         sessionId: 1,
         lastEventTime: Date.now() - 1000,
+        lastEventId: 100,
       });
       const cookieStorage = new core.MemoryStorage<UserSession>();
       const client = new AmplitudeBrowser();
@@ -220,13 +234,12 @@ describe('browser-client', () => {
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         lastEventTime: Date.now(),
+        sessionId: Date.now(),
       });
       const client = new AmplitudeBrowser();
       const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
       await client.init(API_KEY, USER_ID, {
         optOut: false,
-        attribution: {},
-        sessionId: Date.now(),
         transportProvider: {
           send: async () => ({
             status: Status.Success,
@@ -246,6 +259,7 @@ describe('browser-client', () => {
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         lastEventTime: Date.now(),
+        sessionId: Date.now(),
       });
       const client = new AmplitudeBrowser();
       const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
@@ -254,7 +268,6 @@ describe('browser-client', () => {
         attribution: {
           trackNewCampaigns: true,
         },
-        sessionId: Date.now(),
         transportProvider: {
           send: async () => ({
             status: Status.Success,
@@ -503,13 +516,14 @@ describe('browser-client', () => {
       }).promise;
       client.setSessionId(2);
       expect(client.getSessionId()).toBe(2);
-      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(3);
     });
 
     test('should set session id with start and end session event', async () => {
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
         sessionId: 1,
+        lastEventId: 100,
         lastEventTime: Date.now() - 1000,
       });
       const client = new AmplitudeBrowser();
@@ -556,6 +570,7 @@ describe('browser-client', () => {
       const firstSessionId = 1;
       const client = new AmplitudeBrowser();
       await client.init(API_KEY, undefined, {
+        ...attributionConfig,
         sessionTimeout: 20,
         sessionId: firstSessionId,
         flushQueueSize: 1,
@@ -832,6 +847,54 @@ describe('browser-client', () => {
       expect(result.code).toEqual(200);
       expect(send).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('process', () => {
+    test('should proceed with unexpired session', async () => {
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      await client.init(apiKey, undefined, {
+        optOut: true,
+        ...attributionConfig,
+      }).promise;
+      const result = await client.process({
+        event_type: 'event',
+      });
+      // once on init
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(result.code).toBe(0);
+    });
+
+    test('should proceed with overriden session ID', async () => {
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      await client.init(apiKey, undefined, {
+        optOut: true,
+        ...attributionConfig,
+      }).promise;
+      const result = await client.process({
+        event_type: 'event',
+        session_id: -1,
+      });
+      // once on init
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(result.code).toBe(0);
+    });
+
+    test('should reset session due to expired session', async () => {
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      await client.init(apiKey, undefined, {
+        optOut: true,
+        ...attributionConfig,
+        // force session to always be expired
+        sessionTimeout: -1,
+      }).promise;
+      const result = await client.process({
+        event_type: 'event',
+      });
+      // once on init
+      // and once on process
+      expect(setSessionId).toHaveBeenCalledTimes(2);
+      expect(result.code).toBe(0);
     });
   });
 });

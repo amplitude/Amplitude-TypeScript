@@ -1,5 +1,5 @@
 import { CookieStorage, getOldCookieName } from '@amplitude/analytics-client-common';
-import { Storage } from '@amplitude/analytics-types';
+import { Storage, UserSession } from '@amplitude/analytics-types';
 import { decode, parseLegacyCookies, parseTime } from '../../src/cookie-migration';
 import * as LocalStorageModule from '../../src/storage/local-storage';
 
@@ -39,12 +39,15 @@ describe('cookie-migration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
-      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
-      const cookies = await parseLegacyCookies(API_KEY);
+      const lastEventId = (0).toString(32);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`;
+      const cookieStorage: Storage<UserSession> = new CookieStorage<UserSession>();
+      const cookies = await parseLegacyCookies(API_KEY, { cookieStorage });
       expect(cookies).toEqual({
         deviceId: 'deviceId',
         userId: 'userId',
         sessionId: timestamp,
+        lastEventId: 0,
         lastEventTime: timestamp,
         optOut: false,
       });
@@ -60,15 +63,16 @@ describe('cookie-migration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
-      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
-      const cookies = await parseLegacyCookies(API_KEY, {
-        cookieUpgrade: true,
-      });
+      const lastEventId = (0).toString(32);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`;
+      const cookieStorage: Storage<UserSession> = new CookieStorage<UserSession>();
+      const cookies = await parseLegacyCookies(API_KEY, { cookieStorage, cookieUpgrade: true });
       expect(cookies).toEqual({
         deviceId: 'deviceId',
         userId: 'userId',
         sessionId: timestamp,
         lastEventTime: timestamp,
+        lastEventId: 0,
         optOut: false,
       });
 
@@ -83,21 +87,22 @@ describe('cookie-migration', () => {
       const userId = 'userId';
       const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
       const oldCookieName = getOldCookieName(API_KEY);
-      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}`;
-      const cookies = await parseLegacyCookies(API_KEY, {
-        cookieUpgrade: false,
-      });
+      const lastEventId = (0).toString(32);
+      document.cookie = `${oldCookieName}=deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`;
+      const cookieStorage: Storage<UserSession> = new CookieStorage<UserSession>();
+      const cookies = await parseLegacyCookies(API_KEY, { cookieStorage, cookieUpgrade: false });
       expect(cookies).toEqual({
         deviceId: 'deviceId',
         userId: 'userId',
         sessionId: timestamp,
         lastEventTime: timestamp,
+        lastEventId: 0,
         optOut: false,
       });
 
       const storage: Storage<string> = new CookieStorage<string>();
       const cookies2 = await storage.getRaw(oldCookieName);
-      expect(cookies2).toBe(`deviceId.${encodedUserId}..${time}.${time}`);
+      expect(cookies2).toBe(`deviceId.${encodedUserId}..${time}.${time}.${lastEventId}`);
     });
   });
 

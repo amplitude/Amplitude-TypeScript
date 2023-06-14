@@ -6,7 +6,7 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
-import { PluginType, LogLevel, BaseEvent, Status } from '@amplitude/analytics-types';
+import { PluginType, LogLevel, Status } from '@amplitude/analytics-types';
 import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
@@ -19,6 +19,12 @@ describe('integration', () => {
     attribution: {
       disabled: true,
     },
+  };
+  const defaultTracking = {
+    pageViews: false,
+    sessions: false,
+    fileDownloads: false,
+    formInteractions: false,
   };
 
   let apiKey = '';
@@ -882,7 +888,25 @@ describe('integration', () => {
   });
 
   describe('session handler', () => {
-    test('should send session events and replaced with known user', () => {
+    const previousSessionId = Date.now() - 31 * 60 * 1000; // now minus 31 minutes
+    const previousSessionLastEventTime = Date.now() - 31 * 60 * 1000; // now minus 31 minutes
+    const previousSessionLastEventId = 99;
+    const previousSessionDeviceId = 'a7a96s8d';
+    const previousSessionUserId = 'a7a96s8d';
+    beforeEach(() => {
+      // setup expired previous session
+      setLegacyCookie(
+        apiKey,
+        previousSessionDeviceId,
+        previousSessionUserId,
+        undefined,
+        previousSessionId,
+        previousSessionLastEventTime,
+        previousSessionLastEventId,
+      );
+    });
+
+    test('should send session events and replace with known user', () => {
       let payload: any = undefined;
       const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -898,6 +922,7 @@ describe('integration', () => {
         };
       });
       client.init(apiKey, 'user1@amplitude.com', {
+        deviceId: UUID(),
         defaultTracking: {
           sessions: true,
         },
@@ -920,77 +945,36 @@ describe('integration', () => {
       }, 1000);
 
       setTimeout(() => {
-        client.setUserId('user2@amplitude.com'); // effectively creates a new session
-        // Sends `session_end` event for previous user and session
-        // Sends `session_start` event for next user and session
+        client.setUserId('user2@amplitude.com');
       }, 2000);
 
       return new Promise<void>((resolve) => {
         setTimeout(() => {
-          // Tranform events to be grouped by session and ordered by time
-          // Helps assert that events will show up correctly on Amplitude UI
-          const compactEvents: { eventType: string; userId: string; sessionId: number; time: number }[] =
-            payload.events.map((e: BaseEvent) => ({
-              eventType: e.event_type,
-              userId: e.user_id,
-              sessionId: e.session_id,
-              time: e.time,
-            }));
-          const compactEventsBySessionAndTime = Object.values(
-            compactEvents.reduce<
-              Record<string, { eventType: string; userId: string; sessionId: number; time: number }[]>
-            >((acc, curr) => {
-              if (!acc[curr.sessionId]) {
-                acc[curr.sessionId] = [];
-              }
-              acc[curr.sessionId].push(curr);
-              return acc;
-            }, {}),
-          )
-            .map((c) => c.sort((a, b) => a.time - b.time))
-            .map((group) => group.map((c) => ({ eventType: c.eventType, userId: c.userId })));
-
-          // The order of events in the payload is sorted by time of track fn invokation
-          // and not consistent with the time property
-          // Session events have overwritten time property
-          // Assert that events grouped by session and ordered by time
-          expect(compactEventsBySessionAndTime).toEqual([
-            [
-              {
-                eventType: 'session_start',
-                userId: 'user1@amplitude.com',
-              },
-              {
-                eventType: '$identify',
-                userId: 'user1@amplitude.com',
-              },
-              {
-                eventType: 'Event in first session',
-                userId: 'user1@amplitude.com',
-              },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-              },
-            ],
-            [
-              {
-                eventType: 'session_start',
-                userId: 'user1@amplitude.com',
-              },
-              {
-                eventType: 'Event in next session',
-                userId: 'user1@amplitude.com',
-              },
-            ],
-          ]);
           expect(payload).toEqual({
             api_key: apiKey,
             events: [
               {
+                // This is a `session_end` event for the previous session
+                device_id: previousSessionDeviceId,
+                event_id: 100,
+                event_type: 'session_end',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: previousSessionId,
+                time: previousSessionId + 1,
+                user_agent: userAgent,
+                user_id: previousSessionUserId,
+              },
+              {
                 device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 0,
+                event_id: 101,
                 event_type: 'session_start',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1008,8 +992,7 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 1,
+                event_id: 102,
                 event_type: '$identify',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1071,8 +1054,7 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 2,
+                event_id: 103,
                 event_type: 'Event in first session',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1090,27 +1072,7 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 3,
-                event_type: 'Event in next session',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                os_name: 'WebKit',
-                os_version: '537.36',
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 4,
+                event_id: 104,
                 event_type: 'session_end',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1128,9 +1090,26 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                device_manufacturer: undefined,
-                event_id: 5,
+                event_id: 105,
                 event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                os_name: 'WebKit',
+                os_version: '537.36',
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 106,
+                event_type: 'Event in next session',
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
@@ -1155,7 +1134,10 @@ describe('integration', () => {
       });
     });
 
-    test('should send session events and replaced with unknown user', () => {
+    test('should send session events and replace with unknown user', () => {
+      // Reset previous session cookies
+      document.cookie = `amp_${apiKey.substring(0, 6)}=null; expires=1 Jan 1970 00:00:00 GMT`;
+
       let payload: any = undefined;
       const send = jest.fn().mockImplementationOnce(async (_endpoint, p) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -1193,87 +1175,21 @@ describe('integration', () => {
       }, 1000);
 
       setTimeout(() => {
-        client.reset(); // effectively creates a new session
-        // Sends `session_end` event for previous user and session
-        // Sends `session_start` event for next user and session
+        client.reset();
       }, 2000);
 
       return new Promise<void>((resolve) => {
         setTimeout(() => {
-          // Tranform events to be grouped by session and ordered by time
-          // Helps assert that events will show up correctly on Amplitude UI
-          const compactEvents: {
-            eventType: string;
-            userId: string;
-            sessionId: number;
-            time: number;
-            deviceId: string;
-          }[] = payload.events.map((e: BaseEvent) => ({
-            eventType: e.event_type,
-            userId: e.user_id,
-            sessionId: e.session_id,
-            deviceId: e.device_id,
-            time: e.time,
-          }));
-          const compactEventsBySessionAndTime = Object.values(
-            compactEvents.reduce<
-              Record<string, { eventType: string; userId: string; sessionId: number; time: number; deviceId: string }[]>
-            >((acc, curr) => {
-              if (!acc[curr.sessionId]) {
-                acc[curr.sessionId] = [];
-              }
-              acc[curr.sessionId].push(curr);
-              return acc;
-            }, {}),
-          )
-            .map((c) => c.sort((a, b) => a.time - b.time))
-            .map((group) => group.map((c) => ({ eventType: c.eventType, userId: c.userId, deviceId: c.deviceId })));
-          const deviceIds = compactEventsBySessionAndTime.flat().map((c) => c.deviceId);
-          expect(deviceIds[0]).toEqual(deviceIds[1]);
-          expect(deviceIds[1]).toEqual(deviceIds[2]);
-          expect(deviceIds[2]).toEqual(deviceIds[3]);
-          expect(deviceIds[3]).toEqual(deviceIds[4]);
-          expect(deviceIds[4]).toEqual(deviceIds[5]);
-          // The order of events in the payload is sorted by time of track fn invokation
-          // and not consistent with the time property
-          // Session events have overwritten time property
-          // Assert that events grouped by session and ordered by time
-          expect(compactEventsBySessionAndTime).toEqual([
-            [
-              {
-                eventType: 'session_start',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-              {
-                eventType: '$identify',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-              {
-                eventType: 'Event in first session',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-              {
-                eventType: 'session_end',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-            ],
-            [
-              {
-                eventType: 'session_start',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-              {
-                eventType: 'Event in next session',
-                userId: 'user1@amplitude.com',
-                deviceId: uuid,
-              },
-            ],
-          ]);
+          const deviceId0 = payload.events[0].device_id;
+          [
+            payload.events[1].device_id,
+            payload.events[2].device_id,
+            payload.events[3].device_id,
+            payload.events[4].device_id,
+            payload.events[5].device_id,
+          ].forEach((deviceId) => {
+            expect(deviceId).toEqual(deviceId0);
+          });
           expect(payload).toEqual({
             api_key: apiKey,
             events: [
@@ -1382,7 +1298,8 @@ describe('integration', () => {
                 device_id: uuid,
                 device_manufacturer: undefined,
                 event_id: 3,
-                event_type: 'Event in next session',
+                event_type: 'session_end',
+
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
@@ -1401,7 +1318,7 @@ describe('integration', () => {
                 device_id: uuid,
                 device_manufacturer: undefined,
                 event_id: 4,
-                event_type: 'session_end',
+                event_type: 'session_start',
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
@@ -1420,7 +1337,7 @@ describe('integration', () => {
                 device_id: uuid,
                 device_manufacturer: undefined,
                 event_id: 5,
-                event_type: 'session_start',
+                event_type: 'Event in next session',
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
@@ -1443,6 +1360,115 @@ describe('integration', () => {
           resolve();
         }, 4000);
       });
+    });
+
+    test('should handle expired session', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+      await client.init(apiKey, undefined, {
+        ...opts,
+        defaultTracking,
+      }).promise;
+      const response = await client.track('test event', {
+        mode: 'test',
+      }).promise;
+      expect(response.event.session_id).not.toBe(previousSessionId);
+      expect(response.event).toEqual({
+        user_id: previousSessionUserId,
+        device_id: previousSessionDeviceId,
+        session_id: number,
+        time: number,
+        platform: 'Web',
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 100,
+        event_properties: {
+          mode: 'test',
+        },
+        library: library,
+        os_name: 'WebKit',
+        os_version: '537.36',
+        user_agent: userAgent,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      expect(document.cookie.includes('amp_')).toBe(false);
+      scope.done();
+    });
+
+    test('should handle expired session and set with options.sessionId', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+      await client.init(apiKey, undefined, {
+        ...opts,
+        defaultTracking,
+        sessionId: 1,
+      }).promise;
+      const response = await client.track('test event', {
+        mode: 'test',
+      }).promise;
+      expect(response.event.session_id).toBe(1);
+      expect(response.event).toEqual({
+        user_id: previousSessionUserId,
+        device_id: previousSessionDeviceId,
+        session_id: number,
+        time: number,
+        platform: 'Web',
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 100,
+        event_properties: {
+          mode: 'test',
+        },
+        library: library,
+        os_name: 'WebKit',
+        os_version: '537.36',
+        user_agent: userAgent,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      expect(document.cookie.includes('amp_')).toBe(false);
+      scope.done();
+    });
+
+    test('should handle expired session and set with setSessionId', async () => {
+      const scope = nock(url).post(path).reply(200, success);
+      await client.init(apiKey, undefined, {
+        ...opts,
+        defaultTracking,
+      }).promise;
+      client.setSessionId(1);
+      const response = await client.track('test event', {
+        mode: 'test',
+      }).promise;
+      expect(response.event).toEqual({
+        user_id: previousSessionUserId,
+        device_id: previousSessionDeviceId,
+        session_id: 1,
+        time: number,
+        platform: 'Web',
+        language: 'en-US',
+        ip: '$remote',
+        insert_id: uuid,
+        partner_id: undefined,
+        event_type: 'test event',
+        event_id: 100,
+        event_properties: {
+          mode: 'test',
+        },
+        library: library,
+        os_name: 'WebKit',
+        os_version: '537.36',
+        user_agent: userAgent,
+      });
+      expect(response.code).toBe(200);
+      expect(response.message).toBe(SUCCESS_MESSAGE);
+      expect(document.cookie.includes('amp_')).toBe(false);
+      scope.done();
     });
   });
 
@@ -1746,23 +1772,38 @@ describe('integration', () => {
   });
 
   describe('cookie migration', () => {
+    const previousSessionId = Date.now(); // now minus 31 minutes
+    const previousSessionLastEventTime = Date.now(); // now minus 31 minutes
+    const previousSessionLastEventId = 99;
+    const previousSessionDeviceId = 'deviceId';
+    const previousSessionUserId = 'userId';
+
+    beforeEach(() => {
+      // setup expired previous session
+      setLegacyCookie(
+        apiKey,
+        previousSessionDeviceId,
+        previousSessionUserId,
+        undefined,
+        previousSessionId,
+        previousSessionLastEventTime,
+        previousSessionLastEventId,
+      );
+    });
+
     test('should use old cookies', async () => {
       const scope = nock(url).post(path).reply(200, success);
-      const timestamp = Date.now();
-      const time = timestamp.toString(32);
-      const userId = 'userId';
-      const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
-      document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
       await client.init(apiKey, undefined, {
         ...opts,
+        defaultTracking,
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
       }).promise;
       expect(response.event).toEqual({
-        user_id: userId,
-        device_id: 'deviceId',
-        session_id: timestamp,
+        user_id: previousSessionUserId,
+        device_id: previousSessionDeviceId,
+        session_id: previousSessionId,
         time: number,
         platform: 'Web',
         os_name: 'WebKit',
@@ -1773,7 +1814,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 0,
+        event_id: 100,
         event_properties: {
           mode: 'test',
         },
@@ -1788,22 +1829,18 @@ describe('integration', () => {
 
     test('should retain old cookies', async () => {
       const scope = nock(url).post(path).reply(200, success);
-      const timestamp = Date.now();
-      const time = timestamp.toString(32);
-      const userId = 'userId';
-      const encodedUserId = btoa(unescape(encodeURIComponent(userId)));
-      document.cookie = `amp_${apiKey.substring(0, 6)}=deviceId.${encodedUserId}..${time}.${time}`;
       await client.init(apiKey, undefined, {
         ...opts,
         cookieUpgrade: false,
+        defaultTracking,
       }).promise;
       const response = await client.track('test event', {
         mode: 'test',
       }).promise;
       expect(response.event).toEqual({
-        user_id: userId,
-        device_id: 'deviceId',
-        session_id: timestamp,
+        user_id: previousSessionUserId,
+        device_id: previousSessionDeviceId,
+        session_id: previousSessionId,
         time: number,
         platform: 'Web',
         os_name: 'WebKit',
@@ -1814,7 +1851,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 0,
+        event_id: 100,
         event_properties: {
           mode: 'test',
         },
@@ -1980,3 +2017,22 @@ describe('integration', () => {
     });
   });
 });
+
+const setLegacyCookie = (
+  apiKey: string,
+  deviceId?: string,
+  userId?: string,
+  optOut?: '1',
+  sessionId?: number,
+  lastEventTime?: number,
+  eventId?: number,
+) => {
+  document.cookie = `amp_${apiKey.substring(0, 6)}=${[
+    deviceId,
+    btoa(userId || ''),
+    optOut,
+    sessionId ? sessionId.toString(32) : '',
+    lastEventTime ? lastEventTime.toString(32) : '',
+    eventId ? eventId.toString(32) : '',
+  ].join('.')}`;
+};

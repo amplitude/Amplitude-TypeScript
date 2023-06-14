@@ -114,6 +114,7 @@ describe('config', () => {
         deviceId: 'device-device-device',
         sessionId: -1,
         userId: 'user-user-user',
+        lastEventId: 100,
         lastEventTime: 1,
         optOut: false,
       });
@@ -124,6 +125,7 @@ describe('config', () => {
         deviceId: 'device-device-device',
         sessionId: -1,
         userId: 'user-user-user',
+        lastEventId: 100,
         lastEventTime: 1,
         partnerId: 'partnerId',
         plan: {
@@ -151,6 +153,7 @@ describe('config', () => {
         flushIntervalMillis: 1000,
         flushMaxRetries: 5,
         flushQueueSize: 30,
+        _lastEventId: 100,
         _lastEventTime: 1,
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
