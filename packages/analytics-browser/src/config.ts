@@ -24,6 +24,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
+import { SessionStorage } from './storage/session-storage';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -258,6 +259,8 @@ export const createCookieStorage = <T>(
   switch (identityStorage) {
     case 'localStorage':
       return new LocalStorage<T>();
+    case 'sessionStorage':
+      return new SessionStorage<T>();
     case 'none':
       return new MemoryStorage<T>();
     case 'cookie':
