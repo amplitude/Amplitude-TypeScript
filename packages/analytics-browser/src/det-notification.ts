@@ -4,7 +4,7 @@ import {
   isFormInteractionTrackingEnabled,
   isPageViewTrackingEnabled,
 } from '@amplitude/analytics-client-common';
-import { BrowserConfig } from '@amplitude/analytics-types';
+import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 
 let notified = false;
 
@@ -22,9 +22,12 @@ export const detNotify = (config: BrowserConfig): void => {
   const enabledTrackingString = enabledTracking.join(', ');
 
   if (enabledTracking.length) {
-    config.loggerProvider.log(
-      `Your Amplitude instance is configured to track ${enabledTrackingString}. Visit https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-default-events for more details.`,
-    );
+    const message = `Your Amplitude instance is configured to track ${enabledTrackingString}. Visit https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-default-events for more details.`;
+    config.loggerProvider.log(message);
+    /* istanbul ignore if */
+    if (config.logLevel < LogLevel.Verbose) {
+      console.log(message);
+    }
   }
   notified = true;
 };
