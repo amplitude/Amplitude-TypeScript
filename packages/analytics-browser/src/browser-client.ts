@@ -29,6 +29,7 @@ import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-bro
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
+import { detNotify } from './det-notification';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -87,6 +88,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     await this.add(new Destination()).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
+
+    // Notify if DET is enabled
+    detNotify(this.config);
 
     if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
       await this.add(fileDownloadTracking()).promise;
