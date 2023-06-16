@@ -8,26 +8,26 @@ type PluginTypeEnrichment = 'enrichment';
 type PluginTypeDestination = 'destination';
 export type PluginType = PluginTypeBefore | PluginTypeEnrichment | PluginTypeDestination;
 
-interface PluginBase<T = CoreClient> {
+interface PluginBase<T = CoreClient, U = Config> {
   name?: string;
   type?: PluginType;
-  setup?(config: Config, client: T): Promise<void>;
+  setup?(config: U, client: T): Promise<void>;
 }
 
-export interface BeforePlugin extends PluginBase {
+export interface BeforePlugin<T = CoreClient, U = Config> extends PluginBase<T, U> {
   type: PluginTypeBefore;
   execute?(context: Event): Promise<Event | null>;
 }
 
-export interface EnrichmentPlugin extends PluginBase {
+export interface EnrichmentPlugin<T = CoreClient, U = Config> extends PluginBase<T, U> {
   type?: PluginTypeEnrichment;
   execute?(context: Event): Promise<Event | null>;
 }
 
-export interface DestinationPlugin extends PluginBase {
+export interface DestinationPlugin<T = CoreClient, U = Config> extends PluginBase<T, U> {
   type: PluginTypeDestination;
   execute(context: Event): Promise<Result>;
   flush?(): Promise<void>;
 }
 
-export type Plugin = BeforePlugin | EnrichmentPlugin | DestinationPlugin;
+export type Plugin<T = CoreClient, U = Config> = BeforePlugin<T, U> | EnrichmentPlugin<T, U> | DestinationPlugin<T, U>;

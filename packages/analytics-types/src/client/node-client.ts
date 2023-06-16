@@ -1,6 +1,7 @@
 import { AmplitudeReturn } from '../amplitude-promise';
-import { NodeOptions } from '../config';
+import { NodeConfig, NodeOptions } from '../config';
 import { CoreClient } from './core-client';
+import { Plugin } from '../plugin';
 
 export interface NodeClient extends CoreClient {
   /**
@@ -12,4 +13,23 @@ export interface NodeClient extends CoreClient {
    * ```
    */
   init(apiKey: string, options?: NodeOptions): AmplitudeReturn<void>;
+
+  /**
+   * Adds a new plugin.
+   *
+   * ```typescript
+   * const plugin = {
+   *   name: 'my-plugin',
+   *   type: 'enrichment',
+   *   async setup(config: NodeConfig, amplitude: NodeClient) {
+   *     return;
+   *   },
+   *   async execute(event: Event) {
+   *     return event;
+   *   },
+   * };
+   * amplitude.add(plugin);
+   * ```
+   */
+  add(plugin: Plugin<NodeClient, NodeConfig>): AmplitudeReturn<void>;
 }
