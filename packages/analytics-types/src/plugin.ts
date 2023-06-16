@@ -9,26 +9,26 @@ export enum PluginType {
   DESTINATION = 'destination',
 }
 
-export interface BeforePlugin<T = CoreClient> {
+export interface BeforePlugin<T = CoreClient, U = Config> {
   name: string;
   type: PluginType.BEFORE;
-  setup(config: Config, client?: T): Promise<void>;
+  setup(config: U, client?: T): Promise<void>;
   execute(context: Event): Promise<Event | null>;
 }
 
-export interface EnrichmentPlugin<T = CoreClient> {
+export interface EnrichmentPlugin<T = CoreClient, U = Config> {
   name: string;
   type: PluginType.ENRICHMENT;
-  setup(config: Config, client?: T): Promise<void>;
+  setup(config: U, client?: T): Promise<void>;
   execute(context: Event): Promise<Event | null>;
 }
 
-export interface DestinationPlugin<T = CoreClient> {
+export interface DestinationPlugin<T = CoreClient, U = Config> {
   name: string;
   type: PluginType.DESTINATION;
-  setup(config: Config, client?: T): Promise<void>;
+  setup(config: U, client?: T): Promise<void>;
   execute(context: Event): Promise<Result>;
   flush?(): Promise<void>;
 }
 
-export type Plugin = BeforePlugin | EnrichmentPlugin | DestinationPlugin;
+export type Plugin<T = CoreClient, U = Config> = BeforePlugin<T, U> | EnrichmentPlugin<T, U> | DestinationPlugin<T, U>;

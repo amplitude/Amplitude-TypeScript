@@ -1,7 +1,8 @@
 import { AmplitudeReturn } from '../amplitude-promise';
-import { BrowserOptions, ReactNativeOptions } from '../config';
+import { BrowserConfig, BrowserOptions, ReactNativeConfig, ReactNativeOptions } from '../config';
 import { TransportType } from '../transport';
 import { CoreClient } from './core-client';
+import { Plugin } from '../plugin';
 
 interface Client extends CoreClient {
   /**
@@ -116,6 +117,25 @@ export interface BrowserClient extends Client {
    * ```
    */
   setTransport(transport: TransportType): void;
+
+  /**
+   * Adds a new plugin.
+   *
+   * ```typescript
+   * const plugin = {
+   *   name: 'my-plugin',
+   *   type: 'enrichment',
+   *   async setup(config: BrowserConfig, amplitude: BrowserClient) {
+   *     return;
+   *   },
+   *   async execute(event: Event) {
+   *     return event;
+   *   },
+   * };
+   * amplitude.add(plugin);
+   * ```
+   */
+  add(plugin: Plugin<BrowserClient, BrowserConfig>): AmplitudeReturn<void>;
 }
 
 export interface ReactNativeClient extends Client {
@@ -128,4 +148,23 @@ export interface ReactNativeClient extends Client {
    * ```
    */
   init(apiKey: string, userId?: string, options?: ReactNativeOptions): AmplitudeReturn<void>;
+
+  /**
+   * Adds a new plugin.
+   *
+   * ```typescript
+   * const plugin = {
+   *   name: 'my-plugin',
+   *   type: 'enrichment',
+   *   async setup(config: ReactNativeConfig, amplitude: ReactNativeClient) {
+   *     return;
+   *   },
+   *   async execute(event: Event) {
+   *     return event;
+   *   },
+   * };
+   * amplitude.add(plugin);
+   * ```
+   */
+  add(plugin: Plugin<ReactNativeClient, ReactNativeConfig>): AmplitudeReturn<void>;
 }
