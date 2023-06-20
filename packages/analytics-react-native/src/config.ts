@@ -23,6 +23,7 @@ export const getDefaultConfig = () => {
     osName: true,
     osVersion: true,
     platform: true,
+    appSetId: true,
   };
   return {
     cookieExpiration: 365,

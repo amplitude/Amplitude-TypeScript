@@ -19,6 +19,7 @@ type NativeContext = {
   deviceModel: string;
   carrier: string;
   adid: string;
+  appSetId: string;
 };
 
 export interface AmplitudeReactNative {
@@ -65,6 +66,7 @@ export class Context implements BeforePlugin {
     const language = nativeContext?.language || getLanguage();
     const carrier = nativeContext?.carrier;
     const adid = nativeContext?.adid;
+    const appSetId = nativeContext?.appSetId;
 
     const event: Event = {
       user_id: this.config.userId,
@@ -81,6 +83,7 @@ export class Context implements BeforePlugin {
       ...(this.config.trackingOptions.carrier && { carrier: carrier }),
       ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
       ...(this.config.trackingOptions.adid && { adid: adid }),
+      ...(this.config.trackingOptions.appSetId && { android_app_set_id: appSetId }),
       insert_id: UUID(),
       partner_id: this.config.partnerId,
       plan: this.config.plan,

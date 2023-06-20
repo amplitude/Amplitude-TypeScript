@@ -38,6 +38,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
             if (androidContextProvider!!.advertisingId != null) {
                 putString("adid", androidContextProvider!!.advertisingId)
             }
+            putString("appSetId", androidContextProvider!!.appSetId)
         })
     }
 }
