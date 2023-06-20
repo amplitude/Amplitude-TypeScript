@@ -43,6 +43,14 @@ describe('cookies', () => {
       expect(await cookies.get('hello')).toEqual(undefined);
       await cookies.remove('hello');
     });
+
+    test('should return undefined when global scope is defined but document is not', async () => {
+      const cookies = new CookieStorage<number[]>();
+      await cookies.set('hello', [1]);
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({} as typeof globalThis);
+      expect(await cookies.get('hello')).toEqual(undefined);
+      await cookies.remove('hello');
+    });
   });
 
   describe('set', () => {
