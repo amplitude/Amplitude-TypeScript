@@ -50,7 +50,7 @@ export class CookieStorage<T> implements Storage<T> {
 
   async getRaw(key: string): Promise<string | undefined> {
     const globalScope = getGlobalScope();
-    const cookie = globalScope?.document.cookie.split('; ') ?? [];
+    const cookie = globalScope?.document?.cookie.split('; ') ?? [];
     const match = cookie.find((c) => c.indexOf(key + '=') === 0);
     if (!match) {
       return undefined;
