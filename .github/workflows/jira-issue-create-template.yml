@@ -9,6 +9,10 @@ on:
         description: 'Label for Repository'
         type: string
         required: true
+      subcomponent:
+        description: 'The Subcomponent for the Repository'
+        type: string
+        required: true
     secrets:
       JIRA_BASE_URL:
         description: 'Jira Base Url'
