@@ -53,9 +53,10 @@ jobs:
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{
-            "customfield_11794": {"value": "Github"},
+            "customfield_11416": {"value": "GitHub"},
+            "customfield_12028": ["${{ inputs.subcomponent }}"],
             "labels": ["${{ steps.string.outputs.lowercase }}"]
-          }' # origin, labels
+          }' # Source, Subcomponents, labels
 
       - name: Log created issue
         run: echo "Issue AMP-${{ steps.create.outputs.issue }} was created"
