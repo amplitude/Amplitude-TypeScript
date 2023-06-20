@@ -56,8 +56,10 @@ jobs:
             "customfield_11416": {"value": "GitHub"},
             "component": ["SDK"],
             "customfield_12028": ["${{ inputs.subcomponent }}"],
-            "labels": ["${{ steps.string.outputs.lowercase }}"]
-          }' # Source, Component, Subcomponents, Labels
+            "labels": ["${{ steps.string.outputs.lowercase }}"],
+            "customfield_11481": {"value": "Governance"},
+            "customfield_11200": {"value": "Developer Experience"},
+          }' # Source, Component, Subcomponents, Labels, Pillar, Pod
 
       - name: Log created issue
         run: echo "Issue AMP-${{ steps.create.outputs.issue }} was created"
