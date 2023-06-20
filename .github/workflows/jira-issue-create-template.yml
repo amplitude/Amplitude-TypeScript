@@ -62,7 +62,7 @@ jobs:
             "customfield_12028": ["${{ inputs.subcomponent }}"],
             "labels": ["${{ steps.string.outputs.lowercase }}"],
             "customfield_11481": {"value": "Governance"},
-            "customfield_11200": {"value": "Developer Experience"},
+            "customfield_11200": {"value": "Developer Experience"}
           }' # Source, Component, Subcomponents, Labels, Pillar, Pod
 
       - name: Log created issue
