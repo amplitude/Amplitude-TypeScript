@@ -84,7 +84,11 @@ export class AmplitudeReactNative extends AmplitudeCore {
 
     // Step 4: Manage session
     this.appState = AppState.currentState;
-    const isNewSession = this.startNewSessionIfNeeded();
+    const currentTimestamp = this.currentTimeMillis();
+    const isNewSession =
+      this.appState === 'active'
+        ? this.enterForeground(currentTimestamp)
+        : this.shouldStartNewSession(currentTimestamp);
     this.config.loggerProvider?.log(
       `Init: startNewSessionIfNeeded = ${isNewSession ? 'yes' : 'no'}, sessionId = ${
         this.getSessionId() ?? 'undefined'
@@ -170,7 +174,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
   }
 
   getSessionId() {
-    return this.config?.sessionId;
+    return this.explicitSessionId ?? this.config?.sessionId;
   }
 
   setSessionId(sessionId: number) {
@@ -242,7 +246,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
       }
 
       if (event.event_id === undefined) {
-        const eventId = (this.config.lastEventId ?? -1) + 1;
+        const eventId = (this.config.lastEventId ?? 0) + 1;
         event = { ...event, event_id: eventId };
         this.config.lastEventId = eventId;
       }
@@ -255,25 +259,31 @@ export class AmplitudeReactNative extends AmplitudeCore {
     return Date.now();
   }
 
-  private startNewSessionIfNeeded(eventTime?: number): boolean {
-    eventTime = eventTime ?? this.currentTimeMillis();
-    const sessionId = this.explicitSessionId ?? eventTime;
+  private startNewSessionIfNeeded(timestamp: number): boolean {
+    const sessionId = this.explicitSessionId ?? timestamp;
 
-    if (
-      this.inSession() &&
-      (this.explicitSessionId === this.config.sessionId ||
-        (this.explicitSessionId === undefined && this.isWithinMinTimeBetweenSessions(sessionId)))
-    ) {
-      this.config.lastEventTime = eventTime;
-      return false;
+    const shouldStartNewSession = this.shouldStartNewSession(timestamp);
+    if (shouldStartNewSession) {
+      this.setSessionIdInternal(sessionId, timestamp);
+    } else {
+      this.config.lastEventTime = timestamp;
     }
 
-    this.setSessionIdInternal(sessionId, eventTime);
-    return true;
+    return shouldStartNewSession;
   }
 
-  private isWithinMinTimeBetweenSessions(eventTime: number) {
-    return eventTime - (this.config.lastEventTime ?? 0) < this.config.sessionTimeout;
+  private shouldStartNewSession(timestamp: number): boolean {
+    const sessionId = this.explicitSessionId ?? timestamp;
+
+    return (
+      !this.inSession() ||
+      (this.explicitSessionId !== this.config.sessionId &&
+        (this.explicitSessionId !== undefined || !this.isWithinMinTimeBetweenSessions(sessionId)))
+    );
+  }
+
+  private isWithinMinTimeBetweenSessions(timestamp: number) {
+    return timestamp - (this.config.lastEventTime ?? 0) < this.config.sessionTimeout;
   }
 
   private inSession() {
@@ -284,10 +294,23 @@ export class AmplitudeReactNative extends AmplitudeCore {
     const currentAppState = this.appState;
     this.appState = nextAppState;
     if (currentAppState !== nextAppState && nextAppState === 'active') {
-      this.config.loggerProvider?.log('App Activated');
-      this.startNewSessionIfNeeded();
+      const timestamp = this.currentTimeMillis();
+      if (nextAppState == 'active') {
+        this.enterForeground(timestamp);
+      } else {
+        this.exitForeground(timestamp);
+      }
     }
   };
+
+  private enterForeground(timestamp: number) {
+    this.config.loggerProvider?.log('App Activated');
+    return this.startNewSessionIfNeeded(timestamp);
+  }
+
+  private exitForeground(timestamp: number) {
+    this.config.lastEventTime = timestamp;
+  }
 }
 
 export const createInstance = (): ReactNativeClient => {
