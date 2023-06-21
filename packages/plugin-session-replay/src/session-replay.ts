@@ -80,7 +80,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   recordEvents() {
     this.stopRecordingEvents = record({
       emit: (event) => {
-        console.log('event', event);
         const eventString = JSON.stringify(event);
         const shouldSplit = shouldSplitEventsList(this.events, eventString);
         if (shouldSplit) {
