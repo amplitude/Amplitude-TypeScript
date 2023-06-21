@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.0.0...@amplitude/analytics-types@2.0.1) (2023-06-21)
+
+### Bug Fixes
+
+- types for plugins to be env specific ([#440](https://github.com/amplitude/Amplitude-TypeScript/issues/440))
+  ([46b297c](https://github.com/amplitude/Amplitude-TypeScript/commit/46b297c11b5d2a83678824b119191fb955df6096))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.0.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.0.0-beta.8...@amplitude/analytics-types@2.0.0) (2023-06-14)
 
 **Note:** Version bump only for package @amplitude/analytics-types
