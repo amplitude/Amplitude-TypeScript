@@ -16,6 +16,13 @@ describe('browser-storage', () => {
       expect(await sessionStorage.get('1')).toBe(undefined);
     });
 
+    test('should return undefined if invalid json is stored at key', async () => {
+      const storage = getGlobalScope()?.sessionStorage;
+      const sessionStorage = new BrowserStorage<number[]>(storage);
+      storage?.setItem('1', 'not a json string');
+      expect(await sessionStorage.get('1')).toEqual(undefined);
+    });
+
     test('should return object', async () => {
       const sessionStorage = new BrowserStorage<Record<string, number>>(getGlobalScope()?.sessionStorage);
       await sessionStorage.set('1', { a: 1 });

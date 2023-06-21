@@ -34,7 +34,6 @@ export class BrowserStorage<T> implements AmplitudeStorage<T> {
       return JSON.parse(value);
     } catch {
       console.error(`[Amplitude] Error: Could not get value from storage`);
-      /* istanbul ignore next */
       return undefined;
     }
   }
