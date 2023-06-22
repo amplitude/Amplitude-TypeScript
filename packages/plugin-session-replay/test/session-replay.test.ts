@@ -1,8 +1,10 @@
+/* eslint-disable jest/expect-expect */
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import * as RRWeb from 'rrweb';
-import { SUCCESS_MESSAGE } from '../src/messages';
+import { shouldSplitEventsList } from '../src/helpers';
+import { SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../src/messages';
 import { SessionReplayPlugin } from '../src/session-replay';
 
 jest.mock('idb-keyval');
@@ -11,8 +13,12 @@ type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
 jest.mock('rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('rrweb')>;
 
-const mockEvent =
-  '{"type":4,"data":{"href":"https://analytics.amplitude.com/","width":1728,"height":154},"timestamp":1687358660935}';
+const mockEvent = {
+  type: 4,
+  data: { href: 'https://analytics.amplitude.com/', width: 1728, height: 154 },
+  timestamp: 1687358660935,
+};
+const mockEventString = JSON.stringify(mockEvent);
 
 async function runScheduleTimers() {
   // exhause first setTimeout
@@ -22,6 +28,16 @@ async function runScheduleTimers() {
   // exhause nested setTimeout
   jest.runAllTimers();
 }
+
+const mockLoggerProvider = {
+  error: jest.fn(),
+  log: jest.fn(),
+  logLevel: 1,
+  disable: jest.fn(),
+  enable: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+};
 
 describe('SessionReplayPlugin', () => {
   const { get, update } = IDBKeyVal as MockedIDBKeyVal;
@@ -45,7 +61,7 @@ describe('SessionReplayPlugin', () => {
     serverUrl: 'url',
     transportProvider: new FetchTransport(),
     useBatch: false,
-
+    sessionId: 123,
     cookieExpiration: 365,
     cookieSameSite: 'Lax',
     cookieSecure: false,
@@ -90,30 +106,32 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
     });
 
-    // polluting fetch
     test('should read events from storage and send them, then reset storage for session', async () => {
       const sessionReplay = new SessionReplayPlugin();
-      mockConfig.sessionId = 456;
+      const config = {
+        ...mockConfig,
+        sessionId: 456,
+      };
       get.mockResolvedValueOnce({
         123: {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 3,
         },
         456: {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 1,
         },
       });
       const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
 
-      await sessionReplay.setup(mockConfig);
+      await sessionReplay.setup(config);
       jest.runAllTimers();
       expect(send).toHaveBeenCalledTimes(2);
 
       // Sending first stored session events
       expect(send.mock.calls[0][0]).toEqual({
         attempts: 1,
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 3,
         sessionId: 123,
         timeout: 0,
@@ -121,7 +139,7 @@ describe('SessionReplayPlugin', () => {
       // Sending second stored session events
       expect(send.mock.calls[1][0]).toEqual({
         attempts: 1,
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 1,
         sessionId: 456,
         timeout: 0,
@@ -132,6 +150,22 @@ describe('SessionReplayPlugin', () => {
         '456': {
           events: [],
           sequenceId: 2,
+        },
+      });
+    });
+    test('should handle no stored events', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+      };
+      get.mockResolvedValueOnce({});
+      await sessionReplay.setup(config);
+      expect(sessionReplay.currentSequenceId).toBe(0);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1]({})).toEqual({
+        '123': {
+          events: [],
+          sequenceId: 0,
         },
       });
     });
@@ -186,7 +220,7 @@ describe('SessionReplayPlugin', () => {
         event_type: 'session_end',
         session_id: 789,
       };
-      sessionReplay.events = [mockEvent];
+      sessionReplay.events = [mockEventString];
       await sessionReplay.execute(event);
       jest.runAllTimers();
       expect(send).toHaveBeenCalledTimes(1);
@@ -194,10 +228,59 @@ describe('SessionReplayPlugin', () => {
       // Sending first stored session events
       expect(send.mock.calls[0][0]).toEqual({
         attempts: 1,
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 0,
         sessionId: 789,
         timeout: 0,
+      });
+    });
+  });
+
+  describe('recordEvents', () => {
+    test('should store events in class and in IDB', () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      sessionReplay.recordEvents();
+      expect(sessionReplay.events).toEqual([]);
+      const recordArg = record.mock.calls[0][0];
+      recordArg?.emit && recordArg?.emit(mockEvent);
+      expect(sessionReplay.events).toEqual([mockEventString]);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1]({})).toEqual({
+        123: {
+          events: [mockEventString],
+          sequenceId: 0,
+        },
+      });
+    });
+
+    test('should split the events list and send', () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      sessionReplay.maxPersistedEventsSize = 20;
+      const events = ['#'.repeat(20)];
+      sessionReplay.events = events;
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      const sendEventsListMock = jest.spyOn(sessionReplay, 'sendEventsList').mockImplementationOnce(() => {});
+      sessionReplay.recordEvents();
+
+      const recordArg = record.mock.calls[0][0];
+      recordArg?.emit && recordArg?.emit(mockEvent);
+
+      expect(sendEventsListMock).toHaveBeenCalledTimes(1);
+      expect(sendEventsListMock).toHaveBeenCalledWith({
+        events,
+        sequenceId: 0,
+        sessionId: 123,
+      });
+
+      expect(sessionReplay.events).toEqual([mockEventString]);
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1]({})).toEqual({
+        123: {
+          events: [mockEventString],
+          sequenceId: 1,
+        },
       });
     });
   });
@@ -208,7 +291,7 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.config = mockConfig;
       const schedule = jest.spyOn(sessionReplay, 'schedule').mockReturnValueOnce(undefined);
       const context = {
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
         attempts: 0,
@@ -217,6 +300,34 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.addToQueue(context);
       expect(schedule).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
+    });
+
+    test('should not add to queue if attemps are greater than allowed retries', () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = {
+        ...mockConfig,
+        flushMaxRetries: 1,
+      };
+      const completeRequest = jest.spyOn(sessionReplay, 'completeRequest').mockReturnValueOnce(undefined);
+      const context = {
+        events: [mockEventString],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 1,
+        timeout: 0,
+      };
+      sessionReplay.addToQueue(context);
+      expect(completeRequest).toHaveBeenCalledTimes(1);
+      expect(completeRequest).toHaveBeenCalledWith({
+        context: {
+          events: [mockEventString],
+          sequenceId: 1,
+          sessionId: 123,
+          attempts: 1,
+          timeout: 0,
+        },
+        err: 'Session replay event batch rejected due to exceeded retry count, batch sequence id, 1',
+      });
     });
   });
 
@@ -227,7 +338,7 @@ describe('SessionReplayPlugin', () => {
       (sessionReplay as any).scheduled = null;
       sessionReplay.queue = [
         {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 1,
           sessionId: 123,
           attempts: 0,
@@ -263,7 +374,7 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.config = mockConfig;
       sessionReplay.queue = [
         {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 1,
           sessionId: 123,
           attempts: 0,
@@ -282,7 +393,7 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.config = mockConfig;
       sessionReplay.queue = [
         {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 1,
           sessionId: 123,
           attempts: 0,
@@ -293,7 +404,7 @@ describe('SessionReplayPlugin', () => {
       const result = await sessionReplay.flush();
       expect(sessionReplay.queue).toEqual([
         {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 1,
           sessionId: 123,
           attempts: 0,
@@ -310,7 +421,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
         attempts: 0,
@@ -324,7 +435,7 @@ describe('SessionReplayPlugin', () => {
           api_key: 'static_key',
           session_id: 123,
           start_timestamp: 123,
-          events_batch: { version: 1, events: [mockEvent], seq_number: 1 },
+          events_batch: { version: 1, events: [mockEventString], seq_number: 1 },
         }),
         headers: { Accept: '*/*', 'Content-Type': 'application/json' },
         method: 'POST',
@@ -334,7 +445,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
         attempts: 0,
@@ -344,11 +455,11 @@ describe('SessionReplayPlugin', () => {
       jest.runAllTimers();
       const mockIDBStore = {
         123: {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 3,
         },
         456: {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 1,
         },
       };
@@ -356,7 +467,7 @@ describe('SessionReplayPlugin', () => {
       expect(update).toHaveBeenCalledTimes(1);
       expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
         456: {
-          events: [mockEvent],
+          events: [mockEventString],
           sequenceId: 1,
         },
       });
@@ -365,7 +476,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
         attempts: 0,
@@ -383,7 +494,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
         attempts: 0,
@@ -416,7 +527,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
-        events: [mockEvent],
+        events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
         attempts: 0,
@@ -435,15 +546,6 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('module level integration', () => {
-    const mockLoggerProvider = {
-      error: jest.fn(),
-      log: jest.fn(),
-      logLevel: 1,
-      disable: jest.fn(),
-      enable: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
-    };
     test('should handle unexpected error', async () => {
       const sessionReplay = new SessionReplayPlugin();
       const config = {
@@ -572,6 +674,102 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.execute(event);
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
+    });
+    test('should handle unexpected error where fetch response is null', async () => {
+      (fetch as jest.Mock).mockImplementationOnce(() => {
+        return Promise.resolve(null);
+      });
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        flushMaxRetries: 2,
+        loggerProvider: mockLoggerProvider,
+      };
+      await sessionReplay.setup(config);
+      const event = {
+        event_type: 'session_end',
+        session_id: 456,
+      };
+      await sessionReplay.execute(event);
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(UNEXPECTED_ERROR_MESSAGE);
+    });
+  });
+
+  describe('idb error handling', () => {
+    test('getAllSessionEventsFromStore should catch errors', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        loggerProvider: mockLoggerProvider,
+      };
+      sessionReplay.config = config;
+      get.mockImplementationOnce(() => Promise.reject('error'));
+      await sessionReplay.getAllSessionEventsFromStore();
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(
+        'Failed to store session replay events in IndexedDB: error',
+      );
+    });
+    test('storeEventsForSession should catch errors', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        loggerProvider: mockLoggerProvider,
+      };
+      sessionReplay.config = config;
+      update.mockImplementationOnce(() => Promise.reject('error'));
+      await sessionReplay.storeEventsForSession([mockEventString], 0);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(
+        'Failed to store session replay events in IndexedDB: error',
+      );
+    });
+    test('removeSessionEventsStore should catch errors', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        loggerProvider: mockLoggerProvider,
+      };
+      sessionReplay.config = config;
+      update.mockImplementationOnce(() => Promise.reject('error'));
+      await sessionReplay.removeSessionEventsStore(123);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(
+        'Failed to store session replay events in IndexedDB: error',
+      );
+    });
+    test('removeSessionEventsStore should handle an undefined store', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        loggerProvider: mockLoggerProvider,
+      };
+      sessionReplay.config = config;
+      update.mockImplementationOnce(() => Promise.resolve());
+      await sessionReplay.removeSessionEventsStore(123);
+      expect(update.mock.calls[0][1](undefined)).toEqual({});
+    });
+  });
+
+  describe('shouldSplitEventsList', () => {
+    test('shouldSplitEventsList should return true if size of events list plus size of next event is over the max size', () => {
+      const eventsList = ['#'.repeat(20)];
+      const nextEvent = 'a';
+      const result = shouldSplitEventsList(eventsList, nextEvent, 20);
+      expect(result).toBe(true);
+    });
+    test('shouldSplitEventsList should return false if size of events list plus size of next event is under the max size', () => {
+      const eventsList = ['#'.repeat(20)];
+      const nextEvent = 'a';
+      const result = shouldSplitEventsList(eventsList, nextEvent, 22);
+      expect(result).toBe(false);
     });
   });
 });

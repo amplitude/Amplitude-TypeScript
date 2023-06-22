@@ -8,6 +8,9 @@ import { Events, IDBStore, SessionReplayContext } from './typings/session-replay
 
 const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
 const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
+const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 200; // derived by JSON stringifying an example payload without events
+const MAX_EVENT_LIST_SIZE_IN_BYTES = 20 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
+
 export class SessionReplayPlugin implements EnrichmentPlugin {
   name = '@amplitude/plugin-session-replay';
   type = PluginType.ENRICHMENT as const;
@@ -22,6 +25,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: SessionReplayContext[] = [];
   stopRecordingEvents: ReturnType<typeof record> | null = null;
+  maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
@@ -71,7 +75,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       this.events = [];
       const currentSessionStoredEvents = this.config.sessionId && storedReplaySessions[this.config.sessionId];
       this.currentSequenceId = currentSessionStoredEvents ? currentSessionStoredEvents.sequenceId + 1 : 0;
-      this.storeEventsForSession([], this.currentSequenceId);
+      void this.storeEventsForSession([], this.currentSequenceId);
     }
   }
 
@@ -79,7 +83,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     this.stopRecordingEvents = record({
       emit: (event) => {
         const eventString = JSON.stringify(event);
-        const shouldSplit = shouldSplitEventsList(this.events, eventString);
+        const shouldSplit = shouldSplitEventsList(this.events, eventString, this.maxPersistedEventsSize);
         if (shouldSplit) {
           this.sendEventsList({
             events: this.events,
@@ -90,7 +94,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
           this.currentSequenceId++;
         }
         this.events.push(eventString);
-        this.storeEventsForSession(this.events, this.currentSequenceId);
+        void this.storeEventsForSession(this.events, this.currentSequenceId);
       },
     });
   }
@@ -180,6 +184,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       const res = await fetch(SESSION_REPLAY_SERVER_URL, options);
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE, removeEvents: false });
+        return;
       }
       if (!useRetry) {
         let responseBody = '';
@@ -230,36 +235,32 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     return undefined;
   }
 
-  storeEventsForSession(events: Events, sequenceId: number) {
+  async storeEventsForSession(events: Events, sequenceId: number) {
     try {
-      void IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
-        if (this.config.sessionId) {
-          return {
-            ...sessionMap,
+      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
+        return {
+          ...sessionMap,
+          ...(this.config.sessionId && {
             [this.config.sessionId]: {
               events: events,
               sequenceId,
             },
-          };
-        }
-        return sessionMap || {};
+          }),
+        };
       });
     } catch (e) {
       this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
     }
   }
 
-  removeSessionEventsStore(sessionId: number | undefined) {
-    if (sessionId) {
-      try {
-        void IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
-          sessionMap = sessionMap || {};
-          delete sessionMap[sessionId];
-          return sessionMap;
-        });
-      } catch (e) {
-        this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
-      }
+  async removeSessionEventsStore(sessionId: number) {
+    try {
+      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
+        delete sessionMap[sessionId];
+        return sessionMap;
+      });
+    } catch (e) {
+      this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
     }
   }
 
@@ -274,7 +275,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     success?: string;
     removeEvents?: boolean;
   }) {
-    removeEvents && this.removeSessionEventsStore(context.sessionId);
+    removeEvents && context.sessionId && this.removeSessionEventsStore(context.sessionId);
     if (err) {
       this.config.loggerProvider.error(err);
     } else if (success) {
