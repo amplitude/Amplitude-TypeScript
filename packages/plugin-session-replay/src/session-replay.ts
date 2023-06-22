@@ -3,7 +3,7 @@ import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Status } from '@amp
 import * as IDBKeyVal from 'idb-keyval';
 import { record } from 'rrweb';
 import { shouldSplitEventsList } from './helpers';
-import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE } from './messages';
+import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
 import { Events, IDBStore, SessionReplayContext } from './typings/session-replay';
 
 const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
@@ -111,7 +111,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         context.attempts += 1;
         return true;
       }
-      // TODO: should we keep events in indexdb to retry on a refresh? Whats destination behavior?
       this.completeRequest({
         context,
         err: `${MAX_RETRIES_EXCEEDED_MESSAGE}, batch sequence id, ${context.sequenceId}`,
@@ -210,7 +209,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   }
 
   handleSuccessResponse(context: SessionReplayContext) {
-    this.completeRequest({ context, success: `Session Replay events tracked successfully` });
+    this.completeRequest({ context, success: SUCCESS_MESSAGE });
   }
 
   handleOtherResponse(context: SessionReplayContext) {

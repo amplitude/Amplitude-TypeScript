@@ -1,8 +1,8 @@
-/* eslint-disable jest/expect-expect */
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import * as RRWeb from 'rrweb';
+import { SUCCESS_MESSAGE } from '../src/messages';
 import { SessionReplayPlugin } from '../src/session-replay';
 
 jest.mock('idb-keyval');
@@ -493,7 +493,7 @@ describe('SessionReplayPlugin', () => {
       expect(mockLoggerProvider.error).toHaveBeenCalledTimes(0);
       expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual('Session Replay events tracked successfully');
+      expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual(SUCCESS_MESSAGE);
     });
     test('should handle retry for 413 error with flushQueueSize of 1', async () => {
       (fetch as jest.Mock)
