@@ -1,16 +1,46 @@
+/* eslint-disable jest/expect-expect */
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
-import { Logger } from '@amplitude/analytics-core';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import * as IDBKeyVal from 'idb-keyval';
+import * as RRWeb from 'rrweb';
 import { SessionReplayPlugin } from '../src/session-replay';
 
+jest.mock('idb-keyval');
+type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
+
+jest.mock('rrweb');
+type MockedRRWeb = jest.Mocked<typeof import('rrweb')>;
+
+const mockEvent =
+  '{"type":4,"data":{"href":"https://analytics.amplitude.com/","width":1728,"height":154},"timestamp":1687358660935}';
+
+async function runScheduleTimers() {
+  // exhause first setTimeout
+  jest.runAllTimers();
+  // wait for next tick to call nested setTimeout
+  await Promise.resolve();
+  // exhause nested setTimeout
+  jest.runAllTimers();
+}
+
 describe('SessionReplayPlugin', () => {
+  const { get, update } = IDBKeyVal as MockedIDBKeyVal;
+  const { record } = RRWeb as MockedRRWeb;
+  let originalFetch: typeof global.fetch;
   const mockConfig: BrowserConfig = {
     apiKey: 'static_key',
     flushIntervalMillis: 0,
-    flushMaxRetries: 0,
+    flushMaxRetries: 1,
     flushQueueSize: 0,
     logLevel: LogLevel.None,
-    loggerProvider: new Logger(),
+    loggerProvider: {
+      error: jest.fn(),
+      log: jest.fn(),
+      disable: jest.fn(),
+      enable: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+    },
     optOut: false,
     serverUrl: 'url',
     transportProvider: new FetchTransport(),
@@ -30,824 +60,518 @@ describe('SessionReplayPlugin', () => {
       platform: true,
     },
   };
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        status: 200,
+      }),
+    ) as jest.Mock;
+  });
+  afterEach(() => {
+    jest.clearAllMocks();
+    global.fetch = originalFetch;
+  });
+  afterAll(() => {
+    jest.useRealTimers();
+  });
   describe('setup', () => {
     test('should setup plugin', async () => {
       const sessionReplay = new SessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
       expect(sessionReplay.config.transportProvider).toBeDefined();
       expect(sessionReplay.config.serverUrl).toBe('url');
-      expect(sessionReplay.config.flushMaxRetries).toBe(0);
+      expect(sessionReplay.config.flushMaxRetries).toBe(1);
       expect(sessionReplay.config.flushQueueSize).toBe(0);
       expect(sessionReplay.config.flushIntervalMillis).toBe(0);
-      expect(sessionReplay.storageKey).toBe('');
+      expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
     });
 
-    // test('should read from storage', async () => {
-    //   const sessionReplay = new SessionReplayPlugin();
-    //   const config = useDefaultConfig();
-    //   const event = {
-    //     event_type: 'hello',
-    //   };
-    //   config.storageProvider = {
-    //     isEnabled: async () => true,
-    //     get: async () => undefined,
-    //     set: async () => undefined,
-    //     remove: async () => undefined,
-    //     reset: async () => undefined,
-    //     getRaw: async () => undefined,
-    //   };
-    //   const get = jest.spyOn(config.storageProvider, 'get').mockResolvedValueOnce([event]);
-    //   const execute = jest.spyOn(destination, 'execute').mockReturnValueOnce(
-    //     Promise.resolve({
-    //       event,
-    //       message: Status.Success,
-    //       code: 200,
-    //     }),
-    //   );
-    //   await destination.setup(config);
-    //   expect(get).toHaveBeenCalledTimes(1);
-    //   expect(execute).toHaveBeenCalledTimes(1);
-    // });
+    // polluting fetch
+    test('should read events from storage and send them, then reset storage for session', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      mockConfig.sessionId = 456;
+      get.mockResolvedValueOnce({
+        123: {
+          events: [mockEvent],
+          sequenceId: 3,
+        },
+        456: {
+          events: [mockEvent],
+          sequenceId: 1,
+        },
+      });
+      const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
 
-    // test('should be ok with undefined storage', async () => {
-    //   const sessionReplay = new SessionReplayPlugin();
-    //   const config = useDefaultConfig();
-    //   config.storageProvider = undefined;
-    //   const execute = jest.spyOn(destination, 'execute');
-    //   await destination.setup(config);
-    //   expect(execute).toHaveBeenCalledTimes(0);
-    // });
+      await sessionReplay.setup(mockConfig);
+      jest.runAllTimers();
+      expect(send).toHaveBeenCalledTimes(2);
+
+      // Sending first stored session events
+      expect(send.mock.calls[0][0]).toEqual({
+        attempts: 1,
+        events: [mockEvent],
+        sequenceId: 3,
+        sessionId: 123,
+        timeout: 0,
+      });
+      // Sending second stored session events
+      expect(send.mock.calls[1][0]).toEqual({
+        attempts: 1,
+        events: [mockEvent],
+        sequenceId: 1,
+        sessionId: 456,
+        timeout: 0,
+      });
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1]({})).toEqual({
+        '456': {
+          events: [],
+          sequenceId: 2,
+        },
+      });
+    });
+    test('should record events', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup(mockConfig);
+      jest.runAllTimers();
+      expect(record).toHaveBeenCalledTimes(1);
+    });
   });
 
-  // describe('execute', () => {
-  //   test('should execute plugin', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const event = {
-  //       event_type: 'event_type',
-  //     };
-  //     const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
-  //       context.callback({ event, code: 200, message: Status.Success });
-  //     });
-  //     await destination.execute(event);
-  //     expect(addToQueue).toHaveBeenCalledTimes(1);
-  //   });
-  // });
+  describe('execute', () => {
+    test('should add event property for session_replay_enabled', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup(mockConfig);
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+          property_b: 123,
+        },
+      };
 
-  // describe('addToQueue', () => {
-  //   test('should add to queue and schedule a flush', () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.config = {
-  //       ...useDefaultConfig(),
-  //       flushIntervalMillis: 0,
-  //     };
-  //     const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
-  //     const event = {
-  //       event_type: 'event_type',
-  //     };
-  //     const context = {
-  //       event,
-  //       callback: () => undefined,
-  //       attempts: 0,
-  //       timeout: 0,
-  //     };
-  //     destination.addToQueue(context);
-  //     expect(schedule).toHaveBeenCalledTimes(1);
-  //     expect(context.attempts).toBe(1);
-  //   });
-  // });
+      const enrichedEvent = await sessionReplay.execute(event);
+      expect(enrichedEvent.event_properties).toEqual({
+        property_a: true,
+        property_b: 123,
+        session_replay_enabled: true,
+      });
+    });
 
-  // describe('schedule', () => {
-  //   beforeEach(() => {
-  //     jest.useFakeTimers();
-  //   });
+    test('should restart recording events when session_start fires', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const mockStopRecordingEvents = jest.fn();
+      record.mockReturnValue(mockStopRecordingEvents);
+      await sessionReplay.setup(mockConfig);
+      jest.runAllTimers();
+      const event = {
+        event_type: 'session_start',
+      };
+      await sessionReplay.execute(event);
+      expect(mockStopRecordingEvents).toHaveBeenCalledTimes(1);
+      expect(record).toHaveBeenCalledTimes(2);
+    });
 
-  //   afterEach(() => {
-  //     jest.useRealTimers();
-  //   });
+    test('should send the current events list when session_end fires', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
 
-  //   test('should schedule a flush', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  //     (destination as any).scheduled = null;
-  //     destination.queue = [
-  //       {
-  //         event: { event_type: 'event_type' },
-  //         attempts: 0,
-  //         callback: () => undefined,
-  //         timeout: 0,
-  //       },
-  //     ];
-  //     const flush = jest
-  //       .spyOn(destination, 'flush')
-  //       .mockImplementationOnce(() => {
-  //         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  //         (destination as any).scheduled = null;
-  //         return Promise.resolve(undefined);
-  //       })
-  //       .mockReturnValueOnce(Promise.resolve(undefined));
-  //     destination.schedule(0);
-  //     // exhause first setTimeout
-  //     jest.runAllTimers();
-  //     // wait for next tick to call nested setTimeout
-  //     await Promise.resolve();
-  //     // exhause nested setTimeout
-  //     jest.runAllTimers();
-  //     expect(flush).toHaveBeenCalledTimes(2);
-  //   });
+      const event = {
+        event_type: 'session_end',
+        session_id: 789,
+      };
+      sessionReplay.events = [mockEvent];
+      await sessionReplay.execute(event);
+      jest.runAllTimers();
+      expect(send).toHaveBeenCalledTimes(1);
 
-  //   test('should not schedule if one is already in progress', () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  //     (destination as any).scheduled = setTimeout(jest.fn, 0);
-  //     const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
-  //     destination.schedule(0);
-  //     expect(flush).toHaveBeenCalledTimes(0);
-  //   });
-  // });
+      // Sending first stored session events
+      expect(send.mock.calls[0][0]).toEqual({
+        attempts: 1,
+        events: [mockEvent],
+        sequenceId: 0,
+        sessionId: 789,
+        timeout: 0,
+      });
+    });
+  });
 
-  // describe('flush', () => {
-  //   test('should get batch and call send', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 1,
-  //     };
-  //     destination.queue = [
-  //       {
-  //         event: { event_type: 'event_type' },
-  //         attempts: 0,
-  //         callback: () => undefined,
-  //         timeout: 0,
-  //       },
-  //     ];
-  //     const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
-  //     const result = await destination.flush();
-  //     expect(destination.queue).toEqual([]);
-  //     expect(result).toBe(undefined);
-  //     expect(send).toHaveBeenCalledTimes(1);
-  //   });
+  describe('addToQueue', () => {
+    test('should add to queue and schedule a flush', () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const schedule = jest.spyOn(sessionReplay, 'schedule').mockReturnValueOnce(undefined);
+      const context = {
+        events: [mockEvent],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+      };
+      sessionReplay.addToQueue(context);
+      expect(schedule).toHaveBeenCalledTimes(1);
+      expect(context.attempts).toBe(1);
+    });
+  });
 
-  //   test('should send with queue', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.config = {
-  //       ...useDefaultConfig(),
-  //     };
-  //     destination.queue = [
-  //       {
-  //         event: { event_type: 'event_type' },
-  //         attempts: 0,
-  //         callback: () => undefined,
-  //         timeout: 0,
-  //       },
-  //     ];
-  //     const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
-  //     const result = await destination.flush();
-  //     expect(destination.queue).toEqual([]);
-  //     expect(result).toBe(undefined);
-  //     expect(send).toHaveBeenCalledTimes(1);
-  //   });
+  describe('schedule', () => {
+    test('should schedule a flush', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).scheduled = null;
+      sessionReplay.queue = [
+        {
+          events: [mockEvent],
+          sequenceId: 1,
+          sessionId: 123,
+          attempts: 0,
+          timeout: 0,
+        },
+      ];
+      const flush = jest
+        .spyOn(sessionReplay, 'flush')
+        .mockImplementationOnce(() => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (sessionReplay as any).scheduled = null;
+          return Promise.resolve(undefined);
+        })
+        .mockReturnValueOnce(Promise.resolve(undefined));
+      sessionReplay.schedule(0);
+      await runScheduleTimers();
+      expect(flush).toHaveBeenCalledTimes(2);
+    });
 
-  //   test('should send later', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.config = {
-  //       ...useDefaultConfig(),
-  //     };
-  //     destination.queue = [
-  //       {
-  //         event: { event_type: 'event_type' },
-  //         attempts: 0,
-  //         callback: () => undefined,
-  //         timeout: 1000,
-  //       },
-  //     ];
-  //     const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
-  //     const result = await destination.flush();
-  //     expect(destination.queue).toEqual([
-  //       {
-  //         event: { event_type: 'event_type' },
-  //         attempts: 0,
-  //         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  //         callback: expect.any(Function),
-  //         timeout: 1000,
-  //       },
-  //     ]);
-  //     expect(result).toBe(undefined);
-  //     expect(send).toHaveBeenCalledTimes(0);
-  //   });
-  // });
+    test('should not schedule if one is already in progress', () => {
+      const sessionReplay = new SessionReplayPlugin();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (sessionReplay as any).scheduled = setTimeout(jest.fn, 0);
+      const flush = jest.spyOn(sessionReplay, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
+      sessionReplay.schedule(0);
+      expect(flush).toHaveBeenCalledTimes(0);
+    });
+  });
 
-  // describe('send', () => {
-  //   test('should include min id length', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const callback = jest.fn();
-  //     const event = {
-  //       event_type: 'event_type',
-  //     };
-  //     const context = {
-  //       attempts: 0,
-  //       callback,
-  //       event,
-  //       timeout: 0,
-  //     };
-  //     const transportProvider = {
-  //       send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
-  //         expect(payload.options?.min_id_length).toBe(10);
-  //         return Promise.resolve({
-  //           status: Status.Success,
-  //           statusCode: 200,
-  //           body: {
-  //             eventsIngested: 1,
-  //             payloadSizeBytes: 1,
-  //             serverUploadTime: 1,
-  //           },
-  //         });
-  //       }),
-  //     };
-  //     await destination.setup({
-  //       ...useDefaultConfig(),
-  //       transportProvider,
-  //       apiKey: API_KEY,
-  //       minIdLength: 10,
-  //     });
-  //     await destination.send([context]);
-  //     expect(callback).toHaveBeenCalledTimes(1);
-  //     expect(callback).toHaveBeenCalledWith({
-  //       event,
-  //       code: 200,
-  //       message: SUCCESS_MESSAGE,
-  //     });
-  //   });
+  describe('flush', () => {
+    test('should call send', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      sessionReplay.queue = [
+        {
+          events: [mockEvent],
+          sequenceId: 1,
+          sessionId: 123,
+          attempts: 0,
+          timeout: 0,
+        },
+      ];
+      const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
+      const result = await sessionReplay.flush();
+      expect(sessionReplay.queue).toEqual([]);
+      expect(result).toBe(undefined);
+      expect(send).toHaveBeenCalledTimes(1);
+    });
 
-  //   test('should not include extra', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const callback = jest.fn();
-  //     const event = {
-  //       event_type: 'event_type',
-  //       extra: { 'extra-key': 'extra-value' },
-  //     };
-  //     const context = {
-  //       attempts: 0,
-  //       callback,
-  //       event,
-  //       timeout: 0,
-  //     };
-  //     const transportProvider = {
-  //       send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
-  //         expect(payload.options?.min_id_length).toBe(10);
-  //         expect(payload.events.some((event) => !!event.extra)).toBeFalsy();
-  //         return Promise.resolve({
-  //           status: Status.Success,
-  //           statusCode: 200,
-  //           body: {
-  //             eventsIngested: 1,
-  //             payloadSizeBytes: 1,
-  //             serverUploadTime: 1,
-  //           },
-  //         });
-  //       }),
-  //     };
-  //     await destination.setup({
-  //       ...useDefaultConfig(),
-  //       transportProvider,
-  //       apiKey: API_KEY,
-  //       minIdLength: 10,
-  //     });
-  //     await destination.send([context]);
-  //     expect(callback).toHaveBeenCalledTimes(1);
-  //     expect(callback).toHaveBeenCalledWith({
-  //       event,
-  //       code: 200,
-  //       message: SUCCESS_MESSAGE,
-  //     });
-  //   });
+    test('should send later', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      sessionReplay.queue = [
+        {
+          events: [mockEvent],
+          sequenceId: 1,
+          sessionId: 123,
+          attempts: 0,
+          timeout: 1000,
+        },
+      ];
+      const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
+      const result = await sessionReplay.flush();
+      expect(sessionReplay.queue).toEqual([
+        {
+          events: [mockEvent],
+          sequenceId: 1,
+          sessionId: 123,
+          attempts: 0,
+          timeout: 1000,
+        },
+      ]);
+      expect(result).toBe(undefined);
+      expect(send).toHaveBeenCalledTimes(0);
+    });
+  });
 
-  //   test('should not retry', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const callback = jest.fn();
-  //     const event = {
-  //       event_type: 'event_type',
-  //     };
-  //     const context = {
-  //       attempts: 0,
-  //       callback,
-  //       event,
-  //       timeout: 0,
-  //     };
-  //     const transportProvider = {
-  //       send: jest.fn().mockImplementationOnce(() => {
-  //         return Promise.resolve({
-  //           status: Status.Failed,
-  //           statusCode: 500,
-  //         });
-  //       }),
-  //     };
-  //     await destination.setup({
-  //       ...useDefaultConfig(),
-  //       transportProvider,
-  //       apiKey: API_KEY,
-  //     });
-  //     await destination.send([context], false);
-  //     expect(callback).toHaveBeenCalledTimes(1);
-  //     expect(callback).toHaveBeenCalledWith({
-  //       event,
-  //       code: 500,
-  //       message: Status.Failed,
-  //     });
-  //   });
+  describe('send', () => {
+    test('should make a request correctly', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const context = {
+        events: [mockEvent],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+      };
 
-  //   test('should provide error details', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const callback = jest.fn();
-  //     const event = {
-  //       event_type: 'event_type',
-  //     };
-  //     const context = {
-  //       attempts: 0,
-  //       callback,
-  //       event,
-  //       timeout: 0,
-  //     };
-  //     const body = {
-  //       error: 'Request missing required field',
-  //       missingField: 'user_id',
-  //     };
-  //     const transportProvider = {
-  //       send: jest.fn().mockImplementationOnce(() => {
-  //         return Promise.resolve({
-  //           status: Status.Invalid,
-  //           statusCode: 400,
-  //           body,
-  //         });
-  //       }),
-  //     };
-  //     await destination.setup({
-  //       ...useDefaultConfig(),
-  //       transportProvider,
-  //       apiKey: API_KEY,
-  //     });
-  //     await destination.send([context], false);
-  //     expect(callback).toHaveBeenCalledTimes(1);
-  //     expect(callback).toHaveBeenCalledWith({
-  //       event,
-  //       code: 400,
-  //       message: `${Status.Invalid}: ${JSON.stringify(body, null, 2)}`,
-  //     });
-  //   });
+      await sessionReplay.send(context);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith('https://api-secure.amplitude.com/sessions/track', {
+        body: JSON.stringify({
+          api_key: 'static_key',
+          session_id: 123,
+          start_timestamp: 123,
+          events_batch: { version: 1, events: [mockEvent], seq_number: 1 },
+        }),
+        headers: { Accept: '*/*', 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
+    });
+    test('should remove session events from IDB store upon success', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const context = {
+        events: [mockEvent],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+      };
+      await sessionReplay.send(context);
+      jest.runAllTimers();
+      const mockIDBStore = {
+        123: {
+          events: [mockEvent],
+          sequenceId: 3,
+        },
+        456: {
+          events: [mockEvent],
+          sequenceId: 1,
+        },
+      };
 
-  //   test('should handle no api key', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const callback = jest.fn();
-  //     const event = {
-  //       event_type: 'event_type',
-  //     };
-  //     const context = {
-  //       attempts: 0,
-  //       callback,
-  //       event,
-  //       timeout: 0,
-  //     };
-  //     const transportProvider = {
-  //       send: jest.fn().mockImplementationOnce(() => {
-  //         throw new Error();
-  //       }),
-  //     };
-  //     await destination.setup({
-  //       ...useDefaultConfig(),
-  //       transportProvider,
-  //       apiKey: '',
-  //     });
-  //     await destination.send([context]);
-  //     expect(callback).toHaveBeenCalledTimes(1);
-  //     expect(callback).toHaveBeenCalledWith({
-  //       event,
-  //       code: 400,
-  //       message: MISSING_API_KEY_MESSAGE,
-  //     });
-  //   });
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
+        456: {
+          events: [mockEvent],
+          sequenceId: 1,
+        },
+      });
+    });
+    test('should not remove session events from IDB store upon failure', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const context = {
+        events: [mockEvent],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+      };
+      (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject());
 
-  //   test('should handle unexpected error', async () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const callback = jest.fn();
-  //     const context = {
-  //       attempts: 0,
-  //       callback,
-  //       event: {
-  //         event_type: 'event_type',
-  //       },
-  //       timeout: 0,
-  //     };
-  //     const transportProvider = {
-  //       send: jest.fn().mockImplementationOnce(() => {
-  //         throw new Error();
-  //       }),
-  //     };
-  //     await destination.setup({
-  //       ...useDefaultConfig(),
-  //       transportProvider,
-  //     });
-  //     await destination.send([context]);
-  //     expect(callback).toHaveBeenCalledTimes(1);
-  //   });
-  // });
+      await sessionReplay.send(context);
+      jest.runAllTimers();
 
-  // describe('saveEvents', () => {
-  //   test('should save to storage provider', () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.config = useDefaultConfig();
-  //     destination.config.storageProvider = {
-  //       isEnabled: async () => true,
-  //       get: async () => undefined,
-  //       set: async () => undefined,
-  //       remove: async () => undefined,
-  //       reset: async () => undefined,
-  //       getRaw: async () => undefined,
-  //     };
-  //     const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-  //     destination.saveEvents();
-  //     expect(set).toHaveBeenCalledTimes(1);
-  //   });
+      expect(update).not.toHaveBeenCalled();
+    });
 
-  //   test('should be ok with no storage provider', () => {
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.config = useDefaultConfig();
-  //     destination.config.storageProvider = undefined;
-  //     expect(destination.saveEvents()).toBe(undefined);
-  //   });
-  // });
+    test('should retry if retry param is true', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const context = {
+        events: [mockEvent],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+      };
+      (global.fetch as jest.Mock)
+        .mockImplementationOnce(() =>
+          Promise.resolve({
+            status: 500,
+          }),
+        )
+        .mockImplementationOnce(() =>
+          Promise.resolve({
+            status: 200,
+          }),
+        );
+      const addToQueue = jest.spyOn(sessionReplay, 'addToQueue');
 
-  // describe('module level integration', () => {
-  //   const successResponse = {
-  //     status: Status.Success,
-  //     statusCode: 200,
-  //     body: {
-  //       eventsIngested: 1,
-  //       payloadSizeBytes: 1,
-  //       serverUploadTime: 1,
-  //     },
-  //   };
+      await sessionReplay.send(context, true);
+      expect(addToQueue).toHaveBeenCalledTimes(1);
+      expect(addToQueue).toHaveBeenCalledWith({
+        ...context,
+        attempts: 1,
+        timeout: 0,
+      });
+      await runScheduleTimers();
+    });
 
-  //   test('should handle unexpected error', async () => {
-  //     class Http {
-  //       send = jest.fn().mockImplementationOnce(() => {
-  //         return Promise.resolve(null);
-  //       });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 2,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     const result = await destination.execute({
-  //       event_type: 'event_type',
-  //     });
-  //     expect(result.code).toBe(0);
-  //     expect(result.message).toBe(UNEXPECTED_ERROR_MESSAGE);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(1);
-  //   });
+    test('should not retry if retry param is false', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const context = {
+        events: [mockEvent],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+      };
+      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+        Promise.resolve({
+          status: 500,
+        }),
+      );
+      const addToQueue = jest.spyOn(sessionReplay, 'addToQueue');
 
-  //   test('should not retry with invalid api key', async () => {
-  //     class Http {
-  //       send = jest.fn().mockImplementationOnce(() => {
-  //         return Promise.resolve({
-  //           status: Status.Invalid,
-  //           statusCode: 400,
-  //           body: {
-  //             error: INVALID_API_KEY,
-  //           },
-  //         });
-  //       });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.retryTimeout = 10;
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 2,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     const results = await Promise.all([
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //     ]);
-  //     expect(results[0].code).toBe(400);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(1);
-  //   });
+      await sessionReplay.send(context, false);
+      expect(addToQueue).toHaveBeenCalledTimes(0);
+    });
+  });
 
-  //   test('should handle retry for 400 error', async () => {
-  //     class Http {
-  //       send = jest
-  //         .fn()
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve({
-  //             status: Status.Invalid,
-  //             statusCode: 400,
-  //             body: {
-  //               error: 'error',
-  //               missingField: '',
-  //               eventsWithInvalidFields: { a: [0] },
-  //               eventsWithMissingFields: { b: [] },
-  //               eventsWithInvalidIdLengths: {},
-  //               silencedEvents: [],
-  //             },
-  //           });
-  //         })
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve(successResponse);
-  //         });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.retryTimeout = 10;
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 2,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     const results = await Promise.all([
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //     ]);
-  //     expect(results[0].code).toBe(400);
-  //     expect(results[1].code).toBe(200);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(2);
-  //   });
-
-  //   test('should handle retry for 400 error with missing body field', async () => {
-  //     class Http {
-  //       send = jest.fn().mockImplementationOnce(() => {
-  //         return Promise.resolve({
-  //           status: Status.Invalid,
-  //           statusCode: 400,
-  //           body: {
-  //             error: 'error',
-  //             missingField: 'key',
-  //             eventsWithInvalidFields: {},
-  //             eventsWithMissingFields: {},
-  //             silencedEvents: [],
-  //           },
-  //         });
-  //       });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 2,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     const results = await Promise.all([
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //     ]);
-  //     expect(results[0].code).toBe(400);
-  //     expect(results[1].code).toBe(400);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(1);
-  //   });
-
-  //   test('should handle retry for 413 error with flushQueueSize of 1', async () => {
-  //     class Http {
-  //       send = jest.fn().mockImplementationOnce(() => {
-  //         return Promise.resolve({
-  //           status: Status.PayloadTooLarge,
-  //           statusCode: 413,
-  //           body: {
-  //             error: 'error',
-  //           },
-  //         });
-  //       });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 1,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     const event = {
-  //       event_type: 'event_type',
-  //     };
-  //     const result = await destination.execute(event);
-  //     expect(result).toEqual({
-  //       event,
-  //       message: 'error',
-  //       code: 413,
-  //     });
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(1);
-  //   });
-
-  //   test('should handle retry for 413 error', async () => {
-  //     class Http {
-  //       send = jest
-  //         .fn()
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve({
-  //             status: Status.PayloadTooLarge,
-  //             statusCode: 413,
-  //             body: {
-  //               error: 'error',
-  //             },
-  //           });
-  //         })
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve(successResponse);
-  //         })
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve(successResponse);
-  //         });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.retryTimeout = 10;
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 2,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     await Promise.all([
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //     ]);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(3);
-  //   });
-
-  //   test('should handle retry for 429 error', async () => {
-  //     class Http {
-  //       send = jest
-  //         .fn()
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve({
-  //             status: Status.RateLimit,
-  //             statusCode: 429,
-  //             body: {
-  //               error: 'error',
-  //               epsThreshold: 1,
-  //               throttledDevices: {},
-  //               throttledUsers: {},
-  //               exceededDailyQuotaDevices: {
-  //                 '1': 1,
-  //               },
-  //               exceededDailyQuotaUsers: {
-  //                 '2': 1,
-  //               },
-  //               throttledEvents: [0],
-  //             },
-  //           });
-  //         })
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve(successResponse);
-  //         })
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve(successResponse);
-  //         });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.retryTimeout = 10;
-  //     destination.throttleTimeout = 1;
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 4,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     const results = await Promise.all([
-  //       // throttled
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //         user_id: '0',
-  //         device_id: '0',
-  //       }),
-  //       // exceed daily device quota
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //         user_id: '1',
-  //         device_id: '1',
-  //       }),
-  //       // exceed daily user quota
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //         user_id: '2',
-  //         device_id: '2',
-  //       }),
-  //       // success
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //         user_id: '3',
-  //         device_id: '3',
-  //       }),
-  //     ]);
-  //     expect(results[0].code).toBe(200);
-  //     expect(results[1].code).toBe(429);
-  //     expect(results[2].code).toBe(429);
-  //     expect(results[3].code).toBe(200);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(2);
-  //   });
-
-  //   test('should handle retry for 500 error', async () => {
-  //     class Http {
-  //       send = jest
-  //         .fn()
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve({
-  //             statusCode: 500,
-  //             status: Status.Failed,
-  //           });
-  //         })
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve(successResponse);
-  //         });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.retryTimeout = 10;
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushQueueSize: 2,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     await Promise.all([
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //     ]);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(2);
-  //   });
-
-  //   test('should handle retry for 503 error', async () => {
-  //     class Http {
-  //       send = jest
-  //         .fn()
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve({
-  //             statusCode: 500,
-  //             status: Status.Failed,
-  //           });
-  //         })
-  //         .mockImplementationOnce(() => {
-  //           return Promise.resolve({
-  //             statusCode: 500,
-  //             status: Status.Failed,
-  //           });
-  //         });
-  //     }
-  //     const transportProvider = new Http();
-  //     const sessionReplay = new SessionReplayPlugin();
-  //     destination.retryTimeout = 10;
-  //     const config = {
-  //       ...useDefaultConfig(),
-  //       flushMaxRetries: 1,
-  //       flushQueueSize: 2,
-  //       flushIntervalMillis: 500,
-  //       transportProvider,
-  //     };
-  //     await destination.setup(config);
-  //     const results = await Promise.all([
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //       destination.execute({
-  //         event_type: 'event_type',
-  //       }),
-  //     ]);
-  //     expect(results[0].code).toBe(500);
-  //     expect(results[1].code).toBe(500);
-  //     expect(transportProvider.send).toHaveBeenCalledTimes(1);
-  //   });
-  // });
+  describe('module level integration', () => {
+    const mockLoggerProvider = {
+      error: jest.fn(),
+      log: jest.fn(),
+      logLevel: 1,
+      disable: jest.fn(),
+      enable: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+    };
+    test('should handle unexpected error', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        loggerProvider: mockLoggerProvider,
+      };
+      (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
+      await sessionReplay.setup(config);
+      await sessionReplay.execute({
+        event_type: 'session_end',
+        session_id: 456,
+      });
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual('API Failure');
+    });
+    test('should handle retry for 400 error', async () => {
+      (fetch as jest.Mock)
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 400,
+          });
+        })
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 200,
+          });
+        });
+      const sessionReplay = new SessionReplayPlugin();
+      sessionReplay.retryTimeout = 10;
+      const config = {
+        ...mockConfig,
+        flushMaxRetries: 2,
+        loggerProvider: mockLoggerProvider,
+      };
+      await sessionReplay.setup(config);
+      // Log is called from setup, but that's not what we're testing here
+      mockLoggerProvider.log.mockClear();
+      await sessionReplay.execute({
+        event_type: 'session_end',
+        session_id: 456,
+      });
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(0);
+      expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual('Session Replay events tracked successfully');
+    });
+    test('should handle retry for 413 error with flushQueueSize of 1', async () => {
+      (fetch as jest.Mock)
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 413,
+          });
+        })
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 200,
+          });
+        });
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        flushMaxRetries: 2,
+      };
+      await sessionReplay.setup(config);
+      const event = {
+        event_type: 'session_end',
+        session_id: 456,
+      };
+      await sessionReplay.execute(event);
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+    test('should handle retry for 500 error', async () => {
+      (fetch as jest.Mock)
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 500,
+          });
+        })
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 200,
+          });
+        });
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        flushMaxRetries: 2,
+      };
+      await sessionReplay.setup(config);
+      const event = {
+        event_type: 'session_end',
+        session_id: 456,
+      };
+      await sessionReplay.execute(event);
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+    test('should handle retry for 503 error', async () => {
+      (fetch as jest.Mock)
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 503,
+          });
+        })
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 200,
+          });
+        });
+      const sessionReplay = new SessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        flushMaxRetries: 2,
+      };
+      await sessionReplay.setup(config);
+      const event = {
+        event_type: 'session_end',
+        session_id: 456,
+      };
+      await sessionReplay.execute(event);
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+  });
 });

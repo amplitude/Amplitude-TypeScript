@@ -1,6 +1,6 @@
 import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
 import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Status } from '@amplitude/analytics-types';
-import { get, update } from 'idb-keyval';
+import * as IDBKeyVal from 'idb-keyval';
 import { record } from 'rrweb';
 import { shouldSplitEventsList } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE } from './messages';
@@ -28,7 +28,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
     this.config = config;
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
-
     await this.emptyStoreAndReset();
 
     this.recordEvents();
@@ -39,7 +38,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       ...event.event_properties,
       session_replay_enabled: true,
     };
-
     if (event.event_type === 'session_start' && this.stopRecordingEvents) {
       this.stopRecordingEvents();
       this.recordEvents();
@@ -193,27 +191,26 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         }
         this.completeRequest({ context, success: `${res.status}: ${responseBody}` });
       } else {
-        this.handleReponse(res, context);
+        this.handleReponse(res.status, context);
       }
     } catch (e) {
       this.completeRequest({ context, err: e as string, removeEvents: false });
     }
   }
 
-  handleReponse(res: Response, context: SessionReplayContext) {
-    const { status } = res;
+  handleReponse(status: number, context: SessionReplayContext) {
     const parsedStatus = new BaseTransport().buildStatus(status);
     switch (parsedStatus) {
       case Status.Success:
-        this.handleSuccessResponse(res, context);
+        this.handleSuccessResponse(context);
         break;
       default:
         this.handleOtherResponse(context);
     }
   }
 
-  handleSuccessResponse(res: Response, context: SessionReplayContext) {
-    this.completeRequest({ context, success: `${res.status}` });
+  handleSuccessResponse(context: SessionReplayContext) {
+    this.completeRequest({ context, success: `Session Replay events tracked successfully` });
   }
 
   handleOtherResponse(context: SessionReplayContext) {
@@ -225,7 +222,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async getAllSessionEventsFromStore() {
     try {
-      const storedReplaySessionContexts: IDBStore | undefined = await get(this.storageKey);
+      const storedReplaySessionContexts: IDBStore | undefined = await IDBKeyVal.get(this.storageKey);
 
       return storedReplaySessionContexts;
     } catch (e) {
@@ -236,7 +233,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   storeEventsForSession(events: Events, sequenceId: number) {
     try {
-      void update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
+      void IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
         if (this.config.sessionId) {
           return {
             ...sessionMap,
@@ -256,7 +253,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   removeSessionEventsStore(sessionId: number | undefined) {
     if (sessionId) {
       try {
-        void update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
+        void IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
           sessionMap = sessionMap || {};
           delete sessionMap[sessionId];
           return sessionMap;
