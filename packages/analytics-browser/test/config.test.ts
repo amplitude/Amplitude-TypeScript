@@ -1,5 +1,6 @@
 import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
+import * as SessionStorageModule from '../src/storage/session-storage';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, Storage, UserSession } from '@amplitude/analytics-types';
 import * as BrowserUtils from '@amplitude/analytics-client-common';
@@ -251,6 +252,11 @@ describe('config', () => {
     test('should use return storage', async () => {
       const storage = Config.createCookieStorage('localStorage');
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
+    });
+
+    test('should use return session storage', async () => {
+      const storage = Config.createCookieStorage('sessionStorage');
+      expect(storage).toBeInstanceOf(SessionStorageModule.SessionStorage);
     });
 
     test('should use memory', async () => {

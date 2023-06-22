@@ -18,6 +18,7 @@ import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
+import { SessionStorage } from './storage/session-storage';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
@@ -258,6 +259,8 @@ export const createCookieStorage = <T>(
   switch (identityStorage) {
     case 'localStorage':
       return new LocalStorage<T>();
+    case 'sessionStorage':
+      return new SessionStorage<T>();
     case 'none':
       return new MemoryStorage<T>();
     case 'cookie':

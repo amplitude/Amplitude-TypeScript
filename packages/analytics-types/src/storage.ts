@@ -14,4 +14,4 @@ export interface CookieStorageOptions {
   secure?: boolean;
 }
 
-export type IdentityStorageType = 'cookie' | 'localStorage' | 'none';
+export type IdentityStorageType = 'cookie' | 'localStorage' | 'sessionStorage' | 'none';
