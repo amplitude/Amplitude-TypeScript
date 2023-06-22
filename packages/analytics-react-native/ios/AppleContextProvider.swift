@@ -1,3 +1,5 @@
+import AdSupport
+import AppTrackingTransparency
 import Foundation
 
 @objc public class AppleContextProvider : NSObject {
@@ -9,6 +11,18 @@ import Foundation
     public let osVersion: String = AppleContextProvider.getOsVersion()
     public let deviceManufacturer: String = AppleContextProvider.getDeviceManufacturer()
     public let deviceModel: String = AppleContextProvider.getDeviceModel()
+    public var idfa: String? = nil
+    public var idfv: String? = nil
+
+    init(trackIdfa: Bool, trackIdfv: Bool) {
+      super.init()
+      if (trackIdfa) {
+        fetchIdfa()
+      }
+      if (trackIdfv) {
+        fetchIdfv()
+      }
+    }
 
     private static func getVersion() -> String? {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
@@ -39,6 +53,25 @@ import Foundation
         var sysinfo = utsname()
         uname(&sysinfo) // ignore return value
         return String(bytes: Data(bytes: &sysinfo.machine, count: Int(_SYS_NAMELEN)), encoding: .ascii)!.trimmingCharacters(in: .controlCharacters)
+    }
+
+    private func fetchIdfa() {
+        if #available(iOS 14, *) {
+            ATTrackingManager.requestTrackingAuthorization { status in
+                switch status {
+                    case .authorized:
+                        self.idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+                    default:
+                        self.idfa = nil
+                }
+            }
+        } else {
+            self.idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+        }
+    }
+
+    private func fetchIdfv() {
+        self.idfv = UIDevice.current.identifierForVendor?.uuidString
     }
 
     private static func getDeviceModel() -> String {

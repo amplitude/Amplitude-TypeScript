@@ -10,6 +10,8 @@ export interface ReactNativeTrackingOptions extends TrackingOptions {
   adid?: boolean;
   carrier?: boolean;
   appSetId?: boolean;
+  idfa?: boolean;
+  idfv?: boolean;
 }
 
 type HiddenOptions = 'apiKey' | 'lastEventId';

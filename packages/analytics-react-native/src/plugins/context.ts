@@ -1,4 +1,10 @@
-import { BeforePlugin, ReactNativeConfig, Event, PluginType } from '@amplitude/analytics-types';
+import {
+  BeforePlugin,
+  ReactNativeConfig,
+  Event,
+  PluginType,
+  ReactNativeTrackingOptions,
+} from '@amplitude/analytics-types';
 import UAParser from '@amplitude/ua-parser-js';
 import { UUID } from '@amplitude/analytics-core';
 import { getLanguage } from '@amplitude/analytics-client-common';
@@ -20,10 +26,12 @@ type NativeContext = {
   carrier: string;
   adid: string;
   appSetId: string;
+  idfa: string;
+  idfv: string;
 };
 
 export interface AmplitudeReactNative {
-  getApplicationContext(shouldTrackAdid: boolean): Promise<NativeContext>;
+  getApplicationContext(options: ReactNativeTrackingOptions): Promise<NativeContext>;
 }
 
 export class Context implements BeforePlugin {
@@ -56,7 +64,7 @@ export class Context implements BeforePlugin {
 
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
-    const nativeContext = await this.nativeModule?.getApplicationContext(this.config.trackingOptions.adid ?? false);
+    const nativeContext = await this.nativeModule?.getApplicationContext(this.config.trackingOptions);
     const appVersion = nativeContext?.version || this.config.appVersion;
     const platform = nativeContext?.platform || BROWSER_PLATFORM;
     const osName = nativeContext?.osName || this.uaResult.browser.name;
@@ -67,6 +75,8 @@ export class Context implements BeforePlugin {
     const carrier = nativeContext?.carrier;
     const adid = nativeContext?.adid;
     const appSetId = nativeContext?.appSetId;
+    const idfa = nativeContext?.idfa;
+    const idfv = nativeContext?.idfv;
 
     const event: Event = {
       user_id: this.config.userId,
@@ -84,6 +94,8 @@ export class Context implements BeforePlugin {
       ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
       ...(this.config.trackingOptions.adid && { adid: adid }),
       ...(this.config.trackingOptions.appSetId && { android_app_set_id: appSetId }),
+      ...(this.config.trackingOptions.idfa && { idfa: idfa }),
+      ...(this.config.trackingOptions.idfv && { idfv: idfv }),
       insert_id: UUID(),
       partner_id: this.config.partnerId,
       plan: this.config.plan,
