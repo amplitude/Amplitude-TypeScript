@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.1...@amplitude/analytics-browser@2.1.0) (2023-06-22)
+
+### Features
+
+- **storage:** add support for sessionStorage as identityStorage
+  ([#435](https://github.com/amplitude/Amplitude-TypeScript/issues/435))
+  ([8596f6a](https://github.com/amplitude/Amplitude-TypeScript/commit/8596f6a340a32b08a3f55a337723c39c6c57cbf1)), closes
+  [#434](https://github.com/amplitude/Amplitude-TypeScript/issues/434)
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.0...@amplitude/analytics-browser@2.0.1) (2023-06-21)
 
 ### Bug Fixes
