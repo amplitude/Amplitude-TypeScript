@@ -1,7 +1,7 @@
 import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
 import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
-import { record } from 'rrweb';
+import { pack, record } from 'rrweb';
 import { shouldSplitEventsList } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
 import { Events, IDBStore, SessionReplayContext } from './typings/session-replay';
@@ -96,6 +96,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         this.events.push(eventString);
         void this.storeEventsForSession(this.events, this.currentSequenceId);
       },
+      packFn: pack,
     });
   }
 
