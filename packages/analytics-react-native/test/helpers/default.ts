@@ -39,7 +39,6 @@ export const DEFAULT_OPTIONS: Partial<IReactNativeConfig> = {
     osVersion: true,
     platform: true,
     appSetId: true,
-    idfa: true,
     idfv: true,
   },
   transportProvider: {

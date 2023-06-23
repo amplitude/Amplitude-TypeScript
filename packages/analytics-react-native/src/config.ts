@@ -24,7 +24,6 @@ export const getDefaultConfig = () => {
     osVersion: true,
     platform: true,
     appSetId: true,
-    idfa: true,
     idfv: true,
   };
   return {

@@ -73,7 +73,6 @@ describe('context', () => {
           osVersion: false,
           platform: false,
           appSetId: false,
-          idfa: false,
           idfv: false,
         },
         userId: 'user@amplitude.com',
@@ -97,7 +96,6 @@ describe('context', () => {
       expect(firstContextEvent.ip).toBeUndefined();
       expect(firstContextEvent.adid).toBeUndefined();
       expect(firstContextEvent.android_app_set_id).toBeUndefined();
-      expect(firstContextEvent.idfa).toBeUndefined();
       expect(firstContextEvent.idfv).toBeUndefined();
       expect(firstContextEvent.device_id).toEqual('deviceId');
       expect(firstContextEvent.session_id).toEqual(1);

@@ -26,7 +26,6 @@ type NativeContext = {
   carrier: string;
   adid: string;
   appSetId: string;
-  idfa: string;
   idfv: string;
 };
 
@@ -75,7 +74,6 @@ export class Context implements BeforePlugin {
     const carrier = nativeContext?.carrier;
     const adid = nativeContext?.adid;
     const appSetId = nativeContext?.appSetId;
-    const idfa = nativeContext?.idfa;
     const idfv = nativeContext?.idfv;
 
     const event: Event = {
@@ -94,7 +92,6 @@ export class Context implements BeforePlugin {
       ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
       ...(this.config.trackingOptions.adid && { adid: adid }),
       ...(this.config.trackingOptions.appSetId && { android_app_set_id: appSetId }),
-      ...(this.config.trackingOptions.idfa && { idfa: idfa }),
       ...(this.config.trackingOptions.idfv && { idfv: idfv }),
       insert_id: UUID(),
       partner_id: this.config.partnerId,

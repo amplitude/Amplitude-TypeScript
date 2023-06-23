@@ -16,9 +16,8 @@ class ReactNative: NSObject {
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
         let trackingOptions = options as! [String: Bool]
-        let trackIdfa = trackingOptions["idfa"] ?? false
         let trackIdfv = trackingOptions["idfv"] ?? false
-        let appleContextProvider = AppleContextProvider(trackIdfa: trackIdfa, trackIdfv: trackIdfv)
+        let appleContextProvider = AppleContextProvider(trackIdfv: trackIdfv)
 
         var applicationContext: [String: String?] = [
             "version": appleContextProvider.version,
@@ -29,9 +28,6 @@ class ReactNative: NSObject {
             "deviceManufacturer": appleContextProvider.deviceManufacturer,
             "deviceModel": appleContextProvider.deviceModel,
         ]
-        if (trackIdfa) {
-            applicationContext["idfa"] = appleContextProvider.idfa
-        }
         if (trackIdfv) {
             applicationContext["idfv"] = appleContextProvider.idfv
         }
