@@ -9,6 +9,8 @@ export interface ReactNativeConfig extends BrowserConfig {
 export interface ReactNativeTrackingOptions extends TrackingOptions {
   adid?: boolean;
   carrier?: boolean;
+  appSetId?: boolean;
+  idfv?: boolean;
 }
 
 type HiddenOptions = 'apiKey' | 'lastEventId';

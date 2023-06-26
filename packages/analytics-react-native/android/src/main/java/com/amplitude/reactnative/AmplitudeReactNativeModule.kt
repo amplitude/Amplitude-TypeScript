@@ -20,9 +20,10 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     }
 
     @ReactMethod
-    private fun getApplicationContext(shouldTrackAdid: Boolean, promise: Promise) {
+    private fun getApplicationContext(options: ReadableMap, promise: Promise) {
+        val trackAdid = if (options.hasKey("adid")) options.getBoolean("adid") else false
         if (androidContextProvider == null) {
-            androidContextProvider = AndroidContextProvider(reactContext.applicationContext, false, shouldTrackAdid)
+            androidContextProvider = AndroidContextProvider(reactContext.applicationContext, false, trackAdid)
         }
 
         promise.resolve(WritableNativeMap().apply {
@@ -35,9 +36,10 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
             putString("deviceManufacturer", androidContextProvider!!.manufacturer)
             putString("deviceModel", androidContextProvider!!.model)
             putString("carrier", androidContextProvider!!.carrier)
-            if (androidContextProvider!!.advertisingId != null) {
+            if (trackAdid) {
                 putString("adid", androidContextProvider!!.advertisingId)
             }
+            putString("appSetId", androidContextProvider!!.appSetId)
         })
     }
 }
