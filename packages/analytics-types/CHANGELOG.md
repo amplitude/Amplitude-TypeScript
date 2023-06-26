@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@1.2.1...@amplitude/analytics-types@1.3.0) (2023-06-26)
+
+### Bug Fixes
+
+- add app_set_id, idfa and idfv support ([#456](https://github.com/amplitude/Amplitude-TypeScript/issues/456))
+  ([83ce837](https://github.com/amplitude/Amplitude-TypeScript/commit/83ce8371f8edea800ff6ac11c6184d8cc1bb17c7))
+- types for plugins to be env specific ([#440](https://github.com/amplitude/Amplitude-TypeScript/issues/440))
+  ([#441](https://github.com/amplitude/Amplitude-TypeScript/issues/441))
+  ([b31226d](https://github.com/amplitude/Amplitude-TypeScript/commit/b31226dc0e10641a47511b619961f190e096517a))
+
+### Features
+
+- add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428))
+  ([#442](https://github.com/amplitude/Amplitude-TypeScript/issues/442))
+  ([569464c](https://github.com/amplitude/Amplitude-TypeScript/commit/569464c698eb54b3da05e203ac90cf1a399d96ed))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@1.2.0...@amplitude/analytics-types@1.2.1) (2023-06-14)
 
 **Note:** Version bump only for package @amplitude/analytics-types

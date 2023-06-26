@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.11.2...@amplitude/analytics-browser@1.12.0) (2023-06-26)
+
+### Features
+
+- add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428))
+  ([#442](https://github.com/amplitude/Amplitude-TypeScript/issues/442))
+  ([569464c](https://github.com/amplitude/Amplitude-TypeScript/commit/569464c698eb54b3da05e203ac90cf1a399d96ed))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.11.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.11.1...@amplitude/analytics-browser@1.11.2) (2023-06-14)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

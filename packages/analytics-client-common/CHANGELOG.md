@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@1.0.3...@amplitude/analytics-client-common@1.1.0) (2023-06-26)
+
+### Features
+
+- add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428))
+  ([#442](https://github.com/amplitude/Amplitude-TypeScript/issues/442))
+  ([569464c](https://github.com/amplitude/Amplitude-TypeScript/commit/569464c698eb54b3da05e203ac90cf1a399d96ed))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@1.0.2...@amplitude/analytics-client-common@1.0.3) (2023-06-14)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
