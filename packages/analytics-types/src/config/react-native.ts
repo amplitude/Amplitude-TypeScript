@@ -34,6 +34,8 @@ export interface ReactNativeTrackingOptions {
   osName?: boolean;
   osVersion?: boolean;
   platform?: boolean;
+  appSetId?: boolean;
+  idfv?: boolean;
 }
 
 export interface ReactNativeAttributionOptions {

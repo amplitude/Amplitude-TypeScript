@@ -9,6 +9,14 @@ import Foundation
     public let osVersion: String = AppleContextProvider.getOsVersion()
     public let deviceManufacturer: String = AppleContextProvider.getDeviceManufacturer()
     public let deviceModel: String = AppleContextProvider.getDeviceModel()
+    public var idfv: String? = nil
+
+    init(trackIdfv: Bool) {
+      super.init()
+      if (trackIdfv) {
+        fetchIdfv()
+      }
+    }
 
     private static func getVersion() -> String? {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
@@ -39,6 +47,10 @@ import Foundation
         var sysinfo = utsname()
         uname(&sysinfo) // ignore return value
         return String(bytes: Data(bytes: &sysinfo.machine, count: Int(_SYS_NAMELEN)), encoding: .ascii)!.trimmingCharacters(in: .controlCharacters)
+    }
+
+    private func fetchIdfv() {
+        self.idfv = UIDevice.current.identifierForVendor?.uuidString
     }
 
     private static func getDeviceModel() -> String {

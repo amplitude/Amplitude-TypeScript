@@ -38,6 +38,8 @@ export const DEFAULT_OPTIONS: Partial<IReactNativeConfig> = {
     osName: true,
     osVersion: true,
     platform: true,
+    appSetId: true,
+    idfv: true,
   },
   transportProvider: {
     send: () => Promise.resolve(null),
