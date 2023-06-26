@@ -23,16 +23,16 @@ yarn add @amplitude/plugin-session-replay
 
 ## Usage
 
-This plugin works on top of Amplitude Browser SDK and adds session replay features to built-in features. To use this plugin, you need to install `@amplitude/analytics-browser` version `v2.0.0` or later.
+This plugin works on top of Amplitude Browser SDK and adds session replay features to built-in features. To use this plugin, you need to install `@amplitude/analytics-browser` version `v1.0.0` or later.
 
 ### 1. Import Amplitude packages
 
 * `@amplitude/analytics-browser`
-* `@amplitude/plugin-session-replay`
+* `@amplitude/plugin-session-replay-browser`
 
 ```typescript
 import * as amplitude from '@amplitude/analytics-browser';
-import { SessionReplayPlugin } from '@amplitude/plugin-session-replay';
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
 ```
 
 ### 2. Instantiate session replay plugin and install plugin to Amplitude SDK
