@@ -1,26 +1,24 @@
 import { Types } from '@amplitude/analytics-react-native';
-import { NativeModules } from 'react-native';
-
-interface IdfaPluginNative {
-  requestTrackingAuthorization(): Promise<number>;
-  getIdfa(): Promise<string | null>;
-}
+import ReactNativeIdfaAaid from '@sparkfabrik/react-native-idfa-aaid';
 
 export default class IdfaPlugin implements Types.BeforePlugin {
-  name = 'logging';
+  name = 'idfa';
   type = Types.PluginType.BEFORE as any;
-  idfaPluginNative: IdfaPluginNative | undefined;
+  idfa: string | null = null;
 
   async setup(_config: Types.Config): Promise<undefined> {
-    this.idfaPluginNative = NativeModules.IdfaPlugin as IdfaPluginNative;
-    await this.idfaPluginNative.requestTrackingAuthorization();
+    try {
+      const info = await ReactNativeIdfaAaid.getAdvertisingInfo();
+      this.idfa = info.id;
+    } catch (e) {
+      console.log(e);
+    }
     return undefined;
   }
 
   async execute(context: Types.Event): Promise<Types.Event> {
-    const idfa = await this.idfaPluginNative?.getIdfa();
-    if (idfa) {
-      context.idfa = idfa;
+    if (this.idfa) {
+      context.idfa = this.idfa;
     }
     return context;
   }
