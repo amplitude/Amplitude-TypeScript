@@ -32,9 +32,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
     this.config = config;
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
-    await this.emptyStoreAndReset();
-
-    this.recordEvents();
+    void this.emptyStoreAndReset();
   }
 
   execute(event: Event) {
@@ -61,6 +59,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async emptyStoreAndReset() {
     const storedReplaySessions = await this.getAllSessionEventsFromStore();
+    console.log('in empty store after await');
     if (storedReplaySessions) {
       for (const sessionId in storedReplaySessions) {
         const storedReplayEvents = storedReplaySessions[sessionId];
@@ -76,6 +75,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       const currentSessionStoredEvents = this.config.sessionId && storedReplaySessions[this.config.sessionId];
       this.currentSequenceId = currentSessionStoredEvents ? currentSessionStoredEvents.sequenceId + 1 : 0;
       void this.storeEventsForSession([], this.currentSequenceId);
+      this.recordEvents();
     }
   }
 

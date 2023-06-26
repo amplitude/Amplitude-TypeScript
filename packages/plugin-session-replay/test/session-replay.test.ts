@@ -112,7 +112,7 @@ describe('SessionReplayPlugin', () => {
         ...mockConfig,
         sessionId: 456,
       };
-      get.mockResolvedValueOnce({
+      const mockGetResolution = Promise.resolve({
         123: {
           events: [mockEventString],
           sequenceId: 3,
@@ -122,9 +122,11 @@ describe('SessionReplayPlugin', () => {
           sequenceId: 1,
         },
       });
+      get.mockReturnValueOnce(mockGetResolution);
       const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
 
       await sessionReplay.setup(config);
+      await mockGetResolution;
       jest.runAllTimers();
       expect(send).toHaveBeenCalledTimes(2);
 
@@ -158,8 +160,10 @@ describe('SessionReplayPlugin', () => {
       const config = {
         ...mockConfig,
       };
-      get.mockResolvedValueOnce({});
+      const mockGetResolution = Promise.resolve({});
+      get.mockReturnValueOnce(mockGetResolution);
       await sessionReplay.setup(config);
+      await mockGetResolution;
       expect(sessionReplay.currentSequenceId).toBe(0);
       expect(update).toHaveBeenCalledTimes(1);
       expect(update.mock.calls[0][1]({})).toEqual({
@@ -170,8 +174,11 @@ describe('SessionReplayPlugin', () => {
       });
     });
     test('should record events', async () => {
+      const mockGetResolution = Promise.resolve({});
+      get.mockReturnValueOnce(mockGetResolution);
       const sessionReplay = new SessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
+      await mockGetResolution;
       jest.runAllTimers();
       expect(record).toHaveBeenCalledTimes(1);
     });
@@ -201,7 +208,10 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       const mockStopRecordingEvents = jest.fn();
       record.mockReturnValue(mockStopRecordingEvents);
+      const mockGetResolution = Promise.resolve({});
+      get.mockReturnValueOnce(mockGetResolution);
       await sessionReplay.setup(mockConfig);
+      await mockGetResolution;
       jest.runAllTimers();
       const event = {
         event_type: 'session_start',
