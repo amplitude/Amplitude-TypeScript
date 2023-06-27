@@ -1,24 +1,24 @@
 import {
-  BaseEvent,
-  Config,
   CoreClient,
+  Config,
   Event,
+  BaseEvent,
   EventOptions,
   Identify,
   Plugin,
-  Result,
   Revenue,
+  Result,
 } from '@amplitude/analytics-types';
-import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './messages';
-import { Timeline } from './timeline';
 import {
-  createGroupEvent,
   createGroupIdentifyEvent,
   createIdentifyEvent,
-  createRevenueEvent,
   createTrackEvent,
+  createRevenueEvent,
+  createGroupEvent,
 } from './utils/event-builder';
+import { Timeline } from './timeline';
 import { buildResult } from './utils/result-builder';
+import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './messages';
 import { returnWrapper } from './utils/return-wrapper';
 
 export class AmplitudeCore implements CoreClient {
@@ -53,7 +53,6 @@ export class AmplitudeCore implements CoreClient {
   }
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {
-    console.log('track', eventInput);
     const event = createTrackEvent(eventInput, eventProperties, eventOptions);
     return returnWrapper(this.dispatch(event));
   }
@@ -81,7 +80,6 @@ export class AmplitudeCore implements CoreClient {
   }
 
   add(plugin: Plugin) {
-    console.log('adding plugin');
     if (!this.config) {
       this.q.push(this.add.bind(this, plugin));
       return returnWrapper();
