@@ -5,7 +5,7 @@
   <br />
 </p>
 
-# @amplitude/plugin-session-replay
+# @amplitude/plugin-session-replay-browser
 
 Official Browser SDK plugin for session replay
 
@@ -15,10 +15,10 @@ This package is published on NPM registry and is available to be installed using
 
 ```sh
 # npm
-npm install @amplitude/plugin-session-replay
+npm install @amplitude/plugin-session-replay-browser
 
 # yarn
-yarn add @amplitude/plugin-session-replay
+yarn add @amplitude/plugin-session-replay-browser
 ```
 
 ## Usage
@@ -40,7 +40,7 @@ import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
 The plugin must be registered with the amplitude instance via the following code:
 
 ```typescript
-amplitude.init(API_KEY)
+amplitude.init(API_KEY);
 const sessionReplayTracking = new SessionReplayPlugin();
-amplitude.add(sessionReplayTracking)
+amplitude.add(sessionReplayTracking);
 ```

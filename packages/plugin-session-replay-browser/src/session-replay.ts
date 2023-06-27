@@ -13,7 +13,7 @@ const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 200; // derived by JSON s
 const MAX_EVENT_LIST_SIZE_IN_BYTES = 20 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
 
 export class SessionReplayPlugin implements EnrichmentPlugin {
-  name = '@amplitude/plugin-session-replay';
+  name = '@amplitude/plugin-session-replay-browser';
   type = PluginType.ENRICHMENT as const;
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -60,7 +60,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async emptyStoreAndReset() {
     const storedReplaySessions = await this.getAllSessionEventsFromStore();
-    console.log('in empty store after await');
     if (storedReplaySessions) {
       for (const sessionId in storedReplaySessions) {
         const storedReplayEvents = storedReplaySessions[sessionId];
