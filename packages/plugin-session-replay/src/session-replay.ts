@@ -2,6 +2,7 @@ import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
 import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
+import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_REPLAY_PROPERTY, DEFAULT_SESSION_START_EVENT } from './constants';
 import { shouldSplitEventsList } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
 import { Events, IDBStore, SessionReplayContext } from './typings/session-replay';
@@ -38,12 +39,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   execute(event: Event) {
     event.event_properties = {
       ...event.event_properties,
-      session_replay_enabled: true,
+      [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
     };
-    if (event.event_type === 'session_start' && this.stopRecordingEvents) {
+    if (event.event_type === DEFAULT_SESSION_START_EVENT && this.stopRecordingEvents) {
       this.stopRecordingEvents();
       this.recordEvents();
-    } else if (event.event_type === 'session_end') {
+    } else if (event.event_type === DEFAULT_SESSION_END_EVENT) {
       if (event.session_id) {
         this.sendEventsList({
           events: this.events,
