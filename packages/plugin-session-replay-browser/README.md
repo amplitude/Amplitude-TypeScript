@@ -32,7 +32,7 @@ This plugin works on top of Amplitude Browser SDK and adds session replay featur
 
 ```typescript
 import * as amplitude from '@amplitude/analytics-browser';
-import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
 ```
 
 ### 2. Instantiate session replay plugin and install plugin to Amplitude SDK
@@ -41,6 +41,6 @@ The plugin must be registered with the amplitude instance via the following code
 
 ```typescript
 amplitude.init(API_KEY);
-const sessionReplayTracking = new SessionReplayPlugin();
+const sessionReplayTracking = sessionReplayPlugin();
 amplitude.add(sessionReplayTracking);
 ```

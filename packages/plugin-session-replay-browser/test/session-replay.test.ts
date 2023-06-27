@@ -5,7 +5,7 @@ import * as IDBKeyVal from 'idb-keyval';
 import * as RRWeb from 'rrweb';
 import { shouldSplitEventsList } from '../src/helpers';
 import { SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from '../src/messages';
-import { SessionReplayPlugin } from '../src/session-replay';
+import { sessionReplayPlugin } from '../src/session-replay';
 
 jest.mock('idb-keyval');
 type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
@@ -96,7 +96,7 @@ describe('SessionReplayPlugin', () => {
   });
   describe('setup', () => {
     test('should setup plugin', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
       expect(sessionReplay.config.transportProvider).toBeDefined();
       expect(sessionReplay.config.serverUrl).toBe('url');
@@ -107,7 +107,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should read events from storage and send them, then reset storage for session', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         sessionId: 456,
@@ -156,7 +156,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
     test('should handle no stored events', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
       };
@@ -176,7 +176,7 @@ describe('SessionReplayPlugin', () => {
     test('should record events', async () => {
       const mockGetResolution = Promise.resolve({});
       get.mockReturnValueOnce(mockGetResolution);
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
       await mockGetResolution;
       jest.runAllTimers();
@@ -185,8 +185,8 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('execute', () => {
-    test('should add event property for session_replay_enabled', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+    test('should add event property for [Amplitude] Session Recorded', async () => {
+      const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
       const event = {
         event_type: 'event_type',
@@ -197,15 +197,15 @@ describe('SessionReplayPlugin', () => {
       };
 
       const enrichedEvent = await sessionReplay.execute(event);
-      expect(enrichedEvent.event_properties).toEqual({
+      expect(enrichedEvent?.event_properties).toEqual({
         property_a: true,
         property_b: 123,
-        session_replay_enabled: true,
+        '[Amplitude] Session Recorded': true,
       });
     });
 
     test('should restart recording events when session_start fires', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const mockStopRecordingEvents = jest.fn();
       record.mockReturnValue(mockStopRecordingEvents);
       const mockGetResolution = Promise.resolve({});
@@ -222,7 +222,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should send the current events list when session_end fires', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
 
@@ -248,7 +248,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('recordEvents', () => {
     test('should store events in class and in IDB', () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       sessionReplay.recordEvents();
       expect(sessionReplay.events).toEqual([]);
@@ -265,7 +265,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should split the events list and send', () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       sessionReplay.maxPersistedEventsSize = 20;
       const events = ['#'.repeat(20)];
@@ -297,7 +297,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('addToQueue', () => {
     test('should add to queue and schedule a flush', () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const schedule = jest.spyOn(sessionReplay, 'schedule').mockReturnValueOnce(undefined);
       const context = {
@@ -313,7 +313,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should not add to queue if attemps are greater than allowed retries', () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = {
         ...mockConfig,
         flushMaxRetries: 1,
@@ -343,7 +343,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('schedule', () => {
     test('should schedule a flush', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (sessionReplay as any).scheduled = null;
       sessionReplay.queue = [
@@ -369,7 +369,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should not schedule if one is already in progress', () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (sessionReplay as any).scheduled = setTimeout(jest.fn, 0);
       const flush = jest.spyOn(sessionReplay, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
@@ -380,7 +380,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('flush', () => {
     test('should call send', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       sessionReplay.queue = [
         {
@@ -399,7 +399,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should send later', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       sessionReplay.queue = [
         {
@@ -428,7 +428,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('send', () => {
     test('should make a request correctly', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
         events: [mockEventString],
@@ -452,7 +452,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
     test('should remove session events from IDB store upon success', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
         events: [mockEventString],
@@ -483,7 +483,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
     test('should not remove session events from IDB store upon failure', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
         events: [mockEventString],
@@ -501,7 +501,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should retry if retry param is true', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
         events: [mockEventString],
@@ -534,7 +534,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should not retry if retry param is false', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
         events: [mockEventString],
@@ -557,7 +557,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('module level integration', () => {
     test('should handle unexpected error', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         loggerProvider: mockLoggerProvider,
@@ -586,7 +586,7 @@ describe('SessionReplayPlugin', () => {
             status: 200,
           });
         });
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       sessionReplay.retryTimeout = 10;
       const config = {
         ...mockConfig,
@@ -619,7 +619,7 @@ describe('SessionReplayPlugin', () => {
             status: 200,
           });
         });
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         flushMaxRetries: 2,
@@ -645,7 +645,7 @@ describe('SessionReplayPlugin', () => {
             status: 200,
           });
         });
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         flushMaxRetries: 2,
@@ -671,7 +671,7 @@ describe('SessionReplayPlugin', () => {
             status: 200,
           });
         });
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         flushMaxRetries: 2,
@@ -689,7 +689,7 @@ describe('SessionReplayPlugin', () => {
       (fetch as jest.Mock).mockImplementationOnce(() => {
         return Promise.resolve(null);
       });
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         flushMaxRetries: 2,
@@ -711,7 +711,7 @@ describe('SessionReplayPlugin', () => {
 
   describe('idb error handling', () => {
     test('getAllSessionEventsFromStore should catch errors', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         loggerProvider: mockLoggerProvider,
@@ -726,7 +726,7 @@ describe('SessionReplayPlugin', () => {
       );
     });
     test('storeEventsForSession should catch errors', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         loggerProvider: mockLoggerProvider,
@@ -741,7 +741,7 @@ describe('SessionReplayPlugin', () => {
       );
     });
     test('removeSessionEventsStore should catch errors', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         loggerProvider: mockLoggerProvider,
@@ -756,7 +756,7 @@ describe('SessionReplayPlugin', () => {
       );
     });
     test('removeSessionEventsStore should handle an undefined store', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const sessionReplay = sessionReplayPlugin();
       const config = {
         ...mockConfig,
         loggerProvider: mockLoggerProvider,

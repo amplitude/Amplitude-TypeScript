@@ -1,14 +1,8 @@
-import { BrowserClient, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { record } from 'rrweb';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Options {}
-
-export interface SessionReplayPlugin {
-  (client: BrowserClient, options?: Options): EnrichmentPlugin;
-  (options?: Options): EnrichmentPlugin;
-}
-
-export type SessionReplayPluginParameters = [BrowserClient, Options?] | [Options?];
 
 export type Events = string[];
 
@@ -26,3 +20,49 @@ export interface IDBStore {
     sequenceId: number;
   };
 }
+export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
+  config: BrowserConfig;
+  storageKey: string;
+  retryTimeout: number;
+  events: Events;
+  currentSequenceId: number;
+  queue: SessionReplayContext[];
+  stopRecordingEvents: ReturnType<typeof record> | null;
+  maxPersistedEventsSize: number;
+  emptyStoreAndReset: () => Promise<void>;
+  recordEvents: () => void;
+  sendEventsList: ({
+    events,
+    sequenceId,
+    sessionId,
+  }: {
+    events: string[];
+    sequenceId: number;
+    sessionId: number;
+  }) => void;
+  addToQueue: (...list: SessionReplayContext[]) => void;
+  schedule: (timeout: number) => void;
+  flush: (useRetry?: boolean) => Promise<void>;
+  send: (context: SessionReplayContext, useRetry?: boolean) => Promise<void>;
+  completeRequest({
+    context,
+    err,
+    success,
+    removeEvents,
+  }: {
+    context: SessionReplayContext;
+    err?: string | undefined;
+    success?: string | undefined;
+    removeEvents?: boolean | undefined;
+  }): void;
+  getAllSessionEventsFromStore: () => Promise<IDBStore | undefined>;
+  storeEventsForSession: (events: Events, sequenceId: number) => Promise<void>;
+  removeSessionEventsStore: (sessionId: number) => Promise<void>;
+}
+
+export interface SessionReplayPlugin {
+  (client: BrowserClient, options?: Options): SessionReplayEnrichmentPlugin;
+  (options?: Options): SessionReplayEnrichmentPlugin;
+}
+
+export type SessionReplayPluginParameters = [BrowserClient, Options?] | [Options?];

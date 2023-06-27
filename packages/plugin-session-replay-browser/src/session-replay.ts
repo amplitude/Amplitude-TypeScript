@@ -1,18 +1,24 @@
 import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
-import { BrowserConfig, EnrichmentPlugin, Event, PluginType, Status } from '@amplitude/analytics-types';
+import { BrowserConfig, Event, PluginType, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_REPLAY_PROPERTY, DEFAULT_SESSION_START_EVENT } from './constants';
 import { shouldSplitEventsList } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
-import { Events, IDBStore, SessionReplayContext } from './typings/session-replay';
+import {
+  Events,
+  IDBStore,
+  SessionReplayContext,
+  SessionReplayEnrichmentPlugin,
+  SessionReplayPlugin,
+} from './typings/session-replay';
 
 const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
 const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 200; // derived by JSON stringifying an example payload without events
 const MAX_EVENT_LIST_SIZE_IN_BYTES = 20 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
 
-export class SessionReplayPlugin implements EnrichmentPlugin {
+class SessionReplay implements SessionReplayEnrichmentPlugin {
   name = '@amplitude/plugin-session-replay-browser';
   type = PluginType.ENRICHMENT as const;
   // this.config is defined in setup() which will always be called first
@@ -36,7 +42,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     void this.emptyStoreAndReset();
   }
 
-  execute(event: Event) {
+  async execute(event: Event) {
     event.event_properties = {
       ...event.event_properties,
       [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
@@ -284,3 +290,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     }
   }
 }
+
+export const sessionReplayPlugin: SessionReplayPlugin = () => {
+  return new SessionReplay();
+};

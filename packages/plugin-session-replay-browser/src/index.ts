@@ -1,1 +1,1 @@
-export { SessionReplayPlugin as Plugin, SessionReplayPlugin } from './session-replay';
+export { sessionReplayPlugin as plugin, sessionReplayPlugin } from './session-replay';
