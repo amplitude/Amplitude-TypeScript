@@ -12,6 +12,7 @@ interface PluginBase<T = CoreClient, U = Config> {
   name?: string;
   type?: PluginType;
   setup?(config: U, client: T): Promise<void>;
+  teardown?(): Promise<void>;
 }
 
 export interface BeforePlugin<T = CoreClient, U = Config> extends PluginBase<T, U> {

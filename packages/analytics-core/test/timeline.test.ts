@@ -20,8 +20,47 @@ describe('timeline', () => {
     });
   });
 
+  describe('reset', () => {
+    test('should reset timeline', () => {
+      const timeline = new Timeline(new AmplitudeCore());
+      timeline.plugins = [];
+      timeline.reset(new AmplitudeCore());
+      expect(timeline.applying).toEqual(false);
+      expect(timeline.plugins).toEqual([]);
+    });
+
+    test('should reset timeline without plugin.teardown', () => {
+      const setup = jest.fn();
+      const timeline = new Timeline(new AmplitudeCore());
+      timeline.plugins = [
+        {
+          setup,
+        },
+      ];
+      timeline.reset(new AmplitudeCore());
+      expect(setup).toHaveBeenCalledTimes(0);
+      expect(timeline.applying).toEqual(false);
+      expect(timeline.plugins).toEqual([]);
+    });
+
+    test('should reset timeline with plugin.teardown', () => {
+      const teardown = jest.fn();
+      const timeline = new Timeline(new AmplitudeCore());
+      timeline.plugins = [
+        {
+          teardown,
+        },
+      ];
+      timeline.reset(new AmplitudeCore());
+      expect(teardown).toHaveBeenCalledTimes(1);
+      expect(timeline.applying).toEqual(false);
+      expect(timeline.plugins).toEqual([]);
+    });
+  });
+
   test('should update event using before/enrichment plugin', async () => {
     const beforeSetup = jest.fn().mockReturnValue(Promise.resolve());
+    const beforeTeardown = jest.fn().mockReturnValue(Promise.resolve());
     const beforeExecute = jest.fn().mockImplementation((event: Event) =>
       Promise.resolve({
         ...event,
@@ -32,6 +71,7 @@ describe('timeline', () => {
       name: 'plugin:before',
       type: 'before',
       setup: beforeSetup,
+      teardown: beforeTeardown,
       execute: beforeExecute,
     };
     const enrichmentSetup = jest.fn().mockReturnValue(Promise.resolve());
