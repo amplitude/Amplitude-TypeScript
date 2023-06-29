@@ -29,7 +29,7 @@ describe('fileDownloadTracking', () => {
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
 
-    // trigger change event
+    // trigger click event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
     // assert file download event was tracked
@@ -41,6 +41,15 @@ describe('fileDownloadTracking', () => {
       [LINK_TEXT]: 'my-link-text',
       [LINK_URL]: 'https://analytics.amplitude.com/files/my-file.pdf',
     });
+
+    // stop observer and listeners
+    await plugin.teardown?.();
+
+    // trigger click event
+    document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+    // assert no additional event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
   });
 
   test('should track file_download event for a dynamically added achor tag', async () => {
@@ -71,6 +80,25 @@ describe('fileDownloadTracking', () => {
       [LINK_TEXT]: 'my-link-2-text',
       [LINK_URL]: 'https://analytics.amplitude.com/files/my-file-2.pdf',
     });
+
+    // stop observer and listeners
+    await plugin.teardown?.();
+
+    // add anchor element dynamically
+    const link3 = document.createElement('a');
+    link3.setAttribute('id', 'my-link-3-id');
+    link3.setAttribute('class', 'my-link-3-class');
+    link3.setAttribute('href', 'https://analytics.amplitude.com/files/my-file-3.pdf');
+    link3.text = 'my-link-3-text';
+    document.body.appendChild(link3);
+
+    // allow mutation observer to execute and event listener to be attached
+    await new Promise((r) => r(undefined)); // basically, await next clock tick
+    // trigger change event
+    link.dispatchEvent(new Event('click'));
+
+    // assert no additional file download event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
   });
 
   test('should track file_download event for a dynamically added nested achor tag', async () => {
@@ -129,5 +157,13 @@ describe('fileDownloadTracking', () => {
     const plugin = fileDownloadTracking();
     const result = await plugin.execute?.(input);
     expect(result).toEqual(input);
+  });
+
+  // eslint-disable-next-line jest/expect-expect
+  test('should teardown plugin', async () => {
+    const plugin = fileDownloadTracking();
+    await plugin.teardown?.();
+    // no explicit assertion
+    // test asserts that no error is thrown
   });
 });
