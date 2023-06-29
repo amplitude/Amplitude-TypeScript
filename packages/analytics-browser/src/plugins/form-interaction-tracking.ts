@@ -27,7 +27,8 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
   };
   const removeClickListeners = () => {
     eventListeners.forEach(({ element, type, handler }) => {
-      element.removeEventListener(type, handler);
+      /* istanbul ignore next */
+      element?.removeEventListener(type, handler);
     });
     eventListeners = [];
   };
