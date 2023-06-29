@@ -13,25 +13,33 @@ const val MODULE_NAME = "AmplitudeReactNative"
 @ReactModule(name = MODULE_NAME)
 class AmplitudeReactNativeModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
 
-    private val androidContextProvider = AndroidContextProvider(reactContext.applicationContext, false)
+    private var androidContextProvider: AndroidContextProvider? = null
 
     override fun getName(): String {
         return MODULE_NAME
     }
 
     @ReactMethod
-    private fun getApplicationContext(promise: Promise) {
+    private fun getApplicationContext(options: ReadableMap, promise: Promise) {
+        val trackAdid = if (options.hasKey("adid")) options.getBoolean("adid") else false
+        if (androidContextProvider == null) {
+            androidContextProvider = AndroidContextProvider(reactContext.applicationContext, false, trackAdid)
+        }
+
         promise.resolve(WritableNativeMap().apply {
-            putString("version", androidContextProvider.versionName)
-            putString("platform", androidContextProvider.platform)
-            putString("language", androidContextProvider.language)
-            putString("osName", androidContextProvider.osName)
-            putString("osVersion", androidContextProvider.osVersion)
-            putString("deviceBrand", androidContextProvider.brand)
-            putString("deviceManufacturer", androidContextProvider.manufacturer)
-            putString("deviceModel", androidContextProvider.model)
-            putString("carrier", androidContextProvider.carrier)
-            putString("adid", androidContextProvider.advertisingId)
+            putString("version", androidContextProvider!!.versionName)
+            putString("platform", androidContextProvider!!.platform)
+            putString("language", androidContextProvider!!.language)
+            putString("osName", androidContextProvider!!.osName)
+            putString("osVersion", androidContextProvider!!.osVersion)
+            putString("deviceBrand", androidContextProvider!!.brand)
+            putString("deviceManufacturer", androidContextProvider!!.manufacturer)
+            putString("deviceModel", androidContextProvider!!.model)
+            putString("carrier", androidContextProvider!!.carrier)
+            if (trackAdid) {
+                putString("adid", androidContextProvider!!.advertisingId)
+            }
+            putString("appSetId", androidContextProvider!!.appSetId)
         })
     }
 }
