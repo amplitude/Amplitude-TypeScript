@@ -2,7 +2,31 @@ import { BrowserClient, PluginType, Event, EnrichmentPlugin } from '@amplitude/a
 import { DEFAULT_FILE_DOWNLOAD_EVENT, FILE_EXTENSION, FILE_NAME, LINK_ID, LINK_TEXT, LINK_URL } from '../constants';
 import { BrowserConfig } from '../config';
 
+interface EventListener {
+  element: Element;
+  type: 'click';
+  handler: () => void;
+}
+
 export const fileDownloadTracking = (): EnrichmentPlugin => {
+  let observer: MutationObserver | undefined;
+  let eventListeners: EventListener[] = [];
+  const addEventListener = (element: Element, type: 'click', handler: () => void) => {
+    element.addEventListener(type, handler);
+    eventListeners.push({
+      element,
+      type,
+      handler,
+    });
+  };
+  const removeClickListeners = () => {
+    eventListeners.forEach(({ element, type, handler }) => {
+      /* istanbul ignore next */
+      element?.removeEventListener(type, handler);
+    });
+    eventListeners = [];
+  };
+
   const name = '@amplitude/plugin-file-download-tracking-browser';
   const type = PluginType.ENRICHMENT;
   const setup = async (config: BrowserConfig, amplitude?: BrowserClient) => {
@@ -12,6 +36,11 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
       config.loggerProvider.warn(
         'File download tracking requires a later version of @amplitude/analytics-browser. File download events are not tracked.',
       );
+      return;
+    }
+
+    /* istanbul ignore if */
+    if (typeof document === 'undefined') {
       return;
     }
 
@@ -28,7 +57,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
       const fileExtension = result?.[1];
 
       if (fileExtension) {
-        a.addEventListener('click', () => {
+        addEventListener(a, 'click', () => {
           if (fileExtension) {
             amplitude.track(DEFAULT_FILE_DOWNLOAD_EVENT, {
               [FILE_EXTENSION]: fileExtension,
@@ -52,7 +81,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
     // Adds listener to anchor tags added after initial load
     /* istanbul ignore else */
     if (typeof MutationObserver !== 'undefined') {
-      const observer = new MutationObserver((mutations) => {
+      observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeName === 'A') {
@@ -72,11 +101,16 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
     }
   };
   const execute = async (event: Event) => event;
+  const teardown = async () => {
+    observer?.disconnect();
+    removeClickListeners();
+  };
 
   return {
     name,
     type,
     setup,
     execute,
+    teardown,
   };
 };

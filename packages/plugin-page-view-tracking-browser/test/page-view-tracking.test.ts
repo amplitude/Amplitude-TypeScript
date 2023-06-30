@@ -488,6 +488,34 @@ describe('pageViewTrackingPlugin', () => {
     });
   });
 
+  describe('teardown', () => {
+    test('should call remove listeners', async () => {
+      const amplitude = createInstance();
+      const removeEventListener = jest.spyOn(window, 'removeEventListener');
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+      };
+      const config: Partial<Config> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+      const plugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'all',
+      });
+      await plugin.setup(config as Config, amplitude);
+      await plugin.teardown?.();
+      expect(removeEventListener).toHaveBeenCalledTimes(1);
+    });
+
+    test('should call remove listeners without proxy', async () => {
+      const removeEventListener = jest.spyOn(window, 'removeEventListener');
+      const plugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'all',
+      });
+      await plugin.teardown?.();
+      expect(removeEventListener).toHaveBeenCalledTimes(1);
+    });
+  });
+
   test('shouldTrackHistoryPageView pathOnly option', () => {
     const url1 = 'https://www.example.com/path/to/page';
     const url2 = 'https://www.example.com/path/to/page?query=1';

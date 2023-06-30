@@ -3,6 +3,7 @@ import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
 import { AmplitudeCore } from '../src/core-client';
+import { UUID } from '../src/utils/uuid';
 
 describe('timeline', () => {
   let timeline = new Timeline(new AmplitudeCore());
@@ -11,8 +12,54 @@ describe('timeline', () => {
     timeline = new Timeline(new AmplitudeCore());
   });
 
+  describe('reset', () => {
+    test('should reset timeline', () => {
+      const timeline = new Timeline(new AmplitudeCore());
+      timeline.plugins = [];
+      timeline.reset(new AmplitudeCore());
+      expect(timeline.applying).toEqual(false);
+      expect(timeline.plugins).toEqual([]);
+    });
+
+    test('should reset timeline without plugin.teardown', () => {
+      const setup = jest.fn();
+      const timeline = new Timeline(new AmplitudeCore());
+      timeline.plugins = [
+        {
+          name: UUID(),
+          type: PluginType.BEFORE,
+          setup,
+          execute: async (e) => e,
+        },
+      ];
+      timeline.reset(new AmplitudeCore());
+      expect(setup).toHaveBeenCalledTimes(0);
+      expect(timeline.applying).toEqual(false);
+      expect(timeline.plugins).toEqual([]);
+    });
+
+    test('should reset timeline with plugin.teardown', () => {
+      const teardown = jest.fn();
+      const timeline = new Timeline(new AmplitudeCore());
+      timeline.plugins = [
+        {
+          name: UUID(),
+          type: PluginType.BEFORE,
+          setup: async () => undefined,
+          execute: async (e) => e,
+          teardown,
+        },
+      ];
+      timeline.reset(new AmplitudeCore());
+      expect(teardown).toHaveBeenCalledTimes(1);
+      expect(timeline.applying).toEqual(false);
+      expect(timeline.plugins).toEqual([]);
+    });
+  });
+
   test('should update event using before/enrichment plugin', async () => {
     const beforeSetup = jest.fn().mockReturnValue(Promise.resolve());
+    const beforeTeardown = jest.fn().mockReturnValue(Promise.resolve());
     const beforeExecute = jest.fn().mockImplementation((event: Event) =>
       Promise.resolve({
         ...event,
@@ -23,6 +70,7 @@ describe('timeline', () => {
       name: 'plugin:before',
       type: PluginType.BEFORE,
       setup: beforeSetup,
+      teardown: beforeTeardown,
       execute: beforeExecute,
     };
     const enrichmentSetup = jest.fn().mockReturnValue(Promise.resolve());
