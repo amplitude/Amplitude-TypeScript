@@ -23,6 +23,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
   let options: Options = {};
   const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
+  let pushState: undefined | ((data: any, unused: string, url?: string | URL | null) => void);
 
   const [clientOrOptions, configOrUndefined] = args;
   if (clientOrOptions && 'init' in clientOrOptions) {
@@ -65,6 +66,11 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
     previousURL = newURL;
   };
 
+  /* istanbul ignore next */
+  const trackHistoryPageViewWrapper = () => {
+    void trackHistoryPageView();
+  };
+
   const plugin = {
     name: 'page-view-tracking',
     type: PluginType.ENRICHMENT as const,
@@ -93,9 +99,11 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
 
       if (options.trackHistoryChanges && globalScope) {
         /* istanbul ignore next */
-        globalScope.addEventListener('popstate', () => {
-          void trackHistoryPageView();
-        });
+        globalScope.addEventListener('popstate', trackHistoryPageViewWrapper);
+
+        // Save reference to original push state, to be used in teardown
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        pushState = globalScope.history.pushState;
 
         /* istanbul ignore next */
         // There is no global browser listener for changes to history, so we have
@@ -129,6 +137,15 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
         };
       }
       return event;
+    },
+
+    teardown: async () => {
+      if (globalScope) {
+        globalScope.removeEventListener('popstate', trackHistoryPageViewWrapper);
+        if (pushState) {
+          globalScope.history.pushState = pushState;
+        }
+      }
     },
   };
 

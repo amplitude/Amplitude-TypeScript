@@ -27,16 +27,17 @@ export class Timeline {
     this.plugins.push(plugin);
   }
 
-  deregister(pluginName: string) {
-    this.plugins.splice(
-      this.plugins.findIndex((plugin) => plugin.name === pluginName),
-      1,
-    );
-    return Promise.resolve();
+  async deregister(pluginName: string) {
+    const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
+    const plugin = this.plugins[index];
+    this.plugins.splice(index, 1);
+    await plugin.teardown?.();
   }
 
   reset(client: CoreClient) {
     this.applying = false;
+    const plugins = this.plugins;
+    plugins.map((plugin) => plugin.teardown?.());
     this.plugins = [];
     this.client = client;
   }
