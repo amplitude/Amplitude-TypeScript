@@ -8,7 +8,31 @@ import {
 } from '../constants';
 import { BrowserConfig } from '../config';
 
+interface EventListener {
+  element: Element;
+  type: 'change' | 'submit';
+  handler: () => void;
+}
+
 export const formInteractionTracking = (): EnrichmentPlugin => {
+  let observer: MutationObserver | undefined;
+  let eventListeners: EventListener[] = [];
+  const addEventListener = (element: Element, type: 'change' | 'submit', handler: () => void) => {
+    element.addEventListener(type, handler);
+    eventListeners.push({
+      element,
+      type,
+      handler,
+    });
+  };
+  const removeClickListeners = () => {
+    eventListeners.forEach(({ element, type, handler }) => {
+      /* istanbul ignore next */
+      element?.removeEventListener(type, handler);
+    });
+    eventListeners = [];
+  };
+
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
   const type = 'enrichment';
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
@@ -21,25 +45,26 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       return;
     }
 
+    /* istanbul ignore if */
+    if (typeof document === 'undefined') {
+      return;
+    }
+
     const addFormInteractionListener = (form: HTMLFormElement) => {
       let hasFormChanged = false;
 
-      form.addEventListener(
-        'change',
-        () => {
-          if (!hasFormChanged) {
-            amplitude.track(DEFAULT_FORM_START_EVENT, {
-              [FORM_ID]: form.id,
-              [FORM_NAME]: form.name,
-              [FORM_DESTINATION]: form.action,
-            });
-          }
-          hasFormChanged = true;
-        },
-        {},
-      );
+      addEventListener(form, 'change', () => {
+        if (!hasFormChanged) {
+          amplitude.track(DEFAULT_FORM_START_EVENT, {
+            [FORM_ID]: form.id,
+            [FORM_NAME]: form.name,
+            [FORM_DESTINATION]: form.action,
+          });
+        }
+        hasFormChanged = true;
+      });
 
-      form.addEventListener('submit', () => {
+      addEventListener(form, 'submit', () => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
             [FORM_ID]: form.id,
@@ -64,7 +89,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     // Adds listener to anchor tags added after initial load
     /* istanbul ignore else */
     if (typeof MutationObserver !== 'undefined') {
-      const observer = new MutationObserver((mutations) => {
+      observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
           mutation.addedNodes.forEach((node) => {
             if (node.nodeName === 'FORM') {
@@ -84,11 +109,16 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     }
   };
   const execute = async (event: Event) => event;
+  const teardown = async () => {
+    observer?.disconnect();
+    removeClickListeners();
+  };
 
   return {
     name,
     type,
     setup,
     execute,
+    teardown,
   };
 };
