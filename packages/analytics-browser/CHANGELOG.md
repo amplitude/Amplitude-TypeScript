@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.1.0...@amplitude/analytics-browser@2.1.1) (2023-06-30)
+
+### Bug Fixes
+
+- allow plugins to teardown to remove listeners ([#460](https://github.com/amplitude/Amplitude-TypeScript/issues/460))
+  ([c337363](https://github.com/amplitude/Amplitude-TypeScript/commit/c337363c25b0a1285e8df455511516fc0a9bec7e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.0.1...@amplitude/analytics-browser@2.1.0) (2023-06-22)
 
 ### Features

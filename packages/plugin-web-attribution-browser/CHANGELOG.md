@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.2...@amplitude/plugin-web-attribution-browser@2.0.3) (2023-06-30)
+
+### Bug Fixes
+
+- missing core dependency for web attribution ([#461](https://github.com/amplitude/Amplitude-TypeScript/issues/461))
+  ([3c5e6f2](https://github.com/amplitude/Amplitude-TypeScript/commit/3c5e6f2b13e55bf645c185649688867a69f6b0da))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.1...@amplitude/plugin-web-attribution-browser@2.0.2) (2023-06-22)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
