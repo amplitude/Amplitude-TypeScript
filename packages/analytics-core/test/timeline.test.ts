@@ -3,7 +3,7 @@ import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
 import { AmplitudeCore } from '../src/core-client';
-import { UUID } from 'src';
+import { UUID } from '../src/utils/uuid';
 
 describe('timeline', () => {
   let timeline = new Timeline(new AmplitudeCore());
