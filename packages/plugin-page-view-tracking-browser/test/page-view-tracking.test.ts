@@ -492,8 +492,14 @@ describe('pageViewTrackingPlugin', () => {
     test('should call remove listeners', async () => {
       const amplitude = createInstance();
       const removeEventListener = jest.spyOn(window, 'removeEventListener');
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+      };
+      const config: Partial<Config> = {
+        loggerProvider: loggerProvider as Logger,
+      };
       const plugin = pageViewTrackingPlugin();
-      await plugin.setup({} as Config, amplitude);
+      await plugin.setup(config as Config, amplitude);
       await plugin.teardown?.();
       expect(removeEventListener).toHaveBeenCalledTimes(1);
     });
