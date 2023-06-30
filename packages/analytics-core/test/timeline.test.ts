@@ -3,21 +3,13 @@ import { Event, Plugin, PluginType } from '@amplitude/analytics-types';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
 import { AmplitudeCore } from '../src/core-client';
+import { UUID } from 'src';
 
 describe('timeline', () => {
   let timeline = new Timeline(new AmplitudeCore());
 
   beforeEach(() => {
     timeline = new Timeline(new AmplitudeCore());
-  });
-
-  describe('register', () => {
-    test('should accept empty plugin', async () => {
-      const config = useDefaultConfig();
-      await timeline.register({}, config);
-      expect(timeline.plugins[0].name).toBeDefined();
-      expect(timeline.plugins[0].type).toBe('enrichment');
-    });
   });
 
   describe('reset', () => {
@@ -34,7 +26,10 @@ describe('timeline', () => {
       const timeline = new Timeline(new AmplitudeCore());
       timeline.plugins = [
         {
+          name: UUID(),
+          type: PluginType.BEFORE,
           setup,
+          execute: async (e) => e,
         },
       ];
       timeline.reset(new AmplitudeCore());
@@ -48,6 +43,10 @@ describe('timeline', () => {
       const timeline = new Timeline(new AmplitudeCore());
       timeline.plugins = [
         {
+          name: UUID(),
+          type: PluginType.BEFORE,
+          setup: async () => undefined,
+          execute: async (e) => e,
           teardown,
         },
       ];
