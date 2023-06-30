@@ -498,7 +498,9 @@ describe('pageViewTrackingPlugin', () => {
       const config: Partial<Config> = {
         loggerProvider: loggerProvider as Logger,
       };
-      const plugin = pageViewTrackingPlugin();
+      const plugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'all',
+      });
       await plugin.setup(config as Config, amplitude);
       await plugin.teardown?.();
       expect(removeEventListener).toHaveBeenCalledTimes(1);
@@ -506,7 +508,9 @@ describe('pageViewTrackingPlugin', () => {
 
     test('should call remove listeners without proxy', async () => {
       const removeEventListener = jest.spyOn(window, 'removeEventListener');
-      const plugin = pageViewTrackingPlugin();
+      const plugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'all',
+      });
       await plugin.teardown?.();
       expect(removeEventListener).toHaveBeenCalledTimes(1);
     });
