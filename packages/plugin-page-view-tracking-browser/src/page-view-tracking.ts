@@ -57,13 +57,19 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (
 
   const trackHistoryPageView = async (): Promise<void> => {
     const newURL = location.href;
+    const shouldTrackPageView =
+      shouldTrackHistoryPageView(options.trackHistoryChanges, newURL, previousURL || '') && shouldTrackOnPageLoad();
+    // Note: Update `previousURL` in the same clock tick as `shouldTrackHistoryPageView()`
+    // This was previously done after `amplitude?.track(await createPageViewEvent());` and
+    // causes a concurrency issue where app triggers `pushState` twice with the same URL target
+    // but `previousURL` is only updated after the second `pushState` producing two page viewed events
+    previousURL = newURL;
 
-    if (shouldTrackHistoryPageView(options.trackHistoryChanges, newURL, previousURL || '') && shouldTrackOnPageLoad()) {
+    if (shouldTrackPageView) {
       /* istanbul ignore next */
       loggerProvider?.log('Tracking page view event');
       amplitude?.track(await createPageViewEvent());
     }
-    previousURL = newURL;
   };
 
   /* istanbul ignore next */
