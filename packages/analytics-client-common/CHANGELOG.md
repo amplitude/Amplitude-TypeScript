@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.3...@amplitude/analytics-client-common@2.0.4) (2023-07-03)
+
+### Bug Fixes
+
+- handle concurrent cookie testing ([#465](https://github.com/amplitude/Amplitude-TypeScript/issues/465))
+  ([92bb7de](https://github.com/amplitude/Amplitude-TypeScript/commit/92bb7de48861438e987778390a66831191b15907))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.2...@amplitude/analytics-client-common@2.0.3) (2023-06-30)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
