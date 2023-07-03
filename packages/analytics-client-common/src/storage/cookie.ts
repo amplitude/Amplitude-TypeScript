@@ -3,6 +3,7 @@ import { getGlobalScope } from '../global-scope';
 
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
+  private static testValue: undefined | string;
 
   constructor(options?: CookieStorageOptions) {
     this.options = { ...options };
@@ -14,13 +15,13 @@ export class CookieStorage<T> implements Storage<T> {
       return false;
     }
 
-    const random = String(Date.now());
+    CookieStorage.testValue = String(Date.now());
     const testStrorage = new CookieStorage<string>(this.options);
     const testKey = 'AMP_TEST';
     try {
-      await testStrorage.set(testKey, random);
+      await testStrorage.set(testKey, CookieStorage.testValue);
       const value = await testStrorage.get(testKey);
-      return value === random;
+      return value === CookieStorage.testValue;
     } catch {
       /* istanbul ignore next */
       return false;
