@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@1.0.6...@amplitude/plugin-page-view-tracking-browser@1.0.7) (2023-07-05)
+
+### Bug Fixes
+
+- allow plugins to teardown to remove listeners ([#463](https://github.com/amplitude/Amplitude-TypeScript/issues/463))
+  ([1394ddb](https://github.com/amplitude/Amplitude-TypeScript/commit/1394ddb3775c7e5b1a3da87e6a4c973a586c6382))
+- handle concurrent history push state calls ([#466](https://github.com/amplitude/Amplitude-TypeScript/issues/466))
+  ([4ebf96b](https://github.com/amplitude/Amplitude-TypeScript/commit/4ebf96b8c611cc0c766446b35e8a209bf5af580b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.0.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@1.0.5...@amplitude/plugin-page-view-tracking-browser@1.0.6) (2023-06-26)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser

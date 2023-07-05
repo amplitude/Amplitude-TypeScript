@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@1.2.0...@amplitude/analytics-core@1.2.1) (2023-07-05)
+
+### Bug Fixes
+
+- allow plugins to teardown to remove listeners ([#463](https://github.com/amplitude/Amplitude-TypeScript/issues/463))
+  ([1394ddb](https://github.com/amplitude/Amplitude-TypeScript/commit/1394ddb3775c7e5b1a3da87e6a4c973a586c6382))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@1.1.2...@amplitude/analytics-core@1.2.0) (2023-06-26)
 
 ### Features
