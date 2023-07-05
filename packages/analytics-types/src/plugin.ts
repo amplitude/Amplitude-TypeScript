@@ -11,7 +11,7 @@ export enum PluginType {
 
 export interface BeforePlugin<T = CoreClient, U = Config> {
   name: string;
-  type: PluginType.BEFORE;
+  type: PluginType.BEFORE | 'before';
   setup(config: U, client?: T): Promise<void>;
   execute(context: Event): Promise<Event | null>;
   teardown?(): Promise<void>;
@@ -19,7 +19,7 @@ export interface BeforePlugin<T = CoreClient, U = Config> {
 
 export interface EnrichmentPlugin<T = CoreClient, U = Config> {
   name: string;
-  type: PluginType.ENRICHMENT;
+  type: PluginType.ENRICHMENT | 'enrichment';
   setup(config: U, client?: T): Promise<void>;
   execute(context: Event): Promise<Event | null>;
   teardown?(): Promise<void>;
@@ -27,7 +27,7 @@ export interface EnrichmentPlugin<T = CoreClient, U = Config> {
 
 export interface DestinationPlugin<T = CoreClient, U = Config> {
   name: string;
-  type: PluginType.DESTINATION;
+  type: PluginType.DESTINATION | 'destination';
   setup(config: U, client?: T): Promise<void>;
   execute(context: Event): Promise<Result>;
   flush?(): Promise<void>;
