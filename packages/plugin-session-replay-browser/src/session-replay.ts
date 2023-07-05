@@ -1,5 +1,5 @@
 import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
-import { BrowserConfig, Event, PluginType, Status } from '@amplitude/analytics-types';
+import { BrowserConfig, Event, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_REPLAY_PROPERTY, DEFAULT_SESSION_START_EVENT } from './constants';
@@ -20,7 +20,7 @@ const MAX_EVENT_LIST_SIZE_IN_BYTES = 20 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BY
 
 class SessionReplay implements SessionReplayEnrichmentPlugin {
   name = '@amplitude/plugin-session-replay-browser';
-  type = PluginType.ENRICHMENT as const;
+  type = 'enrichment' as const;
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
