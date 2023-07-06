@@ -41,6 +41,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          token: ${{ secrets.GH_PUBLISH_TOKEN }}
           ref: v1.x
 
       - name: Cache dependencies
@@ -93,25 +94,29 @@ jobs:
       - name: Create pre-release version
         if: ${{ env.RELEASE_TYPE == 'prerelease'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --conventional-prerelease
+          npm run deploy:version -- -y --conventional-prerelease
 
       # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
       # 1.0.0-alpha.0 -> 1.0.1
       - name: Create graduate version
         if: ${{ env.RELEASE_TYPE == 'graduate'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --conventional-graduate
+          npm run deploy:version -- -y --conventional-graduate
 
       # Use 'release' for the usual deployment
       # NOTE: You probably want this
       - name: Create release version
         if: ${{ env.RELEASE_TYPE == 'release'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y
+          npm run deploy:version -- -y
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         run: |
+<<<<<<< Updated upstream
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --pre-dist-tag v1-beta
+=======
+          npm run deploy:publish -- from-git -y --dist-tag latest --pre-dist-tag next
+>>>>>>> Stashed changes
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
