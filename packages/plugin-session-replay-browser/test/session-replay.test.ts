@@ -246,7 +246,7 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('recordEvents', () => {
-    test('should send the first emitted event immediately', () => {
+    test('should send the first two emitted events immediately', () => {
       const sessionReplay = sessionReplayPlugin();
       const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
       sessionReplay.config = mockConfig;
@@ -254,13 +254,12 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.events).toEqual([]);
       const recordArg = record.mock.calls[0][0];
       recordArg?.emit && recordArg?.emit(mockEvent);
+      recordArg?.emit && recordArg?.emit(mockEvent);
       expect(sessionReplay.events).toEqual([]);
       jest.runAllTimers();
-      // Should not store events in IDB
-      expect(update).not.toHaveBeenCalled();
       expect(send).toHaveBeenCalledTimes(1);
       expect(send.mock.calls[0][0]).toEqual({
-        events: [mockEventString],
+        events: [mockEventString, mockEventString],
         sequenceId: 0,
         attempts: 1,
         timeout: 0,
@@ -274,13 +273,14 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.recordEvents();
       expect(sessionReplay.events).toEqual([]);
       const recordArg = record.mock.calls[0][0];
-      // Emit first event, which gets sent immediately
+      // Emit first two events, which get sent immediately
       recordArg?.emit && recordArg?.emit(mockEvent);
-      // Emit second event, which is stored in class and IDB
+      recordArg?.emit && recordArg?.emit(mockEvent);
+      // Emit third event, which is stored in class and IDB
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(sessionReplay.events).toEqual([mockEventString]);
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1]({})).toEqual({
+      expect(update).toHaveBeenCalledTimes(2);
+      expect(update.mock.calls[1][1]({})).toEqual({
         123: {
           events: [mockEventString],
           sequenceId: 1,
@@ -296,15 +296,15 @@ describe('SessionReplayPlugin', () => {
       const dateNowMock = jest.spyOn(Date, 'now').mockReturnValue(1);
       const sendEventsList = jest.spyOn(sessionReplay, 'sendEventsList');
       const recordArg = record.mock.calls[0][0];
-      // Emit first event, which gets sent immediately
+      // Emit first two events, which get sent immediately
+      recordArg?.emit && recordArg?.emit(mockEvent);
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(sendEventsList).toHaveBeenCalledTimes(1);
       sendEventsList.mockClear();
-      // Emit second event, which is not sent immediately
-      console.log('before second event');
+      // Emit third event, which is not sent immediately
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(sendEventsList).toHaveBeenCalledTimes(0);
-      // Emit third event and advance timers to interval
+      // Emit fourth event and advance timers to interval
       dateNowMock.mockReturnValue(1002);
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(sendEventsList).toHaveBeenCalledTimes(1);
@@ -321,6 +321,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       sessionReplay.maxPersistedEventsSize = 20;
+      sessionReplay.currentSequenceId = 1;
       const events = ['#'.repeat(20)];
       sessionReplay.events = events;
       // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -333,7 +334,7 @@ describe('SessionReplayPlugin', () => {
       expect(sendEventsListMock).toHaveBeenCalledTimes(1);
       expect(sendEventsListMock).toHaveBeenCalledWith({
         events,
-        sequenceId: 0,
+        sequenceId: 1,
         sessionId: 123,
       });
 
@@ -342,7 +343,7 @@ describe('SessionReplayPlugin', () => {
       expect(update.mock.calls[0][1]({})).toEqual({
         123: {
           events: [mockEventString],
-          sequenceId: 1,
+          sequenceId: 2,
         },
       });
     });

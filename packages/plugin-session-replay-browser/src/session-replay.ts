@@ -92,13 +92,14 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     this.stopRecordingEvents = record({
       emit: (event) => {
         const eventString = JSON.stringify(event);
-        // Send the first recorded event immediately
-        if (!this.events.length && this.currentSequenceId === 0) {
+        // Send the first two recorded events immediately
+        if (this.events.length === 1 && this.currentSequenceId === 0) {
           this.sendEventsList({
-            events: [eventString],
+            events: this.events.concat(eventString),
             sequenceId: this.currentSequenceId,
             sessionId: this.config.sessionId as number,
           });
+          this.events = [];
           this.currentSequenceId++;
           return;
         }
