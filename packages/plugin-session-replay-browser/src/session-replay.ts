@@ -3,7 +3,6 @@ import { BrowserConfig, Event, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_REPLAY_PROPERTY, DEFAULT_SESSION_START_EVENT } from './constants';
-import { shouldSplitEventsList } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
 import {
   Events,
@@ -17,6 +16,8 @@ const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/tra
 const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 200; // derived by JSON stringifying an example payload without events
 const MAX_EVENT_LIST_SIZE_IN_BYTES = 20 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
+const MIN_INTERVAL = 1 * 1000; // 1 second
+const MAX_INTERVAL = 10 * 1000; // 10 seconds
 
 class SessionReplay implements SessionReplayEnrichmentPlugin {
   name = '@amplitude/plugin-session-replay-browser';
@@ -33,6 +34,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   queue: SessionReplayContext[] = [];
   stopRecordingEvents: ReturnType<typeof record> | null = null;
   maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
+  interval = MIN_INTERVAL;
+  timeSinceLastSend: number | null = null;
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
@@ -47,8 +50,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       ...event.event_properties,
       [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
     };
-    if (event.event_type === DEFAULT_SESSION_START_EVENT && this.stopRecordingEvents) {
-      this.stopRecordingEvents();
+    if (event.event_type === DEFAULT_SESSION_START_EVENT) {
       this.recordEvents();
     } else if (event.event_type === DEFAULT_SESSION_END_EVENT) {
       if (event.session_id) {
@@ -58,6 +60,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
           sessionId: event.session_id,
         });
       }
+      this.stopRecordingEvents && this.stopRecordingEvents();
       this.events = [];
       this.currentSequenceId = 0;
     }
@@ -88,8 +91,20 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   recordEvents() {
     this.stopRecordingEvents = record({
       emit: (event) => {
+        console.log('this.events', this.events);
         const eventString = JSON.stringify(event);
-        const shouldSplit = shouldSplitEventsList(this.events, eventString, this.maxPersistedEventsSize);
+        // Send the first recorded event immediately
+        if (!this.events.length && this.currentSequenceId === 0) {
+          this.sendEventsList({
+            events: [eventString],
+            sequenceId: this.currentSequenceId,
+            sessionId: this.config.sessionId as number,
+          });
+          this.currentSequenceId++;
+          return;
+        }
+
+        const shouldSplit = this.shouldSplitEventsList(eventString);
         if (shouldSplit) {
           this.sendEventsList({
             events: this.events,
@@ -103,8 +118,22 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
         void this.storeEventsForSession(this.events, this.currentSequenceId);
       },
       packFn: pack,
+      maskAllInputs: true,
     });
   }
+
+  shouldSplitEventsList = (nextEventString: string): boolean => {
+    const sizeOfNextEvent = new Blob([nextEventString]).size;
+    const sizeOfEventsList = new Blob(this.events).size;
+    if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
+      return true;
+    }
+    if (this.timeSinceLastSend !== null && Date.now() - this.timeSinceLastSend > this.interval) {
+      this.interval = Math.min(MAX_INTERVAL, this.interval + MIN_INTERVAL);
+      return true;
+    }
+    return false;
+  };
 
   sendEventsList({ events, sequenceId, sessionId }: { events: string[]; sequenceId: number; sessionId: number }) {
     this.addToQueue({
@@ -131,7 +160,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     tryable.forEach((context) => {
       this.queue = this.queue.concat(context);
       if (context.timeout === 0) {
-        this.schedule(this.config.flushIntervalMillis);
+        this.schedule(0);
         return;
       }
 
@@ -286,6 +315,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     if (err) {
       this.config.loggerProvider.error(err);
     } else if (success) {
+      this.timeSinceLastSend = Date.now();
       this.config.loggerProvider.log(success);
     }
   }
