@@ -113,10 +113,6 @@ jobs:
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         run: |
-<<<<<<< Updated upstream
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --pre-dist-tag v1-beta
-=======
           npm run deploy:publish -- from-git -y --dist-tag latest --pre-dist-tag next
->>>>>>> Stashed changes
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
