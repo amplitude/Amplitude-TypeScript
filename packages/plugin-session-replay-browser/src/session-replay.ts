@@ -11,6 +11,7 @@ import {
   RecordingStatus,
   SessionReplayContext,
   SessionReplayEnrichmentPlugin,
+  SessionReplayOptions,
   SessionReplayPlugin,
 } from './typings/session-replay';
 
@@ -38,9 +39,22 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
   interval = MIN_INTERVAL;
   timeAtLastSend: number | null = null;
+  options: SessionReplayOptions;
+  shouldRecordEvents = true;
+
+  constructor(options?: SessionReplayOptions) {
+    this.options = { ...options };
+    if (options?.sampleRate) {
+      this.shouldRecordEvents = Math.random() < options.sampleRate;
+    }
+  }
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
+    if (!this.shouldRecordEvents) {
+      config.loggerProvider.log('Opting session out of recording due to lack of inclusion in sample.');
+      return;
+    }
 
     if (typeof config.defaultTracking === 'boolean') {
       if (config.defaultTracking === false) {
@@ -75,6 +89,10 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   }
 
   async execute(event: Event) {
+    if (!this.shouldRecordEvents) {
+      return Promise.resolve(event);
+    }
+
     event.event_properties = {
       ...event.event_properties,
       [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
@@ -405,6 +423,6 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   }
 }
 
-export const sessionReplayPlugin: SessionReplayPlugin = () => {
-  return new SessionReplay();
+export const sessionReplayPlugin: SessionReplayPlugin = (options?: SessionReplayOptions) => {
+  return new SessionReplay(options);
 };

@@ -748,6 +748,58 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('module level integration', () => {
+    describe('with a sample rate', () => {
+      test('should not record session if excluded due to sampling', async () => {
+        jest.spyOn(Math, 'random').mockImplementationOnce(() => 0.7);
+        const sessionReplay = sessionReplayPlugin({
+          sampleRate: 0.2,
+        });
+        await sessionReplay.setup(mockConfig);
+        await sessionReplay.execute({
+          event_type: 'session_end',
+          session_id: 456,
+        });
+        await runScheduleTimers();
+        expect(record).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+      });
+      test('should record session if included due to sampling', async () => {
+        (fetch as jest.Mock).mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 200,
+          });
+        });
+        jest.spyOn(Math, 'random').mockImplementationOnce(() => 0.7);
+        const sessionReplay = sessionReplayPlugin({
+          sampleRate: 0.8,
+        });
+        const config = {
+          ...mockConfig,
+          loggerProvider: mockLoggerProvider,
+        };
+        await sessionReplay.setup(config);
+        // Log is called from setup, but that's not what we're testing here
+        mockLoggerProvider.log.mockClear();
+        await sessionReplay.execute({
+          event_type: 'session_start',
+          session_id: 456,
+        });
+        expect(record).toHaveBeenCalled();
+        const recordArg = record.mock.calls[0][0];
+        recordArg?.emit && recordArg?.emit(mockEvent);
+        expect(update).toHaveBeenCalledTimes(1);
+        await sessionReplay.execute({
+          event_type: 'session_end',
+          session_id: 456,
+        });
+        await runScheduleTimers();
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual(SUCCESS_MESSAGE);
+      });
+    });
     test('should handle unexpected error', async () => {
       const sessionReplay = sessionReplayPlugin();
       const config = {

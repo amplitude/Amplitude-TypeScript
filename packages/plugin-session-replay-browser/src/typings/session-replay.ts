@@ -1,8 +1,10 @@
-import { BrowserClient, BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
 import { record } from 'rrweb';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface Options {}
+export interface SessionReplayOptions {
+  sampleRate?: number;
+}
 
 export type Events = string[];
 
@@ -76,8 +78,5 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
 }
 
 export interface SessionReplayPlugin {
-  (client: BrowserClient, options?: Options): SessionReplayEnrichmentPlugin;
-  (options?: Options): SessionReplayEnrichmentPlugin;
+  (options?: SessionReplayOptions): SessionReplayEnrichmentPlugin;
 }
-
-export type SessionReplayPluginParameters = [BrowserClient, Options?] | [Options?];
