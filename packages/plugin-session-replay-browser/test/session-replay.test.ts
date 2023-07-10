@@ -251,10 +251,14 @@ describe('SessionReplayPlugin', () => {
       const send = jest.spyOn(sessionReplay, 'send').mockReturnValueOnce(Promise.resolve());
       sessionReplay.config = mockConfig;
       sessionReplay.recordEvents();
+      // Confirm that no events have been set in events list yet
       expect(sessionReplay.events).toEqual([]);
       const recordArg = record.mock.calls[0][0];
+      // Emit two events manually (replicating what rrweb would do itself)
       recordArg?.emit && recordArg?.emit(mockEvent);
       recordArg?.emit && recordArg?.emit(mockEvent);
+      // Confirm that there are still no events in the events list
+      // (because they are sent immediately instead of stored)
       expect(sessionReplay.events).toEqual([]);
       jest.runAllTimers();
       expect(send).toHaveBeenCalledTimes(1);
@@ -292,7 +296,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       sessionReplay.recordEvents();
-      sessionReplay.timeSinceLastSend = 1;
+      sessionReplay.timeAtLastSend = 1;
       const dateNowMock = jest.spyOn(Date, 'now').mockReturnValue(1);
       const sendEventsList = jest.spyOn(sessionReplay, 'sendEventsList');
       const recordArg = record.mock.calls[0][0];
@@ -845,7 +849,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
     describe('interval', () => {
-      test('should return false if timeSinceLastSend is null', () => {
+      test('should return false if timeAtLastSend is null', () => {
         const sessionReplay = sessionReplayPlugin();
         const nextEvent = 'a';
         const result = sessionReplay.shouldSplitEventsList(nextEvent);
@@ -853,7 +857,7 @@ describe('SessionReplayPlugin', () => {
       });
       test('should return false if it has not been long enough since last send', () => {
         const sessionReplay = sessionReplayPlugin();
-        sessionReplay.timeSinceLastSend = 1;
+        sessionReplay.timeAtLastSend = 1;
         jest.spyOn(Date, 'now').mockReturnValue(2);
         const nextEvent = 'a';
         const result = sessionReplay.shouldSplitEventsList(nextEvent);
@@ -861,7 +865,7 @@ describe('SessionReplayPlugin', () => {
       });
       test('should return true if it has been long enough since last send', () => {
         const sessionReplay = sessionReplayPlugin();
-        sessionReplay.timeSinceLastSend = 1;
+        sessionReplay.timeAtLastSend = 1;
         jest.spyOn(Date, 'now').mockReturnValue(1002);
         const nextEvent = 'a';
         const result = sessionReplay.shouldSplitEventsList(nextEvent);
@@ -869,7 +873,7 @@ describe('SessionReplayPlugin', () => {
       });
       test('should increase interval incrementally', () => {
         const sessionReplay = sessionReplayPlugin();
-        sessionReplay.timeSinceLastSend = 1;
+        sessionReplay.timeAtLastSend = 1;
         jest.spyOn(Date, 'now').mockReturnValue(1000000);
         const nextEvent = 'a';
         for (let i = 1; i <= 10; i++) {

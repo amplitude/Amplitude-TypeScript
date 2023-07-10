@@ -28,7 +28,7 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
   currentSequenceId: number;
   interval: number;
   queue: SessionReplayContext[];
-  timeSinceLastSend: number | null;
+  timeAtLastSend: number | null;
   stopRecordingEvents: ReturnType<typeof record> | null;
   maxPersistedEventsSize: number;
   emptyStoreAndReset: () => Promise<void>;

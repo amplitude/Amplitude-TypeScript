@@ -35,7 +35,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   stopRecordingEvents: ReturnType<typeof record> | null = null;
   maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
   interval = MIN_INTERVAL;
-  timeSinceLastSend: number | null = null;
+  timeAtLastSend: number | null = null;
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
@@ -122,13 +122,19 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     });
   }
 
+  /**
+   * Determines whether to send the events list to the backend and start a new
+   * empty events list, based on the size of the list as well as the last time sent
+   * @param nextEventString
+   * @returns boolean
+   */
   shouldSplitEventsList = (nextEventString: string): boolean => {
     const sizeOfNextEvent = new Blob([nextEventString]).size;
     const sizeOfEventsList = new Blob(this.events).size;
     if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
       return true;
     }
-    if (this.timeSinceLastSend !== null && Date.now() - this.timeSinceLastSend > this.interval) {
+    if (this.timeAtLastSend !== null && Date.now() - this.timeAtLastSend > this.interval) {
       this.interval = Math.min(MAX_INTERVAL, this.interval + MIN_INTERVAL);
       return true;
     }
@@ -315,7 +321,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     if (err) {
       this.config.loggerProvider.error(err);
     } else if (success) {
-      this.timeSinceLastSend = Date.now();
+      this.timeAtLastSend = Date.now();
       this.config.loggerProvider.log(success);
     }
   }
