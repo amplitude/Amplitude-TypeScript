@@ -756,13 +756,17 @@ describe('SessionReplayPlugin', () => {
         });
         await sessionReplay.setup(mockConfig);
         await sessionReplay.execute({
+          event_type: 'session_start',
+          session_id: 456,
+        });
+        expect(record).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        await sessionReplay.execute({
           event_type: 'session_end',
           session_id: 456,
         });
         await runScheduleTimers();
-        expect(record).not.toHaveBeenCalled();
         expect(fetch).not.toHaveBeenCalled();
-        expect(update).not.toHaveBeenCalled();
       });
       test('should record session if included due to sampling', async () => {
         (fetch as jest.Mock).mockImplementationOnce(() => {
@@ -798,6 +802,28 @@ describe('SessionReplayPlugin', () => {
         expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual(SUCCESS_MESSAGE);
+      });
+    });
+
+    describe('with optOut in config', () => {
+      test('should not record session if excluded due to optOut', async () => {
+        const sessionReplay = sessionReplayPlugin();
+        await sessionReplay.setup({
+          ...mockConfig,
+          optOut: true,
+        });
+        await sessionReplay.execute({
+          event_type: 'session_start',
+          session_id: 456,
+        });
+        expect(record).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        await sessionReplay.execute({
+          event_type: 'session_end',
+          session_id: 456,
+        });
+        await runScheduleTimers();
+        expect(fetch).not.toHaveBeenCalled();
       });
     });
     test('should handle unexpected error', async () => {

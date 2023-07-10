@@ -51,8 +51,12 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
+    if (config.optOut) {
+      this.shouldRecordEvents = false;
+    }
+
     if (!this.shouldRecordEvents) {
-      config.loggerProvider.log('Opting session out of recording due to lack of inclusion in sample.');
+      config.loggerProvider.log('Opting session out of recording.');
       return;
     }
 
