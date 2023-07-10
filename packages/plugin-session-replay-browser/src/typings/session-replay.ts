@@ -32,6 +32,7 @@ export interface IDBStore {
   };
 }
 export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
+  setup: (config: BrowserConfig) => Promise<void>;
   config: BrowserConfig;
   storageKey: string;
   retryTimeout: number;

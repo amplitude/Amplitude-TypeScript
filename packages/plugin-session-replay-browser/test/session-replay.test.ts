@@ -293,6 +293,42 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.initialize();
       expect(record).toHaveBeenCalledTimes(1);
     });
+    describe('defaultTracking', () => {
+      test('should not change defaultTracking if its set to true', async () => {
+        const sessionReplay = sessionReplayPlugin();
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: true,
+        });
+        expect(sessionReplay.config.defaultTracking).toBe(true);
+      });
+      test('should modify defaultTracking to enable sessions if its set to false', async () => {
+        const sessionReplay = sessionReplayPlugin();
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: false,
+        });
+        expect(sessionReplay.config.defaultTracking).toEqual({
+          pageViews: false,
+          formInteractions: false,
+          fileDownloads: false,
+          sessions: true,
+        });
+      });
+      test('should modify defaultTracking to enable sessions if it is an object', async () => {
+        const sessionReplay = sessionReplayPlugin();
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: {
+            pageViews: false,
+          },
+        });
+        expect(sessionReplay.config.defaultTracking).toEqual({
+          pageViews: false,
+          sessions: true,
+        });
+      });
+    });
   });
 
   describe('execute', () => {

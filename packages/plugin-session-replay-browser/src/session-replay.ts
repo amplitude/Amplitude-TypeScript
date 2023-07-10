@@ -42,6 +42,22 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
 
+    if (typeof config.defaultTracking === 'boolean') {
+      if (config.defaultTracking === false) {
+        config.defaultTracking = {
+          pageViews: false,
+          formInteractions: false,
+          fileDownloads: false,
+          sessions: true,
+        };
+      }
+    } else {
+      config.defaultTracking = {
+        ...config.defaultTracking,
+        sessions: true,
+      };
+    }
+
     this.config = config;
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     await this.initialize(true);
