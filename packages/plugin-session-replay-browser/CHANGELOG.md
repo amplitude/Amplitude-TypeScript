@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.1.1...@amplitude/plugin-session-replay-browser@0.1.2) (2023-07-11)
+
+### Bug Fixes
+
+- **plugins:** need to send first two events immediately for replayer to work
+  ([721a399](https://github.com/amplitude/Amplitude-TypeScript/commit/721a3997673d700b6bda9302b076be0f3fab7c09))
+- **plugins:** pr feedback
+  ([59802fb](https://github.com/amplitude/Amplitude-TypeScript/commit/59802fbc0c949373a2fd3566ed3db6a871e442a4))
+- **plugins:** remove console log
+  ([fc263ed](https://github.com/amplitude/Amplitude-TypeScript/commit/fc263ed34a955f0bc987cf7281a374065f95045c))
+- **plugins:** update timing of sending batches of session replay events
+  ([fadd7c0](https://github.com/amplitude/Amplitude-TypeScript/commit/fadd7c0cd24f78c6dd317098fe6dfad951ce206e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.1.0...@amplitude/plugin-session-replay-browser@0.1.1) (2023-07-05)
 
 ### Bug Fixes
