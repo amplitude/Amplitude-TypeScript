@@ -27,9 +27,10 @@ import {
   Result,
 } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
-import { useReactNativeConfig, createCookieStorage } from './config';
+import { useReactNativeConfig, createCookieStorage, createEventsStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
 import { isNative } from './utils/platform';
+import RemnantDataMigration from './migration/remnant-data-migration';
 
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
@@ -56,14 +57,40 @@ export class AmplitudeReactNative extends AmplitudeCore {
     // Step 1: Read cookies stored by old SDK
     const oldCookies = await parseOldCookies(options.apiKey, options);
 
+    const storageProvider = options.storageProvider ?? (await createEventsStorage(options));
+
+    let {
+      deviceId: legacyDeviceId,
+      userId: legacyUserId,
+      sessionId: legacySessionId,
+      lastEventTime: legacyLastEventTime,
+      lastEventId: legacyLastEventId,
+    } = oldCookies;
+    if (options.migrateLegacyData !== false) {
+      const legacySessionData = await new RemnantDataMigration(
+        options.apiKey,
+        options.instanceName,
+        storageProvider,
+      ).execute();
+      legacyDeviceId = legacyDeviceId ?? legacySessionData.deviceId;
+      legacyUserId = legacyUserId ?? legacySessionData.userId;
+      legacySessionId = legacySessionId ?? legacySessionData.sessionId;
+      legacyLastEventTime = legacyLastEventTime ?? legacySessionData.lastEventTime;
+      legacyLastEventId = legacyLastEventId ?? legacySessionData.lastEventId;
+    }
+
     // Step 2: Create react native config
     const reactNativeOptions = await useReactNativeConfig(options.apiKey, {
       ...options,
-      deviceId: oldCookies.deviceId ?? options.deviceId,
-      sessionId: oldCookies.sessionId,
+      deviceId: options.deviceId ?? legacyDeviceId,
+      sessionId: legacySessionId,
       optOut: options.optOut ?? oldCookies.optOut,
-      lastEventTime: oldCookies.lastEventTime,
-      userId: options.userId || oldCookies.userId,
+      lastEventTime: legacyLastEventTime,
+      userId: options.userId ?? legacyUserId,
+      storageProvider,
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      lastEventId: legacyLastEventId,
     });
     await super._init(reactNativeOptions);
 

@@ -6,12 +6,20 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
+import com.facebook.react.bridge.WritableNativeArray
 import com.facebook.react.bridge.WritableNativeMap
 
 const val MODULE_NAME = "AmplitudeReactNative"
 
 @ReactModule(name = MODULE_NAME)
 class AmplitudeReactNativeModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {
+    companion object {
+        const val DEVICE_ID_KEY = "device_id"
+        const val USER_ID_KEY = "user_id"
+        const val LAST_EVENT_TIME_KEY = "last_event_time"
+        const val LAST_EVENT_ID_KEY = "last_event_id"
+        const val PREVIOUS_SESSION_ID_KEY = "previous_session_id"
+    }
 
     private var androidContextProvider: AndroidContextProvider? = null
 
@@ -41,5 +49,50 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
             }
             putString("appSetId", androidContextProvider!!.appSetId)
         })
+    }
+
+    @ReactMethod
+    private fun getLegacySessionData(instanceName: String?, promise: Promise) {
+        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
+        val deviceId = storage.getValue(DEVICE_ID_KEY)
+        val userId = storage.getValue(USER_ID_KEY)
+        promise.resolve(WritableNativeMap().apply {
+            if (deviceId != null) {
+                putString("deviceId", deviceId)
+            }
+            if (userId != null) {
+                putString("userId", userId)
+            }
+        })
+    }
+
+    @ReactMethod
+    private fun getLegacyEvents(instanceName: String?, promise: Promise) {
+        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
+        val jsonEvents = storage.readEventsContent()
+
+        val events = WritableNativeArray()
+        jsonEvents.forEach { event -> events.pushString(event.toString()) }
+        promise.resolve(events)
+    }
+
+    @ReactMethod
+    private fun getLegacyIdentifies(instanceName: String?, promise: Promise) {
+        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
+        val jsonEvents = storage.readIdentifiesContent()
+
+        val events = WritableNativeArray()
+        jsonEvents.forEach { event -> events.pushString(event.toString()) }
+        promise.resolve(events)
+    }
+
+    @ReactMethod
+    private fun getLegacyInterceptedIdentifies(instanceName: String?, promise: Promise) {
+        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
+        val jsonEvents = storage.readInterceptedIdentifiesContent()
+
+        val events = WritableNativeArray()
+        jsonEvents.forEach { event -> events.pushString(event.toString()) }
+        promise.resolve(events)
     }
 }

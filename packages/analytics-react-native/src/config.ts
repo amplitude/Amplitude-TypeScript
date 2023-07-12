@@ -195,6 +195,8 @@ export const useReactNativeConfig = async (
   const sessionId = options?.sessionId ?? previousCookies?.sessionId;
   const userId = options?.userId ?? previousCookies?.userId;
 
+  const storageProvider = options?.storageProvider ?? (await createEventsStorage(options));
+
   const config = new ReactNativeConfig(apiKey, {
     ...options,
     cookieStorage,
@@ -203,7 +205,7 @@ export const useReactNativeConfig = async (
     lastEventTime,
     optOut,
     sessionId,
-    storageProvider: await createEventsStorage(options),
+    storageProvider,
     trackingOptions: {
       ...defaultConfig.trackingOptions,
       ...options?.trackingOptions,
@@ -212,7 +214,7 @@ export const useReactNativeConfig = async (
     userId,
   });
 
-  config.lastEventId = previousCookies?.lastEventId;
+  config.lastEventId = previousCookies?.lastEventId ?? (options as IReactNativeConfig)?.lastEventId;
 
   config.loggerProvider?.log(
     `Init: storage=${cookieStorage.constructor.name} restoredSessionId = ${

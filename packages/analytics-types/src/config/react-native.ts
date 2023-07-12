@@ -4,6 +4,7 @@ import { BrowserConfig, TrackingOptions } from './browser';
 export interface ReactNativeConfig extends BrowserConfig {
   trackingOptions: ReactNativeTrackingOptions;
   trackingSessionEvents?: boolean;
+  migrateLegacyData?: boolean;
 }
 
 export interface ReactNativeTrackingOptions extends TrackingOptions {
