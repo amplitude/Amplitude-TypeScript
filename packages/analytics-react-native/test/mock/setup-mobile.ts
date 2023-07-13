@@ -17,6 +17,7 @@ jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
  */
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
+// eslint-disable-next-line no-restricted-globals
 window['navigator'] = { product: 'ReactNative' };
 
 /*
@@ -35,4 +36,8 @@ NativeModules.AmplitudeReactNative = {
       carrier: 'react-native-tests',
     };
   },
+  getLegacySessionData: () => ({}),
+  getLegacyEvents: () => [],
+  getLegacyIdentifies: () => [],
+  getLegacyInterceptedIdentifies: () => [],
 };

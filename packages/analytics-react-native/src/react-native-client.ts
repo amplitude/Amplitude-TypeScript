@@ -66,6 +66,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
       lastEventTime: legacyLastEventTime,
       lastEventId: legacyLastEventId,
     } = oldCookies;
+
     if (options.migrateLegacyData !== false) {
       const legacySessionData = await new RemnantDataMigration(
         options.apiKey,

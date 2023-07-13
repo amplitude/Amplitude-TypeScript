@@ -55,7 +55,7 @@ export default class RemnantDataMigration {
   }
 
   private async moveLegacyEvents(legacyJsonEvents: string[] | undefined) {
-    if (!this.storage || !legacyJsonEvents) {
+    if (!this.storage || !legacyJsonEvents || legacyJsonEvents.length === 0) {
       return;
     }
 
