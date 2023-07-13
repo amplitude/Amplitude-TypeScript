@@ -1,5 +1,5 @@
 import { NativeModules } from 'react-native';
-import { Event, Storage } from '@amplitude/analytics-types';
+import { Event, Storage, UserSession } from '@amplitude/analytics-types';
 import { STORAGE_PREFIX } from '@amplitude/analytics-core/src/constants';
 
 export type LegacySessionData = {
@@ -11,7 +11,7 @@ export type LegacySessionData = {
 };
 
 interface AmplitudeReactNative {
-  getLegacySessionData(instanceName: string | undefined): Promise<LegacySessionData>;
+  getLegacySessionData(instanceName: string | undefined): Promise<Omit<UserSession, 'optOut'>>;
   getLegacyEvents(instanceName: string | undefined): Promise<string[]>;
   getLegacyIdentifies(instanceName: string | undefined): Promise<string[]>;
   getLegacyInterceptedIdentifies(instanceName: string | undefined): Promise<string[]>;
@@ -25,14 +25,17 @@ export default class RemnantDataMigration {
     private apiKey: string,
     private instanceName: string | undefined,
     private storage: Storage<Event[]> | undefined,
+    private firstRunSinceUpgrade: boolean,
   ) {
     this.eventsStorageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
     this.nativeModule = NativeModules.AmplitudeReactNative as AmplitudeReactNative | undefined;
   }
 
-  async execute(): Promise<LegacySessionData> {
-    await this.moveInterceptedIdentifies();
-    await this.moveIdentifies();
+  async execute(): Promise<Omit<UserSession, 'optOut'>> {
+    if (this.firstRunSinceUpgrade) {
+      await this.moveInterceptedIdentifies();
+      await this.moveIdentifies();
+    }
     await this.moveEvents();
 
     const sessionData = await this.nativeModule?.getLegacySessionData(this.instanceName);

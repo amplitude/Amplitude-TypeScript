@@ -2,7 +2,8 @@ import { NativeModules } from 'react-native';
 import { AmplitudeReactNative } from '../../src/react-native-client';
 import { MemoryStorage } from '@amplitude/analytics-core';
 import { STORAGE_PREFIX } from '@amplitude/analytics-core/src/constants';
-import { Event } from '@amplitude/analytics-types';
+import { Event, UserSession } from '@amplitude/analytics-types';
+import { getCookieName as getStorageKey } from '@amplitude/analytics-client-common/src';
 
 describe('migration', () => {
   const deviceId = '22833898-c487-4536-b213-40f207abdce0R';
@@ -112,6 +113,48 @@ describe('migration', () => {
     expect(event6?.library).toEqual('amplitude-android/2.39.3-SNAPSHOT');
     expect(event6?.device_id).toEqual(deviceId);
     expect(event6?.user_id).toEqual(userId);
+  });
+
+  test('should not migrate legacy identifies if not first run since upgrade', async () => {
+    const apiKey = 'TEST_API_KEY';
+    const client = new AmplitudeReactNative();
+    const storageProvider = new MemoryStorage<Event[]>();
+    const cookieStorage = new MemoryStorage<UserSession>();
+    await cookieStorage.set(getStorageKey(apiKey), {
+      deviceId: 'custom-device-id',
+      lastEventId: 1000,
+      lastEventTime: Date.now(),
+      optOut: false,
+    });
+
+    await client.init(apiKey, undefined, {
+      disableCookies: true,
+      cookieStorage,
+      storageProvider,
+    }).promise;
+    expect(client.getDeviceId()).toEqual('custom-device-id');
+    expect(client.getUserId()).toEqual(userId);
+    expect(client.getSessionId()).toEqual(sessionId);
+    expect(client.config.lastEventTime).toBeGreaterThanOrEqual(lastEventTime ?? 0);
+    expect(client.config.lastEventId).toEqual(1000);
+
+    const eventsKey = `${STORAGE_PREFIX}_${client.config.apiKey.substring(0, 10)}`;
+    const events = await storageProvider.get(eventsKey);
+    expect(events?.length).toEqual(2);
+    const event1 = events?.[0];
+    expect(event1?.event_type).toEqual('legacy event 1');
+    expect(event1?.time).toEqual(1684219150354);
+    expect(event1?.insert_id).toEqual('d6eff10b-9cd4-45d7-85cb-c81cb6cb8b2e');
+    expect(event1?.library).toEqual('amplitude-android/2.39.3-SNAPSHOT');
+    expect(event1?.device_id).toEqual(deviceId);
+    expect(event1?.user_id).toEqual(userId);
+    const event2 = events?.[1];
+    expect(event2?.event_type).toEqual('legacy event 2');
+    expect(event2?.time).toEqual(1684219150355);
+    expect(event2?.insert_id).toEqual('7b4c5c13-6fdc-4931-9ba1-e4efdf346ee0');
+    expect(event2?.library).toEqual('amplitude-android/2.39.3-SNAPSHOT');
+    expect(event2?.device_id).toEqual(deviceId);
+    expect(event2?.user_id).toEqual(userId);
   });
 
   test('should not migrate legacy data if migrateLegacyData is false', async () => {
