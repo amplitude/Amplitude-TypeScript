@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.1.2...@amplitude/plugin-session-replay-browser@0.1.3) (2023-07-13)
+
+### Bug Fixes
+
+- **plugins:** change timing of record upon initialization for session replay plugin
+  ([1a55aee](https://github.com/amplitude/Amplitude-TypeScript/commit/1a55aeede742f688f87f128a13cf41f91bda5224))
+- **plugins:** should only initiate recording on session start if recording is not initiated
+  ([708d4b9](https://github.com/amplitude/Amplitude-TypeScript/commit/708d4b94d0d8714b35fe3984e604327e34b446f0))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.1.1...@amplitude/plugin-session-replay-browser@0.1.2) (2023-07-11)
 
 ### Bug Fixes
