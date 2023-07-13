@@ -50,7 +50,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       ...event.event_properties,
       [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
     };
-    if (event.event_type === DEFAULT_SESSION_START_EVENT) {
+    if (event.event_type === DEFAULT_SESSION_START_EVENT && !this.stopRecordingEvents) {
       this.recordEvents();
     } else if (event.event_type === DEFAULT_SESSION_END_EVENT) {
       if (event.session_id) {
@@ -84,8 +84,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       const currentSessionStoredEvents = this.config.sessionId && storedReplaySessions[this.config.sessionId];
       this.currentSequenceId = currentSessionStoredEvents ? currentSessionStoredEvents.sequenceId + 1 : 0;
       void this.storeEventsForSession([], this.currentSequenceId);
-      this.recordEvents();
     }
+    this.recordEvents();
   }
 
   recordEvents() {
