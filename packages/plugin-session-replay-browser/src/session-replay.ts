@@ -50,7 +50,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       ...event.event_properties,
       [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
     };
-    if (event.event_type === DEFAULT_SESSION_START_EVENT) {
+    if (event.event_type === DEFAULT_SESSION_START_EVENT && !this.stopRecordingEvents) {
       this.recordEvents();
     } else if (event.event_type === DEFAULT_SESSION_END_EVENT) {
       if (event.session_id) {
