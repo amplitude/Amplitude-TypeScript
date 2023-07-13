@@ -84,8 +84,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       const currentSessionStoredEvents = this.config.sessionId && storedReplaySessions[this.config.sessionId];
       this.currentSequenceId = currentSessionStoredEvents ? currentSessionStoredEvents.sequenceId + 1 : 0;
       void this.storeEventsForSession([], this.currentSequenceId);
-      this.recordEvents();
     }
+    this.recordEvents();
   }
 
   recordEvents() {
