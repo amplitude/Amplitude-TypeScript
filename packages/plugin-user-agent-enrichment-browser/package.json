@@ -1,6 +1,6 @@
 {
-  "name": "@amplitude/plugin-ua-parser-browser",
-  "version": "1.0.0-beta.0",
+  "name": "@amplitude/plugin-user-agent-enrichment-browser",
+  "version": "0.0.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -38,6 +38,7 @@
   "dependencies": {
     "@amplitude/analytics-client-common": "^2.0.4",
     "@amplitude/analytics-types": "^2.1.1",
+    "@amplitude/ua-parser-js": "^0.7.33",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

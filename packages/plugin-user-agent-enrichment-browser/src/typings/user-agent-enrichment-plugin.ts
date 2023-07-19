@@ -8,6 +8,6 @@ export interface Options {
   deviceModel?: boolean;
 }
 
-export interface CreateUaParserPlugin {
+export interface CreateUserAgentEnrichmentPlugin {
   (options?: Options): EnrichmentPlugin;
 }

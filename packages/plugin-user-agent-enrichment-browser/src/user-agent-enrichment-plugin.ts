@@ -1,15 +1,8 @@
 import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-types';
-import { CreateUaParserPlugin, Options } from './typings/ua-parser-plugin';
+import { CreateUserAgentEnrichmentPlugin, Options } from './typings/user-agent-enrichment-plugin';
 import UAParser from '@amplitude/ua-parser-js';
 
-export const uaParserPlugin: CreateUaParserPlugin = function (
-  options: Options = {
-    osName: true,
-    osVersion: true,
-    deviceManufacturer: true,
-    deviceModel: true,
-  },
-) {
+export const userAgentEnrichmentPlugin: CreateUserAgentEnrichmentPlugin = function (options: Options = {}) {
   const { osName = true, osVersion = true, deviceManufacturer = true, deviceModel = true } = options;
 
   let uaResult: UAParser.IResult;

@@ -1,6 +1,6 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
-import { uaParserPlugin } from '../src/ua-parser-plugin';
+import { userAgentEnrichmentPlugin } from '../src/user-agent-enrichment-plugin';
 import { BaseEvent, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import { Logger, UUID } from '@amplitude/analytics-core';
 
@@ -18,7 +18,6 @@ describe('uaParserPlugin', () => {
     serverUrl: undefined,
     transportProvider: new FetchTransport(),
     useBatch: false,
-
     cookieOptions: {
       domain: '.amplitude.com',
       expiration: 365,
@@ -49,11 +48,11 @@ describe('uaParserPlugin', () => {
     test('should overwirte all devices info without option', async () => {
       const amplitude = createInstance();
 
-      const uaParserEnrichmentPlugin = uaParserPlugin();
-      const executeSpy = jest.spyOn(uaParserEnrichmentPlugin, 'execute');
+      const plugin = userAgentEnrichmentPlugin();
+      const executeSpy = jest.spyOn(plugin, 'execute');
 
-      await uaParserEnrichmentPlugin.setup?.(mockConfig, amplitude);
-      const enrichedEvent = await uaParserEnrichmentPlugin.execute?.(event);
+      await plugin.setup?.(mockConfig, amplitude);
+      const enrichedEvent = await plugin.execute?.(event);
 
       expect(executeSpy).toHaveBeenCalledWith(event);
       expect(enrichedEvent).toHaveProperty('os_name');
@@ -65,13 +64,13 @@ describe('uaParserPlugin', () => {
     test('should escape the optOut devices info with disabled options 1', async () => {
       const amplitude = createInstance();
 
-      const uaParserEnrichmentPlugin = uaParserPlugin({
+      const plugin = userAgentEnrichmentPlugin({
         osVersion: false,
       });
 
-      await uaParserEnrichmentPlugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, amplitude);
 
-      const enrichedEvent = await uaParserEnrichmentPlugin.execute?.(event);
+      const enrichedEvent = await plugin.execute?.(event);
 
       expect(enrichedEvent).toHaveProperty('device_model');
       expect(enrichedEvent).toHaveProperty('os_name');
@@ -82,34 +81,34 @@ describe('uaParserPlugin', () => {
     test('should escape the optOut devices info with disabled options 2', async () => {
       const amplitude = createInstance();
 
-      const uaParserEnrichmentPlugin = uaParserPlugin({
+      const plugin = userAgentEnrichmentPlugin({
         osName: false,
-        deviceManufacturer: false,
+        deviceManufacturer: true,
       });
 
-      await uaParserEnrichmentPlugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, amplitude);
 
-      const enrichedEvent = await uaParserEnrichmentPlugin.execute?.(event);
+      const enrichedEvent = await plugin.execute?.(event);
 
       expect(enrichedEvent).toHaveProperty('device_model');
       expect(enrichedEvent).not.toHaveProperty('os_name');
       expect(enrichedEvent).toHaveProperty('os_version');
-      expect(enrichedEvent).not.toHaveProperty('device_manufacturer');
+      expect(enrichedEvent).toHaveProperty('device_manufacturer');
     });
 
     test('should overwrite the opted in devices info', async () => {
       const amplitude = createInstance();
 
-      const uaParserEnrichmentPlugin = uaParserPlugin({
+      const plugin = userAgentEnrichmentPlugin({
         osName: true,
         osVersion: true,
         deviceManufacturer: false,
         deviceModel: false,
       });
 
-      await uaParserEnrichmentPlugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, amplitude);
 
-      const enrichedEvent = await uaParserEnrichmentPlugin.execute?.(event);
+      const enrichedEvent = await plugin.execute?.(event);
 
       expect(enrichedEvent).toHaveProperty('os_name');
       expect(enrichedEvent).toHaveProperty('os_version');
