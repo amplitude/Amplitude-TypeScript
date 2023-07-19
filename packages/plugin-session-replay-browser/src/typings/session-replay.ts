@@ -59,7 +59,7 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
     removeEvents?: boolean | undefined;
   }): void;
   getAllSessionEventsFromStore: () => Promise<IDBStore | undefined>;
-  storeEventsForSession: (events: Events, sequenceId: number) => Promise<void>;
+  storeEventsForSession: (events: Events, sequenceId: number, sessionId: number) => Promise<void>;
   removeSessionEventsStore: (sessionId: number) => Promise<void>;
 }
 
