@@ -13,7 +13,7 @@ describe('uaParserPlugin', () => {
     flushMaxRetries: 0,
     flushQueueSize: 0,
     logLevel: LogLevel.None,
-    loggerProvider: new Logger(), //        log: jest.fn()
+    loggerProvider: new Logger(),
     optOut: false,
     serverUrl: undefined,
     transportProvider: new FetchTransport(),
