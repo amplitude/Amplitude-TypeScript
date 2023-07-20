@@ -142,5 +142,5 @@ export default class RemnantDataMigration {
       return null;
     }
   }
-  // eslint-enable @typescript-eslint/no-unsafe-assignment
+  // eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
 }
