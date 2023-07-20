@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.1.3...@amplitude/plugin-session-replay-browser@0.2.0) (2023-07-20)
+
+### Bug Fixes
+
+- **plugins:** reduce min interval to 500ms
+  ([b770d44](https://github.com/amplitude/Amplitude-TypeScript/commit/b770d44086306db15a378af6b1c3590afdb0ec58))
+
+### Features
+
+- **plugins:** solve timing issues with multiple tabs
+  ([d2e9a0c](https://github.com/amplitude/Amplitude-TypeScript/commit/d2e9a0cc7c455dcdf13ea2fa303d2fbd50911536))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.1.2...@amplitude/plugin-session-replay-browser@0.1.3) (2023-07-13)
 
 ### Bug Fixes
