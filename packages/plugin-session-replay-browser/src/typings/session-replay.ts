@@ -14,10 +14,21 @@ export interface SessionReplayContext {
   sessionId: number;
 }
 
+export enum RecordingStatus {
+  RECORDING = 'recording',
+  SENDING = 'sending',
+  SENT = 'sent',
+}
+
+export interface IDBStoreSequence {
+  events: Events;
+  status: RecordingStatus;
+}
+
 export interface IDBStore {
   [sessionId: number]: {
-    events: Events;
-    sequenceId: number;
+    currentSequenceId: number;
+    sessionSequences: { [sequenceId: number]: IDBStoreSequence };
   };
 }
 export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
@@ -31,7 +42,7 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
   timeAtLastSend: number | null;
   stopRecordingEvents: ReturnType<typeof record> | null;
   maxPersistedEventsSize: number;
-  emptyStoreAndReset: () => Promise<void>;
+  initialize: (shouldSendStoredEvents?: boolean) => Promise<void>;
   recordEvents: () => void;
   shouldSplitEventsList: (nextEventString: string) => boolean;
   sendEventsList: ({
@@ -59,8 +70,8 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
     removeEvents?: boolean | undefined;
   }): void;
   getAllSessionEventsFromStore: () => Promise<IDBStore | undefined>;
-  storeEventsForSession: (events: Events, sequenceId: number) => Promise<void>;
-  removeSessionEventsStore: (sessionId: number) => Promise<void>;
+  storeEventsForSession: (events: Events, sequenceId: number, sessionId: number) => Promise<void>;
+  cleanUpSessionEventsStore: (sessionId: number, sequenceId: number) => Promise<void>;
 }
 
 export interface SessionReplayPlugin {

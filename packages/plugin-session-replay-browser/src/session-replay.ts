@@ -1,3 +1,4 @@
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
 import { BrowserConfig, Event, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
@@ -7,6 +8,7 @@ import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, SUCCESS_MESSAGE, UNEXPEC
 import {
   Events,
   IDBStore,
+  RecordingStatus,
   SessionReplayContext,
   SessionReplayEnrichmentPlugin,
   SessionReplayPlugin,
@@ -16,7 +18,7 @@ const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/tra
 const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 200; // derived by JSON stringifying an example payload without events
 const MAX_EVENT_LIST_SIZE_IN_BYTES = 20 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
-const MIN_INTERVAL = 1 * 1000; // 1 second
+const MIN_INTERVAL = 500; // 500 ms
 const MAX_INTERVAL = 10 * 1000; // 10 seconds
 
 class SessionReplay implements SessionReplayEnrichmentPlugin {
@@ -42,7 +44,18 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
 
     this.config = config;
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
-    void this.emptyStoreAndReset();
+    await this.initialize(true);
+
+    const GlobalScope = getGlobalScope();
+    if (GlobalScope && GlobalScope.window) {
+      GlobalScope.window.addEventListener('blur', () => {
+        this.stopRecordingEvents && this.stopRecordingEvents();
+        this.stopRecordingEvents = null;
+      });
+      GlobalScope.window.addEventListener('focus', () => {
+        void this.initialize();
+      });
+    }
   }
 
   async execute(event: Event) {
@@ -61,48 +74,65 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
         });
       }
       this.stopRecordingEvents && this.stopRecordingEvents();
+      this.stopRecordingEvents = null;
       this.events = [];
       this.currentSequenceId = 0;
     }
     return Promise.resolve(event);
   }
 
-  async emptyStoreAndReset() {
+  async initialize(shouldSendStoredEvents = false) {
+    this.timeAtLastSend = Date.now(); // Initialize this so we have a point of comparison when events are recorded
+    if (!this.config.sessionId) {
+      return;
+    }
     const storedReplaySessions = await this.getAllSessionEventsFromStore();
-    if (storedReplaySessions) {
-      for (const sessionId in storedReplaySessions) {
-        const storedReplayEvents = storedReplaySessions[sessionId];
-        if (storedReplayEvents.events.length) {
+    const storedSequencesForSession = storedReplaySessions && storedReplaySessions[this.config.sessionId];
+    if (storedReplaySessions && storedSequencesForSession && storedSequencesForSession.sessionSequences) {
+      const storedSeqId = storedSequencesForSession.currentSequenceId;
+      const lastSequence = storedSequencesForSession.sessionSequences[storedSeqId];
+      if (lastSequence.status !== RecordingStatus.RECORDING) {
+        this.currentSequenceId = storedSeqId + 1;
+        this.events = [];
+      } else {
+        // Pick up recording where it was left off in another tab or window
+        this.currentSequenceId = storedSeqId;
+        this.events = lastSequence.events;
+      }
+    }
+    if (shouldSendStoredEvents && storedReplaySessions) {
+      this.sendStoredEvents(storedReplaySessions);
+    }
+    if (!this.stopRecordingEvents) {
+      this.recordEvents();
+    }
+  }
+
+  sendStoredEvents(storedReplaySessions: IDBStore) {
+    for (const sessionId in storedReplaySessions) {
+      const storedSequences = storedReplaySessions[sessionId].sessionSequences;
+      for (const storedSeqId in storedSequences) {
+        const seq = storedSequences[storedSeqId];
+        const numericSeqId = parseInt(storedSeqId, 10);
+        const numericSessionId = parseInt(sessionId, 10);
+        if (numericSessionId === this.config.sessionId && numericSeqId === this.currentSequenceId) {
+          continue;
+        }
+        if (seq.events.length && seq.status === RecordingStatus.RECORDING) {
           this.sendEventsList({
-            events: storedReplayEvents.events,
-            sequenceId: storedReplayEvents.sequenceId,
-            sessionId: parseInt(sessionId, 10),
+            events: seq.events,
+            sequenceId: numericSeqId,
+            sessionId: numericSessionId,
           });
         }
       }
-      this.events = [];
-      const currentSessionStoredEvents = this.config.sessionId && storedReplaySessions[this.config.sessionId];
-      this.currentSequenceId = currentSessionStoredEvents ? currentSessionStoredEvents.sequenceId + 1 : 0;
-      void this.storeEventsForSession([], this.currentSequenceId);
     }
-    this.recordEvents();
   }
 
   recordEvents() {
     this.stopRecordingEvents = record({
       emit: (event) => {
         const eventString = JSON.stringify(event);
-        // Send the first two recorded events immediately
-        if (this.events.length === 1 && this.currentSequenceId === 0) {
-          this.sendEventsList({
-            events: this.events.concat(eventString),
-            sequenceId: this.currentSequenceId,
-            sessionId: this.config.sessionId as number,
-          });
-          this.events = [];
-          this.currentSequenceId++;
-          return;
-        }
 
         const shouldSplit = this.shouldSplitEventsList(eventString);
         if (shouldSplit) {
@@ -115,7 +145,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
           this.currentSequenceId++;
         }
         this.events.push(eventString);
-        void this.storeEventsForSession(this.events, this.currentSequenceId);
+        void this.storeEventsForSession(this.events, this.currentSequenceId, this.config.sessionId as number);
       },
       packFn: pack,
       maskAllInputs: true,
@@ -134,8 +164,9 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
       return true;
     }
-    if (this.timeAtLastSend !== null && Date.now() - this.timeAtLastSend > this.interval) {
+    if (this.timeAtLastSend !== null && Date.now() - this.timeAtLastSend > this.interval && this.events.length) {
       this.interval = Math.min(MAX_INTERVAL, this.interval + MIN_INTERVAL);
+      this.timeAtLastSend = Date.now();
       return true;
     }
     return false;
@@ -277,17 +308,29 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     return undefined;
   }
 
-  async storeEventsForSession(events: Events, sequenceId: number) {
+  async storeEventsForSession(events: Events, sequenceId: number, sessionId: number) {
     try {
-      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore | undefined): IDBStore => {
+      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
+        const session = sessionMap[sessionId] || {
+          currentSequenceId: 0,
+          sessionSequences: [],
+        };
+        session.currentSequenceId = sequenceId;
+
+        const currentSequence = (session.sessionSequences && session.sessionSequences[sequenceId]) || {};
+
+        currentSequence.events = events;
+        currentSequence.status = RecordingStatus.RECORDING;
+
         return {
           ...sessionMap,
-          ...(this.config.sessionId && {
-            [this.config.sessionId]: {
-              events: events,
-              sequenceId,
+          [sessionId]: {
+            ...session,
+            sessionSequences: {
+              ...session.sessionSequences,
+              [sequenceId]: currentSequence,
             },
-          }),
+          },
         };
       });
     } catch (e) {
@@ -295,10 +338,25 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     }
   }
 
-  async removeSessionEventsStore(sessionId: number) {
+  async cleanUpSessionEventsStore(sessionId: number, sequenceId: number) {
     try {
       await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        delete sessionMap[sessionId];
+        const session = sessionMap[sessionId];
+        const sequenceToUpdate = session?.sessionSequences && session.sessionSequences[sequenceId];
+        if (!sequenceToUpdate) {
+          return sessionMap;
+        }
+
+        sequenceToUpdate.events = [];
+        sequenceToUpdate.status = RecordingStatus.SENT;
+
+        Object.entries(session.sessionSequences).forEach(([storedSeqId, sequence]) => {
+          const numericStoredSeqId = parseInt(storedSeqId, 10);
+          if (sequence.status === RecordingStatus.SENT && sequenceId !== numericStoredSeqId) {
+            delete session.sessionSequences[numericStoredSeqId];
+          }
+        });
+
         return sessionMap;
       });
     } catch (e) {
@@ -317,11 +375,10 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     success?: string;
     removeEvents?: boolean;
   }) {
-    removeEvents && context.sessionId && this.removeSessionEventsStore(context.sessionId);
+    removeEvents && context.sessionId && this.cleanUpSessionEventsStore(context.sessionId, context.sequenceId);
     if (err) {
       this.config.loggerProvider.error(err);
     } else if (success) {
-      this.timeAtLastSend = Date.now();
       this.config.loggerProvider.log(success);
     }
   }
