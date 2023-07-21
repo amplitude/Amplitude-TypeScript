@@ -56,12 +56,24 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
         val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
         val deviceId = storage.getValue(DEVICE_ID_KEY)
         val userId = storage.getValue(USER_ID_KEY)
+        val previousSessionId = storage.getLongValue(PREVIOUS_SESSION_ID_KEY)
+        val lastEventTime = storage.getLongValue(LAST_EVENT_TIME_KEY)
+        val lastEventId = storage.getLongValue(LAST_EVENT_ID_KEY)
         promise.resolve(WritableNativeMap().apply {
             if (deviceId != null) {
                 putString("deviceId", deviceId)
             }
             if (userId != null) {
                 putString("userId", userId)
+            }
+            if (previousSessionId != null) {
+                putDouble("sessionId", previousSessionId.toDouble())
+            }
+            if (lastEventTime != null) {
+                putDouble("lastEventTime", lastEventTime.toDouble())
+            }
+            if (lastEventId != null) {
+                putDouble("lastEventId", lastEventId.toDouble())
             }
         })
     }
