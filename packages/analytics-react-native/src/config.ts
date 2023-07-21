@@ -205,6 +205,7 @@ export const useReactNativeConfig = async (
       options?.instanceName,
       storageProvider,
       previousCookies?.lastEventTime === undefined,
+      options?.loggerProvider,
     ).execute();
     deviceId = deviceId ?? legacySessionData.deviceId;
     userId = userId ?? legacySessionData.userId;

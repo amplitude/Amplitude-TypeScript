@@ -35,8 +35,8 @@ describe('migration', () => {
         lastEventId: 12345,
       }),
       getLegacyEvents: () => [
-        '{"event_id":1,"event_type":"legacy event 1","timestamp":1684219150354,"user_id":"android-kotlin-sample-user-legacy","device_id":"22833898-c487-4536-b213-40f207abdce0R","session_id":1684219150343,"uuid":"d6eff10b-9cd4-45d7-85cb-c81cb6cb8b2e","sequence_number":3,"version_name":"1.0","os_name":"android","os_version":"13","api_level":33,"device_brand":"google","device_manufacturer":"Google","device_model":"sdk_gphone64_x86_64","carrier":"T-Mobile","country":"US","language":"en","platform":"Android","library":{"name":"amplitude-android","version":"2.39.3-SNAPSHOT"},"api_properties":{"androidADID":"63e67f64-ba80-4683-90e2-6d5d78801df9","android_app_set_id":"31ac0887-8b0d-e858-3d66-2e36f043a3ce","limit_ad_tracking":false,"gps_enabled":true,"ios_idfa":"idfa-1"},"event_properties":{"test1":"value1","test2":"value2"},"user_properties":{},"groups":{},"group_properties":{}}',
-        '{"event_id":2,"event_type":"legacy event 2","timestamp":1684219150355,"user_id":"android-kotlin-sample-user-legacy","device_id":"22833898-c487-4536-b213-40f207abdce0R","session_id":1684219150343,"uuid":"7b4c5c13-6fdc-4931-9ba1-e4efdf346ee0","sequence_number":4,"version_name":"1.0","os_name":"android","os_version":"13","api_level":33,"device_brand":"google","device_manufacturer":"Google","device_model":"sdk_gphone64_x86_64","carrier":"T-Mobile","country":"US","language":"en","platform":"Android","library":{"name":"amplitude-android","version":"2.39.3-SNAPSHOT"},"api_properties":{"androidADID":"63e67f64-ba80-4683-90e2-6d5d78801df9","android_app_set_id":"31ac0887-8b0d-e858-3d66-2e36f043a3ce","limit_ad_tracking":false,"gps_enabled":true,"ios_idfv":"idfv-1"},"event_properties":{"data1":"value1","data2":"value2"},"user_properties":{},"groups":{},"group_properties":{}}',
+        '{"event_id":1,"event_type":"legacy event 1","timestamp":1684219150354,"user_id":"android-kotlin-sample-user-legacy","device_id":"22833898-c487-4536-b213-40f207abdce0R","session_id":1684219150343,"uuid":"d6eff10b-9cd4-45d7-85cb-c81cb6cb8b2e","sequence_number":3,"version_name":"1.0","os_name":"android","os_version":"13","api_level":33,"device_brand":"google","device_manufacturer":"Google","device_model":"sdk_gphone64_x86_64","carrier":"T-Mobile","country":"US","language":"en","platform":"Android","library":{"name":"amplitude-android","version":"2.39.3-SNAPSHOT"},"api_properties":{"androidADID":"63e67f64-ba80-4683-90e2-6d5d78801df9","android_app_set_id":"31ac0887-8b0d-e858-3d66-2e36f043a3ce","limit_ad_tracking":false,"gps_enabled":true,"ios_idfa":"idfa-1","location":{"lat":123,"lng":456},"productId":"product-1"},"event_properties":{"test1":"value1","test2":"value2"},"user_properties":{},"groups":{},"group_properties":{}}',
+        '{"event_id":2,"event_type":"legacy event 2","timestamp":1684219150355,"user_id":"android-kotlin-sample-user-legacy","device_id":"22833898-c487-4536-b213-40f207abdce0R","session_id":1684219150343,"uuid":"7b4c5c13-6fdc-4931-9ba1-e4efdf346ee0","sequence_number":4,"version_name":"1.0","os_name":"android","os_version":"13","api_level":33,"device_brand":"google","device_manufacturer":"Google","device_model":"sdk_gphone64_x86_64","carrier":"T-Mobile","country":"US","language":"en","platform":"Android","library":{"name":"amplitude-android","version":"2.39.3-SNAPSHOT"},"api_properties":{"androidADID":"63e67f64-ba80-4683-90e2-6d5d78801df9","android_app_set_id":"31ac0887-8b0d-e858-3d66-2e36f043a3ce","limit_ad_tracking":false,"gps_enabled":true,"ios_idfv":"idfv-1","location":{"lat":789,"lng":234}}, "$productId":"product-2","event_properties":{"data1":"value1","data2":"value2"},"user_properties":{},"groups":{},"group_properties":{}}',
       ],
       getLegacyIdentifies: () => [
         '{"event_id":2,"event_type":"$identify","timestamp":1684219150343,"user_id":"android-kotlin-sample-user-legacy","device_id":"22833898-c487-4536-b213-40f207abdce0R","session_id":1684219150343,"uuid":"be09ecba-83f7-444a-aba0-fe1f529a3716","sequence_number":1,"version_name":"1.0","os_name":"android","os_version":"13","api_level":33,"device_brand":"google","device_manufacturer":"Google","device_model":"sdk_gphone64_x86_64","carrier":"T-Mobile","country":"US","language":"en","platform":"Android","library":{"name":"amplitude-android","version":"2.39.3-SNAPSHOT"},"api_properties":{"androidADID":"63e67f64-ba80-4683-90e2-6d5d78801df9","android_app_set_id":"31ac0887-8b0d-e858-3d66-2e36f043a3ce","limit_ad_tracking":false,"gps_enabled":true},"event_properties":{},"user_properties":{"$add":{"ident1":"value1","ident2":"value2"}},"groups":{},"group_properties":{}}',
@@ -106,6 +106,9 @@ describe('migration', () => {
     expect(event5?.library).toEqual('amplitude-android/2.39.3-SNAPSHOT');
     expect(event5?.device_id).toEqual(deviceId);
     expect(event5?.user_id).toEqual(userId);
+    expect(event5?.location_lat).toEqual(123);
+    expect(event5?.location_lng).toEqual(456);
+    expect(event5?.productId).toEqual('product-1');
     const event6 = events?.[5];
     expect(event6?.event_type).toEqual('legacy event 2');
     expect(event6?.time).toEqual(1684219150355);
@@ -113,6 +116,9 @@ describe('migration', () => {
     expect(event6?.library).toEqual('amplitude-android/2.39.3-SNAPSHOT');
     expect(event6?.device_id).toEqual(deviceId);
     expect(event6?.user_id).toEqual(userId);
+    expect(event6?.location_lat).toEqual(789);
+    expect(event6?.location_lng).toEqual(234);
+    expect(event6?.productId).toEqual('product-2');
   });
 
   test('should not migrate legacy identifies if not first run since upgrade', async () => {
