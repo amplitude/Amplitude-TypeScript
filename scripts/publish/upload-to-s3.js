@@ -5,7 +5,7 @@ const { getName, getVersion } = require('../utils');
 
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
-const gtmTemplate = location.includes('marketing-analytics-browser') ? `amplitude-gtm-min.js.gz` : ``;
+const gtmTemplate = location.includes('analytics-browser') ? `amplitude-gtm-min.js.gz` : ``;
 const files = ['amplitude-min.js.gz', 'amplitude-min.umd.js.gz'];
 if (gtmTemplate) files.push(gtmTemplate);
 
