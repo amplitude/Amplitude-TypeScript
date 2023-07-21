@@ -8,7 +8,7 @@ export const userAgentEnrichmentPlugin: CreateUserAgentEnrichmentPlugin = functi
   let uaResult: UAParser.IResult;
 
   const plugin: EnrichmentPlugin = {
-    name: '@amplitude/plugin-ua-parser',
+    name: '@amplitude/plugin-user-agent-enrichment-browser',
     type: 'enrichment',
 
     setup: async function (config: BrowserConfig) {
@@ -20,7 +20,7 @@ export const userAgentEnrichmentPlugin: CreateUserAgentEnrichmentPlugin = functi
 
       uaResult = new UAParser(userAgent).getResult();
 
-      config.loggerProvider.log('Installing @amplitude/plugin-ua-parser.');
+      config.loggerProvider.log('Installing @amplitude/plugin-user-agent-enrichment-browser.');
     },
 
     execute: async (event: Event) => {

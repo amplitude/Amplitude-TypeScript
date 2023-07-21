@@ -61,7 +61,7 @@ const userAgentEnrichmentPlugin = userAgentEnrichmentPlugin({
 ### 3. Install plugin to Amplitude SDK
 
 ```typescript
-amplitude.add(pageViewTracking);
+amplitude.add(userAgentEnrichmentPlugin);
 ```
 
 ### 4. Initialize Amplitude SDK
