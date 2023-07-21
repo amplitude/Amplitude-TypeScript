@@ -90,4 +90,63 @@ class ReactNative: NSObject {
         let events = storage.readInterceptedIdentifies()
         resolve(events)
     }
+
+    @objc
+    func removeValue(
+        _ instanceName: String?,
+        key: String,
+        resolver resolve: RCTPromiseResolveBlock,
+        rejecter reject: RCTPromiseRejectBlock
+    ) -> Void {
+        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        switch key {
+        case "deviceId":
+            storage.removeValue("device_id")
+        case "userId":
+            storage.removeValue("user_id")
+        case "sessionId":
+            storage.removeLongValue("previous_session_id")
+        case "lastEventTime":
+            storage.removeLongValue("previous_session_time")
+        default:
+            break
+        }
+        resolve()
+    }
+
+    @objc
+    func removeLegacyEvent(
+        _ instanceName: String?,
+        rowId: Int64,
+        resolver resolve: RCTPromiseResolveBlock,
+        rejecter reject: RCTPromiseRejectBlock
+    ) -> Void {
+        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        storage.removeEvent(rowId)
+        resolve()
+    }
+
+    @objc
+    func removeLegacyIdentify(
+        _ instanceName: String?,
+        rowId: Int64,
+        resolver resolve: RCTPromiseResolveBlock,
+        rejecter reject: RCTPromiseRejectBlock
+    ) -> Void {
+        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        storage.removeIdentify(rowId)
+        resolve()
+    }
+
+    @objc
+    func removeLegacyInterceptedIdentify(
+        _ instanceName: String?,
+        rowId: Int64,
+        resolver resolve: RCTPromiseResolveBlock,
+        rejecter reject: RCTPromiseRejectBlock
+    ) -> Void {
+        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        storage.removeInterceptedIdentify(rowId)
+        resolve()
+    }
 }
