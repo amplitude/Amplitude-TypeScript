@@ -94,9 +94,7 @@ class ReactNative: NSObject {
     @objc
     func removeValue(
         _ instanceName: String?,
-        key: String,
-        resolver resolve: RCTPromiseResolveBlock,
-        rejecter reject: RCTPromiseRejectBlock
+        key: String
     ) -> Void {
         let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
         switch key {
@@ -111,42 +109,32 @@ class ReactNative: NSObject {
         default:
             break
         }
-        resolve()
     }
 
     @objc
     func removeLegacyEvent(
         _ instanceName: String?,
-        rowId: Int64,
-        resolver resolve: RCTPromiseResolveBlock,
-        rejecter reject: RCTPromiseRejectBlock
+        rowId: Int64
     ) -> Void {
         let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
         storage.removeEvent(rowId)
-        resolve()
     }
 
     @objc
     func removeLegacyIdentify(
         _ instanceName: String?,
-        rowId: Int64,
-        resolver resolve: RCTPromiseResolveBlock,
-        rejecter reject: RCTPromiseRejectBlock
+        rowId: Int64
     ) -> Void {
         let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
         storage.removeIdentify(rowId)
-        resolve()
     }
 
     @objc
     func removeLegacyInterceptedIdentify(
         _ instanceName: String?,
-        rowId: Int64,
-        resolver resolve: RCTPromiseResolveBlock,
-        rejecter reject: RCTPromiseRejectBlock
+        rowId: Int64
     ) -> Void {
         let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
         storage.removeInterceptedIdentify(rowId)
-        resolve()
     }
 }
