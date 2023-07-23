@@ -117,22 +117,22 @@ class LegacyDatabaseStorage {
         }
     }
 
-    func removeEvent(_ rowId: Int64) {
-        removeEventFromTable(LegacyDatabaseStorage.EVENT_TABLE_NAME, rowId)
+    func removeEvent(_ eventId: Int64) {
+        removeEventFromTable(LegacyDatabaseStorage.EVENT_TABLE_NAME, eventId)
     }
 
-    func removeIdentify(_ rowId: Int64) {
-        removeEventFromTable(LegacyDatabaseStorage.IDENTIFY_TABLE_NAME, rowId)
+    func removeIdentify(_ eventId: Int64) {
+        removeEventFromTable(LegacyDatabaseStorage.IDENTIFY_TABLE_NAME, eventId)
     }
 
-    func removeInterceptedIdentify(_ rowId: Int64) {
-        removeEventFromTable(LegacyDatabaseStorage.INTERCEPTED_IDENTIFY_TABLE_NAME, rowId)
+    func removeInterceptedIdentify(_ eventId: Int64) {
+        removeEventFromTable(LegacyDatabaseStorage.INTERCEPTED_IDENTIFY_TABLE_NAME, eventId)
     }
 
-    private func removeEventFromTable(_ table: String, _ rowId: Int64) {
+    private func removeEventFromTable(_ table: String, _ eventId: Int64) {
         let query = "DELETE FROM \(table) WHERE id = ?;"
         _ = executeQuery(query) { stmt in
-            let bindResult = sqlite3_bind_int64(stmt, 1, rowId)
+            let bindResult = sqlite3_bind_int64(stmt, 1, eventId)
             if bindResult != SQLITE_OK {
                 logger?.error(message: "bind query parameter failed with result: \(bindResult)")
                 return
@@ -163,14 +163,14 @@ class LegacyDatabaseStorage {
         return executeQuery(query) { stmt in
             var events: [[String: Any]] = []
             while sqlite3_step(stmt) == SQLITE_ROW {
-                let rowId = sqlite3_column_int64(stmt, 0)
+                let eventId = sqlite3_column_int64(stmt, 0)
                 let rawEventData = sqlite3_column_text(stmt, 1)
                 if rawEventData != nil {
                     let eventData = String(cString: rawEventData!).data(using: .utf8)
                     if eventData != nil && eventData!.count > 0 {
                         let event = try? JSONSerialization.jsonObject(with: eventData!, options: []) as? [String: Any]
                         if var event {
-                            event["$rowId"] = rowId
+                            event["event_id"] = eventId
                             events.append(event)
                         }
                     }

@@ -40,7 +40,7 @@ class ReactNative: NSObject {
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
         var sessionData: [String: Any?] = [:]
 
         if let deviceId = storage.getValue("device_id") {
@@ -64,7 +64,7 @@ class ReactNative: NSObject {
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
         let events = storage.readEvents()
         resolve(events)
     }
@@ -75,7 +75,7 @@ class ReactNative: NSObject {
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
         let events = storage.readIdentifies()
         resolve(events)
     }
@@ -86,55 +86,35 @@ class ReactNative: NSObject {
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
         let events = storage.readInterceptedIdentifies()
         resolve(events)
     }
 
     @objc
-    func removeValue(
-        _ instanceName: String?,
-        key: String
-    ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
-        switch key {
-        case "deviceId":
-            storage.removeValue("device_id")
-        case "userId":
-            storage.removeValue("user_id")
-        case "sessionId":
-            storage.removeLongValue("previous_session_id")
-        case "lastEventTime":
-            storage.removeLongValue("previous_session_time")
-        default:
-            break
-        }
-    }
-
-    @objc
     func removeLegacyEvent(
         _ instanceName: String?,
-        rowId: Int64
+        eventId: Int64
     ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
-        storage.removeEvent(rowId)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
+        storage.removeEvent(eventId)
     }
 
     @objc
     func removeLegacyIdentify(
         _ instanceName: String?,
-        rowId: Int64
+        eventId: Int64
     ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
-        storage.removeIdentify(rowId)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
+        storage.removeIdentify(eventId)
     }
 
     @objc
     func removeLegacyInterceptedIdentify(
         _ instanceName: String?,
-        rowId: Int64
+        eventId: Int64
     ) -> Void {
-        let storage = LegacyDatabaseStorager.getStorage(instanceName, nil)
-        storage.removeInterceptedIdentify(rowId)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
+        storage.removeInterceptedIdentify(eventId)
     }
 }

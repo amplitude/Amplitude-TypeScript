@@ -109,33 +109,20 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     }
 
     @ReactMethod
-    private fun removeValue(instanceName: String?, key: String) {
+    private fun removeLegacyEvent(instanceName: String?, eventId: Long) {
         val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-
-        when (key) {
-            "deviceId" -> storage.removeValue(DEVICE_ID_KEY)
-            "userId" -> storage.removeValue(USER_ID_KEY)
-            "sessionId" -> storage.removeLongValue(PREVIOUS_SESSION_ID_KEY)
-            "lastEventTime" -> storage.removeLongValue(LAST_EVENT_TIME_KEY)
-            "lastEventId" -> storage.removeLongValue(LAST_EVENT_ID_KEY)
-        }
+        storage.removeEvent(eventId)
     }
 
     @ReactMethod
-    private fun removeEvent(instanceName: String?, rowId: Long) {
+    private fun removeLegacyIdentify(instanceName: String?, eventId: Long) {
         val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        storage.removeEvent(rowId)
+        storage.removeIdentify(eventId)
     }
 
     @ReactMethod
-    private fun removeIdentify(instanceName: String?, rowId: Long) {
+    private fun removeLegacyInterceptedIdentify(instanceName: String?, eventId: Long) {
         val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        storage.removeIdentify(rowId)
-    }
-
-    @ReactMethod
-    private fun removeInterceptedIdentify(instanceName: String?, rowId: Long) {
-        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        storage.removeInterceptedIdentify(rowId)
+        storage.removeInterceptedIdentify(eventId)
     }
 }

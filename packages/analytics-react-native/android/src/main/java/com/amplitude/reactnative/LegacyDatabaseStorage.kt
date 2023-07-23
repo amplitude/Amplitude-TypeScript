@@ -29,8 +29,6 @@ object DatabaseConstants {
     const val STORE_TABLE_NAME = "store"
     const val KEY_FIELD = "key"
     const val VALUE_FIELD = "value"
-
-    const val ROW_ID_FIELD = "\$rowId"
 }
 
 /**
@@ -128,13 +126,13 @@ class LegacyDatabaseStorage(context: Context, databaseName: String) : SQLiteOpen
                 DatabaseConstants.ID_FIELD + " ASC",
             )
             while (cursor!!.moveToNext()) {
-                val rowId = cursor.getLong(0)
+                val eventId = cursor.getLong(0)
                 val event = cursor.getString(1)
                 if (event.isNullOrEmpty()) {
                     continue
                 }
                 val obj = JSONObject(event)
-                obj.put(DatabaseConstants.ROW_ID_FIELD, rowId)
+                obj.put("event_id", eventId)
                 events.add(obj)
             }
         } catch (e: SQLiteException) {
@@ -159,30 +157,30 @@ class LegacyDatabaseStorage(context: Context, databaseName: String) : SQLiteOpen
     }
 
     @Synchronized
-    fun removeEvent(rowId: Long) {
-        removeEventFromTable(DatabaseConstants.EVENT_TABLE_NAME, rowId)
+    fun removeEvent(eventId: Long) {
+        removeEventFromTable(DatabaseConstants.EVENT_TABLE_NAME, eventId)
     }
 
     @Synchronized
-    fun removeIdentify(rowId: Long) {
-        removeEventFromTable(DatabaseConstants.IDENTIFY_TABLE_NAME, rowId)
+    fun removeIdentify(eventId: Long) {
+        removeEventFromTable(DatabaseConstants.IDENTIFY_TABLE_NAME, eventId)
     }
 
     @Synchronized
-    fun removeInterceptedIdentify(rowId: Long) {
+    fun removeInterceptedIdentify(eventId: Long) {
         if (currentDbVersion < 4) {
             return
         }
-        removeEventFromTable(DatabaseConstants.IDENTIFY_INTERCEPTOR_TABLE_NAME, rowId)
+        removeEventFromTable(DatabaseConstants.IDENTIFY_INTERCEPTOR_TABLE_NAME, eventId)
     }
 
-    private fun removeEventFromTable(table: String, rowId: Long) {
+    private fun removeEventFromTable(table: String, eventId: Long) {
         try {
             val db = writableDatabase
             db.delete(
                 table,
                 "${DatabaseConstants.ID_FIELD} = ?",
-                arrayOf(rowId.toString())
+                arrayOf(eventId.toString())
             )
         } catch (e: SQLiteException) {
             LogcatLogger.logger.error(
