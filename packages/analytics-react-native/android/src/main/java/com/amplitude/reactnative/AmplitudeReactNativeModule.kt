@@ -79,9 +79,14 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     }
 
     @ReactMethod
-    private fun getLegacyEvents(instanceName: String?, promise: Promise) {
+    private fun getLegacyEvents(instanceName: String?, eventKind: String, promise: Promise) {
         val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        val jsonEvents = storage.readEventsContent()
+        val jsonEvents = when (eventKind) {
+            "event" -> storage.readEvents()
+            "identify" -> storage.readIdentifies()
+            "interceptedIdentify" -> storage.readInterceptedIdentifies()
+            else -> []
+        }
 
         val events = WritableNativeArray()
         jsonEvents.forEach { event -> events.pushString(event.toString()) }
@@ -89,40 +94,12 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     }
 
     @ReactMethod
-    private fun getLegacyIdentifies(instanceName: String?, promise: Promise) {
+    private fun removeLegacyEvent(instanceName: String?, eventKind: String, eventId: Long) {
         val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        val jsonEvents = storage.readIdentifiesContent()
-
-        val events = WritableNativeArray()
-        jsonEvents.forEach { event -> events.pushString(event.toString()) }
-        promise.resolve(events)
-    }
-
-    @ReactMethod
-    private fun getLegacyInterceptedIdentifies(instanceName: String?, promise: Promise) {
-        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        val jsonEvents = storage.readInterceptedIdentifiesContent()
-
-        val events = WritableNativeArray()
-        jsonEvents.forEach { event -> events.pushString(event.toString()) }
-        promise.resolve(events)
-    }
-
-    @ReactMethod
-    private fun removeLegacyEvent(instanceName: String?, eventId: Long) {
-        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        storage.removeEvent(eventId)
-    }
-
-    @ReactMethod
-    private fun removeLegacyIdentify(instanceName: String?, eventId: Long) {
-        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        storage.removeIdentify(eventId)
-    }
-
-    @ReactMethod
-    private fun removeLegacyInterceptedIdentify(instanceName: String?, eventId: Long) {
-        val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
-        storage.removeInterceptedIdentify(eventId)
+        when (eventKind) {
+            "event" -> storage.removeEvent(eventId)
+            "identify" -> storage.removeIdentify(eventId)
+            "interceptedIdentify" -> storage.removeInterceptedIdentify(eventId)
+        }
     }
 }

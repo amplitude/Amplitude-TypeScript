@@ -38,9 +38,5 @@ NativeModules.AmplitudeReactNative = {
   },
   getLegacySessionData: () => ({}),
   getLegacyEvents: () => [],
-  getLegacyIdentifies: () => [],
-  getLegacyInterceptedIdentifies: () => [],
   removeLegacyEvent: () => ({}),
-  removeLegacyIdentify: () => ({}),
-  removeLegacyInterceptedIdentify: () => ({}),
 };

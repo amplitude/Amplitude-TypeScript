@@ -61,60 +61,37 @@ class ReactNative: NSObject {
     @objc
     func getLegacyEvents(
         _ instanceName: String?,
+        eventKind: String,
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
         let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
-        let events = storage.readEvents()
-        resolve(events)
-    }
-
-    @objc
-    func getLegacyIdentifies(
-        _ instanceName: String?,
-        resolver resolve: RCTPromiseResolveBlock,
-        rejecter reject: RCTPromiseRejectBlock
-    ) -> Void {
-        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
-        let events = storage.readIdentifies()
-        resolve(events)
-    }
-
-    @objc
-    func getLegacyInterceptedIdentifies(
-        _ instanceName: String?,
-        resolver resolve: RCTPromiseResolveBlock,
-        rejecter reject: RCTPromiseRejectBlock
-    ) -> Void {
-        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
-        let events = storage.readInterceptedIdentifies()
-        resolve(events)
+        switch eventKind {
+        case "event":
+            resolve(storage.readEvents())
+        case "identify":
+            resolve(storage.readIdentifies())
+        case "interceptedIdentify":
+            resolve(storage.readInterceptedIdentifies())
+        default:
+            resolve([])
+        }
     }
 
     @objc
     func removeLegacyEvent(
         _ instanceName: String?,
+        eventKind: String,
         eventId: Int64
     ) -> Void {
         let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
-        storage.removeEvent(eventId)
-    }
-
-    @objc
-    func removeLegacyIdentify(
-        _ instanceName: String?,
-        eventId: Int64
-    ) -> Void {
-        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
-        storage.removeIdentify(eventId)
-    }
-
-    @objc
-    func removeLegacyInterceptedIdentify(
-        _ instanceName: String?,
-        eventId: Int64
-    ) -> Void {
-        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
-        storage.removeInterceptedIdentify(eventId)
+        switch eventKind {
+        case "event":
+            storage.removeEvent(eventId)
+        case "identify":
+            storage.removeIdentify(eventId)
+        case "interceptedIdentify":
+            storage.removeInterceptedIdentify(eventId)
+        }
     }
 }

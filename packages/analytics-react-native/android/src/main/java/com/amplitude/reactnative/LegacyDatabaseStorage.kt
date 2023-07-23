@@ -91,17 +91,17 @@ class LegacyDatabaseStorage(context: Context, databaseName: String) : SQLiteOpen
     }
 
     @Synchronized
-    fun readEventsContent(): List<JSONObject> {
+    fun readEvents(): List<JSONObject> {
         return readEventsFromTable(DatabaseConstants.EVENT_TABLE_NAME)
     }
 
     @Synchronized
-    fun readIdentifiesContent(): List<JSONObject> {
+    fun readIdentifies(): List<JSONObject> {
         return readEventsFromTable(DatabaseConstants.IDENTIFY_TABLE_NAME)
     }
 
     @Synchronized
-    fun readInterceptedIdentifiesContent(): List<JSONObject> {
+    fun readInterceptedIdentifies(): List<JSONObject> {
         if (currentDbVersion < 4) {
             return listOf()
         }

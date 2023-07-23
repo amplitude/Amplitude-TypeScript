@@ -2,14 +2,12 @@ import { NativeModules } from 'react-native';
 import { Event, Logger, Storage, UserSession } from '@amplitude/analytics-types';
 import { STORAGE_PREFIX } from '@amplitude/analytics-core/src/constants';
 
+type LegacyEventKind = 'event' | 'identify' | 'interceptedIdentify';
+
 interface AmplitudeReactNative {
   getLegacySessionData(instanceName: string | undefined): Promise<Omit<UserSession, 'optOut'>>;
-  getLegacyEvents(instanceName: string | undefined): Promise<string[]>;
-  getLegacyIdentifies(instanceName: string | undefined): Promise<string[]>;
-  getLegacyInterceptedIdentifies(instanceName: string | undefined): Promise<string[]>;
-  removeLegacyEvent(instanceName: string | undefined, eventId: number): void;
-  removeLegacyIdentify(instanceName: string | undefined, eventId: number): void;
-  removeLegacyInterceptedIdentify(instanceName: string | undefined, eventId: number): void;
+  getLegacyEvents(instanceName: string | undefined, eventKind: LegacyEventKind): Promise<string[]>;
+  removeLegacyEvent(instanceName: string | undefined, eventKind: LegacyEventKind, eventId: number): void;
 }
 
 export default class RemnantDataMigration {
@@ -50,24 +48,15 @@ export default class RemnantDataMigration {
   }
 
   private async moveEvents(): Promise<number | undefined> {
-    const legacyEvents = await this.callNativeFunction(() => this.nativeModule.getLegacyEvents(this.instanceName));
-    return await this.moveLegacyEvents(legacyEvents, (eventId) =>
-      this.nativeModule.removeLegacyEvent(this.instanceName, eventId),
-    );
+    return await this.moveLegacyEvents('event');
   }
 
   private async moveIdentifies(): Promise<number | undefined> {
-    const legacyEvents = await this.callNativeFunction(() => this.nativeModule.getLegacyIdentifies(this.instanceName));
-    return await this.moveLegacyEvents(legacyEvents, (eventId) =>
-      this.nativeModule.removeLegacyIdentify(this.instanceName, eventId),
-    );
+    return await this.moveLegacyEvents('identify');
   }
 
   private async moveInterceptedIdentifies(): Promise<number | undefined> {
-    const legacyEvents = await this.nativeModule.getLegacyInterceptedIdentifies(this.instanceName);
-    return await this.moveLegacyEvents(legacyEvents, (eventId) =>
-      this.nativeModule.removeLegacyInterceptedIdentify(this.instanceName, eventId),
-    );
+    return await this.moveLegacyEvents('interceptedIdentify');
   }
 
   private async callNativeFunction<T>(action: () => Promise<T>): Promise<T | undefined> {
@@ -87,10 +76,10 @@ export default class RemnantDataMigration {
     }
   }
 
-  private async moveLegacyEvents(
-    legacyJsonEvents: string[] | undefined,
-    removeEvent: (eventId: number) => void,
-  ): Promise<number | undefined> {
+  private async moveLegacyEvents(eventKind: LegacyEventKind): Promise<number | undefined> {
+    const legacyJsonEvents = await this.callNativeFunction(() =>
+      this.nativeModule.getLegacyEvents(this.instanceName, eventKind),
+    );
     if (!this.storage || !legacyJsonEvents || legacyJsonEvents.length === 0) {
       return undefined;
     }
@@ -111,7 +100,9 @@ export default class RemnantDataMigration {
     });
 
     await this.storage.set(this.eventsStorageKey, events);
-    eventIds.forEach((eventId) => this.callNativeAction(() => removeEvent(eventId)));
+    eventIds.forEach((eventId) =>
+      this.callNativeAction(() => this.nativeModule.removeLegacyEvent(this.instanceName, eventKind, eventId)),
+    );
     return maxEventId;
   }
 
