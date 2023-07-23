@@ -85,7 +85,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
             "event" -> storage.readEvents()
             "identify" -> storage.readIdentifies()
             "interceptedIdentify" -> storage.readInterceptedIdentifies()
-            else -> []
+            else -> listOf()
         }
 
         val events = WritableNativeArray()
@@ -94,7 +94,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     }
 
     @ReactMethod
-    private fun removeLegacyEvent(instanceName: String?, eventKind: String, eventId: Long) {
+    private fun removeLegacyEvent(instanceName: String?, eventKind: String, eventId: Int) {
         val storage = LegacyDatabaseStorageProvider.getStorage(reactContext.applicationContext, instanceName)
         when (eventKind) {
             "event" -> storage.removeEvent(eventId)

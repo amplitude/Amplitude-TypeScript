@@ -157,24 +157,24 @@ class LegacyDatabaseStorage(context: Context, databaseName: String) : SQLiteOpen
     }
 
     @Synchronized
-    fun removeEvent(eventId: Long) {
+    fun removeEvent(eventId: Int) {
         removeEventFromTable(DatabaseConstants.EVENT_TABLE_NAME, eventId)
     }
 
     @Synchronized
-    fun removeIdentify(eventId: Long) {
+    fun removeIdentify(eventId: Int) {
         removeEventFromTable(DatabaseConstants.IDENTIFY_TABLE_NAME, eventId)
     }
 
     @Synchronized
-    fun removeInterceptedIdentify(eventId: Long) {
+    fun removeInterceptedIdentify(eventId: Int) {
         if (currentDbVersion < 4) {
             return
         }
         removeEventFromTable(DatabaseConstants.IDENTIFY_INTERCEPTOR_TABLE_NAME, eventId)
     }
 
-    private fun removeEventFromTable(table: String, eventId: Long) {
+    private fun removeEventFromTable(table: String, eventId: Int) {
         try {
             val db = writableDatabase
             db.delete(

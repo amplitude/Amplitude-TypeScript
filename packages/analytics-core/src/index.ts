@@ -4,7 +4,7 @@ export { Revenue } from './revenue';
 export { Destination } from './plugins/destination';
 export { Config } from './config';
 export { Logger } from './logger';
-export { AMPLITUDE_PREFIX } from './constants';
+export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './constants';
 export { returnWrapper } from './utils/return-wrapper';
 export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
 export { UUID } from './utils/uuid';
