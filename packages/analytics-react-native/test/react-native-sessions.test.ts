@@ -88,7 +88,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.track(createEvent(1000, 'event-1'));
@@ -100,15 +100,15 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(3);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1000);
 
     expect(events[2].event_type).toEqual('event-2');
-    expect(events[2].session_id).toEqual(1000);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(1050);
   });
 
@@ -116,7 +116,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.track(createEvent(1000, 'event-1'));
@@ -128,15 +128,15 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(5);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1000);
 
     expect(events[2].event_type).toEqual('session_end');
-    expect(events[2].session_id).toEqual(1000);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(1001);
 
     expect(events[3].event_type).toEqual('session_start');
@@ -152,7 +152,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.setForeground(1000);
@@ -165,15 +165,15 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(3);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1050);
 
     expect(events[2].event_type).toEqual('event-2');
-    expect(events[2].session_id).toEqual(1000);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(2000);
   });
 
@@ -181,7 +181,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.track(createEvent(1000, 'event-1'));
@@ -194,15 +194,15 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(3);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1000);
 
     expect(events[2].event_type).toEqual('event-2');
-    expect(events[2].session_id).toEqual(1000);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(2000);
   });
 
@@ -210,7 +210,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.track(createEvent(1000, 'event-1'));
@@ -223,15 +223,15 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(5);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1000);
 
     expect(events[2].event_type).toEqual('session_end');
-    expect(events[2].session_id).toEqual(1000);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(1001);
 
     expect(events[3].event_type).toEqual('session_start');
@@ -247,7 +247,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.setForeground(1000);
@@ -261,15 +261,15 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(3);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1500);
 
     expect(events[2].event_type).toEqual('event-2');
-    expect(events[2].session_id).toEqual(1000);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(2050);
   });
 
@@ -277,7 +277,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.setForeground(1000);
@@ -291,15 +291,15 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(5);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1500);
 
     expect(events[2].event_type).toEqual('session_end');
-    expect(events[2].session_id).toEqual(1000);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(1501);
 
     expect(events[3].event_type).toEqual('session_start');
@@ -315,29 +315,29 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client1 = new AmplitudeReactNativeTest(500);
+    const client1 = new AmplitudeReactNativeTest(950);
     await client1.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client1.setForeground(1000);
 
-    expect(client1.getSessionId()).toEqual(1000);
-    expect(client1.config.sessionId).toEqual(1000);
+    expect(client1.getSessionId()).toEqual(950);
+    expect(client1.config.sessionId).toEqual(950);
     expect(client1.config.lastEventTime).toEqual(1000);
     expect(client1.config.lastEventId).toEqual(1);
 
     client1.track(createEvent(1200, 'event-1'));
 
-    expect(client1.getSessionId()).toEqual(1000);
-    expect(client1.config.sessionId).toEqual(1000);
+    expect(client1.getSessionId()).toEqual(950);
+    expect(client1.config.sessionId).toEqual(950);
     expect(client1.config.lastEventTime).toEqual(1200);
     expect(client1.config.lastEventId).toEqual(2);
 
-    const client2 = new AmplitudeReactNativeTest(500);
+    const client2 = new AmplitudeReactNativeTest(1250);
     await client2.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
-    expect(client2.getSessionId()).toEqual(1000);
-    expect(client2.config.sessionId).toEqual(1000);
-    expect(client2.config.lastEventTime).toEqual(1200);
+    expect(client2.getSessionId()).toEqual(950);
+    expect(client2.config.sessionId).toEqual(950);
+    expect(client2.config.lastEventTime).toEqual(1250);
     expect(client1.config.lastEventId).toEqual(2);
   });
 
@@ -345,7 +345,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.track(createEvent(1000, 'event-1'));
@@ -358,11 +358,11 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(4);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1000);
 
     expect(events[2].event_type).toEqual('event-2');
@@ -370,7 +370,7 @@ describe('react-native-session', () => {
     expect(events[2].time).toEqual(1050);
 
     expect(events[3].event_type).toEqual('event-3');
-    expect(events[3].session_id).toEqual(1000);
+    expect(events[3].session_id).toEqual(950);
     expect(events[3].time).toEqual(1100);
   });
 
@@ -378,7 +378,7 @@ describe('react-native-session', () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
-    const client = new AmplitudeReactNativeTest(500);
+    const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
     client.track(createEvent(1000, 'event-1'));
@@ -391,11 +391,11 @@ describe('react-native-session', () => {
     expect(events.length).toEqual(4);
 
     expect(events[0].event_type).toEqual('session_start');
-    expect(events[0].session_id).toEqual(1000);
-    expect(events[0].time).toEqual(1000);
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
 
     expect(events[1].event_type).toEqual('event-1');
-    expect(events[1].session_id).toEqual(1000);
+    expect(events[1].session_id).toEqual(950);
     expect(events[1].time).toEqual(1000);
 
     expect(events[2].event_type).toEqual('event-2');
@@ -403,7 +403,7 @@ describe('react-native-session', () => {
     expect(events[2].time).toEqual(1050);
 
     expect(events[3].event_type).toEqual('event-3');
-    expect(events[3].session_id).toEqual(1000);
+    expect(events[3].session_id).toEqual(950);
     expect(events[3].time).toEqual(1100);
   });
 
@@ -412,7 +412,7 @@ describe('react-native-session', () => {
       const send = jest.fn().mockReturnValue(sendResponse);
       const cookieStorage = new core.MemoryStorage<UserSession>();
 
-      const client = new AmplitudeReactNativeTest(500);
+      const client = new AmplitudeReactNativeTest(5000);
       await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       client.setSessionId(5000);
@@ -429,7 +429,7 @@ describe('react-native-session', () => {
 
       expect(events[0].event_type).toEqual('session_start');
       expect(events[0].session_id).toEqual(5000);
-      expect(events[0].time).toEqual(500);
+      expect(events[0].time).toEqual(5000);
 
       expect(events[1].event_type).toEqual('event-1');
       expect(events[1].session_id).toEqual(5000);
@@ -456,7 +456,7 @@ describe('react-native-session', () => {
       const send = jest.fn().mockReturnValue(sendResponse);
       const cookieStorage = new core.MemoryStorage<UserSession>();
 
-      const client = new AmplitudeReactNativeTest(500);
+      const client = new AmplitudeReactNativeTest(5000);
       await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       client.setSessionId(5000);
@@ -471,7 +471,7 @@ describe('react-native-session', () => {
 
       expect(events[0].event_type).toEqual('session_start');
       expect(events[0].session_id).toEqual(5000);
-      expect(events[0].time).toEqual(500);
+      expect(events[0].time).toEqual(5000);
 
       expect(events[1].event_type).toEqual('event-1');
       expect(events[1].session_id).toEqual(5000);
@@ -490,7 +490,7 @@ describe('react-native-session', () => {
       const send = jest.fn().mockReturnValue(sendResponse);
       const cookieStorage = new core.MemoryStorage<UserSession>();
 
-      const client = new AmplitudeReactNativeTest(500);
+      const client = new AmplitudeReactNativeTest(5000);
       await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       client.setSessionId(5000);
@@ -505,7 +505,7 @@ describe('react-native-session', () => {
 
       expect(events[0].event_type).toEqual('session_start');
       expect(events[0].session_id).toEqual(5000);
-      expect(events[0].time).toEqual(500);
+      expect(events[0].time).toEqual(5000);
 
       expect(events[1].event_type).toEqual('event-1');
       expect(events[1].session_id).toEqual(5000);

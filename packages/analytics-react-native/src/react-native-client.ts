@@ -84,11 +84,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
 
     // Step 4: Manage session
     this.appState = AppState.currentState;
-    const currentTimestamp = this.currentTimeMillis();
-    const isNewSession =
-      this.appState === 'active'
-        ? this.enterForeground(currentTimestamp)
-        : this.shouldStartNewSession(currentTimestamp);
+    const isNewSession = this.startNewSessionIfNeeded(this.currentTimeMillis());
     this.config.loggerProvider?.log(
       `Init: startNewSessionIfNeeded = ${isNewSession ? 'yes' : 'no'}, sessionId = ${
         this.getSessionId() ?? 'undefined'
@@ -174,7 +170,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
   }
 
   getSessionId() {
-    return this.explicitSessionId ?? this.config?.sessionId;
+    return this.config?.sessionId;
   }
 
   setSessionId(sessionId: number) {
