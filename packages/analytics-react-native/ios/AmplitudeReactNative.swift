@@ -40,7 +40,7 @@ class ReactNative: NSObject {
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
-        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName)
         var sessionData: [String: Any?] = [:]
 
         if let deviceId = storage.getValue("device_id") {
@@ -49,10 +49,10 @@ class ReactNative: NSObject {
         if let userId = storage.getValue("user_id") {
             sessionData["userId"] = userId
         }
-        if let previousSessionId = storage.getValue("previous_session_id") {
+        if let previousSessionId = storage.getLongValue("previous_session_id") {
             sessionData["sessionId"] = previousSessionId
         }
-        if let lastEventTime = storage.getValue("previous_session_time") {
+        if let lastEventTime = storage.getLongValue("previous_session_time") {
             sessionData["lastEventTime"] = lastEventTime
         }
         resolve(sessionData)
@@ -65,33 +65,43 @@ class ReactNative: NSObject {
         resolver resolve: RCTPromiseResolveBlock,
         rejecter reject: RCTPromiseRejectBlock
     ) -> Void {
-        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName)
+        var events: [[String: Any]] = []
         switch eventKind {
         case "event":
-            resolve(storage.readEvents())
+            events = storage.readEvents()
         case "identify":
-            resolve(storage.readIdentifies())
+            events = storage.readIdentifies()
         case "interceptedIdentify":
-            resolve(storage.readInterceptedIdentifies())
+            events = storage.readInterceptedIdentifies()
         default:
-            resolve([])
+            break
         }
+        var jsonEvents: [String] = []
+        events.forEach { event in
+            if let jsonEvent = try? JSONSerialization.data(withJSONObject: event) {
+                jsonEvents.append(String(decoding: jsonEvent, as: UTF8.self))
+            }
+        }
+        resolve(jsonEvents)
     }
 
     @objc
     func removeLegacyEvent(
         _ instanceName: String?,
         eventKind: String,
-        eventId: Int64
+        eventId: Double
     ) -> Void {
-        let storage = LegacyDatabaseStorage.getStorage(instanceName, nil)
+        let storage = LegacyDatabaseStorage.getStorage(instanceName)
         switch eventKind {
         case "event":
-            storage.removeEvent(eventId)
+            storage.removeEvent(Int64(eventId))
         case "identify":
-            storage.removeIdentify(eventId)
+            storage.removeIdentify(Int64(eventId))
         case "interceptedIdentify":
-            storage.removeInterceptedIdentify(eventId)
+            storage.removeInterceptedIdentify(Int64(eventId))
+        default:
+            break
         }
     }
 }

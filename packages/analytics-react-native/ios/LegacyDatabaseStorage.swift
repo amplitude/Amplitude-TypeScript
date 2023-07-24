@@ -14,18 +14,17 @@ class LegacyDatabaseStorage {
     private static let instanceQueue = DispatchQueue(label: "legacyDatabaseStorage.amplitude.com")
 
     let databasePath: String
-    let logger: (any Logger)?
 
-    public static func getStorage(_ instanceName: String, _ logger: (any Logger)?) -> LegacyDatabaseStorage {
+    public static func getStorage(_ instanceName: String?) -> LegacyDatabaseStorage {
         instanceQueue.sync {
-            var normalizedInstanceName = instanceName.lowercased()
+            var normalizedInstanceName = instanceName?.lowercased() ?? ""
             if normalizedInstanceName == "default_instance" {
                 normalizedInstanceName = ""
             }
             if let storage = instances[normalizedInstanceName] {
                 return storage
             }
-            let storage = LegacyDatabaseStorage(getDatabasePath(normalizedInstanceName).path, logger)
+            let storage = LegacyDatabaseStorage(getDatabasePath(normalizedInstanceName).path)
             instances[normalizedInstanceName] = storage
             return storage
         }
@@ -49,9 +48,8 @@ class LegacyDatabaseStorage {
         return databaseUrl
     }
 
-    public init(_ databasePath: String, _ logger: (any Logger)?) {
+    public init(_ databasePath: String) {
         self.databasePath = databasePath
-        self.logger = logger
     }
 
     func getValue(_ key: String) -> String? {
@@ -67,13 +65,13 @@ class LegacyDatabaseStorage {
         return executeQuery(query) { stmt in
             let bindResult = sqlite3_bind_text(stmt, 1, key, -1, LegacyDatabaseStorage.SQLITE_TRANSIENT)
             if bindResult != SQLITE_OK {
-                logger?.error(message: "bind query parameter failed with result: \(bindResult)")
+                print("bind query parameter failed with result: \(bindResult)")
                 return
             }
 
             let stepResult = sqlite3_step(stmt)
             if stepResult != SQLITE_ROW {
-                logger?.error(message: "execute query '\(query)' failed with result: \(stepResult)")
+                print("execute query '\(query)' failed with result: \(stepResult)")
                 return
             }
 
@@ -105,13 +103,13 @@ class LegacyDatabaseStorage {
         _ = executeQuery(query) { stmt in
             let bindResult = sqlite3_bind_text(stmt, 1, key, -1, LegacyDatabaseStorage.SQLITE_TRANSIENT)
             if bindResult != SQLITE_OK {
-                logger?.error(message: "bind query parameter failed with result: \(bindResult)")
+                print("bind query parameter failed with result: \(bindResult)")
                 return
             }
 
             let stepResult = sqlite3_step(stmt)
             if stepResult != SQLITE_DONE {
-                logger?.error(message: "execute query '\(query)' failed with result: \(stepResult)")
+                print("execute query '\(query)' failed with result: \(stepResult)")
                 return
             }
         }
@@ -134,13 +132,13 @@ class LegacyDatabaseStorage {
         _ = executeQuery(query) { stmt in
             let bindResult = sqlite3_bind_int64(stmt, 1, eventId)
             if bindResult != SQLITE_OK {
-                logger?.error(message: "bind query parameter failed with result: \(bindResult)")
+                print("bind query parameter failed with result: \(bindResult)")
                 return
             }
 
             let stepResult = sqlite3_step(stmt)
             if stepResult != SQLITE_DONE {
-                logger?.error(message: "execute query '\(query)' failed with result: \(stepResult)")
+                print("execute query '\(query)' failed with result: \(stepResult)")
                 return
             }
         }
@@ -188,7 +186,7 @@ class LegacyDatabaseStorage {
         var db: OpaquePointer?
         let openResult = sqlite3_open(databasePath, &db)
         if openResult != SQLITE_OK {
-            logger?.error(message: "open database failed with result: \(openResult)")
+            print("open database failed with result: \(openResult)")
             sqlite3_close(db)
             return nil
         }
@@ -196,7 +194,7 @@ class LegacyDatabaseStorage {
         var stmt: OpaquePointer?
         let prepareResult = sqlite3_prepare(db, query, -1, &stmt, nil)
         if prepareResult != SQLITE_OK {
-            logger?.error(message: "prepare query failed with result: \(prepareResult)")
+            print("prepare query failed with result: \(prepareResult)")
             return nil
         }
         let value = block(stmt!)
