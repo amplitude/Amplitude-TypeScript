@@ -40,7 +40,7 @@ import { userAgentEnrichmentPlugin } from '@amplitude/plugin-user-agent-enrichme
 The plugin accepet 1 optional parameter, which is an `Object` for disable/enable the corrosponding tracking options. Each options are enabled by default.
 
 ```typescript
-const userAgentEnrichmentPlugin = userAgentEnrichmentPlugin({
+const uaPlugin = userAgentEnrichmentPlugin({
   osName: true,
   osVersion: true,
   deviceManufacturer: false,
@@ -61,7 +61,7 @@ const userAgentEnrichmentPlugin = userAgentEnrichmentPlugin({
 ### 3. Install plugin to Amplitude SDK
 
 ```typescript
-amplitude.add(userAgentEnrichmentPlugin);
+amplitude.add(uaPlugin);
 ```
 
 ### 4. Initialize Amplitude SDK
