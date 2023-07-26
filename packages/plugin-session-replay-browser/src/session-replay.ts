@@ -4,10 +4,11 @@ import { BrowserConfig, Event, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_REPLAY_PROPERTY, DEFAULT_SESSION_START_EVENT } from './constants';
-import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, SUCCESS_MESSAGE, UNEXPECTED_ERROR_MESSAGE } from './messages';
+import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from './messages';
 import {
   Events,
   IDBStore,
+  IDBStoreSession,
   RecordingStatus,
   SessionReplayContext,
   SessionReplayEnrichmentPlugin,
@@ -21,7 +22,11 @@ const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 500; // derived by JSON s
 const MAX_EVENT_LIST_SIZE_IN_BYTES = 10 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
 const MIN_INTERVAL = 500; // 500 ms
 const MAX_INTERVAL = 10 * 1000; // 10 seconds
-
+const defaultSessionStore: IDBStoreSession = {
+  shouldRecord: true,
+  currentSequenceId: 0,
+  sessionSequences: {},
+};
 class SessionReplay implements SessionReplayEnrichmentPlugin {
   name = '@amplitude/plugin-session-replay-browser';
   type = 'enrichment' as const;
@@ -40,25 +45,18 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   interval = MIN_INTERVAL;
   timeAtLastSend: number | null = null;
   options: SessionReplayOptions;
-  shouldRecordEvents = true;
+  shouldRecord = true;
 
   constructor(options?: SessionReplayOptions) {
     this.options = { ...options };
-    if (options?.sampleRate) {
-      this.shouldRecordEvents = Math.random() < options.sampleRate;
-    }
   }
 
   async setup(config: BrowserConfig) {
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
-    if (config.optOut) {
-      this.shouldRecordEvents = false;
-    }
 
-    if (!this.shouldRecordEvents) {
-      config.loggerProvider.log('Opting session out of recording.');
-      return;
-    }
+    this.config = config;
+    this.config.sessionId = config.sessionId;
+    this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
 
     if (typeof config.defaultTracking === 'boolean') {
       if (config.defaultTracking === false) {
@@ -76,8 +74,6 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       };
     }
 
-    this.config = config;
-    this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     await this.initialize(true);
 
     const GlobalScope = getGlobalScope();
@@ -93,18 +89,17 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   }
 
   async execute(event: Event) {
-    if (!this.shouldRecordEvents) {
-      return Promise.resolve(event);
+    if (this.shouldRecord) {
+      event.event_properties = {
+        ...event.event_properties,
+        [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
+      };
     }
-
-    event.event_properties = {
-      ...event.event_properties,
-      [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
-    };
     if (event.event_type === DEFAULT_SESSION_START_EVENT && !this.stopRecordingEvents) {
+      this.setShouldRecord();
       this.recordEvents();
     } else if (event.event_type === DEFAULT_SESSION_END_EVENT) {
-      if (event.session_id) {
+      if (event.session_id && this.events.length) {
         this.sendEventsList({
           events: this.events,
           sequenceId: this.currentSequenceId,
@@ -129,20 +124,35 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     if (storedReplaySessions && storedSequencesForSession && storedSequencesForSession.sessionSequences) {
       const storedSeqId = storedSequencesForSession.currentSequenceId;
       const lastSequence = storedSequencesForSession.sessionSequences[storedSeqId];
-      if (lastSequence.status !== RecordingStatus.RECORDING) {
+      if (lastSequence && lastSequence.status !== RecordingStatus.RECORDING) {
         this.currentSequenceId = storedSeqId + 1;
         this.events = [];
       } else {
         // Pick up recording where it was left off in another tab or window
         this.currentSequenceId = storedSeqId;
-        this.events = lastSequence.events;
+        this.events = lastSequence?.events || [];
       }
     }
+    this.setShouldRecord(storedSequencesForSession);
     if (shouldSendStoredEvents && storedReplaySessions) {
       this.sendStoredEvents(storedReplaySessions);
     }
     if (!this.stopRecordingEvents) {
       this.recordEvents();
+    }
+  }
+
+  setShouldRecord(sessionStore?: IDBStoreSession) {
+    if (sessionStore?.shouldRecord === false) {
+      this.shouldRecord = false;
+    } else if (this.options && this.options.sampleRate) {
+      this.shouldRecord = Math.random() < this.options.sampleRate;
+    } else if (this.config.optOut) {
+      this.shouldRecord = false;
+    }
+    this.config.sessionId && void this.storeShouldRecordForSession(this.config.sessionId, this.shouldRecord);
+    if (!this.shouldRecord && this.config.sessionId) {
+      this.config.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording.`);
     }
   }
 
@@ -168,6 +178,9 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   }
 
   recordEvents() {
+    if (!this.shouldRecord) {
+      return;
+    }
     this.stopRecordingEvents = record({
       emit: (event) => {
         const GlobalScope = getGlobalScope();
@@ -330,7 +343,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   }
 
   handleSuccessResponse(context: SessionReplayContext) {
-    this.completeRequest({ context, success: SUCCESS_MESSAGE });
+    this.completeRequest({ context, success: getSuccessMessage(context.sessionId) });
   }
 
   handleOtherResponse(context: SessionReplayContext) {
@@ -354,10 +367,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   async storeEventsForSession(events: Events, sequenceId: number, sessionId: number) {
     try {
       await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session = sessionMap[sessionId] || {
-          currentSequenceId: 0,
-          sessionSequences: [],
-        };
+        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
         session.currentSequenceId = sequenceId;
 
         const currentSequence = (session.sessionSequences && session.sessionSequences[sequenceId]) || {};
@@ -381,10 +391,26 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     }
   }
 
+  async storeShouldRecordForSession(sessionId: number, shouldRecord: boolean) {
+    try {
+      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
+        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
+        session.shouldRecord = shouldRecord;
+
+        return {
+          ...sessionMap,
+          [sessionId]: session,
+        };
+      });
+    } catch (e) {
+      this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+  }
+
   async cleanUpSessionEventsStore(sessionId: number, sequenceId: number) {
     try {
       await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session = sessionMap[sessionId];
+        const session: IDBStoreSession = sessionMap[sessionId];
         const sequenceToUpdate = session?.sessionSequences && session.sessionSequences[sequenceId];
         if (!sequenceToUpdate) {
           return sessionMap;
