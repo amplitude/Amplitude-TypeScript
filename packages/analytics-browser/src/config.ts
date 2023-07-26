@@ -213,9 +213,10 @@ export const useBrowserConfig = async (
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
 
   const trackingOptions = {
-    ipAddress: options.trackingOptions?.ipAddress === undefined ? true : options.trackingOptions.ipAddress,
-    language: options.trackingOptions?.language === undefined ? true : options.trackingOptions.language,
-    platform: options.trackingOptions?.platform === undefined ? true : options.trackingOptions.platform,
+    ipAddress: true,
+    language: true,
+    platform: true,
+    ...options.trackingOptions,
   };
 
   return new BrowserConfig(
