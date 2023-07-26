@@ -25,6 +25,8 @@ yarn add @amplitude/plugin-session-replay-browser
 
 This plugin works on top of Amplitude Browser SDK and adds session replay features to built-in features. To use this plugin, you need to install `@amplitude/analytics-browser` version `v1.0.0` or later.
 
+This plugin requires that default tracking for sessions is enabled. If default tracking for sessions is not enabled in the config, the plugin will automatically enable it.
+
 ### 1. Import Amplitude packages
 
 * `@amplitude/analytics-browser`
