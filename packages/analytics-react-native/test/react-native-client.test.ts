@@ -462,7 +462,8 @@ describe('react-native-client', () => {
         this.handleAppStateChange('active');
       }
 
-      setBackground() {
+      setBackground(timestamp: number) {
+        this.currentTime = timestamp;
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         this.handleAppStateChange('background');
@@ -560,7 +561,7 @@ describe('react-native-client', () => {
 
         void client.track({ event_type: 'event-5', time: 1700 });
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });
@@ -671,7 +672,7 @@ describe('react-native-client', () => {
         client.currentTime = 1720;
         client.setSessionId(5050);
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });
@@ -763,7 +764,7 @@ describe('react-native-client', () => {
 
         void client.track({ event_type: 'event-5', time: 1700 });
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });
@@ -834,7 +835,7 @@ describe('react-native-client', () => {
         client.currentTime = 1720;
         client.setSessionId(5050);
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });

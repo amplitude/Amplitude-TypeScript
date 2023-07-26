@@ -289,7 +289,7 @@ export class AmplitudeReactNative extends AmplitudeCore {
   private readonly handleAppStateChange = (nextAppState: AppStateStatus) => {
     const currentAppState = this.appState;
     this.appState = nextAppState;
-    if (currentAppState !== nextAppState && nextAppState === 'active') {
+    if (currentAppState !== nextAppState) {
       const timestamp = this.currentTimeMillis();
       if (nextAppState == 'active') {
         this.enterForeground(timestamp);

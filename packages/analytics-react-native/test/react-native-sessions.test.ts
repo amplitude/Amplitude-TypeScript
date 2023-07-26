@@ -112,7 +112,7 @@ describe('react-native-session', () => {
     expect(events[2].time).toEqual(1050);
   });
 
-  test('distant background events should not start new session', async () => {
+  test('distant background events should start new session', async () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
@@ -252,7 +252,7 @@ describe('react-native-session', () => {
 
     client.setForeground(1000);
     client.track(createEvent(1500, 'event-1'));
-    client.setForeground(2000);
+    client.setBackground(2000);
     client.track(createEvent(2050, 'event-2'));
     await client.flush().promise;
 
@@ -300,7 +300,7 @@ describe('react-native-session', () => {
 
     expect(events[2].event_type).toEqual('session_end');
     expect(events[2].session_id).toEqual(950);
-    expect(events[2].time).toEqual(1501);
+    expect(events[2].time).toEqual(2001);
 
     expect(events[3].event_type).toEqual('session_start');
     expect(events[3].session_id).toEqual(3000);
