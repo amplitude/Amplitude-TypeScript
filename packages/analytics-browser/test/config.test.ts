@@ -241,6 +241,23 @@ describe('config', () => {
       );
       expect(config.cookieOptions?.domain).toEqual('amplitude.com');
     });
+
+    test('should use trackingOptions', async () => {
+      const config = await Config.useBrowserConfig(
+        apiKey,
+        {
+          trackingOptions: {
+            ipAddress: false,
+            language: false,
+            platform: false,
+          },
+        },
+        new AmplitudeBrowser(),
+      );
+      expect(config.trackingOptions.ipAddress).toEqual(false);
+      expect(config.trackingOptions.language).toEqual(false);
+      expect(config.trackingOptions.platform).toEqual(false);
+    });
   });
 
   describe('createCookieStorage', () => {
