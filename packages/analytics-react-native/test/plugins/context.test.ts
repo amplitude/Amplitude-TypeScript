@@ -131,6 +131,23 @@ describe('context', () => {
       expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
     });
 
+    test('should contain app version from native module', async () => {
+      const context = new Context();
+      const config = useDefaultConfig({
+        deviceId: 'deviceId',
+        sessionId: 1,
+        userId: 'user@amplitude.com',
+      });
+      await context.setup(config);
+
+      const event = {
+        event_type: 'event_type',
+      };
+      const firstContextEvent = await context.execute(event);
+
+      expect(firstContextEvent.app_version).toEqual(isWeb() ? undefined : '1.0.0');
+    });
+
     describe('ingestionMetadata config', () => {
       test('should include ingestion metadata', async () => {
         const sourceName = 'ampli';
