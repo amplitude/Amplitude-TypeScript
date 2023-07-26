@@ -25,6 +25,8 @@ yarn add @amplitude/plugin-session-replay-browser
 
 This plugin works on top of Amplitude Browser SDK and adds session replay features to built-in features. To use this plugin, you need to install `@amplitude/analytics-browser` version `v1.0.0` or later.
 
+This plugin requires that default tracking for sessions is enabled. If default tracking for sessions is not enabled in the config, the plugin will automatically enable it.
+
 ### 1. Import Amplitude packages
 
 * `@amplitude/analytics-browser`
@@ -35,12 +37,26 @@ import * as amplitude from '@amplitude/analytics-browser';
 import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
 ```
 
-### 2. Instantiate session replay plugin and install plugin to Amplitude SDK
+### 2. Instantiate Session Replay plugin
 
-The plugin must be registered with the amplitude instance via the following code:
+The plugin must be registered with the amplitude instance via the following code. The plugin accepts an optional parameter which is an `Object` to configure the plugin based on your use case.
 
 ```typescript
 amplitude.init(API_KEY);
-const sessionReplayTracking = sessionReplayPlugin();
+const sessionReplayTracking = sessionReplayPlugin({
+  sampleRate: undefined
+});
+```
+
+
+#### Options
+
+|Name|Type|Default|Description|
+|-|-|-|-|
+|`sampleRate`|`number`|`undefined`|Use this option to control how many sessions will be selected for recording. A selected session will be recorded, while sessions that are not selected will not be recorded.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for recording. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+
+### 3. Install plugin to Amplitude SDK
+
+```typescript
 amplitude.add(sessionReplayTracking);
 ```
