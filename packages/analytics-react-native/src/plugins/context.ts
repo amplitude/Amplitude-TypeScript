@@ -81,7 +81,7 @@ export class Context implements BeforePlugin {
       device_id: this.config.deviceId,
       session_id: this.config.sessionId,
       time,
-      ...(this.config.appVersion && { app_version: appVersion }),
+      ...(appVersion && { app_version: appVersion }),
       ...(this.config.trackingOptions.platform && { platform: platform }),
       ...(this.config.trackingOptions.osName && { os_name: osName }),
       ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
