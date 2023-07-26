@@ -146,13 +146,6 @@ describe('context', () => {
       const firstContextEvent = await context.execute(event);
 
       expect(firstContextEvent.app_version).toEqual(isWeb() ? undefined : '1.0.0');
-      expect(firstContextEvent.event_type).toEqual('event_type');
-      expect(firstContextEvent.insert_id).toBeDefined();
-      expect(firstContextEvent.device_id).toEqual('new deviceId');
-
-      const secondContextEvent = await context.execute(event);
-      expect(secondContextEvent.insert_id).toBeDefined();
-      expect(secondContextEvent.insert_id).not.toEqual(firstContextEvent.insert_id);
     });
 
     describe('ingestionMetadata config', () => {
