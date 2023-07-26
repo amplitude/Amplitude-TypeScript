@@ -362,7 +362,6 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.shouldRecord).toBe(false);
     });
     test('should not set record as false if no options', () => {
-      jest.spyOn(Math, 'random').mockImplementationOnce(() => 0.7);
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       sessionReplay.setShouldRecord();
@@ -378,8 +377,29 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.setShouldRecord();
       expect(sessionReplay.shouldRecord).toBe(false);
     });
+    test('should set record as true if session is included in sample rate', () => {
+      jest.spyOn(Math, 'random').mockImplementationOnce(() => 0.7);
+      const sessionReplay = sessionReplayPlugin({
+        sampleRate: 0.8,
+      });
+      sessionReplay.config = mockConfig;
+      sessionReplay.setShouldRecord();
+      expect(sessionReplay.shouldRecord).toBe(true);
+    });
     test('should set record as false if opt out in config', () => {
       const sessionReplay = sessionReplayPlugin();
+      sessionReplay.config = {
+        ...mockConfig,
+        optOut: true,
+      };
+      sessionReplay.setShouldRecord();
+      expect(sessionReplay.shouldRecord).toBe(false);
+    });
+    test('opt out in config should override the sample rate', () => {
+      jest.spyOn(Math, 'random').mockImplementationOnce(() => 0.7);
+      const sessionReplay = sessionReplayPlugin({
+        sampleRate: 0.8,
+      });
       sessionReplay.config = {
         ...mockConfig,
         optOut: true,

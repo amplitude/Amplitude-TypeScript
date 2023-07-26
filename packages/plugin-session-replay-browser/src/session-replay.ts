@@ -145,11 +145,12 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   setShouldRecord(sessionStore?: IDBStoreSession) {
     if (sessionStore?.shouldRecord === false) {
       this.shouldRecord = false;
-    } else if (this.options && this.options.sampleRate) {
-      this.shouldRecord = Math.random() < this.options.sampleRate;
     } else if (this.config.optOut) {
       this.shouldRecord = false;
+    } else if (this.options && this.options.sampleRate) {
+      this.shouldRecord = Math.random() < this.options.sampleRate;
     }
+
     this.config.sessionId && void this.storeShouldRecordForSession(this.config.sessionId, this.shouldRecord);
     if (!this.shouldRecord && this.config.sessionId) {
       this.config.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording.`);

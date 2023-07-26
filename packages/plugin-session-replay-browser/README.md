@@ -51,7 +51,7 @@ const sessionReplayTracking = sessionReplayPlugin({
 
 |Name|Type|Default|Description|
 |-|-|-|-|
-|`sampleRate`|`number`|`undefined`|Use this option to control how many sessions will be selected for recording. <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for recording. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+|`sampleRate`|`number`|`undefined`|Use this option to control how many sessions will be selected for recording. A selected session will be recorded, while sessions that are not selected will not be recorded.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for recording. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
 
 ### 3. Install plugin to Amplitude SDK
 
