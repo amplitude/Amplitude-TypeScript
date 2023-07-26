@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.2.0...@amplitude/plugin-session-replay-browser@0.2.1) (2023-07-26)
+
+### Bug Fixes
+
+- **plugins:** stop recording when document.hasFocus is false
+  ([7fb6059](https://github.com/amplitude/Amplitude-TypeScript/commit/7fb6059716a09fae3c62a238d100fecc06861e67))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.1.3...@amplitude/plugin-session-replay-browser@0.2.0) (2023-07-20)
 
 ### Bug Fixes
