@@ -16,8 +16,8 @@ import {
 
 const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
 const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
-const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 200; // derived by JSON stringifying an example payload without events
-const MAX_EVENT_LIST_SIZE_IN_BYTES = 20 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
+const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 500; // derived by JSON stringifying an example payload without events
+const MAX_EVENT_LIST_SIZE_IN_BYTES = 10 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
 const MIN_INTERVAL = 500; // 500 ms
 const MAX_INTERVAL = 10 * 1000; // 10 seconds
 
@@ -132,6 +132,11 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   recordEvents() {
     this.stopRecordingEvents = record({
       emit: (event) => {
+        const GlobalScope = getGlobalScope();
+        if (GlobalScope && GlobalScope.document && !GlobalScope.document.hasFocus()) {
+          this.stopRecordingEvents && this.stopRecordingEvents();
+          return;
+        }
         const eventString = JSON.stringify(event);
 
         const shouldSplit = this.shouldSplitEventsList(eventString);

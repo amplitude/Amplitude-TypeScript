@@ -89,14 +89,17 @@ describe('SessionReplayPlugin', () => {
       }),
     ) as jest.Mock;
     addEventListenerMock = jest.fn() as typeof addEventListenerMock;
-    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValueOnce({
+    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
       window: {
         addEventListener: addEventListenerMock,
       } as unknown as Window,
+      document: {
+        hasFocus: () => true,
+      },
     } as Window & typeof globalThis);
   });
   afterEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     global.fetch = originalFetch;
   });
   afterAll(() => {
@@ -437,6 +440,26 @@ describe('SessionReplayPlugin', () => {
           },
         },
       });
+    });
+
+    test('should return early if document is not in focus', () => {
+      const sessionReplay = sessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      sessionReplay.recordEvents();
+      sessionReplay.stopRecordingEvents = jest.fn();
+      expect(sessionReplay.events).toEqual([]);
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+        document: {
+          hasFocus: () => false,
+        },
+      } as typeof globalThis);
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      const sendEventsListMock = jest.spyOn(sessionReplay, 'sendEventsList').mockImplementationOnce(() => {});
+      const recordArg = record.mock.calls[0][0];
+      recordArg?.emit && recordArg?.emit(mockEvent);
+      expect(sendEventsListMock).toHaveBeenCalledTimes(0);
+      expect(sessionReplay.stopRecordingEvents).toHaveBeenCalled();
+      expect(sessionReplay.events).toEqual([]);
     });
   });
 
