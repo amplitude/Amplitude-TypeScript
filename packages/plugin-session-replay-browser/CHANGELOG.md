@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.3.0...@amplitude/plugin-session-replay-browser@0.4.0) (2023-07-27)
+
+### Features
+
+- **plugins:** add option to block elements based on amp-block class in session replay
+  ([fb261b8](https://github.com/amplitude/Amplitude-TypeScript/commit/fb261b89db96e707de6509ccbf57f319c696ef27))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.2.1...@amplitude/plugin-session-replay-browser@0.3.0) (2023-07-27)
 
 ### Bug Fixes

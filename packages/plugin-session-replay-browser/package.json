@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-session-replay-browser",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
