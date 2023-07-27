@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -47,8 +47,8 @@
     "@amplitude/analytics-client-common": "^2.0.4",
     "@amplitude/analytics-core": "^2.0.3",
     "@amplitude/analytics-types": "^2.1.1",
-    "@amplitude/plugin-page-view-tracking-browser": "^2.0.4",
-    "@amplitude/plugin-web-attribution-browser": "^2.0.4",
+    "@amplitude/plugin-page-view-tracking-browser": "^2.0.5",
+    "@amplitude/plugin-web-attribution-browser": "^2.0.5",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
