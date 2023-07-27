@@ -1,9 +1,21 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { AMPLITUDE_PREFIX, BaseTransport } from '@amplitude/analytics-core';
+import { BaseTransport } from '@amplitude/analytics-core';
 import { BrowserConfig, Event, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
-import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_REPLAY_PROPERTY, DEFAULT_SESSION_START_EVENT } from './constants';
+import {
+  DEFAULT_SESSION_END_EVENT,
+  DEFAULT_SESSION_REPLAY_PROPERTY,
+  DEFAULT_SESSION_START_EVENT,
+  MASK_TEXT_CLASS,
+  MAX_EVENT_LIST_SIZE_IN_BYTES,
+  MAX_INTERVAL,
+  MIN_INTERVAL,
+  SESSION_REPLAY_SERVER_URL,
+  STORAGE_PREFIX,
+  defaultSessionStore,
+} from './constants';
+import { maskInputFn } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from './messages';
 import {
   Events,
@@ -15,18 +27,6 @@ import {
   SessionReplayOptions,
   SessionReplayPlugin,
 } from './typings/session-replay';
-
-const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
-const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
-const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 500; // derived by JSON stringifying an example payload without events
-const MAX_EVENT_LIST_SIZE_IN_BYTES = 10 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
-const MIN_INTERVAL = 500; // 500 ms
-const MAX_INTERVAL = 10 * 1000; // 10 seconds
-const defaultSessionStore: IDBStoreSession = {
-  shouldRecord: true,
-  currentSequenceId: 0,
-  sessionSequences: {},
-};
 class SessionReplay implements SessionReplayEnrichmentPlugin {
   name = '@amplitude/plugin-session-replay-browser';
   type = 'enrichment' as const;
@@ -206,6 +206,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       },
       packFn: pack,
       maskAllInputs: true,
+      maskTextClass: MASK_TEXT_CLASS,
+      maskInputFn,
     });
   }
 

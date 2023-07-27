@@ -60,3 +60,13 @@ const sessionReplayTracking = sessionReplayPlugin({
 ```typescript
 amplitude.add(sessionReplayTracking);
 ```
+
+## Privacy
+By default, the session recording will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:
+
+#### 1. Unmask inputs
+In your application code, add the class `.amp-unmask` to any __input__ whose text you'd like to have unmasked in the recording. In the replay of a recorded session, it will be possible to read the exact text entered into an input with this class, the text will not be converted to asterisks.
+
+#### 2. Mask non-input elements
+In your application code, add the class `.amp-mask` to any __non-input element__ whose text you'd like to have masked from the recording. The text in the element, as well as it's children, will all be converted to asterisks.
+

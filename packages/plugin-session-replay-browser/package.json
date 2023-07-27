@@ -39,7 +39,7 @@
   "dependencies": {
     "@amplitude/analytics-types": ">=1 <3",
     "idb-keyval": "^6.2.1",
-    "rrweb": "^2.0.0-alpha.4",
+    "rrweb": "^2.0.0-alpha.9",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
