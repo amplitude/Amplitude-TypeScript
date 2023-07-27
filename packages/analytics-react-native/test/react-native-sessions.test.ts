@@ -341,21 +341,25 @@ describe('react-native-session', () => {
     expect(client1.config.lastEventId).toEqual(2);
   });
 
-  test('explicit session for event should be preserved', async () => {
+  test('explicit session for event should be preserved and do not update config.lastEventTime', async () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
     const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
+    expect(client.config.lastEventTime).toEqual(950);
     client.track(createEvent(1000, 'event-1'));
+    expect(client.config.lastEventTime).toEqual(1000);
     client.track(createEvent(1050, 'event-2', 3000));
+    expect(client.config.lastEventTime).toEqual(1000);
     client.track(createEvent(1100, 'event-3'));
+    expect(client.config.lastEventTime).toEqual(1100);
     await client.flush().promise;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
-    expect(events.length).toEqual(4);
+    expect(events.length).toEqual(6);
 
     expect(events[0].event_type).toEqual('session_start');
     expect(events[0].session_id).toEqual(950);
@@ -369,21 +373,78 @@ describe('react-native-session', () => {
     expect(events[2].session_id).toEqual(3000);
     expect(events[2].time).toEqual(1050);
 
-    expect(events[3].event_type).toEqual('event-3');
+    expect(events[3].event_type).toEqual('session_end');
     expect(events[3].session_id).toEqual(950);
-    expect(events[3].time).toEqual(1100);
+    expect(events[3].time).toEqual(1001);
+
+    expect(events[4].event_type).toEqual('session_start');
+    expect(events[4].session_id).toEqual(1100);
+    expect(events[4].time).toEqual(1100);
+
+    expect(events[5].event_type).toEqual('event-3');
+    expect(events[5].session_id).toEqual(1100);
+    expect(events[5].time).toEqual(1100);
   });
 
-  test('explicit no session for event should be preserved', async () => {
+  test('explicit no session for event should be preserved and do not update config.lastEventTime', async () => {
     const send = jest.fn().mockReturnValue(sendResponse);
     const cookieStorage = new core.MemoryStorage<UserSession>();
 
     const client = new AmplitudeReactNativeTest(950);
     await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
+    expect(client.config.lastEventTime).toEqual(950);
     client.track(createEvent(1000, 'event-1'));
+    expect(client.config.lastEventTime).toEqual(1000);
     client.track(createEvent(1050, 'event-2', -1));
+    expect(client.config.lastEventTime).toEqual(1000);
     client.track(createEvent(1100, 'event-3'));
+    expect(client.config.lastEventTime).toEqual(1100);
+    await client.flush().promise;
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
+    expect(events.length).toEqual(6);
+
+    expect(events[0].event_type).toEqual('session_start');
+    expect(events[0].session_id).toEqual(950);
+    expect(events[0].time).toEqual(950);
+
+    expect(events[1].event_type).toEqual('event-1');
+    expect(events[1].session_id).toEqual(950);
+    expect(events[1].time).toEqual(1000);
+
+    expect(events[2].event_type).toEqual('event-2');
+    expect(events[2].session_id).toEqual(-1);
+    expect(events[2].time).toEqual(1050);
+
+    expect(events[3].event_type).toEqual('session_end');
+    expect(events[3].session_id).toEqual(950);
+    expect(events[3].time).toEqual(1001);
+
+    expect(events[4].event_type).toEqual('session_start');
+    expect(events[4].session_id).toEqual(1100);
+    expect(events[4].time).toEqual(1100);
+
+    expect(events[5].event_type).toEqual('event-3');
+    expect(events[5].session_id).toEqual(1100);
+    expect(events[5].time).toEqual(1100);
+  });
+
+  test('explicit session for event (equal to current session) should be preserved and update config.lastEventTime', async () => {
+    const send = jest.fn().mockReturnValue(sendResponse);
+    const cookieStorage = new core.MemoryStorage<UserSession>();
+
+    const client = new AmplitudeReactNativeTest(950);
+    await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
+
+    expect(client.config.lastEventTime).toEqual(950);
+    client.track(createEvent(1000, 'event-1'));
+    expect(client.config.lastEventTime).toEqual(1000);
+    client.track(createEvent(1050, 'event-2', 950));
+    expect(client.config.lastEventTime).toEqual(1050);
+    client.track(createEvent(1100, 'event-3'));
+    expect(client.config.lastEventTime).toEqual(1100);
     await client.flush().promise;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -399,7 +460,7 @@ describe('react-native-session', () => {
     expect(events[1].time).toEqual(1000);
 
     expect(events[2].event_type).toEqual('event-2');
-    expect(events[2].session_id).toEqual(-1);
+    expect(events[2].session_id).toEqual(950);
     expect(events[2].time).toEqual(1050);
 
     expect(events[3].event_type).toEqual('event-3');
@@ -456,68 +517,92 @@ describe('react-native-session', () => {
       const send = jest.fn().mockReturnValue(sendResponse);
       const cookieStorage = new core.MemoryStorage<UserSession>();
 
-      const client = new AmplitudeReactNativeTest(5000);
+      const client = new AmplitudeReactNativeTest(950);
       await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       client.setSessionId(5000);
+      expect(client.config.lastEventTime).toEqual(950);
       client.track(createEvent(1000, 'event-1'));
+      expect(client.config.lastEventTime).toEqual(1000);
       client.track(createEvent(1050, 'event-2', 3000));
+      expect(client.config.lastEventTime).toEqual(1000);
       client.track(createEvent(1100, 'event-3'));
+      expect(client.config.lastEventTime).toEqual(1100);
       await client.flush().promise;
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
-      expect(events.length).toEqual(4);
+      expect(events.length).toEqual(6);
 
       expect(events[0].event_type).toEqual('session_start');
-      expect(events[0].session_id).toEqual(5000);
-      expect(events[0].time).toEqual(5000);
+      expect(events[0].session_id).toEqual(950);
+      expect(events[0].time).toEqual(950);
 
-      expect(events[1].event_type).toEqual('event-1');
-      expect(events[1].session_id).toEqual(5000);
-      expect(events[1].time).toEqual(1000);
+      expect(events[1].event_type).toEqual('session_end');
+      expect(events[1].session_id).toEqual(950);
+      expect(events[1].time).toEqual(951);
 
-      expect(events[2].event_type).toEqual('event-2');
-      expect(events[2].session_id).toEqual(3000);
-      expect(events[2].time).toEqual(1050);
+      expect(events[2].event_type).toEqual('session_start');
+      expect(events[2].session_id).toEqual(5000);
+      expect(events[2].time).toEqual(950);
 
-      expect(events[3].event_type).toEqual('event-3');
+      expect(events[3].event_type).toEqual('event-1');
       expect(events[3].session_id).toEqual(5000);
-      expect(events[3].time).toEqual(1100);
+      expect(events[3].time).toEqual(1000);
+
+      expect(events[4].event_type).toEqual('event-2');
+      expect(events[4].session_id).toEqual(3000);
+      expect(events[4].time).toEqual(1050);
+
+      expect(events[5].event_type).toEqual('event-3');
+      expect(events[5].session_id).toEqual(5000);
+      expect(events[5].time).toEqual(1100);
     });
 
     test('explicit no session for event should be preserved', async () => {
       const send = jest.fn().mockReturnValue(sendResponse);
       const cookieStorage = new core.MemoryStorage<UserSession>();
 
-      const client = new AmplitudeReactNativeTest(5000);
+      const client = new AmplitudeReactNativeTest(950);
       await client.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       client.setSessionId(5000);
+      expect(client.config.lastEventTime).toEqual(950);
       client.track(createEvent(1000, 'event-1'));
+      expect(client.config.lastEventTime).toEqual(1000);
       client.track(createEvent(1050, 'event-2', -1));
+      expect(client.config.lastEventTime).toEqual(1000);
       client.track(createEvent(1100, 'event-3'));
+      expect(client.config.lastEventTime).toEqual(1100);
       await client.flush().promise;
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
-      expect(events.length).toEqual(4);
+      expect(events.length).toEqual(6);
 
       expect(events[0].event_type).toEqual('session_start');
-      expect(events[0].session_id).toEqual(5000);
-      expect(events[0].time).toEqual(5000);
+      expect(events[0].session_id).toEqual(950);
+      expect(events[0].time).toEqual(950);
 
-      expect(events[1].event_type).toEqual('event-1');
-      expect(events[1].session_id).toEqual(5000);
-      expect(events[1].time).toEqual(1000);
+      expect(events[1].event_type).toEqual('session_end');
+      expect(events[1].session_id).toEqual(950);
+      expect(events[1].time).toEqual(951);
 
-      expect(events[2].event_type).toEqual('event-2');
-      expect(events[2].session_id).toEqual(-1);
-      expect(events[2].time).toEqual(1050);
+      expect(events[2].event_type).toEqual('session_start');
+      expect(events[2].session_id).toEqual(5000);
+      expect(events[2].time).toEqual(950);
 
-      expect(events[3].event_type).toEqual('event-3');
+      expect(events[3].event_type).toEqual('event-1');
       expect(events[3].session_id).toEqual(5000);
-      expect(events[3].time).toEqual(1100);
+      expect(events[3].time).toEqual(1000);
+
+      expect(events[4].event_type).toEqual('event-2');
+      expect(events[4].session_id).toEqual(-1);
+      expect(events[4].time).toEqual(1050);
+
+      expect(events[5].event_type).toEqual('event-3');
+      expect(events[5].session_id).toEqual(5000);
+      expect(events[5].time).toEqual(1100);
     });
   });
 });

@@ -230,12 +230,17 @@ export class AmplitudeReactNative extends AmplitudeCore {
         event = { ...event, time: eventTime };
       }
 
-      if (event.event_type != START_SESSION_EVENT && event.event_type != END_SESSION_EVENT) {
-        if (this.appState !== 'active') {
-          this.startNewSessionIfNeeded(eventTime);
+      const isSessionEvent = event.event_type === START_SESSION_EVENT || event.event_type === END_SESSION_EVENT;
+      const isCustomEventSessionId =
+        !isSessionEvent && event.session_id != undefined && event.session_id !== this.getSessionId();
+      if (!isCustomEventSessionId) {
+        if (!isSessionEvent) {
+          if (this.appState !== 'active') {
+            this.startNewSessionIfNeeded(eventTime);
+          }
         }
+        this.config.lastEventTime = eventTime;
       }
-      this.config.lastEventTime = eventTime;
 
       if (event.session_id == undefined) {
         event.session_id = this.getSessionId();
