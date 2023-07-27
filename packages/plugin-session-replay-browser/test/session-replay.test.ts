@@ -151,6 +151,16 @@ describe('SessionReplayPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(initialize.mock.calls[0]).toEqual([]);
     });
+    test('it should not call initialize if the document does not have focus', () => {
+      const sessionReplay = sessionReplayPlugin();
+      const initialize = jest.spyOn(sessionReplay, 'initialize').mockReturnValueOnce(Promise.resolve());
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+        document: {
+          hasFocus: () => false,
+        },
+      } as typeof globalThis);
+      expect(initialize).not.toHaveBeenCalled();
+    });
   });
 
   describe('initalize', () => {
@@ -410,6 +420,25 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('execute', () => {
+    test('it should return event if document does not have focus', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+        document: {
+          hasFocus: () => false,
+        },
+      } as typeof globalThis);
+      await sessionReplay.setup(mockConfig);
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+          property_b: 123,
+        },
+      };
+
+      const executedEvent = await sessionReplay.execute(event);
+      expect(executedEvent).toEqual(event);
+    });
     test('should add event property for [Amplitude] Session Recorded', async () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig);

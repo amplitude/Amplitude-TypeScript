@@ -75,8 +75,6 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       };
     }
 
-    await this.initialize(true);
-
     const GlobalScope = getGlobalScope();
     if (GlobalScope && GlobalScope.window) {
       GlobalScope.window.addEventListener('blur', () => {
@@ -87,9 +85,18 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
         void this.initialize();
       });
     }
+
+    if (GlobalScope && GlobalScope.document && GlobalScope.document.hasFocus()) {
+      await this.initialize(true);
+    }
   }
 
   async execute(event: Event) {
+    const GlobalScope = getGlobalScope();
+    if (GlobalScope && GlobalScope.document && !GlobalScope.document.hasFocus()) {
+      return Promise.resolve(event);
+    }
+
     if (this.shouldRecord) {
       event.event_properties = {
         ...event.event_properties,
