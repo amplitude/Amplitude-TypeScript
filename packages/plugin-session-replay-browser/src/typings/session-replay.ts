@@ -1,7 +1,6 @@
 import { BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
 import { record } from 'rrweb';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface SessionReplayOptions {
   sampleRate?: number;
 }
