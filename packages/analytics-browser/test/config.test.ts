@@ -243,9 +243,9 @@ describe('config', () => {
     });
 
     test.each([
-      [true, true]
-      [undefined, true]
-      [false, false]
+      [true, true],
+      [undefined, true],
+      [false, false],
     ])('should use trackingOptions', async (input, expected) => {
       const config = await Config.useBrowserConfig(
         apiKey,
