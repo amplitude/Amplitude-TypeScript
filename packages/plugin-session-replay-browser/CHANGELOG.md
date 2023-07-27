@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.2.1...@amplitude/plugin-session-replay-browser@0.3.0) (2023-07-27)
+
+### Bug Fixes
+
+- **plugins:** ensure config.optout takes priority over sample rate
+  ([5438a43](https://github.com/amplitude/Amplitude-TypeScript/commit/5438a438ec062b3011234b0fea82b54351a12864))
+- **plugins:** update README for session replay
+  ([ed20cf2](https://github.com/amplitude/Amplitude-TypeScript/commit/ed20cf22180b33f29fd71a1439de26706d6ec4ff))
+
+### Features
+
+- **plugins:** abide by global opt out for session recording
+  ([25bd516](https://github.com/amplitude/Amplitude-TypeScript/commit/25bd516849c9a7fc346c6a868c664e70cdeb5cba))
+- **plugins:** add a configuration option for sampling rate
+  ([bcabfa4](https://github.com/amplitude/Amplitude-TypeScript/commit/bcabfa4ea784187edc85a85bce9a2c68dde411e5))
+- **plugins:** add default tracking of sessions to session replay plugin
+  ([6aeb511](https://github.com/amplitude/Amplitude-TypeScript/commit/6aeb511e5a7db760ebaa86aee0d7756fb85e9020))
+- **plugins:** add masking controls to session replay and reorganize constants and helper fns
+  ([e46a42e](https://github.com/amplitude/Amplitude-TypeScript/commit/e46a42e430c7560a4e9da322b10238fdbf4f1bc5))
+- **plugins:** update config additions to store in idb
+  ([5c04c3c](https://github.com/amplitude/Amplitude-TypeScript/commit/5c04c3cc0e8ef287898f2571f8c2a3e9e00311be))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.2.0...@amplitude/plugin-session-replay-browser@0.2.1) (2023-07-26)
 
 ### Bug Fixes
