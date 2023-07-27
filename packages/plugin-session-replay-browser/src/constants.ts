@@ -7,6 +7,7 @@ export const DEFAULT_SESSION_REPLAY_PROPERTY = `${DEFAULT_EVENT_PROPERTY_PREFIX}
 export const DEFAULT_SESSION_START_EVENT = 'session_start';
 export const DEFAULT_SESSION_END_EVENT = 'session_end';
 
+export const BLOCK_CLASS = 'amp-block';
 export const MASK_TEXT_CLASS = 'amp-mask';
 export const UNMASK_TEXT_CLASS = 'amp-unmask';
 export const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
