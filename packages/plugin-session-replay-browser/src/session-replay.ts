@@ -4,6 +4,7 @@ import { BrowserConfig, Event, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
 import {
+  BLOCK_CLASS,
   DEFAULT_SESSION_END_EVENT,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   DEFAULT_SESSION_START_EVENT,
@@ -207,6 +208,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       packFn: pack,
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
+      blockClass: BLOCK_CLASS,
       maskInputFn,
     });
   }

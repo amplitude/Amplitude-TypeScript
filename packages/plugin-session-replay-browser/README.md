@@ -70,3 +70,5 @@ In your application code, add the class `.amp-unmask` to any __input__ whose tex
 #### 2. Mask non-input elements
 In your application code, add the class `.amp-mask` to any __non-input element__ whose text you'd like to have masked from the recording. The text in the element, as well as it's children, will all be converted to asterisks.
 
+#### 3. Block non-text elements
+In your application code, add the class `.amp-block` to any element you would like to have blocked from the recording. The element will appear in the replay as a placeholder with the same dimensions.
