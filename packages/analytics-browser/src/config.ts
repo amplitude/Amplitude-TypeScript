@@ -214,8 +214,8 @@ export const useBrowserConfig = async (
 
   const trackingOptions = {
     ipAddress: options.trackingOptions?.ipAddress ?? true,
-    language: options.trackingOptions?.ipAddress ?? true,
-    platform: options.trackingOptions?.ipAddress ?? true,
+    language: options.trackingOptions?.language ?? true,
+    platform: options.trackingOptions?.platform ?? true,
   };
 
   return new BrowserConfig(
