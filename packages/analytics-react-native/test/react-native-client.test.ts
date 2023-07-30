@@ -462,7 +462,8 @@ describe('react-native-client', () => {
         this.handleAppStateChange('active');
       }
 
-      setBackground() {
+      setBackground(timestamp: number) {
+        this.currentTime = timestamp;
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         this.handleAppStateChange('background');
@@ -500,46 +501,46 @@ describe('react-native-client', () => {
       const send = jest.fn().mockReturnValue(sendResponse);
       const cookieStorage = new core.MemoryStorage<UserSession>();
 
-      const client1 = new AmplitudeReactNativeTest(500);
+      const client1 = new AmplitudeReactNativeTest(950);
       await client1.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
       client1.setActive(1000);
 
-      expect(client1.config.sessionId).toEqual(1000);
+      expect(client1.config.sessionId).toEqual(950);
       expect(client1.config.lastEventTime).toEqual(1000);
-      expect(client1.config.lastEventId).toEqual(2);
+      expect(client1.config.lastEventId).toEqual(1);
 
       void client1.track({ event_type: 'event-1', time: 1200 });
 
-      expect(client1.config.sessionId).toEqual(1000);
+      expect(client1.config.sessionId).toEqual(950);
       expect(client1.config.lastEventTime).toEqual(1200);
-      expect(client1.config.lastEventId).toEqual(3);
+      expect(client1.config.lastEventId).toEqual(2);
 
       const client2 = new AmplitudeReactNativeTest(1250);
       await client2.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
-      expect(client2.config.sessionId).toEqual(1000);
+      expect(client2.config.sessionId).toEqual(950);
       expect(client2.config.lastEventTime).toEqual(1250);
-      expect(client2.config.lastEventId).toEqual(3);
+      expect(client2.config.lastEventId).toEqual(2);
 
       void client2.track({ event_type: 'event-2', time: 1270 });
 
-      expect(client2.config.sessionId).toEqual(1000);
+      expect(client2.config.sessionId).toEqual(950);
       expect(client2.config.lastEventTime).toEqual(1270);
-      expect(client2.config.lastEventId).toEqual(4);
+      expect(client2.config.lastEventId).toEqual(3);
 
       const client3 = new AmplitudeReactNativeTest(1300);
       await client3.init(API_KEY, undefined, clientOptions(send, cookieStorage, true)).promise;
 
-      expect(client3.config.sessionId).toEqual(1000);
+      expect(client3.config.sessionId).toEqual(950);
       expect(client3.config.lastEventTime).toEqual(1300);
-      expect(client3.config.lastEventId).toEqual(4);
+      expect(client3.config.lastEventId).toEqual(3);
 
       client3.setActive(1500);
 
       expect(client3.config.sessionId).toEqual(1500);
       expect(client3.config.lastEventTime).toEqual(1500);
-      expect(client3.config.lastEventId).toEqual(6);
+      expect(client3.config.lastEventId).toEqual(5);
     });
 
     describe('track session events', () => {
@@ -560,7 +561,7 @@ describe('react-native-client', () => {
 
         void client.track({ event_type: 'event-5', time: 1700 });
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });
@@ -572,7 +573,7 @@ describe('react-native-client', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
         expect(events.length).toEqual(18);
-        events.forEach((event, i) => expect(event.event_id).toEqual(i));
+        events.forEach((event, i) => expect(event.event_id).toEqual(i + 1));
 
         expect(events[0].event_type).toEqual('session_end');
         expect(events[0].session_id).toEqual(500);
@@ -671,7 +672,7 @@ describe('react-native-client', () => {
         client.currentTime = 1720;
         client.setSessionId(5050);
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });
@@ -685,7 +686,7 @@ describe('react-native-client', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
         expect(events.length).toEqual(14);
-        events.forEach((event, i) => expect(event.event_id).toEqual(i));
+        events.forEach((event, i) => expect(event.event_id).toEqual(i + 1));
 
         expect(events[0].event_type).toEqual('session_end');
         expect(events[0].session_id).toEqual(500);
@@ -763,7 +764,7 @@ describe('react-native-client', () => {
 
         void client.track({ event_type: 'event-5', time: 1700 });
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });
@@ -775,7 +776,7 @@ describe('react-native-client', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
         expect(events.length).toEqual(8);
-        events.forEach((event, i) => expect(event.event_id).toEqual(i));
+        events.forEach((event, i) => expect(event.event_id).toEqual(i + 1));
 
         expect(events[0].event_type).toEqual('event-1');
         expect(events[0].session_id).toEqual(950);
@@ -834,7 +835,7 @@ describe('react-native-client', () => {
         client.currentTime = 1720;
         client.setSessionId(5050);
 
-        client.setBackground();
+        client.setBackground(1730);
 
         void client.track({ event_type: 'event-6', time: 1750 });
         void client.track({ event_type: 'event-7', time: 2000 });
@@ -848,7 +849,7 @@ describe('react-native-client', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const events = send.mock.calls.flatMap((call) => call[1].events as Event[]);
         expect(events.length).toEqual(8);
-        events.forEach((event, i) => expect(event.event_id).toEqual(i));
+        events.forEach((event, i) => expect(event.event_id).toEqual(i + 1));
 
         expect(events[0].event_type).toEqual('event-1');
         expect(events[0].session_id).toEqual(1000);
