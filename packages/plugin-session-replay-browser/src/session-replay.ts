@@ -1,6 +1,6 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { BaseTransport } from '@amplitude/analytics-core';
-import { BrowserConfig, Event, Status } from '@amplitude/analytics-types';
+import { BrowserConfig, Event, ServerZone, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
 import {
@@ -15,6 +15,7 @@ import {
   SESSION_REPLAY_SERVER_URL,
   STORAGE_PREFIX,
   defaultSessionStore,
+  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
 } from './constants';
 import { maskInputFn } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from './messages';
@@ -301,6 +302,13 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     await Promise.all(list.map((context) => this.send(context, useRetry)));
   }
 
+  getServerUrl() {
+    if (this.config.serverZone === ServerZone.EU) {
+      return SESSION_REPLAY_EU_SERVER_URL;
+    }
+    return SESSION_REPLAY_SERVER_URL;
+  }
+
   async send(context: SessionReplayContext, useRetry = true) {
     const payload = {
       api_key: this.config.apiKey,
@@ -322,7 +330,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
         body: JSON.stringify(payload),
         method: 'POST',
       };
-      const res = await fetch(SESSION_REPLAY_SERVER_URL, options);
+      const server_url = this.getServerUrl();
+      const res = await fetch(server_url, options);
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE, removeEvents: false });
         return;

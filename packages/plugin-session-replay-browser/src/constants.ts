@@ -11,6 +11,7 @@ export const BLOCK_CLASS = 'amp-block';
 export const MASK_TEXT_CLASS = 'amp-mask';
 export const UNMASK_TEXT_CLASS = 'amp-unmask';
 export const SESSION_REPLAY_SERVER_URL = 'https://api-secure.amplitude.com/sessions/track';
+export const SESSION_REPLAY_EU_URL = 'https://api.eu.amplitude.com/sessions/track';
 export const STORAGE_PREFIX = `${AMPLITUDE_PREFIX}_replay_unsent`;
 const PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS = 500; // derived by JSON stringifying an example payload without events
 export const MAX_EVENT_LIST_SIZE_IN_BYTES = 10 * 1000000 - PAYLOAD_ESTIMATED_SIZE_IN_BYTES_WITHOUT_EVENTS;
