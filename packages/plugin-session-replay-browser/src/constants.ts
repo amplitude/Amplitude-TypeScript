@@ -21,3 +21,4 @@ export const defaultSessionStore: IDBStoreSession = {
   currentSequenceId: 0,
   sessionSequences: {},
 };
+export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 3; // 3 days
