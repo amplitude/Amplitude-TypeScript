@@ -1,7 +1,7 @@
 /* eslint-disable jest/expect-expect */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
-import { BrowserConfig, LogLevel, Logger } from '@amplitude/analytics-types';
+import { BrowserConfig, LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import * as RRWeb from 'rrweb';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
@@ -766,6 +766,34 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith('https://api-secure.amplitude.com/sessions/track', {
+        body: JSON.stringify({
+          api_key: 'static_key',
+          session_id: 123,
+          start_timestamp: 123,
+          events_batch: { version: 1, events: [mockEventString], seq_number: 1 },
+        }),
+        headers: { Accept: '*/*', 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
+    });
+    test('should make a request to eu', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      sessionReplay.config = {
+        ...mockConfig,
+        serverZone: ServerZone.EU,
+      };
+
+      const context = {
+        events: [mockEventString],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+      };
+
+      await sessionReplay.send(context);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith('https://api.eu.amplitude.com/sessions/track', {
         body: JSON.stringify({
           api_key: 'static_key',
           session_id: 123,
