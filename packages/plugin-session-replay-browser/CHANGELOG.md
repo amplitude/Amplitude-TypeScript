@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.4.1...@amplitude/plugin-session-replay-browser@0.4.2) (2023-08-01)
+
+### Bug Fixes
+
+- **plugins:** correctly fetch shouldRecord from store and clean up old store entries
+  ([1e8317b](https://github.com/amplitude/Amplitude-TypeScript/commit/1e8317b64d8868bd4b5e584f50ffec4ca54dcadc))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.4.0...@amplitude/plugin-session-replay-browser@0.4.1) (2023-07-27)
 
 ### Bug Fixes
