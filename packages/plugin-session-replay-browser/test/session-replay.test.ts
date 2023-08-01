@@ -371,6 +371,18 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.setShouldRecord(sessionStore);
       expect(sessionReplay.shouldRecord).toBe(false);
     });
+    test('should set record as true if true in session store', () => {
+      const sessionReplay = sessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      sessionReplay.shouldRecord = false; // Set to false to be sure the setShouldRecord changes the value
+      const sessionStore = {
+        shouldRecord: true,
+        currentSequenceId: 0,
+        sessionSequences: {},
+      };
+      sessionReplay.setShouldRecord(sessionStore);
+      expect(sessionReplay.shouldRecord).toBe(true);
+    });
     test('should not set record as false if no options', () => {
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
@@ -782,7 +794,7 @@ describe('SessionReplayPlugin', () => {
       expect(cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
       expect(cleanUpSessionEventsStore.mock.calls[0]).toEqual([123, 1]);
     });
-    test('should not remove session events from IDB store upon failure', async () => {
+    test('should remove session events from IDB store upon failure', async () => {
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const context = {
@@ -792,12 +804,15 @@ describe('SessionReplayPlugin', () => {
         attempts: 0,
         timeout: 0,
       };
+      const cleanUpSessionEventsStore = jest
+        .spyOn(sessionReplay, 'cleanUpSessionEventsStore')
+        .mockReturnValueOnce(Promise.resolve());
       (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject());
 
       await sessionReplay.send(context);
       jest.runAllTimers();
-
-      expect(update).not.toHaveBeenCalled();
+      expect(cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
+      expect(cleanUpSessionEventsStore.mock.calls[0]).toEqual([123, 1]);
     });
 
     test('should retry if retry param is true', async () => {
@@ -1260,10 +1275,12 @@ describe('SessionReplayPlugin', () => {
 
   describe('cleanUpSessionEventsStore', () => {
     test('should update events and status for current session', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
+      const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
       const mockIDBStore: IDBStore = {
-        123: {
+        [currentSessionId]: {
           shouldRecord: true,
           currentSequenceId: 3,
           sessionSequences: {
@@ -1274,25 +1291,15 @@ describe('SessionReplayPlugin', () => {
             3: {
               events: [mockEventString],
               status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-        456: {
-          shouldRecord: true,
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
             },
           },
         },
       };
-      await sessionReplay.cleanUpSessionEventsStore(123, 3);
+      await sessionReplay.cleanUpSessionEventsStore(currentSessionId, 3);
 
       expect(update).toHaveBeenCalledTimes(1);
       expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        123: {
+        [currentSessionId]: {
           shouldRecord: true,
           currentSequenceId: 3,
           sessionSequences: {
@@ -1301,16 +1308,6 @@ describe('SessionReplayPlugin', () => {
               status: RecordingStatus.RECORDING,
             },
             3: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-        456: {
-          shouldRecord: true,
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
               events: [],
               status: RecordingStatus.SENT,
             },
@@ -1320,10 +1317,12 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('should delete sent sequences for current session', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
+      const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
       const mockIDBStore: IDBStore = {
-        123: {
+        [currentSessionId]: {
           shouldRecord: true,
           currentSequenceId: 3,
           sessionSequences: {
@@ -1337,22 +1336,12 @@ describe('SessionReplayPlugin', () => {
             },
           },
         },
-        456: {
-          shouldRecord: true,
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
       };
-      await sessionReplay.cleanUpSessionEventsStore(123, 3);
+      await sessionReplay.cleanUpSessionEventsStore(currentSessionId, 3);
 
       expect(update).toHaveBeenCalledTimes(1);
       expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        123: {
+        [currentSessionId]: {
           shouldRecord: true,
           currentSequenceId: 3,
           sessionSequences: {
@@ -1362,11 +1351,46 @@ describe('SessionReplayPlugin', () => {
             },
           },
         },
-        456: {
+      });
+    });
+
+    test('should keep sessions that are less than 3 days old, and delete sessions that are more than 3 days old', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
+      const fourDayOldSessionId = new Date('2023-07-27 07:30:00').getTime();
+      const oneDayOldSessionId = new Date('2023-07-30 07:30:00').getTime();
+      const sessionReplay = sessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      const mockIDBStore: IDBStore = {
+        [oneDayOldSessionId]: {
           shouldRecord: true,
-          currentSequenceId: 1,
+          currentSequenceId: 3,
           sessionSequences: {
-            1: {
+            3: {
+              events: [mockEventString],
+              status: RecordingStatus.SENDING,
+            },
+          },
+        },
+        [fourDayOldSessionId]: {
+          shouldRecord: true,
+          currentSequenceId: 3,
+          sessionSequences: {
+            3: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      };
+      await sessionReplay.cleanUpSessionEventsStore(oneDayOldSessionId, 3);
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
+        [oneDayOldSessionId]: {
+          shouldRecord: true,
+          currentSequenceId: 3,
+          sessionSequences: {
+            3: {
               events: [],
               status: RecordingStatus.SENT,
             },

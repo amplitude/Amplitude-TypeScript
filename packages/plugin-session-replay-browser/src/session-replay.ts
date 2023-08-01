@@ -10,6 +10,7 @@ import {
   DEFAULT_SESSION_START_EVENT,
   MASK_TEXT_CLASS,
   MAX_EVENT_LIST_SIZE_IN_BYTES,
+  MAX_IDB_STORAGE_LENGTH,
   MAX_INTERVAL,
   MIN_INTERVAL,
   SESSION_REPLAY_SERVER_URL,
@@ -151,8 +152,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   }
 
   setShouldRecord(sessionStore?: IDBStoreSession) {
-    if (sessionStore?.shouldRecord === false) {
-      this.shouldRecord = false;
+    if (sessionStore && typeof sessionStore.shouldRecord === 'boolean') {
+      this.shouldRecord = sessionStore.shouldRecord;
     } else if (this.config.optOut) {
       this.shouldRecord = false;
     } else if (this.options && this.options.sampleRate) {
@@ -324,7 +325,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       };
       const res = await fetch(SESSION_REPLAY_SERVER_URL, options);
       if (res === null) {
-        this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE, removeEvents: false });
+        this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });
         return;
       }
       if (!useRetry) {
@@ -339,7 +340,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
         this.handleReponse(res.status, context);
       }
     } catch (e) {
-      this.completeRequest({ context, err: e as string, removeEvents: false });
+      this.completeRequest({ context, err: e as string });
     }
   }
 
@@ -431,10 +432,19 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
         sequenceToUpdate.events = [];
         sequenceToUpdate.status = RecordingStatus.SENT;
 
+        // Delete sent sequences for current session
         Object.entries(session.sessionSequences).forEach(([storedSeqId, sequence]) => {
           const numericStoredSeqId = parseInt(storedSeqId, 10);
           if (sequence.status === RecordingStatus.SENT && sequenceId !== numericStoredSeqId) {
             delete session.sessionSequences[numericStoredSeqId];
+          }
+        });
+
+        // Delete any sessions that are older than 3 days
+        Object.keys(sessionMap).forEach((sessionId: string) => {
+          const numericSessionId = parseInt(sessionId, 10);
+          if (Date.now() - numericSessionId >= MAX_IDB_STORAGE_LENGTH) {
+            delete sessionMap[numericSessionId];
           }
         });
 
@@ -445,18 +455,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     }
   }
 
-  completeRequest({
-    context,
-    err,
-    success,
-    removeEvents = true,
-  }: {
-    context: SessionReplayContext;
-    err?: string;
-    success?: string;
-    removeEvents?: boolean;
-  }) {
-    removeEvents && context.sessionId && this.cleanUpSessionEventsStore(context.sessionId, context.sequenceId);
+  completeRequest({ context, err, success }: { context: SessionReplayContext; err?: string; success?: string }) {
+    context.sessionId && this.cleanUpSessionEventsStore(context.sessionId, context.sequenceId);
     if (err) {
       this.config.loggerProvider.error(err);
     } else if (success) {
