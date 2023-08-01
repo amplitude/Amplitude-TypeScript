@@ -130,6 +130,12 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       return;
     }
     const storedReplaySessions = await this.getAllSessionEventsFromStore();
+    // This resolves a timing issue when focus is fired multiple times in short succession,
+    // we only want the rest of this function to run once. We can be sure that initialize has
+    // already been called if this.stopRecordingEvents is defined
+    if (this.stopRecordingEvents) {
+      return;
+    }
     const storedSequencesForSession = storedReplaySessions && storedReplaySessions[this.config.sessionId];
     if (storedReplaySessions && storedSequencesForSession && storedSequencesForSession.sessionSequences) {
       const storedSeqId = storedSequencesForSession.currentSequenceId;
@@ -147,9 +153,8 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     if (shouldSendStoredEvents && storedReplaySessions) {
       this.sendStoredEvents(storedReplaySessions);
     }
-    if (!this.stopRecordingEvents) {
-      this.recordEvents();
-    }
+
+    this.recordEvents();
   }
 
   setShouldRecord(sessionStore?: IDBStoreSession) {

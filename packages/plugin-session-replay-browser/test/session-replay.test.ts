@@ -248,6 +248,31 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.initialize();
       expect(getAllSessionEventsFromStore).not.toHaveBeenCalled();
     });
+    test('should return early if stopRecordingEvents is already defined, signaling that recording is already in progress', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      sessionReplay.config = mockConfig;
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      sessionReplay.stopRecordingEvents = () => {};
+      const getAllSessionEventsFromStore = jest
+        .spyOn(sessionReplay, 'getAllSessionEventsFromStore')
+        .mockReturnValueOnce(
+          Promise.resolve({
+            123: {
+              shouldRecord: true,
+              currentSequenceId: 3,
+              sessionSequences: {
+                3: {
+                  events: [mockEventString],
+                  status: RecordingStatus.RECORDING,
+                },
+              },
+            },
+          }),
+        );
+      await sessionReplay.initialize();
+      expect(getAllSessionEventsFromStore).toHaveBeenCalled();
+      expect(sessionReplay.events).toEqual([]); // events should not be updated to match what is in the store
+    });
     test('should configure current sequence id and events correctly if last sequence was sending', async () => {
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
