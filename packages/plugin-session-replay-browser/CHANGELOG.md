@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.4.2...@amplitude/plugin-session-replay-browser@0.5.0) (2023-08-02)
+
+### Bug Fixes
+
+- **plugins:** fix edge case when opening tab in background
+  ([2857038](https://github.com/amplitude/Amplitude-TypeScript/commit/2857038310110b9bae57ad45295107895586a847))
+
+### Features
+
+- **session replay eu:** route rraffic to eu based on config
+  ([0168653](https://github.com/amplitude/Amplitude-TypeScript/commit/016865335d05371849738403817410e2afc0ca57))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.4.1...@amplitude/plugin-session-replay-browser@0.4.2) (2023-08-01)
 
 ### Bug Fixes
