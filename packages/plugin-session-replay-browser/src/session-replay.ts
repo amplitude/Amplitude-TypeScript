@@ -13,12 +13,12 @@ import {
   MAX_IDB_STORAGE_LENGTH,
   MAX_INTERVAL,
   MIN_INTERVAL,
+  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
   SESSION_REPLAY_SERVER_URL,
   STORAGE_PREFIX,
   defaultSessionStore,
-  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
 } from './constants';
-import { maskInputFn } from './helpers';
+import { isSessionInSample, maskInputFn } from './helpers';
 import { MAX_RETRIES_EXCEEDED_MESSAGE, STORAGE_FAILURE, UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from './messages';
 import {
   Events,
@@ -48,7 +48,6 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   interval = MIN_INTERVAL;
   timeAtLastSend: number | null = null;
   options: SessionReplayOptions;
-  shouldRecord = true;
 
   constructor(options?: SessionReplayOptions) {
     this.options = { ...options };
@@ -98,15 +97,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     if (GlobalScope && GlobalScope.document && !GlobalScope.document.hasFocus()) {
       return Promise.resolve(event);
     }
-
-    if (this.shouldRecord) {
-      event.event_properties = {
-        ...event.event_properties,
-        [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
-      };
-    }
     if (event.event_type === DEFAULT_SESSION_START_EVENT && !this.stopRecordingEvents) {
-      this.setShouldRecord();
       this.recordEvents();
     } else if (event.event_type === DEFAULT_SESSION_END_EVENT) {
       if (event.session_id && this.events.length) {
@@ -121,6 +112,15 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       this.events = [];
       this.currentSequenceId = 0;
     }
+
+    const shouldRecord = this.getShouldRecord();
+    if (shouldRecord) {
+      event.event_properties = {
+        ...event.event_properties,
+        [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
+      };
+    }
+
     return Promise.resolve(event);
   }
 
@@ -149,27 +149,21 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
         this.events = lastSequence?.events || [];
       }
     }
-    this.setShouldRecord(storedSequencesForSession);
     if (shouldSendStoredEvents && storedReplaySessions) {
       this.sendStoredEvents(storedReplaySessions);
     }
-
     this.recordEvents();
   }
 
-  setShouldRecord(sessionStore?: IDBStoreSession) {
-    if (sessionStore && typeof sessionStore.shouldRecord === 'boolean') {
-      this.shouldRecord = sessionStore.shouldRecord;
-    } else if (this.config.optOut) {
-      this.shouldRecord = false;
+  getShouldRecord() {
+    if (this.config.optOut) {
+      return false;
+    } else if (!this.config.sessionId) {
+      return false;
     } else if (this.options && this.options.sampleRate) {
-      this.shouldRecord = Math.random() < this.options.sampleRate;
+      return isSessionInSample(this.config.sessionId, this.options.sampleRate);
     }
-
-    this.config.sessionId && void this.storeShouldRecordForSession(this.config.sessionId, this.shouldRecord);
-    if (!this.shouldRecord && this.config.sessionId) {
-      this.config.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording.`);
-    }
+    return true;
   }
 
   sendStoredEvents(storedReplaySessions: IDBStore) {
@@ -194,7 +188,9 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   }
 
   recordEvents() {
-    if (!this.shouldRecord) {
+    const shouldRecord = this.getShouldRecord();
+    if (!shouldRecord && this.config.sessionId) {
+      this.config.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording.`);
       return;
     }
     this.stopRecordingEvents = record({
@@ -411,22 +407,6 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
               [sequenceId]: currentSequence,
             },
           },
-        };
-      });
-    } catch (e) {
-      this.config.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
-    }
-  }
-
-  async storeShouldRecordForSession(sessionId: number, shouldRecord: boolean) {
-    try {
-      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
-        session.shouldRecord = shouldRecord;
-
-        return {
-          ...sessionMap,
-          [sessionId]: session,
         };
       });
     } catch (e) {

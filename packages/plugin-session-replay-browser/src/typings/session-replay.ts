@@ -27,7 +27,6 @@ export interface IDBStoreSequence {
 }
 
 export interface IDBStoreSession {
-  shouldRecord: boolean;
   currentSequenceId: number;
   sessionSequences: {
     [sequenceId: number]: IDBStoreSequence;
@@ -45,13 +44,12 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
   events: Events;
   currentSequenceId: number;
   interval: number;
-  shouldRecord: boolean;
   queue: SessionReplayContext[];
   timeAtLastSend: number | null;
   stopRecordingEvents: ReturnType<typeof record> | null;
   maxPersistedEventsSize: number;
   initialize: (shouldSendStoredEvents?: boolean) => Promise<void>;
-  setShouldRecord: (sessionStore?: IDBStoreSession) => void;
+  getShouldRecord: () => boolean;
   recordEvents: () => void;
   shouldSplitEventsList: (nextEventString: string) => boolean;
   sendEventsList: ({
@@ -80,7 +78,6 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
   }): void;
   getAllSessionEventsFromStore: () => Promise<IDBStore | undefined>;
   storeEventsForSession: (events: Events, sequenceId: number, sessionId: number) => Promise<void>;
-  storeShouldRecordForSession: (sessionId: number, shouldRecord: boolean) => Promise<void>;
   cleanUpSessionEventsStore: (sessionId: number, sequenceId: number) => Promise<void>;
 }
 

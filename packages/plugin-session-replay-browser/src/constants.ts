@@ -18,7 +18,6 @@ export const MAX_EVENT_LIST_SIZE_IN_BYTES = 10 * 1000000 - PAYLOAD_ESTIMATED_SIZ
 export const MIN_INTERVAL = 500; // 500 ms
 export const MAX_INTERVAL = 10 * 1000; // 10 seconds
 export const defaultSessionStore: IDBStoreSession = {
-  shouldRecord: true,
   currentSequenceId: 0,
   sessionSequences: {},
 };
