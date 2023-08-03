@@ -1,6 +1,5 @@
 import { NativeModules } from 'react-native';
 import { Event, Logger, Storage, UserSession } from '@amplitude/analytics-types';
-import { STORAGE_PREFIX } from '@amplitude/analytics-core';
 
 type LegacyEventKind = 'event' | 'identify' | 'interceptedIdentify';
 
@@ -22,7 +21,7 @@ export default class RemnantDataMigration {
     private logger: Logger | undefined,
   ) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    this.eventsStorageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
+    this.eventsStorageKey = `AMP_unsent_${this.apiKey.substring(0, 10)}`; // TODO Use StoragePrefix when it will be exported
     this.nativeModule = NativeModules.AmplitudeReactNative as AmplitudeReactNative;
   }
 
