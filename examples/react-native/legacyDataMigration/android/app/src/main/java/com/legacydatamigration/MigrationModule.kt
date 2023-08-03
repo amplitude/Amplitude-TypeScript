@@ -1,5 +1,6 @@
 package com.legacydatamigration
 
+import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -10,7 +11,7 @@ class MigrationModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
     override fun getName() = "MigrationModule"
 
     @ReactMethod
-    fun prepareLegacyDatabase(instanceName: String?, version: String) {
+    fun prepareLegacyDatabase(instanceName: String?, version: String, promise: Promise) {
         val dbPath = this.reactApplicationContext.getDatabasePath("com.amplitude.api_$instanceName")
         val databaseContent = when (version) {
             "v4" -> legacyV4Database
@@ -23,5 +24,6 @@ class MigrationModule(reactContext: ReactApplicationContext) : ReactContextBaseJ
                 dstStream.write(rawDatabaseContent, 0, rawDatabaseContent.size)
             }
         }
+        promise.resolve(null)
     }
 }
