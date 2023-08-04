@@ -273,7 +273,7 @@ describe('SessionReplayPlugin', () => {
       expect(getAllSessionEventsFromStore).toHaveBeenCalled();
       expect(sessionReplay.events).toEqual([]); // events should not be updated to match what is in the store
     });
-    test('should configure current sequence id and events correctly if last sequence was sending', async () => {
+    test('should configure current sequence id and events correctly if last sequence was sent', async () => {
       const sessionReplay = sessionReplayPlugin();
       sessionReplay.config = mockConfig;
       const mockGetResolution: Promise<IDBStore> = Promise.resolve({
@@ -282,7 +282,7 @@ describe('SessionReplayPlugin', () => {
           sessionSequences: {
             3: {
               events: [mockEventString],
-              status: RecordingStatus.SENDING,
+              status: RecordingStatus.SENT,
             },
           },
         },
@@ -341,6 +341,71 @@ describe('SessionReplayPlugin', () => {
       get.mockReturnValueOnce(mockGetResolution);
       await sessionReplay.initialize();
       expect(record).toHaveBeenCalledTimes(1);
+    });
+    describe('sendStoredEvents', () => {
+      test('should send all recording sequences except the current sequence for the current session', () => {
+        const sessionReplay = sessionReplayPlugin();
+        const config = {
+          ...mockConfig,
+          sessionId: 456,
+        };
+        sessionReplay.config = config;
+        sessionReplay.currentSequenceId = 3;
+        const store: IDBStore = {
+          123: {
+            currentSequenceId: 5,
+            sessionSequences: {
+              3: {
+                events: [mockEventString],
+                status: RecordingStatus.RECORDING,
+              },
+              4: {
+                events: [],
+                status: RecordingStatus.SENT,
+              },
+              5: {
+                events: [mockEventString, mockEventString],
+                status: RecordingStatus.RECORDING,
+              },
+            },
+          },
+          456: {
+            currentSequenceId: 3,
+            sessionSequences: {
+              1: {
+                events: [mockEventString],
+                status: RecordingStatus.RECORDING,
+              },
+              2: {
+                events: [],
+                status: RecordingStatus.SENT,
+              },
+              3: {
+                events: [mockEventString],
+                status: RecordingStatus.RECORDING,
+              },
+            },
+          },
+        };
+        const sendEventsList = jest.spyOn(sessionReplay, 'sendEventsList');
+        sessionReplay.sendStoredEvents(store);
+        expect(sendEventsList).toHaveBeenCalledTimes(3);
+        expect(sendEventsList.mock.calls[0][0]).toEqual({
+          events: [mockEventString],
+          sequenceId: 3,
+          sessionId: 123,
+        });
+        expect(sendEventsList.mock.calls[1][0]).toEqual({
+          events: [mockEventString, mockEventString],
+          sequenceId: 5,
+          sessionId: 123,
+        });
+        expect(sendEventsList.mock.calls[2][0]).toEqual({
+          events: [mockEventString],
+          sequenceId: 1,
+          sessionId: 456,
+        });
+      });
     });
     describe('defaultTracking', () => {
       test('should not change defaultTracking if its set to true', async () => {
@@ -1271,7 +1336,7 @@ describe('SessionReplayPlugin', () => {
           sessionSequences: {
             3: {
               events: [mockEventString],
-              status: RecordingStatus.SENDING,
+              status: RecordingStatus.RECORDING,
             },
           },
         },
