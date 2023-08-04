@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.5.0...@amplitude/plugin-session-replay-browser@0.5.1) (2023-08-04)
+
+### Bug Fixes
+
+- **plugins:** use hash to calculate is session is included in sample
+  ([4c7e579](https://github.com/amplitude/Amplitude-TypeScript/commit/4c7e5791b02114caf5ae95d7612fef0f339fbfee))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.4.2...@amplitude/plugin-session-replay-browser@0.5.0) (2023-08-02)
 
 ### Bug Fixes
