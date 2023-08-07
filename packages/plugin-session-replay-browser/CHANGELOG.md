@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.5.1...@amplitude/plugin-session-replay-browser@0.6.0) (2023-08-07)
+
+### Features
+
+- **plugins:** add teardown functionality to session replay plugin
+  ([8d4afd6](https://github.com/amplitude/Amplitude-TypeScript/commit/8d4afd64a2e90604f5c990a9a3df73082850b963))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.5.0...@amplitude/plugin-session-replay-browser@0.5.1) (2023-08-04)
 
 ### Bug Fixes
