@@ -76,39 +76,46 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       };
     }
 
-    const GlobalScope = getGlobalScope();
-    if (GlobalScope && GlobalScope.window) {
-      GlobalScope.window.addEventListener('blur', () => {
-        this.stopRecordingEvents && this.stopRecordingEvents();
-        this.stopRecordingEvents = null;
-      });
-      GlobalScope.window.addEventListener('focus', () => {
-        void this.initialize();
-      });
+    const globalScope = getGlobalScope();
+    if (globalScope) {
+      globalScope.addEventListener('blur', this.blurListener);
+      globalScope.addEventListener('focus', this.focusListener);
     }
 
-    if (GlobalScope && GlobalScope.document && GlobalScope.document.hasFocus()) {
+    if (globalScope && globalScope.document && globalScope.document.hasFocus()) {
       await this.initialize(true);
     }
   }
 
+  blurListener = () => {
+    this.stopRecordingAndSendEvents();
+  };
+  focusListener = () => {
+    void this.initialize();
+  };
+
+  stopRecordingAndSendEvents(sessionId?: number) {
+    this.stopRecordingEvents && this.stopRecordingEvents();
+    this.stopRecordingEvents = null;
+    const sessionIdToSend = sessionId || this.config.sessionId;
+    if (this.events.length && sessionIdToSend) {
+      this.sendEventsList({
+        events: this.events,
+        sequenceId: this.currentSequenceId,
+        sessionId: sessionIdToSend,
+      });
+    }
+  }
+
   async execute(event: Event) {
-    const GlobalScope = getGlobalScope();
-    if (GlobalScope && GlobalScope.document && !GlobalScope.document.hasFocus()) {
+    const globalScope = getGlobalScope();
+    if (globalScope && globalScope.document && !globalScope.document.hasFocus()) {
       return Promise.resolve(event);
     }
     if (event.event_type === DEFAULT_SESSION_START_EVENT && !this.stopRecordingEvents) {
       this.recordEvents();
     } else if (event.event_type === DEFAULT_SESSION_END_EVENT) {
-      if (event.session_id && this.events.length) {
-        this.sendEventsList({
-          events: this.events,
-          sequenceId: this.currentSequenceId,
-          sessionId: event.session_id,
-        });
-      }
-      this.stopRecordingEvents && this.stopRecordingEvents();
-      this.stopRecordingEvents = null;
+      this.stopRecordingAndSendEvents(event.session_id);
       this.events = [];
       this.currentSequenceId = 0;
     }
@@ -195,9 +202,9 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     }
     this.stopRecordingEvents = record({
       emit: (event) => {
-        const GlobalScope = getGlobalScope();
-        if (GlobalScope && GlobalScope.document && !GlobalScope.document.hasFocus()) {
-          this.stopRecordingEvents && this.stopRecordingEvents();
+        const globalScope = getGlobalScope();
+        if (globalScope && globalScope.document && !globalScope.document.hasFocus()) {
+          this.stopRecordingAndSendEvents();
           return;
         }
         const eventString = JSON.stringify(event);
@@ -456,6 +463,16 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     } else if (success) {
       this.config.loggerProvider.log(success);
     }
+  }
+
+  async teardown() {
+    const globalScope = getGlobalScope();
+    if (globalScope) {
+      globalScope.removeEventListener('blur', this.blurListener);
+      globalScope.removeEventListener('focus', this.focusListener);
+    }
+
+    this.stopRecordingAndSendEvents();
   }
 }
 
