@@ -17,7 +17,6 @@ export interface SessionReplayContext {
 
 export enum RecordingStatus {
   RECORDING = 'recording',
-  SENDING = 'sending',
   SENT = 'sent',
 }
 
@@ -49,6 +48,7 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
   stopRecordingEvents: ReturnType<typeof record> | null;
   maxPersistedEventsSize: number;
   initialize: (shouldSendStoredEvents?: boolean) => Promise<void>;
+  sendStoredEvents: (storedReplaySessions: IDBStore) => void;
   getShouldRecord: () => boolean;
   recordEvents: () => void;
   shouldSplitEventsList: (nextEventString: string) => boolean;
