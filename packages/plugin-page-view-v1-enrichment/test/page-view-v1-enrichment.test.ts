@@ -18,6 +18,13 @@ describe('page-view-v1-enrichment', () => {
     serverUrl: undefined,
     transportProvider: new FetchTransport(),
     useBatch: false,
+    cookieOptions: {
+      domain: '.amplitude.com',
+      expiration: 365,
+      sameSite: 'Lax',
+      secure: false,
+      upgrade: true,
+    },
     cookieStorage: new CookieStorage(),
     sessionTimeout: 30 * 60 * 1000,
     trackingOptions: {
@@ -25,12 +32,6 @@ describe('page-view-v1-enrichment', () => {
       language: true,
       platform: true,
     },
-    cookieExpiration: 0,
-    cookieSameSite: '',
-    cookieSecure: false,
-    cookieUpgrade: false,
-    disableCookies: false,
-    domain: '',
   };
 
   beforeEach(() => {
