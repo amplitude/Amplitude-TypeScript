@@ -35,11 +35,13 @@ export const pageViewV1EnrichmentPlugin: CreatePageViewV1EnrichmentPlugin = func
           },
         };
 
-        delete event.event_properties?.['[Amplitude] Page Domain'];
-        delete event.event_properties?.['[Amplitude] Page Location'];
-        delete event.event_properties?.['[Amplitude] Page Path'];
-        delete event.event_properties?.['[Amplitude] Page Title'];
-        delete event.event_properties?.['[Amplitude] Page URL'];
+        if (event.event_properties) {
+          delete event.event_properties['[Amplitude] Page Domain'];
+          delete event.event_properties['[Amplitude] Page Location'];
+          delete event.event_properties['[Amplitude] Page Path'];
+          delete event.event_properties['[Amplitude] Page Title'];
+          delete event.event_properties['[Amplitude] Page URL'];
+        }
       }
       return event;
     },
