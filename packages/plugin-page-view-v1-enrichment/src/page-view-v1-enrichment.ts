@@ -25,16 +25,13 @@ export const pageViewV1EnrichmentPlugin: CreatePageViewV1EnrichmentPlugin = func
           event_type: 'Page View',
           event_properties: {
             ...event.event_properties,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            /* eslint-disable @typescript-eslint/no-unsafe-assignment */
             page_domain: page_domain ?? '',
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             page_location: page_location ?? '',
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             page_path: page_path ?? '',
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             page_title: page_title ?? '',
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             page_url: page_url ?? '',
+            /* eslint-disable @typescript-eslint/no-unsafe-assignment */
           },
         };
 

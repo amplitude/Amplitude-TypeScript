@@ -7,7 +7,7 @@
 
 # @amplitude/@amplitude/plugin-page-view-v1-enrichment-browser
 
-Official Browser SDK plugin for make page view event compatible with browser v1.
+Official Browser SDK plugin for making page view event compatible with browser v1.
 
 ## Installation
 
@@ -23,8 +23,8 @@ yarn add @amplitude/plugin-page-view-v1-enrichment-browser@^1.0.0
 
 ## Usage
 
-This plugin works on top of the Amplitude Browser SDK. It's used for enriching events with user agent information using the @amplitude/ua-parser-js. The user agent identifies the application, operating system, vendor, and/or version of the requesting client.
-For Browser SDK v1.x, we use @amplitude/ua-parser-js internally to parse the user agent information. In Browser v2.x, we have removed this client-side user agent parser and have instead implemented server-side user agent parser. You can use this plugin to maintain consistency with the user agent information from earlier SDK versions.
+This plugin works on top of the Amplitude Browser SDK. It's used for updating the page view event_type and event_properties the same as Browser v1.
+In Browser v2.x, we have enriched the page view event_type and event_propertis. You can use this plugin to maintain consistency with page view tracking from earlier SDK versions.
 
 ### 1. Import Amplitude packages
 
@@ -33,35 +33,19 @@ For Browser SDK v1.x, we use @amplitude/ua-parser-js internally to parse the use
 
 ```typescript
 import * as amplitude from '@amplitude/analytics-browser';
-import { userAgentEnrichmentPlugin } from '@amplitude/plugin-page-view-v1-enrichment-browser';
+import { pageViewV1EnrichmentPlugin } from '@amplitude/plugin-page-view-v1-enrichment-browser';
 ```
 
-### 2. Instantiate user agent enrichment plugin
-
-The plugin accepts 1 optional parameter, which is an `Object` to disable/enable the corresponding tracking options. Each option is enabled by default.
+### 2. Instantiate page view v1 enrichment plugin
 
 ```typescript
-const uaPlugin = userAgentEnrichmentPlugin({
-  osName: true,
-  osVersion: true,
-  deviceManufacturer: false,
-  deviceModel: false,
-});
+const pageViewPlugin = pageViewV1EnrichmentPlugin();
 ```
-
-#### Options
-
-|Name|Type|Default|Description|
-|-|-|-|-|
-|`osName`|`boolean`|`true`| Enables enrichment of `os_name` property. |
-|`osVersion`|`boolean`|`true`| Enables enrichment of `os_version` property. |
-|`deviceManufacturer`|`boolean`|`true`| Enables enrichment of `device_manufacturer` property. |
-|`deviceModel`|`boolean`|`true`| Enables enrichment of `device_model` property. |
 
 ### 3. Install plugin to Amplitude SDK
 
 ```typescript
-amplitude.add(uaPlugin);
+amplitude.add(pageViewPlugin);
 ```
 
 ### 4. Initialize Amplitude SDK
@@ -70,6 +54,13 @@ amplitude.add(uaPlugin);
 amplitude.init('API_KEY');
 ```
 
-## Resulting page view event
+## Resulting on page view event
 
-This plugin parses user agent information using @amplitude/ua-parser-js and enriches events based on your configuration. This affects the value of the following properties: `device_family`, `device_model`, `device_manufacturer`, `device_type`, `os`, `os_name`, and `os_version`.
+| property |[Browser SDK 2.0](../) </div> | With this plugin |
+| --- | --- | --- |
+| `Event Type` | `[Amplitude] Page Viewed` | `Page View` |
+| `Event Properties` | `page_domain` |  `[Amplitude] Page Domain` |
+| | `page_location` | `[Amplitude] Page Location` |
+| | `page_path` | `[Amplitude] Page Path` |
+| | `page_title` | `[Amplitude] Page Title` |
+| | `page_url` | `[Amplitude] Page URL`|
