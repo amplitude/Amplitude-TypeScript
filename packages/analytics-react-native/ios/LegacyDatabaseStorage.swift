@@ -90,6 +90,24 @@ class LegacyDatabaseStorage {
         }
     }
 
+    func getLastEventId() -> Int64? {
+        let query = "select coalesce(max(seq), -1) from sqlite_sequence where name = 'events';"
+        return executeQuery(query) { stmt in
+            let stepResult = sqlite3_step(stmt)
+            if stepResult != SQLITE_ROW {
+                print("execute query '\(query)' failed with result: \(stepResult)")
+                return
+            }
+
+            if sqlite3_column_type(stmt, 1) != SQLITE_NULL {
+                let value = sqlite3_column_int64(stmt, 1)
+                return value >= 0 ? value : nil
+            } else {
+                return nil
+            }
+        }
+    }
+
     func removeValue(_ key: String) {
         removeValueFromTable(LegacyDatabaseStorage.STORE_TABLE_NAME, key)
     }

@@ -9,6 +9,7 @@ type LegacyEvent = {
 
 const legacyDeviceId = '22833898-c487-4536-b213-40f207abdce0R';
 const legacyUserId = 'react-native-user-legacy';
+const legacySessionId = 3684219150343;
 const legacyEvents: LegacyEvent[] = [
   {
     event_id: 1,
@@ -51,11 +52,7 @@ const legacyEvents: LegacyEvent[] = [
 export default class MigrationChecker {
   errors: string[] = [];
 
-  constructor(
-    private readonly version: 'v4' | 'v3' | 'vMissing',
-    private readonly os: string,
-    private readonly isFirst: boolean,
-  ) {}
+  constructor(private readonly version: 'v4' | 'v3' | 'vMissing') {}
 
   checkUserSession(userSession: UserSession | undefined) {
     if (userSession === undefined) {
@@ -66,14 +63,12 @@ export default class MigrationChecker {
     if (this.version === 'v4' || this.version === 'v3') {
       this.check(userSession.deviceId === legacyDeviceId, 'deviceId');
       this.check(userSession.userId === legacyUserId, 'userId');
-      if (this.isFirst || this.os === 'android') {
-        this.check(userSession.lastEventId === 2, 'lastEventId');
-      } else {
-        this.check(userSession.lastEventId === undefined, 'lastEventId');
-      }
+      this.check(userSession.sessionId === legacySessionId, 'sessionId');
+      this.check(userSession.lastEventId === 2, 'lastEventId');
     } else {
       this.check(userSession.deviceId !== legacyDeviceId, 'deviceId');
       this.check(userSession.userId === undefined, 'userId');
+      this.check(userSession.sessionId !== legacySessionId, 'sessionId');
       this.check(userSession.lastEventId === undefined, 'lastEventId');
     }
   }
@@ -117,7 +112,7 @@ export default class MigrationChecker {
         `event${i + 1}.insert_id`,
       );
       this.check(
-        event.library === 'react-native-legacy/8.16.4',
+        event.library === 'amplitude-react-native/2.17.1',
         `event${i + 1}.library`,
       );
       this.check(event.device_id === legacyDeviceId, `event${i + 1}.device_id`);

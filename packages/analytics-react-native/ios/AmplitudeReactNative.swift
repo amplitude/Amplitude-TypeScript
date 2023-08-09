@@ -55,6 +55,9 @@ class ReactNative: NSObject {
         if let lastEventTime = storage.getLongValue("previous_session_time") {
             sessionData["lastEventTime"] = lastEventTime
         }
+        if let lastEventId = storage.getLastEventId() {
+            sessionData["lastEventId"] = lastEventId
+        }
         resolve(sessionData)
     }
 

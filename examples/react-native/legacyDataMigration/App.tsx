@@ -1,5 +1,5 @@
 import React from 'react';
-import {Alert, NativeModules, Platform} from 'react-native';
+import {Alert, NativeModules} from 'react-native';
 import {Button, SafeAreaView, StyleSheet} from 'react-native';
 import {createInstance} from '@amplitude/analytics-react-native';
 import {getCookieName} from '@amplitude/analytics-client-common';
@@ -63,7 +63,7 @@ async function migrateLegacyData(version: 'v4' | 'v3' | 'vMissing') {
     trackingSessionEvents: false,
   }).promise;
 
-  let checker1 = new MigrationChecker(version, Platform.OS, true);
+  let checker1 = new MigrationChecker(version);
   let userSession1 = await cookieStorage1.get(cookieName);
   const events1 = await storageProvider1.get(eventsKey);
   checker1.checkUserSession(userSession1);
@@ -80,7 +80,7 @@ async function migrateLegacyData(version: 'v4' | 'v3' | 'vMissing') {
     trackingSessionEvents: false,
   }).promise;
 
-  let checker2 = new MigrationChecker(version, Platform.OS, false);
+  let checker2 = new MigrationChecker(version);
   let userSession2 = await cookieStorage2.get(cookieName);
   const events2 = await storageProvider2.get(eventsKey);
   checker2.checkUserSession(userSession2);

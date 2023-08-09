@@ -30,33 +30,26 @@ export default class RemnantDataMigration {
       return {};
     }
 
-    let lastEventId: number | undefined = undefined;
     if (this.firstRunSinceUpgrade) {
-      const maxIdentifyId = await this.moveIdentifies();
-      lastEventId = this.maxId(lastEventId, maxIdentifyId);
-      const maxInterceptedIdentifyId = await this.moveInterceptedIdentifies();
-      lastEventId = this.maxId(lastEventId, maxInterceptedIdentifyId);
+      await this.moveIdentifies();
+      await this.moveInterceptedIdentifies();
     }
-    const maxEventId = await this.moveEvents();
-    lastEventId = this.maxId(lastEventId, maxEventId);
+    await this.moveEvents();
 
     const sessionData = await this.callNativeFunction(() => this.nativeModule.getLegacySessionData(this.instanceName));
-    return {
-      lastEventId,
-      ...sessionData,
-    };
+    return sessionData ?? {};
   }
 
-  private async moveEvents(): Promise<number | undefined> {
-    return await this.moveLegacyEvents('event');
+  private async moveEvents() {
+    await this.moveLegacyEvents('event');
   }
 
-  private async moveIdentifies(): Promise<number | undefined> {
-    return await this.moveLegacyEvents('identify');
+  private async moveIdentifies() {
+    await this.moveLegacyEvents('identify');
   }
 
-  private async moveInterceptedIdentifies(): Promise<number | undefined> {
-    return await this.moveLegacyEvents('interceptedIdentify');
+  private async moveInterceptedIdentifies() {
+    await this.moveLegacyEvents('interceptedIdentify');
   }
 
   private async callNativeFunction<T>(action: () => Promise<T>): Promise<T | undefined> {
@@ -76,22 +69,20 @@ export default class RemnantDataMigration {
     }
   }
 
-  private async moveLegacyEvents(eventKind: LegacyEventKind): Promise<number | undefined> {
+  private async moveLegacyEvents(eventKind: LegacyEventKind) {
     const legacyJsonEvents = await this.callNativeFunction(() =>
       this.nativeModule.getLegacyEvents(this.instanceName, eventKind),
     );
     if (!this.storage || !legacyJsonEvents || legacyJsonEvents.length === 0) {
-      return undefined;
+      return;
     }
 
     const events = (await this.storage.get(this.eventsStorageKey)) ?? [];
     const eventIds: number[] = [];
 
-    let maxEventId: number | undefined;
     legacyJsonEvents.forEach((jsonEvent) => {
       const event = this.convertLegacyEvent(jsonEvent);
       if (event) {
-        maxEventId = this.maxId(maxEventId, event.event_id);
         events.push(event);
         if (event.event_id !== undefined) {
           eventIds.push(event.event_id);
@@ -103,7 +94,6 @@ export default class RemnantDataMigration {
     eventIds.forEach((eventId) =>
       this.callNativeAction(() => this.nativeModule.removeLegacyEvent(this.instanceName, eventKind, eventId)),
     );
-    return maxEventId;
   }
 
   /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
@@ -175,14 +165,4 @@ export default class RemnantDataMigration {
     }
   }
   // eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-
-  private maxId(id1: number | undefined, id2: number | undefined): number | undefined {
-    if (id1 === undefined) {
-      return id2;
-    }
-    if (id2 === undefined) {
-      return id1;
-    }
-    return id2 > id1 ? id2 : id1;
-  }
 }
