@@ -301,7 +301,16 @@ export class Destination implements DestinationPlugin {
     if (!this.config.storageProvider) {
       return;
     }
+
     const events = Array.from(this.queue.map((context) => context.event));
+
+    if (this.config.savedMaxCount && events.length > this.config.savedMaxCount) {
+      const deletedEvents = events.splice(0, events.length - this.config.savedMaxCount);
+      this.config.loggerProvider.error(
+        `Exceeded maximum saved events count. ${deletedEvents.length} events are dropped.`,
+      );
+    }
+
     void this.config.storageProvider.set(this.storageKey, events);
   }
 }

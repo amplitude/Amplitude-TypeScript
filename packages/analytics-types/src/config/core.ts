@@ -21,6 +21,7 @@ export interface Config {
   serverUrl?: string;
   serverZone?: ServerZoneType;
   storageProvider?: Storage<Event[]>;
+  savedMaxCount: number;
   transportProvider: Transport;
   useBatch: boolean;
 }
