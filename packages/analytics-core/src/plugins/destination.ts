@@ -59,7 +59,7 @@ export class Destination implements DestinationPlugin {
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
-    this.saveEvents(); // sets storage to '[]'
+    await this.saveEvents(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
@@ -79,7 +79,7 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  addToQueue(...list: Context[]) {
+  async addToQueue(...list: Context[]) {
     const tryable = list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
@@ -102,7 +102,7 @@ export class Destination implements DestinationPlugin {
       }, context.timeout);
     });
 
-    this.saveEvents();
+    await this.saveEvents();
   }
 
   schedule(timeout: number) {
@@ -152,62 +152,62 @@ export class Destination implements DestinationPlugin {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
-        this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
+        await this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
       if (!useRetry) {
         if ('body' in res) {
-          this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
+          await this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
-          this.fulfillRequest(list, res.statusCode, res.status);
+          await this.fulfillRequest(list, res.statusCode, res.status);
         }
         return;
       }
-      this.handleResponse(res, list);
+      await this.handleResponse(res, list);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
-      this.fulfillRequest(list, 0, errorMessage);
+      await this.fulfillRequest(list, 0, errorMessage);
     }
   }
 
-  handleResponse(res: Response, list: Context[]) {
+  async handleResponse(res: Response, list: Context[]) {
     const { status } = res;
 
     switch (status) {
       case Status.Success: {
-        this.handleSuccessResponse(res, list);
+        await this.handleSuccessResponse(res, list);
         break;
       }
       case Status.Invalid: {
-        this.handleInvalidResponse(res, list);
+        await this.handleInvalidResponse(res, list);
         break;
       }
       case Status.PayloadTooLarge: {
-        this.handlePayloadTooLargeResponse(res, list);
+        await this.handlePayloadTooLargeResponse(res, list);
         break;
       }
       case Status.RateLimit: {
-        this.handleRateLimitResponse(res, list);
+        await this.handleRateLimitResponse(res, list);
         break;
       }
       default: {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
 
-        this.handleOtherResponse(list);
+        await this.handleOtherResponse(list);
         break;
       }
     }
   }
 
-  handleSuccessResponse(res: SuccessResponse, list: Context[]) {
-    this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
+  async handleSuccessResponse(res: SuccessResponse, list: Context[]) {
+    await this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
-  handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+  async handleInvalidResponse(res: InvalidResponse, list: Context[]) {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
-      this.fulfillRequest(list, res.statusCode, res.body.error);
+      await this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -219,9 +219,9 @@ export class Destination implements DestinationPlugin {
     ].flat();
     const dropIndexSet = new Set(dropIndex);
 
-    const retry = list.filter((context, index) => {
+    const retry = list.filter(async (context, index) => {
       if (dropIndexSet.has(index)) {
-        this.fulfillRequest([context], res.statusCode, res.body.error);
+        await this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
       return true;
@@ -231,12 +231,12 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
-    this.addToQueue(...retry);
+    await this.addToQueue(...retry);
   }
 
-  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
+  async handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
-      this.fulfillRequest(list, res.statusCode, res.body.error);
+      await this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -244,10 +244,10 @@ export class Destination implements DestinationPlugin {
     this.config.loggerProvider.warn(getResponseBodyString(res));
 
     this.config.flushQueueSize /= 2;
-    this.addToQueue(...list);
+    await this.addToQueue(...list);
   }
 
-  handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
+  async handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     const throttledIndex = res.body.throttledEvents;
@@ -255,12 +255,12 @@ export class Destination implements DestinationPlugin {
     const dropDeviceIdsSet = new Set(dropDeviceIds);
     const throttledIndexSet = new Set(throttledIndex);
 
-    const retry = list.filter((context, index) => {
+    const retry = list.filter(async (context, index) => {
       if (
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
-        this.fulfillRequest([context], res.statusCode, res.body.error);
+        await this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
       if (throttledIndexSet.has(index)) {
@@ -274,11 +274,11 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    this.addToQueue(...retry);
+    await this.addToQueue(...retry);
   }
 
-  handleOtherResponse(list: Context[]) {
-    this.addToQueue(
+  async handleOtherResponse(list: Context[]) {
+    await this.addToQueue(
       ...list.map((context) => {
         context.timeout = context.attempts * this.retryTimeout;
         return context;
@@ -286,8 +286,8 @@ export class Destination implements DestinationPlugin {
     );
   }
 
-  fulfillRequest(list: Context[], code: number, message: string) {
-    this.saveEvents();
+  async fulfillRequest(list: Context[], code: number, message: string) {
+    await this.saveEvents();
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
@@ -297,11 +297,24 @@ export class Destination implements DestinationPlugin {
    * 1) new events are added to queue; or
    * 2) response comes back for a request
    */
-  saveEvents() {
+  async saveEvents() {
     if (!this.config.storageProvider) {
       return;
     }
+
     const events = Array.from(this.queue.map((context) => context.event));
-    void this.config.storageProvider.set(this.storageKey, events);
+    const storedEvents = (await this.config.storageProvider.get(this.storageKey)) || [];
+
+    let deletedEvents = [];
+    if (storedEvents && storedEvents.length + events.length > this.config.savedMaxCount) {
+      const removeCount = storedEvents.length + events.length - this.config.savedMaxCount;
+      deletedEvents = storedEvents.splice(0, removeCount);
+      this.config.loggerProvider.error(
+        `Exceeded maximum saved events count. ${deletedEvents.length} events are dropped.`,
+      );
+    }
+
+    const combinedEvents = [...events, ...storedEvents];
+    await this.config.storageProvider.set(this.storageKey, combinedEvents);
   }
 }
