@@ -98,25 +98,30 @@ export default class MigrationChecker {
     }
 
     events.forEach((event, i) => {
+      const eventPrefix = `events[${i}]`;
+
       this.check(
         event.event_id === expectedEvents[i].event_id,
-        `event${i + 1}.event_id`,
+        `${eventPrefix}.event_id`,
       );
       this.check(
         event.event_type === expectedEvents[i].event_type,
-        `event${i + 1}.event_type`,
+        `${eventPrefix}.event_type`,
       );
-      this.check(event.time === expectedEvents[i].time, `event${i + 1}.time`);
+      this.check(event.time === expectedEvents[i].time, `${eventPrefix}.time`);
       this.check(
         event.insert_id === expectedEvents[i].insert_id,
-        `event${i + 1}.insert_id`,
+        `${eventPrefix}.insert_id`,
       );
       this.check(
         event.library === 'amplitude-react-native/2.17.1',
-        `event${i + 1}.library`,
+        `${eventPrefix}.library`,
       );
-      this.check(event.device_id === legacyDeviceId, `event${i + 1}.device_id`);
-      this.check(event.user_id === legacyUserId, `event${i + 1}.user_id`);
+      this.check(
+        event.device_id === legacyDeviceId,
+        `${eventPrefix}.device_id`,
+      );
+      this.check(event.user_id === legacyUserId, `${eventPrefix}.user_id`);
     });
   }
 
