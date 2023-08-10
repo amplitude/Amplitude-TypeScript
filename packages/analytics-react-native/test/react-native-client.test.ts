@@ -79,13 +79,13 @@ describe('react-native-client', () => {
       await Promise.all([
         client.init(API_KEY, USER_ID, {
           ...attributionConfig,
-        }),
+        }).promise,
         client.init(API_KEY, USER_ID, {
           ...attributionConfig,
-        }),
+        }).promise,
         client.init(API_KEY, USER_ID, {
           ...attributionConfig,
-        }),
+        }).promise,
       ]);
       // NOTE: `parseOldCookies` and `useNodeConfig` are only called once despite multiple init calls
       expect(parseOldCookies).toHaveBeenCalledTimes(1);

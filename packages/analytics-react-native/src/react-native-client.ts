@@ -59,11 +59,11 @@ export class AmplitudeReactNative extends AmplitudeCore {
     // Step 2: Create react native config
     const reactNativeOptions = await useReactNativeConfig(options.apiKey, {
       ...options,
-      deviceId: oldCookies.deviceId ?? options.deviceId,
+      deviceId: options.deviceId ?? oldCookies.deviceId,
       sessionId: oldCookies.sessionId,
       optOut: options.optOut ?? oldCookies.optOut,
       lastEventTime: oldCookies.lastEventTime,
-      userId: options.userId || oldCookies.userId,
+      userId: options.userId ?? oldCookies.userId,
     });
     await super._init(reactNativeOptions);
 
