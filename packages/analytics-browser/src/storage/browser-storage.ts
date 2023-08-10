@@ -3,6 +3,8 @@ import { Storage as AmplitudeStorage } from '@amplitude/analytics-types';
 export class BrowserStorage<T> implements AmplitudeStorage<T> {
   constructor(private storage?: Storage) {}
 
+  savedMaxCount?: number;
+
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (!this.storage) {

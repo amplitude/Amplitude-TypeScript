@@ -12,4 +12,9 @@ describe('local-storage', () => {
     const localStorage = new LocalStorage();
     expect(await localStorage.isEnabled()).toBe(false);
   });
+
+  test('should set default savedMaxCount', () => {
+    const localStorage = new LocalStorage();
+    expect(localStorage.savedMaxCount).toBe(1000);
+  });
 });

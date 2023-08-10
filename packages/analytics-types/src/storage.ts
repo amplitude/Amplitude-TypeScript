@@ -5,6 +5,7 @@ export interface Storage<T> {
   set(key: string, value: T): Promise<void>;
   remove(key: string): Promise<void>;
   reset(): Promise<void>;
+  savedMaxCount?: number;
 }
 
 export interface CookieStorageOptions {
