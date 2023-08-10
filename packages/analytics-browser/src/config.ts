@@ -68,7 +68,6 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     sessionId?: number,
     public sessionTimeout: number = 30 * 60 * 1000,
     public storageProvider: Storage<Event[]> = new LocalStorage(),
-    public savedMaxCount: number = 1000,
     public trackingOptions: Required<TrackingOptions> = {
       ipAddress: true,
       language: true,
@@ -245,7 +244,6 @@ export const useBrowserConfig = async (
     sessionId,
     options.sessionTimeout,
     options.storageProvider,
-    options.savedMaxCount,
     trackingOptions,
     options.transport,
     options.useBatch,
