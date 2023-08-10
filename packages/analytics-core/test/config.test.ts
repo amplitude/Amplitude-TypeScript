@@ -33,7 +33,6 @@ describe('config', () => {
       serverUrl: 'https://api2.amplitude.com/2/httpapi',
       serverZone: 'US',
       storageProvider: defaultConfig.storageProvider,
-      savedMaxCount: 1000,
       transportProvider: defaultConfig.transportProvider,
       useBatch: false,
     });
@@ -68,7 +67,6 @@ describe('config', () => {
       plan: {
         version: '0',
       },
-      savedMaxCount: 1000,
       ingestionMetadata: {
         sourceName: 'ampli',
         sourceVersion: '2.0.0',
