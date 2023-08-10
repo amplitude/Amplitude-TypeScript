@@ -1,3 +1,3 @@
-import { umd, iife, snippet, iifeGTM, snippetGTM } from '../../scripts/build/rollup.config';
+import { umd, iife, snippet, iifeGTM, snippetGTM, bookmarklet } from '../../scripts/build/rollup.config';
 
-export default [umd, iife, snippet, iifeGTM, snippetGTM];
+export default [umd, iife, snippet, iifeGTM, snippetGTM, bookmarklet];

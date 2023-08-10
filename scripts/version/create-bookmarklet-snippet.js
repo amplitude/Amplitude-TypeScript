@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { snippet } = require('../templates/browser-snippet.template');
+const { snippet } = require('../templates/browser-bookmarklet.template');
 const { getName, getVersion } = require('../utils');
 const babel = require('@babel/core');
 const yargs = require('yargs/yargs');
@@ -15,25 +15,26 @@ const inputPath = path.join(process.cwd(), inputDir, inputFile);
 
 // Setup output
 const outputDir = 'generated/';
-const outputFile = argv.outputFile ?? 'amplitude-snippet.js';
+const outputFile = argv.outputFile ?? 'amplitude-bookmarklet-snippet.js';
 const outputPath = path.join(process.cwd(), outputDir, outputFile);
 
 const globalVar = argv.globalVar ?? 'amplitude';
 const nameSuffix = argv.nameSuffix ?? '';
 
+const apiKey = argv.apiKey ?? 'YOUR_API_KEY';
+const userId = argv.userId ?? 'test-user';
+
 // Generate output contents
 const header = `/**
- * Imported in client browser via <script> tag
- * Async capabilities: Interally creates stubbed window.${globalVar} object until real SDK loaded
- * Stubbed functions keep track of funciton calls and their arguments
- * These are sent once real SDK loaded through another <script> tag
+ * Create a bookmark with this code snippet in the browser, update the apiKey and userId (optional), and click the bookmark on any website to run.
+ * Script will fail to load if the website has a Content Security Policy (CSP) that blocks third-party inline scripts.
  */`;
 const algorithm = 'sha384';
 const encoding = 'base64';
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputText).digest(encoding);
 const version = getVersion() || '';
-const outputText = header + snippet(getName() + nameSuffix, integrity, version, globalVar);
+const outputText = header + snippet(getName() + nameSuffix, integrity, version, globalVar, apiKey, userId);
 const { code: transpiledOutputText } = babel.transformSync(outputText, {
   presets: ['env'],
 });

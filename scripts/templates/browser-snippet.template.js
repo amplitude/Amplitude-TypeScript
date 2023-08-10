@@ -98,7 +98,6 @@ const snippet = (name, integrity, version, globalVar) => `
       };
     }
     function proxyMain(instance, fn, isPromise) {
-      var args = arguments;
       instance[fn] = function () {
         if (isPromise) return {
           promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments))),
