@@ -30,6 +30,7 @@ export const getDefaultConfig = () => ({
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: 'US' as ServerZoneType,
   useBatch: false,
+  savedMaxCount: 1000,
 });
 
 export class Config implements IConfig {
@@ -47,6 +48,7 @@ export class Config implements IConfig {
   serverZone?: ServerZoneType;
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
+  savedMaxCount: number;
   useBatch: boolean;
 
   protected _optOut = false;
@@ -73,6 +75,7 @@ export class Config implements IConfig {
     this.serverUrl = options.serverUrl;
     this.serverZone = options.serverZone || defaultConfig.serverZone;
     this.storageProvider = options.storageProvider;
+    this.savedMaxCount = options.savedMaxCount || defaultConfig.savedMaxCount;
     this.transportProvider = options.transportProvider;
     this.useBatch = options.useBatch ?? defaultConfig.useBatch;
     this.loggerProvider.enable(this.logLevel);

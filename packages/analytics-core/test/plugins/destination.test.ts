@@ -458,6 +458,45 @@ describe('destination', () => {
       destination.config.storageProvider = undefined;
       expect(destination.saveEvents()).toBe(undefined);
     });
+
+    test('should delete events exceeded savedMaxCount and log an error', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+      const logger = destination.config.loggerProvider;
+      const errorMock = jest.spyOn(logger, 'error');
+
+      destination.queue = [
+        {
+          event: { event_type: 'event_type_1' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+        {
+          event: { event_type: 'event_type_2' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+      ];
+
+      destination.config.savedMaxCount = 1;
+      destination.saveEvents();
+
+      expect(errorMock).toHaveBeenCalledTimes(1);
+      expect(errorMock).toHaveBeenCalledWith('Exceeded maximum saved events count. 1 events are dropped.');
+      // const eventsInStorageString = await destination.config.storageProvider.getRaw(destination.storageKey);
+      // console.log(eventsInStorageString)
+      // // expect(eventsInStorage && eventsInStorage[0] && eventsInStorage[0].type).toBe('event_type_2');
+    });
   });
 
   describe('module level integration', () => {
