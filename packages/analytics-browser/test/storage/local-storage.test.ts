@@ -25,7 +25,7 @@ describe('local-storage', () => {
 
   test('should drop events when set more than 1000 events and use custom logger', async () => {
     const logger = new Logger();
-    const localStorage = new LocalStorage(logger);
+    const localStorage = new LocalStorage({ logger });
     const errorMock = jest.spyOn(logger, 'error');
 
     await localStorage.set('storage-key', new Array(1001).fill(1));
