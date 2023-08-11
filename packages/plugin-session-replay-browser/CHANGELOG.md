@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.1...@amplitude/plugin-session-replay-browser@0.6.2) (2023-08-11)
+
+### Bug Fixes
+
+- **plugin:** override lerna autocorrect packages
+  ([4491652](https://github.com/amplitude/Amplitude-TypeScript/commit/44916522530868a9cffff0dad1468c08e12891b5))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.0...@amplitude/plugin-session-replay-browser@0.6.1) (2023-08-10)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
