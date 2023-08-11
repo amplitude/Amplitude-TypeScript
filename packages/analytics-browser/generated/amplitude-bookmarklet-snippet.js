@@ -5,6 +5,7 @@
  * Script will fail to load if the website has a Content Security Policy (CSP) that blocks third-party inline scripts.
  */
 !function (window, document) {
+  var AMPLITUDE_API_KEY = 'YOUR_API_KEY';
   var amplitude = window.amplitude || {
     _q: [],
     _iq: {}
@@ -54,7 +55,7 @@
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
-      window.amplitude.init('YOUR_API_KEY', 'test-user');
+      window.amplitude.init(AMPLITUDE_API_KEY, 'test-user');
       var autoTracking = function autoTracking() {
         var name = '@amplitude/plugin-auto-tracking-browser';
         var type = 'enrichment';
@@ -116,6 +117,9 @@
             }
           }
           var tag = element.tagName.toLowerCase();
+          if (!tagList.includes(tag)) {
+            return false;
+          }
           switch (tag) {
             case 'input':
             case 'select':

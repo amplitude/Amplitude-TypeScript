@@ -1,5 +1,6 @@
 const snippet = (name, integrity, version, globalVar, apiKey, userId) => `
 !(function (window, document) {
+  const AMPLITUDE_API_KEY = '${apiKey}';
   var amplitude = window.${globalVar} || { _q: [], _iq: {} };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
@@ -14,7 +15,7 @@ const snippet = (name, integrity, version, globalVar, apiKey, userId) => `
       if (!window.${globalVar}.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
-      window.${globalVar}.init('${apiKey}', '${userId}');
+      window.${globalVar}.init(AMPLITUDE_API_KEY, '${userId}');
       const autoTracking = () => {
         const name = '@amplitude/plugin-auto-tracking-browser';
         const type = 'enrichment';
@@ -72,6 +73,9 @@ const snippet = (name, integrity, version, globalVar, apiKey, userId) => `
             }
           }
           const tag = element.tagName.toLowerCase();
+          if (!tagList.includes(tag)) {
+            return false;
+          }
           switch (tag) {
             case 'input':
             case 'select':

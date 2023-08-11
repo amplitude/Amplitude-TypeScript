@@ -183,4 +183,3 @@ export const bookmarklet = {
   },
   plugins: [createBookmarkletSnippet(), terser(), execute(`node ${base}/scripts/version/create-bookmarklet.js`)],
 };
-
