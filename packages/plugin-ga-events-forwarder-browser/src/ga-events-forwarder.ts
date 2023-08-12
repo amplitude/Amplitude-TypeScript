@@ -54,7 +54,7 @@ export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): Bro
     globalScope.navigator.sendBeacon = new Proxy(globalScope.navigator.sendBeacon, {
       apply: (target, thisArg, [url, body]: [string, BodyInit | undefined]) => {
         // Intercepts request and attempt to send to Amplitude
-        interceptRequest(new URL(url), body);
+        interceptRequest(url, body);
         // Execute sendBeacon
         target.apply(thisArg, [url, body]);
       },
@@ -67,22 +67,27 @@ export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): Bro
    * 3a: Pushes to preSetupEventQueue while waiting for Amplitude SDK to initialize
    * 3b. Sends events to Amplitude after Amplitude SDK is initialized
    */
-  const interceptRequest = (url: URL, data?: BodyInit) => {
-    if (
-      url.hostname === GA_PAYLOAD_HOSTNAME_VALUE &&
-      url.pathname === GA_PAYLOAD_PATHNAME_VALUE &&
-      isTrackingIdAllowed(url, trackingIdList) &&
-      isVersionSupported(url)
-    ) {
-      const ga4Events = parseGA4Events(url, data);
-      const amplitudeEvents = transformToAmplitudeEvents(ga4Events);
-      for (const event of amplitudeEvents) {
-        if (!amplitude) {
-          preSetupEventQueue.push(event);
-        } else {
-          amplitude.track(event);
+  const interceptRequest = (requestUrl: string, data?: BodyInit) => {
+    try {
+      const url = new URL(requestUrl);
+      if (
+        url.hostname === GA_PAYLOAD_HOSTNAME_VALUE &&
+        url.pathname === GA_PAYLOAD_PATHNAME_VALUE &&
+        isTrackingIdAllowed(url, trackingIdList) &&
+        isVersionSupported(url)
+      ) {
+        const ga4Events = parseGA4Events(url, data);
+        const amplitudeEvents = transformToAmplitudeEvents(ga4Events);
+        for (const event of amplitudeEvents) {
+          if (!amplitude) {
+            preSetupEventQueue.push(event);
+          } else {
+            amplitude.track(event);
+          }
         }
       }
+    } catch (error) {
+      logger?.error(String(error));
     }
   };
 
