@@ -7,7 +7,7 @@
 
 # @amplitude/plugin-ga-events-forwarder-browser
 
-Official Browser SDK plugin for Google Analytics events listener
+Official Browser SDK plugin for Google Analytics events forwarder
 
 ## Installation
 
