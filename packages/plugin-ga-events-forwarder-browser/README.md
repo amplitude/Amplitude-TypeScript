@@ -114,7 +114,7 @@ amplitude.add(gaEventsForwarder);
 amplitude.init('API_KEY');
 ```
 
-#### Options
+### Options
 
 |Name|Type|Default|Description|
 |-|-|-|-|
