@@ -10,7 +10,7 @@ export class LocalStorage<T> extends BrowserStorage<T> {
 
   constructor(config?: LocalStorageOptions) {
     super(getGlobalScope()?.localStorage);
-    this.logger = config ? config.logger : undefined;
+    this.loggerProvider = config?.loggerProvider;
   }
 
   async set(key: string, value: T): Promise<void> {
