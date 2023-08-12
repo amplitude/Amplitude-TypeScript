@@ -1,5 +1,3 @@
-import { Logger } from './logger';
-
 export interface Storage<T> {
   isEnabled(): Promise<boolean>;
   get(key: string): Promise<T | undefined>;
@@ -7,7 +5,6 @@ export interface Storage<T> {
   set(key: string, value: T): Promise<void>;
   remove(key: string): Promise<void>;
   reset(): Promise<void>;
-  logger?: Logger;
 }
 
 export interface CookieStorageOptions {

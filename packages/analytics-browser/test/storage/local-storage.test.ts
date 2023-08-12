@@ -14,21 +14,24 @@ describe('local-storage', () => {
     expect(await localStorage.isEnabled()).toBe(false);
   });
 
-  test('should drop events when set more than 1000 events and use console log', async () => {
-    const localStorage = new LocalStorage();
-    const errorMock = jest.spyOn(console, 'error');
+  test('should drop events when set more than 1000 events without logging', async () => {
+    const localStorage = new LocalStorage<number[]>();
 
-    await localStorage.set('storage-key', new Array(1001).fill(1));
-    expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(errorMock).toHaveBeenCalledWith('Dropped 1 events because the queue length exceeded 1000.');
+    await localStorage.set('storage-key', new Array<number>(1001).fill(1));
+    const value = await localStorage.get('storage-key');
+
+    expect(value!.length).toBe(1000);
   });
 
   test('should drop events when set more than 1000 events and use custom logger', async () => {
-    const logger = new Logger();
-    const localStorage = new LocalStorage({ logger });
-    const errorMock = jest.spyOn(logger, 'error');
+    const loggerProvider = new Logger();
+    const localStorage = new LocalStorage<number[]>({ loggerProvider });
+    const errorMock = jest.spyOn(loggerProvider, 'error');
 
-    await localStorage.set('storage-key', new Array(1001).fill(1));
+    await localStorage.set('storage-key', new Array<number>(1001).fill(1));
+    const value = await localStorage.get('storage-key');
+
+    expect(value!.length).toBe(1000);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith('Dropped 1 events because the queue length exceeded 1000.');
   });

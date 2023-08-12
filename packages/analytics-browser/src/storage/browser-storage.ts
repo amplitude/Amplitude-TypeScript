@@ -2,11 +2,7 @@
 import { Storage as AmplitudeStorage } from '@amplitude/analytics-types';
 
 export class BrowserStorage<T> implements AmplitudeStorage<T> {
-  // logger?: Logger;
-
-  constructor(private storage?: Storage) {
-    // this.logger = logger;
-  }
+  constructor(private storage?: Storage) {}
 
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
