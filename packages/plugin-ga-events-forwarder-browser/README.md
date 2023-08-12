@@ -102,12 +102,6 @@ import { gaEventsForwarderPlugin } from '@amplitude/plugin-ga-events-forwarder-b
 const gaEventsForwarder = gaEventsForwarderPlugin();
 ```
 
-#### Options
-
-|Name|Type|Default|Description|
-|-|-|-|-|
-|`trackingIds`|`string` or `string[]`|A Google Analytics tracking ID or a list of Google Analytics tracking IDs. This limits the plugin to only listen for events tracked with the specified tracking ID/s.<br/><br/>To listen for a single Google Tracking ID, pass a string, eg: <br/><br/>```const gaEventsForwarder = gaEventsForwarderPlugin({ trackingIds: 'G-XXXXXXXXXX' });```<br/><br/>To listen for multiple Google Tracking IDs, pass an array of strings, eg: <br/><br/>````const gaEventsForwarder = gaEventsForwarderPlugin({ trackingIds: ['G-XXXXXXXXXX', 'G-YYYYYYYYYY'] });````|
-
 ### 3. Install plugin to Amplitude SDK
 
 ```typescript
@@ -119,3 +113,9 @@ amplitude.add(gaEventsForwarder);
 ```typescript
 amplitude.init('API_KEY');
 ```
+
+#### Options
+
+|Name|Type|Default|Description|
+|-|-|-|-|
+|`trackingIds`|`string` or `string[]`|A Google Analytics tracking ID or a list of Google Analytics tracking IDs. This limits the plugin to only listen for events tracked with the specified tracking ID/s.<br/><br/>To listen for a single Google Tracking ID, pass a string, eg: <br/><br/>```const gaEventsForwarder = gaEventsForwarderPlugin({ trackingIds: 'G-XXXXXXXXXX' });```<br/><br/>To listen for multiple Google Tracking IDs, pass an array of strings, eg: <br/><br/>````const gaEventsForwarder = gaEventsForwarderPlugin({ trackingIds: ['G-XXXXXXXXXX', 'G-YYYYYYYYYY'] });````|
