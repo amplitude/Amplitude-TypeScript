@@ -122,7 +122,6 @@ describe('gaEventsForwarderPlugin', () => {
 
   describe('teardown', () => {
     test('should reset state', () => {
-      console.log('assert send beacon is replaced');
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(window.navigator.sendBeacon).not.toBe(sendBeaconMock);
       void plugin?.teardown?.();
@@ -216,6 +215,46 @@ describe('gaEventsForwarderPlugin', () => {
           b: 'b',
         },
       });
+    });
+
+    test('should ignore non-GA events', async () => {
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+      const amplitude: Partial<BrowserClient> = {
+        track: jest.fn(),
+      };
+
+      // 1. Setup is called when Amplitude SDK is initialized
+      await plugin?.setup(config as BrowserConfig, amplitude as BrowserClient);
+      // 2.Send event to Google Analytics
+      window.navigator.sendBeacon('https://api2.amplitude.com/2/httpapi', '');
+
+      expect(amplitude.track).toHaveBeenCalledTimes(0);
+    });
+
+    test('should handle invalid URL', async () => {
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        loggerProvider: loggerProvider as Logger,
+      };
+      const amplitude: Partial<BrowserClient> = {
+        track: jest.fn(),
+      };
+
+      // 1. Setup is called when Amplitude SDK is initialized
+      await plugin?.setup(config as BrowserConfig, amplitude as BrowserClient);
+      // 2.Send event to Google Analytics
+      window.navigator.sendBeacon('🤷‍♂️', '');
+
+      expect(amplitude.track).toHaveBeenCalledTimes(0);
     });
   });
 });

@@ -87,6 +87,7 @@ export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): Bro
         }
       }
     } catch (error) {
+      /* istanbul ignore next */
       logger?.error(String(error));
     }
   };
