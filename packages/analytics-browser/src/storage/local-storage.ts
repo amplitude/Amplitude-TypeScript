@@ -6,7 +6,7 @@ interface LocalStorageOptions {
   logger?: Logger;
 }
 export class LocalStorage<T> extends BrowserStorage<T> {
-  logger?: Logger;
+  loggerProvider?: Logger;
 
   constructor(config?: LocalStorageOptions) {
     super(getGlobalScope()?.localStorage);
