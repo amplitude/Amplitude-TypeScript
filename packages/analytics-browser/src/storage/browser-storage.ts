@@ -1,4 +1,3 @@
-// import { Logger } from '@amplitude/analytics-types';
 import { Storage as AmplitudeStorage } from '@amplitude/analytics-types';
 
 export class BrowserStorage<T> implements AmplitudeStorage<T> {
