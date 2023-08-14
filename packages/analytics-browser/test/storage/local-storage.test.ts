@@ -33,6 +33,6 @@ describe('local-storage', () => {
 
     expect(value?.length).toBe(1000);
     expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(errorMock).toHaveBeenCalledWith('Dropped 1 events because the queue length exceeded 1000.');
+    expect(errorMock).toHaveBeenCalledWith('Failed to save 1 events because the queue length exceeded 1000.');
   });
 });
