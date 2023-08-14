@@ -18,7 +18,7 @@ export class LocalStorage<T> extends BrowserStorage<T> {
     if (Array.isArray(value) && value.length > MAX_ARRAY_LENGTH) {
       const droppedEventsCount = value.length - MAX_ARRAY_LENGTH;
       await super.set(key, value.slice(0, MAX_ARRAY_LENGTH) as T);
-      this.loggerProvider?.error(`Failed to save ${droppedEventsCount} events because the queue length exceeded 1000.`);
+      this.loggerProvider?.error(`Failed to save ${droppedEventsCount} events because the queue length exceeded ${MAX_ARRAY_LENGTH}.`);
     } else {
       await super.set(key, value);
     }
