@@ -64,7 +64,7 @@ describe('config', () => {
         serverUrl: '',
         serverZone: DEFAULT_SERVER_ZONE,
         sessionTimeout: 1800000,
-        storageProvider: new LocalStorageModule.LocalStorage(),
+        storageProvider: new LocalStorageModule.LocalStorage({ loggerProvider: logger }),
         trackingOptions: {
           ipAddress: true,
           language: true,

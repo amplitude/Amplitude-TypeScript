@@ -67,7 +67,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public serverZone: ServerZoneType = DEFAULT_SERVER_ZONE,
     sessionId?: number,
     public sessionTimeout: number = 30 * 60 * 1000,
-    public storageProvider: Storage<Event[]> = new LocalStorage(),
+    public storageProvider: Storage<Event[]> = new LocalStorage({ loggerProvider }),
     public trackingOptions: Required<TrackingOptions> = {
       ipAddress: true,
       language: true,
