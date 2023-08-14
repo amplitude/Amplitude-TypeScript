@@ -31,7 +31,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
     private fun getApplicationContext(options: ReadableMap, promise: Promise) {
         val trackAdid = if (options.hasKey("adid")) options.getBoolean("adid") else false
         if (androidContextProvider == null) {
-            androidContextProvider = AndroidContextProvider(reactContext.applicationContext, false, trackAdid)
+            androidContextProvider = AndroidContextProvider(reactContext.applicationContext, trackAdid)
         }
 
         promise.resolve(WritableNativeMap().apply {
