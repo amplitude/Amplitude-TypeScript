@@ -1,4 +1,5 @@
-export const GA_PAYLOAD_HOSTNAME_VALUE = 'www.google-analytics.com';
+export const GA_PAYLOAD_HOSTNAME_VALUE_1 = 'analytics.google.com';
+export const GA_PAYLOAD_HOSTNAME_VALUE_2 = 'www.google-analytics.com';
 export const GA_PAYLOAD_PATHNAME_VALUE = '/g/collect';
 export const GA_PAYLOAD_VERSION_VALUE = '2';
 
