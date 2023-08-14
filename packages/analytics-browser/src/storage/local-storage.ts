@@ -17,8 +17,8 @@ export class LocalStorage<T> extends BrowserStorage<T> {
   async set(key: string, value: T): Promise<void> {
     if (Array.isArray(value) && value.length > MAX_ARRAY_LENGTH) {
       const droppedEventsCount = value.length - MAX_ARRAY_LENGTH;
-      await super.set(key, value.slice(droppedEventsCount) as T);
-      this.loggerProvider?.error(`Dropped ${droppedEventsCount} events because the queue length exceeded 1000.`);
+      await super.set(key, value.slice(0, MAX_ARRAY_LENGTH) as T);
+      this.loggerProvider?.error(`Failed to save ${droppedEventsCount} events because the queue length exceeded 1000.`);
     } else {
       await super.set(key, value);
     }
