@@ -21,4 +21,3 @@ export const FORM_DESTINATION = `${DEFAULT_EVENT_PREFIX} Form Destination`;
 
 export const DEFAULT_IDENTITY_STORAGE: IdentityStorageType = 'cookie';
 export const DEFAULT_SERVER_ZONE: ServerZoneType = 'US';
-export const MAX_ARRAY_LENGTH = 1000;
