@@ -68,10 +68,10 @@ describe('parseGA4Events', () => {
           event_type: 'custom_event',
           device_id: MOCK_GA_EVENT.cid,
           user_id: MOCK_GA_EVENT.uid,
-          session_id: Number(MOCK_GA_EVENT.sid),
           event_properties: {
             a: 'a',
             1: 1,
+            'Tracking ID': 'G-DELYSDZ9Q3',
           },
           user_properties: {
             b: 'b',

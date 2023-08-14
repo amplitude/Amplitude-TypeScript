@@ -4,8 +4,8 @@ import {
   GA_PAYLOAD_EVENT_NAME_KEY,
   GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX,
   GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX,
-  GA_PAYLOAD_SESSION_ID_KEY,
   GA_PAYLOAD_TAG_ID_KEY,
+  GA_PAYLOAD_TRACKING_ID_KEY,
   GA_PAYLOAD_USER_ID_KEY,
   GA_PAYLOAD_USER_PROPERTY_NUMBER_PREFIX,
   GA_PAYLOAD_USER_PROPERTY_STRING_PREFIX,
@@ -56,12 +56,10 @@ export const transformToAmplitudeEvents = (ga4Events: GA4Event[]): BaseEvent[] =
     event_type: String(ga4Event[GA_PAYLOAD_EVENT_NAME_KEY]),
     device_id: String(ga4Event[GA_PAYLOAD_CLIENT_ID_KEY]),
     user_id: String(ga4Event[GA_PAYLOAD_USER_ID_KEY]),
-    session_id: Number(ga4Event[GA_PAYLOAD_SESSION_ID_KEY]),
-    event_properties: getProperties(
-      ga4Event,
-      GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX,
-      GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX,
-    ),
+    event_properties: {
+      ...getProperties(ga4Event, GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX, GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX),
+      'Tracking ID': ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
+    },
     user_properties: getProperties(
       ga4Event,
       GA_PAYLOAD_USER_PROPERTY_STRING_PREFIX,

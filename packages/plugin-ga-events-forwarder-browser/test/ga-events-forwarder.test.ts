@@ -153,9 +153,10 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenCalledTimes(2);
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         device_id: '1129698125.1691607592',
-        event_properties: {},
+        event_properties: {
+          'Tracking ID': 'G-DELYSDZ9Q3',
+        },
         event_type: 'page_view',
-        session_id: 1691687380,
         user_id: 'kevinp@amplitude.com',
         user_properties: {},
       });
@@ -164,9 +165,9 @@ describe('gaEventsForwarderPlugin', () => {
         event_properties: {
           '1': 1,
           a: 'a',
+          'Tracking ID': 'G-DELYSDZ9Q3',
         },
         event_type: 'custom_event',
-        session_id: 1691687380,
         user_id: 'kevinp@amplitude.com',
         user_properties: {
           '2': 2,
@@ -195,9 +196,10 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenCalledTimes(2);
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         device_id: '1129698125.1691607592',
-        event_properties: {},
+        event_properties: {
+          'Tracking ID': 'G-DELYSDZ9Q3',
+        },
         event_type: 'page_view',
-        session_id: 1691687380,
         user_id: 'kevinp@amplitude.com',
         user_properties: {},
       });
@@ -206,9 +208,9 @@ describe('gaEventsForwarderPlugin', () => {
         event_properties: {
           '1': 1,
           a: 'a',
+          'Tracking ID': 'G-DELYSDZ9Q3',
         },
         event_type: 'custom_event',
-        session_id: 1691687380,
         user_id: 'kevinp@amplitude.com',
         user_properties: {
           '2': 2,
