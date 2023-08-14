@@ -20,7 +20,7 @@ describe('local-storage', () => {
     await localStorage.set('storage-key', new Array<number>(1001).fill(1));
     const value = await localStorage.get('storage-key');
 
-    expect(value!.length).toBe(1000);
+    expect(value?.length).toBe(1000);
   });
 
   test('should drop events when set more than 1000 events and use custom logger', async () => {
