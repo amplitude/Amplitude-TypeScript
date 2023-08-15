@@ -58,7 +58,7 @@ export const transformToAmplitudeEvents = (ga4Events: GA4Event[]): BaseEvent[] =
     user_id: String(ga4Event[GA_PAYLOAD_USER_ID_KEY]),
     event_properties: {
       ...getProperties(ga4Event, GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX, GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX),
-      'Tracking ID': ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
+      'Measurement ID': ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
     },
     user_properties: getProperties(
       ga4Event,
@@ -95,15 +95,15 @@ export const getProperties = (ga4Event: GA4Event, stringPayload: string, numberP
 
 /**
  * @param url The request URL containing event payload in query parameters.
- * @param trackingIds A list of Google Analytics tracking IDs.
- * @returns True if no Google Tracking ID is passed or if request URL contains an allowed Google Tracking ID, otherwise, false.
+ * @param measurementIds A list of Google Analytics measurement IDs.
+ * @returns True if no Google measurement ID is passed or if request URL contains an allowed Google measurement ID, otherwise, false.
  */
-export const isTrackingIdAllowed = (url: URL, trackingIds: string[]) => {
+export const isMeasurementIdTracked = (url: URL, measurementIds: string[]) => {
   const tagId = url.searchParams.get(GA_PAYLOAD_TAG_ID_KEY);
   if (!tagId) {
     return false;
   }
-  return trackingIds.length === 0 || trackingIds.includes(tagId);
+  return measurementIds.length === 0 || measurementIds.includes(tagId);
 };
 
 /**

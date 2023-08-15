@@ -43,7 +43,7 @@ describe('gaEventsForwarderPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       plugin = gaEventsForwarderPlugin({
-        trackingIds: 'G-XXXXXXXXXX',
+        measurementIds: 'G-XXXXXXXXXX',
       });
       // NOTE: Calling teardown to replace bigger-scoped plugin to pass string input
 
@@ -70,7 +70,7 @@ describe('gaEventsForwarderPlugin', () => {
       plugin = gaEventsForwarderPlugin({
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        trackingIds: [true],
+        measurementIds: [true],
       });
       // NOTE: Calling teardown to replace bigger-scoped plugin to pass invalid input
 
@@ -85,7 +85,7 @@ describe('gaEventsForwarderPlugin', () => {
       expect(loggerProvider.error).toHaveBeenCalledTimes(1);
       expect(loggerProvider.error).toHaveBeenNthCalledWith(
         1,
-        '@amplitude/plugin-gtag-forwarder-browser received an invalid input for Tracking IDs. Tracking IDs must be a string or an array of strings.',
+        '@amplitude/plugin-gtag-forwarder-browser received an invalid input for measurement IDs. Measurement IDs must be a string or an array of strings.',
       );
       expect(loggerProvider.log).toHaveBeenCalledTimes(0);
     });
@@ -154,7 +154,7 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         device_id: '1129698125.1691607592',
         event_properties: {
-          'Tracking ID': 'G-DELYSDZ9Q3',
+          'Measurement ID': 'G-DELYSDZ9Q3',
         },
         event_type: 'page_view',
         user_id: 'kevinp@amplitude.com',
@@ -165,7 +165,7 @@ describe('gaEventsForwarderPlugin', () => {
         event_properties: {
           '1': 1,
           a: 'a',
-          'Tracking ID': 'G-DELYSDZ9Q3',
+          'Measurement ID': 'G-DELYSDZ9Q3',
         },
         event_type: 'custom_event',
         user_id: 'kevinp@amplitude.com',
@@ -197,7 +197,7 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         device_id: '1129698125.1691607592',
         event_properties: {
-          'Tracking ID': 'G-DELYSDZ9Q3',
+          'Measurement ID': 'G-DELYSDZ9Q3',
         },
         event_type: 'page_view',
         user_id: 'kevinp@amplitude.com',
@@ -208,7 +208,7 @@ describe('gaEventsForwarderPlugin', () => {
         event_properties: {
           '1': 1,
           a: 'a',
-          'Tracking ID': 'G-DELYSDZ9Q3',
+          'Measurement ID': 'G-DELYSDZ9Q3',
         },
         event_type: 'custom_event',
         user_id: 'kevinp@amplitude.com',

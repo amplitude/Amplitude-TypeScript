@@ -6,7 +6,7 @@ import {
 } from '../src/constants';
 import {
   getProperties,
-  isTrackingIdAllowed,
+  isMeasurementIdTracked,
   isVersionSupported,
   parseGA4Events,
   transformToAmplitudeEvents,
@@ -71,7 +71,7 @@ describe('parseGA4Events', () => {
           event_properties: {
             a: 'a',
             1: 1,
-            'Tracking ID': 'G-DELYSDZ9Q3',
+            'Measurement ID': 'G-DELYSDZ9Q3',
           },
           user_properties: {
             b: 'b',
@@ -124,21 +124,21 @@ describe('parseGA4Events', () => {
     });
   });
 
-  describe('isTrackingIdAllowed', () => {
-    test('should return true if trackingIds input is omitted', () => {
-      expect(isTrackingIdAllowed(new URL(MOCK_URL), [])).toBe(true);
+  describe('isMeasurementIdTracked', () => {
+    test('should return true if measurementIds input is omitted', () => {
+      expect(isMeasurementIdTracked(new URL(MOCK_URL), [])).toBe(true);
     });
 
-    test('should return true if URL includes one of the Tracking IDs', () => {
-      expect(isTrackingIdAllowed(new URL(MOCK_URL), ['G-DELYSDZ9Q3'])).toBe(true);
+    test('should return true if URL includes one of the measurement IDs', () => {
+      expect(isMeasurementIdTracked(new URL(MOCK_URL), ['G-DELYSDZ9Q3'])).toBe(true);
     });
 
-    test('should return false if URL does not include any of the Tracking IDs', () => {
-      expect(isTrackingIdAllowed(new URL(MOCK_URL), ['G-XXXXXXXXXX'])).toBe(false);
+    test('should return false if URL does not include any of the measurement IDs', () => {
+      expect(isMeasurementIdTracked(new URL(MOCK_URL), ['G-XXXXXXXXXX'])).toBe(false);
     });
 
-    test('should return false if URL does not include have a Tracking ID', () => {
-      expect(isTrackingIdAllowed(new URL('https://amplitude.com'), [])).toBe(false);
+    test('should return false if URL does not include have a measurement ID', () => {
+      expect(isMeasurementIdTracked(new URL('https://amplitude.com'), [])).toBe(false);
     });
   });
 

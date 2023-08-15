@@ -1,11 +1,11 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { BaseEvent, BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { GA_PAYLOAD_HOSTNAME_VALUES, GA_PAYLOAD_PATHNAME_VALUE } from './constants';
-import { isTrackingIdAllowed, isVersionSupported, parseGA4Events, transformToAmplitudeEvents } from './helpers';
+import { isMeasurementIdTracked, isVersionSupported, parseGA4Events, transformToAmplitudeEvents } from './helpers';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 interface Options {
-  trackingIds?: string | string[];
+  measurementIds?: string | string[];
 }
 
 /**
@@ -28,15 +28,16 @@ interface Options {
  * </script>
  * ```
  *
- * @param options An object containing plugin options. Options include `trackingIds`.
+ * @param options An object containing plugin options. Options include `measurementIds`.
  *
- * @param options.trackingIds A Google Analytics tracking ID or a list of Google Analytics tracking IDs.
- * This limits the plugin to only listen for events tracked with the specified tracking ID/s.
+ * @param options.measurementIds A Google Analytics measurement ID or a list of Google Analytics measurement IDs.
+ * This limits the plugin to only listen for events tracked with the specified measurement ID/s.
  */
-export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): BrowserEnrichmentPlugin => {
+export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): BrowserEnrichmentPlugin => {
   const globalScope = getGlobalScope();
-  const trackingIdList = typeof trackingIds === 'string' ? [trackingIds] : trackingIds;
-  const isTrackingIdListValid = Array.isArray(trackingIdList) && !trackingIdList.some((id) => typeof id !== 'string');
+  const measurementIdList = typeof measurementIds === 'string' ? [measurementIds] : measurementIds;
+  const isMeasurementIdListValid =
+    Array.isArray(measurementIdList) && !measurementIdList.some((id) => typeof id !== 'string');
   let amplitude: BrowserClient | undefined = undefined;
   let logger: Logger | undefined = undefined;
   let preSetupEventQueue: BaseEvent[] = [];
@@ -46,7 +47,7 @@ export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): Bro
    * Creates proxy for `navigator.sendBeacon` immediately to start listening for events.
    * Google Analytics may start sending events before Amplitude SDK is initialized.
    */
-  if (globalScope && isTrackingIdListValid) {
+  if (globalScope && isMeasurementIdListValid) {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     sendBeacon = globalScope.navigator.sendBeacon;
 
@@ -73,7 +74,7 @@ export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): Bro
       if (
         GA_PAYLOAD_HOSTNAME_VALUES.includes(url.hostname) &&
         url.pathname === GA_PAYLOAD_PATHNAME_VALUE &&
-        isTrackingIdAllowed(url, trackingIdList) &&
+        isMeasurementIdTracked(url, measurementIdList) &&
         isVersionSupported(url)
       ) {
         const ga4Events = parseGA4Events(url, data);
@@ -103,9 +104,9 @@ export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): Bro
       return;
     }
 
-    if (!isTrackingIdListValid) {
+    if (!isMeasurementIdListValid) {
       logger.error(
-        `${name} received an invalid input for Tracking IDs. Tracking IDs must be a string or an array of strings.`,
+        `${name} received an invalid input for measurement IDs. Measurement IDs must be a string or an array of strings.`,
       );
       return;
     }
