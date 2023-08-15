@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.1.3...@amplitude/analytics-browser@2.2.0) (2023-08-15)
+
+### Features
+
+- limit LocalStorage ([#528](https://github.com/amplitude/Amplitude-TypeScript/issues/528))
+  ([232a607](https://github.com/amplitude/Amplitude-TypeScript/commit/232a607108baba4427723352212c650e09ee01a6))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.1.2...@amplitude/analytics-browser@2.1.3) (2023-07-27)
 
 ### Bug Fixes
