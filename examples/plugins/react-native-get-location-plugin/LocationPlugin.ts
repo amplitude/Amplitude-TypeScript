@@ -5,9 +5,11 @@ import GetLocation, { Location } from 'react-native-get-location';
 export default class LocationPlugin implements Types.BeforePlugin {
   name = 'getLocation';
   type = Types.PluginType.BEFORE as any;
+  config: Types.Config | undefined;
   location: Location | undefined;
 
-  async setup(_config: Types.Config): Promise<undefined> {
+  async setup(config: Types.Config): Promise<undefined> {
+    this.config = config;
     GetLocation.getCurrentPosition({
       enableHighAccuracy: true,
       timeout: 30000,
@@ -21,7 +23,7 @@ export default class LocationPlugin implements Types.BeforePlugin {
         this.location = location;
       })
       .catch((e) => {
-        console.log(e);
+        config?.loggerProvider?.error(e);
       });
 
     return undefined;

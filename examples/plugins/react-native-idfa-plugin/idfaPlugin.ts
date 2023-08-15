@@ -4,14 +4,16 @@ import ReactNativeIdfaAaid from '@sparkfabrik/react-native-idfa-aaid';
 export default class IdfaPlugin implements Types.BeforePlugin {
   name = 'idfa';
   type = Types.PluginType.BEFORE as any;
+  config: Types.Config | undefined;
   idfa: string | null = null;
 
-  async setup(_config: Types.Config): Promise<undefined> {
+  async setup(config: Types.Config): Promise<undefined> {
+    this.config = config;
     try {
       const info = await ReactNativeIdfaAaid.getAdvertisingInfo();
       this.idfa = info.id;
     } catch (e) {
-      console.log(e);
+      config?.loggerProvider?.error(e);
     }
     return undefined;
   }
