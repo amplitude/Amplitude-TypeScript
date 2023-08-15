@@ -6,6 +6,7 @@ import {
   Config,
   Logger,
   AMPLITUDE_PREFIX,
+  STORAGE_PREFIX,
   returnWrapper,
   debugWrapper,
   getClientLogConfig,
@@ -40,5 +41,6 @@ describe('index', () => {
     expect(typeof MemoryStorage).toBe('function');
     expect(typeof createIdentifyEvent).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
+    expect(STORAGE_PREFIX).toBe('AMP_unsent');
   });
 });

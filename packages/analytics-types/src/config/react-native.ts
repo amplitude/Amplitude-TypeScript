@@ -22,6 +22,7 @@ export interface ReactNativeConfig extends Config {
   trackingOptions: ReactNativeTrackingOptions;
   userId?: string;
   trackingSessionEvents?: boolean;
+  migrateLegacyData?: boolean;
 }
 
 export interface ReactNativeTrackingOptions {
