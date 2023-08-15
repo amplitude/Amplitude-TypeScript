@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.3.6...@amplitude/analytics-react-native@1.4.0) (2023-08-15)
+
+### Features
+
+- update Android files to support recent React Native versions
+  ([#533](https://github.com/amplitude/Amplitude-TypeScript/issues/533))
+  ([c06209a](https://github.com/amplitude/Amplitude-TypeScript/commit/c06209a77c375facad60676aefb0fa314af865a8))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.3.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.3.5...@amplitude/analytics-react-native@1.3.6) (2023-08-15)
 
 ### Bug Fixes
