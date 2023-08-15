@@ -1,6 +1,6 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { BaseEvent, BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
-import { GA_PAYLOAD_HOSTNAME_VALUE, GA_PAYLOAD_PATHNAME_VALUE } from './constants';
+import { GA_PAYLOAD_HOSTNAME_VALUES, GA_PAYLOAD_PATHNAME_VALUE } from './constants';
 import { isTrackingIdAllowed, isVersionSupported, parseGA4Events, transformToAmplitudeEvents } from './helpers';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -71,7 +71,7 @@ export const gaEventsForwarderPlugin = ({ trackingIds = [] }: Options = {}): Bro
     try {
       const url = new URL(requestUrl);
       if (
-        url.hostname === GA_PAYLOAD_HOSTNAME_VALUE &&
+        GA_PAYLOAD_HOSTNAME_VALUES.includes(url.hostname) &&
         url.pathname === GA_PAYLOAD_PATHNAME_VALUE &&
         isTrackingIdAllowed(url, trackingIdList) &&
         isVersionSupported(url)
