@@ -40,7 +40,7 @@ export const parseGA4Events = (url: URL, data?: BodyInit): GA4Event[] => {
         ...sharedProperties,
         ...event.split('&').reduce<GA4Event>((acc, props) => {
           const [key, value] = props.split('=');
-          acc[key] = value;
+          acc[decodeURIComponent(key)] = decodeURIComponent(value);
           return acc;
         }, {}),
       };
