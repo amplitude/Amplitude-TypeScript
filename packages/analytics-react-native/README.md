@@ -7,7 +7,7 @@
 
 # @amplitude/analytics-react-native
 
-Official Amplitude SDK for React Native (Beta)
+Official Amplitude SDK for React Native
 
 # Installation and Quick Start
 
