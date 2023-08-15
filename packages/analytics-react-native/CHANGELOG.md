@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.3.5...@amplitude/analytics-react-native@1.3.6) (2023-08-15)
+
+### Bug Fixes
+
+- add example react-native plugin to get location, remove unused location-related logic from react-native
+  ([#536](https://github.com/amplitude/Amplitude-TypeScript/issues/536))
+  ([3fdfc53](https://github.com/amplitude/Amplitude-TypeScript/commit/3fdfc53aeded5c87b280a77038a73e5c2849e629))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.3.4...@amplitude/analytics-react-native@1.3.5) (2023-08-11)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
