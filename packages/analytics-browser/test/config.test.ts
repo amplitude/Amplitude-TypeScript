@@ -268,7 +268,7 @@ describe('config', () => {
       expect(storage).toBe(storageProvider);
     });
 
-    test('should use return storage with no logger', async () => {
+    test('should return storage with no logger', async () => {
       const storage = await Config.createEventsStorage();
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
       expect((storage as LocalStorageModule.LocalStorage<[Event]>).loggerProvider).toBeUndefined();
@@ -279,12 +279,6 @@ describe('config', () => {
         storageProvider: undefined,
       });
       expect(storage).toBe(undefined);
-    });
-
-    test('should return storage with no logger', async () => {
-      const storage = await Config.createEventsStorage({});
-      expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
-      expect((storage as LocalStorageModule.LocalStorage<[Event]>).loggerProvider).toBeUndefined();
     });
 
     test('should return storage with logger', async () => {
