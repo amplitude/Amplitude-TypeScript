@@ -1,7 +1,7 @@
 import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, TransportType, UserSession } from '@amplitude/analytics-types';
+import { Event, LogLevel, Storage, TransportType, UserSession } from '@amplitude/analytics-types';
 import * as BrowserUtils from '@amplitude/analytics-client-common';
 import { getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
 import { XHRTransport } from '../src/transports/xhr';
@@ -268,9 +268,10 @@ describe('config', () => {
       expect(storage).toBe(storageProvider);
     });
 
-    test('should use return storage', async () => {
+    test('should use return storage with no logger', async () => {
       const storage = await Config.createEventsStorage();
       expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
+      expect((storage as LocalStorageModule.LocalStorage<[Event]>).loggerProvider).toBeUndefined();
     });
 
     test('should return undefined storage', async () => {
@@ -278,6 +279,21 @@ describe('config', () => {
         storageProvider: undefined,
       });
       expect(storage).toBe(undefined);
+    });
+
+    test('should return storage with no logger', async () => {
+      const storage = await Config.createEventsStorage({});
+      expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
+      expect((storage as LocalStorageModule.LocalStorage<[Event]>).loggerProvider).toBeUndefined();
+    });
+
+    test('should return storage with logger', async () => {
+      const loggerProvider = new core.Logger();
+      const storage = await Config.createEventsStorage({
+        loggerProvider: loggerProvider,
+      });
+      expect(storage).toBeInstanceOf(LocalStorageModule.LocalStorage);
+      expect((storage as LocalStorageModule.LocalStorage<[Event]>).loggerProvider).toBe(loggerProvider);
     });
   });
 
