@@ -1,7 +1,20 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { Storage } from '@amplitude/analytics-types';
+import { Logger } from '@amplitude/analytics-types';
+
+const MAX_ARRAY_LENGTH = 1000;
+
+interface LocalStorageOptions {
+  loggerProvider?: Logger;
+}
 
 export class LocalStorage<T> implements Storage<T> {
+  loggerProvider?: Logger;
+
+  constructor(config?: LocalStorageOptions) {
+    this.loggerProvider = config?.loggerProvider;
+  }
+
   async isEnabled(): Promise<boolean> {
     /* istanbul ignore if */
     if (!getGlobalScope()) {
@@ -42,10 +55,23 @@ export class LocalStorage<T> implements Storage<T> {
   }
 
   async set(key: string, value: T): Promise<void> {
+    const isExceededArraySize = Array.isArray(value) && value.length > MAX_ARRAY_LENGTH;
+
     try {
-      getGlobalScope()?.localStorage.setItem(key, JSON.stringify(value));
+      const serializedValue = isExceededArraySize
+        ? JSON.stringify(value.slice(0, MAX_ARRAY_LENGTH) as T)
+        : JSON.stringify(value);
+
+      getGlobalScope()?.localStorage.setItem(key, serializedValue);
     } catch {
       //
+    }
+
+    if (isExceededArraySize) {
+      const droppedEventsCount = value.length - MAX_ARRAY_LENGTH;
+      this.loggerProvider?.error(
+        `Failed to save ${droppedEventsCount} events because the queue length exceeded ${MAX_ARRAY_LENGTH}.`,
+      );
     }
   }
 
