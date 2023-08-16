@@ -247,12 +247,7 @@ export const createEventsStorage = async (overrides?: BrowserOptions): Promise<S
   // then storageProvider is LocalStorage
   // Otherwise storageProvider is overriden
   if (!hasStorageProviderProperty || overrides.storageProvider) {
-    for (const storage of [
-      overrides?.storageProvider,
-      overrides?.loggerProvider
-        ? new LocalStorage<Event[]>({ loggerProvider: overrides?.loggerProvider })
-        : new LocalStorage<Event[]>(),
-    ]) {
+    for (const storage of [overrides?.storageProvider, new LocalStorage<Event[]>()]) {
       if (storage && (await storage.isEnabled())) {
         return storage;
       }
