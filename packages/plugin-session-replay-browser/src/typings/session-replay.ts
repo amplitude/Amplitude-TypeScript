@@ -46,6 +46,7 @@ export interface SessionReplayEnrichmentPlugin extends EnrichmentPlugin {
   queue: SessionReplayContext[];
   timeAtLastSend: number | null;
   stopRecordingEvents: ReturnType<typeof record> | null;
+  stopRecordingAndSendEvents: (sessionId?: number) => void;
   maxPersistedEventsSize: number;
   initialize: (shouldSendStoredEvents?: boolean) => Promise<void>;
   sendStoredEvents: (storedReplaySessions: IDBStore) => void;
