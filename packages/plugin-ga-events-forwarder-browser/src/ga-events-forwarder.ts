@@ -53,16 +53,14 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     sendBeacon = globalScope.navigator.sendBeacon;
 
-    const apply = (target: SendBeaconFn, thisArg: any, argArray: Parameters<SendBeaconFn>) => {
-      // Intercepts request and attempt to send to Amplitude
-      intercept.apply(thisArg, argArray);
-      // Execute sendBeacon
-      return target.apply(thisArg, argArray);
-    };
-
     // eslint-disable-next-line @typescript-eslint/unbound-method
     globalScope.navigator.sendBeacon = new Proxy(globalScope.navigator.sendBeacon, {
-      apply,
+      apply: (target: SendBeaconFn, thisArg: any, argArray: Parameters<SendBeaconFn>) => {
+        // Intercepts request and attempt to send to Amplitude
+        intercept.apply(thisArg, argArray);
+        // Execute sendBeacon
+        return target.apply(thisArg, argArray);
+      },
     });
   }
 
