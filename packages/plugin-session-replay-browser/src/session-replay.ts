@@ -95,8 +95,13 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
   };
 
   stopRecordingAndSendEvents(sessionId?: number) {
-    this.stopRecordingEvents && this.stopRecordingEvents();
-    this.stopRecordingEvents = null;
+    try {
+      this.stopRecordingEvents && this.stopRecordingEvents();
+      this.stopRecordingEvents = null;
+    } catch (error) {
+      const typedError = error as Error;
+      this.config.loggerProvider.error(`Error occurred while stopping recording: ${typedError.toString()}`);
+    }
     const sessionIdToSend = sessionId || this.config.sessionId;
     if (this.events.length && sessionIdToSend) {
       this.sendEventsList({
@@ -121,6 +126,7 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
     }
 
     const shouldRecord = this.getShouldRecord();
+
     if (shouldRecord) {
       event.event_properties = {
         ...event.event_properties,
@@ -227,6 +233,13 @@ class SessionReplay implements SessionReplayEnrichmentPlugin {
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
       maskInputFn,
+      recordCanvas: false,
+      errorHandler: (error) => {
+        const typedError = error as Error;
+        this.config.loggerProvider.error('Error while recording: ', typedError.toString());
+
+        return true;
+      },
     });
   }
 

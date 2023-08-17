@@ -503,6 +503,24 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
+  describe('stopRecordingAndSendEvents', () => {
+    test('it should catch errors', () => {
+      const sessionReplay = sessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        loggerProvider: mockLoggerProvider,
+      };
+      sessionReplay.config = config;
+      const mockStopRecordingEvents = jest.fn().mockImplementation(() => {
+        throw new Error('test error');
+      });
+      sessionReplay.stopRecordingEvents = mockStopRecordingEvents;
+      sessionReplay.stopRecordingAndSendEvents();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalled();
+    });
+  });
+
   describe('execute', () => {
     test('it should return event if document does not have focus', async () => {
       const sessionReplay = sessionReplayPlugin();
@@ -695,6 +713,21 @@ describe('SessionReplayPlugin', () => {
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.stopRecordingEvents).toEqual(null);
       expect(sessionReplay.events).toEqual([mockEventString]); // events should not change, emmitted event should be ignored
+    });
+
+    test('should add an error handler', () => {
+      const sessionReplay = sessionReplayPlugin();
+      const config = {
+        ...mockConfig,
+        loggerProvider: mockLoggerProvider,
+      };
+      sessionReplay.config = config;
+      sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const errorHandlerReturn = recordArg?.errorHandler && recordArg?.errorHandler(new Error('test error'));
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalled();
+      expect(errorHandlerReturn).toBe(true);
     });
   });
 
