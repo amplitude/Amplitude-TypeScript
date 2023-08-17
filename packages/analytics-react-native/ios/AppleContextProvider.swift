@@ -1,3 +1,6 @@
+#if os(iOS) && !targetEnvironment(simulator)
+import CoreTelephony
+#endif
 import Foundation
 
 @objc public class AppleContextProvider : NSObject {
@@ -10,11 +13,15 @@ import Foundation
     public let deviceManufacturer: String = AppleContextProvider.getDeviceManufacturer()
     public let deviceModel: String = AppleContextProvider.getDeviceModel()
     public var idfv: String? = nil
+    public var carrier: String? = nil
 
-    init(trackIdfv: Bool) {
+    init(trackIdfv: Bool, trackCarrier: Bool) {
       super.init()
       if (trackIdfv) {
         fetchIdfv()
+      }
+      if (trackCarrier) {
+        fetchCarrier()
       }
     }
 
@@ -51,6 +58,22 @@ import Foundation
 
     private func fetchIdfv() {
         self.idfv = UIDevice.current.identifierForVendor?.uuidString
+    }
+
+    private func fetchCarrier() {
+        self.carrier = "Unknown"
+        #if os(iOS) && !targetEnvironment(simulator)
+        if #available(iOS 12.0, *) {
+            let networkInfo = CTTelephonyNetworkInfo()
+            if let providers = networkInfo.serviceSubscriberCellularProviders {
+                for (_, provider) in providers where provider.mobileNetworkCode != nil {
+                    self.carrier = provider.carrierName ?? carrier
+                    // As long as we get one carrier information, we break.
+                    break
+                }
+            }
+        }
+        #endif
     }
 
     private static func getDeviceModel() -> String {

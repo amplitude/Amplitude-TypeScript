@@ -17,7 +17,8 @@ class ReactNative: NSObject {
     ) -> Void {
         let trackingOptions = options as! [String: Bool]
         let trackIdfv = trackingOptions["idfv"] ?? false
-        let appleContextProvider = AppleContextProvider(trackIdfv: trackIdfv)
+        let trackCarrier = trackingOptions["carrier"] ?? false
+        let appleContextProvider = AppleContextProvider(trackIdfv: trackIdfv, trackCarrier: trackCarrier)
 
         var applicationContext: [String: String?] = [
             "version": appleContextProvider.version,
@@ -30,6 +31,9 @@ class ReactNative: NSObject {
         ]
         if (trackIdfv) {
             applicationContext["idfv"] = appleContextProvider.idfv
+        }
+        if (trackCarrier) {
+            applicationContext["carrier"] = appleContextProvider.carrier
         }
         resolve(applicationContext)
     }
