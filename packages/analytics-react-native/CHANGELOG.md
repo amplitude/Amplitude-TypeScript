@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.0...@amplitude/analytics-react-native@1.4.1) (2023-08-17)
+
+### Bug Fixes
+
+- collect 'carrier' data in react-native iOS ([#545](https://github.com/amplitude/Amplitude-TypeScript/issues/545))
+  ([057e4d9](https://github.com/amplitude/Amplitude-TypeScript/commit/057e4d9a4856755ab9dd7340c705dc3118482971))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.3.6...@amplitude/analytics-react-native@1.4.0) (2023-08-15)
 
 ### Features
