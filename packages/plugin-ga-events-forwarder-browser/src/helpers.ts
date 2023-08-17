@@ -20,7 +20,7 @@ type GA4Event = Record<string, string | number>;
  * @param data The request payload. This exists when multiple events are sent in a single request.
  * @returns A list of deserialized Google Analytics events.
  */
-export const parseGA4Events = (url: URL, data?: BodyInit): GA4Event[] => {
+export const parseGA4Events = (url: URL, data?: BodyInit | null): GA4Event[] => {
   const sharedProperties: GA4Event = {};
 
   for (const entry of url.searchParams.entries()) {
