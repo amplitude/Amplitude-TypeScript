@@ -7,7 +7,7 @@
 
 # Announcement 📣
 
-The [Marketing Analytics Browser SDK]((https://www.docs.developers.amplitude.com/data/sdks/marketing-analytics-browser/)) is currently in maintenance mode. Amplitude has introduced the [Browser SDK 2.0](https://www.npmjs.com/package/@amplitude/analytics-browser) as its replacement. This SDK offers improved marketing attribution tracking, a simplified interface, and a more lightweight package.
+The [Marketing Analytics Browser SDK](https://www.docs.developers.amplitude.com/data/sdks/marketing-analytics-browser/) is currently in maintenance mode. Amplitude has introduced the [Browser SDK 2.0](https://www.docs.developers.amplitude.com/data/sdks/browser-2/) as its replacement. This SDK offers improved marketing attribution tracking, a simplified interface, and a more lightweight package.
 
 To learn more about the Browser 2.0 SDK, here are some useful links:
 
