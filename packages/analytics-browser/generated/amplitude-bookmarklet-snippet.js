@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Create a bookmark with this code snippet in the browser, update the apiKey and userId (optional), and click the bookmark on any website to run.
+ * Create a bookmark with this code snippet in the browser, update the apiKey, userId, and serverZone, and click the bookmark on any website to run.
  * Script will fail to load if the website has a Content Security Policy (CSP) that blocks third-party inline scripts.
  */
 !function (window, document) {
@@ -55,7 +55,9 @@
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
-      window.amplitude.init(AMPLITUDE_API_KEY, 'test-user');
+      window.amplitude.init(AMPLITUDE_API_KEY, 'YOUR_USER_ID', {
+        serverZone: 'YOUR_SERVER_ZONE'
+      });
       var autoTracking = function autoTracking() {
         var name = '@amplitude/plugin-auto-tracking-browser';
         var type = 'enrichment';

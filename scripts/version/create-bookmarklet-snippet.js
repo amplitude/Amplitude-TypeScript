@@ -22,11 +22,12 @@ const globalVar = argv.globalVar ?? 'amplitude';
 const nameSuffix = argv.nameSuffix ?? '';
 
 const apiKey = argv.apiKey ?? 'YOUR_API_KEY';
-const userId = argv.userId ?? 'test-user';
+const userId = argv.userId ?? 'YOUR_USER_ID';
+const serverZone = argv.serverZone ?? 'YOUR_SERVER_ZONE';
 
 // Generate output contents
 const header = `/**
- * Create a bookmark with this code snippet in the browser, update the apiKey and userId (optional), and click the bookmark on any website to run.
+ * Create a bookmark with this code snippet in the browser, update the apiKey, userId, and serverZone, and click the bookmark on any website to run.
  * Script will fail to load if the website has a Content Security Policy (CSP) that blocks third-party inline scripts.
  */`;
 const algorithm = 'sha384';
@@ -34,7 +35,7 @@ const encoding = 'base64';
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputText).digest(encoding);
 const version = getVersion() || '';
-const outputText = header + snippet(getName() + nameSuffix, integrity, version, globalVar, apiKey, userId);
+const outputText = header + snippet(getName() + nameSuffix, integrity, version, globalVar, apiKey, userId, serverZone);
 const { code: transpiledOutputText } = babel.transformSync(outputText, {
   presets: ['env'],
 });
