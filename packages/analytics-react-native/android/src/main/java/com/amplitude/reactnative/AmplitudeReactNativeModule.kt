@@ -38,6 +38,7 @@ class AmplitudeReactNativeModule(private val reactContext: ReactApplicationConte
             putString("version", androidContextProvider!!.versionName)
             putString("platform", androidContextProvider!!.platform)
             putString("language", androidContextProvider!!.language)
+            putString("country", androidContextProvider!!.country)
             putString("osName", androidContextProvider!!.osName)
             putString("osVersion", androidContextProvider!!.osVersion)
             putString("deviceBrand", androidContextProvider!!.brand)

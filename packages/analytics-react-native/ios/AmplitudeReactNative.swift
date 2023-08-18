@@ -24,6 +24,7 @@ class ReactNative: NSObject {
             "version": appleContextProvider.version,
             "platform": appleContextProvider.platform,
             "language": appleContextProvider.language,
+            "country": appleContextProvider.country,
             "osName": appleContextProvider.osName,
             "osVersion": appleContextProvider.osVersion,
             "deviceManufacturer": appleContextProvider.deviceManufacturer,
