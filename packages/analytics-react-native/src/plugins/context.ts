@@ -18,6 +18,7 @@ type NativeContext = {
   version: string;
   platform: string;
   language: string;
+  country: string;
   osName: string;
   osVersion: string;
   deviceBrand: string;
@@ -71,6 +72,7 @@ export class Context implements BeforePlugin {
     const deviceVendor = nativeContext?.deviceManufacturer || this.uaResult.device.vendor;
     const deviceModel = nativeContext?.deviceModel || this.uaResult.device.model || this.uaResult.os.name;
     const language = nativeContext?.language || getLanguage();
+    const country = nativeContext?.country;
     const carrier = nativeContext?.carrier;
     const adid = nativeContext?.adid;
     const appSetId = nativeContext?.appSetId;
@@ -88,6 +90,7 @@ export class Context implements BeforePlugin {
       ...(this.config.trackingOptions.deviceManufacturer && { device_manufacturer: deviceVendor }),
       ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
       ...(this.config.trackingOptions.language && { language: language }),
+      ...(this.config.trackingOptions.country && { country: country }),
       ...(this.config.trackingOptions.carrier && { carrier: carrier }),
       ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
       ...(this.config.trackingOptions.adid && { adid: adid }),

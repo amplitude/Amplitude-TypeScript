@@ -7,6 +7,7 @@ import Foundation
 
     public let version: String? = AppleContextProvider.getVersion()
     public let language: String? = AppleContextProvider.getLanguage()
+    public let country: String? = AppleContextProvider.getCountry()
     public let platform: String = AppleContextProvider.getPlatform()
     public let osName: String = AppleContextProvider.getOsName()
     public let osVersion: String = AppleContextProvider.getOsVersion()
@@ -31,6 +32,10 @@ import Foundation
 
     private static func getLanguage() -> String? {
         return Locale(identifier: "en_US").localizedString(forLanguageCode: Locale.preferredLanguages[0])
+    }
+
+    private static func getCountry() -> String? {
+        return Locale.current.regionCode
     }
 
     private static func getPlatform() -> String {

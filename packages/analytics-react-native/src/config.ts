@@ -26,6 +26,7 @@ export const getDefaultConfig = () => {
     platform: true,
     appSetId: true,
     idfv: true,
+    country: true,
   };
   return {
     cookieExpiration: 365,
