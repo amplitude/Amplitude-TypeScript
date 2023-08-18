@@ -120,7 +120,9 @@ export class Timeline {
     });
 
     void Promise.all(executeDestinations).then(([result]) => {
-      resolve(result);
+      const resolveResult =
+        result || buildResult(event, 100, 'Event not tracked, no destination plugins on the instance');
+      resolve(resolveResult);
     });
 
     return;
