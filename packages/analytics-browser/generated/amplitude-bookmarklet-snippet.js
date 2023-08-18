@@ -148,12 +148,18 @@
         };
         var getEventProperties = function getEventProperties(event, element) {
           var tag = element.tagName.toLowerCase();
+          var rect = typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : {};
           var properties = {
             '[Amplitude] Element ID': element.id,
             '[Amplitude] Element Class': element.className,
             '[Amplitude] Element Tag': tag,
             '[Amplitude] Element Text': getText(element),
-            '[Amplitude] Page URL': window.location.href.split('?')[0]
+            '[Amplitude] Element Position Left': rect.left == null ? null : Math.round(rect.left),
+            '[Amplitude] Element Position Top': rect.top == null ? null : Math.round(rect.top),
+            '[Amplitude] Page URL': window.location.href.split('?')[0],
+            '[Amplitude] Page Title': typeof document !== 'undefined' && document.title || '',
+            '[Amplitude] Viewport Height': window.innerHeight,
+            '[Amplitude] Viewport Width': window.innerWidth
           };
           if (tag === 'a' && event === 'click') {
             properties['[Amplitude] Element Href'] = element.href;
