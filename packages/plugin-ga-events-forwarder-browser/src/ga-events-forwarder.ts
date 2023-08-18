@@ -8,6 +8,8 @@ interface Options {
   measurementIds?: string | string[];
 }
 
+type SendBeaconFn = typeof navigator.sendBeacon;
+
 /**
  * Returns an instance of `gaEventsForwarderPlugin`. Add this plugin to listen for events sent to Google Analytics,
  * transform the events and send the events to Amplitude.
@@ -41,7 +43,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
   let amplitude: BrowserClient | undefined = undefined;
   let logger: Logger | undefined = undefined;
   let preSetupEventQueue: BaseEvent[] = [];
-  let sendBeacon: undefined | ((url: string | URL, data?: BodyInit | null | undefined) => boolean);
+  let sendBeacon: undefined | SendBeaconFn;
 
   /**
    * Creates proxy for `navigator.sendBeacon` immediately to start listening for events.
@@ -53,11 +55,11 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     globalScope.navigator.sendBeacon = new Proxy(globalScope.navigator.sendBeacon, {
-      apply: (target, thisArg, [url, body]: [string, BodyInit | undefined]) => {
+      apply: (target: SendBeaconFn, thisArg: any, argArray: Parameters<SendBeaconFn>) => {
         // Intercepts request and attempt to send to Amplitude
-        interceptRequest(url, body);
+        intercept.apply(thisArg, argArray);
         // Execute sendBeacon
-        target.apply(thisArg, [url, body]);
+        return target.apply(thisArg, argArray);
       },
     });
   }
@@ -68,7 +70,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
    * 3a: Pushes to preSetupEventQueue while waiting for Amplitude SDK to initialize
    * 3b. Sends events to Amplitude after Amplitude SDK is initialized
    */
-  const interceptRequest = (requestUrl: string, data?: BodyInit) => {
+  const intercept: SendBeaconFn = (requestUrl, data) => {
     try {
       const url = new URL(requestUrl);
       if (
@@ -87,9 +89,11 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
           }
         }
       }
+      return true;
     } catch (error) {
       /* istanbul ignore next */
       logger?.error(String(error));
+      return false;
     }
   };
 
