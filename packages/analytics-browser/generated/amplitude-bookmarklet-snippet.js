@@ -5,7 +5,6 @@
  * Script will fail to load if the website has a Content Security Policy (CSP) that blocks third-party inline scripts.
  */
 !function (window, document) {
-  var AMPLITUDE_API_KEY = 'YOUR_API_KEY';
   var amplitude = window.amplitude || {
     _q: [],
     _iq: {}
@@ -55,7 +54,7 @@
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
-      window.amplitude.init(AMPLITUDE_API_KEY, 'YOUR_USER_ID', {
+      window.amplitude.init('YOUR_API_KEY', 'YOUR_USER_ID', {
         serverZone: 'YOUR_SERVER_ZONE'
       });
       var autoTracking = function autoTracking() {
