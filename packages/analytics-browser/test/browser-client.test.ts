@@ -1,18 +1,18 @@
-import { AmplitudeBrowser } from '../src/browser-client';
-import * as core from '@amplitude/analytics-core';
-import * as Config from '../src/config';
-import * as CookieMigration from '../src/cookie-migration';
-import { UserSession } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
   getAnalyticsConnector,
   getCookieName,
 } from '@amplitude/analytics-client-common';
-import * as SnippetHelper from '../src/utils/snippet-helper';
+import * as core from '@amplitude/analytics-core';
+import { UserSession } from '@amplitude/analytics-types';
+import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
+import { AmplitudeBrowser } from '../src/browser-client';
+import * as Config from '../src/config';
+import * as CookieMigration from '../src/cookie-migration';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
-import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
+import * as SnippetHelper from '../src/utils/snippet-helper';
 
 describe('browser-client', () => {
   let apiKey = '';
@@ -401,6 +401,18 @@ describe('browser-client', () => {
         });
         client.setDeviceId('asdfg');
       });
+    });
+  });
+
+  describe('setOptOut', () => {
+    test('should set opt out config', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      }).promise;
+      expect(client.config.optOut).toBe(false);
+      client.setOptOut(true);
+      expect(client.config.optOut).toBe(true);
     });
   });
 
