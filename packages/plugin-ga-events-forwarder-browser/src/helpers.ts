@@ -1,4 +1,4 @@
-import { BaseEvent } from '@amplitude/analytics-types';
+import { BaseEvent, BrowserConfig } from '@amplitude/analytics-types';
 import {
   GA_PAYLOAD_CLIENT_ID_KEY,
   GA_PAYLOAD_EVENT_NAME_KEY,
@@ -112,3 +112,47 @@ export const isMeasurementIdTracked = (url: URL, measurementIds: string[]) => {
  */
 export const isVersionSupported = (url: URL) =>
   url.searchParams.get(GA_PAYLOAD_VERSION_KEY) === GA_PAYLOAD_VERSION_VALUE;
+
+/**
+ * @param config The config object created by Amplitude Analytics SDK
+ * @returns An object containing the simplified DET config
+ */
+export const getDefaultEventTrackingConfig = (config: BrowserConfig) => {
+  // Inferring the default value based on a config key
+  // `cookieOptions` is a new config key introduced in Amplitude Analytics SDK V2
+  // If `cookieOptions` exists in config, then by default DET is enabled
+  // If `cookieOptions` does not exist in config, then by default DET is disabled
+  const defaultValue = 'cookieOptions' in config ? true : false;
+
+  if (typeof config.defaultTracking === 'boolean') {
+    return {
+      trackFileDownloads: config.defaultTracking,
+      trackFormInteractions: config.defaultTracking,
+      trackPageViews: config.defaultTracking,
+      trackSessions: config.defaultTracking,
+    };
+  }
+
+  if (typeof config.defaultTracking === 'object') {
+    let trackPageViews = defaultValue;
+    if (typeof config.defaultTracking.pageViews === 'boolean') {
+      trackPageViews = config.defaultTracking.pageViews;
+    } else if (typeof config.defaultTracking.pageViews === 'object') {
+      trackPageViews = true;
+    }
+
+    return {
+      trackFileDownloads: config.defaultTracking.fileDownloads ?? defaultValue,
+      trackFormInteractions: config.defaultTracking.formInteractions ?? defaultValue,
+      trackPageViews,
+      trackSessions: config.defaultTracking.sessions ?? defaultValue,
+    };
+  }
+
+  return {
+    trackFileDownloads: defaultValue,
+    trackFormInteractions: defaultValue,
+    trackPageViews: defaultValue,
+    trackSessions: defaultValue,
+  };
+};
