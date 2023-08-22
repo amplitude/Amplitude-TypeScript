@@ -1,17 +1,16 @@
+import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
 import {
-  IdentityEventSender,
   getAnalyticsConnector,
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
+  IdentityEventSender,
   isAttributionTrackingEnabled,
+  isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
-  isSessionTrackingEnabled,
   setConnectorDeviceId,
-  setConnectorOptOut,
   setConnectorUserId,
 } from '@amplitude/analytics-client-common';
-import { AmplitudeCore, Destination, Identify, Revenue, UUID, returnWrapper } from '@amplitude/analytics-core';
 import {
   BrowserClient,
   BrowserConfig,
@@ -22,15 +21,15 @@ import {
   Revenue as IRevenue,
   TransportType,
 } from '@amplitude/analytics-types';
-import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
+import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
+import { Context } from './plugins/context';
+import { useBrowserConfig, createTransport } from './config';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
-import { createTransport, useBrowserConfig } from './config';
+import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
+import { formInteractionTracking } from './plugins/form-interaction-tracking';
+import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
-import { Context } from './plugins/context';
-import { fileDownloadTracking } from './plugins/file-download-tracking';
-import { formInteractionTracking } from './plugins/form-interaction-tracking';
-import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -148,11 +147,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
     this.config.deviceId = deviceId;
     setConnectorDeviceId(deviceId, this.config.instanceName);
-  }
-
-  setOptOut(optOut: boolean): void {
-    setConnectorOptOut(optOut, this.config.instanceName);
-    super.setOptOut(optOut);
   }
 
   reset() {
