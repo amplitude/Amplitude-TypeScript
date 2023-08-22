@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.12.3...@amplitude/analytics-browser@1.13.0) (2023-08-22)
+
+### Features
+
+- **browser:** set optOut config in analytics connector
+  ([525b4ad](https://github.com/amplitude/Amplitude-TypeScript/commit/525b4ad96d4179f5d7a627c24906f68a09cf826f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.12.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.12.2...@amplitude/analytics-browser@1.12.3) (2023-08-22)
 
 ### Bug Fixes
