@@ -1,7 +1,21 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { BaseEvent, BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
-import { GA_PAYLOAD_HOSTNAME_VALUES, GA_PAYLOAD_PATHNAME_VALUE } from './constants';
-import { isMeasurementIdTracked, isVersionSupported, parseGA4Events, transformToAmplitudeEvents } from './helpers';
+import {
+  GA_AUTOMATIC_EVENT_FILE_DOWNLOAD,
+  GA_AUTOMATIC_EVENT_FORM_START,
+  GA_AUTOMATIC_EVENT_FORM_SUBMIT,
+  GA_AUTOMATIC_EVENT_PAGE_VIEW,
+  GA_AUTOMATIC_EVENT_SESSION_START,
+  GA_PAYLOAD_HOSTNAME_VALUES,
+  GA_PAYLOAD_PATHNAME_VALUE,
+} from './constants';
+import {
+  getDefaultEventTrackingConfig,
+  isMeasurementIdTracked,
+  isVersionSupported,
+  parseGA4Events,
+  transformToAmplitudeEvents,
+} from './helpers';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 interface Options {
@@ -44,6 +58,10 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
   let logger: Logger | undefined = undefined;
   let preSetupEventQueue: BaseEvent[] = [];
   let sendBeacon: undefined | SendBeaconFn;
+  let trackFileDownloads = false;
+  let trackFormInteractions = false;
+  let trackPageViews = false;
+  let trackSessions = false;
 
   /**
    * Creates proxy for `navigator.sendBeacon` immediately to start listening for events.
@@ -85,7 +103,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
           if (!amplitude) {
             preSetupEventQueue.push(event);
           } else {
-            amplitude.track(event);
+            processEvent(event);
           }
         }
       }
@@ -97,10 +115,34 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     }
   };
 
+  const processEvent = (event: BaseEvent) => {
+    /* istanbul ignore if */
+    if (!amplitude || !logger) {
+      // Should not be possible, and only added to fulfill typechecks
+      return;
+    }
+
+    if (
+      (trackFileDownloads && event.event_type === GA_AUTOMATIC_EVENT_FILE_DOWNLOAD) ||
+      (trackFormInteractions && event.event_type === GA_AUTOMATIC_EVENT_FORM_START) ||
+      (trackFormInteractions && event.event_type === GA_AUTOMATIC_EVENT_FORM_SUBMIT) ||
+      (trackPageViews && event.event_type === GA_AUTOMATIC_EVENT_PAGE_VIEW) ||
+      (trackSessions && event.event_type === GA_AUTOMATIC_EVENT_SESSION_START)
+    ) {
+      logger.log(`${name} skipped ${event.event_type} because it is tracked by Amplitude.`);
+      return;
+    }
+
+    amplitude.track(event);
+  };
+
   const name = '@amplitude/plugin-gtag-forwarder-browser';
   const type = 'enrichment';
   const setup: BrowserEnrichmentPlugin['setup'] = async (configParam, amplitudeParam) => {
     logger = configParam.loggerProvider;
+
+    ({ trackFileDownloads, trackFormInteractions, trackPageViews, trackSessions } =
+      getDefaultEventTrackingConfig(configParam));
 
     /* istanbul ignore if */
     if (!globalScope) {
@@ -124,9 +166,9 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     }
 
     // Sends events tracked before Amplitude SDK was initialized
-    preSetupEventQueue.forEach((event) => amplitudeParam.track(event));
-    preSetupEventQueue = [];
     amplitude = amplitudeParam;
+    preSetupEventQueue.forEach((event) => processEvent(event));
+    preSetupEventQueue = [];
 
     logger.log(`${name} is successfully added.`);
   };

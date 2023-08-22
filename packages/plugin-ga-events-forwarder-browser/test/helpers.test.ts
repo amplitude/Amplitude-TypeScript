@@ -1,3 +1,4 @@
+import { BrowserConfig } from '@amplitude/analytics-types';
 import {
   GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX,
   GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX,
@@ -5,6 +6,7 @@ import {
   GA_PAYLOAD_USER_PROPERTY_STRING_PREFIX,
 } from '../src/constants';
 import {
+  getDefaultEventTrackingConfig,
   getProperties,
   isMeasurementIdTracked,
   isVersionSupported,
@@ -149,6 +151,93 @@ describe('parseGA4Events', () => {
 
     test('should return false', () => {
       expect(isVersionSupported(new URL('https://amplitude.com'))).toBe(false);
+    });
+  });
+
+  describe('getDefaultEventTrackingConfig', () => {
+    test('should return false for all on Amplitude Analytics V1', () => {
+      const config = getDefaultEventTrackingConfig({} as BrowserConfig);
+      expect(config).toEqual({
+        trackFileDownloads: false,
+        trackFormInteractions: false,
+        trackPageViews: false,
+        trackSessions: false,
+      });
+    });
+
+    test('should return true with empty object for all on Amplitude Analytics V1', () => {
+      const config = getDefaultEventTrackingConfig({
+        defaultTracking: {},
+      } as BrowserConfig);
+      expect(config).toEqual({
+        trackFileDownloads: false,
+        trackFormInteractions: false,
+        trackPageViews: false,
+        trackSessions: false,
+      });
+    });
+
+    test('should return false with nested config for all on Amplitude Analytics V1', () => {
+      const config = getDefaultEventTrackingConfig({
+        defaultTracking: {
+          fileDownloads: false,
+          formInteractions: false,
+          pageViews: false,
+          sessions: false,
+        },
+      } as BrowserConfig);
+      expect(config).toEqual({
+        trackFileDownloads: false,
+        trackFormInteractions: false,
+        trackPageViews: false,
+        trackSessions: false,
+      });
+    });
+
+    test('should return true with nested page view config for all on Amplitude Analytics V1', () => {
+      const config = getDefaultEventTrackingConfig({
+        defaultTracking: {
+          fileDownloads: true,
+          formInteractions: true,
+          pageViews: {},
+          sessions: true,
+        },
+      } as BrowserConfig);
+      expect(config).toEqual({
+        trackFileDownloads: true,
+        trackFormInteractions: true,
+        trackPageViews: true,
+        trackSessions: true,
+      });
+    });
+
+    test('should return true for all on Amplitude Analytics V2', () => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const config = getDefaultEventTrackingConfig({
+        cookieOptions: {},
+      } as BrowserConfig);
+      expect(config).toEqual({
+        trackFileDownloads: true,
+        trackFormInteractions: true,
+        trackPageViews: true,
+        trackSessions: true,
+      });
+    });
+
+    test('should return true with empty object for all on Amplitude Analytics V2', () => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const config = getDefaultEventTrackingConfig({
+        cookieOptions: {},
+        defaultTracking: {},
+      } as BrowserConfig);
+      expect(config).toEqual({
+        trackFileDownloads: true,
+        trackFormInteractions: true,
+        trackPageViews: true,
+        trackSessions: true,
+      });
     });
   });
 });
