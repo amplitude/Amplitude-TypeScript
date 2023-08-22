@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.12.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.12.2...@amplitude/analytics-browser@1.12.3) (2023-08-22)
+
+### Bug Fixes
+
+- limit local storage size ([#543](https://github.com/amplitude/Amplitude-TypeScript/issues/543))
+  ([52d2e18](https://github.com/amplitude/Amplitude-TypeScript/commit/52d2e1891d8ef4f4a1ef28e57bb89cbf176c9d07))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.12.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.12.1...@amplitude/analytics-browser@1.12.2) (2023-08-10)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

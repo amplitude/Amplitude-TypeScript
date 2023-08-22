@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.1.0...@amplitude/plugin-ga-events-forwarder-browser@0.1.1) (2023-08-22)
+
+### Bug Fixes
+
+- add return type of proxied function ([#546](https://github.com/amplitude/Amplitude-TypeScript/issues/546))
+  ([64637ba](https://github.com/amplitude/Amplitude-TypeScript/commit/64637babb90c5eb9069b17a11bc3c2bd5251b084))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # 0.1.0 (2023-08-15)
 
 ### Bug Fixes
