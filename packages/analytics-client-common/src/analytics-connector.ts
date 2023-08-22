@@ -13,3 +13,7 @@ export const setConnectorUserId = (userId: string | undefined, instanceName?: st
 export const setConnectorDeviceId = (deviceId: string, instanceName?: string): void => {
   getAnalyticsConnector(instanceName).identityStore.editIdentity().setDeviceId(deviceId).commit();
 };
+
+export const setConnectorOptOut = (optOut: boolean, instanceName?: string): void => {
+  getAnalyticsConnector(instanceName).identityStore.editIdentity().setOptOut(optOut).commit();
+};
