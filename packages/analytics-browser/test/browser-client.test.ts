@@ -1,14 +1,14 @@
-import { AmplitudeBrowser } from '../src/browser-client';
+import { FetchTransport, getAnalyticsConnector, getCookieName } from '@amplitude/analytics-client-common';
 import * as core from '@amplitude/analytics-core';
+import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
+import * as pageViewTrackingPlugin from '@amplitude/plugin-page-view-tracking-browser';
+import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
+import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
-import { FetchTransport, getAnalyticsConnector, getCookieName } from '@amplitude/analytics-client-common';
-import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
-import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
-import * as pageViewTrackingPlugin from '@amplitude/plugin-page-view-tracking-browser';
+import * as SnippetHelper from '../src/utils/snippet-helper';
 
 describe('browser-client', () => {
   const API_KEY = 'API_KEY';
@@ -450,6 +450,18 @@ describe('browser-client', () => {
           });
         client.setDeviceId('asdfg');
       });
+    });
+  });
+
+  describe('setOptOut', () => {
+    test('should set opt out config', async () => {
+      const client = new AmplitudeBrowser();
+      await client.init(API_KEY, undefined, {
+        ...attributionConfig,
+      }).promise;
+      expect(client.config.optOut).toBe(false);
+      client.setOptOut(true);
+      expect(client.config.optOut).toBe(true);
     });
   });
 
