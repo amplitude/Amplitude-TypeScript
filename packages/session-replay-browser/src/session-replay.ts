@@ -43,7 +43,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
   loggerProvider: ILogger;
   storageKey = '';
   retryTimeout = 1000;
-  sessionId: number | undefined;
   events: Events = [];
   currentSequenceId = 0;
   private scheduled: ReturnType<typeof setTimeout> | null = null;

@@ -35,7 +35,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         sessions: true,
       };
     }
-    // TO CONSIDER - how to propogate config updates
+    // TODO: get optOut from analytics connector
     await sessionReplay.init(config.apiKey, {
       instanceName: this.config.instanceName,
       deviceId: this.config.deviceId,

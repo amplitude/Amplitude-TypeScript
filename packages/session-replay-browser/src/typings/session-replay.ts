@@ -48,49 +48,4 @@ export interface AmplitudeSessionReplay {
   setSessionId: (sessionId: number) => void;
   getSessionRecordingProperties: () => { [key: string]: boolean };
   teardown: () => void;
-
-  // TODO: make all of these private
-  // config: SessionReplayConfig | undefined;
-  // storageKey: string;
-  // retryTimeout: number;
-  // events: Events;
-  // currentSequenceId: number;
-  // interval: number;
-  // queue: SessionReplayContext[];
-  // timeAtLastSend: number | null;
-  // stopRecordingEvents: ReturnType<typeof record> | null;
-  // stopRecordingAndSendEvents: (sessionId?: number) => void;
-  // maxPersistedEventsSize: number;
-  // initialize: (shouldSendStoredEvents?: boolean) => Promise<void>;
-  // sendStoredEvents: (storedReplaySessions: IDBStore) => void;
-  // getShouldRecord: () => boolean;
-  // recordEvents: () => void;
-  // shouldSplitEventsList: (nextEventString: string) => boolean;
-  // sendEventsList: ({
-  //   events,
-  //   sequenceId,
-  //   sessionId,
-  // }: {
-  //   events: string[];
-  //   sequenceId: number;
-  //   sessionId: number;
-  // }) => void;
-  // addToQueue: (...list: SessionReplayContext[]) => void;
-  // schedule: (timeout: number) => void;
-  // flush: (useRetry?: boolean) => Promise<void>;
-  // send: (context: SessionReplayContext, useRetry?: boolean) => Promise<void>;
-  // completeRequest({
-  //   context,
-  //   err,
-  //   success,
-  //   removeEvents,
-  // }: {
-  //   context: SessionReplayContext;
-  //   err?: string | undefined;
-  //   success?: string | undefined;
-  //   removeEvents?: boolean | undefined;
-  // }): void;
-  // getAllSessionEventsFromStore: () => Promise<IDBStore | undefined>;
-  // storeEventsForSession: (events: Events, sequenceId: number, sessionId: number) => Promise<void>;
-  // cleanUpSessionEventsStore: (sessionId: number, sequenceId: number) => Promise<void>;
 }
