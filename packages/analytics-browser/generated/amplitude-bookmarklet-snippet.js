@@ -187,11 +187,51 @@
           return semanticContext;
         };
         var generateSuggestedEvent = function getSuggestedEventLabel(event) {
-          const semanticContext = extractSemanticContext(event);
-          console.log(`Semantic context`, semanticContext);
-          console.log(`Page context`, getPageContext());
-          // todo send to OpenAI
+          const prompt = `\
+You are given the page content for a website and an action made by a user on that page.\
+ Suggest a descriptive and unique label for the user action in the context of the page. \
+ This label will be used as the event name in Amplitude Analytics to generate insights about user behavior.\
+ Be as descriptive as possible using the page content.
+
+Page Content:
+"""
+${getPageContext()}
+"""
+
+User Action:
+"""
+${JSON.stringify(extractSemanticContext(event), null, 2)}
+"""`;
+          // console.log(`Prompt`, prompt);
+
+          const openAiApiKey = 'YOUR_API_KEY_HERE';
+          fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openAiApiKey}`
+              },
+              body: JSON.stringify({
+                "model": "gpt-3.5-turbo",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0
+              })
+            }
+          ).then(response => response.json())
+          .then(data => {
+            // console.log(data);
+
+            // Track new event with suggested name
+            const suggestedEventName = data.choices[0].message.content;
+            console.log(`Suggested event name`, suggestedEventName);
+            amplitude.track({
+              ...event,
+              event_type: `[Suggested] ${suggestedEventName}`,
+            });
+          })
         };
+
         var setup = function setup(_, amplitude) {
           if (!amplitude) {
             console.warn('Auto-tracking requires a later version of @amplitude/analytics-browser. Events are not tracked.');
