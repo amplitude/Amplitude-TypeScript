@@ -3,7 +3,7 @@ import { isNewSession } from '../src/session';
 describe('session', () => {
   const sessionTimeout: number = 30 * 60 * 1000;
 
-  test('should be a new session for the first event', () => {
+  test('should be in a same session for undefined lastEventTime', () => {
     const _isNewSession = isNewSession(sessionTimeout, undefined);
 
     expect(_isNewSession).toBe(false);
