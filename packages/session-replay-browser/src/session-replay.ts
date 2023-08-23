@@ -60,7 +60,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.config = new SessionReplayConfig(apiKey, options);
     this.loggerProvider = this.config.loggerProvider;
 
-    this.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
+    this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
 
