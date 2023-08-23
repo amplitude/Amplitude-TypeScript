@@ -177,9 +177,12 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     // NOTE: Unable to pass an event to track() with custom library value because an internal plugin will overwrite `event.library` value.
     // Instead, since an enrichment plugin's execute function is performed at a later time. pass an event to track() with library info in `event.extra`,
     // then enrich `event.library` in this plugin's execute function.
-    if (event.extra && AMPLITUDE_EVENT_LIBRARY in event.extra) {
+    if (event.extra?.library === AMPLITUDE_EVENT_LIBRARY) {
       event.library = AMPLITUDE_EVENT_LIBRARY;
-      delete event.extra[AMPLITUDE_EVENT_LIBRARY];
+      delete event.extra.library;
+      if (Object.keys(event.extra).length === 0) {
+        delete event.extra;
+      }
     }
     return event;
   };

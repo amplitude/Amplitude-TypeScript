@@ -122,6 +122,36 @@ describe('gaEventsForwarderPlugin', () => {
         event_type: 'custom_event',
       });
     });
+
+    test('should enrich library field', async () => {
+      const event = await plugin?.execute({
+        event_type: 'custom_event',
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
+        },
+      });
+      expect(event).toEqual({
+        event_type: 'custom_event',
+        library: AMPLITUDE_EVENT_LIBRARY,
+      });
+    });
+
+    test('should enrich library field and keep extra field', async () => {
+      const event = await plugin?.execute({
+        event_type: 'custom_event',
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
+          a: 'a',
+        },
+      });
+      expect(event).toEqual({
+        event_type: 'custom_event',
+        library: AMPLITUDE_EVENT_LIBRARY,
+        extra: {
+          a: 'a',
+        },
+      });
+    });
   });
 
   describe('teardown', () => {
