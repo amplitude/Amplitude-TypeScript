@@ -137,11 +137,7 @@
         var getText = function getText(element) {
           var text = '';
           if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
-            element.childNodes.forEach(function (child) {
-              if (isTextNode(child) && child.textContent) {
-                text += child.textContent.split(/(\s+)/).filter(isNonSensitiveString).join('').replace(/[\r\n]/g, ' ').replace(/[ ]+/g, ' ').substring(0, 255);
-              }
-            });
+            text = element.innerText.replace(/\n/g, ' ')
           }
           return text;
         };
