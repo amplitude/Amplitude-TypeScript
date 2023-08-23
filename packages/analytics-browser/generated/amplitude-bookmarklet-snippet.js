@@ -165,6 +165,37 @@
           }
           return properties;
         };
+        var removeAmplitudePrefix = function removeAmplitudePrefix(str) {
+          return str.replace(/^\[Amplitude\] /, '');
+        }
+        var getPageContext = function getPageContext() {
+          return document.body.innerText.replace(/\n/g,' ');
+        };
+        var extractSemanticContext = function extractSemanticContext(event) {
+          const event_properties = {};
+          for (const [key, value] of Object.entries(event.event_properties)) {
+            if ([
+              '[Amplitude] Page Title',
+              '[Amplitude] Page URL',
+              '[Amplitude] Element Tag',
+              '[Amplitude] Element Text',
+              '[Amplitude] Element Href'
+            ].includes(key)) {
+              event_properties[removeAmplitudePrefix(key)] = value;
+            }
+          }
+          const semanticContext = {
+            event_type: removeAmplitudePrefix(event.event_type),
+            event_properties,
+          };
+          return semanticContext;
+        };
+        var generateSuggestedEvent = function getSuggestedEventLabel(event) {
+          const semanticContext = extractSemanticContext(event);
+          console.log(`Semantic context`, semanticContext);
+          console.log(`Page context`, getPageContext());
+          // todo send to OpenAI
+        };
         var setup = function setup(_, amplitude) {
           if (!amplitude) {
             console.warn('Auto-tracking requires a later version of @amplitude/analytics-browser. Events are not tracked.');
@@ -173,15 +204,25 @@
           if (typeof document === 'undefined') {
             return;
           }
+          var track = function track(event) {
+            amplitude.track(event);
+            generateSuggestedEvent(event);
+          };
           var addListener = function addListener(el) {
             if (shouldTrackEvent('click', el)) {
               addEventListener(el, 'click', function () {
-                amplitude.track('[Amplitude] Element Clicked', getEventProperties('click', el));
+                track({
+                  event_type: '[Amplitude] Element Clicked',
+                  event_properties: getEventProperties('click', el),
+                })
               });
             }
             if (shouldTrackEvent('change', el)) {
               addEventListener(el, 'change', function () {
-                amplitude.track('[Amplitude] Element Changed', getEventProperties('change', el));
+                track({
+                  event_type: '[Amplitude] Element Changed',
+                  event_properties: getEventProperties('click', el),
+                })
               });
             }
           };
