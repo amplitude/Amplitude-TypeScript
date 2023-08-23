@@ -1,6 +1,7 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { BaseEvent, BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import {
+  AMPLITUDE_EVENT_LIBRARY,
   GA_AUTOMATIC_EVENT_FILE_DOWNLOAD,
   GA_AUTOMATIC_EVENT_FORM_START,
   GA_AUTOMATIC_EVENT_FORM_SUBMIT,
@@ -172,7 +173,16 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
 
     logger.log(`${name} is successfully added.`);
   };
-  const execute: BrowserEnrichmentPlugin['execute'] = async (e) => e;
+  const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
+    // NOTE: Unable to pass an event to track() with custom library value because an internal plugin will overwrite `event.library` value.
+    // Instead, since an enrichment plugin's execute function is performed at a later time. pass an event to track() with library info in `event.extra`,
+    // then enrich `event.library` in this plugin's execute function.
+    if (event.extra && AMPLITUDE_EVENT_LIBRARY in event.extra) {
+      event.library = AMPLITUDE_EVENT_LIBRARY;
+      delete event.extra[AMPLITUDE_EVENT_LIBRARY];
+    }
+    return event;
+  };
   const teardown = async () => {
     if (globalScope && sendBeacon) {
       globalScope.navigator.sendBeacon = sendBeacon;
