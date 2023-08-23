@@ -35,21 +35,52 @@ This plugin requires that default tracking for sessions is enabled. If default t
 import { sessionReplay } from '@amplitude/session-replay-browser';
 ```
 
-### 2. Instantiate Session Replay plugin
+### 2. Initialize session recordings
 
-The SDK must be configured via the following code.
+The SDK must be configured via the following code. This call kicks off recording for the user.
 
 ```typescript
-const sessionReplayTracking = sessionReplay({
-  sampleRate: undefined
+sessionReplay.init(API_KEY, {
+  deviceId: DEVICE_ID,
+  sessionId: SESSION_ID,
+  sampleRate: 0.5,
 });
+```
+
+### 3. Get session recording event properties
+Any event that occurs within the span of a session recording must be tagged with properties that signal to Amplitude to include it in the scope of the recording. The following shows an example of how to use the properties
+```typescript
+const sessionRecordingProperties = sessionReplay.getSessionRecordingProperties();
+track(EVENT_NAME, {
+  ...eventProperties,
+  ...sessionRecordingProperties
+})
+```
+
+### 4. Update session id
+Any time that the session id for the user changes, the session replay SDK must be notified of that change. Update the session id via the following method:
+```typescript
+sessionReplay.setSessionId(UNIX_TIMESTAMP)
+```
+
+### 5. Teardown (optional)
+If at any point you would like to discontinue recording, for example in a part of your application where you would not like sessions to be recorded, you can use the following method to stop recording and remove recording event listeners.
+```typescript
+sessionReplay.teardown()
 ```
 
 #### Options
 
-|Name|Type|Default|Description|
-|-|-|-|-|
-|`sampleRate`|`number`|`undefined`|Use this option to control how many sessions will be selected for recording. A selected session will be recorded, while sessions that are not selected will not be recorded.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for recording. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+|Name|Type|Required|Default|Description|
+|-|-|-|-|-|
+|`deviceId`|`string`|Yes|`undefined`|Sets an identifier for the device running your application.|
+|`sessionId`|`number`|Yes|`undefined`|Sets an identifier for the users current session. The value must be in milliseconds since epoch (Unix Timestamp).|
+|`sampleRate`|`number`|No|`undefined`|Use this option to control how many sessions will be selected for recording. A selected session will be recorded, while sessions that are not selected will not be recorded.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for recording. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+|`optOut`|`boolean`|No|`false`|Sets permission to record sessions. Setting a value of true prevents Amplitude from recording sessions.|
+|`flushMaxRetries`|`number`|No|`5`|Sets the maximum number of retries for failed upload attempts. This is only applicable to retryable errors.|
+|`logLevel`|`number`|No|`LogLevel.Warn`|`LogLevel.None` or `LogLevel.Error` or `LogLevel.Warn` or `LogLevel.Verbose` or `LogLevel.Debug`. Sets the log level.|
+|`loggerProvider`|`Logger`|No|`Logger`|Sets a custom loggerProvider class from the Logger to emit log messages to desired destination.|
+|`serverZone`|`string`|No|`US`|EU or US. Sets the Amplitude server zone. Set this to EU for Amplitude projects created in EU data center.|
 
 ## Privacy
 By default, the session recording will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:

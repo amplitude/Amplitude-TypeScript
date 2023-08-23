@@ -160,6 +160,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordEvents();
   }
 
+  shouldOptOut() {
+    let identityStoreOptOut: boolean | undefined;
+    if (this.config?.instanceName) {
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      identityStoreOptOut = identityStore.getIdentity().optOut;
+    }
+
+    return identityStoreOptOut || this.config?.optOut;
+  }
+
   getShouldRecord() {
     if (!this.config) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
@@ -173,7 +183,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         );
       }
       return false;
-    } else if (this.config.optOut) {
+    } else if (this.shouldOptOut()) {
       if (this.config.sessionId) {
         this.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording due to optOut config.`);
       }
@@ -508,7 +518,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  // TODO: should call this in init?
   teardown() {
     const globalScope = getGlobalScope();
     if (globalScope) {

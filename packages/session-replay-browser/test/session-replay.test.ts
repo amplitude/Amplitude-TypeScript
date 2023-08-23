@@ -472,6 +472,33 @@ describe('SessionReplayPlugin', () => {
       expect(sendEventsList).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('shouldOptOut', () => {
+    test('should return undefined if no config set', () => {
+      const sessionReplay = new SessionReplay();
+      expect(sessionReplay.shouldOptOut()).toEqual(undefined);
+    });
+    test('should return opt out from identity store if set', async () => {
+      jest.spyOn(AnalyticsClientCommon, 'getAnalyticsConnector').mockReturnValue({
+        identityStore: {
+          getIdentity: () => {
+            return {
+              optOut: true,
+            };
+          },
+        },
+      } as unknown as ReturnType<typeof AnalyticsClientCommon.getAnalyticsConnector>);
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance' });
+      expect(sessionReplay.shouldOptOut()).toEqual(true);
+    });
+    test('should return config device id if set', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance', optOut: true });
+      expect(sessionReplay.shouldOptOut()).toEqual(true);
+    });
+  });
+
   describe('getShouldRecord', () => {
     test('should return true if no options', async () => {
       const sessionReplay = new SessionReplay();

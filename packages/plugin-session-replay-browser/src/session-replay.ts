@@ -35,11 +35,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         sessions: true,
       };
     }
-    // TODO: get optOut from analytics connector
+
     await sessionReplay.init(config.apiKey, {
       instanceName: this.config.instanceName,
       deviceId: this.config.deviceId,
-      optOut: this.config.optOut, // this can change through amplitude.setOptOut
+      optOut: this.config.optOut,
       sessionId: this.config.sessionId,
       loggerProvider: this.config.loggerProvider,
       logLevel: this.config.logLevel,
