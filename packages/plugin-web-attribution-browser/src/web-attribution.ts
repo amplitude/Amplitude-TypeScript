@@ -2,6 +2,7 @@ import { CampaignParser } from '@amplitude/analytics-client-common';
 import { BeforePlugin, BrowserClient, BrowserConfig, Campaign, Event, Storage } from '@amplitude/analytics-types';
 import { createCampaignEvent, getDefaultExcludedReferrers, getStorageKey, isNewCampaign } from './helpers';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
+import { isNewSession } from '@amplitude/analytics-client-common';
 
 export const webAttributionPlugin: CreateWebAttributionPlugin = function (options: Options = {}) {
   const plugin: BeforePlugin = {
@@ -26,7 +27,9 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
         storage.get(storageKey),
       ]);
 
-      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig)) {
+      const _isNewSession = isNewSession(config.sessionTimeout, config.lastEventTime);
+
+      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, _isNewSession)) {
         if (pluginConfig.resetSessionOnNewCampaign) {
           amplitude.setSessionId(Date.now());
           config.loggerProvider.log('Created a new session for new campaign.');

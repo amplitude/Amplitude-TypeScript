@@ -10,6 +10,7 @@ import {
   isFormInteractionTrackingEnabled,
   setConnectorDeviceId,
   setConnectorUserId,
+  isNewSession,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -250,14 +251,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
   async process(event: Event) {
     const currentTime = Date.now();
-    const lastEventTime = this.config.lastEventTime || Date.now();
-    const timeSinceLastEvent = currentTime - lastEventTime;
+    const _isNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
 
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
       (!event.session_id || event.session_id === this.getSessionId()) &&
-      timeSinceLastEvent > this.config.sessionTimeout
+      _isNewSession
     ) {
       this.setSessionId(currentTime);
     }
