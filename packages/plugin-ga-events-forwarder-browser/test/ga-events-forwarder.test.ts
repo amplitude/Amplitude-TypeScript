@@ -178,6 +178,8 @@ describe('gaEventsForwarderPlugin', () => {
       };
       const amplitude: Partial<BrowserClient> = {
         track: jest.fn(),
+        setDeviceId: jest.fn(),
+        setUserId: jest.fn(),
       };
 
       // 1. Send event to Google Analytics
@@ -230,6 +232,8 @@ describe('gaEventsForwarderPlugin', () => {
       };
       const amplitude: Partial<BrowserClient> = {
         track: jest.fn(),
+        setDeviceId: jest.fn(),
+        setUserId: jest.fn(),
       };
 
       // 1. Setup is called when Amplitude SDK is initialized
@@ -282,6 +286,8 @@ describe('gaEventsForwarderPlugin', () => {
       };
       const amplitude: Partial<BrowserClient> = {
         track: jest.fn(),
+        setDeviceId: jest.fn(),
+        setUserId: jest.fn(),
       };
 
       // 1. Setup is called when Amplitude SDK is initialized
@@ -334,6 +340,8 @@ describe('gaEventsForwarderPlugin', () => {
       };
       const amplitude: Partial<BrowserClient> = {
         track: jest.fn(),
+        setDeviceId: jest.fn(),
+        setUserId: jest.fn(),
       };
 
       // 1. Setup is called when Amplitude SDK is initialized

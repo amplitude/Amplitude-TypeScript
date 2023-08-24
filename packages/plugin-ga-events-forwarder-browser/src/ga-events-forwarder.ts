@@ -123,6 +123,11 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
       return;
     }
 
+    if (event.device_id) {
+      amplitude.setDeviceId(event.device_id);
+    }
+    amplitude.setUserId(event.user_id);
+
     if (
       (trackFileDownloads && event.event_type === GA_AUTOMATIC_EVENT_FILE_DOWNLOAD) ||
       (trackFormInteractions && event.event_type === GA_AUTOMATIC_EVENT_FORM_START) ||
