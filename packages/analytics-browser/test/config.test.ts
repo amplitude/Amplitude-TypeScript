@@ -84,6 +84,7 @@ describe('config', () => {
 
   describe('useBrowserConfig', () => {
     test('should create default config', async () => {
+      const getTopLevelDomain = jest.spyOn(Config, 'getTopLevelDomain').mockResolvedValueOnce('.amplitude.com');
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
       const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
@@ -98,7 +99,7 @@ describe('config', () => {
         apiKey,
         appVersion: undefined,
         cookieOptions: {
-          domain: '',
+          domain: '.amplitude.com',
           expiration: 365,
           sameSite: 'Lax',
           secure: false,
@@ -128,6 +129,7 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
       });
+      expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
 
     test('should create using cookies/overwrite', async () => {
@@ -159,6 +161,7 @@ describe('config', () => {
           },
           sessionTimeout: 1,
           cookieOptions: {
+            domain: '.amplitude.com',
             upgrade: false,
           },
         },
@@ -175,7 +178,7 @@ describe('config', () => {
         apiKey,
         appVersion: undefined,
         cookieOptions: {
-          domain: '',
+          domain: '.amplitude.com',
           expiration: 365,
           sameSite: 'Lax',
           secure: false,
