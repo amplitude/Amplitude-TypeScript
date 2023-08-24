@@ -1,4 +1,4 @@
-import { Config, LogLevel, Logger } from '@amplitude/analytics-types';
+import { AmplitudeReturn, Config, LogLevel, Logger } from '@amplitude/analytics-types';
 
 export type Events = string[];
 
@@ -44,7 +44,7 @@ export interface SessionReplayConfig extends Config {
 export type SessionReplayOptions = Omit<Partial<SessionReplayConfig>, 'apiKey'>;
 
 export interface AmplitudeSessionReplay {
-  init: (apiKey: string, options: SessionReplayOptions) => Promise<void>;
+  init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
   setSessionId: (sessionId: number) => void;
   getSessionRecordingProperties: () => { [key: string]: boolean };
   teardown: () => void;

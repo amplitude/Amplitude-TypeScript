@@ -1,5 +1,5 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
-import { BaseTransport, Logger } from '@amplitude/analytics-core';
+import { BaseTransport, Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, ServerZone, Status } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
@@ -56,7 +56,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider = new Logger();
   }
 
-  async init(apiKey: string, options: SessionReplayOptions) {
+  init(apiKey: string, options: SessionReplayOptions) {
+    return returnWrapper(this._init(apiKey, options));
+  }
+
+  protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.config = new SessionReplayConfig(apiKey, options);
     this.loggerProvider = this.config.loggerProvider;
 
