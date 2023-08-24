@@ -31,4 +31,12 @@ export interface DestinationPlugin<T = CoreClient, U = Config> extends PluginBas
   flush?(): Promise<void>;
 }
 
-export type Plugin<T = CoreClient, U = Config> = BeforePlugin<T, U> | EnrichmentPlugin<T, U> | DestinationPlugin<T, U>;
+export interface DiagnosticPlugin<T = CoreClient, U = Config> extends DestinationPlugin<T, U> {
+  track(eventCount: number, code: number, message: string): Promise<void>;
+}
+
+export type Plugin<T = CoreClient, U = Config> =
+  | BeforePlugin<T, U>
+  | EnrichmentPlugin<T, U>
+  | DestinationPlugin<T, U>
+  | DiagnosticPlugin<T, U>;

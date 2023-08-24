@@ -1,5 +1,6 @@
 export { AmplitudeReturn } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
+export { DiagnosticEvent } from './diagnostic-event';
 export {
   Campaign,
   CampaignParser,
@@ -48,7 +49,7 @@ export { Logger, LogLevel, LogConfig, DebugContext } from './logger';
 export { Payload } from './payload';
 export { Plan } from './plan';
 export { IngestionMetadata } from './ingestion-metadata';
-export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, PluginType } from './plugin';
+export { Plugin, BeforePlugin, EnrichmentPlugin, DestinationPlugin, DiagnosticPlugin, PluginType } from './plugin';
 export { Result } from './result';
 export { Response, SuccessResponse, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse } from './response';
 export { QueueProxy, InstanceProxy } from './proxy';

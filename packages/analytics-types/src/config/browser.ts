@@ -3,6 +3,7 @@ import { IdentityStorageType, Storage } from '../storage';
 import { Transport } from '../transport';
 import { Config } from './core';
 import { PageTrackingOptions } from '../page-view-tracking';
+import { DiagnosticPlugin } from '../plugin';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -18,6 +19,7 @@ export interface ExternalBrowserConfig extends Config {
   trackingOptions: TrackingOptions;
   transport?: 'fetch' | 'xhr' | 'beacon';
   userId?: string;
+  diagnosticProvider?: DiagnosticPlugin;
 }
 
 interface InternalBrowserConfig {

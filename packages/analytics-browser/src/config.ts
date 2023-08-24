@@ -13,8 +13,9 @@ import {
   IngestionMetadata,
   IdentityStorageType,
   ServerZoneType,
+  DiagnosticPlugin,
 } from '@amplitude/analytics-types';
-import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
+import { Config, Diagnostic, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
@@ -76,6 +77,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
     userId?: string,
+    public diagnosticProvider: DiagnosticPlugin = new Diagnostic(),
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -248,6 +250,7 @@ export const useBrowserConfig = async (
     options.transport,
     options.useBatch,
     userId,
+    options.diagnosticProvider,
   );
 };
 
