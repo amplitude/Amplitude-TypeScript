@@ -1,6 +1,7 @@
 export { CampaignParser } from './attribution/campaign-parser';
 export { CampaignTracker } from './attribution/campaign-tracker';
 export { getQueryParams } from './query-params';
+export { isNewSession } from './session';
 export { getCookieName, getOldCookieName } from './cookie-name';
 export { CookieStorage } from './storage/cookie';
 export { FetchTransport } from './transports/fetch';

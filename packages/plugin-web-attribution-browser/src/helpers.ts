@@ -17,13 +17,24 @@ const domainWithoutSubdomain = (domain: string) => {
   return parts.slice(parts.length - 2, parts.length).join('.');
 };
 
-export const isNewCampaign = (current: Campaign, previous: Campaign | undefined, options: Options) => {
+export const isNewCampaign = (
+  current: Campaign,
+  previous: Campaign | undefined,
+  options: Options,
+  isNewSession = true,
+) => {
   const { referrer, referring_domain, ...currentCampaign } = current;
   const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
 
   if (isExcludedReferrer(options.excludeReferrers, current.referring_domain)) {
     return false;
   }
+
+  //In the same session, no referrer should not override or unset any persisting query params
+  if (!isNewSession && !referrer && previous) {
+    return false;
+  }
+
   const hasNewCampaign = JSON.stringify(currentCampaign) !== JSON.stringify(previousCampaign);
   const hasNewDomain =
     domainWithoutSubdomain(referring_domain || '') !== domainWithoutSubdomain(prevReferringDomain || '');
