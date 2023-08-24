@@ -1,3 +1,5 @@
+import { VERSION } from './version';
+
 export const GA_PAYLOAD_HOSTNAME_VALUES = ['analytics.google.com', 'www.google-analytics.com'];
 export const GA_PAYLOAD_PATHNAME_VALUE = '/g/collect';
 export const GA_PAYLOAD_VERSION_VALUE = '2';
@@ -22,3 +24,6 @@ export const GA_AUTOMATIC_EVENT_FORM_START = 'form_start';
 export const GA_AUTOMATIC_EVENT_FORM_SUBMIT = 'form_submit';
 export const GA_AUTOMATIC_EVENT_PAGE_VIEW = 'page_view';
 export const GA_AUTOMATIC_EVENT_SESSION_START = 'session_start';
+
+export const AMPLITUDE_EVENT_LIBRARY = `plugin-ga-events-forwarder-browser/${VERSION}`;
+export const AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID = 'Measurement ID';

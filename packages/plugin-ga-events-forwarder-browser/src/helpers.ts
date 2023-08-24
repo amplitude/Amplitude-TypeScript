@@ -1,5 +1,7 @@
 import { BaseEvent, BrowserConfig } from '@amplitude/analytics-types';
 import {
+  AMPLITUDE_EVENT_LIBRARY,
+  AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID,
   GA_PAYLOAD_CLIENT_ID_KEY,
   GA_PAYLOAD_EVENT_NAME_KEY,
   GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX,
@@ -59,7 +61,7 @@ export const transformToAmplitudeEvents = (ga4Events: GA4Event[]): BaseEvent[] =
     user_id: String(ga4Event[GA_PAYLOAD_USER_ID_KEY]),
     event_properties: {
       ...getProperties(ga4Event, GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX, GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX),
-      'Measurement ID': ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
+      [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
       // TODO: Remove this before making the plugin available publicly
       '__Session ID__': Number(ga4Event[GA_PAYLOAD_SESSION_ID_KEY]),
     },
@@ -68,6 +70,12 @@ export const transformToAmplitudeEvents = (ga4Events: GA4Event[]): BaseEvent[] =
       GA_PAYLOAD_USER_PROPERTY_STRING_PREFIX,
       GA_PAYLOAD_USER_PROPERTY_NUMBER_PREFIX,
     ),
+    // NOTE: Unable to pass an event to track() with custom library value because an internal plugin will overwrite `event.library` value.
+    // Instead, since an enrichment plugin's execute function is performed at a later time. pass an event to track() with library info in `event.extra`,
+    // then enrich `event.library` in this plugin's execute function.
+    extra: {
+      library: AMPLITUDE_EVENT_LIBRARY,
+    },
   }));
 
 /**
