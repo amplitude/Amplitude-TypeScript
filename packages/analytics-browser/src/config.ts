@@ -186,13 +186,13 @@ export const useBrowserConfig = async (
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
   const cookieOptions = {
-    ...options.cookieOptions,
     domain:
       identityStorage !== DEFAULT_IDENTITY_STORAGE ? '' : options.cookieOptions?.domain ?? (await getTopLevelDomain()),
     expiration: 365,
     sameSite: 'Lax' as const,
     secure: false,
     upgrade: true,
+    ...options.cookieOptions,
   };
   const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
 
