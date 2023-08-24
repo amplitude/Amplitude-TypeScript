@@ -1,4 +1,4 @@
-export const GA_PAYLOAD_HOSTNAME_VALUES = ['analytics.google.com', 'www.google-analytics.com'];
+export const GA_SERVICE_ROOT_DOMAIN_VALUES = ['analytics.google.com', 'google-analytics.com'];
 export const GA_PAYLOAD_PATHNAME_VALUE = '/g/collect';
 export const GA_PAYLOAD_VERSION_VALUE = '2';
 

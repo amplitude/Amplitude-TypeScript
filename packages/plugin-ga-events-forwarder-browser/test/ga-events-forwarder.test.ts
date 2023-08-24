@@ -1,6 +1,6 @@
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { gaEventsForwarderPlugin } from '../src/ga-events-forwarder';
-import { MOCK_URL } from './constants';
+import { MOCK_REGIONAL_URL, MOCK_URL } from './constants';
 
 describe('gaEventsForwarderPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
@@ -197,6 +197,50 @@ describe('gaEventsForwarderPlugin', () => {
       await plugin?.setup(config as BrowserConfig, amplitude as BrowserClient);
       // 2.Send event to Google Analytics
       window.navigator.sendBeacon(MOCK_URL, requestPayload);
+
+      expect(amplitude.track).toHaveBeenCalledTimes(2);
+      expect(amplitude.track).toHaveBeenNthCalledWith(1, {
+        device_id: '1129698125.1691607592',
+        event_properties: {
+          'Measurement ID': 'G-DELYSDZ9Q3',
+        },
+        event_type: 'page_view',
+        user_id: 'kevinp@amplitude.com',
+        user_properties: {},
+      });
+      expect(amplitude.track).toHaveBeenNthCalledWith(2, {
+        device_id: '1129698125.1691607592',
+        event_properties: {
+          '1': 1,
+          a: 'a',
+          'Measurement ID': 'G-DELYSDZ9Q3',
+        },
+        event_type: 'custom_event',
+        user_id: 'kevinp@amplitude.com',
+        user_properties: {
+          '2': 2,
+          b: 'b',
+        },
+      });
+    });
+
+    test('should send events to Amplitude tracked on GA regional URL', async () => {
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+        error: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as Logger,
+      };
+      const amplitude: Partial<BrowserClient> = {
+        track: jest.fn(),
+      };
+
+      // 1. Setup is called when Amplitude SDK is initialized
+      await plugin?.setup(config as BrowserConfig, amplitude as BrowserClient);
+      // 2.Send event to Google Analytics
+      window.navigator.sendBeacon(MOCK_REGIONAL_URL, requestPayload);
 
       expect(amplitude.track).toHaveBeenCalledTimes(2);
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {

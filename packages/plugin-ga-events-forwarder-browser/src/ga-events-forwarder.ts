@@ -6,7 +6,7 @@ import {
   GA_AUTOMATIC_EVENT_FORM_SUBMIT,
   GA_AUTOMATIC_EVENT_PAGE_VIEW,
   GA_AUTOMATIC_EVENT_SESSION_START,
-  GA_PAYLOAD_HOSTNAME_VALUES,
+  GA_SERVICE_ROOT_DOMAIN_VALUES,
   GA_PAYLOAD_PATHNAME_VALUE,
 } from './constants';
 import {
@@ -92,7 +92,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     try {
       const url = new URL(requestUrl);
       if (
-        GA_PAYLOAD_HOSTNAME_VALUES.includes(url.hostname) &&
+        GA_SERVICE_ROOT_DOMAIN_VALUES.some((rootDomain) => url.hostname.endsWith(rootDomain)) &&
         url.pathname === GA_PAYLOAD_PATHNAME_VALUE &&
         isMeasurementIdTracked(url, measurementIdList) &&
         isVersionSupported(url)
