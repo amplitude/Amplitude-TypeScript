@@ -175,7 +175,7 @@
               '[Amplitude] Page URL',
               '[Amplitude] Element Tag',
               '[Amplitude] Element Text',
-              '[Amplitude] Element Href'
+              '[Amplitude] Element Href',
             ].includes(key)) {
               event_properties[removeAmplitudePrefix(key)] = value;
             }
@@ -186,19 +186,33 @@
           };
           return semanticContext;
         };
-        var generateSuggestedEvent = function getSuggestedEventLabel(event) {
+        var generateSuggestedEvent = function getSuggestedEventLabel(event, element) {
+          // The Element Text is the text that was clicked on or changed.
+          //   The Parent Text is the text of the parent and siblings of the clicked or changed element.
+          //   Labels should consider the parent content in addition to the element content.
+
+          const parentText = getText(
+            (element.parentElement && element.parentElement.parentElement) || element.parentElement
+          );
           const prompt = `\
-You are given the page content for a website and an action made by a user on that page.\
+You are given the page content for a webpage and an action made by a user on that page.\
  Suggest a descriptive and unique label for the user action in the context of the page. \
  This label will be used as the event name in Amplitude Analytics to generate insights about user behavior.\
- Be as descriptive as possible using the page content.
+ Be as descriptive as possible while still being concise.\
+ Don't use terms like "click" or "change" in the label, instead use an adjective specific to the User Action\
+ in the context of the page content and parent text.\
 
-Page Content:
+Page Content
 """
 ${getPageContext()}
 """
 
-User Action:
+Parent Content
+"""
+${parentText}
+"""
+
+User Action
 """
 ${JSON.stringify(extractSemanticContext(event), null, 2)}
 """`;
@@ -240,9 +254,9 @@ ${JSON.stringify(extractSemanticContext(event), null, 2)}
           if (typeof document === 'undefined') {
             return;
           }
-          var track = function track(event) {
+          var track = function track(event, element) {
             amplitude.track(event);
-            generateSuggestedEvent(event);
+            generateSuggestedEvent(event, element);
           };
           var addListener = function addListener(el) {
             if (shouldTrackEvent('click', el)) {
@@ -250,7 +264,7 @@ ${JSON.stringify(extractSemanticContext(event), null, 2)}
                 track({
                   event_type: '[Amplitude] Element Clicked',
                   event_properties: getEventProperties('click', el),
-                })
+                }, el)
               });
             }
             if (shouldTrackEvent('change', el)) {
@@ -258,7 +272,7 @@ ${JSON.stringify(extractSemanticContext(event), null, 2)}
                 track({
                   event_type: '[Amplitude] Element Changed',
                   event_properties: getEventProperties('click', el),
-                })
+                }, el)
               });
             }
           };
