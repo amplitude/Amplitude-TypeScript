@@ -74,6 +74,7 @@ describe('parseGA4Events', () => {
             a: 'a',
             1: 1,
             'Measurement ID': 'G-DELYSDZ9Q3',
+            '__Session ID__': 1691687380,
           },
           user_properties: {
             b: 'b',

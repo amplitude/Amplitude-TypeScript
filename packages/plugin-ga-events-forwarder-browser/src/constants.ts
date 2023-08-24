@@ -10,6 +10,7 @@ export const GA_PAYLOAD_CLIENT_ID_KEY = 'cid';
 export const GA_PAYLOAD_USER_ID_KEY = 'uid';
 export const GA_PAYLOAD_EVENT_NAME_KEY = 'en';
 export const GA_PAYLOAD_TRACKING_ID_KEY = 'tid';
+export const GA_PAYLOAD_SESSION_ID_KEY = 'sid';
 
 export const GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX = 'ep.';
 export const GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX = 'epn.';
