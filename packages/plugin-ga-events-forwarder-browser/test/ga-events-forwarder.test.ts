@@ -1,6 +1,7 @@
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { gaEventsForwarderPlugin } from '../src/ga-events-forwarder';
 import { MOCK_URL } from './constants';
+import { AMPLITUDE_EVENT_LIBRARY, AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID } from '../src/constants';
 
 describe('gaEventsForwarderPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
@@ -121,6 +122,36 @@ describe('gaEventsForwarderPlugin', () => {
         event_type: 'custom_event',
       });
     });
+
+    test('should enrich library field', async () => {
+      const event = await plugin?.execute({
+        event_type: 'custom_event',
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
+        },
+      });
+      expect(event).toEqual({
+        event_type: 'custom_event',
+        library: AMPLITUDE_EVENT_LIBRARY,
+      });
+    });
+
+    test('should enrich library field and keep extra field', async () => {
+      const event = await plugin?.execute({
+        event_type: 'custom_event',
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
+          a: 'a',
+        },
+      });
+      expect(event).toEqual({
+        event_type: 'custom_event',
+        library: AMPLITUDE_EVENT_LIBRARY,
+        extra: {
+          a: 'a',
+        },
+      });
+    });
   });
 
   describe('teardown', () => {
@@ -158,24 +189,30 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         device_id: '1129698125.1691607592',
         event_properties: {
-          'Measurement ID': 'G-DELYSDZ9Q3',
+          [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
         },
         event_type: 'page_view',
         user_id: 'kevinp@amplitude.com',
         user_properties: {},
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
+        },
       });
       expect(amplitude.track).toHaveBeenNthCalledWith(2, {
         device_id: '1129698125.1691607592',
         event_properties: {
           '1': 1,
           a: 'a',
-          'Measurement ID': 'G-DELYSDZ9Q3',
+          [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
         },
         event_type: 'custom_event',
         user_id: 'kevinp@amplitude.com',
         user_properties: {
           '2': 2,
           b: 'b',
+        },
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
         },
       });
     });
@@ -202,24 +239,30 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         device_id: '1129698125.1691607592',
         event_properties: {
-          'Measurement ID': 'G-DELYSDZ9Q3',
+          [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
         },
         event_type: 'page_view',
         user_id: 'kevinp@amplitude.com',
         user_properties: {},
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
+        },
       });
       expect(amplitude.track).toHaveBeenNthCalledWith(2, {
         device_id: '1129698125.1691607592',
         event_properties: {
           '1': 1,
           a: 'a',
-          'Measurement ID': 'G-DELYSDZ9Q3',
+          [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
         },
         event_type: 'custom_event',
         user_id: 'kevinp@amplitude.com',
         user_properties: {
           '2': 2,
           b: 'b',
+        },
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
         },
       });
     });
@@ -248,13 +291,16 @@ describe('gaEventsForwarderPlugin', () => {
         event_properties: {
           '1': 1,
           a: 'a',
-          'Measurement ID': 'G-DELYSDZ9Q3',
+          [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
         },
         event_type: 'custom_event',
         user_id: 'kevinp@amplitude.com',
         user_properties: {
           '2': 2,
           b: 'b',
+        },
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
         },
       });
     });
