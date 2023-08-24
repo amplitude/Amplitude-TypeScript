@@ -63,6 +63,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
   let trackFormInteractions = false;
   let trackPageViews = false;
   let trackSessions = false;
+  let lastSeenGAUserId: string | undefined = undefined;
 
   /**
    * Creates proxy for `navigator.sendBeacon` immediately to start listening for events.
@@ -132,6 +133,22 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     ) {
       logger.log(`${name} skipped ${event.event_type} because it is tracked by Amplitude.`);
       return;
+    }
+
+    // Sets a new user ID in Amplitude SDK when customer sets a new user ID in using Google Analytics SDK mid-session.
+    const userId = event.user_id;
+    // 1. Ignore user ID received from a Google Analytics event. This allows the Amplitude SDK to enrich the user ID field later.
+    delete event.user_id;
+    // 2. If current event's user ID is different from the previous event's user ID
+    // The current event's user ID can be different from the previous event's user ID when a new user_id is set through Google Analytics, for example:
+    // gtag('config', 'TAG_ID', {
+    //   'user_id': 'USER_ID'
+    // });
+    if (userId !== lastSeenGAUserId) {
+      // 2a. Set current event's user ID as Amplitude SDK's current user ID.
+      amplitude.setUserId(event.user_id);
+      // 2b. Update last seen GA user ID to be used on the next iteration.
+      lastSeenGAUserId = userId;
     }
 
     amplitude.track(event);

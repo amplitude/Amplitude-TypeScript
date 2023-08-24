@@ -2,7 +2,6 @@ import { BaseEvent, BrowserConfig } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_EVENT_LIBRARY,
   AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID,
-  GA_PAYLOAD_CLIENT_ID_KEY,
   GA_PAYLOAD_EVENT_NAME_KEY,
   GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX,
   GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX,
@@ -57,7 +56,6 @@ export const parseGA4Events = (url: URL, data?: BodyInit | null): GA4Event[] => 
 export const transformToAmplitudeEvents = (ga4Events: GA4Event[]): BaseEvent[] =>
   ga4Events.map<BaseEvent>((ga4Event) => ({
     event_type: String(ga4Event[GA_PAYLOAD_EVENT_NAME_KEY]),
-    device_id: String(ga4Event[GA_PAYLOAD_CLIENT_ID_KEY]),
     user_id: String(ga4Event[GA_PAYLOAD_USER_ID_KEY]),
     event_properties: {
       ...getProperties(ga4Event, GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX, GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX),

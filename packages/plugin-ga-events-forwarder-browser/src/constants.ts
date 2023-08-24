@@ -8,7 +8,6 @@ export const GA_PAYLOAD_VERSION_VALUE = '2';
 
 export const GA_PAYLOAD_TAG_ID_KEY = 'tid';
 export const GA_PAYLOAD_VERSION_KEY = 'v';
-export const GA_PAYLOAD_CLIENT_ID_KEY = 'cid';
 export const GA_PAYLOAD_USER_ID_KEY = 'uid';
 export const GA_PAYLOAD_EVENT_NAME_KEY = 'en';
 export const GA_PAYLOAD_TRACKING_ID_KEY = 'tid';
