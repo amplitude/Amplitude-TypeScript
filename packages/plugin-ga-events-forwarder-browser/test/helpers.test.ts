@@ -70,7 +70,6 @@ describe('parseGA4Events', () => {
       expect(amplitudeEvent).toEqual([
         {
           event_type: 'custom_event',
-          device_id: MOCK_GA_EVENT.cid,
           user_id: MOCK_GA_EVENT.uid,
           event_properties: {
             a: 'a',
