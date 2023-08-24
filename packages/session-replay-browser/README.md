@@ -32,7 +32,7 @@ This plugin requires that default tracking for sessions is enabled. If default t
 * `@amplitude/session-replay-browser`
 
 ```typescript
-import { sessionReplay } from '@amplitude/session-replay-browser';
+import * as sessionReplay from '@amplitude/session-replay-browser';
 ```
 
 ### 2. Initialize session recordings
@@ -63,10 +63,10 @@ Any time that the session id for the user changes, the session replay SDK must b
 sessionReplay.setSessionId(UNIX_TIMESTAMP)
 ```
 
-### 5. Teardown (optional)
+### 5. Shutdown (optional)
 If at any point you would like to discontinue recording, for example in a part of your application where you would not like sessions to be recorded, you can use the following method to stop recording and remove recording event listeners.
 ```typescript
-sessionReplay.teardown()
+sessionReplay.shutdown()
 ```
 
 #### Options

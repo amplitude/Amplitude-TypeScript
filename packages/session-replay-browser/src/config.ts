@@ -13,10 +13,8 @@ export const getDefaultConfig = () => ({
 export class SessionReplayConfig extends Config implements ISessionReplayConfig {
   apiKey: string;
   sampleRate: number;
-
-  // NOTE: These protected properties are used to cache values from async storage
-  protected _deviceId?: string;
-  protected _sessionId?: number;
+  deviceId?: string | undefined;
+  sessionId?: number | undefined;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -31,25 +29,5 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
 
     this.deviceId = options.deviceId;
     this.sessionId = options.sessionId;
-  }
-
-  get deviceId() {
-    return this._deviceId;
-  }
-
-  set deviceId(deviceId: string | undefined) {
-    if (this._deviceId !== deviceId) {
-      this._deviceId = deviceId;
-    }
-  }
-
-  get sessionId() {
-    return this._sessionId;
-  }
-
-  set sessionId(sessionId: number | undefined) {
-    if (this._sessionId !== sessionId) {
-      this._sessionId = sessionId;
-    }
   }
 }

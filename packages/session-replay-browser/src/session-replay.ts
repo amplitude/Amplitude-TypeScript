@@ -522,7 +522,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  teardown() {
+  shutdown() {
     const globalScope = getGlobalScope();
     if (globalScope) {
       globalScope.removeEventListener('blur', this.blurListener);

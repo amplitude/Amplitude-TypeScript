@@ -27,7 +27,7 @@ const createInstance: () => AmplitudeSessionReplay = () => {
       'getSessionRecordingProperties',
       getLogConfig(sessionReplay),
     ),
-    teardown: debugWrapper(sessionReplay.teardown.bind(sessionReplay), 'teardown', getLogConfig(sessionReplay)),
+    shutdown: debugWrapper(sessionReplay.shutdown.bind(sessionReplay), 'teardown', getLogConfig(sessionReplay)),
   };
 };
 

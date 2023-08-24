@@ -1618,11 +1618,11 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
-  describe('teardown', () => {
+  describe('shutdown', () => {
     test('should remove event listeners', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.teardown();
+      sessionReplay.shutdown();
       expect(removeEventListenerMock).toHaveBeenCalledTimes(2);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
@@ -1638,7 +1638,7 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.events = [mockEventString];
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sendEventsListMock = jest.spyOn(sessionReplay, 'sendEventsList').mockImplementationOnce(() => {});
-      sessionReplay.teardown();
+      sessionReplay.shutdown();
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.stopRecordingEvents).toBe(null);
       expect(sendEventsListMock).toHaveBeenCalled();
