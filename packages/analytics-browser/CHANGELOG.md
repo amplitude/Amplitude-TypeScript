@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.2.0...@amplitude/analytics-browser@2.2.1) (2023-08-24)
+
+### Bug Fixes
+
+- **browser:** allow cookie options to be customized
+  [#548](https://github.com/amplitude/Amplitude-TypeScript/issues/548)
+  ([#552](https://github.com/amplitude/Amplitude-TypeScript/issues/552))
+  ([5c483f4](https://github.com/amplitude/Amplitude-TypeScript/commit/5c483f4aeefe19b4d6e09c03a39b54113205fa96))
+- fix web attribution behavior for no referrer in the same session
+  ([#554](https://github.com/amplitude/Amplitude-TypeScript/issues/554))
+  ([ed54eb2](https://github.com/amplitude/Amplitude-TypeScript/commit/ed54eb28810a3edb3326f82bdd7aed901ec9452f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.1.3...@amplitude/analytics-browser@2.2.0) (2023-08-15)
 
 ### Features

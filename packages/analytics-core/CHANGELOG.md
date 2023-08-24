@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.3...@amplitude/analytics-core@2.0.4) (2023-08-24)
+
+### Bug Fixes
+
+- apply 'core' changes fom 1.x/migrate-legacy-data
+  ([#531](https://github.com/amplitude/Amplitude-TypeScript/issues/531))
+  ([502a080](https://github.com/amplitude/Amplitude-TypeScript/commit/502a080b6eca2bc390b5d8076f24b9137d213f89))
+- **core:** allow no destination plugins on instance
+  ([2c72800](https://github.com/amplitude/Amplitude-TypeScript/commit/2c728009c79116aa4fc038cd266fba830a6ca0b6))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.2...@amplitude/analytics-core@2.0.3) (2023-06-30)
 
 ### Bug Fixes

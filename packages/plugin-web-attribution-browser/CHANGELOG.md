@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.6...@amplitude/plugin-web-attribution-browser@2.0.7) (2023-08-24)
+
+### Bug Fixes
+
+- fix web attribution behavior for no referrer in the same session
+  ([#554](https://github.com/amplitude/Amplitude-TypeScript/issues/554))
+  ([ed54eb2](https://github.com/amplitude/Amplitude-TypeScript/commit/ed54eb28810a3edb3326f82bdd7aed901ec9452f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.5...@amplitude/plugin-web-attribution-browser@2.0.6) (2023-08-15)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

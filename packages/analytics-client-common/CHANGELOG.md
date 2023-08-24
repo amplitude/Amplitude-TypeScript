@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.4...@amplitude/analytics-client-common@2.0.5) (2023-08-24)
+
+### Bug Fixes
+
+- fix web attribution behavior for no referrer in the same session
+  ([#554](https://github.com/amplitude/Amplitude-TypeScript/issues/554))
+  ([ed54eb2](https://github.com/amplitude/Amplitude-TypeScript/commit/ed54eb28810a3edb3326f82bdd7aed901ec9452f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.3...@amplitude/analytics-client-common@2.0.4) (2023-07-03)
 
 ### Bug Fixes
