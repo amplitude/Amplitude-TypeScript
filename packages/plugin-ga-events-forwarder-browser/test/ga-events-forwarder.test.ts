@@ -293,24 +293,32 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         device_id: '1129698125.1691607592',
         event_properties: {
-          'Measurement ID': 'G-DELYSDZ9Q3',
+          [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
+          '__Session ID__': 1691687380,
         },
         event_type: 'page_view',
         user_id: 'kevinp@amplitude.com',
         user_properties: {},
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
+        },
       });
       expect(amplitude.track).toHaveBeenNthCalledWith(2, {
         device_id: '1129698125.1691607592',
         event_properties: {
           '1': 1,
           a: 'a',
-          'Measurement ID': 'G-DELYSDZ9Q3',
+          [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
+          '__Session ID__': 1691687380,
         },
         event_type: 'custom_event',
         user_id: 'kevinp@amplitude.com',
         user_properties: {
           '2': 2,
           b: 'b',
+        },
+        extra: {
+          library: AMPLITUDE_EVENT_LIBRARY,
         },
       });
     });
