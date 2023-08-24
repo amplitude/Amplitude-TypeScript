@@ -27,9 +27,9 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
         storage.get(storageKey),
       ]);
 
-      const _isNewSession = isNewSession(config.sessionTimeout, config.lastEventTime);
+      const isEventInNewSession = isNewSession(config.sessionTimeout, config.lastEventTime);
 
-      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, _isNewSession)) {
+      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, isEventInNewSession)) {
         if (pluginConfig.resetSessionOnNewCampaign) {
           amplitude.setSessionId(Date.now());
           config.loggerProvider.log('Created a new session for new campaign.');

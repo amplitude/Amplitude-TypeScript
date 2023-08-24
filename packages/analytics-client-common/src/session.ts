@@ -1,7 +1,6 @@
-export const isNewSession = (sessionTimeout: number, lastEventTime?: number): boolean => {
-  const _currentTime = Date.now();
-  const _lastEventTime = lastEventTime || Date.now();
-  const timeSinceLastEvent = _currentTime - _lastEventTime;
+export const isNewSession = (sessionTimeout: number, lastEventTime: number = Date.now()): boolean => {
+  const currentTime = Date.now();
+  const timeSinceLastEvent = currentTime - lastEventTime;
 
   return timeSinceLastEvent > sessionTimeout;
 };
