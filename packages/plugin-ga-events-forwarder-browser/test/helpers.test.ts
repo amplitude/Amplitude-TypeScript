@@ -76,6 +76,7 @@ describe('parseGA4Events', () => {
             a: 'a',
             1: 1,
             [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
+            '__Session ID__': 1691687380,
           },
           user_properties: {
             b: 'b',
