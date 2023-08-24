@@ -251,13 +251,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
   async process(event: Event) {
     const currentTime = Date.now();
-    const _isNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
+    const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
 
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
       (!event.session_id || event.session_id === this.getSessionId()) &&
-      _isNewSession
+      isEventInNewSession
     ) {
       this.setSessionId(currentTime);
     }

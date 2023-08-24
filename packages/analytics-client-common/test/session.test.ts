@@ -4,22 +4,22 @@ describe('session', () => {
   const sessionTimeout: number = 30 * 60 * 1000;
 
   test('should be in a same session for undefined lastEventTime', () => {
-    const _isNewSession = isNewSession(sessionTimeout, undefined);
+    const isEventInNewSession = isNewSession(sessionTimeout, undefined);
 
-    expect(_isNewSession).toBe(false);
+    expect(isEventInNewSession).toBe(false);
   });
 
   test('should be a new session', () => {
     const lastEventTime = Date.now() - sessionTimeout * 2;
-    const _isNewSession = isNewSession(sessionTimeout, lastEventTime);
+    const isEventInNewSession = isNewSession(sessionTimeout, lastEventTime);
 
-    expect(_isNewSession).toBe(true);
+    expect(isEventInNewSession).toBe(true);
   });
 
   test('should be in a same session', () => {
     const lastEventTime = Date.now();
-    const _isNewSession = isNewSession(sessionTimeout, lastEventTime);
+    const isEventInNewSession = isNewSession(sessionTimeout, lastEventTime);
 
-    expect(_isNewSession).toBe(false);
+    expect(isEventInNewSession).toBe(false);
   });
 });
