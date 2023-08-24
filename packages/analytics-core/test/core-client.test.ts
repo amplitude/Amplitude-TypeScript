@@ -2,12 +2,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, Plugin, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import { useDefaultConfig } from './helpers/default';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/messages';
+import { useDefaultConfig } from './helpers/default';
 
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
   const badRequest = { event: { event_type: 'sample' }, code: 400, message: Status.Invalid };
+  const continueRequest = { event: { event_type: 'sample' }, code: 100, message: Status.Unknown };
   const client = new AmplitudeCore();
 
   describe('init', () => {
@@ -162,6 +163,17 @@ describe('core-client', () => {
 
       const result = await client.dispatch(event);
       expect(result).toBe(badRequest);
+      expect(push).toHaveBeenCalledTimes(1);
+    });
+
+    test('should handle warning', async () => {
+      const push = jest.spyOn(client.timeline, 'push').mockReturnValueOnce(Promise.resolve(continueRequest));
+      const event: Event = {
+        event_type: 'event_type',
+      };
+
+      const result = await client.dispatch(event);
+      expect(result).toBe(continueRequest);
       expect(push).toHaveBeenCalledTimes(1);
     });
 
