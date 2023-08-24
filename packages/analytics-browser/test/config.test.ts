@@ -179,7 +179,7 @@ describe('config', () => {
           expiration: 365,
           sameSite: 'Lax',
           secure: false,
-          upgrade: true,
+          upgrade: false,
         },
         defaultTracking: true,
         flushIntervalMillis: 1000,
