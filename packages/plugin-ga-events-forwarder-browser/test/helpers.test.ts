@@ -1,5 +1,7 @@
 import { BrowserConfig } from '@amplitude/analytics-types';
 import {
+  AMPLITUDE_EVENT_LIBRARY,
+  AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID,
   GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX,
   GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX,
   GA_PAYLOAD_USER_PROPERTY_NUMBER_PREFIX,
@@ -53,7 +55,7 @@ describe('parseGA4Events', () => {
   });
 
   describe('transformToAmplitudeEvents', () => {
-    test('transformToAmplitudeEvents', () => {
+    test('should transform ga4 events to amplitude events', () => {
       const amplitudeEvent = transformToAmplitudeEvents([
         {
           ...MOCK_GA_EVENT,
@@ -73,11 +75,14 @@ describe('parseGA4Events', () => {
           event_properties: {
             a: 'a',
             1: 1,
-            'Measurement ID': 'G-DELYSDZ9Q3',
+            [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
           },
           user_properties: {
             b: 'b',
             2: 2,
+          },
+          extra: {
+            library: AMPLITUDE_EVENT_LIBRARY,
           },
         },
       ]);
