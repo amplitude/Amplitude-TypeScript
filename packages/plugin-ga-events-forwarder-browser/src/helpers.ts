@@ -6,6 +6,7 @@ import {
   GA_PAYLOAD_EVENT_NAME_KEY,
   GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX,
   GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX,
+  GA_PAYLOAD_SESSION_ID_KEY,
   GA_PAYLOAD_TAG_ID_KEY,
   GA_PAYLOAD_TRACKING_ID_KEY,
   GA_PAYLOAD_USER_ID_KEY,
@@ -61,6 +62,8 @@ export const transformToAmplitudeEvents = (ga4Events: GA4Event[]): BaseEvent[] =
     event_properties: {
       ...getProperties(ga4Event, GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX, GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX),
       [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
+      // TODO: Remove this before making the plugin available publicly
+      '__Session ID__': Number(ga4Event[GA_PAYLOAD_SESSION_ID_KEY]),
     },
     user_properties: getProperties(
       ga4Event,
