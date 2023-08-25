@@ -20,6 +20,7 @@ describe('config', () => {
   const someLocalStorage: LocalStorageModule.LocalStorage<UserSession> = expect.any(
     LocalStorageModule.LocalStorage,
   ) as LocalStorageModule.LocalStorage<UserSession>;
+  const someDiagnosticProvider: core.Diagnostic = expect.any(core.Diagnostic) as core.Diagnostic;
 
   let apiKey = '';
 
@@ -73,6 +74,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: someDiagnosticProvider,
       });
     });
 
@@ -128,6 +130,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: someDiagnosticProvider,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -213,6 +216,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: someDiagnosticProvider,
       });
     });
 
