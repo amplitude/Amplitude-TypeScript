@@ -190,7 +190,6 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         event_properties: {
           [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
-          '__Session ID__': 1691687380,
         },
         event_type: 'page_view',
         user_properties: {},
@@ -203,7 +202,6 @@ describe('gaEventsForwarderPlugin', () => {
           '1': 1,
           a: 'a',
           [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
-          '__Session ID__': 1691687380,
         },
         event_type: 'custom_event',
         user_properties: {
@@ -239,7 +237,6 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         event_properties: {
           [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
-          '__Session ID__': 1691687380,
         },
         event_type: 'page_view',
         user_properties: {},
@@ -252,7 +249,6 @@ describe('gaEventsForwarderPlugin', () => {
           '1': 1,
           a: 'a',
           [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
-          '__Session ID__': 1691687380,
         },
         event_type: 'custom_event',
         user_properties: {
@@ -288,7 +284,6 @@ describe('gaEventsForwarderPlugin', () => {
       expect(amplitude.track).toHaveBeenNthCalledWith(1, {
         event_properties: {
           [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
-          '__Session ID__': 1691687380,
         },
         event_type: 'page_view',
         user_properties: {},
@@ -301,7 +296,6 @@ describe('gaEventsForwarderPlugin', () => {
           '1': 1,
           a: 'a',
           [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
-          '__Session ID__': 1691687380,
         },
         event_type: 'custom_event',
         user_properties: {
@@ -339,7 +333,6 @@ describe('gaEventsForwarderPlugin', () => {
           '1': 1,
           a: 'a',
           [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
-          '__Session ID__': 1691687380,
         },
         event_type: 'custom_event',
         user_properties: {
