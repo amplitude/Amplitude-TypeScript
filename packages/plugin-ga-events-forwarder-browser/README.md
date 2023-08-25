@@ -29,7 +29,7 @@ This plugin works on top of Amplitude Browser SDK which listens for events track
 
 ### 1. Load Amplitude's Google Analytics events forwarder plugin
 
-Add Amplitude SDK with Google Analytics events forwarder snippet right before your Google Tag snippet. Adding it before ensures that all Google Analytics (GA4) events are forwarded to Amplitude.
+Add Amplitude SDK with Google Analytics events forwarder snippet right before your Google Tag snippet. Adding it before ensures that all Google Analytics (GA4) events that you collected are forwarded to Amplitude.
 
 ```html
 <script src="https://cdn.amplitude.com/libs/plugin-ga-events-forwarder-browser-0.2.0-min.js.gz"></script>
