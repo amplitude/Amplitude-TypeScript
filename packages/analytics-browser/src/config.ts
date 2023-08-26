@@ -77,7 +77,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
     userId?: string,
-    public diagnosticProvider: DiagnosticPlugin = new Diagnostic(),
+    public diagnosticProvider: DiagnosticPlugin | undefined = new Diagnostic(),
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;

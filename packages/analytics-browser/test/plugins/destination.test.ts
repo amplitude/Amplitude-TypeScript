@@ -7,27 +7,28 @@ describe('destination', () => {
   const apiKey = core.UUID();
   const someDiagnosticProvider: core.Diagnostic = expect.any(core.Diagnostic) as core.Diagnostic;
 
-  describe('setup', () => {
-    test('should setup plugin', async () => {
-      const destination = new Destination();
+  describe('constructor', () => {
+    test('should init plugin with config', async () => {
       const config = (await useBrowserConfig(apiKey, undefined, new AmplitudeBrowser())) as BrowserConfig;
-      await destination.setup(config);
+      const destination = new Destination(config);
       expect(destination.config.diagnosticProvider).toEqual(someDiagnosticProvider);
     });
   });
 
   describe('fulfillRequest', () => {
-    test('should track diagnostics', async () => {
-      const destination = new Destination();
+    test.each([
+      [true, 1],
+      [false, 0],
+    ])('should track diagnostics by default', async (isDiagnosticEnabled, diagnosticTrackTimes) => {
+      const config = (await useBrowserConfig(apiKey, undefined, new AmplitudeBrowser())) as BrowserConfig;
       const mockDiagnosticProvider = {
         type: 'destination' as const,
         execute: jest.fn(),
         flush: jest.fn(),
         track: jest.fn(),
       };
-      const config = (await useBrowserConfig(apiKey, undefined, new AmplitudeBrowser())) as BrowserConfig;
-      config.diagnosticProvider = mockDiagnosticProvider;
-      destination.config = config;
+      config.diagnosticProvider = isDiagnosticEnabled ? mockDiagnosticProvider : undefined;
+      const destination = new Destination(config);
       const callback = jest.fn();
       const context = {
         attempts: 0,
@@ -40,7 +41,7 @@ describe('destination', () => {
       await destination.fulfillRequest([context], 200, 'success');
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith(core.buildResult(context.event, 200, 'success'));
-      expect(mockDiagnosticProvider.track).toHaveBeenCalledTimes(1);
+      expect(mockDiagnosticProvider.track).toHaveBeenCalledTimes(diagnosticTrackTimes);
     });
   });
 });
