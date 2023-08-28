@@ -1,10 +1,9 @@
 import { DiagnosticEvent, DiagnosticPlugin, Event, Result } from '@amplitude/analytics-types';
-import fetch from 'node-fetch';
 
 export class Diagnostic implements DiagnosticPlugin {
   name = '@amplitude/plugin-diagnostic';
   type = 'destination' as const;
-  serverUrl = 'http://localhost:8000';
+  public serverUrl = new URL('http://localhost:8000');
 
   queue: DiagnosticEvent[] = [];
   scheduled: ReturnType<typeof setTimeout> | null = null;
@@ -20,14 +19,15 @@ export class Diagnostic implements DiagnosticPlugin {
     }
   }
 
-  flush = async (): Promise<void> => {
-    await fetch(this.serverUrl, this.requestPayloadBuilder(this.queue));
+  async flush(): Promise<void> {
+    // send http request based on environment
+    // implemented in its child class
 
     if (this.scheduled) {
       clearTimeout(this.scheduled);
       this.scheduled = null;
     }
-  };
+  }
 
   diagnosticEventBuilder(eventCount: number, code: number, message: string): DiagnosticEvent {
     return {
