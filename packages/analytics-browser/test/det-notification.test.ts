@@ -53,7 +53,7 @@ Visit https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-de
   });
 
   test('should handle defined config', () => {
-    const config = new BrowserConfig(apiKey, undefined, undefined, undefined, false);
+    const config = new BrowserConfig(apiKey, undefined, undefined, undefined, true);
     const warn = jest.spyOn(config.loggerProvider, 'warn').mockImplementationOnce(() => undefined);
     detNotify(config);
     expect(warn).toHaveBeenCalledTimes(0);
