@@ -1,34 +1,36 @@
-import { Config, CoreClient, DiagnosticPlugin, Event, Result } from '@amplitude/analytics-types';
+import { DiagnosticEvent, DiagnosticPlugin, Event, Result } from '@amplitude/analytics-types';
 import fetch from 'node-fetch';
 
 export class Diagnostic implements DiagnosticPlugin {
   name = '@amplitude/plugin-diagnostic';
   type = 'destination' as const;
+  serverUrl = 'http://localhost:8000';
 
-  constructor() {
-    // do something
-  }
+  queue: DiagnosticEvent[] = [];
+  scheduled: ReturnType<typeof setTimeout> | null = null;
+  delay = 60000; // deault delay is 1 minute
 
-  execute(_context: Event): Promise<Result> {
-    throw new Error('Method not implemented.');
-    // it is called by timeline when client.track()
-    // do nothing when execute is called
-  }
-  flush?(): Promise<void> {
-    throw new Error('Method not implemented.');
-    // should flush all unsent events
-  }
-  setup?(_config: Config, _client: CoreClient): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
-  teardown?(): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
   async track(eventCount: number, code: number, message: string) {
-    // add event to queue
-    // https://github.com/amplitude/Amplitude-TypeScript/blob/502a080b6eca2bc390b5d8076f24b9137d213f89/packages/analytics-core/src/plugins/destination.ts#L70-L80
+    this.queue.push(this.diagnosticEventBuilder(eventCount, code, message));
 
-    const payload = {
+    if (!this.scheduled) {
+      this.scheduled = setTimeout(() => {
+        void this.flush();
+      }, this.delay);
+    }
+  }
+
+  flush = async (): Promise<void> => {
+    await fetch(this.serverUrl, this.requestPayloadBuilder(this.queue));
+
+    if (this.scheduled) {
+      clearTimeout(this.scheduled);
+      this.scheduled = null;
+    }
+  };
+
+  diagnosticEventBuilder(eventCount: number, code: number, message: string): DiagnosticEvent {
+    return {
       time: Date.now(),
       event_properties: {
         response_error_code: code,
@@ -38,18 +40,27 @@ export class Diagnostic implements DiagnosticPlugin {
       },
       library: 'diagnostic-test-library',
     };
+  }
 
-    const serverUrl = 'http://localhost:8000';
-
-    const body = {
+  requestPayloadBuilder(events: DiagnosticEvent[]): object {
+    return {
       headers: {
         'Content-Type': 'application/json',
         Accept: '*/*',
       },
-      body: JSON.stringify(payload),
+      events: events,
       method: 'POST',
     };
+  }
 
-    await fetch(serverUrl, body);
+  execute(_context: Event): Promise<Result> {
+    return Promise.resolve({
+      event: { event_type: 'diagnostic event' },
+      code: -1,
+      message: 'this method should not be called, use track() instead',
+    });
+    // this method is not implemented
+    // it's kept here to satisfy the interface
+    // track() should be used instead
   }
 }
