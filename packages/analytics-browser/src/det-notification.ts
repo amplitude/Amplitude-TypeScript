@@ -14,7 +14,7 @@ amplitude.init(<YOUR_API_KEY>, {
 });
 
 Visit https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-default-events for more details.`;
-  config.loggerProvider.log(message);
+  config.loggerProvider.warn(message);
   notified = true;
 };
 
