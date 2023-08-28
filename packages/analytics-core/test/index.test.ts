@@ -14,6 +14,8 @@ import {
   UUID,
   MemoryStorage,
   createIdentifyEvent,
+  Diagnostic,
+  buildResult,
 } from '../src/index';
 
 describe('index', () => {
@@ -31,6 +33,7 @@ describe('index', () => {
     expect(typeof client.remove).toBe('function');
     expect(typeof BaseTransport).toBe('function');
     expect(typeof Destination).toBe('function');
+    expect(typeof Diagnostic).toBe('function');
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
     expect(typeof returnWrapper).toBe('function');
@@ -40,6 +43,7 @@ describe('index', () => {
     expect(typeof UUID).toBe('function');
     expect(typeof MemoryStorage).toBe('function');
     expect(typeof createIdentifyEvent).toBe('function');
+    expect(typeof buildResult).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
     expect(STORAGE_PREFIX).toBe('AMP_unsent');
   });
