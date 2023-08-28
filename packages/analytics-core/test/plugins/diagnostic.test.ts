@@ -1,7 +1,6 @@
 import { DiagnosticEvent } from '@amplitude/analytics-types';
 import { Diagnostic } from '../../src/plugins/diagnostic';
 
-jest.mock('node-fetch'); // Mocking node-fetch library
 jest.useFakeTimers();
 
 describe('Diagnostic', () => {
