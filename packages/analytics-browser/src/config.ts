@@ -47,7 +47,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       secure: false,
       upgrade: true,
     },
-    public defaultTracking: boolean | DefaultTrackingOptions = true,
+    public defaultTracking?: boolean | DefaultTrackingOptions,
     deviceId?: string,
     public flushIntervalMillis: number = 1000,
     public flushMaxRetries: number = 5,

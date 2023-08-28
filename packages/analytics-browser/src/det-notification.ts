@@ -1,34 +1,20 @@
-import {
-  isSessionTrackingEnabled,
-  isFileDownloadTrackingEnabled,
-  isFormInteractionTrackingEnabled,
-  isPageViewTrackingEnabled,
-} from '@amplitude/analytics-client-common';
-import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import { BrowserConfig } from '@amplitude/analytics-types';
 
 let notified = false;
 
 export const detNotify = (config: BrowserConfig): void => {
-  if (notified) {
+  if (notified || config.defaultTracking !== undefined) {
     return;
   }
 
-  const enabledTracking = [
-    isPageViewTrackingEnabled(config.defaultTracking) ? 'Page Views' : '',
-    isSessionTrackingEnabled(config.defaultTracking) ? 'Sessions' : '',
-    isFileDownloadTrackingEnabled(config.defaultTracking) ? 'File Downloads' : '',
-    isFormInteractionTrackingEnabled(config.defaultTracking) ? 'Form Interactions' : '',
-  ].filter(Boolean);
-  const enabledTrackingString = enabledTracking.join(', ');
+  const message = `\`options.defaultTracking\` is set to undefined. This implicitly configures your Amplitude instance to track Page Views, Sessions, File Downloads, and Form Interactions. You can suppress this warning by explicitly setting a value to \`options.defaultTracking\`. The value must either be a boolean, to enable and disable all default events, or an object, for advanced configuration. For example:
 
-  if (enabledTracking.length) {
-    const message = `Your Amplitude instance is configured to track ${enabledTrackingString}. Visit https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-default-events for more details.`;
-    config.loggerProvider.log(message);
-    /* istanbul ignore if */
-    if (config.logLevel < LogLevel.Verbose) {
-      console.log(message);
-    }
-  }
+amplitude.init(<YOUR_API_KEY>, {
+  defaultTracking: true,
+});
+
+Visit https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-default-events for more details.`;
+  config.loggerProvider.warn(message);
   notified = true;
 };
 
