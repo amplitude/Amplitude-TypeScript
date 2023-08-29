@@ -114,7 +114,7 @@ describe('gaEventsForwarderPlugin', () => {
   });
 
   describe('execute', () => {
-    test('should return the return the same event type', async () => {
+    test('should return the same event type', async () => {
       const event = await plugin?.execute({
         event_type: 'custom_event',
       });
