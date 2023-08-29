@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.2.1...@amplitude/analytics-browser@2.2.2) (2023-08-29)
+
+### Bug Fixes
+
+- allow DET warning to be suppressed ([#569](https://github.com/amplitude/Amplitude-TypeScript/issues/569))
+  ([b9d232c](https://github.com/amplitude/Amplitude-TypeScript/commit/b9d232c4c5c37d0e53b9097ed4415c0e917c518e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.2.0...@amplitude/analytics-browser@2.2.1) (2023-08-24)
 
 ### Bug Fixes
