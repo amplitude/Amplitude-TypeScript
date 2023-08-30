@@ -17,6 +17,7 @@ interface EventListener {
 export const formInteractionTracking = (): EnrichmentPlugin => {
   let observer: MutationObserver | undefined;
   let eventListeners: EventListener[] = [];
+
   const addEventListener = (element: Element, type: 'change' | 'submit', handler: () => void) => {
     element.addEventListener(type, handler);
     eventListeners.push({
@@ -25,6 +26,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       handler,
     });
   };
+
   const removeClickListeners = () => {
     eventListeners.forEach(({ element, type, handler }) => {
       /* istanbul ignore next */
@@ -57,7 +59,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
             [FORM_ID]: form.id,
-            [FORM_NAME]: form.name,
+            [FORM_NAME]: stringOrUndefined(form.name),
             [FORM_DESTINATION]: form.action,
           });
         }
@@ -68,14 +70,14 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
             [FORM_ID]: form.id,
-            [FORM_NAME]: form.name,
+            [FORM_NAME]: stringOrUndefined(form.name),
             [FORM_DESTINATION]: form.action,
           });
         }
 
         amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
           [FORM_ID]: form.id,
-          [FORM_NAME]: form.name,
+          [FORM_NAME]: stringOrUndefined(form.name),
           [FORM_DESTINATION]: form.action,
         });
         hasFormChanged = false;
@@ -121,4 +123,16 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     execute,
     teardown,
   };
+};
+
+export const stringOrUndefined = (name: string) => {
+  /* istanbul ignore if */
+  if (typeof name !== 'string') {
+    // We found instances where the value of `name` is an Element and not a string.
+    // Elements may have circular references and would throw an error when passed to `JSON.stringify(...)`.
+    // If a non-string value is seen, assume there is no value.
+    return undefined;
+  }
+
+  return name;
 };
