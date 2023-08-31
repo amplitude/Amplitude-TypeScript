@@ -125,14 +125,14 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
   };
 };
 
-export const stringOrUndefined = (name: string) => {
+export const stringOrUndefined = <T>(name: T): T extends string ? string : undefined => {
   /* istanbul ignore if */
   if (typeof name !== 'string') {
     // We found instances where the value of `name` is an Element and not a string.
     // Elements may have circular references and would throw an error when passed to `JSON.stringify(...)`.
     // If a non-string value is seen, assume there is no value.
-    return undefined;
+    return undefined as T extends string ? string : undefined;
   }
 
-  return name;
+  return name as T extends string ? string : undefined;
 };
