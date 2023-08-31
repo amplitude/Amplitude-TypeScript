@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, IngestionMetadata } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
 import * as constants from './constants';
 import { getText } from './helpers';
 
@@ -17,11 +17,10 @@ interface EventListener {
 interface Options {
   cssSelectorAllowlist?: string[];
   tagAllowlist?: string[];
-  ingestionMetadata?: IngestionMetadata; // Should avoid overriding this if unplanned to do so, this is not available in the charts.
 }
 
 export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
-  const { tagAllowlist = DEFAULT_TAG_ALLOWLIST, cssSelectorAllowlist, ingestionMetadata } = options;
+  const { tagAllowlist = DEFAULT_TAG_ALLOWLIST, cssSelectorAllowlist } = options;
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
 
@@ -164,13 +163,6 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
   };
 
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
-    const { sourceName, sourceVersion } = ingestionMetadata || {};
-    if (sourceName && sourceVersion) {
-      event.ingestion_metadata = {
-        source_name: `${constants.INGESTION_METADATA_SOURCE_NAME_PREFIX}${sourceName}`, // Make sure the source name is prefixed with the correct context.
-        source_version: sourceVersion,
-      };
-    }
     return event;
   };
 

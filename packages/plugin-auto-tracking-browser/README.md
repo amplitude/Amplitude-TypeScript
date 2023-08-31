@@ -54,8 +54,6 @@ Examples:
     - `<a class="amp-auto-tracking">Link</a>`
 - The above `tagAllowlist` will only allow `button` and `a` tags to be tracked.
 
-Note `ingestionMetadata` is for internal use only, you don't need to provide it.
-
 #### Options
 
 |Name|Type|Default|Description|
