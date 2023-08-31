@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.2.2...@amplitude/analytics-browser@2.2.3) (2023-08-31)
+
+### Bug Fixes
+
+- ignore non-string form.name values for form interaction tracking
+  ([#572](https://github.com/amplitude/Amplitude-TypeScript/issues/572))
+  ([80816c9](https://github.com/amplitude/Amplitude-TypeScript/commit/80816c92b64d3e839688c7654c08c1503501e2ed))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.2.1...@amplitude/analytics-browser@2.2.2) (2023-08-29)
 
 ### Bug Fixes
