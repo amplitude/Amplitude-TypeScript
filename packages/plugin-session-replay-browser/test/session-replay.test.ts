@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { BrowserConfig, LogLevel, Logger } from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
