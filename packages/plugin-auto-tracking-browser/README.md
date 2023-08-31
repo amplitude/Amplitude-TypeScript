@@ -5,9 +5,10 @@
   <br />
 </p>
 
-# @amplitude/plugin-auto-tracking-browser
+# @amplitude/plugin-auto-tracking-browser (alpha)
+**This plugin is in alpha stage, naming and interface might change in the future.**
 
-Official Browser SDK plugin for auto-tracking.
+Browser SDK plugin for auto-tracking.
 
 ## Installation
 
