@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.2.0...@amplitude/plugin-ga-events-forwarder-browser@0.3.0) (2023-08-31)
+
+### Features
+
+- add auto-tracking plugin ([#570](https://github.com/amplitude/Amplitude-TypeScript/issues/570))
+  ([757032f](https://github.com/amplitude/Amplitude-TypeScript/commit/757032f5c0eeac4396f28163ad14958ea44e8ace))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.1.2...@amplitude/plugin-ga-events-forwarder-browser@0.2.0) (2023-08-25)
 
 ### Bug Fixes
