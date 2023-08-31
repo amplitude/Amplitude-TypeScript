@@ -62,7 +62,7 @@ describe('formInteractionTracking', () => {
     const plugin = formInteractionTracking();
     await plugin.setup?.(config, amplitude);
 
-    // add form elemen dynamically
+    // add form element dynamically
     const form = document.createElement('form');
     form.setAttribute('id', 'my-form-2-id');
     form.setAttribute('name', 'my-form-2-name');
@@ -135,7 +135,7 @@ describe('formInteractionTracking', () => {
     const plugin = formInteractionTracking();
     await plugin.setup?.(config, amplitude);
 
-    // add form elemen dynamically
+    // add form element dynamically
     const form = document.createElement('form');
     form.setAttribute('id', 'my-form-2-id');
     form.setAttribute('name', 'my-form-2-name');
