@@ -186,36 +186,41 @@
           };
           return semanticContext;
         };
-        var generateSuggestedEvent = function getSuggestedEventLabel(event, element) {
-          // The Element Text is the text that was clicked on or changed.
-          //   The Parent Text is the text of the parent and siblings of the clicked or changed element.
-          //   Labels should consider the parent content in addition to the element content.
-
-          const parentText = getText(
-            (element.parentElement && element.parentElement.parentElement) || element.parentElement
-          );
-          const prompt = `\
-You are given the page content for a webpage and an action made by a user on that page.\
- Suggest a descriptive and unique label for the user action in the context of the page. \
+        var getPrompt = function getPrompt(actionContext, pageContext, parentContext) {
+          return `\
+You are given the text content for all elements of a web page and an action made by a user on a specific element of that page.\
+ Your task is to suggest a descriptive and unique label for the action in given the context of the page. \
  This label will be used as the event name in Amplitude Analytics to generate insights about user behavior.\
  Be as descriptive as possible while still being concise.\
  Don't use terms like "click" or "change" in the label, instead use an adjective specific to the User Action\
  in the context of the page content and parent text.\
 
-Page Content
+page
 """
-${getPageContext()}
-"""
-
-Parent Content
-"""
-${parentText}
+${pageContext}
 """
 
-User Action
+action
 """
-${JSON.stringify(extractSemanticContext(event), null, 2)}
-"""`;
+${actionContext}
+"""
+
+action surroundings
+"""
+${parentContext}
+"""
+`;
+        }
+        var generateSuggestedEvent = function getSuggestedEventLabel(event, element) {
+          // The Element Text is the text that was clicked on or changed.
+          //   The Parent Text is the text of the parent and siblings of the clicked or changed element.
+          //   Labels should consider the parent content in addition to the element content.
+
+          const parentContext = getText(
+            (element.parentElement && element.parentElement.parentElement) || element.parentElement
+          );
+          const actionContext = JSON.stringify(extractSemanticContext(event));
+          const prompt = getPrompt(actionContext, getPageContext(), parentContext);
           // console.log(`Prompt`, prompt);
 
           const openAiApiKey = 'YOUR_API_KEY_HERE';
