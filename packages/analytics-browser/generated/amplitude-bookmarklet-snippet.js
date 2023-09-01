@@ -137,11 +137,7 @@
         var getText = function getText(element) {
           var text = '';
           if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
-            element.childNodes.forEach(function (child) {
-              if (isTextNode(child) && child.textContent) {
-                text += child.textContent.split(/(\s+)/).filter(isNonSensitiveString).join('').replace(/[\r\n]/g, ' ').replace(/[ ]+/g, ' ').substring(0, 255);
-              }
-            });
+            text = element.innerText.replace(/\n/g, ' ')
           }
           return text;
         };
@@ -165,6 +161,96 @@
           }
           return properties;
         };
+        var removeAmplitudePrefix = function removeAmplitudePrefix(str) {
+          return str.replace(/^\[Amplitude\] /, '');
+        }
+        var getPageContext = function getPageContext() {
+          return document.body.innerText.replace(/\n/g,' ');
+        };
+        var extractSemanticContext = function extractSemanticContext(event) {
+          const event_properties = {};
+          for (const [key, value] of Object.entries(event.event_properties)) {
+            if ([
+              '[Amplitude] Page Title',
+              '[Amplitude] Page URL',
+              '[Amplitude] Element Tag',
+              '[Amplitude] Element Text',
+              '[Amplitude] Element Href',
+            ].includes(key)) {
+              event_properties[removeAmplitudePrefix(key)] = value;
+            }
+          }
+          const semanticContext = {
+            event_type: removeAmplitudePrefix(event.event_type),
+            event_properties,
+          };
+          return semanticContext;
+        };
+        var getPrompt = function getPrompt(actionContext, pageContext, parentContext) {
+          return `\
+You are given the text content for all elements of a web page and an action made by a user on a specific element of that page.\
+ Your task is to suggest a descriptive and unique label for the action in given the context of the page. \
+ This label will be used as the event name in Amplitude Analytics to generate insights about user behavior.\
+ Be as descriptive as possible while still being concise.\
+ Don't use terms like "click" or "change" in the label, instead use an adjective specific to the User Action\
+ in the context of the page content and parent text.\
+
+page
+"""
+${pageContext}
+"""
+
+action
+"""
+${actionContext}
+"""
+
+action surroundings
+"""
+${parentContext}
+"""
+`;
+        }
+        var generateSuggestedEvent = function getSuggestedEventLabel(event, element) {
+          // The Element Text is the text that was clicked on or changed.
+          //   The Parent Text is the text of the parent and siblings of the clicked or changed element.
+          //   Labels should consider the parent content in addition to the element content.
+
+          const parentContext = getText(
+            (element.parentElement && element.parentElement.parentElement) || element.parentElement
+          );
+          const actionContext = JSON.stringify(extractSemanticContext(event));
+          const prompt = getPrompt(actionContext, getPageContext(), parentContext);
+          // console.log(`Prompt`, prompt);
+
+          const openAiApiKey = 'YOUR_API_KEY_HERE';
+          fetch("https://api.openai.com/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${openAiApiKey}`
+              },
+              body: JSON.stringify({
+                "model": "gpt-3.5-turbo",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0
+              })
+            }
+          ).then(response => response.json())
+          .then(data => {
+            // console.log(data);
+
+            // Track new event with suggested name
+            const suggestedEventName = data.choices[0].message.content;
+            console.log(`Suggested event name`, suggestedEventName);
+            amplitude.track({
+              ...event,
+              event_type: `[Suggested] ${suggestedEventName}`,
+            });
+          })
+        };
+
         var setup = function setup(_, amplitude) {
           if (!amplitude) {
             console.warn('Auto-tracking requires a later version of @amplitude/analytics-browser. Events are not tracked.');
@@ -173,15 +259,25 @@
           if (typeof document === 'undefined') {
             return;
           }
+          var track = function track(event, element) {
+            amplitude.track(event);
+            generateSuggestedEvent(event, element);
+          };
           var addListener = function addListener(el) {
             if (shouldTrackEvent('click', el)) {
               addEventListener(el, 'click', function () {
-                amplitude.track('[Amplitude] Element Clicked', getEventProperties('click', el));
+                track({
+                  event_type: '[Amplitude] Element Clicked',
+                  event_properties: getEventProperties('click', el),
+                }, el)
               });
             }
             if (shouldTrackEvent('change', el)) {
               addEventListener(el, 'change', function () {
-                amplitude.track('[Amplitude] Element Changed', getEventProperties('change', el));
+                track({
+                  event_type: '[Amplitude] Element Changed',
+                  event_properties: getEventProperties('click', el),
+                }, el)
               });
             }
           };
