@@ -44,6 +44,39 @@ describe('event-builder', () => {
         event_type: 'track event',
       });
     });
+
+    test('should include group info from event options and ignore from event', () => {
+      const eventType = 'track event';
+      const event = createTrackEvent(
+        {
+          event_type: eventType,
+          groups: { a: 'c' },
+          group_properties: {
+            $set: {
+              z: 'y',
+            },
+          },
+        },
+        undefined,
+        {
+          groups: { a: 'b' },
+          group_properties: {
+            $set: {
+              x: 'y',
+            },
+          },
+        },
+      );
+      expect(event).toEqual({
+        event_type: 'track event',
+        groups: { a: 'b' },
+        group_properties: {
+          $set: {
+            x: 'y',
+          },
+        },
+      });
+    });
   });
 
   describe('createIdentifyEvent', () => {
