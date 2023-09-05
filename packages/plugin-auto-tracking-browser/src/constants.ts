@@ -14,5 +14,3 @@ export const AMPLITUDE_EVENT_PROP_PAGE_URL = '[Amplitude] Page URL';
 export const AMPLITUDE_EVENT_PROP_PAGE_TITLE = '[Amplitude] Page Title';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
-
-export const INGESTION_METADATA_SOURCE_NAME_PREFIX = 'browser-typescript-';

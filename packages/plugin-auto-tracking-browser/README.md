@@ -5,9 +5,10 @@
   <br />
 </p>
 
-# @amplitude/plugin-auto-tracking-browser
+# @amplitude/plugin-auto-tracking-browser (alpha)
+**This plugin is in alpha stage, naming and interface might change in the future.**
 
-Official Browser SDK plugin for auto-tracking.
+Browser SDK plugin for auto-tracking.
 
 ## Installation
 
@@ -53,8 +54,6 @@ Examples:
     - `<button amp-auto-tracking>Click</button>`
     - `<a class="amp-auto-tracking">Link</a>`
 - The above `tagAllowlist` will only allow `button` and `a` tags to be tracked.
-
-Note `ingestionMetadata` is for internal use only, you don't need to provide it.
 
 #### Options
 

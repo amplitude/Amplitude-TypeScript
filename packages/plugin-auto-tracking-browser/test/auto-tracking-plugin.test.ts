@@ -97,53 +97,6 @@ describe('autoTrackingPlugin', () => {
         event_type: 'custom_event',
       });
     });
-
-    test('should enrich ingestion_metadata field', async () => {
-      plugin = autoTrackingPlugin({
-        ingestionMetadata: {
-          sourceName: 'unit-test',
-          sourceVersion: '1.0.0',
-        },
-      });
-      const event = await plugin?.execute({
-        event_type: 'custom_event',
-      });
-      expect(event).toEqual({
-        event_type: 'custom_event',
-        ingestion_metadata: {
-          source_name: 'browser-typescript-unit-test',
-          source_version: '1.0.0',
-        },
-      });
-    });
-
-    test('should not enrich ingestion_metadata field if source_name is missing', async () => {
-      plugin = autoTrackingPlugin({
-        ingestionMetadata: {
-          sourceVersion: '1.0.0',
-        },
-      });
-      const event = await plugin?.execute({
-        event_type: 'custom_event',
-      });
-      expect(event).toEqual({
-        event_type: 'custom_event',
-      });
-    });
-
-    test('should not enrich ingestion_metadata field if source_version is missing', async () => {
-      plugin = autoTrackingPlugin({
-        ingestionMetadata: {
-          sourceName: 'unit-test',
-        },
-      });
-      const event = await plugin?.execute({
-        event_type: 'custom_event',
-      });
-      expect(event).toEqual({
-        event_type: 'custom_event',
-      });
-    });
   });
 
   describe('auto-tracking events', () => {
