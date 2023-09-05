@@ -1,4 +1,3 @@
-import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { BrowserConfig, LogLevel, Logger } from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
@@ -30,13 +29,11 @@ describe('SessionReplayPlugin', () => {
     deviceId: '1a2b3c',
     serverUrl: 'url',
     serverZone: 'US',
-    transportProvider: new FetchTransport(),
     useBatch: false,
     sessionId: 123,
     cookieExpiration: 365,
     cookieSameSite: 'Lax',
     cookieSecure: false,
-    cookieStorage: new CookieStorage(),
     cookieUpgrade: true,
     disableCookies: false,
     domain: '.amplitude.com',
@@ -46,7 +43,7 @@ describe('SessionReplayPlugin', () => {
       language: true,
       platform: true,
     },
-  };
+  } as unknown as BrowserConfig;
   beforeEach(() => {
     init.mockReturnValue({
       promise: Promise.resolve(),
