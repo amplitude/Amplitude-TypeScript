@@ -1,10 +1,10 @@
 import { DiagnosticEvent, Diagnostic as IDiagnostic, Event, Result } from '@amplitude/analytics-types';
 
 export class Diagnostic implements IDiagnostic {
-  public serverUrl = new URL('http://localhost:8000');
+  public serverUrl = 'http://localhost:8000';
 
   queue: DiagnosticEvent[] = [];
-  scheduled: ReturnType<typeof setTimeout> | null = null;
+  private scheduled: ReturnType<typeof setTimeout> | null = null;
   delay = 60000; // deault delay is 1 minute
 
   track(eventCount: number, code: number, message: string) {
