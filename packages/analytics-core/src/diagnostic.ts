@@ -1,4 +1,15 @@
-import { DiagnosticEvent, Diagnostic as IDiagnostic, Event, Result } from '@amplitude/analytics-types';
+import { Diagnostic as IDiagnostic, Event, Result } from '@amplitude/analytics-types';
+
+interface DiagnosticEvent {
+  time: number;
+  event_properties: {
+    response_error_code: number;
+    trigger: string;
+    action: string;
+    event_count: number;
+  };
+  library: string;
+}
 
 export class Diagnostic implements IDiagnostic {
   public serverUrl = 'http://localhost:8000';

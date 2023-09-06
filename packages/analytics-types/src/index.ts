@@ -1,6 +1,5 @@
 export { AmplitudeReturn } from './amplitude-promise';
 export { BaseEvent, EventOptions } from './base-event';
-export { DiagnosticEvent } from './diagnostic-event';
 export {
   Campaign,
   CampaignParser,

@@ -1,4 +1,3 @@
-import { DiagnosticEvent } from '@amplitude/analytics-types';
 import { Diagnostic } from '../src/diagnostic';
 
 jest.useFakeTimers();
@@ -55,7 +54,7 @@ describe('Diagnostic', () => {
 
   describe('requestPayloadBuilder', () => {
     test('should return correct payload', () => {
-      const events: DiagnosticEvent[] = [
+      const events = [
         {
           time: Date.now(),
           event_properties: {
