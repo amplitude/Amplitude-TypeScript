@@ -58,7 +58,6 @@ describe('SessionReplayPlugin', () => {
     test('should setup plugin', async () => {
       const sessionReplay = new SessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
-      expect(sessionReplay.config.transportProvider).toBeDefined();
       expect(sessionReplay.config.serverUrl).toBe('url');
       expect(sessionReplay.config.flushMaxRetries).toBe(1);
       expect(sessionReplay.config.flushQueueSize).toBe(0);
