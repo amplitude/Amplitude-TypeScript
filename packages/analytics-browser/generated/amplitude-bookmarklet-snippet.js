@@ -44,187 +44,35 @@
       }
     };
     amplitude.invoked = true;
+    var s = document.getElementsByTagName('script')[0];
+    var autoTrackingPluginScript = document.createElement('script');
+    autoTrackingPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-auto-tracking-browser-0.1.1-min.js.gz';
+    autoTrackingPluginScript.async = false;
+    s.parentNode.insertBefore(autoTrackingPluginScript, s);
     var as = document.createElement('script');
     as.type = 'text/javascript';
     as.integrity = 'sha384-lI19/rkWkq7akQskdqbaYBssAwNImFV9Iwejq7dylnP0Yx8TyWYX1PwAoaA5xrUp';
     as.crossOrigin = 'anonymous';
-    as.async = true;
+    as.async = false;
     as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.1.3-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
       window.amplitude.init('YOUR_API_KEY', 'YOUR_USER_ID', {
-        serverZone: 'YOUR_SERVER_ZONE'
+        instanceName: 'amplitude-bookmarklet',
+        serverZone: 'YOUR_SERVER_ZONE',
+        ingestionMetadata: {
+          sourceName: 'browser-typescript-bookmarklet',
+          sourceVersion: '1.0.0'
+        },
+        optOut: false
       });
-      var autoTracking = function autoTracking() {
-        var name = '@amplitude/plugin-auto-tracking-browser';
-        var type = 'enrichment';
-        var tagList = ['a', 'button', 'input', 'select', 'textarea', 'label'];
-        var observer = void 0;
-        var eventListeners = [];
-        var addEventListener = function addEventListener(element, type, handler) {
-          element.addEventListener(type, handler);
-          eventListeners.push({
-            element: element,
-            type: type,
-            handler: handler
-          });
-        };
-        var removeEventListeners = function removeEventListeners() {
-          eventListeners.forEach(function (_ref) {
-            var element = _ref.element,
-              type = _ref.type,
-              handler = _ref.handler;
-            element?.removeEventListener(type, handler);
-          });
-          eventListeners = [];
-        };
-        var isTextNode = function isTextNode(node) {
-          return !!node && node.nodeType === 3;
-        };
-        var isNonSensitiveString = function isNonSensitiveString(text) {
-          if (text == null) {
-            return false;
-          }
-          if (typeof value === 'string') {
-            var ccRegex = /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
-            if (ccRegex.test((value || '').replace(/[- ]/g, ''))) {
-              return false;
-            }
-            var ssnRegex = /(^\d{3}-?\d{2}-?\d{4}$)/;
-            if (ssnRegex.test(value)) {
-              return false;
-            }
-          }
-          return true;
-        };
-        var isNonSensitiveElement = function isNonSensitiveElement(element) {
-          var tag = element.tagName.toLowerCase();
-          var sentitiveTags = ['input', 'select', 'textarea'];
-          return !sentitiveTags.includes(tag);
-        };
-        var shouldTrackEvent = function shouldTrackEvent(event, element) {
-          if (!element) {
-            return false;
-          }
-          var type = element.type || '';
-          if (typeof type === 'string') {
-            switch (type.toLowerCase()) {
-              case 'hidden':
-                return false;
-              case 'password':
-                return false;
-            }
-          }
-          var tag = element.tagName.toLowerCase();
-          if (!tagList.includes(tag)) {
-            return false;
-          }
-          switch (tag) {
-            case 'input':
-            case 'select':
-            case 'textarea':
-              return event === 'change' || event === 'click';
-            default:
-              var computedStyle = window.getComputedStyle(element);
-              if (computedStyle && computedStyle.getPropertyValue('cursor') === 'pointer' && event === 'click') {
-                return true;
-              }
-              return event === 'click';
-          }
-        };
-        var getText = function getText(element) {
-          var text = '';
-          if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
-            element.childNodes.forEach(function (child) {
-              if (isTextNode(child) && child.textContent) {
-                text += child.textContent.split(/(\s+)/).filter(isNonSensitiveString).join('').replace(/[\r\n]/g, ' ').replace(/[ ]+/g, ' ').substring(0, 255);
-              }
-            });
-          }
-          return text;
-        };
-        var getEventProperties = function getEventProperties(event, element) {
-          var tag = element.tagName.toLowerCase();
-          var rect = typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : {};
-          var properties = {
-            '[Amplitude] Element ID': element.id,
-            '[Amplitude] Element Class': element.className,
-            '[Amplitude] Element Tag': tag,
-            '[Amplitude] Element Text': getText(element),
-            '[Amplitude] Element Position Left': rect.left == null ? null : Math.round(rect.left),
-            '[Amplitude] Element Position Top': rect.top == null ? null : Math.round(rect.top),
-            '[Amplitude] Page URL': window.location.href.split('?')[0],
-            '[Amplitude] Page Title': typeof document !== 'undefined' && document.title || '',
-            '[Amplitude] Viewport Height': window.innerHeight,
-            '[Amplitude] Viewport Width': window.innerWidth
-          };
-          if (tag === 'a' && event === 'click') {
-            properties['[Amplitude] Element Href'] = element.href;
-          }
-          return properties;
-        };
-        var setup = function setup(_, amplitude) {
-          if (!amplitude) {
-            console.warn('Auto-tracking requires a later version of @amplitude/analytics-browser. Events are not tracked.');
-            return;
-          }
-          if (typeof document === 'undefined') {
-            return;
-          }
-          var addListener = function addListener(el) {
-            if (shouldTrackEvent('click', el)) {
-              addEventListener(el, 'click', function () {
-                amplitude.track('[Amplitude] Element Clicked', getEventProperties('click', el));
-              });
-            }
-            if (shouldTrackEvent('change', el)) {
-              addEventListener(el, 'change', function () {
-                amplitude.track('[Amplitude] Element Changed', getEventProperties('change', el));
-              });
-            }
-          };
-          var allElements = Array.from(document.body.querySelectorAll(tagList.join(',')));
-          allElements.forEach(addListener);
-          if (typeof MutationObserver !== 'undefined') {
-            var _observer = new MutationObserver(function (mutations) {
-              mutations.forEach(function (mutation) {
-                mutation.addedNodes.forEach(function (node) {
-                  addListener(node);
-                  if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
-                    Array.from(node.querySelectorAll(tagList.join(','))).map(addListener);
-                  }
-                });
-              });
-            });
-            _observer.observe(document.body, {
-              subtree: true,
-              childList: true
-            });
-          }
-        };
-        var execute = function execute(event) {
-          return event;
-        };
-        var teardown = function teardown() {
-          if (observer) {
-            observer.disconnect();
-          }
-          removeEventListeners();
-        };
-        return {
-          name: name,
-          type: type,
-          setup: setup,
-          execute: execute,
-          teardown: teardown
-        };
-      };
-      window.amplitude.add(autoTracking());
+      if (amplitudeAutoTrackingPlugin && amplitudeAutoTrackingPlugin.autoTrackingPlugin && typeof amplitudeAutoTrackingPlugin.autoTrackingPlugin === 'function') {
+        window.amplitude.add(amplitudeAutoTrackingPlugin.autoTrackingPlugin());
+      }
       alert('Amplitude is now tracking events!');
     };
-    var s = document.getElementsByTagName('script')[0];
     s.parentNode.insertBefore(as, s);
     var Identify = function Identify() {
       this._q = [];

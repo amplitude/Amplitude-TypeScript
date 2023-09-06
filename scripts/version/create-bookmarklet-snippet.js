@@ -35,7 +35,23 @@ const encoding = 'base64';
 const inputText = fs.readFileSync(inputPath, 'utf-8');
 const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputText).digest(encoding);
 const version = getVersion() || '';
-const outputText = header + snippet(getName() + nameSuffix, integrity, version, globalVar, apiKey, userId, serverZone);
+const ingestionSourceName = 'browser-typescript-bookmarklet';
+const ingestionSourceVersion = '1.0.0';
+const autoTrackingPluginVersion = '0.1.1';
+const outputText =
+  header +
+  snippet(
+    getName() + nameSuffix,
+    integrity,
+    version,
+    globalVar,
+    apiKey,
+    userId,
+    serverZone,
+    ingestionSourceName,
+    ingestionSourceVersion,
+    autoTrackingPluginVersion,
+  );
 const { code: transpiledOutputText } = babel.transformSync(outputText, {
   presets: ['env'],
 });
