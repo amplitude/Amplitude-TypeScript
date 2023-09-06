@@ -1,4 +1,4 @@
-import { AmplitudeCore, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
+import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
 import {
   getAnalyticsConnector,
   getAttributionTrackingConfig,
@@ -24,7 +24,6 @@ import {
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { Destination } from './plugins/destination';
 import { useBrowserConfig, createTransport } from './config';
 import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
@@ -87,7 +86,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 4: Install plugins
     // Do not track any events before this
-    await this.add(new Destination(this.config)).promise;
+    await this.add(new Destination()).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
 

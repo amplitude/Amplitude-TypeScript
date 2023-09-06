@@ -2,7 +2,7 @@ export { AmplitudeCore } from './core-client';
 export { Identify } from './identify';
 export { Revenue } from './revenue';
 export { Destination } from './plugins/destination';
-export { Diagnostic } from './plugins/diagnostic';
+export { Diagnostic } from './diagnostic';
 export { Config } from './config';
 export { Logger } from './logger';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './constants';

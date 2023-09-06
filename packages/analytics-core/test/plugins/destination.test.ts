@@ -1079,4 +1079,46 @@ describe('destination', () => {
       expect(result).toBe('');
     });
   });
+
+  describe('fulfillRequest', () => {
+    test('disgnostic should track if it enabled', () => {
+      const context = {
+        event: {
+          event_type: 'event_type',
+        },
+        callback: () => undefined,
+        attempts: 0,
+        timeout: 0,
+      };
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      const diagnostic = {
+        track: () => undefined,
+      };
+      destination.config.diagnosticProvider = diagnostic;
+      const diagnosticTrack = jest.spyOn(diagnostic, 'track');
+      destination.fulfillRequest([context], 0, 'test_message');
+      expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+    });
+
+    test('disgnostic should not track if it disabled', () => {
+      const context = {
+        event: {
+          event_type: 'event_type',
+        },
+        callback: () => undefined,
+        attempts: 0,
+        timeout: 0,
+      };
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      const diagnostic = {
+        track: () => undefined,
+      };
+      destination.config.diagnosticProvider = undefined;
+      const diagnosticTrack = jest.spyOn(diagnostic, 'track');
+      destination.fulfillRequest([context], 0, 'test_message');
+      expect(diagnosticTrack).toHaveBeenCalledTimes(0);
+    });
+  });
 });

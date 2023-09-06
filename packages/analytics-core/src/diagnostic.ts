@@ -1,15 +1,13 @@
-import { DiagnosticEvent, DiagnosticPlugin, Event, Result } from '@amplitude/analytics-types';
+import { DiagnosticEvent, Diagnostic as IDiagnostic, Event, Result } from '@amplitude/analytics-types';
 
-export class Diagnostic implements DiagnosticPlugin {
-  name = '@amplitude/plugin-diagnostic';
-  type = 'destination' as const;
+export class Diagnostic implements IDiagnostic {
   public serverUrl = new URL('http://localhost:8000');
 
   queue: DiagnosticEvent[] = [];
   scheduled: ReturnType<typeof setTimeout> | null = null;
   delay = 60000; // deault delay is 1 minute
 
-  async track(eventCount: number, code: number, message: string) {
+  track(eventCount: number, code: number, message: string) {
     this.queue.push(this.diagnosticEventBuilder(eventCount, code, message));
 
     if (!this.scheduled) {

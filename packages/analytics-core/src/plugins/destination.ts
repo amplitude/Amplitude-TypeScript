@@ -288,6 +288,7 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
+    this.config.diagnosticProvider?.track(list.length, code, message);
     this.saveEvents();
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }

@@ -11,7 +11,6 @@ import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
 import { AmplitudeBrowser } from '../src/browser-client';
-import { Diagnostic } from '../src/plugins/diagnostic';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -21,7 +20,7 @@ describe('config', () => {
   const someLocalStorage: LocalStorageModule.LocalStorage<UserSession> = expect.any(
     LocalStorageModule.LocalStorage,
   ) as LocalStorageModule.LocalStorage<UserSession>;
-  const someDiagnosticProvider: Diagnostic = expect.any(Diagnostic) as Diagnostic;
+  const someDiagnosticProvider: core.Diagnostic = expect.any(core.Diagnostic) as core.Diagnostic;
 
   let apiKey = '';
 

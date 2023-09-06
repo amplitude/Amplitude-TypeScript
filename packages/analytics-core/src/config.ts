@@ -1,6 +1,7 @@
 import {
   Event,
   Config as IConfig,
+  Diagnostic as IDiagnostic,
   Logger as ILogger,
   LogLevel,
   Storage,
@@ -48,6 +49,7 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
+  diagnosticProvider?: IDiagnostic;
 
   protected _optOut = false;
   get optOut() {

@@ -1,5 +1,5 @@
 import { DiagnosticEvent } from '@amplitude/analytics-types';
-import { Diagnostic } from '../../src/plugins/diagnostic';
+import { Diagnostic } from '../src/diagnostic';
 
 jest.useFakeTimers();
 

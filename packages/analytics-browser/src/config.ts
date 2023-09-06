@@ -3,6 +3,7 @@ import {
   BrowserOptions,
   BrowserConfig as IBrowserConfig,
   DefaultTrackingOptions,
+  Diagnostic as IDiagnostic,
   Storage,
   TrackingOptions,
   TransportType,
@@ -13,9 +14,8 @@ import {
   IngestionMetadata,
   IdentityStorageType,
   ServerZoneType,
-  DiagnosticPlugin,
 } from '@amplitude/analytics-types';
-import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
+import { Config, Diagnostic, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
@@ -26,7 +26,6 @@ import { parseLegacyCookies } from './cookie-migration';
 import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
-import { Diagnostic } from './plugins/diagnostic';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -78,7 +77,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
     userId?: string,
-    public diagnosticProvider: DiagnosticPlugin | undefined = new Diagnostic(),
+    public diagnosticProvider: IDiagnostic | undefined = new Diagnostic(),
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
