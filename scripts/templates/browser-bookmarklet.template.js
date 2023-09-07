@@ -1,21 +1,49 @@
-const snippet = (name, integrity, version, globalVar) => `
+const snippet = (
+  name,
+  integrity,
+  version,
+  globalVar,
+  apiKey,
+  userId,
+  serverZone,
+  ingestionSourceName,
+  ingestionSourceVersion,
+  autoTrackingPluginVersion,
+) => `
 !(function (window, document) {
   var amplitude = window.${globalVar} || { _q: [], _iq: {} };
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
+    var s = document.getElementsByTagName('script')[0];
+    var autoTrackingPluginScript = document.createElement('script');
+    autoTrackingPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-auto-tracking-browser-${autoTrackingPluginVersion}-min.js.gz';
+    autoTrackingPluginScript.async = false;
+    s.parentNode.insertBefore(autoTrackingPluginScript, s);
     var as = document.createElement('script');
     as.type = 'text/javascript';
     as.integrity = '${integrity}';
     as.crossOrigin = 'anonymous';
-    as.async = true;
+    as.async = false;
     as.src = 'https://cdn.amplitude.com/libs/${name}-${version}-min.js.gz';
     as.onload = function () {
       if (!window.${globalVar}.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
+      window.${globalVar}.init('${apiKey}', '${userId}', {
+        instanceName: 'amplitude-bookmarklet',
+        serverZone: '${serverZone}',
+        ingestionMetadata: {
+          sourceName: '${ingestionSourceName}',
+          sourceVersion: '${ingestionSourceVersion}',
+        },
+        optOut: false,
+      });
+      if (amplitudeAutoTrackingPlugin && amplitudeAutoTrackingPlugin.autoTrackingPlugin && typeof amplitudeAutoTrackingPlugin.autoTrackingPlugin === 'function') {
+        window.${globalVar}.add(amplitudeAutoTrackingPlugin.autoTrackingPlugin());
+      }
+      alert('Amplitude is now tracking events!');
     };
-    var s = document.getElementsByTagName('script')[0];
     s.parentNode.insertBefore(as, s);
     function proxy(obj, fn) {
       obj.prototype[fn] = function () {

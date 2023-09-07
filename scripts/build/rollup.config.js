@@ -90,7 +90,9 @@ export const snippet = {
   plugins: [
     createSnippet(),
     terser(),
-    execute(`node ${base}/scripts/version/create-snippet-instructions.js && node ${base}/scripts/version/update-readme.js`),
+    execute(
+      `node ${base}/scripts/version/create-snippet-instructions.js && node ${base}/scripts/version/update-readme.js`,
+    ),
   ],
 };
 
@@ -101,12 +103,15 @@ const createGTMSnippet = () => {
       return new Promise((resolve) => {
         opt.input = 'generated/amplitude-gtm-snippet.js';
         if (process.env.GENERATE_SNIPPET !== 'true') return resolve(opt);
-        exec(`node ${base}/scripts/version/create-snippet.js --inputFile=amplitude-gtm-min.js --outputFile=amplitude-gtm-snippet.js --globalVar=amplitudeGTM --nameSuffix=-gtm`, (err) => {
-          if (err) {
-            throw err;
-          }
-          resolve(opt);
-        });
+        exec(
+          `node ${base}/scripts/version/create-snippet.js --inputFile=amplitude-gtm-min.js --outputFile=amplitude-gtm-snippet.js --globalVar=amplitudeGTM --nameSuffix=-gtm`,
+          (err) => {
+            if (err) {
+              throw err;
+            }
+            resolve(opt);
+          },
+        );
       });
     },
   };
@@ -145,8 +150,36 @@ export const snippetGTM = {
     file: 'lib/scripts/amplitude-gtm-snippet-min.js',
     format: 'iife',
   },
-  plugins: [
-    createGTMSnippet(),
-    terser(),
-  ],
+  plugins: [createGTMSnippet(), terser()],
+};
+
+// Input: bookmarklet js template + amplitude js
+// Output: bookmarklet js snippet
+const createBookmarkletSnippet = () => {
+  return {
+    name: 'amplitude-bookmarklet-snippet',
+    options: (opt) => {
+      return new Promise((resolve) => {
+        opt.input = 'generated/amplitude-bookmarklet-snippet.js';
+        if (process.env.GENERATE_SNIPPET !== 'true') return resolve(opt);
+        exec(`node ${base}/scripts/version/create-bookmarklet-snippet.js`, (err) => {
+          if (err) {
+            throw err;
+          }
+          resolve(opt);
+        });
+      });
+    },
+  };
+};
+
+// Input: bookmarklet js snippet
+// Output: bookmarklet prefix + bookmarklet js snippet (url encoded)
+export const bookmarklet = {
+  output: {
+    name: 'amplitude',
+    file: 'lib/scripts/amplitude-bookmarklet-snippet-min.js',
+    format: 'iife',
+  },
+  plugins: [createBookmarkletSnippet(), terser(), execute(`node ${base}/scripts/version/create-bookmarklet.js`)],
 };
