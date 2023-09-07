@@ -1,4 +1,5 @@
 import { Diagnostic as IDiagnostic, Event, Result } from '@amplitude/analytics-types';
+import { DIAGNOSTIC_ENDPOINT } from './constants';
 
 interface DiagnosticEvent {
   time: number;
@@ -12,11 +13,17 @@ interface DiagnosticEvent {
 }
 
 export class Diagnostic implements IDiagnostic {
-  public serverUrl = 'http://localhost:8000';
-
+  serverUrl: string;
   queue: DiagnosticEvent[] = [];
+
   private scheduled: ReturnType<typeof setTimeout> | null = null;
-  delay = 60000; // deault delay is 1 minute
+  // deault delay is 1 minute
+  // make it private to prevent users from changing it to smaller value
+  private delay = 60000;
+
+  constructor(serverUrl?: string) {
+    this.serverUrl = serverUrl ? serverUrl : DIAGNOSTIC_ENDPOINT;
+  }
 
   track(eventCount: number, code: number, message: string) {
     this.queue.push(this.diagnosticEventBuilder(eventCount, code, message));

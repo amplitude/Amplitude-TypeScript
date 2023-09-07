@@ -1,3 +1,4 @@
+import { DIAGNOSTIC_ENDPOINT } from '../src/constants';
 import { Diagnostic } from '../src/diagnostic';
 
 jest.useFakeTimers();
@@ -6,6 +7,7 @@ describe('Diagnostic', () => {
   let diagnostic: Diagnostic;
   const eventCount = 5;
   const code = 200;
+  const delay = 60000;
 
   beforeEach(() => {
     diagnostic = new Diagnostic();
@@ -13,6 +15,19 @@ describe('Diagnostic', () => {
 
   afterEach(() => {
     jest.restoreAllMocks(); // Restore mocked functions after each test
+  });
+
+  describe('constructor', () => {
+    test('should set serverUrl to default value if not provided', () => {
+      expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
+    });
+
+    test('should set serverUrl to provided value', () => {
+      const serverUrl = 'https://test.com';
+      diagnostic = new Diagnostic(serverUrl);
+
+      expect(diagnostic.serverUrl).toBe(serverUrl);
+    });
   });
 
   describe('track', () => {
@@ -31,10 +46,10 @@ describe('Diagnostic', () => {
 
       diagnostic.track(eventCount, code, 'Test message');
 
-      jest.advanceTimersByTime(diagnostic.delay);
+      jest.advanceTimersByTime(delay);
       expect(setTimeoutMock).toHaveBeenCalledTimes(1);
       expect(setTimeoutMock.mock.calls[0][0]).toBeInstanceOf(Function);
-      expect(setTimeoutMock.mock.calls[0][1]).toBe(diagnostic.delay);
+      expect(setTimeoutMock.mock.calls[0][1]).toBe(delay);
       setTimeoutMock.mockRestore();
     });
   });
