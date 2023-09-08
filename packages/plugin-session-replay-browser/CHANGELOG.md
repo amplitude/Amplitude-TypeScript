@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.6...@amplitude/plugin-session-replay-browser@0.6.7) (2023-09-08)
+
+### Bug Fixes
+
+- **session replay plugin:** delete unused file
+  ([41faedc](https://github.com/amplitude/Amplitude-TypeScript/commit/41faedceaba39ea743a83d734fc0462b2fb072df))
+- **session replay plugin:** remove use of client-common
+  ([f26ab9c](https://github.com/amplitude/Amplitude-TypeScript/commit/f26ab9cf2135f550eac91938a44d37972308339d))
+- **session replay plugin:** test
+  ([ada95d7](https://github.com/amplitude/Amplitude-TypeScript/commit/ada95d70bbafbb700d593579b8165e51916fa0c7))
+- **session replay plugin:** update dependencies and remove eslint override
+  ([2c63830](https://github.com/amplitude/Amplitude-TypeScript/commit/2c638300880234d3aaf784f72fc04e4deaaec221))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.6.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.5...@amplitude/plugin-session-replay-browser@0.6.6) (2023-08-22)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

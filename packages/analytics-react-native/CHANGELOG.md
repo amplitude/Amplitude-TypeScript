@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.3...@amplitude/analytics-react-native@1.4.4) (2023-09-08)
+
+### Bug Fixes
+
+- config values should take precedence over nativemodule in Context plugin
+  ([#575](https://github.com/amplitude/Amplitude-TypeScript/issues/575))
+  ([13dbb29](https://github.com/amplitude/Amplitude-TypeScript/commit/13dbb29be5916f57b58703ecae3f4deb7f45359e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.4.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.2...@amplitude/analytics-react-native@1.4.3) (2023-08-22)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
