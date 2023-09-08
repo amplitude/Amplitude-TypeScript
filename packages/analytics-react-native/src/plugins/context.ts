@@ -65,7 +65,7 @@ export class Context implements BeforePlugin {
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
     const nativeContext = await this.nativeModule?.getApplicationContext(this.config.trackingOptions);
-    const appVersion = nativeContext?.version || this.config.appVersion;
+    const appVersion = this.config.appVersion || nativeContext?.version;
     const platform = nativeContext?.platform || BROWSER_PLATFORM;
     const osName = nativeContext?.osName || this.uaResult.browser.name;
     const osVersion = nativeContext?.osVersion || this.uaResult.browser.version;
