@@ -167,7 +167,7 @@
         var getPageContext = function getPageContext() {
           return document.body.innerText.replace(/\n/g,' ');
         };
-        var extractSemanticContext = function extractSemanticContext(event) {
+        var extractSemanticContextEvent = function extractSemanticContextEvent(event) {
           const event_properties = {};
           for (const [key, value] of Object.entries(event.event_properties)) {
             if ([
@@ -186,41 +186,70 @@
           };
           return semanticContext;
         };
+        var getSemanticContextText = function getSemanticContextText(event) {
+          let semanticAction = '';
+          switch (event.event_type) {
+            case 'Element Clicked':
+              semanticAction = 'Selected an element with these properties:';
+              break;
+            case 'Element Changed':
+              semanticAction = 'Changed an element with these properties:';
+              break;
+            default:
+              semanticAction = `Performed an action "${event.event_type}" with these properties:`;
+              break;
+          }
+          let semanticContext = `${semanticAction}"""\n`;
+          for (const [key, value] of Object.entries(event.event_properties)) {
+            semanticContext += `${removeAmplitudePrefix(key)}: ${value}\n`;
+          }
+          return semanticContext + `"""`;
+        };
         var getPrompt = function getPrompt(actionContext, pageContext, parentContext) {
+          // Try not to use terms like "clicked" or "changed" in the event name. Use more descriptive terms based on the intent of the action
+          // when possible.
           return `\
-You are given the text content for all elements of a web page and an action made by a user on a specific element of that page.\
- Your task is to suggest a descriptive and unique label for the action in given the context of the page. \
- This label will be used as the event name in Amplitude Analytics to generate insights about user behavior.\
+Given the page text, the text for all elements of a web page, and a user action on a specific element of that page,\
+ suggest event name for the action in given the context of the page text.\
  Be as descriptive as possible while still being concise.\
- Don't use terms like "click" or "change" in the label, instead use an adjective specific to the User Action\
- in the context of the page content and parent text.\
+ The event name will be used to track the event in Amplitude for use in user segmentation charts.\
+ The Element Text is the text that was clicked on or changed.\
+ The Surrounding Text is the text of the parent and siblings of the clicked or changed element.
 
-page
-"""
+Page text: """
 ${pageContext}
 """
 
-action
-"""
+User Action: """
 ${actionContext}
 """
 
-action surroundings
-"""
-${parentContext}
-"""
-`;
-        }
+Desired format:
+Suggested event name: -||-`;
+
+        };
+        var getParentElement = function getParentElement(element, maxDepth) {
+          let parentElement = element.parentElement;
+          for(let i = 0; i < maxDepth; i++) {
+            if (parentElement.parentElement) {
+              parentElement = parentElement.parentElement;
+            } else {
+              break;
+            }
+          }
+          return parentElement;
+        };
         var generateSuggestedEvent = function getSuggestedEventLabel(event, element) {
           // The Element Text is the text that was clicked on or changed.
           //   The Parent Text is the text of the parent and siblings of the clicked or changed element.
           //   Labels should consider the parent content in addition to the element content.
 
-          const parentContext = getText(
-            (element.parentElement && element.parentElement.parentElement) || element.parentElement
-          );
-          const actionContext = JSON.stringify(extractSemanticContext(event));
+          const parentContext = getText(getParentElement(element, 2));
+          const actionContextEvent = extractSemanticContextEvent(event);
+          actionContextEvent.event_properties['Surrounding Text'] = parentContext;
+          const actionContext = getSemanticContextText(actionContextEvent);
           const prompt = getPrompt(actionContext, getPageContext(), parentContext);
+          console.log(`actionContext`, actionContext);
           // console.log(`Prompt`, prompt);
 
           const openAiApiKey = 'YOUR_API_KEY_HERE';
@@ -242,8 +271,10 @@ ${parentContext}
             // console.log(data);
 
             // Track new event with suggested name
-            const suggestedEventName = data.choices[0].message.content;
-            console.log(`Suggested event name`, suggestedEventName);
+            let suggestedEventName = data.choices[0].message.content;
+            console.log(suggestedEventName);
+            suggestedEventName = suggestedEventName.replace('Suggested event name: ', '');
+
             amplitude.track({
               ...event,
               event_type: `[Suggested] ${suggestedEventName}`,
