@@ -186,6 +186,38 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
+  describe('getSessionReplayProperties', () => {
+    test('should return an empty object if config not set', () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.loggerProvider = mockLoggerProvider;
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(result).toEqual({});
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalled();
+    });
+
+    test('should return an empty object if shouldRecord is false', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.getShouldRecord = () => false;
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(result).toEqual({});
+    });
+
+    test('should return the session recorded property if shouldRecord is true', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.getShouldRecord = () => true;
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(result).toEqual({
+        '[Amplitude] Session Recorded': true,
+      });
+    });
+  });
+
   describe('getSessionRecordingProperties', () => {
     test('should return an empty object if config not set', () => {
       const sessionReplay = new SessionReplay();
@@ -1088,7 +1120,7 @@ describe('SessionReplayPlugin', () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-        const sessionRecordingProperties = sessionReplay.getSessionRecordingProperties();
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
         expect(record).not.toHaveBeenCalled();
         expect(update).not.toHaveBeenCalled();
@@ -1104,7 +1136,7 @@ describe('SessionReplayPlugin', () => {
         });
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
-        const sessionRecordingProperties = sessionReplay.getSessionRecordingProperties();
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
         });
