@@ -91,7 +91,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordEvents();
   }
 
-  getSessionRecordingProperties() {
+  getSessionReplayProperties() {
     if (!this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot get session recording properties.');
       return {};
@@ -106,6 +106,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     return {};
   }
+
+  getSessionRecordingProperties = () => {
+    this.loggerProvider.warn('Please use getSessionReplayProperties instead of getSessionRecordingProperties.');
+
+    return this.getSessionReplayProperties();
+  };
 
   blurListener = () => {
     this.stopRecordingAndSendEvents();
