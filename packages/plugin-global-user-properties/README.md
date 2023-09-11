@@ -32,9 +32,6 @@ This plugin works on top of Amplitude Browser SDK and adds web attribution track
 ```typescript
 import * as Amplitude from '@amplitude/analytics-browser'
 import { globalUserPropertiesPlugin } from '@amplitude/plugin-global-user-properties';
-
-const amplitude = Amplitude.init(...);
-await amplitude.add(globalUserPropertiesPlugin).promise
 ```
 
 ### 2. Instantiate page view plugin
@@ -42,7 +39,7 @@ await amplitude.add(globalUserPropertiesPlugin).promise
 The plugin accepts an optional parameter of type `Object` to configure the plugin based on your use case.
 
 ```typescript
-const webAttributionTracking = webAttributionPlugin(amplitude, {
+const globalUserPropertiesPlugin = globalUserPropertiesPlugin({
   excludeReferrers: undefined,
   initialEmptyValue: undefined,
   resetSessionOnNewCampaign: undefined,
@@ -58,7 +55,7 @@ const webAttributionTracking = webAttributionPlugin(amplitude, {
 ### 3. Install plugin to Amplitude SDK
 
 ```typescript
-amplitude.add(webAttributionTracking);
+amplitude.add(globalUserPropertiesPlugin);
 ```
 
 ### 4. Initialize Amplitude SDK
