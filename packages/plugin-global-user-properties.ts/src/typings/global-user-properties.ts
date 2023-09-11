@@ -1,4 +1,4 @@
-import { BeforePlugin } from '@amplitude/analytics-types';
+import { EnrichmentPlugin } from '@amplitude/analytics-types';
 
 export interface Options {
   /** 
@@ -8,5 +8,5 @@ export interface Options {
 }
 
 export interface GlobalUserPropertiesPlugin {
-  (options?: Options): BeforePlugin;
+  (options?: Options): EnrichmentPlugin;
 }
