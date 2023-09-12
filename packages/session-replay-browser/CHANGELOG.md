@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.2.0...@amplitude/session-replay-browser@0.2.1) (2023-09-12)
+
+### Bug Fixes
+
+- **session replay:** expose getSessionReplayProperties externally
+  ([597201a](https://github.com/amplitude/Amplitude-TypeScript/commit/597201a04b5c7c51b3f047caaf39986af6fb6534))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.1.1...@amplitude/session-replay-browser@0.2.0) (2023-09-11)
 
 ### Features
