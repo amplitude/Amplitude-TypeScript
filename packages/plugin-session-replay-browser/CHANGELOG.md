@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.9...@amplitude/plugin-session-replay-browser@0.6.10) (2023-09-12)
+
+### Bug Fixes
+
+- **session replay:** remove beta tag from package.json to update public facing version
+  ([fa72e9b](https://github.com/amplitude/Amplitude-TypeScript/commit/fa72e9bacc6132ef37122f0a63419150f2f690e2))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.6.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.8...@amplitude/plugin-session-replay-browser@0.6.9) (2023-09-12)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
