@@ -23,7 +23,9 @@ yarn add @amplitude/plugin-global-user-properties
 
 ## Usage
 
-This plugin works on top of Amplitude Browser SDK and adds web attribution tracking features to built-in features. To use this plugin, you need to install `@amplitude/plugin-global-user-properties `v0.0.0` or later.
+This plugin works on top of the Amplitude SDK and sends user properties as global user properties, a beta feature for that allows projects to share user properties (i.e. user properties can become "global" across multiple projects). 
+
+To use this plugin, you need to install `@amplitude/plugin-global-user-properties `v1.0.0` or later.
 
 ### 1. Import Amplitude packages
 
@@ -48,7 +50,7 @@ const globalUserPropertiesPlugin = globalUserPropertiesPlugin({
 
 |Name|Type|Default|Description|
 |-|-|-|-|
-|`shouldKeepOriginalUserProperties`|`boolean`| `false` | Use this option if you want the user properties to be sent along with the global user properties. Since global user properties do not appear in Governance yet, this would |
+|`shouldKeepOriginalUserProperties`|`boolean`| `false` | Use this option if you want the user properties to be sent along with the global user properties. Since global user properties do not appear in Data yet, this would allow indirect governance (by observing the same properties as regular user properties). |
 
 ### 3. Install plugin to Amplitude SDK
 
