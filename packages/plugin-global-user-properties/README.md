@@ -23,7 +23,7 @@ yarn add @amplitude/plugin-global-user-properties
 
 ## Usage
 
-This plugin works on top of Amplitude Browser SDK and adds web attribution tracking features to built-in features. To use this plugin, you need to install `@amplitude/plugin-global-user-properties `v0.1.0` or later.
+This plugin works on top of Amplitude Browser SDK and adds web attribution tracking features to built-in features. To use this plugin, you need to install `@amplitude/plugin-global-user-properties `v0.0.0` or later.
 
 ### 1. Import Amplitude packages
 
