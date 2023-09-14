@@ -1,8 +1,8 @@
-import { Event, BaseEvent, SpecialEventType, IdentifyEvent } from '@amplitude/analytics-types';
+import { Event, TrackEvent, SpecialEventType, IdentifyEvent } from '@amplitude/analytics-types';
 
 const specialAmplitudeEvents = new Set(Object.values(SpecialEventType));
 
-export const isNotSpecialAmplitudeEvent = (event: Event): event is BaseEvent => {
+export const isTrackEvent = (event: Event): event is TrackEvent => {
   return !specialAmplitudeEvents.has(event.event_type as SpecialEventType);
 };
 
