@@ -118,11 +118,7 @@ export interface IdentifyEvent extends BaseEvent {
 
 export interface GroupIdentifyEvent extends BaseEvent {
   event_type: SpecialEventType.GROUP_IDENTIFY;
-  group_properties:
-    | IdentifyUserProperties
-    | {
-        [key in Exclude<string, IdentifyOperation>]: any;
-      };
+  group_properties: UserProperties;
 }
 
 export interface RevenueEvent extends BaseEvent {
