@@ -113,7 +113,6 @@ export interface TrackEvent extends BaseEvent {
 
 export interface IdentifyEvent extends BaseEvent {
   event_type: SpecialEventType.IDENTIFY;
-  global_user_properties?: UserProperties;
   user_properties: UserProperties;
 }
 
