@@ -1,6 +1,7 @@
 import { globalUserPropertiesPlugin } from '../src/global-user-properties';
-import { BaseEvent, IdentifyEvent, RevenueEvent, SpecialEventType } from '@amplitude/analytics-types';
+import { TrackEvent, IdentifyEvent, RevenueEvent, SpecialEventType } from '@amplitude/analytics-types';
 
+// ts-jest is having difficulty finding the module declaration types, so there are some any's
 describe('globalUserPropertiesPlugin', () => {
   const TEST_USER_PROPERTIES = {
     USER_PROPERTY_ONE: 'TEST_VALUE_ONE',
@@ -15,12 +16,12 @@ describe('globalUserPropertiesPlugin', () => {
   test('adds global properties on regular events', async () => {
     const plugin = globalUserPropertiesPlugin();
 
-    const event: BaseEvent = {
+    const event: TrackEvent = {
       event_type: 'NOT A REAL EVENT TYPE',
       user_properties: TEST_USER_PROPERTIES,
     };
 
-    const newEvent = await plugin.execute?.({ ...event });
+    const newEvent: any = await plugin.execute?.({ ...event });
 
     expect(newEvent?.event_type).toEqual(event.event_type);
     expect(newEvent?.global_user_properties).toStrictEqual(TEST_USER_PROPERTIES);
@@ -34,8 +35,8 @@ describe('globalUserPropertiesPlugin', () => {
       event_type: SpecialEventType.IDENTIFY,
       user_properties: TEST_USER_IDENTIFY_PROPERTIES,
     };
-
-    const newEvent = await plugin.execute?.({ ...event });
+    
+    const newEvent: any = await plugin.execute?.({ ...event });
 
     expect(newEvent?.global_user_properties).toStrictEqual(TEST_USER_IDENTIFY_PROPERTIES);
     expect(newEvent?.user_properties).toStrictEqual(undefined);
@@ -50,7 +51,7 @@ describe('globalUserPropertiesPlugin', () => {
       event_properties: {},
     };
 
-    const newEvent = await plugin.execute?.({ ...event });
+    const newEvent: any = await plugin.execute?.({ ...event });
 
     expect(newEvent?.global_user_properties).toStrictEqual(undefined);
     expect(newEvent?.user_properties).toStrictEqual(event.user_properties);
@@ -64,7 +65,7 @@ describe('globalUserPropertiesPlugin', () => {
       user_properties: TEST_USER_IDENTIFY_PROPERTIES,
     };
 
-    const newEvent = await plugin.execute?.({ ...event });
+    const newEvent: any = await plugin.execute?.({ ...event });
 
     expect(newEvent?.global_user_properties).toStrictEqual(TEST_USER_IDENTIFY_PROPERTIES);
     expect(newEvent?.user_properties).toStrictEqual(TEST_USER_IDENTIFY_PROPERTIES);
