@@ -35,7 +35,7 @@ describe('globalUserPropertiesPlugin', () => {
       event_type: SpecialEventType.IDENTIFY,
       user_properties: TEST_USER_IDENTIFY_PROPERTIES,
     };
-    
+
     const newEvent: any = await plugin.execute?.({ ...event });
 
     expect(newEvent?.global_user_properties).toStrictEqual(TEST_USER_IDENTIFY_PROPERTIES);
