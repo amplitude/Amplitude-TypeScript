@@ -19,13 +19,7 @@ const domainWithoutSubdomain = (domain: string) => {
 
 //Direct traffic mean no external referral, no UTMs, no click-ids, and no other customer identified marketing campaign url params.
 const isDirectTraffic = (current: Campaign) => {
-  const { referrer, referring_domain, ...currentCampaign } = current;
-  const currentCampaignWithValue = Object.keys(currentCampaign).filter(
-    (key) => currentCampaign[key] !== undefined && currentCampaign[key] !== '',
-  );
-  const noCampaign = Object.keys(currentCampaignWithValue).length === 0;
-
-  return !referrer && noCampaign;
+  return Object.values(current).every((value) => !value);
 };
 
 export const isNewCampaign = (
