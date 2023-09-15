@@ -17,13 +17,15 @@ const domainWithoutSubdomain = (domain: string) => {
   return parts.slice(parts.length - 2, parts.length).join('.');
 };
 
+//Direct traffic mean no external referral, no UTMs, no click-ids, and no other customer identified marketing campaign url params.
 const isDirectTraffic = (current: Campaign) => {
   const { referrer, referring_domain, ...currentCampaign } = current;
-  Object.keys(currentCampaign).forEach(
-    (key) => (currentCampaign[key] === undefined || currentCampaign[key] === '') && delete currentCampaign[key],
+  const currentCampaignWithValue = Object.keys(currentCampaign).filter(
+    (key) => currentCampaign[key] !== undefined && currentCampaign[key] !== '',
   );
+  const noCampaign = Object.keys(currentCampaignWithValue).length === 0;
 
-  return !referrer && Object.keys(currentCampaign).length === 0;
+  return !referrer && noCampaign;
 };
 
 export const isNewCampaign = (
@@ -40,7 +42,6 @@ export const isNewCampaign = (
   }
 
   //In the same session, direct traffic should not override or unset any persisting query params
-  //Direct traffic mean no external referral, no UTMs, no click-ids, and no other customer identified marketing campaign url params.
   if (!isNewSession && isDirectTraffic(current) && previous) {
     return false;
   }
