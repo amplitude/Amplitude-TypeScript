@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.9...@amplitude/plugin-web-attribution-browser@2.0.10) (2023-09-15)
+
+### Bug Fixes
+
+- fix attribution to capture UTMs even if there is no referral info
+  ([#584](https://github.com/amplitude/Amplitude-TypeScript/issues/584))
+  ([a1f03a5](https://github.com/amplitude/Amplitude-TypeScript/commit/a1f03a5c2c69cdbb7af9a5fb03cd81d35c51ecd4))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.8...@amplitude/plugin-web-attribution-browser@2.0.9) (2023-08-31)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
