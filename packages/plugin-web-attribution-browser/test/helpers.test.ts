@@ -113,7 +113,7 @@ describe('isNewCampaign', () => {
     ).toBe(false);
   });
 
-  test('should return false for no referrer in the same session', () => {
+  test('should return false for no extra referrer with direct traffic in the same session', () => {
     const previousCampaign = {
       ...BASE_CAMPAIGN,
       utm_campaign: 'utm_campaign',
@@ -124,6 +124,20 @@ describe('isNewCampaign', () => {
     };
 
     expect(isNewCampaign(currentCampaign, previousCampaign, {}, false)).toBe(false);
+  });
+
+  test('should return true for no referrer with any new campaign in the same session', () => {
+    const previousCampaign = {
+      ...BASE_CAMPAIGN,
+      utm_campaign: 'utm_campaign',
+      referring_domain: 'a.b.c.d',
+    };
+    const currentCampaign = {
+      ...BASE_CAMPAIGN,
+      utm_source: 'utm_source',
+    };
+
+    expect(isNewCampaign(currentCampaign, previousCampaign, {}, false)).toBe(true);
   });
 });
 
