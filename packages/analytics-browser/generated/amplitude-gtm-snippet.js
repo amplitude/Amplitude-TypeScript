@@ -31,7 +31,6 @@
       };
     };
     var proxyMain = function proxyMain(instance, fn, isPromise) {
-      var args = arguments;
       instance[fn] = function () {
         if (isPromise) return {
           promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments)))
@@ -49,10 +48,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-XOOk53JwcW0Qr7lXs78jPii3fpEfCkafCLm9q0M/Fwo6F+CWMhZAJU3NdvV7dcDe';
+    as.integrity = 'sha384-2QUHi5tkQrwqCbde1jFiTBS4QwwN28fEVuHDr/Y//zH/ev1M93MH0Ynj0TuGhWLf';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-gtm-2.2.3-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-gtm-2.3.0-min.js.gz';
     as.onload = function () {
       if (!window.amplitudeGTM.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
