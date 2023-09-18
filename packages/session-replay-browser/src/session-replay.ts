@@ -24,6 +24,7 @@ import {
   MISSING_DEVICE_ID_MESSAGE,
   STORAGE_FAILURE,
   UNEXPECTED_ERROR_MESSAGE,
+  UNEXPECTED_NETWORK_ERROR_MESSAGE,
   getSuccessMessage,
 } from './messages';
 import {
@@ -430,8 +431,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       case Status.Success:
         this.handleSuccessResponse(context);
         break;
-      default:
+      case Status.Failed:
         this.handleOtherResponse(context);
+        break;
+      default:
+        this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
     }
   }
 
