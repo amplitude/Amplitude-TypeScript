@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.1.2...@amplitude/analytics-types@2.2.0) (2023-09-18)
+
+### Bug Fixes
+
+- dont modify types in analytics-types
+  ([488832f](https://github.com/amplitude/Amplitude-TypeScript/commit/488832f618c77b81f7ed318aa0af2a92caacae1a))
+- **global user properties:** test, and fix filename
+  ([84bdbef](https://github.com/amplitude/Amplitude-TypeScript/commit/84bdbef3697aba4838ac5cfdddefa85f50420dd7))
+- refactor event.ts
+  ([1a28e0b](https://github.com/amplitude/Amplitude-TypeScript/commit/1a28e0b8a24dc5d2e214cb64d66ce5c2fd6358ba))
+
+### Features
+
+- **global user properties:** add global properties plugin base code without tests
+  ([b539c5e](https://github.com/amplitude/Amplitude-TypeScript/commit/b539c5e3c0cf33de474cda4b31a399308abebbaa))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.1.1...@amplitude/analytics-types@2.1.2) (2023-08-24)
 
 ### Bug Fixes
