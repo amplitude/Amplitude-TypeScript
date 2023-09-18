@@ -982,7 +982,7 @@ describe('SessionReplayPlugin', () => {
 
       await sessionReplay.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(fetch).toHaveBeenCalledWith('https://api-secure.amplitude.com/sessions/track', {
+      expect(fetch).toHaveBeenCalledWith('https://api-sr.amplitude.com/sessions/track', {
         body: JSON.stringify({
           api_key: 'static_key',
           device_id: '1a2b3c',
@@ -1008,7 +1008,7 @@ describe('SessionReplayPlugin', () => {
 
       await sessionReplay.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(fetch).toHaveBeenCalledWith('https://api.eu.amplitude.com/sessions/track', {
+      expect(fetch).toHaveBeenCalledWith('https://api-sr.eu.amplitude.com/sessions/track', {
         body: JSON.stringify({
           api_key: 'static_key',
           device_id: '1a2b3c',
@@ -1177,7 +1177,7 @@ describe('SessionReplayPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual('API Failure');
     });
-    test('should handle retry for 400 error', async () => {
+    test('should not retry for 400 error', async () => {
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
           return Promise.resolve({
@@ -1197,15 +1197,11 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
       await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(fetch).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(0);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual(getSuccessMessage(123));
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
     });
-    test('should handle retry for 413 error', async () => {
+    test('should not retry for 413 error', async () => {
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
           return Promise.resolve({
@@ -1222,7 +1218,9 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
       await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
     });
     test('should handle retry for 500 error', async () => {
       (fetch as jest.Mock)
