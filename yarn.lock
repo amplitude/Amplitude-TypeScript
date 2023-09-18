@@ -7,6 +7,16 @@
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-connector/-/analytics-connector-1.4.8.tgz#dd801303db2662bc51be7e0194eeb8bd72267c42"
   integrity sha512-dFW7c7Wb6Ng7vbmzwbaXZSpqfBx37ukamJV9ErFYYS8vGZK/Hkbt3M7fZHBI4WFU6CCwakr2ZXPme11uGPYWkQ==
 
+"@amplitude/plugin-web-attribution-browser@^2.0.9":
+  version "2.0.9"
+  resolved "https://registry.yarnpkg.com/@amplitude/plugin-web-attribution-browser/-/plugin-web-attribution-browser-2.0.9.tgz#0d24f2da764846601f59484a8651d58918ef89d7"
+  integrity sha512-QrNgieAEXEBbtnsxYzfeJl2U/5XwCCvO3Dg0hntAtnTdu1A3HlN5ItRtoHg0jGBbu4jpSbvag72UlkCotqJ+Yg==
+  dependencies:
+    "@amplitude/analytics-client-common" "^2.0.5"
+    "@amplitude/analytics-core" "^2.0.4"
+    "@amplitude/analytics-types" "^2.1.2"
+    tslib "^2.4.1"
+
 "@amplitude/ua-parser-js@^0.7.31":
   version "0.7.31"
   resolved "https://registry.yarnpkg.com/@amplitude/ua-parser-js/-/ua-parser-js-0.7.31.tgz#749bf7cb633cfcc7ff3c10805bad7c5f6fbdbc61"

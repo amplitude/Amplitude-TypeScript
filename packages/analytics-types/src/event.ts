@@ -64,6 +64,12 @@ export interface IdentifyUserProperties {
   [IdentifyOperation.REMOVE]?: BaseOperationConfig;
 }
 
+export type UserProperties =
+  | IdentifyUserProperties
+  | {
+      [key in Exclude<string, IdentifyOperation>]: any;
+    };
+
 export interface Revenue {
   getEventProperties(): RevenueEventProperties;
   setProductId(productId: string): Revenue;
@@ -107,20 +113,12 @@ export interface TrackEvent extends BaseEvent {
 
 export interface IdentifyEvent extends BaseEvent {
   event_type: SpecialEventType.IDENTIFY;
-  user_properties:
-    | IdentifyUserProperties
-    | {
-        [key in Exclude<string, IdentifyOperation>]: any;
-      };
+  user_properties: UserProperties;
 }
 
 export interface GroupIdentifyEvent extends BaseEvent {
   event_type: SpecialEventType.GROUP_IDENTIFY;
-  group_properties:
-    | IdentifyUserProperties
-    | {
-        [key in Exclude<string, IdentifyOperation>]: any;
-      };
+  group_properties: UserProperties;
 }
 
 export interface RevenueEvent extends BaseEvent {
