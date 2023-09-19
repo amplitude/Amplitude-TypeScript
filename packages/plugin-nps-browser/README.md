@@ -8,3 +8,11 @@
 # @amplitude/plugin-nps
 
 Official Browser SDK plugin for NPS
+```typescript
+import * as amplitude from '@amplitude/analytics-browser';
+import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+
+amplitude.init(API_KEY);
+const nps = npsPlugin();
+amplitude.add(nps);
+```
