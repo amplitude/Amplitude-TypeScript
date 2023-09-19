@@ -1,12 +1,15 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
 import * as constants from './constants';
-import { getText } from './helpers';
+import { getText, isPageUrlAllowed, getAttributesWithPrefix, removeEmptyProperties } from './helpers';
+import { finder } from './libs/finder';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 type ActionType = 'click' | 'change';
+type AllowedTag = 'a' | 'button' | 'input' | 'select' | 'textarea' | 'label';
 
 const DEFAULT_TAG_ALLOWLIST = ['a', 'button', 'input', 'select', 'textarea', 'label'];
+const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-auto-track-';
 
 interface EventListener {
   element: Element;
@@ -15,12 +18,21 @@ interface EventListener {
 }
 
 interface Options {
+  tagAllowlist?: AllowedTag[];
   cssSelectorAllowlist?: string[];
-  tagAllowlist?: string[];
+  pageUrlAllowlist?: string[];
+  shouldTrackEventCallback?: (actionType: ActionType, element: Element) => boolean;
+  dataAttributePrefix?: string;
 }
 
 export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
-  const { tagAllowlist = DEFAULT_TAG_ALLOWLIST, cssSelectorAllowlist } = options;
+  const {
+    tagAllowlist = DEFAULT_TAG_ALLOWLIST,
+    cssSelectorAllowlist,
+    pageUrlAllowlist,
+    shouldTrackEventCallback,
+    dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  } = options;
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
 
@@ -52,6 +64,15 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
     if (!element) {
       return false;
     }
+
+    if (shouldTrackEventCallback) {
+      return shouldTrackEventCallback(actionType, element);
+    }
+
+    if (!isPageUrlAllowed(window.location.href, pageUrlAllowlist)) {
+      return false;
+    }
+
     /* istanbul ignore next */
     const elementType = (element as HTMLInputElement)?.type || '';
     if (typeof elementType === 'string') {
@@ -62,9 +83,10 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
           return false;
       }
     }
-    const tag = element.tagName.toLowerCase();
+    const tag = element?.tagName?.toLowerCase?.();
     /* istanbul ignore if */
-    if (!tagAllowlist.includes(tag)) {
+    if (!DEFAULT_TAG_ALLOWLIST.includes(tag) || !tagAllowlist.includes(tag)) {
+      // Tag needs to be in the default allowlist and the user provided allowlist.
       return false;
     }
     if (cssSelectorAllowlist) {
@@ -95,6 +117,9 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
     /* istanbul ignore next */
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
+    const ariaLabel = element.getAttribute('aria-label');
+    const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
+    const selector = finder(element);
     /* istanbul ignore next */
     const properties: Record<string, any> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.id,
@@ -103,6 +128,9 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_SELECTOR]: selector,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
@@ -111,7 +139,7 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
     }
-    return properties;
+    return removeEmptyProperties(properties);
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {

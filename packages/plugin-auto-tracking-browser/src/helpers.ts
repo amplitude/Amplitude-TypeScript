@@ -51,3 +51,45 @@ export const getText = (element: Element): string => {
   }
   return text;
 };
+
+export const isPageUrlAllowed = (url: string, pageUrlAllowlist: string[] | undefined) => {
+  if (!pageUrlAllowlist || !pageUrlAllowlist.length) {
+    return true;
+  }
+  return pageUrlAllowlist.some((allowedUrl) => {
+    const allowedUrlRegex = new RegExp(allowedUrl);
+    return url.match(allowedUrlRegex);
+  });
+};
+
+export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
+  return element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
+    if (attributeName.startsWith(prefix)) {
+      const attributeKey = attributeName.replace(prefix, '');
+      const attributeValue = element.getAttribute(attributeName);
+      if (attributeKey) {
+        attributes[attributeKey] = attributeValue || '';
+      }
+    }
+    return attributes;
+  }, {});
+};
+
+export const isEmpty = (value: unknown) => {
+  return (
+    value === undefined ||
+    value === null ||
+    (typeof value === 'object' && Object.keys(value).length === 0) ||
+    (typeof value === 'string' && value.trim().length === 0)
+  );
+};
+
+export const removeEmptyProperties = (properties: { [key: string]: unknown }) => {
+  return Object.keys(properties).reduce((filteredProperties: { [key: string]: unknown }, key) => {
+    const value = properties[key];
+    if (!isEmpty(value)) {
+      filteredProperties[key] = value;
+    }
+    return filteredProperties;
+  }, {});
+};
