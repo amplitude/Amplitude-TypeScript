@@ -177,7 +177,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       identityStoreOptOut = identityStore.getIdentity().optOut;
     }
 
-    return identityStoreOptOut || this.config?.optOut;
+    return identityStoreOptOut !== undefined ? identityStoreOptOut : this.config?.optOut;
   }
 
   getShouldRecord() {
@@ -241,7 +241,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.stopRecordingEvents = record({
       emit: (event) => {
         const globalScope = getGlobalScope();
-        if (globalScope && globalScope.document && !globalScope.document.hasFocus()) {
+        if ((globalScope && globalScope.document && !globalScope.document.hasFocus()) || !this.getShouldRecord()) {
           this.stopRecordingAndSendEvents();
           return;
         }
