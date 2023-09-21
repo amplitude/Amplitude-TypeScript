@@ -4,7 +4,7 @@ import { LogLevel } from '@amplitude/analytics-types';
 import { SessionReplayConfig as ISessionReplayConfig, SessionReplayOptions } from './typings/session-replay';
 
 export const getDefaultConfig = () => ({
-  flushMaxRetries: 5,
+  flushMaxRetries: 2,
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
   transportProvider: new FetchTransport(),
@@ -23,6 +23,10 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
       ...options,
       apiKey,
     });
+    this.flushMaxRetries =
+      options.flushMaxRetries !== undefined && options.flushMaxRetries <= defaultConfig.flushMaxRetries
+        ? options.flushMaxRetries
+        : defaultConfig.flushMaxRetries;
 
     this.apiKey = apiKey;
     this.sampleRate = options.sampleRate || 1;

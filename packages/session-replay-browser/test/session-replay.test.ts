@@ -142,6 +142,27 @@ describe('SessionReplayPlugin', () => {
       } as typeof globalThis);
       expect(initialize).not.toHaveBeenCalled();
     });
+
+    describe('flushMaxRetries config', () => {
+      test('should use default config value if no max retries', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: undefined }).promise;
+
+        expect(sessionReplay.config?.flushMaxRetries).toBe(2);
+      });
+      test('should cap max retries at default config value', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 10 }).promise;
+
+        expect(sessionReplay.config?.flushMaxRetries).toBe(2);
+      });
+      test('should allow a lower value than default config value', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 0 }).promise;
+
+        expect(sessionReplay.config?.flushMaxRetries).toBe(0);
+      });
+    });
   });
 
   describe('setSessionId', () => {
@@ -982,17 +1003,14 @@ describe('SessionReplayPlugin', () => {
 
       await sessionReplay.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(fetch).toHaveBeenCalledWith('https://api-sr.amplitude.com/sessions/track', {
-        body: JSON.stringify({
-          api_key: 'static_key',
-          device_id: '1a2b3c',
-          session_id: 123,
-          start_timestamp: 123,
-          events_batch: { version: 1, events: [mockEventString], seq_number: 1 },
-        }),
-        headers: { Accept: '*/*', 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
+        {
+          body: JSON.stringify({ version: 1, events: [mockEventString] }),
+          headers: { Accept: '*/*', 'Content-Type': 'application/json', Authorization: 'Bearer static_key' },
+          method: 'POST',
+        },
+      );
     });
     test('should make a request to eu', async () => {
       const sessionReplay = new SessionReplay();
@@ -1008,17 +1026,14 @@ describe('SessionReplayPlugin', () => {
 
       await sessionReplay.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
-      expect(fetch).toHaveBeenCalledWith('https://api-sr.eu.amplitude.com/sessions/track', {
-        body: JSON.stringify({
-          api_key: 'static_key',
-          device_id: '1a2b3c',
-          session_id: 123,
-          start_timestamp: 123,
-          events_batch: { version: 1, events: [mockEventString], seq_number: 1 },
-        }),
-        headers: { Accept: '*/*', 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
+      expect(fetch).toHaveBeenCalledWith(
+        'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
+        {
+          body: JSON.stringify({ version: 1, events: [mockEventString] }),
+          headers: { Accept: '*/*', 'Content-Type': 'application/json', Authorization: 'Bearer static_key' },
+          method: 'POST',
+        },
+      );
     });
     test('should update IDB store upon success', async () => {
       const sessionReplay = new SessionReplay();
@@ -1236,6 +1251,26 @@ describe('SessionReplayPlugin', () => {
         });
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      sessionReplay.events = [mockEventString];
+      sessionReplay.stopRecordingAndSendEvents();
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('should only retry once for 500 error, even if config set to higher than one retry', async () => {
+      (fetch as jest.Mock)
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 500,
+          });
+        })
+        .mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: 500,
+          });
+        });
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 10 }).promise;
       sessionReplay.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
       await runScheduleTimers();
