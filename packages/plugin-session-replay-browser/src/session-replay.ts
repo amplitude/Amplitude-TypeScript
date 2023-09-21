@@ -54,7 +54,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       sessionReplay.setSessionId(event.session_id);
     }
 
-    const sessionRecordingProperties = sessionReplay.getSessionRecordingProperties();
+    const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
     event.event_properties = {
       ...event.event_properties,
       ...sessionRecordingProperties,
