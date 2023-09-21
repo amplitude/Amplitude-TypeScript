@@ -8,7 +8,7 @@ type MockedSessionReplayBrowser = jest.Mocked<typeof import('@amplitude/session-
 type MockedLogger = jest.Mocked<Logger>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionRecordingProperties, shutdown } =
+  const { init, setSessionId, getSessionReplayProperties, shutdown } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -127,7 +127,7 @@ describe('SessionReplayPlugin', () => {
     test('should add event property for [Amplitude] Session Recorded', async () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
-      getSessionRecordingProperties.mockReturnValueOnce({
+      getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Recorded': true,
       });
       const event = {
