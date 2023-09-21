@@ -383,27 +383,28 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!deviceId) {
       return this.completeRequest({ context, err: MISSING_DEVICE_ID_MESSAGE });
     }
-    const payload = {
-      api_key: apiKey,
+
+    const urlParams = new URLSearchParams({
       device_id: deviceId,
-      session_id: context.sessionId,
-      start_timestamp: context.sessionId,
-      events_batch: {
-        version: 1,
-        events: context.events,
-        seq_number: context.sequenceId,
-      },
+      session_id: `${context.sessionId}`,
+      seq_number: `${context.sequenceId}`,
+    });
+
+    const payload = {
+      version: 1,
+      events: context.events,
     };
     try {
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
           Accept: '*/*',
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(payload),
         method: 'POST',
       };
-      const server_url = this.getServerUrl();
+      const server_url = `${this.getServerUrl()}?${urlParams.toString()}`;
       const res = await fetch(server_url, options);
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });
