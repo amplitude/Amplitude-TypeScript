@@ -102,7 +102,7 @@ const snippet = (name, integrity, version, globalVar) => `
         name: fn,
         args: Array.prototype.slice.call(args, 0),
       });
-    };
+    }
     function proxyMain(instance, fn, isPromise) {
       instance[fn] = function () {
         if (isPromise) return {
