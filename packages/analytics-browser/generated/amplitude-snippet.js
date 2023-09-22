@@ -21,12 +21,6 @@
         return this;
       };
     };
-    var proxyInstance = function proxyInstance(instance, fn, args) {
-      instance._q.push({
-        name: fn,
-        args: Array.prototype.slice.call(args, 0),
-      });
-    };
     var getPromiseResult = function getPromiseResult(instance, fn, args) {
       return function (resolve) {
         instance._q.push({
@@ -41,7 +35,6 @@
         if (isPromise) return {
           promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments)))
         };
-        proxyInstance(instance, fn, Array.prototype.slice.call(arguments));
       };
     };
     var setUpProxy = function setUpProxy(instance) {
