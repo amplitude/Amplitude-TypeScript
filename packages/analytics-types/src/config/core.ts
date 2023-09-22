@@ -5,7 +5,7 @@ import { ServerZoneType } from '../server-zone';
 import { Storage } from '../storage';
 import { Transport } from '../transport';
 import { Logger, LogLevel } from '../logger';
-import { Diagnostic } from '../diagnostic';
+import { Diagnostic, DiagnosticOptions } from '../diagnostic';
 
 export interface Config {
   apiKey: string;
@@ -24,7 +24,7 @@ export interface Config {
   storageProvider?: Storage<Event[]>;
   transportProvider: Transport;
   useBatch: boolean;
-  diagnosticProvider?: Diagnostic;
+  diagnosticProvider: Diagnostic | DiagnosticOptions;
 }
 
 export interface Options extends Partial<Config> {

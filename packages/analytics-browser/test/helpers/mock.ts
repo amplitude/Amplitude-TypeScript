@@ -1,4 +1,4 @@
-import { Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
+import { Diagnostic, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { BrowserClient, BrowserConfig, LogLevel, UserSession } from '@amplitude/analytics-types';
 
 export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
@@ -54,6 +54,7 @@ export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {
       send: jest.fn(),
     },
     useBatch: false,
+    diagnosticProvider: new Diagnostic(),
 
     // browser config
     appVersion: undefined,

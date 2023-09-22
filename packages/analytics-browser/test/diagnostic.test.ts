@@ -1,4 +1,4 @@
-import { Diagnostic } from '../../src/plugins/diagnostic';
+import { Diagnostic } from '../src/diagnostic';
 
 describe('Diagnostic', () => {
   test('should fetch', async () => {
@@ -6,7 +6,7 @@ describe('Diagnostic', () => {
     const fetchMock = jest.fn().mockResolvedValueOnce({} as Response);
     global.fetch = fetchMock;
 
-    await diagnostic.track(5, 200, 'Test message');
+    diagnostic.track(5, 200, 'Test message');
     await diagnostic.flush();
 
     expect(fetchMock).toHaveBeenCalledTimes(1);

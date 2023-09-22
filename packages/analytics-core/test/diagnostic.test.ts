@@ -18,15 +18,23 @@ describe('Diagnostic', () => {
   });
 
   describe('constructor', () => {
-    test('should set serverUrl to default value if not provided', () => {
+    test('should set default values if not provided', () => {
       expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
+      expect(diagnostic.isDisabled).toBe(false);
+    });
+
+    test('should set isDisabled to provided value', () => {
+      const isDisabled = true;
+      diagnostic = new Diagnostic({ isDisabled });
+      expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
+      expect(diagnostic.isDisabled).toBe(isDisabled);
     });
 
     test('should set serverUrl to provided value', () => {
       const serverUrl = 'https://test.com';
-      diagnostic = new Diagnostic(serverUrl);
-
+      diagnostic = new Diagnostic({ serverUrl });
       expect(diagnostic.serverUrl).toBe(serverUrl);
+      expect(diagnostic.isDisabled).toBe(false);
     });
   });
 
@@ -41,7 +49,14 @@ describe('Diagnostic', () => {
       expect(diagnostic.queue[0].library).toBe('diagnostic-test-library');
     });
 
-    test('should schedule flush when track is called for the first time 0', () => {
+    test('should not add to queen when disabled', () => {
+      diagnostic.isDisabled = true;
+      diagnostic.track(eventCount, code, 'Test message');
+
+      expect(diagnostic.queue).toHaveLength(0);
+    });
+
+    test('should schedule flush when track is called for the first time', () => {
       const setTimeoutMock = jest.spyOn(global, 'setTimeout');
 
       diagnostic.track(eventCount, code, 'Test message');
@@ -92,16 +107,6 @@ describe('Diagnostic', () => {
       };
 
       expect(diagnostic.requestPayloadBuilder(events)).toEqual(expectedPayload);
-    });
-  });
-
-  describe('execute', () => {
-    test('should not be called, use track() instead', async () => {
-      const context = { event_type: 'custom event' };
-
-      const result = await diagnostic.execute(context);
-
-      expect(result.message).toBe('this method should not be called, use track() instead');
     });
   });
 });

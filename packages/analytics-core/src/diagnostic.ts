@@ -1,4 +1,4 @@
-import { Diagnostic as IDiagnostic, Event, Result } from '@amplitude/analytics-types';
+import { Diagnostic as IDiagnostic, DiagnosticOptions } from '@amplitude/analytics-types';
 import { DIAGNOSTIC_ENDPOINT } from './constants';
 
 interface DiagnosticEvent {
@@ -13,7 +13,8 @@ interface DiagnosticEvent {
 }
 
 export class Diagnostic implements IDiagnostic {
-  serverUrl: string;
+  isDisabled = false;
+  serverUrl: string = DIAGNOSTIC_ENDPOINT;
   queue: DiagnosticEvent[] = [];
 
   private scheduled: ReturnType<typeof setTimeout> | null = null;
@@ -21,11 +22,16 @@ export class Diagnostic implements IDiagnostic {
   // make it private to prevent users from changing it to smaller value
   private delay = 60000;
 
-  constructor(serverUrl?: string) {
-    this.serverUrl = serverUrl ? serverUrl : DIAGNOSTIC_ENDPOINT;
+  constructor(options?: DiagnosticOptions) {
+    this.isDisabled = options && options.isDisabled ? options.isDisabled : false;
+    this.serverUrl = options && options.serverUrl ? options.serverUrl : DIAGNOSTIC_ENDPOINT;
   }
 
   track(eventCount: number, code: number, message: string) {
+    if (this.isDisabled) {
+      return;
+    }
+
     this.queue.push(this.diagnosticEventBuilder(eventCount, code, message));
 
     if (!this.scheduled) {
@@ -67,16 +73,5 @@ export class Diagnostic implements IDiagnostic {
       events: events,
       method: 'POST',
     };
-  }
-
-  execute(_context: Event): Promise<Result> {
-    return Promise.resolve({
-      event: { event_type: 'diagnostic event' },
-      code: -1,
-      message: 'this method should not be called, use track() instead',
-    });
-    // this method is not implemented
-    // it's kept here to satisfy the interface
-    // track() should be used instead
   }
 }

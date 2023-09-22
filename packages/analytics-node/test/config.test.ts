@@ -27,6 +27,7 @@ describe('config', () => {
         storageProvider: undefined,
         transportProvider: new Http(),
         useBatch: false,
+        diagnosticProvider: new core.Diagnostic(),
       });
     });
   });
@@ -56,6 +57,7 @@ describe('config', () => {
         transportProvider: new Http(),
         userId: undefined,
         useBatch: false,
+        diagnosticProvider: new core.Diagnostic(),
       });
     });
   });

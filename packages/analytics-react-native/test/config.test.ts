@@ -60,6 +60,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new core.Diagnostic(),
         trackingSessionEvents: false,
       });
     });
@@ -113,6 +114,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new core.Diagnostic(),
         trackingSessionEvents: false,
       });
     });
@@ -194,6 +196,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new core.Diagnostic(),
         _userId: 'userIdFromCookies',
       });
     });
