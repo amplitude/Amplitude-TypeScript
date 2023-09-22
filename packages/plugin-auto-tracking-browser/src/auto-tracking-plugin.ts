@@ -83,6 +83,7 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
           return false;
       }
     }
+    /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
     /* istanbul ignore if */
     if (!DEFAULT_TAG_ALLOWLIST.includes(tag) || !tagAllowlist.includes(tag)) {

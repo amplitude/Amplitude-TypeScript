@@ -1,8 +1,9 @@
+/* istanbul ignore file */
+
 // License: MIT
 // Author: Anton Medvedev <anton@medv.io>
 // Source: https://github.com/antonmedv/finder
 
-/* istanbul ignore next */
 type Knot = {
   name: string;
   penalty: number;
