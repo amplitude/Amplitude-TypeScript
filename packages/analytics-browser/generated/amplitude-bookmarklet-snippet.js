@@ -206,27 +206,30 @@
           return semanticContext + `"""`;
         };
         var getPrompt = function getPrompt(actionContext, pageContext, parentContext) {
+          // Used prompting best practices from:
+          // https://olickel.com/everything-i-know-about-prompting-llms
           // Try not to use terms like "clicked" or "changed" in the event name. Use more descriptive terms based on the intent of the action
           // when possible.
           return `\
-Given the page text, the text for all elements of a web page, and a user action on a specific element of that page,\
- suggest event name for the action in given the context of the page text.\
+Given the PAGE_TEXT, the text for all elements of a web page, and a USER_ACTION on a specific element of that page,\
+ suggest event name for the USER_ACTION in given the context of the PAGE_TEXT.\
  Be as descriptive as possible while still being concise.\
  The event name will be used to track the event in Amplitude for use in user segmentation charts.\
  The Element Text is the text that was clicked on or changed.\
  The Surrounding Text is the text of the parent and siblings of the clicked or changed element.
 
-Page text: """
+PAGE_TEXT:
+"""
 ${pageContext}
 """
 
-User Action: """
+USER_ACTION:
+"""
 ${actionContext}
 """
 
 Desired format:
 Suggested event name: -||-`;
-
         };
         var getParentElement = function getParentElement(element, maxDepth) {
           let parentElement = element.parentElement;
@@ -261,9 +264,12 @@ Suggested event name: -||-`;
                 'Authorization': `Bearer ${openAiApiKey}`
               },
               body: JSON.stringify({
-                "model": "gpt-3.5-turbo",
+                "model": "gpt-4-0613",
+                // "model": "gpt-3.5-turbo-0613",
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0
+                "temperature": 0,
+                // TODO: use frequency_penalty and presence_penalty to avoid repetition in response
+                //  (watch out: will also avoid using words/tokens in the context itself as a result
               })
             }
           ).then(response => response.json())
