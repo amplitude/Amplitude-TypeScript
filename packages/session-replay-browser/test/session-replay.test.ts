@@ -545,6 +545,20 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance' }).promise;
       expect(sessionReplay.shouldOptOut()).toEqual(true);
     });
+    test('should return opt out from identity store even if set to false', async () => {
+      jest.spyOn(AnalyticsClientCommon, 'getAnalyticsConnector').mockReturnValue({
+        identityStore: {
+          getIdentity: () => {
+            return {
+              optOut: false,
+            };
+          },
+        },
+      } as unknown as ReturnType<typeof AnalyticsClientCommon.getAnalyticsConnector>);
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance', optOut: true }).promise;
+      expect(sessionReplay.shouldOptOut()).toEqual(false);
+    });
     test('should return config device id if set', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance', optOut: true }).promise;
@@ -673,6 +687,15 @@ describe('SessionReplayPlugin', () => {
       expect(record).not.toHaveBeenCalled();
       expect(sessionReplay.events).toEqual([]);
     });
+
+    test('should return early if user opts out', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      sessionReplay.recordEvents();
+      expect(record).not.toHaveBeenCalled();
+      expect(sessionReplay.events).toEqual([]);
+    });
+
     test('should store events in class and in IDB', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -771,6 +794,30 @@ describe('SessionReplayPlugin', () => {
       } as typeof globalThis);
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       const sendEventsListMock = jest.spyOn(sessionReplay, 'sendEventsList').mockImplementationOnce(() => {});
+      const recordArg = record.mock.calls[0][0];
+      recordArg?.emit && recordArg?.emit(mockEvent);
+      expect(sendEventsListMock).toHaveBeenCalledTimes(1);
+      expect(sendEventsListMock).toHaveBeenCalledWith({
+        events: [mockEventString],
+        sequenceId: 0,
+        sessionId: 123,
+      });
+      expect(stopRecordingMock).toHaveBeenCalled();
+      expect(sessionReplay.stopRecordingEvents).toEqual(null);
+      expect(sessionReplay.events).toEqual([mockEventString]); // events should not change, emmitted event should be ignored
+    });
+
+    test('should stop recording and send events if user opts out during recording', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordEvents();
+      const stopRecordingMock = jest.fn();
+      sessionReplay.stopRecordingEvents = stopRecordingMock;
+      expect(sessionReplay.events).toEqual([]);
+      sessionReplay.events = [mockEventString]; // Add one event to list to trigger sending in stopRecordingAndSendEvents
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      const sendEventsListMock = jest.spyOn(sessionReplay, 'sendEventsList').mockImplementationOnce(() => {});
+      sessionReplay.shouldOptOut = () => true;
       const recordArg = record.mock.calls[0][0];
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(sendEventsListMock).toHaveBeenCalledTimes(1);
