@@ -87,6 +87,7 @@ export class Destination implements DestinationPlugin {
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 500, 'exceeded max retries');
       return false;
     });
 
@@ -155,25 +156,19 @@ export class Destination implements DestinationPlugin {
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
+        (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, 'unexpected error');
         return;
       }
-      if (!useRetry) {
-        if ('body' in res) {
-          this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
-        } else {
-          this.fulfillRequest(list, res.statusCode, res.status);
-        }
-        return;
-      }
-      this.handleResponse(res, list);
+      this.handleResponse(res, list, useRetry);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
       this.fulfillRequest(list, 0, errorMessage);
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, 'unexpected error');
     }
   }
 
-  handleResponse(res: Response, list: Context[]) {
+  handleResponse(res: Response, list: Context[], useRetry: boolean) {
     const { status } = res;
 
     switch (status) {
@@ -182,22 +177,22 @@ export class Destination implements DestinationPlugin {
         break;
       }
       case Status.Invalid: {
-        this.handleInvalidResponse(res, list);
+        this.handleInvalidResponse(res, list, useRetry);
         break;
       }
       case Status.PayloadTooLarge: {
-        this.handlePayloadTooLargeResponse(res, list);
+        this.handlePayloadTooLargeResponse(res, list, useRetry);
         break;
       }
       case Status.RateLimit: {
-        this.handleRateLimitResponse(res, list);
+        this.handleRateLimitResponse(res, list, useRetry);
         break;
       }
       default: {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
 
-        this.handleOtherResponse(list);
+        this.handleOtherResponse(res, list, useRetry);
         break;
       }
     }
@@ -207,9 +202,10 @@ export class Destination implements DestinationPlugin {
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
-  handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+  handleInvalidResponse(res: InvalidResponse, list: Context[], useRetry: boolean) {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
-      this.fulfillRequest(list, res.statusCode, res.body.error);
+      this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, 'invalid or missing fields');
       return;
     }
 
@@ -220,24 +216,32 @@ export class Destination implements DestinationPlugin {
       ...res.body.silencedEvents,
     ].flat();
     const dropIndexSet = new Set(dropIndex);
+    (this.config.diagnosticProvider as Diagnostic).track(
+      useRetry ? dropIndexSet.size : list.length,
+      400,
+      'event error',
+    );
 
-    const retry = list.filter((context, index) => {
-      if (dropIndexSet.has(index)) {
-        this.fulfillRequest([context], res.statusCode, res.body.error);
-        return;
+    if (useRetry) {
+      const retry = list.filter((context, index) => {
+        if (dropIndexSet.has(index)) {
+          this.fulfillRequest([context], res.statusCode, res.body.error);
+          return;
+        }
+        return true;
+      });
+
+      if (retry.length > 0) {
+        // log intermediate event status before retry
+        this.config.loggerProvider.warn(getResponseBodyString(res));
       }
-      return true;
-    });
-
-    if (retry.length > 0) {
-      // log intermediate event status before retry
-      this.config.loggerProvider.warn(getResponseBodyString(res));
+      this.addToQueue(...retry);
     }
-    this.addToQueue(...retry);
   }
 
-  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
-    if (list.length === 1) {
+  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[], useRetry: boolean) {
+    if (list.length === 1 || !useRetry) {
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 413, 'payload too large');
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
@@ -249,7 +253,13 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...list);
   }
 
-  handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
+  handleRateLimitResponse(res: RateLimitResponse, list: Context[], useRetry: boolean) {
+    if (!useRetry) {
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 429, 'exceeded daily quota users or devices');
+      this.fulfillRequest(list, res.statusCode, res.status);
+      return;
+    }
+
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     const throttledIndex = res.body.throttledEvents;
@@ -271,6 +281,15 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
+    const dropEvents = list.filter((element) => !retry.includes(element));
+    if (dropEvents.length > 0) {
+      (this.config.diagnosticProvider as Diagnostic).track(
+        dropEvents.length,
+        429,
+        'exceeded daily quota users or devices',
+      );
+    }
+
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
@@ -279,17 +298,21 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...retry);
   }
 
-  handleOtherResponse(list: Context[]) {
-    this.addToQueue(
-      ...list.map((context) => {
-        context.timeout = context.attempts * this.retryTimeout;
-        return context;
-      }),
-    );
+  handleOtherResponse(res: Response, list: Context[], useRetry: boolean) {
+    if (useRetry) {
+      this.addToQueue(
+        ...list.map((context) => {
+          context.timeout = context.attempts * this.retryTimeout;
+          return context;
+        }),
+      );
+    } else {
+      this.fulfillRequest(list, res.statusCode, res.status);
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, 'unexpected error');
+    }
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    (this.config.diagnosticProvider as Diagnostic).track(list.length, code, message);
     this.saveEvents();
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }

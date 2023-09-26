@@ -1,5 +1,13 @@
 import { Destination, getResponseBodyString } from '../../src/plugins/destination';
-import { Config, DestinationContext, Logger, Payload, Result, Status } from '@amplitude/analytics-types';
+import {
+  Config,
+  DestinationContext,
+  Logger,
+  Payload,
+  Result,
+  Status,
+  Diagnostic as IDiagnostic,
+} from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -9,8 +17,18 @@ import {
 } from '../../src/messages';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
+class Diagnostic implements IDiagnostic {
+  track = jest.fn();
+  isDisabled = false;
+  serverUrl = 'test';
+}
+const diagnosticProvider = new Diagnostic();
 
 describe('destination', () => {
+  afterEach(() => {
+    diagnosticProvider.track.mockClear();
+  });
+
   describe('setup', () => {
     test('should setup plugin', async () => {
       const destination = new Destination();
@@ -454,7 +472,7 @@ describe('destination', () => {
       });
     });
 
-    test('should handle unexpected error', async () => {
+    test('should handle unexpected error and track diagnostic', async () => {
       const destination = new Destination();
       const callback = jest.fn();
       const context = {
@@ -473,9 +491,146 @@ describe('destination', () => {
       await destination.setup({
         ...useDefaultConfig(),
         transportProvider,
+        diagnosticProvider,
       });
       await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenLastCalledWith(1, 0, 'unexpected error');
+    });
+
+    test.each([
+      ['api_key', undefined, true, 2, 'invalid or missing fields'],
+      [undefined, { time: [0] }, true, 1, 'event error'],
+      [undefined, { time: [0] }, false, 2, 'event error'],
+    ])(
+      'should track diagnostic when 400',
+      async (missingField, eventsWithInvalidFields, useRetry, dropCount, message) => {
+        const destination = new Destination();
+        const callback = jest.fn();
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.Invalid,
+              statusCode: 400,
+              body: {
+                error: 'error',
+                missingField: missingField,
+                eventsWithInvalidFields: eventsWithInvalidFields,
+                eventsWithMissingFields: {},
+                eventsWithInvalidIdLengths: {},
+                silencedEvents: [],
+              },
+            });
+          }),
+        };
+        await destination.setup({
+          ...useDefaultConfig(),
+          transportProvider,
+          apiKey: API_KEY,
+          diagnosticProvider,
+        });
+        await destination.send(
+          [
+            {
+              attempts: 0,
+              callback,
+              event: {
+                event_type: 'event_type',
+                user_id: 'user_0',
+              },
+              timeout: 0,
+            },
+            {
+              attempts: 0,
+              callback,
+              event: {
+                event_type: 'event_type',
+                user_id: 'user_1',
+              },
+              timeout: 0,
+            },
+          ],
+          useRetry,
+        );
+        expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+        expect(diagnosticProvider.track).toHaveBeenCalledWith(dropCount, 400, message);
+      },
+    );
+
+    test('should track diagnostic when 429 and not retry', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.RateLimit,
+            statusCode: 429,
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        diagnosticProvider,
+      });
+      await destination.send([context], false);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 429,
+        message: Status.RateLimit,
+      });
+      expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(1, 429, 'exceeded daily quota users or devices');
+      expect(destination.queue.length).toBe(0);
+    });
+
+    test('should track diagnostic when 429 and retry', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+        user_id: 'user_0',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.RateLimit,
+            statusCode: 429,
+            body: {
+              exceededDailyQuotaUsers: { user_0: 1 },
+              exceededDailyQuotaDevices: {},
+              throttledEvents: [],
+            },
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        diagnosticProvider,
+      });
+      await destination.send([context]);
+      expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(1, 429, 'exceeded daily quota users or devices');
     });
   });
 
