@@ -135,6 +135,7 @@ export class Destination implements DestinationPlugin {
 
   async send(list: Context[], useRetry = true) {
     if (!this.config.apiKey) {
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, 'missing API key');
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
@@ -155,6 +156,7 @@ export class Destination implements DestinationPlugin {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
+        (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, 'unexpected error');
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, 'unexpected error');
         return;
@@ -192,7 +194,7 @@ export class Destination implements DestinationPlugin {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
 
-        this.handleOtherResponse(res, list, useRetry);
+        this.handleOtherResponse(list, useRetry);
         break;
       }
     }
@@ -203,9 +205,21 @@ export class Destination implements DestinationPlugin {
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[], useRetry: boolean) {
-    if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
-      this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, 'invalid or missing fields');
+    if (res.body.missingField) {
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, 'missing fields');
+      this.fulfillRequest(list, res.statusCode, res.body.error);
+      return;
+    }
+
+    if (res.body.error.startsWith(INVALID_API_KEY)) {
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, 'invalid API key');
+      this.fulfillRequest(list, res.statusCode, res.body.error);
+      return;
+    }
+
+    if (!useRetry) {
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, 'xxx');
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -216,11 +230,7 @@ export class Destination implements DestinationPlugin {
       ...res.body.silencedEvents,
     ].flat();
     const dropIndexSet = new Set(dropIndex);
-    (this.config.diagnosticProvider as Diagnostic).track(
-      useRetry ? dropIndexSet.size : list.length,
-      400,
-      'event error',
-    );
+    (this.config.diagnosticProvider as Diagnostic).track(dropIndexSet.size, 400, 'event error');
 
     if (useRetry) {
       const retry = list.filter((context, index) => {
@@ -256,7 +266,7 @@ export class Destination implements DestinationPlugin {
   handleRateLimitResponse(res: RateLimitResponse, list: Context[], useRetry: boolean) {
     if (!useRetry) {
       (this.config.diagnosticProvider as Diagnostic).track(list.length, 429, 'exceeded daily quota users or devices');
-      this.fulfillRequest(list, res.statusCode, res.status);
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -281,7 +291,7 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
-    const dropEvents = list.filter((element) => !retry.includes(element));
+    const dropEvents = retry.filter((element) => !retry.includes(element));
     if (dropEvents.length > 0) {
       (this.config.diagnosticProvider as Diagnostic).track(
         dropEvents.length,
@@ -298,7 +308,7 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...retry);
   }
 
-  handleOtherResponse(res: Response, list: Context[], useRetry: boolean) {
+  handleOtherResponse(list: Context[], useRetry: boolean) {
     if (useRetry) {
       this.addToQueue(
         ...list.map((context) => {
@@ -306,9 +316,6 @@ export class Destination implements DestinationPlugin {
           return context;
         }),
       );
-    } else {
-      this.fulfillRequest(list, res.statusCode, res.status);
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, 'unexpected error');
     }
   }
 
