@@ -30,11 +30,18 @@
         });
       };
     };
+    var proxyInstance = function proxyInstance(instance, fn, args) {
+      instance._q.push({
+        name: fn,
+        args: Array.prototype.slice.call(args, 0)
+      });
+    };
     var proxyMain = function proxyMain(instance, fn, isPromise) {
       instance[fn] = function () {
         if (isPromise) return {
           promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments)))
         };
+        proxyInstance(instance, fn, Array.prototype.slice.call(arguments));
       };
     };
     var setUpProxy = function setUpProxy(instance) {
@@ -48,10 +55,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-IWMiRVlBvWY1/lNNS116Htk3h+9r1anN1ecFr0rZYunxLxCuiM1jlr+8lwVF228r';
+    as.integrity = 'sha384-Chi7fRnlI3Vmej27YiXRbwAkES7Aor2707Qn/cpfhyw4lYue9vH/SOdlrPSFGPL/';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.3.1-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.3.2-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
