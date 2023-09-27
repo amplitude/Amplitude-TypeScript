@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.0...@amplitude/analytics-browser@1.13.1) (2023-09-27)
+
+### Bug Fixes
+
+- Amp 85112 set user id is not queued in snippet v1
+  ([#592](https://github.com/amplitude/Amplitude-TypeScript/issues/592))
+  ([c5907ef](https://github.com/amplitude/Amplitude-TypeScript/commit/c5907ef345cb1986364a62a2ee6f4b34cb96ccff)), closes
+  [#591](https://github.com/amplitude/Amplitude-TypeScript/issues/591)
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.12.3...@amplitude/analytics-browser@1.13.0) (2023-08-22)
 
 ### Features

@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.2.4...@amplitude/session-replay-browser@0.2.5) (2023-09-27)
+
+### Bug Fixes
+
+- **session replay:** opt out should take effect immediately
+  ([7b3b571](https://github.com/amplitude/Amplitude-TypeScript/commit/7b3b571e38a9bf968581cabbff50c6c1fff7251f))
+- **session replay:** test identity store false case and opt out in middle of recording
+  ([938b5d5](https://github.com/amplitude/Amplitude-TypeScript/commit/938b5d524780385bff04d5a51588407712d6db66))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.2.3...@amplitude/session-replay-browser@0.2.4) (2023-09-21)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
