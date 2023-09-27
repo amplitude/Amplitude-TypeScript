@@ -96,12 +96,19 @@ const snippet = (name, integrity, version, globalVar) => `
         });
       };
     }
+    function proxyInstance(instance, fn, args) {
+      instance._q.push({
+        name: fn,
+        args: Array.prototype.slice.call(args, 0),
+      });
+    }
     function proxyMain(instance, fn, isPromise) {
       var args = arguments;
       instance[fn] = function () {
         if (isPromise) return {
           promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments))),
         };
+        proxyInstance(instance, fn, Array.prototype.slice.call(arguments));
       };
     }
     function setUpProxy(instance) {
