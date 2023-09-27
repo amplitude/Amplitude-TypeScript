@@ -1,5 +1,5 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { Logger, UUID } from '@amplitude/analytics-core';
+import { Diagnostic, Logger, UUID } from '@amplitude/analytics-core';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import { pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
@@ -31,6 +31,7 @@ describe('pageViewTrackingPlugin', () => {
       language: true,
       platform: true,
     },
+    diagnosticProvider: new Diagnostic(),
   };
 
   beforeAll(() => {
