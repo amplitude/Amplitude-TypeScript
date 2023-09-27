@@ -1,16 +1,6 @@
 import { Diagnostic as IDiagnostic, DiagnosticOptions } from '@amplitude/analytics-types';
-import { DIAGNOSTIC_ENDPOINT } from './constants';
-
-interface DiagnosticEvent {
-  time: number;
-  event_properties: {
-    response_error_code: number;
-    trigger: string;
-    action: string;
-    event_count: number;
-  };
-  library: string;
-}
+import { DIAGNOSTIC_ENDPOINT } from '../constants';
+import { DiagnosticEvent } from './typings';
 
 export class Diagnostic implements IDiagnostic {
   isDisabled = false;

@@ -1,5 +1,5 @@
 import { DIAGNOSTIC_ENDPOINT } from '../src/constants';
-import { Diagnostic } from '../src/diagnostic';
+import { Diagnostic } from '../src/diagnostics/diagnostic';
 
 jest.useFakeTimers();
 

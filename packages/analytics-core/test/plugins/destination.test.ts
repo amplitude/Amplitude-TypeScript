@@ -15,6 +15,11 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
+import {
+  EVENT_ERROR_DIAGNOSTIC_MESSAGE,
+  INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE,
+  UNEXPECTED_DIAGNOSTIC_MESSAGE,
+} from '../../src/diagnostics/constants';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 class Diagnostic implements IDiagnostic {
@@ -496,13 +501,13 @@ describe('destination', () => {
       await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
-      expect(diagnosticProvider.track).toHaveBeenLastCalledWith(1, 0, 'unexpected error');
+      expect(diagnosticProvider.track).toHaveBeenLastCalledWith(1, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
     });
 
     test.each([
-      ['api_key', undefined, true, 2, 'invalid or missing fields'],
-      [undefined, { time: [0] }, true, 1, 'event error'],
-      [undefined, { time: [0] }, false, 2, 'event error'],
+      ['api_key', undefined, true, 2, INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE],
+      [undefined, { time: [0] }, true, 1, EVENT_ERROR_DIAGNOSTIC_MESSAGE],
+      [undefined, { time: [0] }, false, 2, EVENT_ERROR_DIAGNOSTIC_MESSAGE],
     ])(
       'should track diagnostic when 400',
       async (missingField, eventsWithInvalidFields, useRetry, dropCount, message) => {

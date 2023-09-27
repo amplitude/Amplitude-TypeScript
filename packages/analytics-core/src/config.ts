@@ -20,7 +20,7 @@ import {
 } from './constants';
 
 import { Logger } from './logger';
-import { Diagnostic } from './diagnostic';
+import { Diagnostic } from './diagnostics/diagnostic';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 12,

@@ -8,7 +8,7 @@ import {
 import { Config, createServerConfig, getServerUrl } from '../src/config';
 import { Logger } from '../src/logger';
 import { API_KEY, useDefaultConfig } from './helpers/default';
-import { Diagnostic } from '../src/diagnostic';
+import { Diagnostic } from '../src/diagnostics/diagnostic';
 
 describe('config', () => {
   test('should create default config', () => {
