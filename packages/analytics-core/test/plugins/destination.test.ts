@@ -17,7 +17,9 @@ import {
 } from '../../src/messages';
 import {
   EVENT_ERROR_DIAGNOSTIC_MESSAGE,
+  EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE,
   INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE,
+  PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE,
   UNEXPECTED_DIAGNOSTIC_MESSAGE,
 } from '../../src/diagnostics/constants';
 
@@ -563,23 +565,17 @@ describe('destination', () => {
       },
     );
 
-    test('should track diagnostic when 429 and not retry', async () => {
+    test('should track diagnostic when 413 and not retry', async () => {
       const destination = new Destination();
       const callback = jest.fn();
-      const event = {
-        event_type: 'event_type',
-      };
-      const context = {
-        attempts: 0,
-        callback,
-        event,
-        timeout: 0,
-      };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
           return Promise.resolve({
-            status: Status.RateLimit,
-            statusCode: 429,
+            status: Status.PayloadTooLarge,
+            statusCode: 413,
+            body: {
+              error: 'error',
+            },
           });
         }),
       };
@@ -589,31 +585,40 @@ describe('destination', () => {
         apiKey: API_KEY,
         diagnosticProvider,
       });
-      await destination.send([context], false);
-      expect(callback).toHaveBeenCalledTimes(1);
-      expect(callback).toHaveBeenCalledWith({
-        event,
-        code: 429,
-        message: Status.RateLimit,
-      });
+      await destination.send(
+        [
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_0',
+            },
+            timeout: 0,
+          },
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_1',
+            },
+            timeout: 0,
+          },
+        ],
+        false,
+      );
+
       expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
-      expect(diagnosticProvider.track).toHaveBeenCalledWith(1, 429, 'exceeded daily quota users or devices');
-      expect(destination.queue.length).toBe(0);
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(2, 413, PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE);
     });
 
-    test('should track diagnostic when 429 and retry', async () => {
+    test.each([
+      { useRetry: false, dropCount: 2, queueCount: 0 },
+      { useRetry: true, dropCount: 1, queueCount: 1 },
+    ])('should track diagnostic when 429', async ({ useRetry, dropCount, queueCount }) => {
       const destination = new Destination();
       const callback = jest.fn();
-      const event = {
-        event_type: 'event_type',
-        user_id: 'user_0',
-      };
-      const context = {
-        attempts: 0,
-        callback,
-        event,
-        timeout: 0,
-      };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
           return Promise.resolve({
@@ -633,10 +638,106 @@ describe('destination', () => {
         apiKey: API_KEY,
         diagnosticProvider,
       });
-      await destination.send([context]);
+      await destination.send(
+        [
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_0',
+            },
+            timeout: 0,
+          },
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_1',
+            },
+            timeout: 0,
+          },
+        ],
+        useRetry,
+      );
       expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
-      expect(diagnosticProvider.track).toHaveBeenCalledWith(1, 429, 'exceeded daily quota users or devices');
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(dropCount, 429, EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE);
+      expect(destination.queue.length).toBe(queueCount);
     });
+    //   const destination = new Destination();
+    //   const callback = jest.fn();
+    //   const event = {
+    //     event_type: 'event_type',
+    //   };
+    //   const context = {
+    //     attempts: 0,
+    //     callback,
+    //     event,
+    //     timeout: 0,
+    //   };
+    //   const transportProvider = {
+    //     send: jest.fn().mockImplementationOnce(() => {
+    //       return Promise.resolve({
+    //         status: Status.RateLimit,
+    //         statusCode: 429,
+    //       });
+    //     }),
+    //   };
+    //   await destination.setup({
+    //     ...useDefaultConfig(),
+    //     transportProvider,
+    //     apiKey: API_KEY,
+    //     diagnosticProvider,
+    //   });
+    //   await destination.send([context], false);
+    //   expect(callback).toHaveBeenCalledTimes(1);
+    //   expect(callback).toHaveBeenCalledWith({
+    //     event,
+    //     code: 429,
+    //     message: Status.RateLimit,
+    //   });
+    //   expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+    //   expect(diagnosticProvider.track).toHaveBeenCalledWith(1, 429, 'exceeded daily quota users or devices');
+    //   expect(destination.queue.length).toBe(0);
+    // });
+
+    // test('should track diagnostic when 429 and retry', async () => {
+    //   const destination = new Destination();
+    //   const callback = jest.fn();
+    //   const event = {
+    //     event_type: 'event_type',
+    //     user_id: 'user_0',
+    //   };
+    //   const context = {
+    //     attempts: 0,
+    //     callback,
+    //     event,
+    //     timeout: 0,
+    //   };
+    //   const transportProvider = {
+    //     send: jest.fn().mockImplementationOnce(() => {
+    //       return Promise.resolve({
+    //         status: Status.RateLimit,
+    //         statusCode: 429,
+    //         body: {
+    //           exceededDailyQuotaUsers: { user_0: 1 },
+    //           exceededDailyQuotaDevices: {},
+    //           throttledEvents: [],
+    //         },
+    //       });
+    //     }),
+    //   };
+    //   await destination.setup({
+    //     ...useDefaultConfig(),
+    //     transportProvider,
+    //     apiKey: API_KEY,
+    //     diagnosticProvider,
+    //   });
+    //   await destination.send([context]);
+    //   expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+    //   expect(diagnosticProvider.track).toHaveBeenCalledWith(1, 429, 'exceeded daily quota users or devices');
+    // });
   });
 
   describe('saveEvents', () => {
