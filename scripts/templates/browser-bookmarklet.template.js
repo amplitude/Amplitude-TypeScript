@@ -4,17 +4,26 @@ const snippet = (name, integrity, version, globalVar, apiKey, userId, serverZone
   if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
   else {
     amplitude.invoked = true;
+    var s = document.getElementsByTagName('script')[0];
+    var sessionReplayPluginScript = document.createElement('script');
+    sessionReplayPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-session-replay-browser-0.6.13-min.js.gz';
+    sessionReplayPluginScript.async = false;
+    s.parentNode.insertBefore(sessionReplayPluginScript, s);
     var as = document.createElement('script');
     as.type = 'text/javascript';
     as.integrity = '${integrity}';
     as.crossOrigin = 'anonymous';
-    as.async = true;
+    as.async = false;
     as.src = 'https://cdn.amplitude.com/libs/${name}-${version}-min.js.gz';
     as.onload = function () {
       if (!window.${globalVar}.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
       }
-      window.${globalVar}.init('${apiKey}', '${userId}', { serverZone: '${serverZone}' });
+      window.${globalVar}.init('${apiKey}', '${userId}', {
+        instanceName: 'amplitude-bookmarklet',
+        serverZone: '${serverZone}',
+        optOut: false
+      });
       const autoTracking = () => {
         const name = '@amplitude/plugin-auto-tracking-browser';
         const type = 'enrichment';
@@ -176,6 +185,10 @@ const snippet = (name, integrity, version, globalVar, apiKey, userId, serverZone
         };
       };
       window.${globalVar}.add(autoTracking());
+      if (window.sessionReplay && window.sessionReplay.plugin && typeof window.sessionReplay.plugin === 'function') {
+        console.log('Adding Session Replay plugin to Amplitude');
+        window.amplitude.add(window.sessionReplay.plugin());
+      }
       alert('Amplitude is now tracking events!');
     };
     var s = document.getElementsByTagName('script')[0];
