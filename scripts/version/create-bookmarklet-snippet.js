@@ -21,9 +21,9 @@ const outputPath = path.join(process.cwd(), outputDir, outputFile);
 const globalVar = argv.globalVar ?? 'amplitude';
 const nameSuffix = argv.nameSuffix ?? '';
 
-const apiKey = argv.apiKey ?? 'YOUR_API_KEY';
-const userId = argv.userId ?? 'YOUR_USER_ID';
-const serverZone = argv.serverZone ?? 'YOUR_SERVER_ZONE';
+const apiKey = argv.apiKey ?? process.env.AMP_API_KEY ?? 'YOUR_API_KEY';
+const userId = argv.userId ?? process.env.AMP_USER_ID ?? 'YOUR_USER_ID';
+const serverZone = argv.serverZone ?? process.env.AMP_SERVER_ZONE ?? 'YOUR_SERVER_ZONE';
 
 // Generate output contents
 const header = `/**
