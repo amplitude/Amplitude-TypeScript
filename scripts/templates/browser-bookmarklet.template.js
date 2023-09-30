@@ -91,17 +91,7 @@ const snippet = (name, integrity, version, globalVar, apiKey, userId, serverZone
         const getText = (element) => {
           let text = '';
           if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
-            element.childNodes.forEach(function (child) {
-              if (isTextNode(child) && child.textContent) {
-                text += child.textContent
-                  .split(/(\\s+)/)
-                  .filter(isNonSensitiveString)
-                  .join('')
-                  .replace(/[\\r\\n]/g, ' ')
-                  .replace(/[ ]+/g, ' ')
-                  .substring(0, 255);
-              }
-            });
+            text = element.innerText.replace(/\\n/g, ' ');
           }
           return text;
         };
@@ -119,9 +109,13 @@ const snippet = (name, integrity, version, globalVar, apiKey, userId, serverZone
             '[Amplitude] Page Title': (typeof document !== 'undefined' && document.title) || '',
             '[Amplitude] Viewport Height': window.innerHeight,
             '[Amplitude] Viewport Width': window.innerWidth,
+            '[Amplitude] Element Aria Label': element.getAttribute('aria-label') || '',
           };
           if (tag === 'a' && event === 'click') {
             properties['[Amplitude] Element Href'] = element.href;
+          }
+          if (element.dataset && Object.keys(element.dataset).length > 0) {
+            properties['[Amplitude] Element Attributes'] = element.dataset;
           }
           return properties;
         };
