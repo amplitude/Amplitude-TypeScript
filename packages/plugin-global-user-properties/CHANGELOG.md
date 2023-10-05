@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.1.1...@amplitude/plugin-global-user-properties@1.2.0) (2023-10-05)
+
+### Bug Fixes
+
+- lint and pretttier
+  ([4fcb1a9](https://github.com/amplitude/Amplitude-TypeScript/commit/4fcb1a9ac726b9407f08fe127f18596b53e49ace))
+
+### Features
+
+- add transform option to global user property
+  ([3f4966b](https://github.com/amplitude/Amplitude-TypeScript/commit/3f4966bab25ecdbe688528b4d8a7b33e7b294ee3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.1.0...@amplitude/plugin-global-user-properties@1.1.1) (2023-09-26)
 
 **Note:** Version bump only for package @amplitude/plugin-global-user-properties
