@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { globalUserPropertiesPlugin } from '../src/global-user-properties';
 import { TrackEvent, IdentifyEvent, RevenueEvent, SpecialEventType } from '@amplitude/analytics-types';
 
@@ -51,7 +52,7 @@ describe('globalUserPropertiesPlugin', () => {
 
     const newEvent: any = await plugin.execute?.({ ...event });
     expect(newEvent?.global_user_properties).toStrictEqual(undefined);
-  })
+  });
 
   test('does not add global properties on revenue events', async () => {
     const plugin = globalUserPropertiesPlugin();
@@ -83,7 +84,7 @@ describe('globalUserPropertiesPlugin', () => {
   });
 
   test('transforms properties when the property transform option is passed', async () => {
-    const plugin = globalUserPropertiesPlugin({propertyTransform: () => TEST_USER_IDENTIFY_PROPERTIES});
+    const plugin = globalUserPropertiesPlugin({ propertyTransform: () => TEST_USER_IDENTIFY_PROPERTIES });
 
     const event: TrackEvent = {
       event_type: 'NOT A REAL EVENT TYPE',
@@ -92,5 +93,5 @@ describe('globalUserPropertiesPlugin', () => {
 
     const newEvent: any = await plugin.execute?.({ ...event });
     expect(newEvent?.global_user_properties).toStrictEqual(TEST_USER_IDENTIFY_PROPERTIES);
-  })
+  });
 });

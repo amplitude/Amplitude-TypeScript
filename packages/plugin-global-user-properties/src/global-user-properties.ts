@@ -10,12 +10,12 @@ export const globalUserPropertiesPlugin: GlobalUserPropertiesPlugin = function (
     /* Note: The promise is because of the interface, not because this has any asynchronous behavior */
     execute: async (event: Event): Promise<Event> => {
       if (!isTrackEvent(event) && !isAmplitudeIdentifyEvent(event)) {
-        return event
+        return event;
       }
 
       let globalUserProperties = event.user_properties;
       if (options.propertyTransform && globalUserProperties) {
-        globalUserProperties = options.propertyTransform(globalUserProperties)
+        globalUserProperties = options.propertyTransform(globalUserProperties);
       }
 
       if (!globalUserProperties) {
