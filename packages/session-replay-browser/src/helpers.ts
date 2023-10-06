@@ -25,3 +25,8 @@ export const isSessionInSample = function (sessionId: number, sampleRate: number
   const mod = absHashMultiply % 100;
   return mod / 100 < sampleRate;
 };
+
+export const getCurrentUrl = () => {
+  // eslint-disable-next-line no-restricted-globals
+  return typeof window !== 'undefined' ? window.location.href : '';
+};

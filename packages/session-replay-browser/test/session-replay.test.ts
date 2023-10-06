@@ -8,6 +8,7 @@ import * as Helpers from '../src/helpers';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
 import { IDBStore, RecordingStatus, SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
+import { VERSION } from '../src/verstion';
 
 jest.mock('idb-keyval');
 type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
@@ -1054,7 +1055,14 @@ describe('SessionReplayPlugin', () => {
         'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
-          headers: { Accept: '*/*', 'Content-Type': 'application/json', Authorization: 'Bearer static_key' },
+          headers: {
+            Accept: '*/*',
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer static_key',
+            'X-Client-Sample-Rate': '1',
+            'X-Client-Url': window.location.href,
+            'X-Client-Version': VERSION,
+          },
           method: 'POST',
         },
       );
@@ -1077,7 +1085,14 @@ describe('SessionReplayPlugin', () => {
         'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
-          headers: { Accept: '*/*', 'Content-Type': 'application/json', Authorization: 'Bearer static_key' },
+          headers: {
+            Accept: '*/*',
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer static_key',
+            'X-Client-Sample-Rate': '1',
+            'X-Client-Url': window.location.href,
+            'X-Client-Version': VERSION,
+          },
           method: 'POST',
         },
       );

@@ -6,6 +6,7 @@ export const DEFAULT_EVENT_PROPERTY_PREFIX = '[Amplitude]';
 export const DEFAULT_SESSION_REPLAY_PROPERTY = `${DEFAULT_EVENT_PROPERTY_PREFIX} Session Recorded`;
 export const DEFAULT_SESSION_START_EVENT = 'session_start';
 export const DEFAULT_SESSION_END_EVENT = 'session_end';
+export const DEFAULT_SAMPLE_RATE = 1;
 
 export const BLOCK_CLASS = 'amp-block';
 export const MASK_TEXT_CLASS = 'amp-mask';

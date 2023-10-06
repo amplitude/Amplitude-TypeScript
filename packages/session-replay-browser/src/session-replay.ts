@@ -6,6 +6,7 @@ import { pack, record } from 'rrweb';
 import { SessionReplayConfig } from './config';
 import {
   BLOCK_CLASS,
+  DEFAULT_SAMPLE_RATE,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   MASK_TEXT_CLASS,
   MAX_EVENT_LIST_SIZE_IN_BYTES,
@@ -17,7 +18,7 @@ import {
   STORAGE_PREFIX,
   defaultSessionStore,
 } from './constants';
-import { isSessionInSample, maskInputFn } from './helpers';
+import { isSessionInSample, maskInputFn, getCurrentUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
@@ -37,6 +38,7 @@ import {
   SessionReplayContext,
   SessionReplayOptions,
 } from './typings/session-replay';
+import { VERSION } from './verstion';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -384,6 +386,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return this.completeRequest({ context, err: MISSING_DEVICE_ID_MESSAGE });
     }
 
+    const url = getCurrentUrl();
+    const version = VERSION;
+    const sampleRate = this.config?.sampleRate || DEFAULT_SAMPLE_RATE;
+
     const urlParams = new URLSearchParams({
       device_id: deviceId,
       session_id: `${context.sessionId}`,
@@ -400,6 +406,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
           'Content-Type': 'application/json',
           Accept: '*/*',
           Authorization: `Bearer ${apiKey}`,
+          'X-Client-Version': version,
+          'X-Client-Url': url,
+          'X-Client-Sample-Rate': `${sampleRate}`,
         },
         body: JSON.stringify(payload),
         method: 'POST',
