@@ -5,22 +5,23 @@
   <br />
 </p>
 
-# @amplitude/plugin-auto-tracking-browser (alpha)
-**This plugin is in alpha stage, naming and interface might change in the future.**
+# @amplitude/plugin-auto-tracking-browser (internal)
+**This plugin is used internally only at the moment, naming and interface might change in the future.**
 
 Browser SDK plugin for auto-tracking.
 
 ## Installation
+TBD.
 
-This package is published on NPM registry and is available to be installed using npm and yarn.
+<!-- This package is published on NPM registry and is available to be installed using npm and yarn. -->
 
-```sh
-# npm
-npm install @amplitude/plugin-auto-tracking-browser
+<!-- ```sh -->
+<!-- # npm -->
+<!-- npm install @amplitude/plugin-auto-tracking-browser -->
 
-# yarn
-yarn add @amplitude/plugin-auto-tracking-browser
-```
+<!-- # yarn -->
+<!-- yarn add @amplitude/plugin-auto-tracking-browser -->
+<!-- ``` -->
 
 ## Usage
 
@@ -44,8 +45,14 @@ The plugin accepts 1 optional parameter, which is an `Object` to configure the a
 
 ```typescript
 const plugin = autoTrackingPlugin({
-  cssSelectorAllowlist: ['.amp-auto-tracking', '[amp-auto-tracking]'],
-  tagAllowlist: ['button', 'a'],
+  cssSelectorAllowlist: [
+    '.amp-auto-tracking',
+    '[amp-auto-tracking]'
+  ],
+  pageUrlAllowlist: [
+    'https://amplitude.com',
+    new RegExp('https://amplitude.com/blog/*')
+  ],
 });
 ```
 
@@ -53,14 +60,16 @@ Examples:
 - The above `cssSelectorAllowlist` will only allow tracking elements like:
     - `<button amp-auto-tracking>Click</button>`
     - `<a class="amp-auto-tracking">Link</a>`
-- The above `tagAllowlist` will only allow `button` and `a` tags to be tracked.
+- The above `pageUrlAllowlist` will only allow the elements on URL "https://amplitude.com" or any URL matching the "https://amplitude.com/blog/*" to be tracked
 
 #### Options
 
 |Name|Type|Default|Description|
 |-|-|-|-|
 |`cssSelectorAllowlist`|`string[]`|`undefined`| When provided, only allow elements matching any selector to be tracked. |
-|`tagAllowlist`|`string[]`|`['a', 'button', 'input', 'select', 'textarea', 'label']`| Only allow elements with tag in this list to be tracked. |
+|`pageUrlAllowlist`|`(string\|RegExp)[]`|`undefined`| When provided, only allow elements matching URLs to be tracked. |
+|`shouldTrackEventResolver`|`(actionType: ActionType, element: Element) => boolean`|`undefined`| When provided, overwrite the default filter behavior. |
+|`dataAttributePrefix`|`string`|`'data-amp-auto-track-'`| Allow data attributes to be collected in event property. |
 
 ### 3. Install plugin to Amplitude SDK
 

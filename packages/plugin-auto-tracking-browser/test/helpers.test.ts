@@ -7,6 +7,7 @@ import {
   getAttributesWithPrefix,
   isEmpty,
   removeEmptyProperties,
+  getNearestLabel,
 } from '../src/helpers';
 
 describe('autoTrackingPlugin helpers', () => {
@@ -134,7 +135,7 @@ describe('autoTrackingPlugin helpers', () => {
   });
 
   describe('isPageUrlAllowed', () => {
-    const url = 'https://amplitude.com';
+    const url = 'https://amplitude.com/blog';
 
     test('should return true when allow list is not provided', () => {
       const result = isPageUrlAllowed(url, undefined);
@@ -146,18 +147,29 @@ describe('autoTrackingPlugin helpers', () => {
       expect(result).toEqual(true);
     });
 
-    test('should return true when url is in the allow list', () => {
-      const result = isPageUrlAllowed(url, ['https://amplitude.com']);
+    test('should return true only when full url string is in the allow list', () => {
+      let result = isPageUrlAllowed(url, ['https://amplitude.com/blog']);
       expect(result).toEqual(true);
-    });
 
-    test('should return false when url is not in the allow list', () => {
-      const result = isPageUrlAllowed(url, ['https://test.com']);
+      result = isPageUrlAllowed('https://amplitude.com/market', ['https://amplitude.com/blog']);
       expect(result).toEqual(false);
     });
 
-    test('should return true when url is matching an item in the allow list', () => {
-      const result = isPageUrlAllowed(url, ['http.?://amplitude.*', 'http.?://test.*']);
+    test('should return true when url regex is in the allow list', () => {
+      let result = isPageUrlAllowed(url, [new RegExp('https://amplitude.com/')]);
+      expect(result).toEqual(true);
+
+      result = isPageUrlAllowed('https://amplitude.com/market', [new RegExp('https://amplitude.com/')]);
+      expect(result).toEqual(true);
+    });
+
+    test('should return false when url is not in the allow list at all', () => {
+      const result = isPageUrlAllowed(url, ['https://test.com', new RegExp('https://test.com/')]);
+      expect(result).toEqual(false);
+    });
+
+    test('should return true when url is matching an item in the allow list with regex wildcard', () => {
+      const result = isPageUrlAllowed(url, [new RegExp('http.?://amplitude.*'), new RegExp('http.?://test.*')]);
       expect(result).toEqual(true);
     });
   });
@@ -255,6 +267,53 @@ describe('autoTrackingPlugin helpers', () => {
         z: { z: 1 },
         w: 'w',
       });
+    });
+  });
+
+  describe('getNearestLabel', () => {
+    test('should return nearest label of the element', () => {
+      const div = document.createElement('div');
+      const span = document.createElement('span');
+      span.textContent = 'nearest label';
+      const input = document.createElement('input');
+      div.appendChild(span);
+      div.appendChild(input);
+
+      const result = getNearestLabel(input);
+      expect(result).toEqual('nearest label');
+    });
+
+    test('should return redacted nearest label when content is sensitive', () => {
+      const div = document.createElement('div');
+      const span = document.createElement('span');
+      span.textContent = '4916024123820164';
+      const input = document.createElement('input');
+      div.appendChild(span);
+      div.appendChild(input);
+
+      const result = getNearestLabel(input);
+      expect(result).toEqual('');
+    });
+
+    test('should return nearest label of the element parent', () => {
+      const div = document.createElement('div');
+      const innerDiv = document.createElement('div');
+      div.appendChild(innerDiv);
+      const span = document.createElement('span');
+      span.textContent = 'parent label';
+      div.appendChild(span);
+      const input = document.createElement('input');
+      innerDiv.appendChild(input);
+
+      const result = getNearestLabel(input);
+      expect(result).toEqual('parent label');
+    });
+
+    test('should return empty string when there is no parent', () => {
+      const input = document.createElement('input');
+
+      const result = getNearestLabel(input);
+      expect(result).toEqual('');
     });
   });
 });

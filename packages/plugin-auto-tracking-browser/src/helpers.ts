@@ -52,13 +52,15 @@ export const getText = (element: Element): string => {
   return text;
 };
 
-export const isPageUrlAllowed = (url: string, pageUrlAllowlist: string[] | undefined) => {
+export const isPageUrlAllowed = (url: string, pageUrlAllowlist: (string | RegExp)[] | undefined) => {
   if (!pageUrlAllowlist || !pageUrlAllowlist.length) {
     return true;
   }
   return pageUrlAllowlist.some((allowedUrl) => {
-    const allowedUrlRegex = new RegExp(allowedUrl);
-    return url.match(allowedUrlRegex);
+    if (typeof allowedUrl === 'string') {
+      return url === allowedUrl;
+    }
+    return url.match(allowedUrl);
   });
 };
 
@@ -92,4 +94,18 @@ export const removeEmptyProperties = (properties: { [key: string]: unknown }) =>
     }
     return filteredProperties;
   }, {});
+};
+
+export const getNearestLabel = (element: Element): string => {
+  const parent = element.parentElement;
+  if (!parent) {
+    return '';
+  }
+  const labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
+  if (labelElement) {
+    /* istanbul ignore next */
+    const labelText = labelElement.textContent || '';
+    return isNonSensitiveString(labelText) ? labelText : '';
+  }
+  return getNearestLabel(parent);
 };

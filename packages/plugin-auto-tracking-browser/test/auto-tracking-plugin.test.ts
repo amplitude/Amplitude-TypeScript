@@ -120,6 +120,10 @@ describe('autoTrackingPlugin', () => {
       link.text = 'my-link-text';
       document.body.appendChild(link);
 
+      const h2 = document.createElement('h2');
+      h2.textContent = 'my-h2-text';
+      document.body.appendChild(h2);
+
       mockWindowLocationFromURL(new URL('https://www.amplitude.com/unit-test?query=param'));
     });
 
@@ -154,6 +158,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Text': 'my-link-text',
         '[Amplitude] Element Aria Label': 'my-link',
         '[Amplitude] Element Selector': '#my-link-id',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
@@ -202,6 +207,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Text': 'submit',
         '[Amplitude] Element Aria Label': 'my-button',
         '[Amplitude] Element Selector': '#my-button-id',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
@@ -217,8 +223,12 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should follow tagAllowlist configuration', async () => {
-      plugin = autoTrackingPlugin({ tagAllowlist: ['button'] });
+    test('should not track disallowed tag', async () => {
+      const div = document.createElement('div');
+      div.setAttribute('id', 'my-div-id');
+      document.body.appendChild(div);
+
+      plugin = autoTrackingPlugin();
       const loggerProvider: Partial<Logger> = {
         log: jest.fn(),
         warn: jest.fn(),
@@ -229,10 +239,13 @@ describe('autoTrackingPlugin', () => {
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
-      // trigger click event
-      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
-
+      // trigger click div
+      document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
       expect(track).toHaveBeenCalledTimes(0);
+
+      // trigger click link
+      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+      expect(track).toHaveBeenCalledTimes(1);
     });
 
     test('should follow cssSelectorAllowlist configuration', async () => {
@@ -264,7 +277,7 @@ describe('autoTrackingPlugin', () => {
     });
 
     test('should follow pageUrlAllowlist configuration', async () => {
-      plugin = autoTrackingPlugin({ pageUrlAllowlist: ['https://www.test.com'] });
+      plugin = autoTrackingPlugin({ pageUrlAllowlist: [new RegExp('https://www.test.com')] });
       const loggerProvider: Partial<Logger> = {
         log: jest.fn(),
         warn: jest.fn(),
@@ -296,7 +309,7 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should follow shouldTrackEventCallback configuration', async () => {
+    test('should follow shouldTrackEventResolver configuration', async () => {
       const button1 = document.createElement('button');
       const buttonText1 = document.createTextNode('submit');
       button1.setAttribute('id', 'my-button-id-1');
@@ -312,7 +325,7 @@ describe('autoTrackingPlugin', () => {
       document.body.appendChild(button2);
 
       plugin = autoTrackingPlugin({
-        shouldTrackEventCallback: (actionType, element) =>
+        shouldTrackEventResolver: (actionType, element) =>
           actionType === 'click' && element.id === 'my-button-id-1' && element.tagName === 'BUTTON',
       });
       const loggerProvider: Partial<Logger> = {
@@ -369,6 +382,7 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Tag': 'button',
         '[Amplitude] Element Text': 'submit',
         '[Amplitude] Element Selector': '#my-button-id',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
