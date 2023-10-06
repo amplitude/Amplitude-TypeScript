@@ -1,12 +1,14 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
 import * as constants from './constants';
-import { getText } from './helpers';
+import { getText, isPageUrlAllowed, getAttributesWithPrefix, removeEmptyProperties, getNearestLabel } from './helpers';
+import { finder } from './libs/finder';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 type ActionType = 'click' | 'change';
 
 const DEFAULT_TAG_ALLOWLIST = ['a', 'button', 'input', 'select', 'textarea', 'label'];
+const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-auto-track-';
 
 interface EventListener {
   element: Element;
@@ -15,12 +17,44 @@ interface EventListener {
 }
 
 interface Options {
+  /**
+   * List of CSS selectors to allow auto tracking on.
+   * When provided, allow elements matching any selector to be tracked.
+   * Only the ['a', 'button', 'input', 'select', 'textarea', 'label'] tags are tracked regardless the selector provided here.
+   */
   cssSelectorAllowlist?: string[];
-  tagAllowlist?: string[];
+
+  /**
+   * List of page URLs to allow auto tracking on.
+   * When provided, only allow tracking on these URLs.
+   * Both full URLs and regex are supported.
+   */
+  pageUrlAllowlist?: (string | RegExp)[];
+
+  /**
+   * Function to determine whether an event should be tracked.
+   * When provided, this function overwrites all other allowlist configurations.
+   * If the function returns true, the event will be tracked.
+   * If the function returns false, the event will not be tracked.
+   * @param actionType - The type of action that triggered the event.
+   * @param element - The element that triggered the event.
+   */
+  shouldTrackEventResolver?: (actionType: ActionType, element: Element) => boolean;
+
+  /**
+   * Prefix for data attributes to allow auto collecting.
+   * Default is 'data-amp-auto-track-'.
+   */
+  dataAttributePrefix?: string;
 }
 
 export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
-  const { tagAllowlist = DEFAULT_TAG_ALLOWLIST, cssSelectorAllowlist } = options;
+  const {
+    cssSelectorAllowlist,
+    pageUrlAllowlist,
+    shouldTrackEventResolver,
+    dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  } = options;
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
 
@@ -52,6 +86,15 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
     if (!element) {
       return false;
     }
+
+    if (shouldTrackEventResolver) {
+      return shouldTrackEventResolver(actionType, element);
+    }
+
+    if (!isPageUrlAllowed(window.location.href, pageUrlAllowlist)) {
+      return false;
+    }
+
     /* istanbul ignore next */
     const elementType = (element as HTMLInputElement)?.type || '';
     if (typeof elementType === 'string') {
@@ -62,11 +105,16 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
           return false;
       }
     }
-    const tag = element.tagName.toLowerCase();
+    /* istanbul ignore next */
+    const tag = element?.tagName?.toLowerCase?.();
+
+    // We only track these limited tags, as general text tag is not interactive and might contain sensitive information.
     /* istanbul ignore if */
-    if (!tagAllowlist.includes(tag)) {
+    if (!DEFAULT_TAG_ALLOWLIST.includes(tag)) {
       return false;
     }
+
+    /* istanbul ignore if */
     if (cssSelectorAllowlist) {
       const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => element.matches(selector));
       if (!hasMatchAnyAllowedSelector) {
@@ -95,6 +143,10 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
     /* istanbul ignore next */
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
+    const ariaLabel = element.getAttribute('aria-label');
+    const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
+    const nearestLabel = getNearestLabel(element);
+    const selector = finder(element);
     /* istanbul ignore next */
     const properties: Record<string, any> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.id,
@@ -103,6 +155,10 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_SELECTOR]: selector,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
@@ -111,7 +167,7 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
     }
-    return properties;
+    return removeEmptyProperties(properties);
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
@@ -140,7 +196,7 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
         });
       }
     };
-    const allElements = Array.from(document.body.querySelectorAll(tagAllowlist.join(',')));
+    const allElements = Array.from(document.body.querySelectorAll(DEFAULT_TAG_ALLOWLIST.join(',')));
     allElements.forEach(addListener);
     if (typeof MutationObserver !== 'undefined') {
       observer = new MutationObserver((mutations) => {
@@ -148,7 +204,7 @@ export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlug
           mutation.addedNodes.forEach((node: Node) => {
             addListener(node as Element);
             if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
-              Array.from(node.querySelectorAll(tagAllowlist.join(',')) as HTMLElement[]).map(addListener);
+              Array.from(node.querySelectorAll(DEFAULT_TAG_ALLOWLIST.join(',')) as HTMLElement[]).map(addListener);
             }
           });
         });
