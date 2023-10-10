@@ -5,23 +5,22 @@
   <br />
 </p>
 
-# @amplitude/plugin-auto-tracking-browser (internal)
-**This plugin is used internally only at the moment, naming and interface might change in the future.**
+# @amplitude/plugin-default-event-tracking-advanced-browser (beta)
+**This plugin is in beta at the moment, naming and interface might change in the future.**
 
-Browser SDK plugin for auto-tracking.
+Browser SDK plugin for default event tracking advanced.
 
 ## Installation
-TBD.
 
-<!-- This package is published on NPM registry and is available to be installed using npm and yarn. -->
+This package is published on NPM registry and is available to be installed using npm and yarn.
 
-<!-- ```sh -->
-<!-- # npm -->
-<!-- npm install @amplitude/plugin-auto-tracking-browser -->
+```sh
+# npm
+npm install @amplitude/plugin-default-event-tracking-advanced-browser
 
-<!-- # yarn -->
-<!-- yarn add @amplitude/plugin-auto-tracking-browser -->
-<!-- ``` -->
+# yarn
+yarn add @amplitude/plugin-default-event-tracking-advanced-browser
+```
 
 ## Usage
 
@@ -32,11 +31,11 @@ To use this plugin, you need to install `@amplitude/analytics-browser` version `
 ### 1. Import Amplitude packages
 
 * `@amplitude/analytics-browser`
-* `@amplitude/plugin-auto-tracking-browser`
+* `@amplitude/plugin-default-event-tracking-advanced-browser`
 
 ```typescript
 import * as amplitude from '@amplitude/analytics-browser';
-import { autoTrackingPlugin } from '@amplitude/plugin-auto-tracking-browser';
+import { defaultEventTrackingAdvancedPlugin } from '@amplitude/plugin-default-event-tracking-advanced-browser';
 ```
 
 ### 2. Instantiate the plugin
@@ -44,10 +43,10 @@ import { autoTrackingPlugin } from '@amplitude/plugin-auto-tracking-browser';
 The plugin accepts 1 optional parameter, which is an `Object` to configure the allowed tracking options.
 
 ```typescript
-const plugin = autoTrackingPlugin({
+const plugin = defaultEventTrackingAdvancedPlugin({
   cssSelectorAllowlist: [
-    '.amp-auto-tracking',
-    '[amp-auto-tracking]'
+    '.amp-tracking',
+    '[amp-tracking]'
   ],
   pageUrlAllowlist: [
     'https://amplitude.com',
@@ -58,8 +57,8 @@ const plugin = autoTrackingPlugin({
 
 Examples:
 - The above `cssSelectorAllowlist` will only allow tracking elements like:
-    - `<button amp-auto-tracking>Click</button>`
-    - `<a class="amp-auto-tracking">Link</a>`
+    - `<button amp-tracking>Click</button>`
+    - `<a class="amp-tracking">Link</a>`
 - The above `pageUrlAllowlist` will only allow the elements on URL "https://amplitude.com" or any URL matching the "https://amplitude.com/blog/*" to be tracked
 
 #### Options
@@ -69,7 +68,7 @@ Examples:
 |`cssSelectorAllowlist`|`string[]`|`undefined`| When provided, only allow elements matching any selector to be tracked. |
 |`pageUrlAllowlist`|`(string\|RegExp)[]`|`undefined`| When provided, only allow elements matching URLs to be tracked. |
 |`shouldTrackEventResolver`|`(actionType: ActionType, element: Element) => boolean`|`undefined`| When provided, overwrite the default filter behavior. |
-|`dataAttributePrefix`|`string`|`'data-amp-auto-track-'`| Allow data attributes to be collected in event property. |
+|`dataAttributePrefix`|`string`|`'data-amp-track-'`| Allow data attributes to be collected in event property. |
 
 ### 3. Install plugin to Amplitude SDK
 

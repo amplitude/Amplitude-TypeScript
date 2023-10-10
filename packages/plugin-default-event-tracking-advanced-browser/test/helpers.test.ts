@@ -10,7 +10,7 @@ import {
   getNearestLabel,
 } from '../src/helpers';
 
-describe('autoTrackingPlugin helpers', () => {
+describe('default-event-tracking-advanced-plugin helpers', () => {
   describe('isNonSensitiveString', () => {
     test('should return false when text is missing', () => {
       const text = null;
@@ -177,10 +177,10 @@ describe('autoTrackingPlugin helpers', () => {
   describe('getAttributesWithPrefix', () => {
     test('should return attributes when matching the prefix', () => {
       const element = document.createElement('input');
-      element.setAttribute('data-amp-auto-track-hello', 'world');
-      element.setAttribute('data-amp-auto-track-time', 'machine');
-      element.setAttribute('data-amp-auto-track-test', '');
-      const result = getAttributesWithPrefix(element, 'data-amp-auto-track-');
+      element.setAttribute('data-amp-track-hello', 'world');
+      element.setAttribute('data-amp-track-time', 'machine');
+      element.setAttribute('data-amp-track-test', '');
+      const result = getAttributesWithPrefix(element, 'data-amp-track-');
       expect(result).toEqual({ hello: 'world', time: 'machine', test: '' });
     });
 
@@ -188,7 +188,7 @@ describe('autoTrackingPlugin helpers', () => {
       const element = document.createElement('input');
       element.setAttribute('data-hello', 'world');
       element.setAttribute('data-time', 'machine');
-      const result = getAttributesWithPrefix(element, 'data-amp-auto-track-');
+      const result = getAttributesWithPrefix(element, 'data-amp-track-');
       expect(result).toEqual({});
     });
 
