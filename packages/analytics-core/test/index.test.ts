@@ -14,7 +14,7 @@ import {
   UUID,
   MemoryStorage,
   createIdentifyEvent,
-  Diagnostic,
+  BaseDiagnostic,
   buildResult,
   EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE,
   MISSING_API_KEY_DIAGNOSTIC_MESSAGE,
@@ -40,7 +40,7 @@ describe('index', () => {
     expect(typeof client.remove).toBe('function');
     expect(typeof BaseTransport).toBe('function');
     expect(typeof Destination).toBe('function');
-    expect(typeof Diagnostic).toBe('function');
+    expect(typeof BaseDiagnostic).toBe('function');
     expect(typeof Config).toBe('function');
     expect(typeof Logger).toBe('function');
     expect(typeof returnWrapper).toBe('function');

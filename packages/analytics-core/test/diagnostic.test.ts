@@ -1,16 +1,16 @@
 import { DIAGNOSTIC_ENDPOINT } from '../src/constants';
-import { Diagnostic } from '../src/diagnostics/diagnostic';
+import { BaseDiagnostic } from '../src/diagnostics/diagnostic';
 
 jest.useFakeTimers();
 
 describe('Diagnostic', () => {
-  let diagnostic: Diagnostic;
+  let diagnostic: BaseDiagnostic;
   const eventCount = 5;
   const code = 200;
   const delay = 60000;
 
   beforeEach(() => {
-    diagnostic = new Diagnostic();
+    diagnostic = new BaseDiagnostic();
   });
 
   afterEach(() => {
@@ -25,14 +25,14 @@ describe('Diagnostic', () => {
 
     test('should set isDisabled to provided value', () => {
       const isDisabled = true;
-      diagnostic = new Diagnostic({ isDisabled });
+      diagnostic = new BaseDiagnostic({ isDisabled });
       expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
       expect(diagnostic.isDisabled).toBe(isDisabled);
     });
 
     test('should set serverUrl to provided value', () => {
       const serverUrl = 'https://test.com';
-      diagnostic = new Diagnostic({ serverUrl });
+      diagnostic = new BaseDiagnostic({ serverUrl });
       expect(diagnostic.serverUrl).toBe(serverUrl);
       expect(diagnostic.isDisabled).toBe(false);
     });

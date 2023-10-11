@@ -1,6 +1,6 @@
-import { Diagnostic as CoreDiagnostic } from '@amplitude/analytics-core';
+import { BaseDiagnostic } from '@amplitude/analytics-core';
 
-export class Diagnostic extends CoreDiagnostic {
+export class BrowserDiagnostic extends BaseDiagnostic {
   async flush(): Promise<void> {
     await fetch(this.serverUrl, this.requestPayloadBuilder(this.queue));
     await super.flush();

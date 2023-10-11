@@ -8,7 +8,7 @@ import {
 import { Config, createServerConfig, getServerUrl } from '../src/config';
 import { Logger } from '../src/logger';
 import { API_KEY, useDefaultConfig } from './helpers/default';
-import { Diagnostic } from '../src/diagnostics/diagnostic';
+import { BaseDiagnostic } from '../src/diagnostics/diagnostic';
 
 describe('config', () => {
   test('should create default config', () => {
@@ -79,13 +79,13 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
-      diagnosticProvider: new Diagnostic({ isDisabled: true, apiKey: API_KEY }),
+      diagnosticProvider: new BaseDiagnostic({ isDisabled: true, apiKey: API_KEY }),
     });
   });
 
   test('should overwirte diagnostic provider', () => {
     const defaultConfig = useDefaultConfig();
-    const diagnosticProvider = new Diagnostic({ isDisabled: true });
+    const diagnosticProvider = new BaseDiagnostic({ isDisabled: true });
     const config = new Config({
       apiKey: API_KEY,
       storageProvider: defaultConfig.storageProvider,

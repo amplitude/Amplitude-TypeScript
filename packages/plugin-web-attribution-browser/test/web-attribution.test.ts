@@ -3,7 +3,7 @@ import { BASE_CAMPAIGN, CampaignParser, CookieStorage, FetchTransport } from '@a
 import { webAttributionPlugin } from '../src/web-attribution';
 import * as helpers from '../src/helpers';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
-import { Diagnostic, Logger, UUID } from '@amplitude/analytics-core';
+import { BaseDiagnostic, Logger, UUID } from '@amplitude/analytics-core';
 
 describe('webAttributionPlugin', () => {
   const mockConfig: BrowserConfig = {
@@ -32,7 +32,7 @@ describe('webAttributionPlugin', () => {
       language: true,
       platform: true,
     },
-    diagnosticProvider: new Diagnostic(),
+    diagnosticProvider: new BaseDiagnostic(),
   };
 
   describe('setup', () => {

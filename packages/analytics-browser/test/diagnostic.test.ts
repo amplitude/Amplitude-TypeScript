@@ -1,8 +1,8 @@
-import { Diagnostic } from '../src/diagnostics/diagnostic';
+import { BrowserDiagnostic } from '../src/diagnostics/diagnostic';
 
 describe('Diagnostic', () => {
   test('should fetch', async () => {
-    const diagnostic = new Diagnostic();
+    const diagnostic = new BrowserDiagnostic();
     const fetchMock = jest.fn().mockResolvedValueOnce({} as Response);
     global.fetch = fetchMock;
 

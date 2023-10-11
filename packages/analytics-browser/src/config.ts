@@ -3,7 +3,7 @@ import {
   BrowserOptions,
   BrowserConfig as IBrowserConfig,
   DefaultTrackingOptions,
-  Diagnostic as IDiagnostic,
+  Diagnostic,
   Storage,
   TrackingOptions,
   TransportType,
@@ -27,7 +27,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
-import { Diagnostic } from './diagnostics/diagnostic';
+import { BrowserDiagnostic } from './diagnostics/diagnostic';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -78,7 +78,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     },
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
-    public diagnosticProvider: IDiagnostic | DiagnosticOptions = new Diagnostic(),
+    public diagnosticProvider: Diagnostic | DiagnosticOptions = new BrowserDiagnostic(),
     userId?: string,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });

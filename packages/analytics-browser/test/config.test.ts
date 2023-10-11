@@ -20,7 +20,7 @@ describe('config', () => {
   const someLocalStorage: LocalStorageModule.LocalStorage<UserSession> = expect.any(
     LocalStorageModule.LocalStorage,
   ) as LocalStorageModule.LocalStorage<UserSession>;
-  const someDiagnosticProvider: core.Diagnostic = expect.any(core.Diagnostic) as core.Diagnostic;
+  const someDiagnosticProvider: core.BaseDiagnostic = expect.any(core.BaseDiagnostic) as core.BaseDiagnostic;
 
   let apiKey = '';
 

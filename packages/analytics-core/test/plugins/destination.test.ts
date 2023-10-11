@@ -1,13 +1,5 @@
 import { Destination, getResponseBodyString } from '../../src/plugins/destination';
-import {
-  Config,
-  DestinationContext,
-  Logger,
-  Payload,
-  Result,
-  Status,
-  Diagnostic as IDiagnostic,
-} from '@amplitude/analytics-types';
+import { Config, DestinationContext, Logger, Payload, Result, Status, Diagnostic } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -24,12 +16,12 @@ import {
 } from '../../src/diagnostics/constants';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
-class Diagnostic implements IDiagnostic {
+class TestDiagnostic implements Diagnostic {
   track = jest.fn();
   isDisabled = false;
   serverUrl = 'test';
 }
-const diagnosticProvider = new Diagnostic();
+const diagnosticProvider = new TestDiagnostic();
 
 describe('destination', () => {
   afterEach(() => {

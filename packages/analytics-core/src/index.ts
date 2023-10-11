@@ -2,7 +2,7 @@ export { AmplitudeCore } from './core-client';
 export { Identify } from './identify';
 export { Revenue } from './revenue';
 export { Destination } from './plugins/destination';
-export { Diagnostic } from './diagnostics/diagnostic';
+export { BaseDiagnostic } from './diagnostics/diagnostic';
 export {
   EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE,
   MISSING_API_KEY_DIAGNOSTIC_MESSAGE,

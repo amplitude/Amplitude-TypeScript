@@ -1,9 +1,9 @@
-import { Diagnostic as IDiagnostic, DiagnosticOptions } from '@amplitude/analytics-types';
+import { Diagnostic, DiagnosticOptions } from '@amplitude/analytics-types';
 import { DIAGNOSTIC_ENDPOINT } from '../constants';
 import { DiagnosticEvent } from './typings';
 import { DIAGNOSTIC_METADATA_TYPE } from './constants';
 
-export class Diagnostic implements IDiagnostic {
+export class BaseDiagnostic implements Diagnostic {
   isDisabled = false;
   serverUrl: string = DIAGNOSTIC_ENDPOINT;
   apiKey?: string = '';

@@ -27,7 +27,7 @@ describe('config', () => {
         storageProvider: undefined,
         transportProvider: new Http(),
         useBatch: false,
-        diagnosticProvider: new core.Diagnostic({ apiKey: API_KEY }),
+        diagnosticProvider: new core.BaseDiagnostic({ apiKey: API_KEY }),
       });
     });
   });
@@ -57,7 +57,7 @@ describe('config', () => {
         transportProvider: new Http(),
         userId: undefined,
         useBatch: false,
-        diagnosticProvider: new core.Diagnostic({ apiKey: API_KEY }),
+        diagnosticProvider: new core.BaseDiagnostic({ apiKey: API_KEY }),
       });
     });
   });

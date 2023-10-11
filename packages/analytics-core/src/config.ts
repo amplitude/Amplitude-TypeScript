@@ -1,7 +1,7 @@
 import {
   Event,
   Config as IConfig,
-  Diagnostic as IDiagnostic,
+  Diagnostic,
   DiagnosticOptions,
   Logger as ILogger,
   LogLevel,
@@ -20,7 +20,7 @@ import {
 } from './constants';
 
 import { Logger } from './logger';
-import { Diagnostic } from './diagnostics/diagnostic';
+import { BaseDiagnostic } from './diagnostics/diagnostic';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 12,
@@ -33,7 +33,7 @@ export const getDefaultConfig = () => ({
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: 'US' as ServerZoneType,
   useBatch: false,
-  diagnosticProvider: new Diagnostic(),
+  diagnosticProvider: new BaseDiagnostic(),
 });
 
 export class Config implements IConfig {
@@ -52,7 +52,7 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
-  diagnosticProvider: IDiagnostic | DiagnosticOptions;
+  diagnosticProvider: Diagnostic | DiagnosticOptions;
 
   protected _optOut = false;
   get optOut() {
@@ -83,10 +83,10 @@ export class Config implements IConfig {
 
     if (options.diagnosticProvider == undefined) {
       this.diagnosticProvider = defaultConfig.diagnosticProvider;
-    } else if (options.diagnosticProvider instanceof Diagnostic) {
+    } else if (options.diagnosticProvider instanceof BaseDiagnostic) {
       this.diagnosticProvider = options.diagnosticProvider;
     } else {
-      this.diagnosticProvider = new Diagnostic(options.diagnosticProvider as DiagnosticOptions);
+      this.diagnosticProvider = new BaseDiagnostic(options.diagnosticProvider as DiagnosticOptions);
     }
     this.diagnosticProvider.apiKey = this.apiKey;
 
