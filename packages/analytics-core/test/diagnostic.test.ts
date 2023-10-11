@@ -1,4 +1,4 @@
-import { DIAGNOSTIC_ENDPOINT } from '../src/constants';
+import { DIAGNOSTIC_ENDPOINT, DIAGNOSTIC_METADATA_TYPE } from '../src/diagnostics/constants';
 import { BaseDiagnostic } from '../src/diagnostics/diagnostic';
 
 jest.useFakeTimers();
@@ -43,10 +43,10 @@ describe('Diagnostic', () => {
       diagnostic.track(eventCount, code, 'Test message');
 
       expect(diagnostic.queue).toHaveLength(1);
-      expect(diagnostic.queue[0].omni_metrics.event_count).toBe(eventCount);
-      expect(diagnostic.queue[0].omni_metrics.response_code).toBe(code);
-      expect(diagnostic.queue[0].omni_metrics.trigger).toBe('Test message');
-      expect(diagnostic.queue[0].omni_metrics.library).toBe('amplitude-ts');
+      expect(diagnostic.queue[0].event_count).toBe(eventCount);
+      expect(diagnostic.queue[0].response_code).toBe(code);
+      expect(diagnostic.queue[0].trigger).toBe('Test message');
+      expect(diagnostic.queue[0].library).toBe('amplitude-ts');
     });
 
     test('should not add to queen when disabled', () => {
@@ -86,26 +86,25 @@ describe('Diagnostic', () => {
     test('should return correct payload', () => {
       const events = [
         {
-          api_key: 'test-api-key',
-          omni_metrics: {
-            metadata_type: 'diagnostic',
-            library: 'diagnostic-test-library',
-            accounting_time_min: Date.now(),
-            response_code: code,
-            trigger: 'test trigger',
-            action: 'test action',
-            event_count: eventCount,
-          },
+          metadata_type: DIAGNOSTIC_METADATA_TYPE,
+          library: 'amplitude-ts',
+          accounting_time_min: Date.now(),
+          response_code: code,
+          trigger: 'test trigger',
+          action: 'test action',
+          event_count: eventCount,
         },
       ];
 
       const expectedPayload = {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: '*/*',
         },
-        events: events,
-        method: 'POST',
+        body: JSON.stringify({
+          api_key: '',
+          omni_metrics: events,
+        }),
       };
 
       expect(diagnostic.requestPayloadBuilder(events)).toEqual(expectedPayload);

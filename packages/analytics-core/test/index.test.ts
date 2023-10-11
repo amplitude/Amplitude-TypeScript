@@ -23,6 +23,8 @@ import {
   EVENT_ERROR_DIAGNOSTIC_MESSAGE,
   PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE,
   EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE,
+  DIAGNOSTIC_METADATA_TYPE,
+  DIAGNOSTIC_ENDPOINT,
 } from '../src/index';
 
 describe('index', () => {
@@ -60,5 +62,7 @@ describe('index', () => {
     expect(EVENT_ERROR_DIAGNOSTIC_MESSAGE).toBe('event error');
     expect(PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE).toBe('payload too large');
     expect(EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE).toBe('exceeded daily quota users or devices');
+    expect(DIAGNOSTIC_METADATA_TYPE).toBe('SDK_DIAGNOSTIC');
+    expect(DIAGNOSTIC_ENDPOINT).toBe('https://api-omni.stag2.amplitude.com/omni/metrics');
   });
 });

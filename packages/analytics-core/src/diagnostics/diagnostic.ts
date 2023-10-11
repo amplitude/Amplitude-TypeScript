@@ -1,13 +1,13 @@
 import { Diagnostic, DiagnosticOptions } from '@amplitude/analytics-types';
-import { DIAGNOSTIC_ENDPOINT } from '../constants';
-import { DiagnosticEvent } from './typings';
+import { DIAGNOSTIC_ENDPOINT } from '../diagnostics/constants';
+import { DiagnosticOmniMetrics } from './typings';
 import { DIAGNOSTIC_METADATA_TYPE } from './constants';
 
 export class BaseDiagnostic implements Diagnostic {
   isDisabled = false;
   serverUrl: string = DIAGNOSTIC_ENDPOINT;
   apiKey?: string = '';
-  queue: DiagnosticEvent[] = [];
+  queue: DiagnosticOmniMetrics[] = [];
 
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   // deault delay is 1 minute
@@ -46,29 +46,28 @@ export class BaseDiagnostic implements Diagnostic {
     }
   }
 
-  diagnosticEventBuilder(eventCount: number, code: number, message: string): DiagnosticEvent {
+  diagnosticEventBuilder(eventCount: number, code: number, message: string): DiagnosticOmniMetrics {
     return {
-      api_key: this.apiKey || '',
-      omni_metrics: {
-        metadata_type: DIAGNOSTIC_METADATA_TYPE,
-        library: 'amplitude-ts',
-        accounting_time_min: Date.now(),
-        response_code: code,
-        trigger: message,
-        action: 'drop events',
-        event_count: eventCount,
-      },
+      metadata_type: DIAGNOSTIC_METADATA_TYPE,
+      library: 'amplitude-ts',
+      accounting_time_min: Date.now(),
+      response_code: code,
+      trigger: message,
+      action: 'drop events',
+      event_count: eventCount,
     };
   }
 
-  requestPayloadBuilder(events: DiagnosticEvent[]): object {
+  requestPayloadBuilder(events: DiagnosticOmniMetrics[]): object {
     return {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: '*/*',
       },
-      events: events,
-      method: 'POST',
+      body: JSON.stringify({
+        api_key: this.apiKey || '',
+        omni_metrics: events,
+      }),
     };
   }
 }

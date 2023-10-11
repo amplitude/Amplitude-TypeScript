@@ -11,6 +11,8 @@ export {
   EVENT_ERROR_DIAGNOSTIC_MESSAGE,
   PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE,
   EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE,
+  DIAGNOSTIC_METADATA_TYPE,
+  DIAGNOSTIC_ENDPOINT,
 } from './diagnostics/constants';
 export { Config } from './config';
 export { Logger } from './logger';
