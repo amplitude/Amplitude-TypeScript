@@ -230,13 +230,11 @@ export class Destination implements DestinationPlugin {
       ...res.body.silencedEvents,
     ].flat();
     const dropIndexSet = new Set(dropIndex);
-    (this.config.diagnosticProvider as Diagnostic).track(
-      useRetry ? dropIndexSet.size : list.length,
-      400,
-      EVENT_ERROR_DIAGNOSTIC_MESSAGE,
-    );
 
     if (useRetry) {
+      if (dropIndexSet.size) {
+        (this.config.diagnosticProvider as Diagnostic).track(dropIndexSet.size, 400, EVENT_ERROR_DIAGNOSTIC_MESSAGE);
+      }
       const retry = list.filter((context, index) => {
         if (dropIndexSet.has(index)) {
           this.fulfillRequest([context], res.statusCode, res.body.error);
@@ -250,6 +248,8 @@ export class Destination implements DestinationPlugin {
         this.config.loggerProvider.warn(getResponseBodyString(res));
       }
       this.addToQueue(...retry);
+    } else {
+      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, EVENT_ERROR_DIAGNOSTIC_MESSAGE);
     }
   }
 
