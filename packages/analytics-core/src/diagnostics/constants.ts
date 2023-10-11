@@ -5,3 +5,5 @@ export const INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE = 'invalid or missing 
 export const EVENT_ERROR_DIAGNOSTIC_MESSAGE = 'event error';
 export const PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE = 'payload too large';
 export const EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE = 'exceeded daily quota users or devices';
+
+export const DIAGNOSTIC_METADATA_TYPE = 'SDK_DIAGNOSTIC';

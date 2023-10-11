@@ -43,10 +43,10 @@ describe('Diagnostic', () => {
       diagnostic.track(eventCount, code, 'Test message');
 
       expect(diagnostic.queue).toHaveLength(1);
-      expect(diagnostic.queue[0].event_properties.event_count).toBe(eventCount);
-      expect(diagnostic.queue[0].event_properties.response_error_code).toBe(code);
-      expect(diagnostic.queue[0].event_properties.trigger).toBe('Test message');
-      expect(diagnostic.queue[0].library).toBe('diagnostic-test-library');
+      expect(diagnostic.queue[0].omni_metrics.event_count).toBe(eventCount);
+      expect(diagnostic.queue[0].omni_metrics.response_code).toBe(code);
+      expect(diagnostic.queue[0].omni_metrics.trigger).toBe('Test message');
+      expect(diagnostic.queue[0].omni_metrics.library).toBe('amplitude-ts');
     });
 
     test('should not add to queen when disabled', () => {
@@ -86,14 +86,16 @@ describe('Diagnostic', () => {
     test('should return correct payload', () => {
       const events = [
         {
-          time: Date.now(),
-          event_properties: {
-            response_error_code: code,
+          api_key: 'test-api-key',
+          omni_metrics: {
+            metadata_type: 'diagnostic',
+            library: 'diagnostic-test-library',
+            accounting_time_min: Date.now(),
+            response_code: code,
             trigger: 'test trigger',
             action: 'test action',
             event_count: eventCount,
           },
-          library: 'diagnostic-test-library',
         },
       ];
 

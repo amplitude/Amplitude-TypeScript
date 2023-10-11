@@ -79,7 +79,7 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
-      diagnosticProvider: new Diagnostic({ isDisabled: true }),
+      diagnosticProvider: new Diagnostic({ isDisabled: true, apiKey: API_KEY }),
     });
   });
 

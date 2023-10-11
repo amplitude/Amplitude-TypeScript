@@ -1,10 +1,12 @@
 import { Diagnostic as IDiagnostic, DiagnosticOptions } from '@amplitude/analytics-types';
 import { DIAGNOSTIC_ENDPOINT } from '../constants';
 import { DiagnosticEvent } from './typings';
+import { DIAGNOSTIC_METADATA_TYPE } from './constants';
 
 export class Diagnostic implements IDiagnostic {
   isDisabled = false;
   serverUrl: string = DIAGNOSTIC_ENDPOINT;
+  apiKey: string;
   queue: DiagnosticEvent[] = [];
 
   private scheduled: ReturnType<typeof setTimeout> | null = null;
@@ -15,6 +17,7 @@ export class Diagnostic implements IDiagnostic {
   constructor(options?: DiagnosticOptions) {
     this.isDisabled = options && options.isDisabled ? options.isDisabled : false;
     this.serverUrl = options && options.serverUrl ? options.serverUrl : DIAGNOSTIC_ENDPOINT;
+    this.apiKey = '';
   }
 
   track(eventCount: number, code: number, message: string) {
@@ -43,14 +46,16 @@ export class Diagnostic implements IDiagnostic {
 
   diagnosticEventBuilder(eventCount: number, code: number, message: string): DiagnosticEvent {
     return {
-      time: Date.now(),
-      event_properties: {
-        response_error_code: code,
+      api_key: this.apiKey || '',
+      omni_metrics: {
+        metadata_type: DIAGNOSTIC_METADATA_TYPE,
+        library: 'amplitude-ts',
+        accounting_time_min: Date.now(),
+        response_code: code,
         trigger: message,
         action: 'drop events',
         event_count: eventCount,
       },
-      library: 'diagnostic-test-library',
     };
   }
 

@@ -88,6 +88,7 @@ export class Config implements IConfig {
     } else {
       this.diagnosticProvider = new Diagnostic(options.diagnosticProvider as DiagnosticOptions);
     }
+    this.diagnosticProvider.apiKey = this.apiKey;
 
     this.loggerProvider.enable(this.logLevel);
 
