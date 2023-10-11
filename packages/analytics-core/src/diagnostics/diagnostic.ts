@@ -27,7 +27,7 @@ export class BaseDiagnostic implements Diagnostic {
       return;
     }
 
-    this.queue.push(this.diagnosticEventBuilder(eventCount, code, message));
+    this.queue.push(this.diagnosticRequestBuilder(eventCount, code, message));
 
     if (!this.scheduled) {
       this.scheduled = setTimeout(() => {
@@ -46,7 +46,7 @@ export class BaseDiagnostic implements Diagnostic {
     }
   }
 
-  diagnosticEventBuilder(eventCount: number, code: number, message: string): DiagnosticOmniMetrics {
+  diagnosticRequestBuilder(eventCount: number, code: number, message: string): DiagnosticOmniMetrics {
     return {
       metadata_type: DIAGNOSTIC_METADATA_TYPE,
       library: 'amplitude-ts',

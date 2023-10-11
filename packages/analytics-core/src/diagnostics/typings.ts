@@ -8,7 +8,7 @@ export interface DiagnosticOmniMetrics {
   event_count: number;
 }
 
-export interface DiagnosticEvent {
+export interface DiagnosticRequest {
   api_key: string;
   omni_metrics: DiagnosticOmniMetrics;
 }
