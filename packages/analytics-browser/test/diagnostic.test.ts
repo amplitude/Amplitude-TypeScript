@@ -1,4 +1,4 @@
-import { Diagnostic } from '../src/diagnostic';
+import { Diagnostic } from '../src/diagnostics/diagnostic';
 
 describe('Diagnostic', () => {
   test('should fetch', async () => {

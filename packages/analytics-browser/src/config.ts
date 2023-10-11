@@ -27,7 +27,7 @@ import { parseLegacyCookies } from './cookie-migration';
 import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
-import { Diagnostic } from './diagnostic';
+import { Diagnostic } from './diagnostics/diagnostic';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
