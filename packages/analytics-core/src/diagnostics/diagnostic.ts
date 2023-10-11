@@ -6,7 +6,7 @@ import { DIAGNOSTIC_METADATA_TYPE } from './constants';
 export class Diagnostic implements IDiagnostic {
   isDisabled = false;
   serverUrl: string = DIAGNOSTIC_ENDPOINT;
-  apiKey: string;
+  apiKey?: string = '';
   queue: DiagnosticEvent[] = [];
 
   private scheduled: ReturnType<typeof setTimeout> | null = null;
@@ -17,7 +17,9 @@ export class Diagnostic implements IDiagnostic {
   constructor(options?: DiagnosticOptions) {
     this.isDisabled = options && options.isDisabled ? options.isDisabled : false;
     this.serverUrl = options && options.serverUrl ? options.serverUrl : DIAGNOSTIC_ENDPOINT;
-    this.apiKey = '';
+    if (options && options.apiKey) {
+      this.apiKey = options.apiKey;
+    }
   }
 
   track(eventCount: number, code: number, message: string) {

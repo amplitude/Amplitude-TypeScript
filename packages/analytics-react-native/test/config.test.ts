@@ -60,7 +60,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
-        diagnosticProvider: new core.Diagnostic(),
+        diagnosticProvider: new core.Diagnostic({ apiKey: '' }),
         trackingSessionEvents: false,
       });
     });

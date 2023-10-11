@@ -16,6 +16,13 @@ import {
   createIdentifyEvent,
   Diagnostic,
   buildResult,
+  EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE,
+  MISSING_API_KEY_DIAGNOSTIC_MESSAGE,
+  UNEXPECTED_DIAGNOSTIC_MESSAGE,
+  INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE,
+  EVENT_ERROR_DIAGNOSTIC_MESSAGE,
+  PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE,
+  EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE,
 } from '../src/index';
 
 describe('index', () => {
@@ -46,5 +53,12 @@ describe('index', () => {
     expect(typeof buildResult).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
     expect(STORAGE_PREFIX).toBe('AMP_unsent');
+    expect(EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE).toBe('exceeded max retries');
+    expect(MISSING_API_KEY_DIAGNOSTIC_MESSAGE).toBe('missing API key');
+    expect(UNEXPECTED_DIAGNOSTIC_MESSAGE).toBe('unexpected error');
+    expect(INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE).toBe('invalid or missing fields');
+    expect(EVENT_ERROR_DIAGNOSTIC_MESSAGE).toBe('event error');
+    expect(PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE).toBe('payload too large');
+    expect(EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE).toBe('exceeded daily quota users or devices');
   });
 });
