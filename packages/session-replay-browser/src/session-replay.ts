@@ -129,7 +129,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.stopRecordingEvents = null;
     } catch (error) {
       const typedError = error as Error;
-      this.loggerProvider.error(`Error occurred while stopping recording: ${typedError.toString()}`);
+      this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
     }
     const sessionIdToSend = sessionId || this.config?.sessionId;
     if (this.events.length && sessionIdToSend) {
@@ -185,7 +185,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   getShouldRecord() {
     if (!this.config) {
-      this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
     }
     const globalScope = getGlobalScope();
@@ -271,7 +271,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       recordCanvas: false,
       errorHandler: (error) => {
         const typedError = error as Error;
-        this.loggerProvider.error('Error while recording: ', typedError.toString());
+        this.loggerProvider.warn('Error while recording: ', typedError.toString());
 
         return true;
       },
@@ -470,7 +470,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
       return storedReplaySessionContexts;
     } catch (e) {
-      this.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
     return undefined;
   }
@@ -498,7 +498,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         };
       });
     } catch (e) {
-      this.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
   }
 
@@ -533,14 +533,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return sessionMap;
       });
     } catch (e) {
-      this.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
   }
 
   completeRequest({ context, err, success }: { context: SessionReplayContext; err?: string; success?: string }) {
     context.sessionId && this.cleanUpSessionEventsStore(context.sessionId, context.sequenceId);
     if (err) {
-      this.loggerProvider.error(err);
+      this.loggerProvider.warn(err);
     } else if (success) {
       this.loggerProvider.log(success);
     }
