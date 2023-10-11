@@ -393,9 +393,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const version = VERSION;
     const sampleRate = this.getSampleRate();
 
-    console.log('sampleRate', sampleRate);
-    console.log('config', this.config);
-
     const urlParams = new URLSearchParams({
       device_id: deviceId,
       session_id: `${context.sessionId}`,
