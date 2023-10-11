@@ -2,7 +2,7 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { UserSession } from '@amplitude/analytics-types';
+import { Diagnostic, Status, UserSession } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -260,6 +260,66 @@ describe('browser-client', () => {
         sessionId: Date.now(),
       }).promise;
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      ['api_key', undefined, core.INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE],
+      [undefined, { time: [0] }, core.EVENT_ERROR_DIAGNOSTIC_MESSAGE],
+    ])('should diagnostic track when 400 invalid response', async (missingField, eventsWithInvalidFields, message) => {
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Invalid,
+            statusCode: 400,
+            body: {
+              error: 'error',
+              missingField: missingField,
+              eventsWithInvalidFields: eventsWithInvalidFields,
+              eventsWithMissingFields: {},
+              eventsWithInvalidIdLengths: {},
+              silencedEvents: [],
+            },
+          });
+        }),
+      };
+
+      await client.init(apiKey, {
+        defaultTracking: false,
+      }).promise;
+      const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+      client.config.transportProvider = transportProvider;
+      await client.track('event_type', { userId: 'user_0' }).promise;
+
+      expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+      expect(diagnosticTrack).toHaveBeenCalledWith(1, 400, message);
+    });
+
+    test('should diagnostic track when 429 rate limit when flush', async () => {
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.RateLimit,
+            statusCode: 429,
+            body: {
+              exceededDailyQuotaUsers: { user_0: 1 },
+              exceededDailyQuotaDevices: {},
+              throttledEvents: [],
+            },
+          });
+        }),
+      };
+
+      await client.init(apiKey, {
+        defaultTracking: false,
+      }).promise;
+      const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+      client.config.transportProvider = transportProvider;
+      client.track('event_type', { userId: 'user_0' });
+      // flush() calls destination.flush(useRetry: false)
+      await client.flush().promise;
+
+      expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+      expect(diagnosticTrack).toHaveBeenCalledWith(1, 429, core.EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE);
     });
   });
 
