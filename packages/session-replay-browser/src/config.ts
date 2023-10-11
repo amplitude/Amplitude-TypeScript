@@ -2,6 +2,7 @@ import { FetchTransport } from '@amplitude/analytics-client-common';
 import { Config, Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
 import { SessionReplayConfig as ISessionReplayConfig, SessionReplayOptions } from './typings/session-replay';
+import { DEFAULT_SAMPLE_RATE } from './constants';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -29,7 +30,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
         : defaultConfig.flushMaxRetries;
 
     this.apiKey = apiKey;
-    this.sampleRate = options.sampleRate || 1;
+    this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
 
     this.deviceId = options.deviceId;
     this.sessionId = options.sessionId;

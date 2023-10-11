@@ -38,7 +38,7 @@ import {
   SessionReplayContext,
   SessionReplayOptions,
 } from './typings/session-replay';
-import { VERSION } from './verstion';
+import { VERSION } from './version';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -359,6 +359,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     await Promise.all(list.map((context) => this.send(context, useRetry)));
   }
 
+  getSampleRate() {
+    return this.config?.sampleRate || DEFAULT_SAMPLE_RATE;
+  }
+
   getServerUrl() {
     if (this.config?.serverZone === ServerZone.EU) {
       return SESSION_REPLAY_EU_SERVER_URL;
@@ -385,10 +389,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!deviceId) {
       return this.completeRequest({ context, err: MISSING_DEVICE_ID_MESSAGE });
     }
-
     const url = getCurrentUrl();
     const version = VERSION;
-    const sampleRate = this.config?.sampleRate || DEFAULT_SAMPLE_RATE;
+    const sampleRate = this.getSampleRate();
+
+    console.log('sampleRate', sampleRate);
+    console.log('config', this.config);
 
     const urlParams = new URLSearchParams({
       device_id: deviceId,
@@ -400,6 +406,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       version: 1,
       events: context.events,
     };
+
     try {
       const options: RequestInit = {
         headers: {

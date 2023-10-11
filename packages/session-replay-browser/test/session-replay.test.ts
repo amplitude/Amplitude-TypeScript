@@ -3,12 +3,12 @@ import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import * as RRWeb from 'rrweb';
-import { DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../src/constants';
+import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../src/constants';
 import * as Helpers from '../src/helpers';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
 import { IDBStore, RecordingStatus, SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
-import { VERSION } from '../src/verstion';
+import { VERSION } from '../src/version';
 
 jest.mock('idb-keyval');
 type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
@@ -38,6 +38,7 @@ describe('SessionReplayPlugin', () => {
   const { get, update } = IDBKeyVal as MockedIDBKeyVal;
   const { record } = RRWeb as MockedRRWeb;
   let originalFetch: typeof global.fetch;
+  let location: typeof global.window.location;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
     log: jest.fn(),
@@ -80,6 +81,7 @@ describe('SessionReplayPlugin', () => {
     jest.resetAllMocks();
     jest.spyOn(global.Math, 'random').mockRestore();
     global.fetch = originalFetch;
+    global.window.location = location;
     jest.useRealTimers();
   });
   describe('init', () => {
@@ -255,7 +257,14 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.getShouldRecord = () => false;
+      const result = sessionReplay.getSessionRecordingProperties();
+      expect(result).toEqual({});
+    });
 
+    test('should return an default sample rate if not set', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.getShouldRecord = () => false;
       const result = sessionReplay.getSessionRecordingProperties();
       expect(result).toEqual({});
     });
@@ -1007,6 +1016,15 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
+  describe('getSampleRate', () => {
+    test('should return undefined if no config set', () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = undefined;
+      const sampleRate = sessionReplay.getSampleRate();
+      expect(sampleRate).toEqual(0);
+    });
+  });
+
   describe('send', () => {
     test('should not send anything if api key not set', async () => {
       const sessionReplay = new SessionReplay();
@@ -1059,7 +1077,7 @@ describe('SessionReplayPlugin', () => {
             Accept: '*/*',
             'Content-Type': 'application/json',
             Authorization: 'Bearer static_key',
-            'X-Client-Sample-Rate': '1',
+            'X-Client-Sample-Rate': `${DEFAULT_SAMPLE_RATE}`,
             'X-Client-Url': window.location.href,
             'X-Client-Version': VERSION,
           },
@@ -1089,7 +1107,7 @@ describe('SessionReplayPlugin', () => {
             Accept: '*/*',
             'Content-Type': 'application/json',
             Authorization: 'Bearer static_key',
-            'X-Client-Sample-Rate': '1',
+            'X-Client-Sample-Rate': `${DEFAULT_SAMPLE_RATE}`,
             'X-Client-Url': window.location.href,
             'X-Client-Version': VERSION,
           },
@@ -1775,6 +1793,23 @@ describe('SessionReplayPlugin', () => {
         sequenceId: 0,
         sessionId: 123,
       });
+    });
+  });
+
+  describe('getCurrentUrl', () => {
+    let windowSpy: jest.SpyInstance;
+    beforeEach(() => {
+      windowSpy = jest.spyOn(globalThis, 'window', 'get');
+    });
+
+    afterEach(() => {
+      windowSpy.mockRestore();
+    });
+
+    test('runs without error', () => {
+      windowSpy.mockImplementation(() => undefined);
+      const url = Helpers.getCurrentUrl();
+      expect(url).toEqual('');
     });
   });
 });
