@@ -1,4 +1,4 @@
-export const PLUGIN_NAME = '@amplitude/plugin-auto-tracking-browser';
+export const PLUGIN_NAME = '@amplitude/plugin-default-event-tracking-advanced-browser';
 
 export const AMPLITUDE_ELEMENT_CLICKED_EVENT = '[Amplitude] Element Clicked';
 export const AMPLITUDE_ELEMENT_CHANGED_EVENT = '[Amplitude] Element Changed';

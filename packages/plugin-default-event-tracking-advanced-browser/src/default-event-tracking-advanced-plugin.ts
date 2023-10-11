@@ -8,7 +8,7 @@ type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 type ActionType = 'click' | 'change';
 
 const DEFAULT_TAG_ALLOWLIST = ['a', 'button', 'input', 'select', 'textarea', 'label'];
-const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-auto-track-';
+const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
 
 interface EventListener {
   element: Element;
@@ -48,7 +48,7 @@ interface Options {
   dataAttributePrefix?: string;
 }
 
-export const autoTrackingPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
+export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
   const {
     cssSelectorAllowlist,
     pageUrlAllowlist,
