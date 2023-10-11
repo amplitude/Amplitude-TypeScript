@@ -167,7 +167,6 @@ export class Destination implements DestinationPlugin {
       if (res === null) {
         (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
-        (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
         return;
       }
       this.handleResponse(res, list, useRetry);
