@@ -5,4 +5,4 @@ export const AMPLITUDE_SERVER_URL = 'https://api2.amplitude.com/2/httpapi';
 export const EU_AMPLITUDE_SERVER_URL = 'https://api.eu.amplitude.com/2/httpapi';
 export const AMPLITUDE_BATCH_SERVER_URL = 'https://api2.amplitude.com/batch';
 export const EU_AMPLITUDE_BATCH_SERVER_URL = 'https://api.eu.amplitude.com/batch';
-export const DIAGNOSTIC_ENDPOINT = 'http://localhost:8000';
+export const DIAGNOSTIC_ENDPOINT = 'https://api-omni.stag2.amplitude.com/omni/metrics';
