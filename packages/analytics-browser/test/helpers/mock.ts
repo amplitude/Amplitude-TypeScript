@@ -1,6 +1,5 @@
 import { Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { BrowserClient, BrowserConfig, LogLevel, UserSession } from '@amplitude/analytics-types';
-import { BrowserDiagnostic } from '../../src/diagnostics/diagnostic';
 
 export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
   init: jest.fn(),
@@ -79,7 +78,12 @@ export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {
     },
     trackingSessionEvents: false,
     userId: undefined,
-    diagnosticProvider: new BrowserDiagnostic(),
+    diagnosticProvider: {
+      isDisabled: false,
+      serverUrl: undefined,
+      apiKey: undefined,
+      track: jest.fn(),
+    },
     ...options,
   };
 };

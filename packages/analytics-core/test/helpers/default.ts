@@ -2,8 +2,6 @@ import { Config } from '@amplitude/analytics-types';
 import { getDefaultConfig } from '../../src/config';
 
 export const useDefaultConfig = (): Config => {
-  const defaultConfig = getDefaultConfig();
-  defaultConfig.diagnosticProvider.apiKey = API_KEY;
   return {
     apiKey: API_KEY,
     transportProvider: {
@@ -17,7 +15,13 @@ export const useDefaultConfig = (): Config => {
       reset: async () => undefined,
       getRaw: async () => undefined,
     },
-    ...defaultConfig,
+    ...getDefaultConfig(),
+    diagnosticProvider: {
+      isDisabled: false,
+      serverUrl: undefined,
+      apiKey: undefined,
+      track: jest.fn(),
+    },
   };
 };
 

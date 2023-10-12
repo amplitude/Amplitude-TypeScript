@@ -17,6 +17,7 @@ describe('config', () => {
       apiKey: API_KEY,
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
+      diagnosticProvider: defaultConfig.diagnosticProvider,
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
