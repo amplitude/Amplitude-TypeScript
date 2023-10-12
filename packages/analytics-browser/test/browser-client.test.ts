@@ -298,12 +298,12 @@ describe('browser-client', () => {
         await client.track('event_type', { userId: 'user_0' }).promise;
 
         expect(diagnosticTrack).toHaveBeenCalledTimes(1);
-        expect(diagnosticTrack).toHaveBeenCalledWith(1, 0, core.UNEXPECTED_DIAGNOSTIC_MESSAGE);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 0, core.DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
       });
 
       test.each([
-        ['api_key', undefined, core.INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE],
-        [undefined, { time: [0] }, core.EVENT_ERROR_DIAGNOSTIC_MESSAGE],
+        ['api_key', undefined, core.DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS],
+        [undefined, { time: [0] }, core.DIAGNOSTIC_MESSAGES.EVENT_ERROR],
       ])(
         'should diagnostic track when 400 invalid response',
         async (missingField, eventsWithInvalidFields, message) => {
@@ -361,7 +361,7 @@ describe('browser-client', () => {
         await client.flush().promise;
 
         expect(diagnosticTrack).toHaveBeenCalledTimes(1);
-        expect(diagnosticTrack).toHaveBeenCalledWith(1, 429, core.EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 429, core.DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
       });
 
       test('should diagnostic track when 413', async () => {
@@ -385,7 +385,7 @@ describe('browser-client', () => {
         await client.track('event_type', { userId: 'user_0' }).promise;
 
         expect(diagnosticTrack).toHaveBeenCalledTimes(1);
-        expect(diagnosticTrack).toHaveBeenCalledWith(1, 413, core.PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 413, core.DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
       });
 
       test('should diagnostic track when 500 hit max retries', async () => {
@@ -415,7 +415,7 @@ describe('browser-client', () => {
         await client.track('event_type', { userId: 'user_0' }).promise;
 
         expect(diagnosticTrack).toHaveBeenCalledTimes(1);
-        expect(diagnosticTrack).toHaveBeenCalledWith(1, 500, core.EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 500, core.DIAGNOSTIC_MESSAGES.EXCEEDED_MAX_RETRY);
       });
     });
   });

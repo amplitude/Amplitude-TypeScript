@@ -1,10 +1,12 @@
-export const EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE = 'exceeded max retries';
-export const MISSING_API_KEY_DIAGNOSTIC_MESSAGE = 'missing API key';
-export const UNEXPECTED_DIAGNOSTIC_MESSAGE = 'unexpected error';
-export const INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE = 'invalid or missing fields';
-export const EVENT_ERROR_DIAGNOSTIC_MESSAGE = 'event error';
-export const PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE = 'payload too large';
-export const EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE = 'exceeded daily quota users or devices';
-
 export const DIAGNOSTIC_METADATA_TYPE = 'SDK_DIAGNOSTIC';
 export const DIAGNOSTIC_ENDPOINT = 'https://api-omni.stag2.amplitude.com/omni/metrics';
+
+export const DIAGNOSTIC_MESSAGES = {
+  EXCEEDED_MAX_RETRY: 'exceeded max retries',
+  MISSING_API_KEY: 'missing API key',
+  UNEXPECTED_ERROR: 'unexpected error',
+  INVALID_OR_MISSING_FIELDS: 'invalid or missing fields',
+  EVENT_ERROR: 'event error',
+  PAYLOAD_TOO_LARGE: 'payload too large',
+  EXCEEDED_DAILY_QUOTA: 'exceeded daily quota users or devices',
+};

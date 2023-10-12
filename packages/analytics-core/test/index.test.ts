@@ -16,13 +16,7 @@ import {
   createIdentifyEvent,
   BaseDiagnostic,
   buildResult,
-  EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE,
-  MISSING_API_KEY_DIAGNOSTIC_MESSAGE,
-  UNEXPECTED_DIAGNOSTIC_MESSAGE,
-  INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE,
-  EVENT_ERROR_DIAGNOSTIC_MESSAGE,
-  PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE,
-  EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE,
+  DIAGNOSTIC_MESSAGES,
   DIAGNOSTIC_METADATA_TYPE,
   DIAGNOSTIC_ENDPOINT,
 } from '../src/index';
@@ -55,13 +49,13 @@ describe('index', () => {
     expect(typeof buildResult).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
     expect(STORAGE_PREFIX).toBe('AMP_unsent');
-    expect(EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE).toBe('exceeded max retries');
-    expect(MISSING_API_KEY_DIAGNOSTIC_MESSAGE).toBe('missing API key');
-    expect(UNEXPECTED_DIAGNOSTIC_MESSAGE).toBe('unexpected error');
-    expect(INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE).toBe('invalid or missing fields');
-    expect(EVENT_ERROR_DIAGNOSTIC_MESSAGE).toBe('event error');
-    expect(PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE).toBe('payload too large');
-    expect(EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE).toBe('exceeded daily quota users or devices');
+    expect(DIAGNOSTIC_MESSAGES.EXCEEDED_MAX_RETRY).toBe('exceeded max retries');
+    expect(DIAGNOSTIC_MESSAGES.MISSING_API_KEY).toBe('missing API key');
+    expect(DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR).toBe('unexpected error');
+    expect(DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS).toBe('invalid or missing fields');
+    expect(DIAGNOSTIC_MESSAGES.EVENT_ERROR).toBe('event error');
+    expect(DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE).toBe('payload too large');
+    expect(DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA).toBe('exceeded daily quota users or devices');
     expect(DIAGNOSTIC_METADATA_TYPE).toBe('SDK_DIAGNOSTIC');
     expect(DIAGNOSTIC_ENDPOINT).toBe('https://api-omni.stag2.amplitude.com/omni/metrics');
   });

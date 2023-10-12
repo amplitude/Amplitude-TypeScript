@@ -7,13 +7,7 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
-import {
-  EVENT_ERROR_DIAGNOSTIC_MESSAGE,
-  EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE,
-  INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE,
-  PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE,
-  UNEXPECTED_DIAGNOSTIC_MESSAGE,
-} from '../../src/diagnostics/constants';
+import { DIAGNOSTIC_MESSAGES } from '../../src/diagnostics/constants';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 class TestDiagnostic implements Diagnostic {
@@ -495,13 +489,13 @@ describe('destination', () => {
       await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
-      expect(diagnosticProvider.track).toHaveBeenLastCalledWith(1, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
+      expect(diagnosticProvider.track).toHaveBeenLastCalledWith(1, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
     });
 
     test.each([
-      ['api_key', undefined, true, 2, INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE],
-      [undefined, { time: [0] }, true, 1, EVENT_ERROR_DIAGNOSTIC_MESSAGE],
-      [undefined, { time: [0] }, false, 2, EVENT_ERROR_DIAGNOSTIC_MESSAGE],
+      ['api_key', undefined, true, 2, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS],
+      [undefined, { time: [0] }, true, 1, DIAGNOSTIC_MESSAGES.EVENT_ERROR],
+      [undefined, { time: [0] }, false, 2, DIAGNOSTIC_MESSAGES.EVENT_ERROR],
     ])(
       'should track diagnostic when 400',
       async (missingField, eventsWithInvalidFields, useRetry, dropCount, message) => {
@@ -602,7 +596,7 @@ describe('destination', () => {
       );
 
       expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
-      expect(diagnosticProvider.track).toHaveBeenCalledWith(2, 413, PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE);
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(2, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
     });
 
     test.each([
@@ -654,7 +648,7 @@ describe('destination', () => {
         useRetry,
       );
       expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
-      expect(diagnosticProvider.track).toHaveBeenCalledWith(dropCount, 429, EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE);
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(dropCount, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
       expect(destination.queue.length).toBe(queueCount);
     });
   });
