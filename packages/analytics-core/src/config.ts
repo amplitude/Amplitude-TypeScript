@@ -80,11 +80,7 @@ export class Config implements IConfig {
     this.transportProvider = options.transportProvider;
     this.useBatch = options.useBatch ?? defaultConfig.useBatch;
 
-    if (options.diagnosticProvider == undefined) {
-      this.diagnosticProvider = defaultConfig.diagnosticProvider;
-    } else {
-      this.diagnosticProvider = options.diagnosticProvider;
-    }
+    this.diagnosticProvider = options.diagnosticProvider ?? defaultConfig.diagnosticProvider;
     this.diagnosticProvider.apiKey = this.apiKey;
 
     this.loggerProvider.enable(this.logLevel);
