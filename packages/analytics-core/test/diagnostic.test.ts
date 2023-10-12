@@ -59,7 +59,7 @@ describe('Diagnostic', () => {
       expect(diagnostic.queue[0].library).toBe('amplitude-ts');
     });
 
-    test('should not add to queen when disabled', () => {
+    test('should not add to queue when disabled', () => {
       diagnostic.isDisabled = true;
       diagnostic.track(eventCount, code, 'Test message');
 
