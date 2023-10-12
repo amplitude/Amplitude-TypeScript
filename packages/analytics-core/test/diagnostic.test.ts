@@ -21,6 +21,7 @@ describe('Diagnostic', () => {
     test('should set default values if not provided', () => {
       expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
       expect(diagnostic.isDisabled).toBe(false);
+      expect(diagnostic.apiKey).toBe('');
     });
 
     test('should set isDisabled to provided value', () => {

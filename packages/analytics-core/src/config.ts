@@ -81,7 +81,9 @@ export class Config implements IConfig {
     this.useBatch = options.useBatch ?? defaultConfig.useBatch;
 
     this.diagnosticProvider = options.diagnosticProvider ?? defaultConfig.diagnosticProvider;
-    this.diagnosticProvider.apiKey = this.apiKey;
+    if (!this.diagnosticProvider.apiKey) {
+      this.diagnosticProvider.apiKey = this.apiKey;
+    }
 
     this.loggerProvider.enable(this.logLevel);
 
