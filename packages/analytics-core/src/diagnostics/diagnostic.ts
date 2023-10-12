@@ -17,9 +17,7 @@ export class BaseDiagnostic implements Diagnostic {
   constructor(options?: DiagnosticOptions) {
     this.isDisabled = options && options.isDisabled ? options.isDisabled : false;
     this.serverUrl = options && options.serverUrl ? options.serverUrl : DIAGNOSTIC_ENDPOINT;
-    if (options && options.apiKey) {
-      this.apiKey = options.apiKey;
-    }
+    this.apiKey = options && options.apiKey ? options.apiKey : '';
   }
 
   track(eventCount: number, code: number, message: string) {

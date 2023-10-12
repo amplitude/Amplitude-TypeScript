@@ -2,7 +2,7 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { Diagnostic, Status, UserSession } from '@amplitude/analytics-types';
+import { Status, UserSession } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -276,7 +276,7 @@ describe('browser-client', () => {
         await client.init(apiKey, {
           defaultTracking: false,
         }).promise;
-        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
         client.config.transportProvider = transportProvider;
         await client.track('event_type', { userId: 'user_0' }).promise;
 
@@ -293,7 +293,7 @@ describe('browser-client', () => {
         await client.init(apiKey, {
           defaultTracking: false,
         }).promise;
-        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
         client.config.transportProvider = transportProvider;
         await client.track('event_type', { userId: 'user_0' }).promise;
 
@@ -327,7 +327,7 @@ describe('browser-client', () => {
           await client.init(apiKey, {
             defaultTracking: false,
           }).promise;
-          const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+          const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
           client.config.transportProvider = transportProvider;
           await client.track('event_type', { userId: 'user_0' }).promise;
 
@@ -354,7 +354,7 @@ describe('browser-client', () => {
         await client.init(apiKey, {
           defaultTracking: false,
         }).promise;
-        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
         client.config.transportProvider = transportProvider;
         client.track('event_type', { userId: 'user_0' });
         // flush() calls destination.flush(useRetry: false)
@@ -380,7 +380,7 @@ describe('browser-client', () => {
         await client.init(apiKey, {
           defaultTracking: false,
         }).promise;
-        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
         client.config.transportProvider = transportProvider;
         await client.track('event_type', { userId: 'user_0' }).promise;
 
@@ -410,7 +410,7 @@ describe('browser-client', () => {
           defaultTracking: false,
           flushMaxRetries: 1,
         }).promise;
-        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider as Diagnostic, 'track');
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
         client.config.transportProvider = transportProvider;
         await client.track('event_type', { userId: 'user_0' }).promise;
 

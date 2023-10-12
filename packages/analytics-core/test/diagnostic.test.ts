@@ -28,6 +28,7 @@ describe('Diagnostic', () => {
       diagnostic = new BaseDiagnostic({ isDisabled });
       expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
       expect(diagnostic.isDisabled).toBe(isDisabled);
+      expect(diagnostic.apiKey).toBe('');
     });
 
     test('should set serverUrl to provided value', () => {
@@ -35,6 +36,15 @@ describe('Diagnostic', () => {
       diagnostic = new BaseDiagnostic({ serverUrl });
       expect(diagnostic.serverUrl).toBe(serverUrl);
       expect(diagnostic.isDisabled).toBe(false);
+      expect(diagnostic.apiKey).toBe('');
+    });
+
+    test('should set apiKey to provided value', () => {
+      const apiKey = '12345';
+      diagnostic = new BaseDiagnostic({ apiKey });
+      expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
+      expect(diagnostic.isDisabled).toBe(false);
+      expect(diagnostic.apiKey).toBe('12345');
     });
   });
 

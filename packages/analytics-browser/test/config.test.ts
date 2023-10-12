@@ -11,6 +11,7 @@ import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
 import { AmplitudeBrowser } from '../src/browser-client';
+import { BrowserDiagnostic } from '../src/diagnostics/diagnostic';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -20,7 +21,6 @@ describe('config', () => {
   const someLocalStorage: LocalStorageModule.LocalStorage<UserSession> = expect.any(
     LocalStorageModule.LocalStorage,
   ) as LocalStorageModule.LocalStorage<UserSession>;
-  const someDiagnosticProvider: core.BaseDiagnostic = expect.any(core.BaseDiagnostic) as core.BaseDiagnostic;
 
   let apiKey = '';
 
@@ -74,7 +74,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
-        diagnosticProvider: someDiagnosticProvider,
+        diagnosticProvider: new BrowserDiagnostic(),
       });
     });
 
@@ -130,7 +130,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
-        diagnosticProvider: someDiagnosticProvider,
+        diagnosticProvider: new BrowserDiagnostic(),
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -216,7 +216,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
-        diagnosticProvider: someDiagnosticProvider,
+        diagnosticProvider: new BrowserDiagnostic(),
       });
     });
 

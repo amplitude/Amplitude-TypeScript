@@ -55,7 +55,7 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
-      diagnosticProvider: { isDisabled: true },
+      diagnosticProvider: defaultConfig.diagnosticProvider,
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
@@ -79,7 +79,7 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
-      diagnosticProvider: new BaseDiagnostic({ isDisabled: true, apiKey: API_KEY }),
+      diagnosticProvider: defaultConfig.diagnosticProvider,
     });
   });
 

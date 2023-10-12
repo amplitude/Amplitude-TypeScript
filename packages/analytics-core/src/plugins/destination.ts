@@ -2,7 +2,6 @@ import {
   Config,
   DestinationContext as Context,
   DestinationPlugin,
-  Diagnostic,
   Event,
   InvalidResponse,
   PayloadTooLargeResponse,
@@ -96,7 +95,7 @@ export class Destination implements DestinationPlugin {
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 500, EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 500, EXCEEDED_MAX_RETRY_DIAGNOSTIC_MESSAGE);
       return false;
     });
 
@@ -144,7 +143,7 @@ export class Destination implements DestinationPlugin {
 
   async send(list: Context[], useRetry = true) {
     if (!this.config.apiKey) {
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, MISSING_API_KEY_DIAGNOSTIC_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 400, MISSING_API_KEY_DIAGNOSTIC_MESSAGE);
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
@@ -165,7 +164,7 @@ export class Destination implements DestinationPlugin {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
-        (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
+        this.config.diagnosticProvider.track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
@@ -174,7 +173,7 @@ export class Destination implements DestinationPlugin {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
       this.fulfillRequest(list, 0, errorMessage);
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
     }
   }
 
@@ -215,11 +214,7 @@ export class Destination implements DestinationPlugin {
   handleInvalidResponse(res: InvalidResponse, list: Context[], useRetry: boolean) {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
-      (this.config.diagnosticProvider as Diagnostic).track(
-        list.length,
-        400,
-        INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE,
-      );
+      this.config.diagnosticProvider.track(list.length, 400, INVALID_OR_MISSING_FIELDS_DIAGNOSTIC_MESSAGE);
       return;
     }
 
@@ -233,7 +228,7 @@ export class Destination implements DestinationPlugin {
 
     if (useRetry) {
       if (dropIndexSet.size) {
-        (this.config.diagnosticProvider as Diagnostic).track(dropIndexSet.size, 400, EVENT_ERROR_DIAGNOSTIC_MESSAGE);
+        this.config.diagnosticProvider.track(dropIndexSet.size, 400, EVENT_ERROR_DIAGNOSTIC_MESSAGE);
       }
       const retry = list.filter((context, index) => {
         if (dropIndexSet.has(index)) {
@@ -249,13 +244,13 @@ export class Destination implements DestinationPlugin {
       }
       this.addToQueue(...retry);
     } else {
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 400, EVENT_ERROR_DIAGNOSTIC_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 400, EVENT_ERROR_DIAGNOSTIC_MESSAGE);
     }
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[], useRetry: boolean) {
     if (list.length === 1 || !useRetry) {
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 413, PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 413, PAYLOAD_TOO_LARGE_DIAGNOSTIC_MESSAGE);
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
@@ -269,7 +264,7 @@ export class Destination implements DestinationPlugin {
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[], useRetry: boolean) {
     if (!useRetry) {
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 429, EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 429, EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE);
       this.fulfillRequest(list, res.statusCode, res.status);
       return;
     }
@@ -297,11 +292,7 @@ export class Destination implements DestinationPlugin {
 
     const dropEvents = retry.filter((element) => !retry.includes(element));
     if (dropEvents.length > 0) {
-      (this.config.diagnosticProvider as Diagnostic).track(
-        dropEvents.length,
-        429,
-        EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE,
-      );
+      this.config.diagnosticProvider.track(dropEvents.length, 429, EXCEEDED_DAILY_QUOTA_DIAGNOSTIC_MESSAGE);
     }
 
     if (retry.length > 0) {
@@ -322,7 +313,7 @@ export class Destination implements DestinationPlugin {
       );
     } else {
       this.fulfillRequest(list, res.statusCode, res.status);
-      (this.config.diagnosticProvider as Diagnostic).track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 0, UNEXPECTED_DIAGNOSTIC_MESSAGE);
     }
   }
 

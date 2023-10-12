@@ -2,7 +2,6 @@ import {
   Event,
   Config as IConfig,
   Diagnostic,
-  DiagnosticOptions,
   Logger as ILogger,
   LogLevel,
   Storage,
@@ -52,7 +51,7 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
-  diagnosticProvider: Diagnostic | DiagnosticOptions;
+  diagnosticProvider: Diagnostic;
 
   protected _optOut = false;
   get optOut() {
@@ -83,10 +82,8 @@ export class Config implements IConfig {
 
     if (options.diagnosticProvider == undefined) {
       this.diagnosticProvider = defaultConfig.diagnosticProvider;
-    } else if (options.diagnosticProvider instanceof BaseDiagnostic) {
-      this.diagnosticProvider = options.diagnosticProvider;
     } else {
-      this.diagnosticProvider = new BaseDiagnostic(options.diagnosticProvider as DiagnosticOptions);
+      this.diagnosticProvider = options.diagnosticProvider;
     }
     this.diagnosticProvider.apiKey = this.apiKey;
 
