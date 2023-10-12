@@ -4,9 +4,9 @@ import { DiagnosticOmniMetrics } from './typings';
 import { DIAGNOSTIC_METADATA_TYPE } from './constants';
 
 export class BaseDiagnostic implements Diagnostic {
-  isDisabled = false;
+  isDisabled = true;
   serverUrl: string = DIAGNOSTIC_ENDPOINT;
-  apiKey?: string = '';
+  apiKey = '';
   queue: DiagnosticOmniMetrics[] = [];
 
   private scheduled: ReturnType<typeof setTimeout> | null = null;
@@ -15,7 +15,7 @@ export class BaseDiagnostic implements Diagnostic {
   private delay = 60000;
 
   constructor(options?: DiagnosticOptions) {
-    this.isDisabled = options && options.isDisabled ? options.isDisabled : false;
+    this.isDisabled = options && options.isDisabled != undefined ? options.isDisabled : true;
     this.serverUrl = options && options.serverUrl ? options.serverUrl : DIAGNOSTIC_ENDPOINT;
     this.apiKey = options && options.apiKey ? options.apiKey : '';
   }

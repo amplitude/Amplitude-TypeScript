@@ -20,15 +20,15 @@ describe('Diagnostic', () => {
   describe('constructor', () => {
     test('should set default values if not provided', () => {
       expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
-      expect(diagnostic.isDisabled).toBe(false);
+      expect(diagnostic.isDisabled).toBe(true);
       expect(diagnostic.apiKey).toBe('');
     });
 
     test('should set isDisabled to provided value', () => {
-      const isDisabled = true;
+      const isDisabled = false;
       diagnostic = new BaseDiagnostic({ isDisabled });
       expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
-      expect(diagnostic.isDisabled).toBe(isDisabled);
+      expect(diagnostic.isDisabled).toBe(false);
       expect(diagnostic.apiKey).toBe('');
     });
 
@@ -36,7 +36,7 @@ describe('Diagnostic', () => {
       const serverUrl = 'https://test.com';
       diagnostic = new BaseDiagnostic({ serverUrl });
       expect(diagnostic.serverUrl).toBe(serverUrl);
-      expect(diagnostic.isDisabled).toBe(false);
+      expect(diagnostic.isDisabled).toBe(true);
       expect(diagnostic.apiKey).toBe('');
     });
 
@@ -44,13 +44,14 @@ describe('Diagnostic', () => {
       const apiKey = '12345';
       diagnostic = new BaseDiagnostic({ apiKey });
       expect(diagnostic.serverUrl).toBe(DIAGNOSTIC_ENDPOINT);
-      expect(diagnostic.isDisabled).toBe(false);
+      expect(diagnostic.isDisabled).toBe(true);
       expect(diagnostic.apiKey).toBe('12345');
     });
   });
 
   describe('track', () => {
     test('should add events to the queue when track method is called', () => {
+      diagnostic.isDisabled = false;
       diagnostic.track(eventCount, code, 'Test message');
 
       expect(diagnostic.queue).toHaveLength(1);
@@ -60,8 +61,7 @@ describe('Diagnostic', () => {
       expect(diagnostic.queue[0].library).toBe('amplitude-ts');
     });
 
-    test('should not add to queue when disabled', () => {
-      diagnostic.isDisabled = true;
+    test('should not add to queue by default', () => {
       diagnostic.track(eventCount, code, 'Test message');
 
       expect(diagnostic.queue).toHaveLength(0);
@@ -70,6 +70,7 @@ describe('Diagnostic', () => {
     test('should schedule flush when track is called for the first time', () => {
       const setTimeoutMock = jest.spyOn(global, 'setTimeout');
 
+      diagnostic.isDisabled = false;
       diagnostic.track(eventCount, code, 'Test message');
 
       jest.advanceTimersByTime(delay);
@@ -85,6 +86,7 @@ describe('Diagnostic', () => {
       const clearTimeoutMock = jest.spyOn(global, 'clearTimeout');
       const setTimeoutMock = jest.spyOn(global, 'setTimeout');
 
+      diagnostic.isDisabled = false;
       diagnostic.track(eventCount, code, 'Scheduled timeout test');
       await diagnostic.flush();
 
