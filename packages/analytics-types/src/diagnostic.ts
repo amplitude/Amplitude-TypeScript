@@ -4,6 +4,7 @@ export interface DiagnosticOptions {
   apiKey?: string;
 }
 
-export interface Diagnostic extends DiagnosticOptions {
+export interface Diagnostic {
+  apiKey?: string;
   track(eventCount: number, code: number, message: string): void;
 }

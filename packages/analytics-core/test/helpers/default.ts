@@ -17,8 +17,6 @@ export const useDefaultConfig = (): Config => {
     },
     ...getDefaultConfig(),
     diagnosticProvider: {
-      isDisabled: false,
-      serverUrl: undefined,
       apiKey: undefined,
       track: jest.fn(),
     },
