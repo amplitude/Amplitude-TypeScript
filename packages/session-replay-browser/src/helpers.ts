@@ -1,3 +1,4 @@
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { UNMASK_TEXT_CLASS } from './constants';
 
 export const maskInputFn = (text: string, element: HTMLElement) => {
@@ -24,4 +25,9 @@ export const isSessionInSample = function (sessionId: number, sampleRate: number
   const absHashMultiply = absHash * 31;
   const mod = absHashMultiply % 100;
   return mod / 100 < sampleRate;
+};
+
+export const getCurrentUrl = () => {
+  const globalScope = getGlobalScope();
+  return globalScope?.location ? globalScope.location.href : '';
 };

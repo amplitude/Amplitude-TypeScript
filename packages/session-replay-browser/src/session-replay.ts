@@ -6,6 +6,7 @@ import { pack, record } from 'rrweb';
 import { SessionReplayConfig } from './config';
 import {
   BLOCK_CLASS,
+  DEFAULT_SAMPLE_RATE,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   MASK_TEXT_CLASS,
   MAX_EVENT_LIST_SIZE_IN_BYTES,
@@ -17,7 +18,7 @@ import {
   STORAGE_PREFIX,
   defaultSessionStore,
 } from './constants';
-import { isSessionInSample, maskInputFn } from './helpers';
+import { isSessionInSample, maskInputFn, getCurrentUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
@@ -37,6 +38,7 @@ import {
   SessionReplayContext,
   SessionReplayOptions,
 } from './typings/session-replay';
+import { VERSION } from './version';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -127,7 +129,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.stopRecordingEvents = null;
     } catch (error) {
       const typedError = error as Error;
-      this.loggerProvider.error(`Error occurred while stopping recording: ${typedError.toString()}`);
+      this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
     }
     const sessionIdToSend = sessionId || this.config?.sessionId;
     if (this.events.length && sessionIdToSend) {
@@ -183,7 +185,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   getShouldRecord() {
     if (!this.config) {
-      this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
     }
     const globalScope = getGlobalScope();
@@ -269,7 +271,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       recordCanvas: false,
       errorHandler: (error) => {
         const typedError = error as Error;
-        this.loggerProvider.error('Error while recording: ', typedError.toString());
+        this.loggerProvider.warn('Error while recording: ', typedError.toString());
 
         return true;
       },
@@ -357,6 +359,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     await Promise.all(list.map((context) => this.send(context, useRetry)));
   }
 
+  getSampleRate() {
+    return this.config?.sampleRate || DEFAULT_SAMPLE_RATE;
+  }
+
   getServerUrl() {
     if (this.config?.serverZone === ServerZone.EU) {
       return SESSION_REPLAY_EU_SERVER_URL;
@@ -383,6 +389,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!deviceId) {
       return this.completeRequest({ context, err: MISSING_DEVICE_ID_MESSAGE });
     }
+    const url = getCurrentUrl();
+    const version = VERSION;
+    const sampleRate = this.getSampleRate();
 
     const urlParams = new URLSearchParams({
       device_id: deviceId,
@@ -394,12 +403,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
       version: 1,
       events: context.events,
     };
+
     try {
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
           Accept: '*/*',
           Authorization: `Bearer ${apiKey}`,
+          'X-Client-Version': version,
+          'X-Client-Url': url,
+          'X-Client-Sample-Rate': `${sampleRate}`,
         },
         body: JSON.stringify(payload),
         method: 'POST',
@@ -457,7 +470,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
       return storedReplaySessionContexts;
     } catch (e) {
-      this.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
     return undefined;
   }
@@ -485,7 +498,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         };
       });
     } catch (e) {
-      this.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
   }
 
@@ -520,14 +533,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return sessionMap;
       });
     } catch (e) {
-      this.loggerProvider.error(`${STORAGE_FAILURE}: ${e as string}`);
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
   }
 
   completeRequest({ context, err, success }: { context: SessionReplayContext; err?: string; success?: string }) {
     context.sessionId && this.cleanUpSessionEventsStore(context.sessionId, context.sequenceId);
     if (err) {
-      this.loggerProvider.error(err);
+      this.loggerProvider.warn(err);
     } else if (success) {
       this.loggerProvider.log(success);
     }

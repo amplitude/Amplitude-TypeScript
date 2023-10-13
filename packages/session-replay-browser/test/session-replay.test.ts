@@ -3,11 +3,12 @@ import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import * as RRWeb from 'rrweb';
-import { DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../src/constants';
+import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../src/constants';
 import * as Helpers from '../src/helpers';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
 import { IDBStore, RecordingStatus, SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
+import { VERSION } from '../src/version';
 
 jest.mock('idb-keyval');
 type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
@@ -37,6 +38,7 @@ describe('SessionReplayPlugin', () => {
   const { get, update } = IDBKeyVal as MockedIDBKeyVal;
   const { record } = RRWeb as MockedRRWeb;
   let originalFetch: typeof global.fetch;
+  let globalSpy: jest.SpyInstance;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
     log: jest.fn(),
@@ -73,7 +75,7 @@ describe('SessionReplayPlugin', () => {
         status: 200,
       }),
     ) as jest.Mock;
-    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+    globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
   });
   afterEach(() => {
     jest.resetAllMocks();
@@ -254,7 +256,14 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.getShouldRecord = () => false;
+      const result = sessionReplay.getSessionRecordingProperties();
+      expect(result).toEqual({});
+    });
 
+    test('should return an default sample rate if not set', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.getShouldRecord = () => false;
       const result = sessionReplay.getSessionRecordingProperties();
       expect(result).toEqual({});
     });
@@ -632,7 +641,7 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('stopRecordingAndSendEvents', () => {
-    test('it should catch errors', async () => {
+    test('it should catch errors as warnings', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       const mockStopRecordingEvents = jest.fn().mockImplementation(() => {
@@ -641,7 +650,7 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.stopRecordingEvents = mockStopRecordingEvents;
       sessionReplay.stopRecordingAndSendEvents();
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
     test('it should send events for passed session', async () => {
       const sessionReplay = new SessionReplay();
@@ -838,7 +847,7 @@ describe('SessionReplayPlugin', () => {
       const recordArg = record.mock.calls[0][0];
       const errorHandlerReturn = recordArg?.errorHandler && recordArg?.errorHandler(new Error('test error'));
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
       expect(errorHandlerReturn).toBe(true);
     });
   });
@@ -1006,6 +1015,15 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
+  describe('getSampleRate', () => {
+    test('should return default value if no config set', () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = undefined;
+      const sampleRate = sessionReplay.getSampleRate();
+      expect(sampleRate).toEqual(DEFAULT_SAMPLE_RATE);
+    });
+  });
+
   describe('send', () => {
     test('should not send anything if api key not set', async () => {
       const sessionReplay = new SessionReplay();
@@ -1020,7 +1038,7 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.send(context);
       expect(fetch).not.toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
     test('should not send anything if device id not set', async () => {
       const sessionReplay = new SessionReplay();
@@ -1035,7 +1053,7 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.send(context);
       expect(fetch).not.toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
     test('should make a request correctly', async () => {
       const sessionReplay = new SessionReplay();
@@ -1054,7 +1072,14 @@ describe('SessionReplayPlugin', () => {
         'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
-          headers: { Accept: '*/*', 'Content-Type': 'application/json', Authorization: 'Bearer static_key' },
+          headers: {
+            Accept: '*/*',
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer static_key',
+            'X-Client-Sample-Rate': `${DEFAULT_SAMPLE_RATE}`,
+            'X-Client-Url': '',
+            'X-Client-Version': VERSION,
+          },
           method: 'POST',
         },
       );
@@ -1077,7 +1102,14 @@ describe('SessionReplayPlugin', () => {
         'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
-          headers: { Accept: '*/*', 'Content-Type': 'application/json', Authorization: 'Bearer static_key' },
+          headers: {
+            Accept: '*/*',
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer static_key',
+            'X-Client-Sample-Rate': `${DEFAULT_SAMPLE_RATE}`,
+            'X-Client-Url': '',
+            'X-Client-Version': VERSION,
+          },
           method: 'POST',
         },
       );
@@ -1235,9 +1267,9 @@ describe('SessionReplayPlugin', () => {
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual('API Failure');
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('API Failure');
     });
     test('should not retry for 400 error', async () => {
       (fetch as jest.Mock)
@@ -1261,7 +1293,7 @@ describe('SessionReplayPlugin', () => {
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
     });
     test('should not retry for 413 error', async () => {
       (fetch as jest.Mock)
@@ -1282,7 +1314,7 @@ describe('SessionReplayPlugin', () => {
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
     });
     test('should handle retry for 500 error', async () => {
       (fetch as jest.Mock)
@@ -1353,9 +1385,9 @@ describe('SessionReplayPlugin', () => {
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(UNEXPECTED_ERROR_MESSAGE);
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(UNEXPECTED_ERROR_MESSAGE);
     });
   });
 
@@ -1366,9 +1398,9 @@ describe('SessionReplayPlugin', () => {
       get.mockImplementationOnce(() => Promise.reject('error'));
       await sessionReplay.getAllSessionEventsFromStore();
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
         'Failed to store session replay events in IndexedDB: error',
       );
     });
@@ -1498,9 +1530,9 @@ describe('SessionReplayPlugin', () => {
       update.mockImplementationOnce(() => Promise.reject('error'));
       await sessionReplay.cleanUpSessionEventsStore(123, 1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
         'Failed to store session replay events in IndexedDB: error',
       );
     });
@@ -1657,9 +1689,9 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.storeEventsForSession([mockEventString], 0, mockOptions.sessionId as number);
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.error.mock.calls[0][0]).toEqual(
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
         'Failed to store session replay events in IndexedDB: error',
       );
     });
@@ -1760,6 +1792,24 @@ describe('SessionReplayPlugin', () => {
         sequenceId: 0,
         sessionId: 123,
       });
+    });
+  });
+
+  describe('getCurrentUrl', () => {
+    test('returns url if exists', () => {
+      globalSpy.mockImplementation(() => ({
+        location: {
+          href: 'https://www.amplitude.com',
+        },
+      }));
+      const url = Helpers.getCurrentUrl();
+      expect(url).toEqual('https://www.amplitude.com');
+    });
+
+    test('returns empty string if url does not exist', () => {
+      globalSpy.mockImplementation(() => undefined);
+      const url = Helpers.getCurrentUrl();
+      expect(url).toEqual('');
     });
   });
 });
