@@ -160,6 +160,13 @@ export class Destination implements DestinationPlugin {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
+      if (!useRetry) {
+        if ('body' in res) {
+          this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
+        } else {
+          this.fulfillRequest(list, res.statusCode, res.status);
+        }
+      }
       this.handleResponse(res, list, useRetry);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
@@ -174,7 +181,7 @@ export class Destination implements DestinationPlugin {
 
     switch (status) {
       case Status.Success: {
-        this.handleSuccessResponse(res, list);
+        this.handleSuccessResponse(res, list, useRetry);
         break;
       }
       case Status.Invalid: {
@@ -199,14 +206,18 @@ export class Destination implements DestinationPlugin {
     }
   }
 
-  handleSuccessResponse(res: SuccessResponse, list: Context[]) {
-    this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
+  handleSuccessResponse(res: SuccessResponse, list: Context[], useRetry: boolean) {
+    if (useRetry) {
+      this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
+    }
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[], useRetry: boolean) {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
-      this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
       this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
+      if (useRetry) {
+        this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
+      }
       return;
     }
 
@@ -241,7 +252,12 @@ export class Destination implements DestinationPlugin {
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[], useRetry: boolean) {
-    if (list.length === 1 || !useRetry) {
+    if (!useRetry) {
+      this.config.diagnosticProvider.track(list.length, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
+      return;
+    }
+
+    if (list.length === 1) {
       this.config.diagnosticProvider.track(list.length, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
@@ -257,7 +273,6 @@ export class Destination implements DestinationPlugin {
   handleRateLimitResponse(res: RateLimitResponse, list: Context[], useRetry: boolean) {
     if (!useRetry) {
       this.config.diagnosticProvider.track(list.length, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
-      this.fulfillRequest(list, res.statusCode, res.status);
       return;
     }
 
@@ -304,7 +319,6 @@ export class Destination implements DestinationPlugin {
         }),
       );
     } else {
-      this.fulfillRequest(list, res.statusCode, res.status);
       this.config.diagnosticProvider.track(list.length, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
     }
   }
