@@ -82,6 +82,11 @@ describe('config', () => {
       const config = new Config.BrowserConfig(apiKey);
       expect(config.optOut).toBe(false);
     });
+
+    test('should set default api key for diagnostic provider', () => {
+      const config = new Config.BrowserConfig(apiKey);
+      expect(config.diagnosticProvider.apiKey).toBe(apiKey);
+    });
   });
 
   describe('useBrowserConfig', () => {

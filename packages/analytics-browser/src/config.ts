@@ -80,7 +80,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public diagnosticProvider: Diagnostic = new BrowserDiagnostic(),
     userId?: string,
   ) {
-    super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
+    super({ apiKey, storageProvider, transportProvider: createTransport(transport), diagnosticProvider });
     this._cookieStorage = cookieStorage;
     this.deviceId = deviceId;
     this.lastEventId = lastEventId;

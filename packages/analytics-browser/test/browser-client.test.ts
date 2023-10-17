@@ -263,6 +263,11 @@ describe('browser-client', () => {
     });
 
     describe('diagnostic', () => {
+      test('should init diagnostic with default api key', async () => {
+        await client.init(apiKey).promise;
+        expect(client.config.diagnosticProvider.apiKey).toBe(apiKey);
+      });
+
       test('should not diagnostic track when 200', async () => {
         const transportProvider = {
           send: jest.fn().mockImplementationOnce(() => {
