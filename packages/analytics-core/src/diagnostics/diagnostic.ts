@@ -48,7 +48,7 @@ export class BaseDiagnostic implements Diagnostic {
     return {
       metadata_type: DIAGNOSTIC_METADATA_TYPE,
       library: 'amplitude-ts',
-      accounting_time_min: Date.now(),
+      accounting_time_min: Math.floor(Date.now() / 60 / 1000),
       response_code: code,
       trigger: message,
       action: 'drop events',
