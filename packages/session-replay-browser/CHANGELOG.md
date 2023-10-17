@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.2.5...@amplitude/session-replay-browser@0.3.0) (2023-10-17)
+
+### Features
+
+- **session replay:** add metadata to headers
+  ([222920a](https://github.com/amplitude/Amplitude-TypeScript/commit/222920a52c34cce5f4b111f9f2768836b248dcdb))
+- **session replay:** add metadata to headers
+  ([6d15bfb](https://github.com/amplitude/Amplitude-TypeScript/commit/6d15bfb5daccd52d1dc4f7ae1ead8d5f4b2bf6a2))
+- **session replay:** add metadata to headers
+  ([d4a1b33](https://github.com/amplitude/Amplitude-TypeScript/commit/d4a1b33930bb8d20dd28a10ff9075854348b5272))
+- **session replay:** change non-actionable errors to warnings
+  ([e4debe2](https://github.com/amplitude/Amplitude-TypeScript/commit/e4debe25165311199f69b95a765fb6de3852f219))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.2.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.2.4...@amplitude/session-replay-browser@0.2.5) (2023-09-27)
 
 ### Bug Fixes
