@@ -74,7 +74,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
-        diagnosticProvider: new BrowserDiagnostic(),
+        diagnosticProvider: new BrowserDiagnostic({ apiKey }),
       });
     });
 
@@ -135,7 +135,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
-        diagnosticProvider: new BrowserDiagnostic(),
+        diagnosticProvider: new BrowserDiagnostic({ apiKey }),
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -221,7 +221,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
-        diagnosticProvider: new BrowserDiagnostic(),
+        diagnosticProvider: new BrowserDiagnostic({ apiKey }),
       });
     });
 

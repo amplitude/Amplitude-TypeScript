@@ -5,7 +5,7 @@ describe('Diagnostic', () => {
   test('should fetch', async () => {
     const diagnostic = new BrowserDiagnostic();
     const fetchMock = jest.fn().mockResolvedValueOnce({} as Response);
-    Date.now = jest.fn().mockReturnValue(12345);
+    Date.now = jest.fn().mockReturnValue(1697583342266);
     global.fetch = fetchMock;
 
     diagnostic.track(5, 400, 'test message 0');
@@ -24,7 +24,7 @@ describe('Diagnostic', () => {
           {
             metadata_type: DIAGNOSTIC_METADATA_TYPE,
             library: 'amplitude-ts',
-            accounting_time_min: 12345,
+            accounting_time_min: Math.floor(1697583342266 / 60 / 1000),
             response_code: 400,
             trigger: 'test message 0',
             action: 'drop events',
@@ -33,7 +33,7 @@ describe('Diagnostic', () => {
           {
             metadata_type: DIAGNOSTIC_METADATA_TYPE,
             library: 'amplitude-ts',
-            accounting_time_min: 12345,
+            accounting_time_min: Math.floor(1697583342266 / 60 / 1000),
             response_code: 500,
             trigger: 'test message 1',
             action: 'drop events',
