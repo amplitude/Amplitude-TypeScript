@@ -306,6 +306,28 @@ describe('browser-client', () => {
         expect(diagnosticTrack).toHaveBeenCalledWith(1, 0, core.DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
       });
 
+      test('should diagnostic track when flush and non 200', async () => {
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.Failed,
+              statusCode: 500,
+            });
+          }),
+        };
+
+        await client.init(apiKey, {
+          defaultTracking: false,
+        }).promise;
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+        client.config.transportProvider = transportProvider;
+        client.track('event_type', { userId: 'user_0' });
+        await client.flush().promise;
+
+        expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 0, core.DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
+      });
+
       test.each([
         ['api_key', undefined, core.DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS],
         [undefined, { time: [0] }, core.DIAGNOSTIC_MESSAGES.EVENT_ERROR],

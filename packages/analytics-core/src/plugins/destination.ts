@@ -135,7 +135,6 @@ export class Destination implements DestinationPlugin {
 
   async send(list: Context[], useRetry = true) {
     if (!this.config.apiKey) {
-      this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.MISSING_API_KEY);
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
@@ -214,7 +213,9 @@ export class Destination implements DestinationPlugin {
 
   handleInvalidResponse(res: InvalidResponse, list: Context[], useRetry: boolean) {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
-      this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
+      if (!res.body.error.startsWith(INVALID_API_KEY)) {
+        this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
+      }
       if (useRetry) {
         this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
       }
