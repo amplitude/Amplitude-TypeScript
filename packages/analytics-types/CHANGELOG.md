@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.2.0...@amplitude/analytics-types@2.3.0) (2023-10-18)
+
+### Features
+
+- add client upload time ([#601](https://github.com/amplitude/Amplitude-TypeScript/issues/601))
+  ([b80d090](https://github.com/amplitude/Amplitude-TypeScript/commit/b80d090c5a70f75b4d3cb653efa1af48ff2fcd34))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.1.2...@amplitude/analytics-types@2.2.0) (2023-09-18)
 
 ### Bug Fixes

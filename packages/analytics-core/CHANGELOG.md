@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.5...@amplitude/analytics-core@2.1.0) (2023-10-18)
+
+### Features
+
+- add client upload time ([#601](https://github.com/amplitude/Amplitude-TypeScript/issues/601))
+  ([b80d090](https://github.com/amplitude/Amplitude-TypeScript/commit/b80d090c5a70f75b4d3cb653efa1af48ff2fcd34))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.4...@amplitude/analytics-core@2.0.5) (2023-09-18)
 
 **Note:** Version bump only for package @amplitude/analytics-core
