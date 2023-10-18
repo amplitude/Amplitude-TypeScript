@@ -146,6 +146,7 @@ export class Destination implements DestinationPlugin {
       options: {
         min_id_length: this.config.minIdLength,
       },
+      client_upload_time: new Date().toISOString(),
     };
 
     try {

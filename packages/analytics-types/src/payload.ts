@@ -8,4 +8,5 @@ export interface Payload {
   api_key: string;
   events: readonly Event[];
   options?: PayloadOptions;
+  client_upload_time?: string;
 }

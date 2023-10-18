@@ -25,6 +25,9 @@ describe('integration', () => {
   let apiKey = '';
   let client = amplitude.createInstance();
 
+  const event_upload_time = '2023-01-01T12:00:00:000Z';
+  Date.prototype.toISOString = jest.fn(() => event_upload_time);
+
   beforeEach(() => {
     client = amplitude.createInstance();
     apiKey = UUID();
@@ -145,6 +148,7 @@ describe('integration', () => {
 
       expect(requestBody1).toEqual({
         api_key: apiKey,
+        client_upload_time: event_upload_time,
         events: [
           {
             device_id: deviceId,
@@ -880,6 +884,7 @@ describe('integration', () => {
         setTimeout(() => {
           expect(payload).toEqual({
             api_key: apiKey,
+            client_upload_time: event_upload_time,
             events: [
               {
                 // This is a `session_end` event for the previous session
@@ -1104,6 +1109,7 @@ describe('integration', () => {
           expect(payload.events[4].session_id).toEqual(payload.events[5].session_id);
           expect(payload).toEqual({
             api_key: apiKey,
+            client_upload_time: event_upload_time,
             events: [
               {
                 device_id: uuid,
@@ -1290,6 +1296,7 @@ describe('integration', () => {
         setTimeout(() => {
           expect(payload).toEqual({
             api_key: apiKey,
+            client_upload_time: event_upload_time,
             events: [
               {
                 device_id: uuid,
@@ -1474,6 +1481,7 @@ describe('integration', () => {
         setTimeout(() => {
           expect(payload).toEqual({
             api_key: apiKey,
+            client_upload_time: event_upload_time,
             events: [
               {
                 device_id: uuid,
@@ -1572,6 +1580,7 @@ describe('integration', () => {
         setTimeout(() => {
           expect(payload).toEqual({
             api_key: apiKey,
+            client_upload_time: event_upload_time,
             events: [
               {
                 device_id: uuid,
