@@ -222,6 +222,50 @@ describe('destination', () => {
   });
 
   describe('send', () => {
+    test('should include client upload time', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const event_upload_time = '2023-01-01T12:00:00:000Z';
+      Date.prototype.toISOString = jest.fn().mockReturnValueOnce(event_upload_time);
+
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
+          expect(payload.client_upload_time).toBe(event_upload_time);
+          return Promise.resolve({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: 1,
+              payloadSizeBytes: 1,
+              serverUploadTime: 1,
+            },
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        minIdLength: 10,
+      });
+      await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 200,
+        message: SUCCESS_MESSAGE,
+      });
+    });
+
     test('should include min id length', async () => {
       const destination = new Destination();
       const callback = jest.fn();
