@@ -1,8 +1,8 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { BaseTransport, Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, ServerZone, Status } from '@amplitude/analytics-types';
+import { pack, record } from '@amplitude/rrweb';
 import * as IDBKeyVal from 'idb-keyval';
-import { pack, record } from 'rrweb';
 import { SessionReplayConfig } from './config';
 import {
   BLOCK_CLASS,
@@ -18,7 +18,7 @@ import {
   STORAGE_PREFIX,
   defaultSessionStore,
 } from './constants';
-import { isSessionInSample, maskInputFn, getCurrentUrl } from './helpers';
+import { getCurrentUrl, isSessionInSample, maskInputFn } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
