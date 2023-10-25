@@ -1,6 +1,7 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { BaseTransport, Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, ServerZone, Status } from '@amplitude/analytics-types';
+import { RecordPlugin } from '@rrweb/types';
 import * as IDBKeyVal from 'idb-keyval';
 import { pack, record } from 'rrweb';
 import { SessionReplayConfig } from './config';
@@ -18,7 +19,7 @@ import {
   STORAGE_PREFIX,
   defaultSessionStore,
 } from './constants';
-import { isSessionInSample, maskInputFn, getCurrentUrl } from './helpers';
+import { getCurrentUrl, isSessionInSample, maskInputFn } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
@@ -39,6 +40,29 @@ import {
   SessionReplayOptions,
 } from './typings/session-replay';
 import { VERSION } from './version';
+
+const heatmapPlugin: RecordPlugin = {
+  name: 'amplitude/rrweb-heatmap',
+
+  eventProcessor: (event) => {
+    const isIncrementalSnapShot = event.type === 3;
+    if (isIncrementalSnapShot) {
+      const isMouseInteraction = event.data.source === 2;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const isMouseClick = event.data.type === 2;
+      if (isMouseInteraction && isMouseClick) {
+        console.log('event', event, 'document.location', document.location);
+        return {
+          ...event,
+          href: document.location.href,
+        };
+      }
+    }
+    return event;
+  },
+  options: {},
+};
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -275,6 +299,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
         return true;
       },
+      plugins: [heatmapPlugin],
     });
   }
 
