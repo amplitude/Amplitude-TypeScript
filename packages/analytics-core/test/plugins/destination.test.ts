@@ -1022,7 +1022,7 @@ describe('destination', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(loggerProvider.error).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(loggerProvider.error).toHaveBeenCalledWith(message);
+      expect(loggerProvider.error).toHaveBeenCalledWith(err instanceof Error ? new Error(message) : message);
     });
 
     test('should parse response without body', async () => {
