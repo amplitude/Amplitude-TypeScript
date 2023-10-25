@@ -166,8 +166,8 @@ export class Destination implements DestinationPlugin {
       }
       this.handleResponse(res, list);
     } catch (e) {
+      this.config.loggerProvider.error(e);
       const errorMessage = getErrorMessage(e);
-      this.config.loggerProvider.error(errorMessage);
       this.fulfillRequest(list, 0, errorMessage);
     }
   }

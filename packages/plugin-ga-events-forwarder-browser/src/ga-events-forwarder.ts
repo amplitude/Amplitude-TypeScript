@@ -110,9 +110,9 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
         }
       }
       return true;
-    } catch (error) {
+    } catch (e) {
       /* istanbul ignore next */
-      logger?.error(String(error));
+      logger?.error(e);
       return false;
     }
   };
