@@ -1,8 +1,8 @@
 /* eslint-disable jest/expect-expect */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
+import * as RRWeb from '@amplitude/rrweb';
 import * as IDBKeyVal from 'idb-keyval';
-import * as RRWeb from 'rrweb';
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../src/constants';
 import * as Helpers from '../src/helpers';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
@@ -13,8 +13,8 @@ import { VERSION } from '../src/version';
 jest.mock('idb-keyval');
 type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
 
-jest.mock('rrweb');
-type MockedRRWeb = jest.Mocked<typeof import('rrweb')>;
+jest.mock('@amplitude/rrweb');
+type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
 
 type MockedLogger = jest.Mocked<Logger>;
 
