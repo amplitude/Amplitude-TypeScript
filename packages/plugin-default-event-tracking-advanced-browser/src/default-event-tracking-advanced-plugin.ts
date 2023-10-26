@@ -1,19 +1,34 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
 import * as constants from './constants';
-import { getText, isPageUrlAllowed, getAttributesWithPrefix, removeEmptyProperties, getNearestLabel } from './helpers';
+import {
+  getText,
+  isPageUrlAllowed,
+  getAttributesWithPrefix,
+  removeEmptyProperties,
+  getNearestLabel,
+  querySelectUniqueElements,
+} from './helpers';
 import { finder } from './libs/finder';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 type ActionType = 'click' | 'change';
 
-const DEFAULT_TAG_ALLOWLIST = ['a', 'button', 'input', 'select', 'textarea', 'label'];
-const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
+export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
+  'a',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'label',
+  '.amp-default-track',
+];
+export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
 
 interface EventListener {
   element: Element;
   type: ActionType;
-  handler: () => void;
+  handler: (event: Event) => void;
 }
 
 interface Options {
@@ -50,7 +65,7 @@ interface Options {
 
 export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
   const {
-    cssSelectorAllowlist,
+    cssSelectorAllowlist = DEFAULT_CSS_SELECTOR_ALLOWLIST,
     pageUrlAllowlist,
     shouldTrackEventResolver,
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
@@ -61,7 +76,7 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
   let observer: MutationObserver | undefined;
   let eventListeners: EventListener[] = [];
 
-  const addEventListener = (element: Element, type: ActionType, handler: () => void) => {
+  const addEventListener = (element: Element, type: ActionType, handler: (event: Event) => void) => {
     element.addEventListener(type, handler);
     eventListeners.push({
       element: element,
@@ -108,19 +123,6 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
 
-    // We only track these limited tags, as general text tag is not interactive and might contain sensitive information.
-    /* istanbul ignore if */
-    if (!DEFAULT_TAG_ALLOWLIST.includes(tag)) {
-      return false;
-    }
-
-    /* istanbul ignore if */
-    if (cssSelectorAllowlist) {
-      const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => element.matches(selector));
-      if (!hasMatchAnyAllowedSelector) {
-        return false;
-      }
-    }
     switch (tag) {
       case 'input':
       case 'select':
@@ -184,19 +186,21 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     }
     const addListener = (el: Element) => {
       if (shouldTrackEvent('click', el)) {
-        addEventListener(el, 'click', () => {
+        addEventListener(el, 'click', (event: Event) => {
           /* istanbul ignore next */
           amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
+          event.stopPropagation();
         });
       }
       if (shouldTrackEvent('change', el)) {
-        addEventListener(el, 'change', () => {
+        addEventListener(el, 'change', (event: Event) => {
           /* istanbul ignore next */
           amplitude?.track(constants.AMPLITUDE_ELEMENT_CHANGED_EVENT, getEventProperties('change', el));
+          event.stopPropagation();
         });
       }
     };
-    const allElements = Array.from(document.body.querySelectorAll(DEFAULT_TAG_ALLOWLIST.join(',')));
+    const allElements = querySelectUniqueElements(document.body, cssSelectorAllowlist);
     allElements.forEach(addListener);
     if (typeof MutationObserver !== 'undefined') {
       observer = new MutationObserver((mutations) => {
@@ -204,7 +208,7 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
           mutation.addedNodes.forEach((node: Node) => {
             addListener(node as Element);
             if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
-              Array.from(node.querySelectorAll(DEFAULT_TAG_ALLOWLIST.join(',')) as HTMLElement[]).map(addListener);
+              querySelectUniqueElements(node as Element, cssSelectorAllowlist).map(addListener);
             }
           });
         });
