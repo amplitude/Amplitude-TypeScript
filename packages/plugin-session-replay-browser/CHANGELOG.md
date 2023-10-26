@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.6.16](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.15...@amplitude/plugin-session-replay-browser@0.6.16) (2023-10-26)
+
+### Bug Fixes
+
+- **session replay:** use internal fork of rrweb
+  ([8f96d1c](https://github.com/amplitude/Amplitude-TypeScript/commit/8f96d1ceb7d31dabd2fc8c34aba3d01cfa886f79))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.6.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.6.14...@amplitude/plugin-session-replay-browser@0.6.15) (2023-10-17)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
