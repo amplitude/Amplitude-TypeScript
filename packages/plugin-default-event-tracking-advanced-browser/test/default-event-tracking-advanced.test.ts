@@ -36,6 +36,7 @@ describe('autoTrackingPlugin', () => {
 
   afterEach(() => {
     void plugin?.teardown?.();
+    document.getElementsByTagName('body')[0].innerHTML = '';
     jest.clearAllMocks();
   });
 
@@ -306,6 +307,38 @@ describe('autoTrackingPlugin', () => {
         // trigger click div
         document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
         expect(track).toHaveBeenCalledTimes(1);
+      });
+
+      test('should respect default cssSelectorAllowlist', async () => {
+        const div = document.createElement('div');
+        div.textContent = 'my-div-text';
+        div.setAttribute('id', 'my-div-id');
+        div.className = 'amp-default-track'; // default css class to enable tracking
+        document.body.appendChild(div);
+
+        const button = document.createElement('button');
+        button.textContent = 'my-button-text';
+        button.setAttribute('id', 'my-button-id');
+        document.body.appendChild(button);
+
+        plugin = defaultEventTrackingAdvancedPlugin();
+        const loggerProvider: Partial<Logger> = {
+          log: jest.fn(),
+          warn: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider as Logger,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        // trigger click button
+        document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+        expect(track).toHaveBeenCalledTimes(1);
+
+        // trigger click div
+        document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
+        expect(track).toHaveBeenCalledTimes(2);
       });
     });
 

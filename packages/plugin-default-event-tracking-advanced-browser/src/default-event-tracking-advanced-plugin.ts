@@ -14,7 +14,15 @@ import { finder } from './libs/finder';
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 type ActionType = 'click' | 'change';
 
-export const DEFAULT_CSS_SELECTOR_ALLOWLIST = ['a', 'button', 'input', 'select', 'textarea', 'label'];
+export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
+  'a',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'label',
+  '.amp-default-track',
+];
 export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
 
 interface EventListener {
