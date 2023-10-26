@@ -23,7 +23,8 @@ export const isTextNode = (node: Node) => {
 };
 
 export const isNonSensitiveElement = (element: Element) => {
-  const tag = element.tagName.toLowerCase();
+  /* istanbul ignore next */
+  const tag = element?.tagName?.toLowerCase?.();
   return !SENTITIVE_TAGS.includes(tag);
 };
 
@@ -108,4 +109,17 @@ export const getNearestLabel = (element: Element): string => {
     return isNonSensitiveString(labelText) ? labelText : '';
   }
   return getNearestLabel(parent);
+};
+
+export const querySelectUniqueElements = (root: Element | Document, selectors: string[]): Element[] => {
+  const elementSet = selectors.reduce((elements: Set<Element>, selector) => {
+    if (selector) {
+      const selectedElements = Array.from(root.querySelectorAll(selector));
+      selectedElements.forEach((element) => {
+        elements.add(element);
+      });
+    }
+    return elements;
+  }, new Set<Element>());
+  return Array.from(elementSet);
 };

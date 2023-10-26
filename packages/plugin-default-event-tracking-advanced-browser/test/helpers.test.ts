@@ -8,6 +8,7 @@ import {
   isEmpty,
   removeEmptyProperties,
   getNearestLabel,
+  querySelectUniqueElements,
 } from '../src/helpers';
 
 describe('default-event-tracking-advanced-plugin helpers', () => {
@@ -314,6 +315,25 @@ describe('default-event-tracking-advanced-plugin helpers', () => {
 
       const result = getNearestLabel(input);
       expect(result).toEqual('');
+    });
+  });
+
+  describe('querySelectUniqueElements', () => {
+    test('should return unique elements with selector under root', () => {
+      const container = document.createElement('div');
+
+      const div1 = document.createElement('div');
+      div1.className = 'test-class';
+      container.appendChild(div1);
+      const div2 = document.createElement('div');
+      container.appendChild(div2);
+
+      let result = querySelectUniqueElements(container, ['div']);
+      expect(result).toEqual([div1, div2]);
+
+      // elements should be deduped
+      result = querySelectUniqueElements(container, ['div', '.test-class']);
+      expect(result).toEqual([div1, div2]);
     });
   });
 });

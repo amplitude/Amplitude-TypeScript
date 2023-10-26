@@ -248,32 +248,65 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should follow cssSelectorAllowlist configuration', async () => {
-      const button = document.createElement('button');
-      const buttonText = document.createTextNode('submit');
-      button.setAttribute('id', 'my-button-id');
-      button.setAttribute('class', 'my-button-class');
-      button.appendChild(buttonText);
-      document.body.appendChild(button);
+    describe('cssSelectorAllowlist configuration', () => {
+      test('should only track selector class', async () => {
+        const button = document.createElement('button');
+        const buttonText = document.createTextNode('submit');
+        button.setAttribute('id', 'my-button-id');
+        button.setAttribute('class', 'my-button-class');
+        button.appendChild(buttonText);
+        document.body.appendChild(button);
 
-      plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['.my-button-class'] });
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
-      };
-      await plugin?.setup(config as BrowserConfig, instance);
+        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['.my-button-class'] });
+        const loggerProvider: Partial<Logger> = {
+          log: jest.fn(),
+          warn: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider as Logger,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
 
-      // trigger click link
-      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
-      expect(track).toHaveBeenCalledTimes(0);
+        // trigger click link
+        document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+        expect(track).toHaveBeenCalledTimes(0);
 
-      // trigger click button
-      document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-      expect(track).toHaveBeenCalledTimes(1);
+        // trigger click button
+        document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+        expect(track).toHaveBeenCalledTimes(1);
+      });
+
+      test('should be able to track non-default tags by overwriting default cssSelectorAllowlist', async () => {
+        const div = document.createElement('div');
+        div.textContent = 'my-div-text';
+        div.setAttribute('id', 'my-div-id');
+        document.body.appendChild(div);
+
+        const button = document.createElement('button');
+        button.textContent = 'my-button-text';
+        button.setAttribute('id', 'my-button-id');
+        document.body.appendChild(button);
+
+        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['div'] });
+        const loggerProvider: Partial<Logger> = {
+          log: jest.fn(),
+          warn: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider as Logger,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        // trigger click button
+        document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+        expect(track).toHaveBeenCalledTimes(0);
+
+        // trigger click div
+        document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
+        expect(track).toHaveBeenCalledTimes(1);
+      });
     });
 
     test('should follow pageUrlAllowlist configuration', async () => {
