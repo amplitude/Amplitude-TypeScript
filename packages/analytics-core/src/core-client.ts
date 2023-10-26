@@ -127,8 +127,8 @@ export class AmplitudeCore implements CoreClient {
 
       return result;
     } catch (e) {
+      this.config.loggerProvider.error(e);
       const message = String(e);
-      this.config.loggerProvider.error(message);
       const result = buildResult(event, 0, message);
 
       return result;
