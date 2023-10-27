@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.1.2...@amplitude/plugin-default-event-tracking-advanced-browser@0.1.3) (2023-10-27)
+
+### Bug Fixes
+
+- handle text node throw error issue ([#610](https://github.com/amplitude/Amplitude-TypeScript/issues/610))
+  ([b425d44](https://github.com/amplitude/Amplitude-TypeScript/commit/b425d441753b298cc3a6717b00e38230612f19a3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.1.1...@amplitude/plugin-default-event-tracking-advanced-browser@0.1.2) (2023-10-27)
 
 ### Bug Fixes
