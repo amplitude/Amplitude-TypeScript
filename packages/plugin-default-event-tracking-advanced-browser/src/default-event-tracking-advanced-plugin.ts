@@ -186,17 +186,15 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     }
     const addListener = (el: Element) => {
       if (shouldTrackEvent('click', el)) {
-        addEventListener(el, 'click', (event: Event) => {
+        addEventListener(el, 'click', () => {
           /* istanbul ignore next */
           amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
-          event.stopPropagation();
         });
       }
       if (shouldTrackEvent('change', el)) {
-        addEventListener(el, 'change', (event: Event) => {
+        addEventListener(el, 'change', () => {
           /* istanbul ignore next */
           amplitude?.track(constants.AMPLITUDE_ELEMENT_CHANGED_EVENT, getEventProperties('change', el));
-          event.stopPropagation();
         });
       }
     };
