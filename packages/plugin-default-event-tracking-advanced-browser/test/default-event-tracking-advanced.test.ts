@@ -561,6 +561,33 @@ describe('autoTrackingPlugin', () => {
       document.getElementById('my-div-id')?.dispatchEvent(new Event('change'));
       expect(track).toHaveBeenCalledTimes(0);
     });
+
+    test('should not throw error when there is text node added to the page', async () => {
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as Logger,
+      };
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      const textNode = document.createTextNode('Some text node');
+      document.body.appendChild(textNode);
+
+      const div = document.createElement('div');
+      div.setAttribute('id', 'my-div-id');
+      div.setAttribute('class', 'my-div-class');
+      document.body.appendChild(div);
+
+      // allow mutation observer to execute and event listener to be attached
+      await new Promise((r) => r(undefined)); // basically, await next clock tick
+
+      // trigger click input
+      document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
+      expect(track).toHaveBeenCalledTimes(0);
+    });
   });
 
   describe('teardown', () => {
