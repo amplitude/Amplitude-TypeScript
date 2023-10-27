@@ -123,6 +123,14 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
 
+    /* istanbul ignore if */
+    if (cssSelectorAllowlist) {
+      const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => element.matches(selector));
+      if (!hasMatchAnyAllowedSelector) {
+        return false;
+      }
+    }
+
     switch (tag) {
       case 'input':
       case 'select':
