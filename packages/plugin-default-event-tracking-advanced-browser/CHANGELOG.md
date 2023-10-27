@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.1.0...@amplitude/plugin-default-event-tracking-advanced-browser@0.1.1) (2023-10-27)
+
+### Bug Fixes
+
+- remove event stopPropagation ([#608](https://github.com/amplitude/Amplitude-TypeScript/issues/608))
+  ([afe1cc2](https://github.com/amplitude/Amplitude-TypeScript/commit/afe1cc2567b2bcc50a3416299b16f4721a50866a))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.0.2...@amplitude/plugin-default-event-tracking-advanced-browser@0.1.0) (2023-10-27)
 
 ### Features
