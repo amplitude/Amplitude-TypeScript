@@ -102,6 +102,13 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
       return false;
     }
 
+    /* istanbul ignore next */
+    const tag = element?.tagName?.toLowerCase?.();
+    // Text nodes have no tag
+    if (!tag) {
+      return false;
+    }
+
     if (shouldTrackEventResolver) {
       return shouldTrackEventResolver(actionType, element);
     }
@@ -120,12 +127,10 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
           return false;
       }
     }
-    /* istanbul ignore next */
-    const tag = element?.tagName?.toLowerCase?.();
 
     /* istanbul ignore if */
     if (cssSelectorAllowlist) {
-      const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => element.matches(selector));
+      const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => !!element?.matches?.(selector));
       if (!hasMatchAnyAllowedSelector) {
         return false;
       }
