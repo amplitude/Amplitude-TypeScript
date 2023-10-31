@@ -3,6 +3,7 @@ import { IDBStoreSession } from './typings/session-replay';
 
 export const DEFAULT_EVENT_PROPERTY_PREFIX = '[Amplitude]';
 
+export const NEW_SESSION_REPLAY_PROPERTY = `${DEFAULT_EVENT_PROPERTY_PREFIX} Session Replay ID`;
 export const DEFAULT_SESSION_REPLAY_PROPERTY = `${DEFAULT_EVENT_PROPERTY_PREFIX} Session Recorded`;
 export const DEFAULT_SESSION_START_EVENT = 'session_start';
 export const DEFAULT_SESSION_END_EVENT = 'session_end';

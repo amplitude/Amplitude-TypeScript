@@ -13,12 +13,13 @@ import {
   MAX_IDB_STORAGE_LENGTH,
   MAX_INTERVAL,
   MIN_INTERVAL,
+  NEW_SESSION_REPLAY_PROPERTY,
   SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
   SESSION_REPLAY_SERVER_URL,
   STORAGE_PREFIX,
   defaultSessionStore,
 } from './constants';
-import { getCurrentUrl, isSessionInSample, maskInputFn } from './helpers';
+import { isSessionInSample, maskInputFn, getCurrentUrl, generateSessionReplayId } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
@@ -82,13 +83,24 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  setSessionId(sessionId: number) {
+  setSessionId(sessionId?: number, sessionReplayId?: string) {
     if (!this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot set session id.');
       return;
     }
-    this.stopRecordingAndSendEvents(this.config.sessionId);
+    // const lastSessionReplayId = this.config.sessionReplayId;
     this.config.sessionId = sessionId;
+    if (sessionId && this.config.deviceId) {
+      this.config.sessionReplayId = generateSessionReplayId(sessionId, this.config.deviceId);
+    } else if (sessionReplayId) {
+      this.config.sessionReplayId = sessionReplayId;
+    } else {
+      this.loggerProvider.error('Must provide either session replay id or session id when starting a new session.');
+      return;
+    }
+
+    // Use lastSessionReplayId
+    this.stopRecordingAndSendEvents(this.config.sessionId);
     this.events = [];
     this.currentSequenceId = 0;
     this.recordEvents();
@@ -104,6 +116,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (shouldRecord) {
       return {
         [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
+        [NEW_SESSION_REPLAY_PROPERTY]: this.config.sessionReplayId ? this.config.sessionReplayId : null,
       };
     }
 
