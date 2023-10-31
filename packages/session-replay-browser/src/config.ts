@@ -17,7 +17,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
   sampleRate: number;
   deviceId?: string | undefined;
   sessionId?: number | undefined;
-  sessionReplayId?: string | undefined | null;
+  sessionReplayId?: string | undefined;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
