@@ -310,11 +310,17 @@ describe('autoTrackingPlugin', () => {
       });
 
       test('should respect default cssSelectorAllowlist', async () => {
-        const div = document.createElement('div');
-        div.textContent = 'my-div-text';
-        div.setAttribute('id', 'my-div-id');
-        div.className = 'amp-default-track'; // default css class to enable tracking
-        document.body.appendChild(div);
+        const div1 = document.createElement('div');
+        div1.textContent = 'my-div-text1';
+        div1.setAttribute('id', 'my-div-id1');
+        div1.className = 'amp-default-track'; // default css class to enable tracking
+        document.body.appendChild(div1);
+
+        const div2 = document.createElement('div');
+        div2.textContent = 'my-div-text2';
+        div2.setAttribute('id', 'my-div-id2');
+        div2.setAttribute('data-amp-default-track', ''); // default data attribute to enable tracking
+        document.body.appendChild(div2);
 
         const button = document.createElement('button');
         button.textContent = 'my-button-text';
@@ -336,9 +342,13 @@ describe('autoTrackingPlugin', () => {
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
         expect(track).toHaveBeenCalledTimes(1);
 
-        // trigger click div
-        document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
+        // trigger click div1
+        document.getElementById('my-div-id1')?.dispatchEvent(new Event('click'));
         expect(track).toHaveBeenCalledTimes(2);
+
+        // trigger click div2
+        document.getElementById('my-div-id2')?.dispatchEvent(new Event('click'));
+        expect(track).toHaveBeenCalledTimes(3);
       });
     });
 
