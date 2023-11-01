@@ -1,5 +1,5 @@
 import { UNMASK_TEXT_CLASS } from '../src/constants';
-import { generateHashCode, isSessionInSample, maskInputFn } from '../src/helpers';
+import { generateHashCode, isSessionInSample, maskInputFn, parseSessionReplayId } from '../src/helpers';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskInputFn', () => {
@@ -45,6 +45,20 @@ describe('SessionReplayPlugin helpers', () => {
     test('should deterministically return false if calculation puts session id above sample rate', () => {
       const result = isSessionInSample(1691092416403, 0.5);
       expect(result).toEqual(false);
+    });
+  });
+
+  describe('parseSessionReplayId', () => {
+    test('should return empty object if sessionReplayId is not the correct format', () => {
+      const sessionReplayId = '123/234/345';
+      const result = parseSessionReplayId(sessionReplayId);
+      expect(result).toEqual({});
+    });
+
+    test('should return empty object if sessionReplayId is undefined', () => {
+      const sessionReplayId = undefined;
+      const result = parseSessionReplayId(sessionReplayId);
+      expect(result).toEqual({});
     });
   });
 });

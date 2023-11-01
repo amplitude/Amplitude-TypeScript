@@ -151,7 +151,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
     }
 
-    const parseSessionId = parseSessionReplayId(sessionReplayId)?.sessionId;
+    const parseSessionId = parseSessionReplayId(sessionReplayId).sessionId;
     const sessionIdToSend = parseSessionId ? +parseSessionId : this.config?.sessionId;
     if (this.events.length && sessionIdToSend) {
       this.sendEventsList({

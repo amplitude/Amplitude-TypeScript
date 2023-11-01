@@ -98,6 +98,21 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
     });
 
+    test('should setup plugin with sessionReplayId', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5, sessionReplayId: '123/456' }).promise;
+      expect(sessionReplay.config?.transportProvider).toBeDefined();
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.optOut).toBe(false);
+      expect(sessionReplay.config?.sampleRate).toBe(0.5);
+      expect(sessionReplay.config?.deviceId).toBe(undefined);
+      expect(sessionReplay.config?.sessionId).toBe(undefined);
+      expect(sessionReplay.config?.logLevel).toBe(0);
+      expect(sessionReplay.config?.sessionReplayId).toBe('123/456');
+      expect(sessionReplay.loggerProvider).toBeDefined();
+      expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
+    });
+
     test('should call initalize with shouldSendStoredEvents=true', async () => {
       const sessionReplay = new SessionReplay();
       const initalize = jest.spyOn(sessionReplay, 'initialize').mockReturnValueOnce(Promise.resolve());
@@ -173,7 +188,7 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.loggerProvider = mockLoggerProvider;
       const stopRecordingMock = jest.fn();
 
-      sessionReplay.setSessionId(456);
+      sessionReplay.setSessionId({ sessionId: 456 });
       expect(stopRecordingMock).not.toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.error).toHaveBeenCalled();
@@ -187,7 +202,7 @@ describe('SessionReplayPlugin', () => {
       // Mock class as if it has already been recording events
       sessionReplay.stopRecordingAndSendEvents = stopRecordingMock;
 
-      sessionReplay.setSessionId(456);
+      sessionReplay.setSessionId({ sessionId: 456 });
       expect(stopRecordingMock).toHaveBeenCalled();
     });
 
@@ -201,11 +216,46 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.events = [mockEventString];
       sessionReplay.currentSequenceId = 4;
 
-      sessionReplay.setSessionId(456);
+      sessionReplay.setSessionId({ sessionId: 456 });
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.config?.sessionId).toEqual(456);
       expect(sessionReplay.events).toEqual([]);
       expect(sessionReplay.currentSequenceId).toEqual(0);
+    });
+
+    test('should update the session id with session replay id, reset events and current sequence id, and start recording', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sessionId: undefined,
+        deviceId: undefined,
+        sessionReplayId: '123/456',
+      }).promise;
+      const stopRecordingMock = jest.fn();
+
+      // Mock class as if it has already been recording events
+      sessionReplay.stopRecordingAndSendEvents = stopRecordingMock;
+      sessionReplay.events = [mockEventString];
+      sessionReplay.currentSequenceId = 4;
+
+      sessionReplay.setSessionId({ sessionReplayId: '456/123' });
+      expect(stopRecordingMock).toHaveBeenCalled();
+      expect(sessionReplay.config?.sessionId).toEqual(undefined);
+      expect(sessionReplay.config?.deviceId).toEqual(undefined);
+      expect(sessionReplay.events).toEqual([]);
+      expect(sessionReplay.currentSequenceId).toEqual(0);
+    });
+
+    test('should return early if no session id, device id, and session replay id', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.loggerProvider = mockLoggerProvider;
+      const stopRecordingMock = jest.fn();
+
+      sessionReplay.setSessionId({});
+      expect(stopRecordingMock).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalled();
     });
   });
 
@@ -237,6 +287,34 @@ describe('SessionReplayPlugin', () => {
       const result = sessionReplay.getSessionReplayProperties();
       expect(result).toEqual({
         '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': '1a2b3c/123',
+      });
+    });
+
+    test('should return session replay id property with session replay id', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, sessionReplayId: '123/456' }).promise;
+      sessionReplay.getShouldRecord = () => true;
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(result).toEqual({
+        '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': '123/456',
+      });
+    });
+
+    test('should return session replay id property with null', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      sessionReplay.getShouldRecord = () => true;
+      if (sessionReplay.config) {
+        sessionReplay.config.sessionReplayId = undefined;
+      }
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(result).toEqual({
+        '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': null,
       });
     });
   });
@@ -276,6 +354,7 @@ describe('SessionReplayPlugin', () => {
       const result = sessionReplay.getSessionRecordingProperties();
       expect(result).toEqual({
         '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': '1a2b3c/123',
       });
     });
   });
@@ -659,10 +738,10 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.sendEventsList = sendEventsListMock;
       sessionReplay.events = [mockEventString];
       sessionReplay.currentSequenceId = 4;
-      sessionReplay.stopRecordingAndSendEvents(789);
+      sessionReplay.stopRecordingAndSendEvents('789/123');
       expect(sendEventsListMock).toHaveBeenCalledWith({
         events: [mockEventString],
-        sessionId: 789,
+        sessionId: 123,
         sequenceId: 4,
       });
     });
