@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.1.3...@amplitude/plugin-default-event-tracking-advanced-browser@0.2.0) (2023-11-01)
+
+### Features
+
+- add default data attr selector ([#612](https://github.com/amplitude/Amplitude-TypeScript/issues/612))
+  ([c0f0c2d](https://github.com/amplitude/Amplitude-TypeScript/commit/c0f0c2dcbcb43959992380fe26b0df961a4ea9f4))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.1.2...@amplitude/plugin-default-event-tracking-advanced-browser@0.1.3) (2023-10-27)
 
 ### Bug Fixes
