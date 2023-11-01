@@ -65,7 +65,7 @@ Examples:
 
 |Name|Type|Default|Description|
 |-|-|-|-|
-|`cssSelectorAllowlist`|`string[]`|`['a', 'button', 'input', 'select', 'textarea', 'label', '.amp-default-track', '[data-amp-default-track]']`| When provided, only allow elements matching any selector to be tracked. |
+|`cssSelectorAllowlist`|`string[]`|`['a', 'button', 'input', 'select', 'textarea', 'label', '[data-amp-default-track]', '.amp-default-track']`| When provided, only allow elements matching any selector to be tracked. |
 |`pageUrlAllowlist`|`(string\|RegExp)[]`|`undefined`| When provided, only allow elements matching URLs to be tracked. |
 |`shouldTrackEventResolver`|`(actionType: ActionType, element: Element) => boolean`|`undefined`| When provided, overwrite the default filter behavior. |
 |`dataAttributePrefix`|`string`|`'data-amp-track-'`| Allow data attributes to be collected in event property. |
