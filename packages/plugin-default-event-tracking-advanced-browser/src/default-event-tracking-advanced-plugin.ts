@@ -22,6 +22,7 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
   'textarea',
   'label',
   '.amp-default-track',
+  '[data-amp-default-track]',
 ];
 export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
 
