@@ -3,6 +3,7 @@ import { Config, Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
 import { SessionReplayConfig as ISessionReplayConfig, SessionReplayOptions } from './typings/session-replay';
 import { DEFAULT_SAMPLE_RATE } from './constants';
+import { generateSessionReplayId } from './helpers';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -16,6 +17,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
   sampleRate: number;
   deviceId?: string | undefined;
   sessionId?: number | undefined;
+  sessionReplayId?: string | undefined;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -31,8 +33,13 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
 
     this.apiKey = apiKey;
     this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
-
     this.deviceId = options.deviceId;
     this.sessionId = options.sessionId;
+
+    if (options.sessionId && options.deviceId) {
+      this.sessionReplayId = generateSessionReplayId(options.sessionId, options.deviceId);
+    } else {
+      this.loggerProvider.error('Please provide both sessionId and deviceId.');
+    }
   }
 }

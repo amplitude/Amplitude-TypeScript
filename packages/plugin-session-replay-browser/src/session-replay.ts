@@ -66,6 +66,10 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   async teardown(): Promise<void> {
     sessionReplay.shutdown();
   }
+
+  getSessionReplayProperties() {
+    return sessionReplay.getSessionReplayProperties();
+  }
 }
 
 export const sessionReplayPlugin: (options?: SessionReplayOptions) => EnrichmentPlugin = (

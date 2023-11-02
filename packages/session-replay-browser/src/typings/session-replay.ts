@@ -39,6 +39,7 @@ export interface SessionReplayConfig extends Config {
   logLevel: LogLevel;
   flushMaxRetries: number;
   sampleRate: number;
+  sessionReplayId?: string;
 }
 
 export type SessionReplayOptions = Omit<Partial<SessionReplayConfig>, 'apiKey'>;
@@ -46,7 +47,7 @@ export type SessionReplayOptions = Omit<Partial<SessionReplayConfig>, 'apiKey'>;
 export interface AmplitudeSessionReplay {
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
   setSessionId: (sessionId: number) => void;
-  getSessionRecordingProperties: () => { [key: string]: boolean };
-  getSessionReplayProperties: () => { [key: string]: boolean };
+  getSessionRecordingProperties: () => { [key: string]: boolean | string | null };
+  getSessionReplayProperties: () => { [key: string]: boolean | string | null };
   shutdown: () => void;
 }

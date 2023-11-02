@@ -31,3 +31,7 @@ export const getCurrentUrl = () => {
   const globalScope = getGlobalScope();
   return globalScope?.location ? globalScope.location.href : '';
 };
+
+export const generateSessionReplayId = (sessionId: number, deviceId: string): string => {
+  return `${deviceId}/${sessionId}`;
+};
