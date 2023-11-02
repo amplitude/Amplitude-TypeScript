@@ -598,6 +598,35 @@ describe('autoTrackingPlugin', () => {
       document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
       expect(track).toHaveBeenCalledTimes(0);
     });
+
+    test('should only fire event for the current target when container element also matches the allowlist', async () => {
+      const containerDiv = document.createElement('div');
+      containerDiv.setAttribute('id', 'container-div-id');
+      document.body.appendChild(containerDiv);
+
+      const innerDiv = document.createElement('div');
+      innerDiv.setAttribute('id', 'inner-div-id');
+      containerDiv.appendChild(innerDiv);
+
+      plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['div'] });
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as Logger,
+      };
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      // trigger click inner div
+      document.getElementById('inner-div-id')?.dispatchEvent(new Event('click', { bubbles: true }));
+      expect(track).toHaveBeenCalledTimes(1);
+
+      // trigger click container div
+      document.getElementById('container-div-id')?.dispatchEvent(new Event('click', { bubbles: true }));
+      expect(track).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('teardown', () => {
