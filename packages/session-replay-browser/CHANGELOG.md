@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.3.1...@amplitude/session-replay-browser@0.4.0) (2023-11-02)
+
+### Bug Fixes
+
+- **session replay:** testing changes for sessionReplayId
+  ([60f6b04](https://github.com/amplitude/Amplitude-TypeScript/commit/60f6b04bbe5069f97279c67098ef6a8df259b678))
+
+### Features
+
+- add session replay ID generic identifier to init/turnover
+  ([03a67c9](https://github.com/amplitude/Amplitude-TypeScript/commit/03a67c97e6c5589662be0a1a7e4cd7a725774d85))
+- **session replay:** error check for session replay id generation
+  ([b602627](https://github.com/amplitude/Amplitude-TypeScript/commit/b60262785f7adc02eb89e3f7e6df2e31641fe54f))
+- **session replay:** parse sessionReplayId for sessionId and deviceId
+  ([990ddaf](https://github.com/amplitude/Amplitude-TypeScript/commit/990ddaf102465e52d84e496d280c8aada5f94944))
+- **session replay:** remove session replay id interface and expose sr properties to plugin
+  ([a7ea04a](https://github.com/amplitude/Amplitude-TypeScript/commit/a7ea04a9c03a0b69a1cab4462d8e1cae2656c79f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.3.0...@amplitude/session-replay-browser@0.3.1) (2023-10-26)
 
 ### Bug Fixes
