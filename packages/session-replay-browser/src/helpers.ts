@@ -35,19 +35,3 @@ export const getCurrentUrl = () => {
 export const generateSessionReplayId = (sessionId: number, deviceId: string): string => {
   return `${deviceId}/${sessionId}`;
 };
-
-export const parseSessionReplayId = (
-  sessionReplayId: string | undefined,
-): { deviceId?: string; sessionId?: string } => {
-  if (!sessionReplayId) {
-    return {};
-  }
-
-  const parts = sessionReplayId.split('/');
-  if (parts.length === 2) {
-    const [deviceId, sessionId] = sessionReplayId.split('/');
-    return { deviceId, sessionId };
-  }
-
-  return {};
-};

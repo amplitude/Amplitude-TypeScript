@@ -51,7 +51,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async execute(event: Event) {
     if (event.event_type === DEFAULT_SESSION_START_EVENT && event.session_id) {
-      sessionReplay.setSessionId({ sessionId: event.session_id });
+      sessionReplay.setSessionId(event.session_id);
     }
 
     const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
@@ -65,6 +65,10 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async teardown(): Promise<void> {
     sessionReplay.shutdown();
+  }
+
+  getSessionReplayProperties() {
+    return sessionReplay.getSessionReplayProperties();
   }
 }
 

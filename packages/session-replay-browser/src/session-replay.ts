@@ -19,13 +19,7 @@ import {
   STORAGE_PREFIX,
   defaultSessionStore,
 } from './constants';
-import {
-  isSessionInSample,
-  maskInputFn,
-  getCurrentUrl,
-  generateSessionReplayId,
-  parseSessionReplayId,
-} from './helpers';
+import { isSessionInSample, maskInputFn, getCurrentUrl, generateSessionReplayId } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
@@ -89,24 +83,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  setSessionId({ sessionId, sessionReplayId }: { sessionId?: number; sessionReplayId?: string }) {
+  setSessionId(sessionId: number) {
     if (!this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot set session id.');
       return;
     }
 
-    const lastSessionReplayId = this.config.sessionReplayId;
-    this.config.sessionId = sessionId;
     if (sessionId && this.config.deviceId) {
       this.config.sessionReplayId = generateSessionReplayId(sessionId, this.config.deviceId);
-    } else if (sessionReplayId) {
-      this.config.sessionReplayId = sessionReplayId;
     } else {
       this.loggerProvider.error('Must provide either session replay id or session id when starting a new session.');
       return;
     }
 
-    this.stopRecordingAndSendEvents(lastSessionReplayId);
+    this.stopRecordingAndSendEvents(this.config.sessionId);
+    this.config.sessionId = sessionId;
     this.events = [];
     this.currentSequenceId = 0;
     this.recordEvents();
@@ -138,11 +129,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
   blurListener = () => {
     this.stopRecordingAndSendEvents();
   };
+
   focusListener = () => {
     void this.initialize();
   };
 
-  stopRecordingAndSendEvents(sessionReplayId?: string) {
+  stopRecordingAndSendEvents(sessionId?: number) {
     try {
       this.stopRecordingEvents && this.stopRecordingEvents();
       this.stopRecordingEvents = null;
@@ -151,8 +143,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
     }
 
-    const parseSessionId = parseSessionReplayId(sessionReplayId).sessionId;
-    const sessionIdToSend = parseSessionId ? +parseSessionId : this.config?.sessionId;
+    const sessionIdToSend = sessionId || this.config?.sessionId;
     if (this.events.length && sessionIdToSend) {
       this.sendEventsList({
         events: this.events,

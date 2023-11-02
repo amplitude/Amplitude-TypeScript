@@ -167,4 +167,20 @@ describe('SessionReplayPlugin', () => {
       expect(shutdown).toHaveBeenCalled();
     });
   });
+
+  describe('getSessionReplayProperties', () => {
+    test('should return session replay properties', async () => {
+      const sessionReplay = sessionReplayPlugin() as SessionReplayPlugin;
+      await sessionReplay.setup(mockConfig);
+      getSessionReplayProperties.mockReturnValueOnce({
+        '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': '123/456',
+      });
+      const sessionReplayProperties = sessionReplay.getSessionReplayProperties();
+      expect(sessionReplayProperties).toEqual({
+        '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': '123/456',
+      });
+    });
+  });
 });

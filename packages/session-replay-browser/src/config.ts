@@ -34,9 +34,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
     this.apiKey = apiKey;
     this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
 
-    if (options.sessionReplayId) {
-      this.sessionReplayId = options.sessionReplayId;
-    } else if (options.sessionId && options.deviceId) {
+    if (options.sessionId && options.deviceId) {
       this.deviceId = options.deviceId;
       this.sessionId = options.sessionId;
       this.sessionReplayId = generateSessionReplayId(options.sessionId, options.deviceId);
