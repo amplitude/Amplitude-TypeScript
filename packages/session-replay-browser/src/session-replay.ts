@@ -13,7 +13,6 @@ import {
   MAX_IDB_STORAGE_LENGTH,
   MAX_INTERVAL,
   MIN_INTERVAL,
-  NEW_SESSION_REPLAY_PROPERTY,
   SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
   SESSION_REPLAY_SERVER_URL,
   STORAGE_PREFIX,
@@ -112,19 +111,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     if (shouldRecord) {
       return {
-        [DEFAULT_SESSION_REPLAY_PROPERTY]: true,
-        [NEW_SESSION_REPLAY_PROPERTY]: this.config.sessionReplayId ? this.config.sessionReplayId : null,
+        [DEFAULT_SESSION_REPLAY_PROPERTY]: this.config.sessionReplayId ? this.config.sessionReplayId : null,
       };
     }
 
     return {};
   }
-
-  getSessionRecordingProperties = () => {
-    this.loggerProvider.warn('Please use getSessionReplayProperties instead of getSessionRecordingProperties.');
-
-    return this.getSessionReplayProperties();
-  };
 
   blurListener = () => {
     this.stopRecordingAndSendEvents();
