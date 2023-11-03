@@ -9,9 +9,15 @@ import {
   removeEmptyProperties,
   getNearestLabel,
   querySelectUniqueElements,
+  getClosestElement,
 } from '../src/helpers';
 
 describe('default-event-tracking-advanced-plugin helpers', () => {
+  afterEach(() => {
+    document.getElementsByTagName('body')[0].innerHTML = '';
+    jest.clearAllMocks();
+  });
+
   describe('isNonSensitiveString', () => {
     test('should return false when text is missing', () => {
       const text = null;
@@ -334,6 +340,57 @@ describe('default-event-tracking-advanced-plugin helpers', () => {
       // elements should be deduped
       result = querySelectUniqueElements(container, ['div', '.test-class']);
       expect(result).toEqual([div1, div2]);
+    });
+  });
+
+  describe('getClosestElement', () => {
+    test('should return null when element null', () => {
+      expect(getClosestElement(null, ['div'])).toEqual(null);
+    });
+
+    test('should return current element if it matches any selectors', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="container">
+          <div id="inner">
+            xxx
+          </div>
+        </div>
+      `;
+
+      const inner = document.getElementById('inner');
+      expect(getClosestElement(inner, ['span', 'div'])?.id).toEqual('inner');
+    });
+
+    test('should return closest element if it matches any selectors', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent2" data-target>
+          <div id="parent1-sibling" data-target>
+          </div>
+          <div id="parent1">
+            <div id="inner">
+              xxx
+            </div>
+          </div>
+        </div>
+      `;
+
+      const inner = document.getElementById('inner');
+      expect(getClosestElement(inner, ['span', '[data-target]'])?.id).toEqual('parent2');
+    });
+
+    test('should return null when no element matches', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent2">
+          <div id="parent1">
+            <div id="inner">
+              xxx
+            </div>
+          </div>
+        </div>
+      `;
+
+      const inner = document.getElementById('inner');
+      expect(getClosestElement(inner, ['div.some-class'])).toEqual(null);
     });
   });
 });
