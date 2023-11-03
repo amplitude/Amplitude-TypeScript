@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.2.0...@amplitude/plugin-default-event-tracking-advanced-browser@0.2.1) (2023-11-03)
+
+### Bug Fixes
+
+- skip parent element event when it is not target ([#613](https://github.com/amplitude/Amplitude-TypeScript/issues/613))
+  ([cd378b3](https://github.com/amplitude/Amplitude-TypeScript/commit/cd378b36200345721bc69a95c5d6daf7cf8b52cd))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.1.3...@amplitude/plugin-default-event-tracking-advanced-browser@0.2.0) (2023-11-01)
 
 ### Features
