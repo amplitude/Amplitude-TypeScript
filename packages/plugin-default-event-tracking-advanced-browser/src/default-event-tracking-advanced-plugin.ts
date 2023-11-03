@@ -8,6 +8,7 @@ import {
   removeEmptyProperties,
   getNearestLabel,
   querySelectUniqueElements,
+  getClosestElement,
 } from './helpers';
 import { finder } from './libs/finder';
 
@@ -201,9 +202,12 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     const addListener = (el: Element) => {
       if (shouldTrackEvent('click', el)) {
         addEventListener(el, 'click', (event: Event) => {
-          // Limit to only the element that was clicked, not the propagated event.
+          // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
           /* istanbul ignore next */
-          if (event?.target != event?.currentTarget) {
+          if (
+            event?.target != event?.currentTarget &&
+            getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
+          ) {
             return;
           }
           /* istanbul ignore next */
@@ -212,9 +216,12 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
       }
       if (shouldTrackEvent('change', el)) {
         addEventListener(el, 'change', (event: Event) => {
-          // Limit to only the element that was clicked, not the propagated event.
+          // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
           /* istanbul ignore next */
-          if (event?.target != event?.currentTarget) {
+          if (
+            event?.target != event?.currentTarget &&
+            getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
+          ) {
             return;
           }
           /* istanbul ignore next */

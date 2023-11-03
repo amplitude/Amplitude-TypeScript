@@ -599,33 +599,223 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(0);
     });
 
-    test('should only fire event for the current target when container element also matches the allowlist', async () => {
-      const containerDiv = document.createElement('div');
-      containerDiv.setAttribute('id', 'container-div-id');
-      document.body.appendChild(containerDiv);
+    describe('when facing nested elements', () => {
+      /*
+        <div id="container2">
+          <div id="container1">
+            <div id="inner">
+              click me
+            </div>
+          </div>
+        </div>
+        cssSelectorAllowlist: ['div']
+        expect: only track inner, as we should only track the innermost allowed element
+      */
+      test('should only fire event for the inner element when container element also matches the allowlist and is the same tag', async () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <div id="container2">
+            <div id="container1">
+              <div id="inner">
+                click me
+              </div>
+            </div>
+          </div>
+        `;
 
-      const innerDiv = document.createElement('div');
-      innerDiv.setAttribute('id', 'inner-div-id');
-      containerDiv.appendChild(innerDiv);
+        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['div'] });
+        const loggerProvider: Partial<Logger> = {
+          log: jest.fn(),
+          warn: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider as Logger,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
 
-      plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['div'] });
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
-      };
-      await plugin?.setup(config as BrowserConfig, instance);
+        // trigger click inner
+        document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'inner',
+          }),
+        );
 
-      // trigger click inner div
-      document.getElementById('inner-div-id')?.dispatchEvent(new Event('click', { bubbles: true }));
-      expect(track).toHaveBeenCalledTimes(1);
+        // trigger click container
+        document.getElementById('container1')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(2);
+        expect(track).toHaveBeenNthCalledWith(
+          2,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'container1',
+          }),
+        );
+      });
 
-      // trigger click container div
-      document.getElementById('container-div-id')?.dispatchEvent(new Event('click', { bubbles: true }));
-      expect(track).toHaveBeenCalledTimes(2);
+      /*
+        <div id="container2" class="match-me">
+          <div id="container1" class="match-me">
+            <div id="inner">
+              click me
+            </div>
+          </div>
+        </div>
+        cssSelectorAllowlist: ['.match-me']
+        expect: only track container1, as we should only track the innermost allowed element
+      */
+      test('should only fire event for the immediate parent element when inner element does not match but parent matches', async () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <div id="container2" class="match-me">
+            <div id="container1" class="match-me">
+              <div id="inner">
+                click me
+              </div>
+            </div>
+          </div>
+        `;
+
+        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['.match-me'] });
+        const loggerProvider: Partial<Logger> = {
+          log: jest.fn(),
+          warn: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider as Logger,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        // trigger click inner
+        document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'container1',
+          }),
+        );
+
+        // trigger click container
+        document.getElementById('container1')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(2);
+        expect(track).toHaveBeenNthCalledWith(
+          2,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'container1',
+          }),
+        );
+      });
+
+      /*
+        <button id="container">
+          <div id="inner">
+            click me
+          </div>
+        </button>
+        cssSelectorAllowlist: ['button']
+        expect: only track button click, as div is not allowed
+      */
+      test('should only fire event for the container element when inner element does not match the allowlist', async () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <button id="container">
+            <div id="inner">
+              click me
+            </div>
+          </button>
+        `;
+
+        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['button'] });
+        const loggerProvider: Partial<Logger> = {
+          log: jest.fn(),
+          warn: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider as Logger,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        // trigger click inner
+        document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'container',
+          }),
+        );
+
+        // trigger click container
+        document.getElementById('container')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(2);
+        expect(track).toHaveBeenNthCalledWith(
+          2,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'container',
+          }),
+        );
+      });
+
+      /*
+        <button id="container" data-track>
+          <div id="inner" data-track>
+            click me
+          </div>
+        </button>
+        cssSelectorAllowlist: ['[data-track]']
+        expect: only track div click, as div is innermost element that matches allowlist
+        note: we do not track the button click here, this is a rare case that the inner div is also allowed
+      */
+      test('should only fire event for the inner element when container element also matches the allowlist and is different tag', async () => {
+        document.getElementsByTagName('body')[0].innerHTML = `
+          <button id="container" data-track>
+            <div id="inner" data-track>
+              click me
+            </div>
+          </button>
+        `;
+
+        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['[data-track]'] });
+        const loggerProvider: Partial<Logger> = {
+          log: jest.fn(),
+          warn: jest.fn(),
+        };
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider as Logger,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        // trigger click inner
+        document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'inner',
+          }),
+        );
+
+        // trigger click container
+        document.getElementById('container')?.dispatchEvent(new Event('click', { bubbles: true }));
+        expect(track).toHaveBeenCalledTimes(2);
+        expect(track).toHaveBeenNthCalledWith(
+          2,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'container',
+          }),
+        );
+      });
     });
   });
 

@@ -123,3 +123,16 @@ export const querySelectUniqueElements = (root: Element | Document, selectors: s
   }, new Set<Element>());
   return Array.from(elementSet);
 };
+
+// Similar as element.closest, but works with multiple selectors
+export const getClosestElement = (element: Element | null, selectors: string[]): Element | null => {
+  if (!element) {
+    return null;
+  }
+  /* istanbul ignore next */
+  if (selectors.some((selector) => element?.matches?.(selector))) {
+    return element;
+  }
+  /* istanbul ignore next */
+  return getClosestElement(element?.parentElement, selectors);
+};
