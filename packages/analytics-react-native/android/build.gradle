@@ -20,7 +20,9 @@ def safeExtGet(prop, fallback) {
 
 android {
     def agpVersion = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION
-    // Check AGP version for backward compatibility reasons (for RN < 0.73)
+    // Check AGP version for backward compatibility reasons:
+    // 1) namespace became supported by gradle 7.0 since RN 0.67+
+    // 2) namespace is required in gradle 8.0 since RN 0.73+
     if (agpVersion.tokenize('.')[0].toInteger() >= 7) {
         namespace "com.amplitude.reactnative"
     }
