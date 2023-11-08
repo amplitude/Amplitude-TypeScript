@@ -165,8 +165,10 @@ export class Destination implements DestinationPlugin {
         } else {
           this.fulfillRequest(list, res.statusCode, res.status);
         }
+        this.processResponseDiagnostics(res, list);
+        return;
       }
-      this.handleResponse(res, list, useRetry);
+      this.handleResponse(res, list);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
@@ -175,50 +177,74 @@ export class Destination implements DestinationPlugin {
     }
   }
 
-  handleResponse(res: Response, list: Context[], useRetry: boolean) {
+  processResponseDiagnostics(res: Response, list: Context[]) {
+    const { status } = res;
+
+    switch (status) {
+      case Status.Invalid: {
+        if (res.body.missingField && !res.body.error.startsWith(INVALID_API_KEY)) {
+          this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
+        } else {
+          this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.EVENT_ERROR);
+        }
+        break;
+      }
+      case Status.PayloadTooLarge: {
+        this.config.diagnosticProvider.track(list.length, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
+        break;
+      }
+      case Status.RateLimit: {
+        this.config.diagnosticProvider.track(list.length, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
+        break;
+      }
+      default: {
+        this.config.diagnosticProvider.track(list.length, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
+        break;
+      }
+    }
+  }
+
+  handleResponse(res: Response, list: Context[]) {
     const { status } = res;
 
     switch (status) {
       case Status.Success: {
-        this.handleSuccessResponse(res, list, useRetry);
+        this.handleSuccessResponse(res, list);
         break;
       }
       case Status.Invalid: {
-        this.handleInvalidResponse(res, list, useRetry);
+        this.handleInvalidResponse(res, list);
         break;
       }
       case Status.PayloadTooLarge: {
-        this.handlePayloadTooLargeResponse(res, list, useRetry);
+        this.handlePayloadTooLargeResponse(res, list);
         break;
       }
       case Status.RateLimit: {
-        this.handleRateLimitResponse(res, list, useRetry);
+        this.handleRateLimitResponse(res, list);
         break;
       }
       default: {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
 
-        this.handleOtherResponse(list, useRetry);
+        this.handleOtherResponse(list);
         break;
       }
     }
   }
 
-  handleSuccessResponse(res: SuccessResponse, list: Context[], useRetry: boolean) {
-    if (useRetry) {
-      this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
-    }
+  handleSuccessResponse(res: SuccessResponse, list: Context[]) {
+    this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
-  handleInvalidResponse(res: InvalidResponse, list: Context[], useRetry: boolean) {
+  handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+    if (res.body.missingField && !res.body.error.startsWith(INVALID_API_KEY)) {
+      this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
+    }
+
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
-      if (!res.body.error.startsWith(INVALID_API_KEY)) {
-        this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
-      }
-      if (useRetry) {
-        this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
-      }
+      this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
 
@@ -230,34 +256,25 @@ export class Destination implements DestinationPlugin {
     ].flat();
     const dropIndexSet = new Set(dropIndex);
 
-    if (useRetry) {
-      if (dropIndexSet.size) {
-        this.config.diagnosticProvider.track(dropIndexSet.size, 400, DIAGNOSTIC_MESSAGES.EVENT_ERROR);
-      }
-      const retry = list.filter((context, index) => {
-        if (dropIndexSet.has(index)) {
-          this.fulfillRequest([context], res.statusCode, res.body.error);
-          return;
-        }
-        return true;
-      });
-
-      if (retry.length > 0) {
-        // log intermediate event status before retry
-        this.config.loggerProvider.warn(getResponseBodyString(res));
-      }
-      this.addToQueue(...retry);
-    } else {
-      this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.EVENT_ERROR);
+    if (dropIndexSet.size) {
+      this.config.diagnosticProvider.track(dropIndexSet.size, 400, DIAGNOSTIC_MESSAGES.EVENT_ERROR);
     }
+    const retry = list.filter((context, index) => {
+      if (dropIndexSet.has(index)) {
+        this.fulfillRequest([context], res.statusCode, res.body.error);
+        return;
+      }
+      return true;
+    });
+
+    if (retry.length > 0) {
+      // log intermediate event status before retry
+      this.config.loggerProvider.warn(getResponseBodyString(res));
+    }
+    this.addToQueue(...retry);
   }
 
-  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[], useRetry: boolean) {
-    if (!useRetry) {
-      this.config.diagnosticProvider.track(list.length, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
-      return;
-    }
-
+  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
       this.config.diagnosticProvider.track(list.length, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
       this.fulfillRequest(list, res.statusCode, res.body.error);
@@ -271,12 +288,7 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...list);
   }
 
-  handleRateLimitResponse(res: RateLimitResponse, list: Context[], useRetry: boolean) {
-    if (!useRetry) {
-      this.config.diagnosticProvider.track(list.length, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
-      return;
-    }
-
+  handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     const throttledIndex = res.body.throttledEvents;
@@ -312,17 +324,13 @@ export class Destination implements DestinationPlugin {
     this.addToQueue(...retry);
   }
 
-  handleOtherResponse(list: Context[], useRetry: boolean) {
-    if (useRetry) {
-      this.addToQueue(
-        ...list.map((context) => {
-          context.timeout = context.attempts * this.retryTimeout;
-          return context;
-        }),
-      );
-    } else {
-      this.config.diagnosticProvider.track(list.length, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
-    }
+  handleOtherResponse(list: Context[]) {
+    this.addToQueue(
+      ...list.map((context) => {
+        context.timeout = context.attempts * this.retryTimeout;
+        return context;
+      }),
+    );
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
