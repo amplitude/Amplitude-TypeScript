@@ -283,6 +283,7 @@ export class Destination implements DestinationPlugin {
     const dropUserIdsSet = new Set(dropUserIds);
     const dropDeviceIdsSet = new Set(dropDeviceIds);
     const throttledIndexSet = new Set(throttledIndex);
+    const dropList = [];
 
     const retry = list.filter((context, index) => {
       if (
@@ -290,6 +291,7 @@ export class Destination implements DestinationPlugin {
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
+        dropList.push(context);
         return;
       }
       if (throttledIndexSet.has(index)) {
@@ -298,9 +300,8 @@ export class Destination implements DestinationPlugin {
       return true;
     });
 
-    const dropEvents = retry.filter((element) => !retry.includes(element));
-    if (dropEvents.length > 0) {
-      this.config.diagnosticProvider.track(dropEvents.length, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
+    if (dropList.length > 0) {
+      this.config.diagnosticProvider.track(dropList.length, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
     }
 
     if (retry.length > 0) {
