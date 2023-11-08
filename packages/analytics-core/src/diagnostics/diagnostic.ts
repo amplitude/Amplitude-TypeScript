@@ -15,9 +15,9 @@ export class BaseDiagnostic implements Diagnostic {
   private delay = 60000;
 
   constructor(options?: DiagnosticOptions) {
-    this.isDisabled = options && options.isDisabled != undefined ? options.isDisabled : true;
-    this.serverUrl = options && options.serverUrl ? options.serverUrl : DIAGNOSTIC_ENDPOINT;
-    this.apiKey = options && options.apiKey ? options.apiKey : '';
+    this.isDisabled = options?.isDisabled ?? true;
+    this.serverUrl = options?.serverUrl ?? DIAGNOSTIC_ENDPOINT;
+    this.apiKey = options?.apiKey ?? '';
   }
 
   track(eventCount: number, code: number, message: string) {
