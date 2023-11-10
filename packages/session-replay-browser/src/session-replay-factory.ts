@@ -22,11 +22,6 @@ const createInstance: () => AmplitudeSessionReplay = () => {
       'setSessionId',
       getLogConfig(sessionReplay),
     ),
-    getSessionRecordingProperties: debugWrapper(
-      sessionReplay.getSessionRecordingProperties.bind(sessionReplay),
-      'getSessionRecordingProperties',
-      getLogConfig(sessionReplay),
-    ),
     getSessionReplayProperties: debugWrapper(
       sessionReplay.getSessionReplayProperties.bind(sessionReplay),
       'getSessionReplayProperties',

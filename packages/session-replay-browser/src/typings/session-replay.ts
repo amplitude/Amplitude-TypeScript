@@ -47,7 +47,6 @@ export type SessionReplayOptions = Omit<Partial<SessionReplayConfig>, 'apiKey'>;
 export interface AmplitudeSessionReplay {
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
   setSessionId: (sessionId: number) => void;
-  getSessionRecordingProperties: () => { [key: string]: boolean | string | null };
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
   shutdown: () => void;
 }
