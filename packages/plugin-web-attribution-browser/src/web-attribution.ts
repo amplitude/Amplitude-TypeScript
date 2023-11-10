@@ -1,10 +1,20 @@
-import { CampaignParser } from '@amplitude/analytics-client-common';
-import { BeforePlugin, BrowserClient, BrowserConfig, Campaign, Event, Storage } from '@amplitude/analytics-types';
+import { CampaignParser, isSessionTrackingEnabled } from '@amplitude/analytics-client-common';
+import {
+  BeforePlugin,
+  BrowserClient,
+  BrowserConfig,
+  Campaign,
+  Event,
+  IdentifyEvent,
+  Storage,
+} from '@amplitude/analytics-types';
 import { createCampaignEvent, getDefaultExcludedReferrers, getStorageKey, isNewCampaign } from './helpers';
-import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
+import { CreateWebAttributionPlugin, DEFAULT_SESSION_START_EVENT, Options } from './typings/web-attribution';
 import { isNewSession } from '@amplitude/analytics-client-common';
 
 export const webAttributionPlugin: CreateWebAttributionPlugin = function (options: Options = {}) {
+  const campaignPerSession: { [sessionId: number]: IdentifyEvent | undefined } = {};
+
   const plugin: BeforePlugin = {
     name: '@amplitude/plugin-web-attribution-browser',
     type: 'before',
@@ -30,19 +40,48 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
       const isEventInNewSession = isNewSession(config.sessionTimeout, config.lastEventTime);
 
       if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, isEventInNewSession)) {
+        const campaignEvent = createCampaignEvent(currentCampaign, pluginConfig);
+
+        const sessionId = Date.now();
         if (pluginConfig.resetSessionOnNewCampaign) {
-          amplitude.setSessionId(Date.now());
+          if (isSessionTrackingEnabled(config.defaultTracking)) {
+            // store campaign data for the new session and apply it to 'session_start' event in execute()
+            campaignPerSession[sessionId] = campaignEvent;
+          }
+          amplitude.setSessionId(sessionId);
           config.loggerProvider.log('Created a new session for new campaign.');
         }
-        config.loggerProvider.log('Tracking attribution.');
-        const campaignEvent = createCampaignEvent(currentCampaign, pluginConfig);
-        amplitude.track(campaignEvent);
+
+        // handle case of no session events
+        if (!campaignPerSession[sessionId]) {
+          config.loggerProvider.log('Tracking attribution.');
+          amplitude.track(campaignEvent);
+        }
+
         void storage.set(storageKey, currentCampaign);
       }
     },
 
-    execute: async (event: Event) => event,
+    execute: async (event: Event) => {
+      if (isSessionStartEvent(event) && event?.session_id) {
+        const campaignEvent = campaignPerSession[event.session_id];
+        if (campaignEvent) {
+          // merge campaign properties on to session start event
+          event.user_properties = campaignEvent.user_properties;
+          event.event_properties = {
+            ...event.event_properties,
+            ...campaignEvent.event_properties,
+          };
+        }
+        // clear campaign data for the session
+        campaignPerSession[event.session_id] = undefined;
+      }
+
+      return event;
+    },
   };
 
   return plugin;
 };
+
+const isSessionStartEvent = (event: Event) => event.event_type === DEFAULT_SESSION_START_EVENT;

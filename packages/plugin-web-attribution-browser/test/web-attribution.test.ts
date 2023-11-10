@@ -1,9 +1,61 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { BASE_CAMPAIGN, CampaignParser, CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
-import { webAttributionPlugin } from '../src/web-attribution';
+import * as webAttributionModule from '../src/web-attribution';
 import * as helpers from '../src/helpers';
-import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import { BrowserConfig, IdentifyEvent, LogLevel, SpecialEventType } from '@amplitude/analytics-types';
 import { Logger, UUID } from '@amplitude/analytics-core';
+
+const campaignEventWithUtmSource: IdentifyEvent = {
+  event_type: SpecialEventType.IDENTIFY,
+  user_properties: {
+    $set: {
+      utm_source: 'amp-test',
+    },
+    $setOnce: {
+      initial_dclid: 'EMPTY',
+      initial_fbclid: 'EMPTY',
+      initial_gbraid: 'EMPTY',
+      initial_gclid: 'EMPTY',
+      initial_ko_click_id: 'EMPTY',
+      initial_li_fat_id: 'EMPTY',
+      initial_msclkid: 'EMPTY',
+      initial_wbraid: 'EMPTY',
+      initial_referrer: 'EMPTY',
+      initial_referring_domain: 'EMPTY',
+      initial_rtd_cid: 'EMPTY',
+      initial_ttclid: 'EMPTY',
+      initial_twclid: 'EMPTY',
+      initial_utm_campaign: 'EMPTY',
+      initial_utm_content: 'EMPTY',
+      initial_utm_id: 'EMPTY',
+      initial_utm_medium: 'EMPTY',
+      initial_utm_source: 'amp-test',
+      initial_utm_term: 'EMPTY',
+    },
+    $unset: {
+      dclid: '-',
+      fbclid: '-',
+      gbraid: '-',
+      gclid: '-',
+      ko_click_id: '-',
+      li_fat_id: '-',
+      msclkid: '-',
+      wbraid: '-',
+      referrer: '-',
+      referring_domain: '-',
+      rtd_cid: '-',
+      ttclid: '-',
+      twclid: '-',
+      utm_campaign: '-',
+      utm_content: '-',
+      utm_id: '-',
+      utm_medium: '-',
+      utm_term: '-',
+    },
+  },
+};
+
+const webAttributionPlugin = webAttributionModule.webAttributionPlugin;
 
 describe('webAttributionPlugin', () => {
   const mockConfig: BrowserConfig = {
@@ -60,60 +112,12 @@ describe('webAttributionPlugin', () => {
           cookieOptions: undefined,
         };
         await plugin.setup?.(overrideMockConfig, amplitude);
-        expect(track).toHaveBeenCalledWith({
-          event_type: '$identify',
-          user_properties: {
-            $set: {
-              utm_source: 'amp-test',
-            },
-            $setOnce: {
-              initial_dclid: 'EMPTY',
-              initial_fbclid: 'EMPTY',
-              initial_gbraid: 'EMPTY',
-              initial_gclid: 'EMPTY',
-              initial_ko_click_id: 'EMPTY',
-              initial_li_fat_id: 'EMPTY',
-              initial_msclkid: 'EMPTY',
-              initial_wbraid: 'EMPTY',
-              initial_referrer: 'EMPTY',
-              initial_referring_domain: 'EMPTY',
-              initial_rtd_cid: 'EMPTY',
-              initial_ttclid: 'EMPTY',
-              initial_twclid: 'EMPTY',
-              initial_utm_campaign: 'EMPTY',
-              initial_utm_content: 'EMPTY',
-              initial_utm_id: 'EMPTY',
-              initial_utm_medium: 'EMPTY',
-              initial_utm_source: 'amp-test',
-              initial_utm_term: 'EMPTY',
-            },
-            $unset: {
-              dclid: '-',
-              fbclid: '-',
-              gbraid: '-',
-              gclid: '-',
-              ko_click_id: '-',
-              li_fat_id: '-',
-              msclkid: '-',
-              wbraid: '-',
-              referrer: '-',
-              referring_domain: '-',
-              rtd_cid: '-',
-              ttclid: '-',
-              twclid: '-',
-              utm_campaign: '-',
-              utm_content: '-',
-              utm_id: '-',
-              utm_medium: '-',
-              utm_term: '-',
-            },
-          },
-        });
+        expect(track).toHaveBeenCalledWith(campaignEventWithUtmSource);
         expect(track).toHaveBeenCalledTimes(1);
         expect(setSessionId).toHaveBeenCalledTimes(0);
       });
 
-      test('when a campaign changes and reset session id', async () => {
+      test('when a campaign changes and reset session id, without session events', async () => {
         const amplitude = createInstance();
         const setSessionId = jest.spyOn(amplitude, 'setSessionId');
         const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
@@ -131,61 +135,57 @@ describe('webAttributionPlugin', () => {
           utm_source: 'amp-test',
         });
 
+        const overrideMockConfig: BrowserConfig = {
+          ...mockConfig,
+          defaultTracking: {
+            sessions: false,
+          },
+        };
         const plugin = webAttributionPlugin({
           resetSessionOnNewCampaign: true,
         });
-        await plugin.setup?.(mockConfig, amplitude);
-        expect(track).toHaveBeenCalledWith({
-          event_type: '$identify',
-          user_properties: {
-            $set: {
-              utm_source: 'amp-test',
-            },
-            $setOnce: {
-              initial_dclid: 'EMPTY',
-              initial_fbclid: 'EMPTY',
-              initial_gbraid: 'EMPTY',
-              initial_gclid: 'EMPTY',
-              initial_ko_click_id: 'EMPTY',
-              initial_li_fat_id: 'EMPTY',
-              initial_msclkid: 'EMPTY',
-              initial_wbraid: 'EMPTY',
-              initial_referrer: 'EMPTY',
-              initial_referring_domain: 'EMPTY',
-              initial_rtd_cid: 'EMPTY',
-              initial_ttclid: 'EMPTY',
-              initial_twclid: 'EMPTY',
-              initial_utm_campaign: 'EMPTY',
-              initial_utm_content: 'EMPTY',
-              initial_utm_id: 'EMPTY',
-              initial_utm_medium: 'EMPTY',
-              initial_utm_source: 'amp-test',
-              initial_utm_term: 'EMPTY',
-            },
-            $unset: {
-              dclid: '-',
-              fbclid: '-',
-              gbraid: '-',
-              gclid: '-',
-              ko_click_id: '-',
-              li_fat_id: '-',
-              msclkid: '-',
-              wbraid: '-',
-              referrer: '-',
-              referring_domain: '-',
-              rtd_cid: '-',
-              ttclid: '-',
-              twclid: '-',
-              utm_campaign: '-',
-              utm_content: '-',
-              utm_id: '-',
-              utm_medium: '-',
-              utm_term: '-',
-            },
-          },
-        });
+        await plugin.setup?.(overrideMockConfig, amplitude);
+        // No session events, campaign event should be sent
+        expect(track).toHaveBeenCalledWith(campaignEventWithUtmSource);
         expect(track).toHaveBeenCalledTimes(1);
         expect(setSessionId).toHaveBeenCalledTimes(1);
+      });
+
+      test('when a campaign changes and reset session id, with session events', async () => {
+        const sessionId = Date.now();
+        const overrideMockConfig: BrowserConfig = {
+          ...mockConfig,
+          sessionId,
+          defaultTracking: {
+            sessions: true,
+          },
+        };
+
+        const amplitude = createInstance();
+
+        const setSessionId = jest.spyOn(amplitude, 'setSessionId');
+        const track = jest.spyOn(amplitude, 'track').mockReturnValue({
+          promise: Promise.resolve({
+            code: 200,
+            message: '',
+            event: {
+              event_type: 'event_type',
+            },
+          }),
+        });
+        jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
+        jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+          ...BASE_CAMPAIGN,
+          utm_source: 'amp-test',
+        });
+
+        const plugin = webAttributionPlugin({
+          resetSessionOnNewCampaign: true,
+        });
+        await plugin.setup?.(overrideMockConfig, amplitude);
+
+        expect(setSessionId).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenCalledTimes(0);
       });
     });
 

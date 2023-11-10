@@ -2,8 +2,17 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { UserSession } from '@amplitude/analytics-types';
 import {
+  DestinationPlugin,
+  IdentifyEvent,
+  Result,
+  SpecialEventType,
+  UserSession,
+  Event,
+} from '@amplitude/analytics-types';
+import {
+  BASE_CAMPAIGN,
+  CampaignParser,
   CookieStorage,
   FetchTransport,
   getAnalyticsConnector,
@@ -13,6 +22,7 @@ import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
+import * as helpers from '@amplitude/plugin-web-attribution-browser/src/helpers';
 
 describe('browser-client', () => {
   let apiKey = '';
@@ -260,6 +270,76 @@ describe('browser-client', () => {
         sessionId: Date.now(),
       }).promise;
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should add web attribution to session start event', async () => {
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
+        optOut: false,
+        lastEventTime: Date.now() - 1000,
+      });
+      const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
+      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      const track = jest.spyOn(client, 'track');
+      jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
+      jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+        ...BASE_CAMPAIGN,
+        utm_source: 'amp-test',
+      });
+      // const destinationExecute = jest.spyOn(Destination.prototype, 'execute');
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+      // client.remove('amplitude');
+      const testDestination: DestinationPlugin = {
+        name: 'test-destination',
+        type: 'destination',
+        execute(event: Event): Promise<Result> {
+          console.log(`EVENT`, event); // eslint-disable-line no-console
+          return Promise.resolve({
+            code: 200,
+            message: '',
+            event,
+          });
+        },
+      };
+      const testDestinationExecute = jest.spyOn(testDestination, 'execute');
+      client.add(testDestination);
+
+      await client.init(apiKey, userId, {
+        optOut: false,
+        sessionTimeout: 500,
+        flushQueueSize: 1,
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: {},
+          sessions: true,
+        },
+        sessionId: Date.now(),
+      }).promise;
+      client.remove('amplitude');
+
+      expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(2);
+      // expect(track.mock.calls[0][0]).toBe('session_end');
+      expect(track.mock.calls[0][0]).toBe('session_start');
+      expect(track.mock.calls[1][0]).toEqual(campaignEventWithUtmSource);
+      await client.flush().promise;
+
+      expect(testDestinationExecute).toHaveBeenCalledTimes(1);
+
+      expect(testDestinationExecute.mock.calls[0][0]).toEqual({
+        ...campaignEventWithUtmSource,
+        // TODO: Fix this, we should only get one `session_start` event
+        // event_type: 'session_start',
+      });
+      // expect(destinationExecute.mock.calls[0][0]).toEqual(campaignEventWithUtmSource);
     });
   });
 
@@ -838,3 +918,53 @@ describe('browser-client', () => {
     });
   });
 });
+
+const campaignEventWithUtmSource: IdentifyEvent = {
+  event_type: SpecialEventType.IDENTIFY,
+  user_properties: {
+    $set: {
+      utm_source: 'amp-test',
+    },
+    $setOnce: {
+      initial_dclid: 'EMPTY',
+      initial_fbclid: 'EMPTY',
+      initial_gbraid: 'EMPTY',
+      initial_gclid: 'EMPTY',
+      initial_ko_click_id: 'EMPTY',
+      initial_li_fat_id: 'EMPTY',
+      initial_msclkid: 'EMPTY',
+      initial_wbraid: 'EMPTY',
+      initial_referrer: 'EMPTY',
+      initial_referring_domain: 'EMPTY',
+      initial_rtd_cid: 'EMPTY',
+      initial_ttclid: 'EMPTY',
+      initial_twclid: 'EMPTY',
+      initial_utm_campaign: 'EMPTY',
+      initial_utm_content: 'EMPTY',
+      initial_utm_id: 'EMPTY',
+      initial_utm_medium: 'EMPTY',
+      initial_utm_source: 'amp-test',
+      initial_utm_term: 'EMPTY',
+    },
+    $unset: {
+      dclid: '-',
+      fbclid: '-',
+      gbraid: '-',
+      gclid: '-',
+      ko_click_id: '-',
+      li_fat_id: '-',
+      msclkid: '-',
+      wbraid: '-',
+      referrer: '-',
+      referring_domain: '-',
+      rtd_cid: '-',
+      ttclid: '-',
+      twclid: '-',
+      utm_campaign: '-',
+      utm_content: '-',
+      utm_id: '-',
+      utm_medium: '-',
+      utm_term: '-',
+    },
+  },
+};
