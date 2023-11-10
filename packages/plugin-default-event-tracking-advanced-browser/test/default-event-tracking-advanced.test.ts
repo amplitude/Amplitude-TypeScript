@@ -87,6 +87,30 @@ describe('autoTrackingPlugin', () => {
         } plugin requires a later version of @amplitude/analytics-browser. Events are not tracked.`,
       );
     });
+
+    test('should setup visual tagging selector', async () => {
+      window.opener = true;
+      const messengerMock = {
+        setup: jest.fn(),
+      };
+      plugin = defaultEventTrackingAdvancedPlugin({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        visualTaggingOptions: { enabled: true, messenger: messengerMock as any },
+      });
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as Logger,
+      };
+      const amplitude: Partial<BrowserClient> = {};
+      await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect((messengerMock as any).setup).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('execute', () => {

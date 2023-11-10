@@ -136,3 +136,28 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
   /* istanbul ignore next */
   return getClosestElement(element?.parentElement, selectors);
 };
+
+export const asyncLoadScript = (url: string) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const scriptEle = document.createElement('script');
+      scriptEle.type = 'text/javascript';
+      scriptEle.async = true;
+      scriptEle.src = url;
+      scriptEle.addEventListener('load', () => {
+        resolve({ status: true });
+      });
+      scriptEle.addEventListener('error', () => {
+        reject({
+          status: false,
+          message: `Failed to load the script ${url}`,
+        });
+      });
+      /* istanbul ignore next */
+      document.head?.appendChild(scriptEle);
+    } catch (error) {
+      /* istanbul ignore next */
+      reject(error);
+    }
+  });
+};

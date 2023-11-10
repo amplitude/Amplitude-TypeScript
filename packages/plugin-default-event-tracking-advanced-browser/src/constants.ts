@@ -18,3 +18,7 @@ export const AMPLITUDE_EVENT_PROP_PAGE_URL = '[Amplitude] Page URL';
 export const AMPLITUDE_EVENT_PROP_PAGE_TITLE = '[Amplitude] Page Title';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
+
+export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
+export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
+  'https://cdn.amplitude.com/libs/visual-tagging-selector-0.0.0.js.gz';
