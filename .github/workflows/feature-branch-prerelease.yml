@@ -91,7 +91,7 @@ jobs:
         run: |
           echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
 
-     # Use --no-push to prevent pushing to remote
+      # Use --no-push to prevent pushing to remote
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.dryRun == true}}
         run: |
@@ -101,7 +101,7 @@ jobs:
         if: ${{ github.event.inputs.dryRun == false }}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
-    
+
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         if: ${{ github.event.inputs.dryRun == false }}
