@@ -98,7 +98,7 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ env.DRY_RUN == true}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prereleas --no-push --preid ${{ env.BRANCH_NAME}}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prereleas --no-push --preid ${{ env.BRANCH_NAME}} --allow-branch ${{ env.FEATURE_BRANCH}}} --no-changelog
 
       - name: Pre-release version
         if: ${{ env.DRY_RUN == false }}
