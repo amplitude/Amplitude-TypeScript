@@ -1,15 +1,13 @@
-name: Publish v2.x
+name: Prerelease feature branch
 
 on:
   workflow_dispatch:
     inputs:
-      releaseType:
-        type: choice
-        description: Release Type
-        options:
-          - release
-          - prerelease
-          - graduate
+      dryRun:
+        type: boolean
+        description: Select true to dry run without actual release
+        required: true
+        default: true
 
 jobs:
   authorize:
@@ -30,16 +28,19 @@ jobs:
     permissions:
       id-token: write
       contents: write
-    env:
-      RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
     strategy:
       matrix:
         node-version: [16.x]
 
     steps:
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-name@v7
+
       - name: Check out git repository
         uses: actions/checkout@v3
         with:
+          ref: ${{ steps.branch-name.outputs.ref_branch }}
           fetch-depth: 0
 
       - name: Cache dependencies
@@ -85,32 +86,26 @@ jobs:
           role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
           aws-region: us-west-2
 
-      # https://www.npmjs.com/package/@lerna/version#--conventional-prerelease
-      # patch: 1.0.0 -> 1.0.1-alpha.0
-      # minor: 1.0.0 -> 1.1.0-alpha.0
-      # major: 1.0.0 -> 2.0.0-alpha.0
-      - name: Create pre-release version
-        if: ${{ env.RELEASE_TYPE == 'prerelease'}}
+      # Converted to all lowercase and stripped of non-letter characters
+      - name: Transform feature branch name
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --create-release github
+          echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
 
-      # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
-      # 1.0.0-alpha.0 -> 1.0.1
-      - name: Create graduate version
-        if: ${{ env.RELEASE_TYPE == 'graduate'}}
+      # Use --no-push to prevent pushing to remote
+      - name: Dry run pre-release version
+        if: ${{ github.event.inputs.dryRun == true}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-graduate --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
 
-      # Use 'release' for the usual deployment
-      # NOTE: You probably want this
-      - name: Create release version
-        if: ${{ env.RELEASE_TYPE == 'release'}}
+      - name: Pre-release version
+        if: ${{ github.event.inputs.dryRun == false }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
+        if: ${{ github.event.inputs.dryRun == false }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --pre-dist-tag beta
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
