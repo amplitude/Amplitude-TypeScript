@@ -9,7 +9,6 @@
     "version": {
       "allowBranch": "v1.x",
       "conventionalCommits": true,
-      "createRelease": "github",
       "message": "chore(release): publish",
       "preid": "beta"
     }
