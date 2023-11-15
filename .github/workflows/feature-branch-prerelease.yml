@@ -98,12 +98,12 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ env.DRY_RUN == true}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prereleas --no-push --preid ${{ env.BRANCH_NAME}} --allow-branch ${{ env.FEATURE_BRANCH}}} --no-changelog
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --no-push --preid ${{ env.BRANCH_NAME}} --allow-branch ${{ env.FEATURE_BRANCH}}} --no-changelog
 
       - name: Pre-release version
         if: ${{ env.DRY_RUN == false }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prereleas --preid ${{ env.BRANCH_NAME}} --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.BRANCH_NAME}} --create-release github
     
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
