@@ -92,21 +92,21 @@ jobs:
       - name: Create pre-release version
         if: ${{ env.RELEASE_TYPE == 'prerelease'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --create-release github
 
       # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
       # 1.0.0-alpha.0 -> 1.0.1
       - name: Create graduate version
         if: ${{ env.RELEASE_TYPE == 'graduate'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-graduate
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-graduate --create-release github
 
       # Use 'release' for the usual deployment
       # NOTE: You probably want this
       - name: Create release version
         if: ${{ env.RELEASE_TYPE == 'release'}}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
