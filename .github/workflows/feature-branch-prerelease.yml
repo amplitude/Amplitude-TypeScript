@@ -89,11 +89,12 @@ jobs:
           role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
           aws-region: us-west-2
 
-      # converted to all lowercase and stripped of non-letter characters
+      # Converted to all lowercase and stripped of non-letter characters
       - name: Transform feature branch name
         run: |
           echo "BRANCH_NAME=$(echo '${{ env.FEATURE_BRANCH }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
 
+     # Use --no-push to prevent pushing to remote
       - name: Dry run pre-release version
         if: ${{ env.DRY_RUN == true}}
         run: |
@@ -103,3 +104,11 @@ jobs:
         if: ${{ env.DRY_RUN == false }}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prereleas --preid ${{ env.BRANCH_NAME}}
+    
+      # Use 'from git' option if `lerna version` has already been run
+      - name: Publish Release to NPM
+        if: ${{ env.DRY_RUN == false }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
