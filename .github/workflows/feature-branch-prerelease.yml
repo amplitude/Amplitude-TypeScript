@@ -1,0 +1,105 @@
+name: Prerelease feature branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      featureBranch:
+        type: string
+        description: Feature branch name
+        required: true
+      dryRun:
+        type: boolean
+        description: Dry run without actual release
+        required: true
+        default: true
+
+jobs:
+  authorize:
+    name: Authorize
+    runs-on: ubuntu-latest
+    steps:
+      - name: ${{ github.actor }} permission check to do a release
+        uses: 'lannonbr/repo-permission-check-action@2.0.2'
+        with:
+          permission: 'write'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [authorize]
+    permissions:
+      id-token: write
+      contents: write
+    env:
+      FEATURE_BRANCH: ${{ github.event.inputs.featureBranch }}
+      DRY_RUN: ${{ github.event.inputs.dryRun }}
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ env.FEATURE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Build all packages
+        run: |
+          yarn build
+
+      - name: Test all packages
+        run: |
+          yarn test
+
+      - name: Lint all packages
+        run: |
+          yarn lint
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name amplitude-sdk-bot
+          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
+
+      - name: Configure NPM User
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
+          npm whoami
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
+          aws-region: us-west-2
+
+      # converted to all lowercase and stripped of non-letter characters
+      - name: Transform feature branch name
+        run: |
+          echo "BRANCH_NAME=$(echo '${{ env.FEATURE_BRANCH }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Dry run pre-release version
+        if: ${{ env.DRY_RUN == true}}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prereleas --no-push --preid ${{ env.BRANCH_NAME}}
+
+      - name: Pre-release version
+        if: ${{ env.DRY_RUN == false }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prereleas --preid ${{ env.BRANCH_NAME}}

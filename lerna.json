@@ -7,7 +7,6 @@
   "useWorkspaces": true,
   "command": {
     "version": {
-      "allowBranch": "main",
       "conventionalCommits": true,
       "createRelease": "github",
       "message": "chore(release): publish",
