@@ -109,6 +109,6 @@ jobs:
       - name: Publish Release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --dist-tag ${{ env.PREID }}
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
