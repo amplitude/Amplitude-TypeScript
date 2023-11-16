@@ -63,6 +63,7 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
     },
 
     execute: async (event: Event) => {
+      /* istanbul ignore next */
       if (isSessionStartEvent(event) && event?.session_id) {
         const campaignEvent = campaignPerSession[event.session_id];
         if (campaignEvent) {

@@ -264,5 +264,66 @@ describe('webAttributionPlugin', () => {
 
       expect(result).toBe(event);
     });
+
+    test('should hydrate session_start event', async () => {
+      const amplitude = createInstance();
+      jest.spyOn(Date, 'now').mockReturnValue(Date.now());
+      const sessionId = Date.now();
+      const overrideMockConfig: BrowserConfig = {
+        ...mockConfig,
+        sessionId,
+        defaultTracking: {
+          sessions: true,
+        },
+      };
+      jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
+      jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+        ...BASE_CAMPAIGN,
+        utm_source: 'amp-test',
+      });
+      const plugin = webAttributionPlugin({
+        resetSessionOnNewCampaign: true,
+      });
+      const event = {
+        event_type: 'session_start',
+        session_id: sessionId,
+      };
+      await plugin.setup?.(overrideMockConfig, amplitude);
+      const result = await plugin.execute?.(event);
+
+      expect(result).toBe(event);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(result?.user_properties?.['$set']?.['utm_source']).toBe('amp-test');
+    });
+
+    test('should not hydrate session_start event if session_id is not present', async () => {
+      const amplitude = createInstance();
+      jest.spyOn(Date, 'now').mockReturnValue(Date.now());
+      const sessionId = Date.now();
+      const overrideMockConfig: BrowserConfig = {
+        ...mockConfig,
+        sessionId,
+        defaultTracking: {
+          sessions: true,
+        },
+      };
+      jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
+      jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
+        ...BASE_CAMPAIGN,
+        utm_source: 'amp-test',
+      });
+      const plugin = webAttributionPlugin({
+        resetSessionOnNewCampaign: true,
+      });
+      const event = {
+        event_type: 'session_start',
+      };
+      await plugin.setup?.(overrideMockConfig, amplitude);
+      const result = await plugin.execute?.(event);
+
+      expect(result).toBe(event);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(result?.user_properties?.['$set']?.['utm_source']).toBe(undefined);
+    });
   });
 });
