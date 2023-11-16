@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.2-featadddiagnostics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.1...@amplitude/plugin-global-user-properties@1.2.2-featadddiagnostics.0) (2023-11-16)
+
+**Note:** Version bump only for package @amplitude/plugin-global-user-properties
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.0...@amplitude/plugin-global-user-properties@1.2.1) (2023-10-18)
 
 **Note:** Version bump only for package @amplitude/plugin-global-user-properties

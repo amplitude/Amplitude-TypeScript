@@ -3,6 +3,62 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.2.0-featadddiagnostics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.1.0...@amplitude/analytics-core@2.2.0-featadddiagnostics.0) (2023-11-16)
+
+### Bug Fixes
+
+- add diagnostic constructor
+  ([5121480](https://github.com/amplitude/Amplitude-TypeScript/commit/5121480a00fb7ba7f9af59b93b57356956b2b2ed))
+- change api only when it's not set
+  ([1586520](https://github.com/amplitude/Amplitude-TypeScript/commit/158652082945fab2a25f31c148014fe79d830030))
+- delete duplicate diagnostic track
+  ([bef4da7](https://github.com/amplitude/Amplitude-TypeScript/commit/bef4da7f9dd3a188ab99229f3d24ca38064dedd4))
+- diagnostic not extend options
+  ([11dcde7](https://github.com/amplitude/Amplitude-TypeScript/commit/11dcde799477ced07ffb1d8feb4db8d617a34202))
+- diagnosticProvider should be in core config
+  ([c0ba911](https://github.com/amplitude/Amplitude-TypeScript/commit/c0ba9114944febccb1592dd457453659580fe3eb))
+- disable BaseDiagnostic
+  ([eb6d095](https://github.com/amplitude/Amplitude-TypeScript/commit/eb6d09549e8191671c9ba56f1062c257dd41fa71))
+- extract message constants
+  ([7991120](https://github.com/amplitude/Amplitude-TypeScript/commit/79911202e83490fd2da92926f7beae23bc70ddbb))
+- fetch ([957ec26](https://github.com/amplitude/Amplitude-TypeScript/commit/957ec26f45d9ae71cf45f7f79e1c3ef855c6b584))
+- node reference error
+  ([470d82b](https://github.com/amplitude/Amplitude-TypeScript/commit/470d82bc002a7f1057f158aa8e71ae5217edc2c4))
+- not export diagnostic event
+  ([4fb3fca](https://github.com/amplitude/Amplitude-TypeScript/commit/4fb3fca7dc7156f6b01267bec9a37f096a55a0df))
+- payload and test
+  ([d6bac4c](https://github.com/amplitude/Amplitude-TypeScript/commit/d6bac4c63a04d480da960893134e45548f58f0a7))
+- recover fulfillRequest
+  ([e733169](https://github.com/amplitude/Amplitude-TypeScript/commit/e73316960dca0f12d0b38c385ca3ae40adf55759))
+- should diagnostic track only when api key is valid
+  ([9dfbe7a](https://github.com/amplitude/Amplitude-TypeScript/commit/9dfbe7a8ddcc1a055779cf99ab8acce91853abad))
+- time should be in minutes
+  ([546b5b0](https://github.com/amplitude/Amplitude-TypeScript/commit/546b5b0e22c27835707ae6fa0301c23be41d0ab8))
+- update diagnostic
+  ([a303868](https://github.com/amplitude/Amplitude-TypeScript/commit/a303868b75058c354fbe079f6f9dbd97506b8658))
+- update endpoint url
+  ([7d7a33c](https://github.com/amplitude/Amplitude-TypeScript/commit/7d7a33c024cba74e5a2728f2817352a715639458))
+
+### Features
+
+- change event structure
+  ([9492638](https://github.com/amplitude/Amplitude-TypeScript/commit/9492638dbf4f8f1dfa49cac87ce8ec4fbb4e8920))
+- diagnostic options
+  ([d927a22](https://github.com/amplitude/Amplitude-TypeScript/commit/d927a2280feb49cbdcf1ffd2233c2f3b034eb7d7))
+- diagnostic provider only accepts Diagnostic
+  ([6cb202b](https://github.com/amplitude/Amplitude-TypeScript/commit/6cb202b93a7907a1b09143858bdeb68cc25ab73e))
+- diagnostic track
+  ([f4893a8](https://github.com/amplitude/Amplitude-TypeScript/commit/f4893a803ca186e78c4b96e31e454aad3c05c6a3))
+- diagnostic track
+  ([d1911b6](https://github.com/amplitude/Amplitude-TypeScript/commit/d1911b67beaa4dadb6b840c2ec923a014ab43ec5))
+- init with diagnostciProvider
+  ([86bd79d](https://github.com/amplitude/Amplitude-TypeScript/commit/86bd79d4333a5dc4a23e84176062e802be259407))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.5...@amplitude/analytics-core@2.1.0) (2023-10-18)
 
 ### Features
