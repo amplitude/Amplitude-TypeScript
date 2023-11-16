@@ -11,6 +11,7 @@ import {
   getClosestElement,
 } from './helpers';
 import { finder } from './libs/finder';
+import { Messenger, WindowMessenger } from './libs/messenger';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 type ActionType = 'click' | 'change';
@@ -63,6 +64,11 @@ interface Options {
    * Default is 'data-amp-auto-track-'.
    */
   dataAttributePrefix?: string;
+
+  visualTaggingOptions?: {
+    enabled?: boolean;
+    messenger?: Messenger;
+  };
 }
 
 export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
@@ -71,6 +77,10 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     pageUrlAllowlist,
     shouldTrackEventResolver,
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
+    visualTaggingOptions = {
+      enabled: true,
+      messenger: new WindowMessenger(),
+    },
   } = options;
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
@@ -249,6 +259,12 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     }
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
+
+    // Setup visual tagging selector
+    if (window.opener && visualTaggingOptions.enabled) {
+      /* istanbul ignore next */
+      visualTaggingOptions.messenger?.setup();
+    }
   };
 
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {

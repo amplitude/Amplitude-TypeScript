@@ -10,6 +10,7 @@ import {
   getNearestLabel,
   querySelectUniqueElements,
   getClosestElement,
+  asyncLoadScript,
 } from '../src/helpers';
 
 describe('default-event-tracking-advanced-plugin helpers', () => {
@@ -391,6 +392,36 @@ describe('default-event-tracking-advanced-plugin helpers', () => {
 
       const inner = document.getElementById('inner');
       expect(getClosestElement(inner, ['div.some-class'])).toEqual(null);
+    });
+  });
+
+  describe('asyncLoadScript', () => {
+    test('should append the script to document and resolve with status true', () => {
+      void asyncLoadScript('https://test-url.amplitude/').then((result) => {
+        expect(result).toEqual({ status: true });
+      });
+      const script = document.getElementsByTagName('script')[0];
+      expect(document.getElementsByTagName('script')[0].src).toEqual('https://test-url.amplitude/');
+
+      script.dispatchEvent(new Event('load'));
+    });
+
+    test('should reject with status false when error', () => {
+      void asyncLoadScript('https://test-url.amplitude/').then(
+        () => {
+          expect('should not be called').toEqual(true);
+        },
+        (result) => {
+          expect(result).toEqual({
+            status: false,
+            message: 'Failed to load the script https://test-url.amplitude/',
+          });
+        },
+      );
+      const script = document.getElementsByTagName('script')[0];
+      expect(document.getElementsByTagName('script')[0].src).toEqual('https://test-url.amplitude/');
+
+      script.dispatchEvent(new Event('error'));
     });
   });
 });
