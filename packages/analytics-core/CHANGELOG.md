@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.1.0...@amplitude/analytics-core@2.1.1) (2023-11-16)
+
+### Bug Fixes
+
+- npm latest tags ([#624](https://github.com/amplitude/Amplitude-TypeScript/issues/624))
+  ([76bf7a4](https://github.com/amplitude/Amplitude-TypeScript/commit/76bf7a4c871375649fac45d549b711ac52c16b0d))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.0.5...@amplitude/analytics-core@2.1.0) (2023-10-18)
 
 ### Features

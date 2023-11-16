@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.7...@amplitude/analytics-client-common@2.0.8) (2023-11-16)
+
+### Bug Fixes
+
+- npm latest tags ([#624](https://github.com/amplitude/Amplitude-TypeScript/issues/624))
+  ([76bf7a4](https://github.com/amplitude/Amplitude-TypeScript/commit/76bf7a4c871375649fac45d549b711ac52c16b0d))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.6...@amplitude/analytics-client-common@2.0.7) (2023-10-18)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
