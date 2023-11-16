@@ -4,7 +4,7 @@ import { AMPLITUDE_ORIGIN, AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL } from '
 import { asyncLoadScript } from '../helpers';
 import { Logger } from '@amplitude/analytics-types';
 
-export interface IMessenger {
+export interface Messenger {
   logger?: Logger;
   setup: () => void;
 }
@@ -18,7 +18,17 @@ interface Message {
   data?: Data;
 }
 
-export class WindowMessenger implements IMessenger {
+export const Action = {
+  Ping: 'ping',
+  Pong: 'pong',
+  PageLoaded: 'page-loaded',
+  SelectorLoaded: 'selector-loaded',
+  InitializeVisualTaggingSelector: 'initialize-visual-tagging-selector',
+  CloseVisualTaggingSelector: 'close-visual-tagging-selector',
+  ElementSelected: 'element-selected',
+};
+
+export class WindowMessenger implements Messenger {
   endpoint = AMPLITUDE_ORIGIN;
   logger?: Logger;
 
@@ -32,7 +42,6 @@ export class WindowMessenger implements IMessenger {
   }
 
   setup() {
-    this.notify({ action: 'page-loaded' });
     let amplitudeVisualTaggingSelectorInstance: any = null;
     window.addEventListener('message', (event) => {
       this.logger?.debug('Message received: ', event);
@@ -44,28 +53,29 @@ export class WindowMessenger implements IMessenger {
       if (!action) {
         return;
       }
-      if (action === 'ping') {
-        this.notify({ action: 'pong' });
-      } else if (action === 'initialize-visual-tagging-selector') {
+      if (action === Action.Ping) {
+        this.notify({ action: Action.Pong });
+      } else if (action === Action.InitializeVisualTaggingSelector) {
         asyncLoadScript(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
           .then(() => {
             // eslint-disable-next-line
             amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
               onSelect: this.onSelect,
             });
-            this.notify({ action: 'selector-loaded' });
+            this.notify({ action: Action.SelectorLoaded });
           })
           .catch(() => {
             this.logger?.warn('Failed to initialize visual tagging selector');
           });
-      } else if (action === 'close-visual-tagging-selector') {
+      } else if (action === Action.CloseVisualTaggingSelector) {
         // eslint-disable-next-line
         amplitudeVisualTaggingSelectorInstance?.close?.();
       }
     });
+    this.notify({ action: Action.PageLoaded });
   }
 
   private onSelect = (data: Data) => {
-    this.notify({ action: 'element-selected', data });
+    this.notify({ action: Action.ElementSelected, data });
   };
 }

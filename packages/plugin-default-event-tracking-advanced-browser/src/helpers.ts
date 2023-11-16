@@ -140,21 +140,25 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
 export const asyncLoadScript = (url: string) => {
   return new Promise((resolve, reject) => {
     try {
-      const scriptEle = document.createElement('script');
-      scriptEle.type = 'text/javascript';
-      scriptEle.async = true;
-      scriptEle.src = url;
-      scriptEle.addEventListener('load', () => {
-        resolve({ status: true });
-      });
-      scriptEle.addEventListener('error', () => {
+      const scriptElement = document.createElement('script');
+      scriptElement.type = 'text/javascript';
+      scriptElement.async = true;
+      scriptElement.src = url;
+      scriptElement.addEventListener(
+        'load',
+        () => {
+          resolve({ status: true });
+        },
+        { once: true },
+      );
+      scriptElement.addEventListener('error', () => {
         reject({
           status: false,
           message: `Failed to load the script ${url}`,
         });
       });
       /* istanbul ignore next */
-      document.head?.appendChild(scriptEle);
+      document.head?.appendChild(scriptElement);
     } catch (error) {
       /* istanbul ignore next */
       reject(error);

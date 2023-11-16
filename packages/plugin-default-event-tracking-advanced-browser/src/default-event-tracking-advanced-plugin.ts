@@ -11,7 +11,7 @@ import {
   getClosestElement,
 } from './helpers';
 import { finder } from './libs/finder';
-import { IMessenger, WindowMessenger } from './libs/messenger';
+import { Messenger, WindowMessenger } from './libs/messenger';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 type ActionType = 'click' | 'change';
@@ -67,7 +67,7 @@ interface Options {
 
   visualTaggingOptions?: {
     enabled?: boolean;
-    messenger?: IMessenger;
+    messenger?: Messenger;
   };
 }
 
