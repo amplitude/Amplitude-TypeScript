@@ -60,6 +60,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new core.BaseDiagnostic({ apiKey: '' }),
         trackingSessionEvents: false,
       });
     });
@@ -113,6 +114,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new core.BaseDiagnostic({ apiKey: API_KEY }),
         trackingSessionEvents: false,
       });
     });
@@ -194,6 +196,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new core.BaseDiagnostic({ apiKey: API_KEY }),
         _userId: 'userIdFromCookies',
       });
     });

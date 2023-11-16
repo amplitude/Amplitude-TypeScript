@@ -11,6 +11,7 @@ import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
 import { AmplitudeBrowser } from '../src/browser-client';
+import { BrowserDiagnostic } from '../src/diagnostics/diagnostic';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -73,12 +74,18 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new BrowserDiagnostic({ apiKey }),
       });
     });
 
     test('shoud return _optOut', () => {
       const config = new Config.BrowserConfig(apiKey);
       expect(config.optOut).toBe(false);
+    });
+
+    test('should set default api key for diagnostic provider', () => {
+      const config = new Config.BrowserConfig(apiKey);
+      expect(config.diagnosticProvider.apiKey).toBe(apiKey);
     });
   });
 
@@ -128,6 +135,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new BrowserDiagnostic({ apiKey }),
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -213,6 +221,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        diagnosticProvider: new BrowserDiagnostic({ apiKey }),
       });
     });
 

@@ -1,6 +1,7 @@
 import {
   Event,
   Config as IConfig,
+  Diagnostic,
   Logger as ILogger,
   LogLevel,
   Storage,
@@ -18,6 +19,7 @@ import {
 } from './constants';
 
 import { Logger } from './logger';
+import { BaseDiagnostic } from './diagnostics/diagnostic';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 12,
@@ -30,6 +32,7 @@ export const getDefaultConfig = () => ({
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: 'US' as ServerZoneType,
   useBatch: false,
+  diagnosticProvider: new BaseDiagnostic(),
 });
 
 export class Config implements IConfig {
@@ -48,6 +51,7 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
+  diagnosticProvider: Diagnostic;
 
   protected _optOut = false;
   get optOut() {
@@ -75,6 +79,12 @@ export class Config implements IConfig {
     this.storageProvider = options.storageProvider;
     this.transportProvider = options.transportProvider;
     this.useBatch = options.useBatch ?? defaultConfig.useBatch;
+
+    this.diagnosticProvider = options.diagnosticProvider ?? defaultConfig.diagnosticProvider;
+    if (!this.diagnosticProvider.apiKey) {
+      this.diagnosticProvider.apiKey = this.apiKey;
+    }
+
     this.loggerProvider.enable(this.logLevel);
 
     const serverConfig = createServerConfig(options.serverUrl, options.serverZone, options.useBatch);

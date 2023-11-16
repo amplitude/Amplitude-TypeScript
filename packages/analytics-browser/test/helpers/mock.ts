@@ -78,6 +78,12 @@ export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {
     },
     trackingSessionEvents: false,
     userId: undefined,
+    diagnosticProvider: {
+      isDisabled: false,
+      serverUrl: undefined,
+      apiKey: undefined,
+      track: jest.fn(),
+    },
     ...options,
   };
 };

@@ -8,6 +8,7 @@ import {
 import { Config, createServerConfig, getServerUrl } from '../src/config';
 import { Logger } from '../src/logger';
 import { API_KEY, useDefaultConfig } from './helpers/default';
+import { BaseDiagnostic } from '../src/diagnostics/diagnostic';
 
 describe('config', () => {
   test('should create default config', () => {
@@ -16,6 +17,7 @@ describe('config', () => {
       apiKey: API_KEY,
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
+      diagnosticProvider: defaultConfig.diagnosticProvider,
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
@@ -35,6 +37,7 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: false,
+      diagnosticProvider: defaultConfig.diagnosticProvider,
     });
     expect(config.optOut).toBe(false);
   });
@@ -53,6 +56,7 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
+      diagnosticProvider: defaultConfig.diagnosticProvider,
     });
     expect(config).toEqual({
       apiKey: 'apiKey',
@@ -76,7 +80,20 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: true,
+      diagnosticProvider: defaultConfig.diagnosticProvider,
     });
+  });
+
+  test('should overwirte diagnostic provider', () => {
+    const defaultConfig = useDefaultConfig();
+    const diagnosticProvider = new BaseDiagnostic({ isDisabled: true });
+    const config = new Config({
+      apiKey: API_KEY,
+      storageProvider: defaultConfig.storageProvider,
+      transportProvider: defaultConfig.transportProvider,
+      diagnosticProvider: diagnosticProvider,
+    });
+    expect(config.diagnosticProvider).toEqual(diagnosticProvider);
   });
 
   describe('getServerUrl', () => {

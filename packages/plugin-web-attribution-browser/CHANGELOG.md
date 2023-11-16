@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.14-featadddiagnostics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.13...@amplitude/plugin-web-attribution-browser@2.0.14-featadddiagnostics.0) (2023-11-16)
+
+**Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.0.12...@amplitude/plugin-web-attribution-browser@2.0.13) (2023-10-18)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

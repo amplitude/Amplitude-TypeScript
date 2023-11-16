@@ -3,6 +3,38 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.4.0-featadddiagnostics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.3.3...@amplitude/analytics-browser@2.4.0-featadddiagnostics.0) (2023-11-16)
+
+### Bug Fixes
+
+- diagnosticProvider should be in core config
+  ([c0ba911](https://github.com/amplitude/Amplitude-TypeScript/commit/c0ba9114944febccb1592dd457453659580fe3eb))
+- disable BaseDiagnostic
+  ([eb6d095](https://github.com/amplitude/Amplitude-TypeScript/commit/eb6d09549e8191671c9ba56f1062c257dd41fa71))
+- fetch ([957ec26](https://github.com/amplitude/Amplitude-TypeScript/commit/957ec26f45d9ae71cf45f7f79e1c3ef855c6b584))
+- init Destination with config
+  ([cab2ecd](https://github.com/amplitude/Amplitude-TypeScript/commit/cab2ecd19c63dcbee1083b9b883f2bce2ed23588))
+- payload and test
+  ([d6bac4c](https://github.com/amplitude/Amplitude-TypeScript/commit/d6bac4c63a04d480da960893134e45548f58f0a7))
+- should diagnostic track only when api key is valid
+  ([9dfbe7a](https://github.com/amplitude/Amplitude-TypeScript/commit/9dfbe7a8ddcc1a055779cf99ab8acce91853abad))
+- should set default api key for diagnostic
+  ([85cf273](https://github.com/amplitude/Amplitude-TypeScript/commit/85cf273f7c3f6e624d768dddfe0af63ddb974326))
+
+### Features
+
+- diagnostic options
+  ([d927a22](https://github.com/amplitude/Amplitude-TypeScript/commit/d927a2280feb49cbdcf1ffd2233c2f3b034eb7d7))
+- diagnostic provider only accepts Diagnostic
+  ([6cb202b](https://github.com/amplitude/Amplitude-TypeScript/commit/6cb202b93a7907a1b09143858bdeb68cc25ab73e))
+- init with diagnostciProvider
+  ([86bd79d](https://github.com/amplitude/Amplitude-TypeScript/commit/86bd79d4333a5dc4a23e84176062e802be259407))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.3.2...@amplitude/analytics-browser@2.3.3) (2023-10-18)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

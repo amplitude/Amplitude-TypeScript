@@ -3,6 +3,35 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.4.0-featadddiagnostics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.3.0...@amplitude/analytics-types@2.4.0-featadddiagnostics.0) (2023-11-16)
+
+### Bug Fixes
+
+- diagnostic not extend options
+  ([11dcde7](https://github.com/amplitude/Amplitude-TypeScript/commit/11dcde799477ced07ffb1d8feb4db8d617a34202))
+- diagnosticProvider should be in core config
+  ([c0ba911](https://github.com/amplitude/Amplitude-TypeScript/commit/c0ba9114944febccb1592dd457453659580fe3eb))
+- not export diagnostic event
+  ([7d15a8e](https://github.com/amplitude/Amplitude-TypeScript/commit/7d15a8e3b0293767872398b61fc1eb156afcccc5))
+- not export diagnostic event
+  ([4fb3fca](https://github.com/amplitude/Amplitude-TypeScript/commit/4fb3fca7dc7156f6b01267bec9a37f096a55a0df))
+
+### Features
+
+- change event structure
+  ([9492638](https://github.com/amplitude/Amplitude-TypeScript/commit/9492638dbf4f8f1dfa49cac87ce8ec4fbb4e8920))
+- diagnostic options
+  ([d927a22](https://github.com/amplitude/Amplitude-TypeScript/commit/d927a2280feb49cbdcf1ffd2233c2f3b034eb7d7))
+- diagnostic provider only accepts Diagnostic
+  ([6cb202b](https://github.com/amplitude/Amplitude-TypeScript/commit/6cb202b93a7907a1b09143858bdeb68cc25ab73e))
+- init with diagnostciProvider
+  ([86bd79d](https://github.com/amplitude/Amplitude-TypeScript/commit/86bd79d4333a5dc4a23e84176062e802be259407))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.2.0...@amplitude/analytics-types@2.3.0) (2023-10-18)
 
 ### Features

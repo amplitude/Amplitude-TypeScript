@@ -2,7 +2,7 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { UserSession } from '@amplitude/analytics-types';
+import { Status, UserSession } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -260,6 +260,190 @@ describe('browser-client', () => {
         sessionId: Date.now(),
       }).promise;
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    describe('diagnostic', () => {
+      test('should init diagnostic with default api key', async () => {
+        await client.init(apiKey).promise;
+        expect(client.config.diagnosticProvider.apiKey).toBe(apiKey);
+      });
+
+      test('should not diagnostic track when 200', async () => {
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.Success,
+              statusCode: 200,
+            });
+          }),
+        };
+
+        await client.init(apiKey, {
+          defaultTracking: false,
+        }).promise;
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+        client.config.transportProvider = transportProvider;
+        await client.track('event_type', { userId: 'user_0' }).promise;
+
+        expect(diagnosticTrack).toHaveBeenCalledTimes(0);
+      });
+
+      test.each([null, new Error()])('should diagnostic track when 0 unexpected error', async (res) => {
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve(res);
+          }),
+        };
+
+        await client.init(apiKey, {
+          defaultTracking: false,
+        }).promise;
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+        client.config.transportProvider = transportProvider;
+        await client.track('event_type', { userId: 'user_0' }).promise;
+
+        expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 0, core.DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
+      });
+
+      test('should diagnostic track when flush and non 200', async () => {
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.Failed,
+              statusCode: 500,
+            });
+          }),
+        };
+
+        await client.init(apiKey, {
+          defaultTracking: false,
+        }).promise;
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+        client.config.transportProvider = transportProvider;
+        client.track('event_type', { userId: 'user_0' });
+        await client.flush().promise;
+
+        expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 0, core.DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
+      });
+
+      test.each([
+        ['api_key', undefined, core.DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS],
+        [undefined, { time: [0] }, core.DIAGNOSTIC_MESSAGES.EVENT_ERROR],
+      ])(
+        'should diagnostic track when 400 invalid response',
+        async (missingField, eventsWithInvalidFields, message) => {
+          const transportProvider = {
+            send: jest.fn().mockImplementationOnce(() => {
+              return Promise.resolve({
+                status: Status.Invalid,
+                statusCode: 400,
+                body: {
+                  error: 'error',
+                  missingField: missingField,
+                  eventsWithInvalidFields: eventsWithInvalidFields,
+                  eventsWithMissingFields: {},
+                  eventsWithInvalidIdLengths: {},
+                  silencedEvents: [],
+                },
+              });
+            }),
+          };
+
+          await client.init(apiKey, {
+            defaultTracking: false,
+          }).promise;
+          const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+          client.config.transportProvider = transportProvider;
+          await client.track('event_type', { userId: 'user_0' }).promise;
+
+          expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+          expect(diagnosticTrack).toHaveBeenCalledWith(1, 400, message);
+        },
+      );
+
+      test('should diagnostic track when 429 rate limit when flush', async () => {
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.RateLimit,
+              statusCode: 429,
+              body: {
+                exceededDailyQuotaUsers: { user_0: 1 },
+                exceededDailyQuotaDevices: {},
+                throttledEvents: [],
+              },
+            });
+          }),
+        };
+
+        await client.init(apiKey, {
+          defaultTracking: false,
+        }).promise;
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+        client.config.transportProvider = transportProvider;
+        client.track('event_type', { userId: 'user_0' });
+        // flush() calls destination.flush(useRetry: false)
+        await client.flush().promise;
+
+        expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 429, core.DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
+      });
+
+      test('should diagnostic track when 413', async () => {
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.PayloadTooLarge,
+              statusCode: 413,
+              body: {
+                error: 'error',
+              },
+            });
+          }),
+        };
+
+        await client.init(apiKey, {
+          defaultTracking: false,
+        }).promise;
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+        client.config.transportProvider = transportProvider;
+        await client.track('event_type', { userId: 'user_0' }).promise;
+
+        expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 413, core.DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
+      });
+
+      test('should diagnostic track when 500 hit max retries', async () => {
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.Invalid,
+              statusCode: 400,
+              body: {
+                error: 'error',
+                missingField: '',
+                eventsWithInvalidFields: {},
+                eventsWithMissingFields: {},
+                eventsWithInvalidIdLengths: {},
+                silencedEvents: [],
+              },
+            });
+          }),
+        };
+
+        await client.init(apiKey, {
+          defaultTracking: false,
+          flushMaxRetries: 1,
+        }).promise;
+        const diagnosticTrack = jest.spyOn(client.config.diagnosticProvider, 'track');
+        client.config.transportProvider = transportProvider;
+        await client.track('event_type', { userId: 'user_0' }).promise;
+
+        expect(diagnosticTrack).toHaveBeenCalledTimes(1);
+        expect(diagnosticTrack).toHaveBeenCalledWith(1, 500, core.DIAGNOSTIC_MESSAGES.EXCEEDED_MAX_RETRY);
+      });
     });
   });
 

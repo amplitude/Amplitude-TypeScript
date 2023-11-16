@@ -22,6 +22,7 @@ import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig } from '../config';
+import { DIAGNOSTIC_MESSAGES } from '../diagnostics/constants';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -86,6 +87,7 @@ export class Destination implements DestinationPlugin {
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
+      this.config.diagnosticProvider.track(list.length, 500, DIAGNOSTIC_MESSAGES.EXCEEDED_MAX_RETRY);
       return false;
     });
 
@@ -153,6 +155,7 @@ export class Destination implements DestinationPlugin {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
+        this.config.diagnosticProvider.track(list.length, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
       }
@@ -162,6 +165,7 @@ export class Destination implements DestinationPlugin {
         } else {
           this.fulfillRequest(list, res.statusCode, res.status);
         }
+        this.processResponseDiagnostics(res, list);
         return;
       }
       this.handleResponse(res, list);
@@ -169,6 +173,34 @@ export class Destination implements DestinationPlugin {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
       this.fulfillRequest(list, 0, errorMessage);
+      this.config.diagnosticProvider.track(list.length, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
+    }
+  }
+
+  processResponseDiagnostics(res: Response, list: Context[]) {
+    const { status } = res;
+
+    switch (status) {
+      case Status.Invalid: {
+        if (res.body.missingField && !res.body.error.startsWith(INVALID_API_KEY)) {
+          this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
+        } else {
+          this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.EVENT_ERROR);
+        }
+        break;
+      }
+      case Status.PayloadTooLarge: {
+        this.config.diagnosticProvider.track(list.length, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
+        break;
+      }
+      case Status.RateLimit: {
+        this.config.diagnosticProvider.track(list.length, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
+        break;
+      }
+      default: {
+        this.config.diagnosticProvider.track(list.length, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
+        break;
+      }
     }
   }
 
@@ -207,6 +239,10 @@ export class Destination implements DestinationPlugin {
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+    if (res.body.missingField && !res.body.error.startsWith(INVALID_API_KEY)) {
+      this.config.diagnosticProvider.track(list.length, 400, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS);
+    }
+
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
@@ -220,6 +256,9 @@ export class Destination implements DestinationPlugin {
     ].flat();
     const dropIndexSet = new Set(dropIndex);
 
+    if (dropIndexSet.size) {
+      this.config.diagnosticProvider.track(dropIndexSet.size, 400, DIAGNOSTIC_MESSAGES.EVENT_ERROR);
+    }
     const retry = list.filter((context, index) => {
       if (dropIndexSet.has(index)) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
@@ -237,6 +276,7 @@ export class Destination implements DestinationPlugin {
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
+      this.config.diagnosticProvider.track(list.length, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
@@ -255,6 +295,7 @@ export class Destination implements DestinationPlugin {
     const dropUserIdsSet = new Set(dropUserIds);
     const dropDeviceIdsSet = new Set(dropDeviceIds);
     const throttledIndexSet = new Set(throttledIndex);
+    const dropList = [];
 
     const retry = list.filter((context, index) => {
       if (
@@ -262,6 +303,7 @@ export class Destination implements DestinationPlugin {
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
+        dropList.push(context);
         return;
       }
       if (throttledIndexSet.has(index)) {
@@ -269,6 +311,10 @@ export class Destination implements DestinationPlugin {
       }
       return true;
     });
+
+    if (dropList.length > 0) {
+      this.config.diagnosticProvider.track(dropList.length, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
+    }
 
     if (retry.length > 0) {
       // log intermediate event status before retry

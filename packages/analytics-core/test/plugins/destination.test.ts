@@ -1,5 +1,5 @@
 import { Destination, getResponseBodyString } from '../../src/plugins/destination';
-import { Config, DestinationContext, Logger, Payload, Result, Status } from '@amplitude/analytics-types';
+import { Config, DestinationContext, Logger, Payload, Result, Status, Diagnostic } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -7,10 +7,21 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
+import { DIAGNOSTIC_MESSAGES } from '../../src/diagnostics/constants';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
+class TestDiagnostic implements Diagnostic {
+  track = jest.fn();
+  isDisabled = false;
+  serverUrl = 'test';
+}
+const diagnosticProvider = new TestDiagnostic();
 
 describe('destination', () => {
+  afterEach(() => {
+    diagnosticProvider.track.mockClear();
+  });
+
   describe('setup', () => {
     test('should setup plugin', async () => {
       const destination = new Destination();
@@ -454,7 +465,7 @@ describe('destination', () => {
       });
     });
 
-    test('should handle unexpected error', async () => {
+    test('should handle unexpected error and track diagnostic', async () => {
       const destination = new Destination();
       const callback = jest.fn();
       const context = {
@@ -473,9 +484,172 @@ describe('destination', () => {
       await destination.setup({
         ...useDefaultConfig(),
         transportProvider,
+        diagnosticProvider,
       });
       await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenLastCalledWith(1, 0, DIAGNOSTIC_MESSAGES.UNEXPECTED_ERROR);
+    });
+
+    test.each([
+      ['api_key', undefined, true, 2, DIAGNOSTIC_MESSAGES.INVALID_OR_MISSING_FIELDS],
+      [undefined, { time: [0] }, true, 1, DIAGNOSTIC_MESSAGES.EVENT_ERROR],
+      [undefined, { time: [0] }, false, 2, DIAGNOSTIC_MESSAGES.EVENT_ERROR],
+    ])(
+      'should track diagnostic when 400',
+      async (missingField, eventsWithInvalidFields, useRetry, dropCount, message) => {
+        const destination = new Destination();
+        const callback = jest.fn();
+        const transportProvider = {
+          send: jest.fn().mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.Invalid,
+              statusCode: 400,
+              body: {
+                error: 'error',
+                missingField: missingField,
+                eventsWithInvalidFields: eventsWithInvalidFields,
+                eventsWithMissingFields: {},
+                eventsWithInvalidIdLengths: {},
+                silencedEvents: [],
+              },
+            });
+          }),
+        };
+        await destination.setup({
+          ...useDefaultConfig(),
+          transportProvider,
+          apiKey: API_KEY,
+          diagnosticProvider,
+        });
+        await destination.send(
+          [
+            {
+              attempts: 0,
+              callback,
+              event: {
+                event_type: 'event_type',
+                user_id: 'user_0',
+              },
+              timeout: 0,
+            },
+            {
+              attempts: 0,
+              callback,
+              event: {
+                event_type: 'event_type',
+                user_id: 'user_1',
+              },
+              timeout: 0,
+            },
+          ],
+          useRetry,
+        );
+        expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+        expect(diagnosticProvider.track).toHaveBeenCalledWith(dropCount, 400, message);
+      },
+    );
+
+    test('should track diagnostic when 413 and not retry', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.PayloadTooLarge,
+            statusCode: 413,
+            body: {
+              error: 'error',
+            },
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        diagnosticProvider,
+      });
+      await destination.send(
+        [
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_0',
+            },
+            timeout: 0,
+          },
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_1',
+            },
+            timeout: 0,
+          },
+        ],
+        false,
+      );
+
+      expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(2, 413, DIAGNOSTIC_MESSAGES.PAYLOAD_TOO_LARGE);
+    });
+
+    test.each([
+      { useRetry: false, dropCount: 2, queueCount: 0 },
+      { useRetry: true, dropCount: 1, queueCount: 1 },
+    ])('should track diagnostic when 429', async ({ useRetry, dropCount, queueCount }) => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.RateLimit,
+            statusCode: 429,
+            body: {
+              exceededDailyQuotaUsers: { user_0: 1 },
+              exceededDailyQuotaDevices: {},
+              throttledEvents: [],
+            },
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        diagnosticProvider,
+      });
+      await destination.send(
+        [
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_0',
+            },
+            timeout: 0,
+          },
+          {
+            attempts: 0,
+            callback,
+            event: {
+              event_type: 'event_type',
+              user_id: 'user_1',
+            },
+            timeout: 0,
+          },
+        ],
+        useRetry,
+      );
+      expect(diagnosticProvider.track).toHaveBeenCalledTimes(1);
+      expect(diagnosticProvider.track).toHaveBeenCalledWith(dropCount, 429, DIAGNOSTIC_MESSAGES.EXCEEDED_DAILY_QUOTA);
+      expect(destination.queue.length).toBe(queueCount);
     });
   });
 
