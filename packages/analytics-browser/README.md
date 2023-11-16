@@ -26,11 +26,13 @@ To get started with using Amplitude Browser SDK, install the package to your pro
 This SDK is available as a package on npm registry named `@amplitude/analytics-browser`. You can install the package using npm or yarn CLI.
 
 #### Using npm CLI
+
 ```sh
 npm install @amplitude/analytics-browser
 ```
 
 #### Using yarn CLI
+
 ```sh
 # yarn
 yarn add @amplitude/analytics-browser
