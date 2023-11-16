@@ -15,8 +15,8 @@ import { BASE_CAMPAIGN, EMPTY_VALUE, MKTG } from './constants';
 /**
  * @deprecated
  * Campaign tracker has mixed logic from built-in and plugin web attribution
- * features. Do not add more features here. The plan moving foward is to consolidate logic
- * in @amplitude/plugin-web-attribution-browser with backward compatibility.
+ * features. Do not add more features here. The plan moving foward is to consolidate
+ * logic in @amplitude/plugin-web-attribution-browser with backward compatibility.
  */
 export class CampaignTracker implements ICampaignTracker {
   storage: Storage<Campaign>;
