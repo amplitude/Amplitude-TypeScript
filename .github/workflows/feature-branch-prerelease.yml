@@ -5,7 +5,7 @@ on:
     inputs:
       dryRun:
         type: boolean
-        description: Select true to dry run without actual release
+        description: Select to dry run without actual release
         required: true
         default: true
 
@@ -93,12 +93,12 @@ jobs:
 
       # Use --no-push to prevent pushing to remote
       - name: Dry run pre-release version
-        if: ${{ github.event.inputs.dryRun == true}}
+        if: ${{ github.event.inputs.dryRun == 'true'}}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
 
       - name: Pre-release version
-        if: ${{ github.event.inputs.dryRun == false }}
+        if: ${{ github.event.inputs.dryRun == 'false' }}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
 
