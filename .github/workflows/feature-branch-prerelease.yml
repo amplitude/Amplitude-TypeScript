@@ -3,11 +3,14 @@ name: Prerelease feature branch
 on:
   workflow_dispatch:
     inputs:
-      dryRun:
-        type: boolean
-        description: Select to dry run without actual release
+      releaseType:
+        type: choice
+        description: Select dry-run for testing before real prerelease
         required: true
-        default: true
+        options:
+          - dry-run
+          - prerelease
+        
 
 jobs:
   authorize:
@@ -93,18 +96,18 @@ jobs:
 
       # Use --no-push to prevent pushing to remote
       - name: Dry run pre-release version
-        if: ${{ github.event.inputs.dryRun == 'true'}}
+        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
 
       - name: Pre-release version
-        if: ${{ github.event.inputs.dryRun == 'false' }}
+        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
-        if: ${{ github.event.inputs.dryRun == false }}
+        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
         env:
