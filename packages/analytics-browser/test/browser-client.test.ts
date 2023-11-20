@@ -284,9 +284,7 @@ describe('browser-client', () => {
         ...BASE_CAMPAIGN,
         utm_source: 'amp-test',
       });
-      // const destinationExecute = jest.spyOn(Destination.prototype, 'execute');
       const setSessionId = jest.spyOn(client, 'setSessionId');
-      // client.remove('amplitude');
       const testDestination: DestinationPlugin = {
         name: 'test-destination',
         type: 'destination',

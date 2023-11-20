@@ -91,15 +91,6 @@ describe('webAttributionPlugin', () => {
       test('when a campaign changes', async () => {
         const amplitude = createInstance();
         const setSessionId = jest.spyOn(amplitude, 'setSessionId');
-        // const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
-        //   promise: Promise.resolve({
-        //     code: 200,
-        //     message: '',
-        //     event: {
-        //       event_type: '$identify',
-        //     },
-        //   }),
-        // });
         jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
         jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
           ...BASE_CAMPAIGN,
