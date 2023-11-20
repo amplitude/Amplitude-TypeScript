@@ -91,15 +91,15 @@ describe('webAttributionPlugin', () => {
       test('when a campaign changes', async () => {
         const amplitude = createInstance();
         const setSessionId = jest.spyOn(amplitude, 'setSessionId');
-        const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
-          promise: Promise.resolve({
-            code: 200,
-            message: '',
-            event: {
-              event_type: '$identify',
-            },
-          }),
-        });
+        // const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
+        //   promise: Promise.resolve({
+        //     code: 200,
+        //     message: '',
+        //     event: {
+        //       event_type: '$identify',
+        //     },
+        //   }),
+        // });
         jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
         jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
           ...BASE_CAMPAIGN,
@@ -109,26 +109,21 @@ describe('webAttributionPlugin', () => {
         const plugin = webAttributionPlugin();
         const overrideMockConfig = {
           ...mockConfig,
+          sessionId: 1,
           cookieOptions: undefined,
         };
         await plugin.setup?.(overrideMockConfig, amplitude);
-        expect(track).toHaveBeenCalledWith(campaignEventWithUtmSource);
-        expect(track).toHaveBeenCalledTimes(1);
         expect(setSessionId).toHaveBeenCalledTimes(0);
+        const newEvent = await plugin.execute?.({
+          event_type: 'event_type',
+          session_id: 1,
+        });
+        expect(newEvent?.user_properties).toEqual(campaignEventWithUtmSource.user_properties);
       });
 
       test('when a campaign changes and reset session id, without session events', async () => {
         const amplitude = createInstance();
         const setSessionId = jest.spyOn(amplitude, 'setSessionId');
-        const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
-          promise: Promise.resolve({
-            code: 200,
-            message: '',
-            event: {
-              event_type: '$identify',
-            },
-          }),
-        });
         jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
         jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
           ...BASE_CAMPAIGN,
@@ -145,10 +140,25 @@ describe('webAttributionPlugin', () => {
           resetSessionOnNewCampaign: true,
         });
         await plugin.setup?.(overrideMockConfig, amplitude);
-        // No session events, campaign event should be sent
-        expect(track).toHaveBeenCalledWith(campaignEventWithUtmSource);
-        expect(track).toHaveBeenCalledTimes(1);
         expect(setSessionId).toHaveBeenCalledTimes(1);
+        const newSessionId = setSessionId.mock.calls[0][0];
+        const newEvent = await plugin.execute?.({
+          event_type: 'event_type',
+          session_id: newSessionId,
+          user_properties: {
+            // adding other user properties to test merge logic
+            $add: {
+              a: 1,
+            },
+          },
+        });
+        expect(newEvent?.event_type).toEqual('event_type');
+        expect(newEvent?.user_properties).toEqual({
+          ...campaignEventWithUtmSource.user_properties,
+          $add: {
+            a: 1,
+          },
+        });
       });
 
       test('when a campaign changes and reset session id, with session events', async () => {

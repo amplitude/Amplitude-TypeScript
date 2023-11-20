@@ -1,4 +1,4 @@
-import { CampaignParser, isSessionTrackingEnabled } from '@amplitude/analytics-client-common';
+import { CampaignParser } from '@amplitude/analytics-client-common';
 import {
   BeforePlugin,
   BrowserClient,
@@ -9,7 +9,7 @@ import {
   Storage,
 } from '@amplitude/analytics-types';
 import { createCampaignEvent, getDefaultExcludedReferrers, getStorageKey, isNewCampaign } from './helpers';
-import { CreateWebAttributionPlugin, DEFAULT_SESSION_START_EVENT, Options } from './typings/web-attribution';
+import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 import { isNewSession } from '@amplitude/analytics-client-common';
 
 export const webAttributionPlugin: CreateWebAttributionPlugin = function (options: Options = {}) {
@@ -41,21 +41,15 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
 
       if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, isEventInNewSession)) {
         const campaignEvent = createCampaignEvent(currentCampaign, pluginConfig);
+        const currentSessionId = config.sessionId ?? -1;
 
-        const sessionId = Date.now();
         if (pluginConfig.resetSessionOnNewCampaign) {
-          if (isSessionTrackingEnabled(config.defaultTracking)) {
-            // store campaign data for the new session and apply it to 'session_start' event in execute()
-            campaignPerSession[sessionId] = campaignEvent;
-          }
-          amplitude.setSessionId(sessionId);
+          const nextSessionId = Date.now();
+          amplitude.setSessionId(nextSessionId);
+          campaignPerSession[nextSessionId] = campaignEvent;
           config.loggerProvider.log('Created a new session for new campaign.');
-        }
-
-        // handle case of no session events
-        if (!campaignPerSession[sessionId]) {
-          config.loggerProvider.log('Tracking attribution.');
-          amplitude.track(campaignEvent);
+        } else {
+          campaignPerSession[currentSessionId] = campaignEvent;
         }
 
         void storage.set(storageKey, currentCampaign);
@@ -63,12 +57,13 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
     },
 
     execute: async (event: Event) => {
-      /* istanbul ignore next */
-      if (isSessionStartEvent(event) && event?.session_id) {
+      if (event.session_id) {
         const campaignEvent = campaignPerSession[event.session_id];
         if (campaignEvent) {
-          // merge campaign properties on to session start event
-          event.user_properties = campaignEvent.user_properties;
+          event.user_properties = mergeDeep<Event['user_properties']>(
+            campaignEvent.user_properties,
+            event.user_properties,
+          );
           event.event_properties = {
             ...event.event_properties,
             ...campaignEvent.event_properties,
@@ -85,4 +80,23 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
   return plugin;
 };
 
-const isSessionStartEvent = (event: Event) => event.event_type === DEFAULT_SESSION_START_EVENT;
+const isObject = (item: any): item is Record<string, any> =>
+  Boolean(item) && typeof item === 'object' && !Array.isArray(item);
+
+const mergeDeep = <T = any>(target: any, source: any): T => {
+  if (isObject(target) && isObject(source)) {
+    for (const key in source) {
+      if (isObject(source[key])) {
+        if (!target[key]) {
+          Object.assign(target, { [key]: {} });
+        }
+        mergeDeep<T>(target[key], source[key]);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        Object.assign(target, { [key]: source[key] });
+      }
+    }
+  }
+
+  return target as T;
+};

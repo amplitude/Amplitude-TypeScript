@@ -278,15 +278,6 @@ describe('browser-client', () => {
         lastEventTime: Date.now() - 1000,
       });
       const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
-      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
-        Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: 'event_type',
-          },
-        }),
-      );
       const track = jest.spyOn(client, 'track');
       jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
       jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
@@ -300,7 +291,6 @@ describe('browser-client', () => {
         name: 'test-destination',
         type: 'destination',
         execute(event: Event): Promise<Result> {
-          console.log(`EVENT`, event); // eslint-disable-line no-console
           return Promise.resolve({
             code: 200,
             message: '',
@@ -326,20 +316,16 @@ describe('browser-client', () => {
 
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
       expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenCalledTimes(2);
-      // expect(track.mock.calls[0][0]).toBe('session_end');
+      expect(track).toHaveBeenCalledTimes(1);
       expect(track.mock.calls[0][0]).toBe('session_start');
-      expect(track.mock.calls[1][0]).toEqual(campaignEventWithUtmSource);
+
       await client.flush().promise;
 
       expect(testDestinationExecute).toHaveBeenCalledTimes(1);
-
-      expect(testDestinationExecute.mock.calls[0][0]).toEqual({
-        ...campaignEventWithUtmSource,
-        // TODO: Fix this, we should only get one `session_start` event
-        // event_type: 'session_start',
-      });
-      // expect(destinationExecute.mock.calls[0][0]).toEqual(campaignEventWithUtmSource);
+      expect(testDestinationExecute.mock.calls[0][0].event_type).toEqual('session_start');
+      expect(testDestinationExecute.mock.calls[0][0].user_properties).toEqual(
+        campaignEventWithUtmSource.user_properties,
+      );
     });
   });
 
