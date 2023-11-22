@@ -1,14 +1,5 @@
-import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-common';
-import {
-  BrowserClient,
-  BrowserConfig,
-  EnrichmentPlugin,
-  Event,
-  IdentifyOperation,
-  IdentifyUserProperties,
-  Logger,
-} from '@amplitude/analytics-types';
-import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
+import { CampaignParser, getGlobalScope, isCampaignEvent } from '@amplitude/analytics-client-common';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, Logger } from '@amplitude/analytics-types';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
@@ -103,14 +94,22 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
     execute: async (event: Event) => {
       if (options.trackOn === 'attribution' && isCampaignEvent(event)) {
-        /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
-        loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
         const pageViewEvent = await createPageViewEvent();
-        event.event_type = pageViewEvent.event_type;
-        event.event_properties = {
-          ...event.event_properties,
-          ...pageViewEvent.event_properties,
-        };
+
+        if (event.event_type === '$identify') {
+          /* istanbul ignore next */ // loggerProvider should be defined by the time execute is invoked
+          loggerProvider?.log('Enriching campaign event to page view event with campaign parameters');
+          event.event_type = pageViewEvent.event_type;
+          event.event_properties = {
+            ...event.event_properties,
+            ...pageViewEvent.event_properties,
+          };
+        } else {
+          /* istanbul ignore else */
+          if (amplitude) {
+            amplitude.track(pageViewEvent);
+          }
+        }
       }
       return event;
     },
@@ -128,17 +127,6 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 };
 
 const getCampaignParams = async () => omitUndefined(await new CampaignParser().parse());
-
-const isCampaignEvent = (event: Event) => {
-  if (event.event_type === '$identify' && event.user_properties) {
-    const properties = event.user_properties as IdentifyUserProperties;
-    const $set = properties[IdentifyOperation.SET] || {};
-    const $unset = properties[IdentifyOperation.UNSET] || {};
-    const userProperties = [...Object.keys($set), ...Object.keys($unset)];
-    return Object.keys(BASE_CAMPAIGN).every((value) => userProperties.includes(value));
-  }
-  return false;
-};
 
 export const shouldTrackHistoryPageView = (
   trackingOption: Options['trackHistoryChanges'],

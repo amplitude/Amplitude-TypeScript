@@ -186,7 +186,7 @@ describe('webAttributionPlugin', () => {
         await plugin.setup?.(overrideMockConfig, amplitude);
 
         expect(setSessionId).toHaveBeenCalledTimes(1);
-        expect(track).toHaveBeenCalledTimes(0);
+        expect(track).toHaveBeenCalledTimes(1);
       });
     });
 
@@ -266,7 +266,7 @@ describe('webAttributionPlugin', () => {
       expect(result).toBe(event);
     });
 
-    test('should hydrate session_start event', async () => {
+    test('should enrich session_start event', async () => {
       const amplitude = createInstance();
       jest.spyOn(Date, 'now').mockReturnValue(Date.now());
       const sessionId = Date.now();
@@ -295,9 +295,16 @@ describe('webAttributionPlugin', () => {
       expect(result).toBe(event);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(result?.user_properties?.['$set']?.['utm_source']).toBe('amp-test');
+
+      const duplicateCampaignEvent = {
+        ...helpers.createCampaignEvent(BASE_CAMPAIGN, {}),
+        session_id: sessionId,
+      };
+      const duplicateResult = await plugin.execute?.(duplicateCampaignEvent);
+      expect(duplicateResult).toBe(null);
     });
 
-    test('should not hydrate session_start event if session_id is not present', async () => {
+    test('should not enrich session_start event if session_id is not present', async () => {
       const amplitude = createInstance();
       jest.spyOn(Date, 'now').mockReturnValue(Date.now());
       const sessionId = Date.now();

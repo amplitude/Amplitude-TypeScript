@@ -314,7 +314,7 @@ describe('browser-client', () => {
 
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
       expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenCalledTimes(2);
       expect(track.mock.calls[0][0]).toBe('session_start');
 
       await client.flush().promise;

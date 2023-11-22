@@ -1,4 +1,4 @@
-import { CampaignParser } from '@amplitude/analytics-client-common';
+import { CampaignParser, isCampaignEvent, isSessionExpired } from '@amplitude/analytics-client-common';
 import {
   BeforePlugin,
   BrowserClient,
@@ -10,7 +10,6 @@ import {
 } from '@amplitude/analytics-types';
 import { createCampaignEvent, getDefaultExcludedReferrers, getStorageKey, isNewCampaign } from './helpers';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
-import { isNewSession } from '@amplitude/analytics-client-common';
 
 export const webAttributionPlugin: CreateWebAttributionPlugin = function (options: Options = {}) {
   const campaignPerSession: { [sessionId: number]: IdentifyEvent | undefined } = {};
@@ -37,20 +36,32 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
         storage.get(storageKey),
       ]);
 
-      const isEventInNewSession = isNewSession(config.sessionTimeout, config.lastEventTime);
+      // Check if the most recent session ID is expired
+      const isMostRecentSessionExpired = isSessionExpired(config.sessionTimeout, config.lastEventTime);
 
-      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, isEventInNewSession)) {
-        const campaignEvent = createCampaignEvent(currentCampaign, pluginConfig);
-        const currentSessionId = config.sessionId ?? -1;
+      // Check if attribution event will be tracked
+      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, isMostRecentSessionExpired)) {
+        // Set default session ID to be the most recent session ID
+        let sessionId = config.sessionId ?? -1;
 
-        if (pluginConfig.resetSessionOnNewCampaign) {
-          const nextSessionId = Date.now();
-          amplitude.setSessionId(nextSessionId);
-          campaignPerSession[nextSessionId] = campaignEvent;
-          config.loggerProvider.log('Created a new session for new campaign.');
-        } else {
-          campaignPerSession[currentSessionId] = campaignEvent;
+        // Check if most recent session ID is expired OR if `resetSessionOnNewCampaign` set to true
+        // If yes, set a new session ID
+        if (isMostRecentSessionExpired || pluginConfig.resetSessionOnNewCampaign) {
+          sessionId = Date.now();
+          amplitude.setSessionId(sessionId);
+
+          if (pluginConfig.resetSessionOnNewCampaign) {
+            config.loggerProvider.log('Created a new session for new campaign.');
+          }
         }
+
+        // Create campaign event
+        const campaignEvent = createCampaignEvent(currentCampaign, pluginConfig);
+        campaignEvent.session_id = sessionId;
+        // Cache campaign event with its associated session ID as key
+        campaignPerSession[sessionId] = campaignEvent;
+        // Additionally, track the same event
+        amplitude.track(campaignEvent);
 
         void storage.set(storageKey, currentCampaign);
       }
@@ -58,8 +69,12 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
 
     execute: async (event: Event) => {
       if (event.session_id) {
+        // Check a campaign event cache exists for session ID
         const campaignEvent = campaignPerSession[event.session_id];
         if (campaignEvent) {
+          // If yes, merge first seen event with with campaign event.
+          // It is possible that `event` is equal to `campaignEvent`
+          // when `campaignEvent` is what is first passed to `execute`.
           event.user_properties = mergeDeep<Event['user_properties']>(
             campaignEvent.user_properties,
             event.user_properties,
@@ -68,9 +83,18 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
             ...event.event_properties,
             ...campaignEvent.event_properties,
           };
+          if (Object.keys(event.event_properties).length === 0) {
+            delete event.event_properties;
+          }
+
+          // Remove cached campaign event
+          delete campaignPerSession[event.session_id];
+        } else if (isCampaignEvent(event)) {
+          // If no campaign event event cache for session ID exists,
+          // then campaign event has been merged with another event
+          // and this is a dupe that must be dropped.
+          return null;
         }
-        // clear campaign data for the session
-        campaignPerSession[event.session_id] = undefined;
       }
 
       return event;
