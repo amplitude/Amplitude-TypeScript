@@ -256,6 +256,16 @@ describe('pageViewTrackingPlugin', () => {
       });
       expect(event?.event_type).toBe('session_start');
       expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(1, {
+        event_type: '[Amplitude] Page Viewed',
+        event_properties: {
+          '[Amplitude] Page Domain': '',
+          '[Amplitude] Page Location': '',
+          '[Amplitude] Page Path': '',
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': '',
+        },
+      });
     });
 
     test('should enrich page view track on attribution user props', async () => {

@@ -115,56 +115,6 @@ describe('webAttributionPlugin', () => {
       test('when a campaign changes and reset session id, without session events', async () => {
         const amplitude = createInstance();
         const setSessionId = jest.spyOn(amplitude, 'setSessionId');
-        jest.spyOn(helpers, 'isNewCampaign').mockReturnValue(true);
-        jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
-          ...BASE_CAMPAIGN,
-          utm_source: 'amp-test',
-        });
-
-        const overrideMockConfig: BrowserConfig = {
-          ...mockConfig,
-          defaultTracking: {
-            sessions: false,
-          },
-        };
-        const plugin = webAttributionPlugin({
-          resetSessionOnNewCampaign: true,
-        });
-        await plugin.setup?.(overrideMockConfig, amplitude);
-        expect(setSessionId).toHaveBeenCalledTimes(1);
-        const newSessionId = setSessionId.mock.calls[0][0];
-        const newEvent = await plugin.execute?.({
-          event_type: 'event_type',
-          session_id: newSessionId,
-          user_properties: {
-            // adding other user properties to test merge logic
-            $add: {
-              a: 1,
-            },
-          },
-        });
-        expect(newEvent?.event_type).toEqual('event_type');
-        expect(newEvent?.user_properties).toEqual({
-          ...campaignEventWithUtmSource.user_properties,
-          $add: {
-            a: 1,
-          },
-        });
-      });
-
-      test('when a campaign changes and reset session id, with session events', async () => {
-        const sessionId = Date.now();
-        const overrideMockConfig: BrowserConfig = {
-          ...mockConfig,
-          sessionId,
-          defaultTracking: {
-            sessions: true,
-          },
-        };
-
-        const amplitude = createInstance();
-
-        const setSessionId = jest.spyOn(amplitude, 'setSessionId');
         const track = jest.spyOn(amplitude, 'track').mockReturnValue({
           promise: Promise.resolve({
             code: 200,
@@ -180,13 +130,53 @@ describe('webAttributionPlugin', () => {
           utm_source: 'amp-test',
         });
 
+        const overrideMockConfig: BrowserConfig = {
+          ...mockConfig,
+
+          // mocks a valid session to help assert
+          // session restart
+          sessionTimeout: 1000,
+          lastEventTime: Date.now() - 100,
+        };
         const plugin = webAttributionPlugin({
           resetSessionOnNewCampaign: true,
         });
+
         await plugin.setup?.(overrideMockConfig, amplitude);
 
+        // assert that session was restarted
         expect(setSessionId).toHaveBeenCalledTimes(1);
+        const newSessionId = setSessionId.mock.calls[0][0];
+
+        // assert that campaign event ws tracked
         expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(1, {
+          event_type: '$identify',
+          user_properties: {
+            ...campaignEventWithUtmSource.user_properties,
+          },
+          session_id: newSessionId,
+        });
+
+        const newEvent = await plugin.execute?.({
+          event_type: 'event_type',
+          session_id: newSessionId,
+          user_properties: {
+            // adding other user properties to test merge logic
+            $add: {
+              a: 1,
+            },
+          },
+        });
+
+        // assert next event seen was enriched with campaign event's user properties
+        expect(newEvent?.event_type).toEqual('event_type');
+        expect(newEvent?.user_properties).toEqual({
+          ...campaignEventWithUtmSource.user_properties,
+          $add: {
+            a: 1,
+          },
+        });
       });
     });
 
