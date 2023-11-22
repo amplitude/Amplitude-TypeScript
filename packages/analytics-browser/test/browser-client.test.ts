@@ -67,7 +67,7 @@ describe('browser-client', () => {
       expect(client.getUserId()).toBe(undefined);
     });
 
-    test('should set initalize with undefined user id', async () => {
+    test('should set initialize with undefined user id', async () => {
       client.setOptOut(true);
       await client.init(apiKey, undefined).promise;
       expect(client.getUserId()).toBe(undefined);
@@ -246,9 +246,10 @@ describe('browser-client', () => {
       expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
     });
 
-    test('should add web attribution tracking plugin', async () => {
+    test('should add web attribution tracking plugin with valid session', async () => {
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
+        sessionId: Date.now(),
         lastEventTime: Date.now(),
       });
       const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
@@ -265,11 +266,46 @@ describe('browser-client', () => {
         optOut: false,
         defaultTracking: {
           ...defaultTracking,
-          attribution: {},
+          attribution: {
+            resetSessionOnNewCampaign: true,
+          },
         },
-        sessionId: Date.now(),
       }).promise;
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+      expect(webAttributionPluginPlugin).toHaveBeenNthCalledWith(1, {
+        resetSessionOnNewCampaign: true,
+      });
+    });
+
+    test('should add web attribution tracking plugin with expired session', async () => {
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
+        optOut: false,
+        sessionId: Date.now(),
+        lastEventTime: 1,
+      });
+      const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
+      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: {
+            resetSessionOnNewCampaign: false,
+          },
+        },
+      }).promise;
+      expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+      expect(webAttributionPluginPlugin).toHaveBeenNthCalledWith(1, {
+        resetSessionOnNewCampaign: false,
+      });
     });
 
     test('should add web attribution to session start event', async () => {
