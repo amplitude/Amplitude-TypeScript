@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.3.6-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.3.5...@amplitude/analytics-browser@2.3.6-beta.0) (2023-11-22)
+
+### Bug Fixes
+
+- update attribution plugin to apply utm params to the `session_start` event
+  ([#619](https://github.com/amplitude/Amplitude-TypeScript/issues/619))
+  ([bf45ca6](https://github.com/amplitude/Amplitude-TypeScript/commit/bf45ca6c17ac8d656cb6c5bb4f4fa19ff344ac85))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.3.4...@amplitude/analytics-browser@2.3.5) (2023-11-16)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
