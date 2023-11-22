@@ -84,7 +84,7 @@ export class Timeline {
       }
       const e = await plugin.execute({ ...event });
       if (e === null) {
-        resolve({ event, code: 0, message: '' });
+        resolve({ event, code: 100, message: `Event was dropped by a plugin` });
         return;
       } else {
         event = e;
@@ -103,7 +103,7 @@ export class Timeline {
       }
       const e = await plugin.execute({ ...event });
       if (e === null) {
-        resolve({ event, code: 0, message: '' });
+        resolve({ event, code: 100, message: `Event was dropped by a plugin` });
         return;
       } else {
         event = e;

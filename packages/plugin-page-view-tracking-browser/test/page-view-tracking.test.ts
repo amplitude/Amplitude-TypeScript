@@ -197,7 +197,78 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   describe('execute', () => {
-    test('should track page view on attribution', async () => {
+    test('should track a separate page view event on attribution', async () => {
+      const plugin = pageViewTrackingPlugin({
+        trackOn: 'attribution',
+      });
+      const amplitude = createInstance();
+      const track = jest.spyOn(amplitude, 'track');
+      await plugin.setup?.(mockConfig, amplitude);
+
+      const event = await plugin.execute?.({
+        event_type: 'session_start',
+        user_properties: {
+          $set: {
+            utm_source: 'amp-test',
+          },
+          $setOnce: {
+            initial_dclid: 'EMPTY',
+            initial_fbclid: 'EMPTY',
+            initial_gbraid: 'EMPTY',
+            initial_gclid: 'EMPTY',
+            initial_ko_click_id: 'EMPTY',
+            initial_li_fat_id: 'EMPTY',
+            initial_msclkid: 'EMPTY',
+            initial_wbraid: 'EMPTY',
+            initial_referrer: 'EMPTY',
+            initial_referring_domain: 'EMPTY',
+            initial_rtd_cid: 'EMPTY',
+            initial_ttclid: 'EMPTY',
+            initial_twclid: 'EMPTY',
+            initial_utm_campaign: 'EMPTY',
+            initial_utm_content: 'EMPTY',
+            initial_utm_id: 'EMPTY',
+            initial_utm_medium: 'EMPTY',
+            initial_utm_source: 'amp-test',
+            initial_utm_term: 'EMPTY',
+          },
+          $unset: {
+            dclid: '-',
+            fbclid: '-',
+            gbraid: '-',
+            gclid: '-',
+            ko_click_id: '-',
+            li_fat_id: '-',
+            msclkid: '-',
+            wbraid: '-',
+            referrer: '-',
+            referring_domain: '-',
+            rtd_cid: '-',
+            ttclid: '-',
+            twclid: '-',
+            utm_campaign: '-',
+            utm_content: '-',
+            utm_id: '-',
+            utm_medium: '-',
+            utm_term: '-',
+          },
+        },
+      });
+      expect(event?.event_type).toBe('session_start');
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(1, {
+        event_type: '[Amplitude] Page Viewed',
+        event_properties: {
+          '[Amplitude] Page Domain': '',
+          '[Amplitude] Page Location': '',
+          '[Amplitude] Page Path': '',
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': '',
+        },
+      });
+    });
+
+    test('should enrich page view track on attribution user props', async () => {
       const plugin = pageViewTrackingPlugin({
         trackOn: 'attribution',
       });
