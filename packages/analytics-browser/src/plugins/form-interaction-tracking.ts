@@ -58,7 +58,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       addEventListener(form, 'change', () => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
-            [FORM_ID]: form.id,
+            [FORM_ID]: stringOrUndefined(form.id),
             [FORM_NAME]: stringOrUndefined(form.name),
             [FORM_DESTINATION]: form.action,
           });
@@ -69,14 +69,14 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       addEventListener(form, 'submit', () => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
-            [FORM_ID]: form.id,
+            [FORM_ID]: stringOrUndefined(form.id),
             [FORM_NAME]: stringOrUndefined(form.name),
             [FORM_DESTINATION]: form.action,
           });
         }
 
         amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
-          [FORM_ID]: form.id,
+          [FORM_ID]: stringOrUndefined(form.id),
           [FORM_NAME]: stringOrUndefined(form.name),
           [FORM_DESTINATION]: form.action,
         });
