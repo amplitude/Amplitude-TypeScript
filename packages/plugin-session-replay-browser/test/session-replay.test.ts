@@ -67,6 +67,7 @@ describe('SessionReplayPlugin', () => {
     test('should expose underlying sessionReplay object', async () => {
       const sessionReplay = new SessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
+      expect(sessionReplay.sessionReplay.init).toBeDefined();
       expect(sessionReplay.sessionReplay.getSessionReplayProperties).toBeDefined();
       expect(sessionReplay.sessionReplay.setSessionId).toBeDefined();
       expect(sessionReplay.sessionReplay.shutdown).toBeDefined();
