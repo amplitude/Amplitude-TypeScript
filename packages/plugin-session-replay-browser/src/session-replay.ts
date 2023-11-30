@@ -1,5 +1,6 @@
 import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-types';
 import * as sessionReplay from '@amplitude/session-replay-browser';
+import { AmplitudeSessionReplay } from '@amplitude/session-replay-browser';
 import { DEFAULT_SESSION_START_EVENT } from './constants';
 import { SessionReplayOptions } from './typings/session-replay';
 export class SessionReplayPlugin implements EnrichmentPlugin {
@@ -13,6 +14,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   constructor(options?: SessionReplayOptions) {
     this.options = { ...options };
+  }
+
+  get sessionReplay(): AmplitudeSessionReplay {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return sessionReplay as AmplitudeSessionReplay;
   }
 
   async setup(config: BrowserConfig) {

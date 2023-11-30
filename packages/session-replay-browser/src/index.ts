@@ -1,2 +1,3 @@
 import sessionReplay from './session-replay-factory';
-export const { init, setSessionId, getSessionReplayProperties, shutdown } = sessionReplay;
+export const { init, setSessionId, getSessionReplayProperties, shutdown, flush } = sessionReplay;
+export { AmplitudeSessionReplay } from './typings/session-replay';

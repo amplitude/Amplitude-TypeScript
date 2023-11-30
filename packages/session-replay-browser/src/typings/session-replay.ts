@@ -49,4 +49,5 @@ export interface AmplitudeSessionReplay {
   setSessionId: (sessionId: number) => void;
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
   shutdown: () => void;
+  flush: (useRetry: boolean) => Promise<void>;
 }

@@ -64,6 +64,15 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config.flushIntervalMillis).toBe(0);
     });
 
+    test('should expose underlying sessionReplay object', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup(mockConfig);
+      expect(sessionReplay.sessionReplay.getSessionReplayProperties).toBeDefined();
+      expect(sessionReplay.sessionReplay.setSessionId).toBeDefined();
+      expect(sessionReplay.sessionReplay.shutdown).toBeDefined();
+      expect(sessionReplay.sessionReplay.flush).toBeDefined();
+    });
+
     describe('defaultTracking', () => {
       test('should not change defaultTracking if its set to true', async () => {
         const sessionReplay = new SessionReplayPlugin();
