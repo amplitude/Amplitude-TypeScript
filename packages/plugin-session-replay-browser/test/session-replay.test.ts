@@ -104,6 +104,9 @@ describe('SessionReplayPlugin', () => {
     test('should call initalize on session replay sdk', async () => {
       const sessionReplay = new SessionReplayPlugin({
         sampleRate: 0.4,
+        privacyConfig: {
+          blockSelector: ['#id'],
+        },
       });
       await sessionReplay.setup(mockConfig);
 
@@ -119,6 +122,9 @@ describe('SessionReplayPlugin', () => {
         sampleRate: 0.4,
         serverZone: mockConfig.serverZone,
         sessionId: mockConfig.sessionId,
+        privacyConfig: {
+          blockSelector: ['#id'],
+        },
       });
     });
   });

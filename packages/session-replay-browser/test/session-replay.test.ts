@@ -98,6 +98,25 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
     });
 
+    test('should setup plugin with privacy config', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        privacyConfig: { blockSelector: ['.class', '#id'] },
+      }).promise;
+      expect(sessionReplay.config?.transportProvider).toBeDefined();
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.optOut).toBe(false);
+      expect(sessionReplay.config?.sampleRate).toBe(0.5);
+      expect(sessionReplay.config?.deviceId).toBe('1a2b3c');
+      expect(sessionReplay.config?.sessionId).toBe(123);
+      expect(sessionReplay.config?.logLevel).toBe(0);
+      expect(sessionReplay.config?.privacyConfig?.blockSelector).toEqual(['.class', '#id']);
+      expect(sessionReplay.loggerProvider).toBeDefined();
+      expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
+    });
+
     test('should call initalize with shouldSendStoredEvents=true', async () => {
       const sessionReplay = new SessionReplay();
       const initalize = jest.spyOn(sessionReplay, 'initialize').mockReturnValueOnce(Promise.resolve());
@@ -434,7 +453,11 @@ describe('SessionReplayPlugin', () => {
     });
     test('should record events', async () => {
       const sessionReplay = new SessionReplay();
-      sessionReplay.config = { apiKey, ...mockOptions } as SessionReplayConfig;
+      sessionReplay.config = {
+        apiKey,
+        ...mockOptions,
+        privacyConfig: { blockSelector: ['#id'] },
+      } as SessionReplayConfig;
       const mockGetResolution = Promise.resolve({});
       get.mockReturnValueOnce(mockGetResolution);
       await sessionReplay.initialize();
@@ -686,7 +709,8 @@ describe('SessionReplayPlugin', () => {
 
     test('should return early if user opts out', async () => {
       const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      await sessionReplay.init(apiKey, { ...mockOptions, optOut: true, privacyConfig: { blockSelector: ['#class'] } })
+        .promise;
       sessionReplay.recordEvents();
       expect(record).not.toHaveBeenCalled();
       expect(sessionReplay.events).toEqual([]);
@@ -1797,6 +1821,14 @@ describe('SessionReplayPlugin', () => {
       globalSpy.mockImplementation(() => undefined);
       const url = Helpers.getCurrentUrl();
       expect(url).toEqual('');
+    });
+  });
+
+  describe('getBlockSelectors', () => {
+    test('null config', () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = undefined;
+      expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
     });
   });
 });
