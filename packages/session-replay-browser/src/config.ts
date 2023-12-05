@@ -1,7 +1,11 @@
 import { FetchTransport } from '@amplitude/analytics-client-common';
 import { Config, Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
-import { SessionReplayConfig as ISessionReplayConfig, SessionReplayOptions } from './typings/session-replay';
+import {
+  SessionReplayConfig as ISessionReplayConfig,
+  SessionReplayOptions,
+  SessionReplayPrivacyConfig,
+} from './typings/session-replay';
 import { DEFAULT_SAMPLE_RATE } from './constants';
 import { generateSessionReplayId } from './helpers';
 
@@ -18,6 +22,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
   deviceId?: string | undefined;
   sessionId?: number | undefined;
   sessionReplayId?: string | undefined;
+  privacyConfig?: SessionReplayPrivacyConfig;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -40,6 +45,10 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
       this.sessionReplayId = generateSessionReplayId(options.sessionId, options.deviceId);
     } else {
       this.loggerProvider.error('Please provide both sessionId and deviceId.');
+    }
+
+    if (options.privacyConfig) {
+      this.privacyConfig = options.privacyConfig;
     }
   }
 }

@@ -31,6 +31,10 @@ export interface IDBStore {
   [sessionId: number]: IDBStoreSession;
 }
 
+export interface SessionReplayPrivacyConfig {
+  blockSelector?: string | string[];
+}
+
 export interface SessionReplayConfig extends Config {
   apiKey: string;
   deviceId?: string;
@@ -40,6 +44,7 @@ export interface SessionReplayConfig extends Config {
   flushMaxRetries: number;
   sampleRate: number;
   sessionReplayId?: string;
+  privacyConfig?: SessionReplayPrivacyConfig;
 }
 
 export type SessionReplayOptions = Omit<Partial<SessionReplayConfig>, 'apiKey'>;

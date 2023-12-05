@@ -218,6 +218,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return true;
   }
 
+  getBlockSelectors(): string | string[] | undefined {
+    return this.config?.privacyConfig?.blockSelector;
+  }
+
   sendStoredEvents(storedReplaySessions: IDBStore) {
     for (const sessionId in storedReplaySessions) {
       const storedSequences = storedReplaySessions[sessionId].sessionSequences;
@@ -271,6 +275,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
+      // rrweb only exposes array type through its types, but arrays are also be supported. #class, ['#class', 'id']
+      blockSelector: this.getBlockSelectors() as string,
       maskInputFn,
       recordCanvas: false,
       errorHandler: (error) => {

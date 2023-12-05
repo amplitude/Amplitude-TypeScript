@@ -46,6 +46,9 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       flushMaxRetries: this.config.flushMaxRetries,
       serverZone: this.config.serverZone,
       sampleRate: this.options.sampleRate,
+      privacyConfig: {
+        blockSelector: this.options.privacyConfig?.blockSelector,
+      },
     }).promise;
   }
 
