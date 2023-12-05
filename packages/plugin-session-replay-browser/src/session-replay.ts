@@ -106,7 +106,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
   }
 }
 
-export const sessionReplayPlugin: (options?: SessionReplayOptions) => EnrichmentPlugin = (
+export const sessionReplayPlugin: (options?: SessionReplayOptions) => DestinationPlugin = (
   options?: SessionReplayOptions,
 ) => {
   return new SessionReplayPlugin(options);
