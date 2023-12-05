@@ -45,7 +45,12 @@ export class SessionReplayPlugin implements DestinationPlugin {
     this.options = { ...options };
   }
 
-  async setup(config: BrowserConfig, client: BrowserClient) {
+  async setup(config: BrowserConfig, client?: BrowserClient) {
+    if (!client) {
+      config.loggerProvider.error('SessionReplayPlugin requires v1.9.1+ of the Amplitude SDK.');
+      return;
+    }
+
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
 
     this.config = config;
