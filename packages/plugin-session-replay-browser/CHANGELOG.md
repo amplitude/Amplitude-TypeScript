@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.8.1...@amplitude/plugin-session-replay-browser@0.9.0) (2023-12-05)
+
+### Features
+
+- expose rrweb blockselector
+  ([09b33b7](https://github.com/amplitude/Amplitude-TypeScript/commit/09b33b71ab885e8c954fe28c1e1e54360784755b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.7.1...@amplitude/plugin-session-replay-browser@0.8.1) (2023-11-16)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
