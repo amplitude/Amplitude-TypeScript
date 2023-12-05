@@ -41,5 +41,9 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
     } else {
       this.loggerProvider.error('Please provide both sessionId and deviceId.');
     }
+
+    if (options.privacyConfig && options.privacyConfig.blockSelector) {
+      //TODO: validate the selector.
+    }
   }
 }

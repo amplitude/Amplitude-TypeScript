@@ -271,6 +271,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
+      // rrweb only exposes array type through its types, but arrays are also be supported
+      blockSelector: this.config?.privacyConfig?.blockSelector as string,
       maskInputFn,
       recordCanvas: false,
       errorHandler: (error) => {
