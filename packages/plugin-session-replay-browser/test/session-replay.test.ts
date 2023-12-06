@@ -68,7 +68,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin();
       await sessionReplay.setup(mockConfig);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(sessionReplay.config.loggerProvider.error).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.error).toHaveBeenCalledWith(
         'SessionReplayPlugin requires v1.9.1+ of the Amplitude SDK.',
