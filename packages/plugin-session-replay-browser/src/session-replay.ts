@@ -1,10 +1,41 @@
-import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-types';
+import {
+  BrowserClient,
+  BrowserConfig,
+  DestinationPlugin,
+  EnrichmentPlugin,
+  Event,
+  Result,
+} from '@amplitude/analytics-types';
 import * as sessionReplay from '@amplitude/session-replay-browser';
 import { DEFAULT_SESSION_START_EVENT } from './constants';
 import { SessionReplayOptions } from './typings/session-replay';
-export class SessionReplayPlugin implements EnrichmentPlugin {
-  name = '@amplitude/plugin-session-replay-browser';
+
+class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
+  name = '@amplitude/plugin-session-replay-enrichment-browser';
   type = 'enrichment' as const;
+
+  async setup(_config: BrowserConfig, _client: BrowserClient) {
+    // do nothing
+  }
+
+  async execute(event: Event) {
+    if (event.event_type === DEFAULT_SESSION_START_EVENT && event.session_id) {
+      sessionReplay.setSessionId(event.session_id);
+    }
+
+    const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+    event.event_properties = {
+      ...event.event_properties,
+      ...sessionRecordingProperties,
+    };
+
+    return Promise.resolve(event);
+  }
+}
+
+export class SessionReplayPlugin implements DestinationPlugin {
+  name = '@amplitude/plugin-session-replay-browser';
+  type = 'destination' as const;
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -15,7 +46,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     this.options = { ...options };
   }
 
-  async setup(config: BrowserConfig) {
+  async setup(config: BrowserConfig, client?: BrowserClient) {
+    if (!client) {
+      config.loggerProvider.error('SessionReplayPlugin requires v1.9.1+ of the Amplitude SDK.');
+      return;
+    }
+
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
 
     this.config = config;
@@ -50,20 +86,21 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         blockSelector: this.options.privacyConfig?.blockSelector,
       },
     }).promise;
+
+    // add enrichment plugin to add session replay properties to events
+    client.add(new SessionReplayEnrichmentPlugin());
   }
 
-  async execute(event: Event) {
-    if (event.event_type === DEFAULT_SESSION_START_EVENT && event.session_id) {
-      sessionReplay.setSessionId(event.session_id);
-    }
+  async execute(event: Event): Promise<Result> {
+    return Promise.resolve({
+      event,
+      code: 200,
+      message: 'success',
+    });
+  }
 
-    const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-    event.event_properties = {
-      ...event.event_properties,
-      ...sessionRecordingProperties,
-    };
-
-    return Promise.resolve(event);
+  async flush(): Promise<void> {
+    await sessionReplay.flush(false);
   }
 
   async teardown(): Promise<void> {
@@ -75,7 +112,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   }
 }
 
-export const sessionReplayPlugin: (options?: SessionReplayOptions) => EnrichmentPlugin = (
+export const sessionReplayPlugin: (options?: SessionReplayOptions) => DestinationPlugin = (
   options?: SessionReplayOptions,
 ) => {
   return new SessionReplayPlugin(options);
