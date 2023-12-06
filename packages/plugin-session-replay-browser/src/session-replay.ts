@@ -11,7 +11,7 @@ import { DEFAULT_SESSION_START_EVENT } from './constants';
 import { SessionReplayOptions } from './typings/session-replay';
 
 class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
-  name = '@amplitude/plugin-session-replay-browser-enrichment';
+  name = '@amplitude/plugin-session-replay-enrichment-browser';
   type = 'enrichment' as const;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
