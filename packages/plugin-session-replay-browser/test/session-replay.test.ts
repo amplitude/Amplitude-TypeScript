@@ -10,7 +10,7 @@ type MockedLogger = jest.Mocked<Logger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionReplayProperties, shutdown } =
+  const { init, setSessionId, getSessionReplayProperties, flush, shutdown } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -47,6 +47,7 @@ describe('SessionReplayPlugin', () => {
     },
   } as unknown as BrowserConfig;
 
+  const plugins: Plugin[] = [];
   const mockAmplitude: MockedBrowserClient = {
     add: jest.fn(),
   } as unknown as MockedBrowserClient;
@@ -54,6 +55,13 @@ describe('SessionReplayPlugin', () => {
   beforeEach(() => {
     init.mockReturnValue({
       promise: Promise.resolve(),
+    });
+    plugins.splice(0, plugins.length);
+    mockAmplitude.add.mockImplementation((plugin) => {
+      plugins.push(plugin);
+      return {
+        promise: Promise.resolve(),
+      };
     });
     jest.useFakeTimers();
   });
@@ -89,6 +97,17 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.setup(mockConfig, mockAmplitude);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockAmplitude.add).toHaveBeenCalledTimes(1);
+    });
+
+    // setup does nothing, only testing this for coverage
+    test('should exist on "@amplitude/plugin-session-replay-enrichment-browser" plugin', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+
+      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
+      const result = await sessionReplayEnrichmentPlugin.setup(mockConfig, mockAmplitude);
+
+      expect(result).toBe(undefined);
     });
 
     describe('defaultTracking', () => {
@@ -166,17 +185,30 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('execute', () => {
-    const plugins: Plugin[] = [];
+    // beforeEach(() => {
+    //   // clear plugins
+    //   plugins.splice(0, plugins.length);
+    // });
 
-    beforeEach(() => {
-      // clear plugins
-      plugins.splice(0, plugins.length);
+    test('should not modify event and return success from DestinationPlugin', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      getSessionReplayProperties.mockReturnValueOnce({
+        '[Amplitude] Session Recorded': true,
+      });
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+          property_b: 123,
+        },
+      };
 
-      mockAmplitude.add.mockImplementation((plugin) => {
-        plugins.push(plugin);
-        return {
-          promise: Promise.resolve(),
-        };
+      const result = await sessionReplay.execute(event);
+      expect(result).toEqual({
+        code: 200,
+        message: 'success',
+        event,
       });
     });
 
@@ -219,6 +251,15 @@ describe('SessionReplayPlugin', () => {
       await sessionReplayEnrichmentPlugin.execute(event);
       expect(setSessionId).toHaveBeenCalledTimes(1);
       expect(setSessionId).toHaveBeenCalledWith(456);
+    });
+  });
+
+  describe('flush', () => {
+    test('should call session replay flush', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      await sessionReplay.flush?.();
+      expect(flush).toHaveBeenCalled();
     });
   });
 

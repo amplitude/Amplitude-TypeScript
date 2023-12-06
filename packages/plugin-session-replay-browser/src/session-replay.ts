@@ -14,8 +14,9 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
   name = '@amplitude/plugin-session-replay-enrichment-browser';
   type = 'enrichment' as const;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  async setup(_config: BrowserConfig, _client: BrowserClient) {}
+  async setup(_config: BrowserConfig, _client: BrowserClient) {
+    // do nothing
+  }
 
   async execute(event: Event) {
     if (event.event_type === DEFAULT_SESSION_START_EVENT && event.session_id) {
