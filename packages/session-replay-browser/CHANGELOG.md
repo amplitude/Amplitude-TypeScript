@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.6.0...@amplitude/session-replay-browser@0.7.0) (2023-12-06)
+
+### Features
+
+- convert session replay plugin to be a destination plugin with flush support
+  ([#633](https://github.com/amplitude/Amplitude-TypeScript/issues/633))
+  ([bfa643f](https://github.com/amplitude/Amplitude-TypeScript/commit/bfa643fa92d3cc6b84e924d7a22f502cee289035))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@0.5.0...@amplitude/session-replay-browser@0.6.0) (2023-12-05)
 
 ### Features
