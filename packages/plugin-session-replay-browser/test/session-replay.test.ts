@@ -185,11 +185,6 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('execute', () => {
-    // beforeEach(() => {
-    //   // clear plugins
-    //   plugins.splice(0, plugins.length);
-    // });
-
     test('should not modify event and return success from DestinationPlugin', async () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig, mockAmplitude);
