@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.3.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.3.6...@amplitude/analytics-browser@2.3.7) (2023-12-12)
+
+### Bug Fixes
+
+- ignore non-string form.id ([#629](https://github.com/amplitude/Amplitude-TypeScript/issues/629))
+  ([690af77](https://github.com/amplitude/Amplitude-TypeScript/commit/690af774d9bc36c6c4a76311a9bbe189c1a698d1))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.3.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.3.6-beta.0...@amplitude/analytics-browser@2.3.6) (2023-12-01)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
