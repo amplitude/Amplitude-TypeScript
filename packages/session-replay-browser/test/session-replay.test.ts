@@ -3,7 +3,13 @@ import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import * as IDBKeyVal from 'idb-keyval';
-import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../src/constants';
+import {
+  DEFAULT_SAMPLE_RATE,
+  DEFAULT_SESSION_REPLAY_PROPERTY,
+  SESSION_REPLAY_SERVER_URL,
+  SESSION_REPLAY_EU_URL,
+  SESSION_REPLAY_STAGING_URL,
+} from '../src/constants';
 import * as Helpers from '../src/helpers';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
@@ -996,6 +1002,20 @@ describe('SessionReplayPlugin', () => {
     test('should return us server url if no config set', () => {
       const sessionReplay = new SessionReplay();
       expect(sessionReplay.getServerUrl()).toEqual(SESSION_REPLAY_SERVER_URL);
+    });
+
+    test('should return staging server url if staging config set', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, serverZone: ServerZone.STAGING }).promise;
+
+      expect(sessionReplay.getServerUrl()).toEqual(SESSION_REPLAY_STAGING_URL);
+    });
+
+    test('should return eu server url if eu config set', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, serverZone: ServerZone.EU }).promise;
+
+      expect(sessionReplay.getServerUrl()).toEqual(SESSION_REPLAY_EU_URL);
     });
   });
 

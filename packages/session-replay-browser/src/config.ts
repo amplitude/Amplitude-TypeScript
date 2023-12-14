@@ -6,7 +6,7 @@ import {
   SessionReplayOptions,
   SessionReplayPrivacyConfig,
 } from './typings/session-replay';
-import { DEFAULT_SAMPLE_RATE } from './constants';
+import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from './constants';
 import { generateSessionReplayId } from './helpers';
 
 export const getDefaultConfig = () => ({
@@ -40,6 +40,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
     this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
     this.deviceId = options.deviceId;
     this.sessionId = options.sessionId;
+    this.serverZone = options.serverZone || DEFAULT_SERVER_ZONE;
 
     if (options.sessionId && options.deviceId) {
       this.sessionReplayId = generateSessionReplayId(options.sessionId, options.deviceId);
