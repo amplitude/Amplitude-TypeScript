@@ -14,6 +14,7 @@ import {
   MAX_INTERVAL,
   MIN_INTERVAL,
   SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
+  SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
   SESSION_REPLAY_SERVER_URL,
   STORAGE_PREFIX,
   defaultSessionStore,
@@ -374,9 +375,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getServerUrl() {
+    if (this.config?.serverZone === ServerZone.STAGING) {
+      return SESSION_REPLAY_STAGING_SERVER_URL;
+    }
+
     if (this.config?.serverZone === ServerZone.EU) {
       return SESSION_REPLAY_EU_SERVER_URL;
     }
+
     return SESSION_REPLAY_SERVER_URL;
   }
 
