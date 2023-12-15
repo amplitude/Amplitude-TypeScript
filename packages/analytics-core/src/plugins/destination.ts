@@ -106,7 +106,10 @@ export class Destination implements DestinationPlugin {
   }
 
   schedule(timeout: number) {
-    if (this.scheduled) return;
+    if (this.scheduled || this.config.offline) {
+      return;
+    }
+
     this.scheduled = setTimeout(() => {
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {

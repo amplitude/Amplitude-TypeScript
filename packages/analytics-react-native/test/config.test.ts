@@ -38,6 +38,7 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
+        offline: false,
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
@@ -90,6 +91,7 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
+        offline: false,
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
@@ -143,6 +145,7 @@ describe('config', () => {
         sessionTimeout: 1,
         cookieUpgrade: false,
         disableCookies: true,
+        offline: true,
       });
       expect(config).toEqual({
         apiKey: API_KEY,
@@ -164,6 +167,7 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
+        offline: true,
         _optOut: false,
         partnerId: 'partnerId',
         plan: {

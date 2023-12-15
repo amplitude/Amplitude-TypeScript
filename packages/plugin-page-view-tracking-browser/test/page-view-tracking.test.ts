@@ -12,6 +12,7 @@ describe('pageViewTrackingPlugin', () => {
     flushQueueSize: 0,
     logLevel: LogLevel.None,
     loggerProvider: new Logger(),
+    offline: false,
     optOut: false,
     serverUrl: undefined,
     transportProvider: new FetchTransport(),

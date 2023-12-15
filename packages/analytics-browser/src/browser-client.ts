@@ -279,4 +279,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     return super.process(event);
   }
+
+  setOffline(offline: boolean) {
+    const previousOffline = this.config.offline;
+    this.config.offline = offline;
+
+    // flush when modes changes offline to online
+    if (previousOffline && !offline) {
+      this.flush();
+    }
+  }
 }

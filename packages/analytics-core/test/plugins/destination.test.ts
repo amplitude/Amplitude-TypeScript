@@ -122,6 +122,10 @@ describe('destination', () => {
           timeout: 0,
         },
       ];
+      destination.config = {
+        ...destination.config,
+        offline: false,
+      };
       const flush = jest
         .spyOn(destination, 'flush')
         .mockImplementationOnce(() => {
@@ -138,6 +142,40 @@ describe('destination', () => {
       // exhause nested setTimeout
       jest.runAllTimers();
       expect(flush).toHaveBeenCalledTimes(2);
+    });
+
+    test('should not schedule a flush', async () => {
+      const destination = new Destination();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (destination as any).scheduled = null;
+      destination.queue = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+      ];
+      destination.config = {
+        ...destination.config,
+        offline: true,
+      };
+      const flush = jest
+        .spyOn(destination, 'flush')
+        .mockImplementationOnce(() => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (destination as any).scheduled = null;
+          return Promise.resolve(undefined);
+        })
+        .mockReturnValueOnce(Promise.resolve(undefined));
+      destination.schedule(0);
+      // exhause first setTimeout
+      jest.runAllTimers();
+      // wait for next tick to call nested setTimeout
+      await Promise.resolve();
+      // exhause nested setTimeout
+      jest.runAllTimers();
+      expect(flush).toHaveBeenCalledTimes(0);
     });
 
     test('should not schedule if one is already in progress', () => {
