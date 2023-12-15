@@ -837,4 +837,26 @@ describe('browser-client', () => {
       expect(result.code).toBe(0);
     });
   });
+
+  describe('setOffline', () => {
+    test('should set offline to true', async () => {
+      await client.init(apiKey, {
+        defaultTracking: false,
+        offline: false,
+      }).promise;
+
+      client.setOffline(true);
+      expect(client.config.offline).toBe(true);
+    });
+
+    test('should set offline to false', async () => {
+      await client.init(apiKey, {
+        defaultTracking: false,
+        offline: true,
+      }).promise;
+
+      client.setOffline(false);
+      expect(client.config.offline).toBe(false);
+    });
+  });
 });

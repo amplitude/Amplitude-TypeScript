@@ -58,6 +58,7 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
+        offline: false,
         partnerId: undefined,
         plan: undefined,
         ingestionMetadata: undefined,
@@ -113,6 +114,7 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
+        offline: false,
         partnerId: undefined,
         plan: undefined,
         ingestionMetadata: undefined,
@@ -165,6 +167,7 @@ describe('config', () => {
             upgrade: false,
           },
           defaultTracking: true,
+          offline: true,
         },
         new AmplitudeBrowser(),
       );
@@ -197,6 +200,7 @@ describe('config', () => {
         logLevel: 2,
         loggerProvider: logger,
         minIdLength: undefined,
+        offline: true,
         partnerId: 'partnerId',
         plan: {
           version: '0',

@@ -37,6 +37,7 @@ export const createConfigurationMock = (options?: Partial<BrowserConfig>) => {
     logLevel: LogLevel.Warn,
     loggerProvider: new Logger(),
     minIdLength: undefined,
+    offline: false,
     optOut: false,
     plan: undefined,
     ingestionMetadata: undefined,

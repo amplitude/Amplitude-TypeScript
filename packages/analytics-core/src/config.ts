@@ -26,6 +26,7 @@ export const getDefaultConfig = () => ({
   instanceName: '$default_instance',
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
+  offline: false,
   optOut: false,
   serverUrl: AMPLITUDE_SERVER_URL,
   serverZone: 'US' as ServerZoneType,
@@ -41,6 +42,7 @@ export class Config implements IConfig {
   loggerProvider: ILogger;
   logLevel: LogLevel;
   minIdLength?: number;
+  offline: boolean;
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
@@ -69,6 +71,7 @@ export class Config implements IConfig {
     this.minIdLength = options.minIdLength;
     this.plan = options.plan;
     this.ingestionMetadata = options.ingestionMetadata;
+    this.offline = options.offline ?? defaultConfig.offline;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.serverUrl = options.serverUrl;
     this.serverZone = options.serverZone || defaultConfig.serverZone;
