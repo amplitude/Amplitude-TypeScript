@@ -125,6 +125,12 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    setOffline: debugWrapper(
+      client.setOffline.bind(client),
+      'setOffline',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
   };
 };
 
