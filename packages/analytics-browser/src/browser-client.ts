@@ -80,21 +80,23 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       cookieStorage,
     });
 
-    await super._init(browserOptions);
-
     // Step 3: Set session ID
     let isNewSession = false;
     if (
       // user has never sent an event
-      !this.config.lastEventTime ||
+      !browserOptions.lastEventTime ||
       // user has no previous session ID
-      !this.config.sessionId ||
+      !browserOptions.sessionId ||
       // has sent an event and has previous session but expired
-      (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
+      (browserOptions.lastEventTime && Date.now() - browserOptions.lastEventTime > browserOptions.sessionTimeout)
     ) {
-      this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
+      // we need to set the session ID before plugins run
+      // add it to the front of the queue
+      this.q.unshift(this.setSessionId.bind(this, options.sessionId ?? browserOptions.sessionId ?? Date.now()));
       isNewSession = true;
     }
+
+    await super._init(browserOptions);
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
