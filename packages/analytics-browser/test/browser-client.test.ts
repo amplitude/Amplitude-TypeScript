@@ -954,9 +954,11 @@ describe('browser-client', () => {
         defaultTracking: false,
         offline: true,
       }).promise;
+      const flush = jest.spyOn(client, 'flush');
 
       client.setOffline(false);
       expect(client.config.offline).toBe(false);
+      expect(flush).toHaveBeenCalledTimes(1);
     });
   });
 });
