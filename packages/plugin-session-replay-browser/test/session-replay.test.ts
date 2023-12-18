@@ -50,6 +50,7 @@ describe('SessionReplayPlugin', () => {
   const plugins: Plugin[] = [];
   const mockAmplitude: MockedBrowserClient = {
     add: jest.fn(),
+    remove: jest.fn(),
   } as unknown as MockedBrowserClient;
 
   beforeEach(() => {
@@ -59,6 +60,13 @@ describe('SessionReplayPlugin', () => {
     plugins.splice(0, plugins.length);
     mockAmplitude.add.mockImplementation((plugin) => {
       plugins.push(plugin);
+      return {
+        promise: Promise.resolve(),
+      };
+    });
+    mockAmplitude.remove.mockImplementation((pluginName) => {
+      const pluginIndex = plugins.findIndex((plugin) => plugin.name === pluginName);
+      plugins.splice(pluginIndex, 1);
       return {
         promise: Promise.resolve(),
       };
@@ -263,6 +271,15 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig, mockAmplitude);
       await sessionReplay.teardown?.();
+      expect(shutdown).toHaveBeenCalled();
+    });
+    test('should remove session replay enrichment plugin', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      expect(plugins.length).toBe(1);
+      expect(plugins[0].name).toBe('@amplitude/plugin-session-replay-enrichment-browser');
+      await sessionReplay.teardown?.();
+      expect(plugins.length).toBe(0);
       expect(shutdown).toHaveBeenCalled();
     });
   });

@@ -9,9 +9,10 @@ import {
 import * as sessionReplay from '@amplitude/session-replay-browser';
 import { DEFAULT_SESSION_START_EVENT } from './constants';
 import { SessionReplayOptions } from './typings/session-replay';
+const ENRICHMENT_PLUGIN_NAME = '@amplitude/plugin-session-replay-enrichment-browser';
 
 class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
-  name = '@amplitude/plugin-session-replay-enrichment-browser';
+  name = ENRICHMENT_PLUGIN_NAME;
   type = 'enrichment' as const;
 
   async setup(_config: BrowserConfig, _client: BrowserClient) {
@@ -36,6 +37,10 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
 export class SessionReplayPlugin implements DestinationPlugin {
   name = '@amplitude/plugin-session-replay-browser';
   type = 'destination' as const;
+  // this.client is defined in setup() which will always be called first
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  client: BrowserClient;
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -54,6 +59,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
 
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
 
+    this.client = client;
     this.config = config;
 
     if (typeof config.defaultTracking === 'boolean') {
@@ -88,7 +94,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
     }).promise;
 
     // add enrichment plugin to add session replay properties to events
-    client.add(new SessionReplayEnrichmentPlugin());
+    await client.add(new SessionReplayEnrichmentPlugin()).promise;
   }
 
   async execute(event: Event): Promise<Result> {
@@ -104,6 +110,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
   }
 
   async teardown(): Promise<void> {
+    await this.client.remove(ENRICHMENT_PLUGIN_NAME).promise;
     sessionReplay.shutdown();
   }
 
