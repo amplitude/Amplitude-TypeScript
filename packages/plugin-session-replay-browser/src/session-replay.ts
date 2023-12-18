@@ -112,6 +112,14 @@ export class SessionReplayPlugin implements DestinationPlugin {
   async teardown(): Promise<void> {
     await this.client.remove(ENRICHMENT_PLUGIN_NAME).promise;
     sessionReplay.shutdown();
+    // the following are initialized in setup() which will always be called first
+    // here we reset them to null to prevent memory leaks
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.config = null;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.client = null;
   }
 
   getSessionReplayProperties() {
