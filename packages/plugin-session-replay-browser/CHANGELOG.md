@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.10.0...@amplitude/plugin-session-replay-browser@0.10.1) (2023-12-19)
+
+### Bug Fixes
+
+- Amp 90629 remove sr enrichment plugin on teardown
+  ([#637](https://github.com/amplitude/Amplitude-TypeScript/issues/637))
+  ([e353e09](https://github.com/amplitude/Amplitude-TypeScript/commit/e353e095b82f5abda9f988b58a5fcfd051ef61f5))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@0.9.0...@amplitude/plugin-session-replay-browser@0.10.0) (2023-12-06)
 
 ### Features

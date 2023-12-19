@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.3.0...@amplitude/plugin-default-event-tracking-advanced-browser@0.3.1) (2023-12-19)
+
+**Note:** Version bump only for package @amplitude/plugin-default-event-tracking-advanced-browser
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.2.1...@amplitude/plugin-default-event-tracking-advanced-browser@0.3.0) (2023-11-16)
 
 ### Features
