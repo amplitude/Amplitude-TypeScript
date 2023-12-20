@@ -48,7 +48,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     }
 
     /* istanbul ignore if */
-    if (typeof document === 'undefined' || !document.body) {
+    if (typeof document === 'undefined') {
       return;
     }
 
