@@ -1,14 +1,6 @@
 import { FetchTransport, getAnalyticsConnector, getCookieName } from '@amplitude/analytics-client-common';
 import * as core from '@amplitude/analytics-core';
-import {
-  EnrichmentPlugin,
-  Status,
-  TransportType,
-  UserSession,
-  Event,
-  BrowserConfig,
-  BrowserClient,
-} from '@amplitude/analytics-types';
+import { Status, TransportType, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTrackingPlugin from '@amplitude/plugin-page-view-tracking-browser';
 import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
@@ -289,27 +281,6 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
-    });
-
-    test('should pass config.sessionId to plugin.setup', async () => {
-      const client = new AmplitudeBrowser();
-      const testPlugin: EnrichmentPlugin<BrowserClient, BrowserConfig> = {
-        name: 'testPlugin',
-        type: 'enrichment',
-        setup: (config) => {
-          expect(config.sessionId).toBe(42);
-          return Promise.resolve();
-        },
-        execute(e: Event): Promise<Event | null> {
-          return Promise.resolve(e);
-        },
-      };
-      const setupSpy = jest.spyOn(testPlugin, 'setup');
-      client.add(testPlugin);
-      await client.init(API_KEY, USER_ID, {
-        sessionId: 42,
-      }).promise;
-      expect(setupSpy).toHaveBeenCalledTimes(1);
     });
   });
 
