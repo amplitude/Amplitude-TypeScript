@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.0.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.9...@amplitude/analytics-client-common@2.0.10) (2023-12-20)
+
+### Reverts
+
+- update attribution plugin to apply utm params to the `session_start` event
+  ([#638](https://github.com/amplitude/Amplitude-TypeScript/issues/638))
+  ([c820279](https://github.com/amplitude/Amplitude-TypeScript/commit/c820279cbef2123d890beb7861d7edbbc3926f6e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.0.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.0.9-beta.0...@amplitude/analytics-client-common@2.0.9) (2023-12-01)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common

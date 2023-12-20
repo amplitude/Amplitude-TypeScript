@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.1.2...@amplitude/analytics-core@2.1.3) (2023-12-20)
+
+### Reverts
+
+- update attribution plugin to apply utm params to the `session_start` event
+  ([#638](https://github.com/amplitude/Amplitude-TypeScript/issues/638))
+  ([c820279](https://github.com/amplitude/Amplitude-TypeScript/commit/c820279cbef2123d890beb7861d7edbbc3926f6e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.1.2-beta.0...@amplitude/analytics-core@2.1.2) (2023-12-01)
 
 **Note:** Version bump only for package @amplitude/analytics-core
