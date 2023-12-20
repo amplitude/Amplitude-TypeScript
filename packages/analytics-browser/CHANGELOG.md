@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.3...@amplitude/analytics-browser@1.13.4) (2023-12-20)
+
+### Reverts
+
+- Amp 90349 revert session id insert before plugin setup
+  ([#639](https://github.com/amplitude/Amplitude-TypeScript/issues/639))
+  ([0d03e9c](https://github.com/amplitude/Amplitude-TypeScript/commit/0d03e9ccd61ea4dc3cc5ffc35885fb7f70103989)), closes
+  [#636](https://github.com/amplitude/Amplitude-TypeScript/issues/636)
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.2...@amplitude/analytics-browser@1.13.3) (2023-12-19)
 
 ### Bug Fixes
