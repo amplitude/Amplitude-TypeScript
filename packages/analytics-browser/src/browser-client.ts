@@ -94,7 +94,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     ) {
       // we need to set the session ID before plugins run
       // add it to the front of the queue
-      this.setSessionId(options.sessionId ?? browserOptions.sessionId ?? Date.now());
+      this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
       isNewSession = true;
     }
 
