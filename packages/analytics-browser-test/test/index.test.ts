@@ -89,7 +89,7 @@ describe('integration', () => {
         void client.track('Event Before Init').promise.then((response) => {
           expect(response.event).toEqual({
             device_id: deviceId, // NOTE: Device ID was set before init
-            event_id: 1,
+            event_id: 0,
             event_type: 'Event Before Init',
             insert_id: uuid,
             ip: '$remote',
@@ -212,7 +212,7 @@ describe('integration', () => {
                 wbraid: '-',
               },
             },
-            event_id: 1,
+            event_id: 0,
             library: library,
           },
           {
@@ -225,7 +225,7 @@ describe('integration', () => {
             ip: '$remote',
             insert_id: uuid,
             event_type: 'Event Before Init',
-            event_id: 2,
+            event_id: 1,
             library: library,
             user_agent: userAgent,
           },
@@ -257,7 +257,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 1,
+        event_id: 0,
         event_properties: {
           mode: 'test',
         },
@@ -289,7 +289,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
       });
@@ -320,7 +320,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
       });
@@ -357,7 +357,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 1,
+        event_id: 0,
         library: library,
         ingestion_metadata: {
           source_name: sourceName,
@@ -401,7 +401,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 1,
+        event_id: 0,
         library: library,
         groups: {
           org: '15',
@@ -446,7 +446,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 1',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
       });
@@ -463,7 +463,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 2',
-        event_id: 2,
+        event_id: 1,
         library: library,
         user_agent: userAgent,
       });
@@ -497,7 +497,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 1',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
       });
@@ -514,7 +514,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 2',
-        event_id: 2,
+        event_id: 1,
         library: library,
         user_agent: userAgent,
       });
@@ -557,7 +557,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 1',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
       });
@@ -574,7 +574,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 2',
-        event_id: 2,
+        event_id: 1,
         library: library,
         user_agent: userAgent,
       });
@@ -606,7 +606,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 1',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
       });
@@ -623,7 +623,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event 2',
-        event_id: 2,
+        event_id: 1,
         library: library,
         user_agent: userAgent,
       });
@@ -655,7 +655,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: 'test event',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
       });
@@ -715,7 +715,7 @@ describe('integration', () => {
         insert_id: uuid,
         partner_id: undefined,
         event_type: '$identify',
-        event_id: 1,
+        event_id: 0,
         library: library,
         user_agent: userAgent,
         user_properties: {
@@ -767,7 +767,7 @@ describe('integration', () => {
       const response = await client.revenue(rev).promise;
       expect(response.event).toEqual({
         device_id: uuid,
-        event_id: 1,
+        event_id: 0,
         event_properties: {
           $price: 100,
           $productId: '1',
@@ -803,7 +803,7 @@ describe('integration', () => {
       const response = await client.setGroup('org', 'engineering').promise;
       expect(response.event).toEqual({
         device_id: uuid,
-        event_id: 1,
+        event_id: 0,
         event_type: '$identify',
         groups: {
           org: 'engineering',
@@ -907,6 +907,22 @@ describe('integration', () => {
                 device_id: uuid,
                 event_id: 101,
                 event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 102,
+                event_type: '$identify',
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
@@ -1038,7 +1054,7 @@ describe('integration', () => {
       });
     });
 
-    test('should send session events and replace with unknown user with resetSessionOnNewCampaign:true', () => {
+    test('should send session events and replace with unknown user', () => {
       // Reset previous session cookies
       document.cookie = `amp_${apiKey.substring(0, 6)}=null; expires=1 Jan 1970 00:00:00 GMT`;
 
@@ -1052,9 +1068,7 @@ describe('integration', () => {
       client.init(apiKey, 'user1@amplitude.com', {
         defaultTracking: {
           ...defaultTracking,
-          attribution: {
-            resetSessionOnNewCampaign: true,
-          },
+          attribution: true,
           sessions: true,
         },
         sessionTimeout: 500,
@@ -1081,214 +1095,42 @@ describe('integration', () => {
             payload.events[2].device_id,
             payload.events[3].device_id,
             payload.events[4].device_id,
+            payload.events[5].device_id,
           ].forEach((deviceId) => {
             expect(deviceId).toEqual(deviceId0);
           });
           const sessionId0 = payload.events[0].session_id;
-          [payload.events[1].session_id, payload.events[2].session_id].forEach((sessionId) => {
-            expect(sessionId).toEqual(sessionId0);
-          });
-          expect(sessionId0).not.toEqual(payload.events[3].session_id);
-          expect(payload.events[3].session_id).toEqual(payload.events[4].session_id);
-          expect(payload).toEqual({
-            api_key: apiKey,
-            client_upload_time: event_upload_time,
-            events: [
-              {
-                device_id: uuid,
-                event_id: 1,
-                event_type: 'session_start',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-                user_properties: {
-                  $setOnce: {
-                    initial_dclid: 'EMPTY',
-                    initial_fbclid: 'EMPTY',
-                    initial_gbraid: 'EMPTY',
-                    initial_gclid: 'EMPTY',
-                    initial_ko_click_id: 'EMPTY',
-                    initial_li_fat_id: 'EMPTY',
-                    initial_msclkid: 'EMPTY',
-                    initial_referrer: 'EMPTY',
-                    initial_referring_domain: 'EMPTY',
-                    initial_rtd_cid: 'EMPTY',
-                    initial_ttclid: 'EMPTY',
-                    initial_twclid: 'EMPTY',
-                    initial_utm_campaign: 'EMPTY',
-                    initial_utm_content: 'EMPTY',
-                    initial_utm_id: 'EMPTY',
-                    initial_utm_medium: 'EMPTY',
-                    initial_utm_source: 'EMPTY',
-                    initial_utm_term: 'EMPTY',
-                    initial_wbraid: 'EMPTY',
-                  },
-                  $unset: {
-                    dclid: '-',
-                    fbclid: '-',
-                    gbraid: '-',
-                    gclid: '-',
-                    ko_click_id: '-',
-                    li_fat_id: '-',
-                    msclkid: '-',
-                    referrer: '-',
-                    referring_domain: '-',
-                    rtd_cid: '-',
-                    ttclid: '-',
-                    twclid: '-',
-                    utm_campaign: '-',
-                    utm_content: '-',
-                    utm_id: '-',
-                    utm_medium: '-',
-                    utm_source: '-',
-                    utm_term: '-',
-                    wbraid: '-',
-                  },
-                },
-              },
-              {
-                device_id: uuid,
-                event_id: 3,
-                event_type: 'Event in first session',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                event_id: 4,
-                event_type: 'session_end',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                event_id: 5,
-                event_type: 'session_start',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-              },
-              {
-                device_id: uuid,
-                event_id: 6,
-                event_type: 'Event in next session',
-                insert_id: uuid,
-                ip: '$remote',
-                language: 'en-US',
-                library,
-                partner_id: undefined,
-                plan: undefined,
-                platform: 'Web',
-                session_id: number,
-                time: number,
-                user_agent: userAgent,
-                user_id: 'user1@amplitude.com',
-              },
-            ],
-            options: {
-              min_id_length: undefined,
+          [payload.events[1].session_id, payload.events[2].session_id, payload.events[3].session_id].forEach(
+            (sessionId) => {
+              expect(sessionId).toEqual(sessionId0);
             },
-          });
-          scope.done();
-          resolve();
-        }, 4000);
-      });
-    });
-
-    test('should send session events and replace with unknown user with resetSessionOnNewCampaign:false', () => {
-      // Reset previous session cookies
-      document.cookie = `amp_${apiKey.substring(0, 6)}=null; expires=1 Jan 1970 00:00:00 GMT`;
-
-      let payload: any = undefined;
-      const scope = nock(url)
-        .post(path, (body: Record<string, any>) => {
-          payload = body;
-          return true;
-        })
-        .reply(200, success);
-      client.init(apiKey, 'user1@amplitude.com', {
-        defaultTracking: {
-          ...defaultTracking,
-          attribution: {
-            resetSessionOnNewCampaign: true,
-          },
-          sessions: true,
-        },
-        sessionTimeout: 500,
-        flushIntervalMillis: 3000,
-      });
-      // Sends `session_start` event
-      client.track('Event in first session');
-
-      setTimeout(() => {
-        client.track('Event in next session');
-        // Sends `session_end` event for previous session
-        // Sends `session_start` event for next session
-      }, 1000);
-
-      setTimeout(() => {
-        client.reset();
-      }, 2000);
-
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          const deviceId0 = payload.events[0].device_id;
-          [
-            payload.events[1].device_id,
-            payload.events[2].device_id,
-            payload.events[3].device_id,
-            payload.events[4].device_id,
-          ].forEach((deviceId) => {
-            expect(deviceId).toEqual(deviceId0);
-          });
-          const sessionId0 = payload.events[0].session_id;
-          [payload.events[1].session_id, payload.events[2].session_id].forEach((sessionId) => {
-            expect(sessionId).toEqual(sessionId0);
-          });
-          expect(sessionId0).not.toEqual(payload.events[3].session_id);
-          expect(payload.events[3].session_id).toEqual(payload.events[4].session_id);
+          );
+          expect(sessionId0).not.toEqual(payload.events[4].session_id);
+          expect(payload.events[4].session_id).toEqual(payload.events[5].session_id);
           expect(payload).toEqual({
             api_key: apiKey,
             client_upload_time: event_upload_time,
             events: [
               {
                 device_id: uuid,
-                event_id: 1,
+                event_id: 0,
                 event_type: 'session_start',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 1,
+                event_type: '$identify',
                 insert_id: uuid,
                 ip: '$remote',
                 language: 'en-US',
@@ -1347,7 +1189,7 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                event_id: 3,
+                event_id: 2,
                 event_type: 'Event in first session',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1363,7 +1205,7 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                event_id: 4,
+                event_id: 3,
                 event_type: 'session_end',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1379,7 +1221,7 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                event_id: 5,
+                event_id: 4,
                 event_type: 'session_start',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1395,7 +1237,7 @@ describe('integration', () => {
               },
               {
                 device_id: uuid,
-                event_id: 6,
+                event_id: 5,
                 event_type: 'Event in next session',
                 insert_id: uuid,
                 ip: '$remote',
@@ -1643,7 +1485,7 @@ describe('integration', () => {
             events: [
               {
                 device_id: uuid,
-                event_id: 1,
+                event_id: 0,
                 event_properties: {
                   '[Amplitude] Page Domain': '',
                   '[Amplitude] Page Location': '',
@@ -1742,7 +1584,7 @@ describe('integration', () => {
             events: [
               {
                 device_id: uuid,
-                event_id: 1,
+                event_id: 0,
                 event_properties: {
                   '[Amplitude] Page Domain': '',
                   '[Amplitude] Page Location': '',
@@ -1885,7 +1727,7 @@ describe('integration', () => {
           insert_id: uuid,
           partner_id: undefined,
           event_type: 'test event',
-          event_id: 1,
+          event_id: 0,
           library: library,
           user_agent: userAgent,
         });
@@ -1925,7 +1767,7 @@ describe('integration', () => {
           insert_id: uuid,
           partner_id: undefined,
           event_type: 'test event',
-          event_id: 1,
+          event_id: 0,
           library: library,
           user_agent: userAgent,
         });

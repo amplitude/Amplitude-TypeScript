@@ -40,7 +40,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
     }
 
     /* istanbul ignore if */
-    if (typeof document === 'undefined' || !document.body) {
+    if (typeof document === 'undefined') {
       return;
     }
 

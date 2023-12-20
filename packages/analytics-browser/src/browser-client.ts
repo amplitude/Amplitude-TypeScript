@@ -10,7 +10,7 @@ import {
   isFormInteractionTrackingEnabled,
   setConnectorDeviceId,
   setConnectorUserId,
-  isSessionExpired,
+  isNewSession,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -38,7 +38,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   config: BrowserConfig;
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
-  sessionStartEventTime: number | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -105,16 +104,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
-      const resetSessionOnNewCampaign =
-        !this.config.lastEventTime || isSessionExpired(this.config.sessionTimeout, this.config.lastEventTime)
-          ? // A new session just started OR will start soon organically, no need to trigger another restart
-            false
-          : // Previous session is still valid, allow reset if configured
-            attributionTrackingOptions.resetSessionOnNewCampaign;
-      const webAttribution = webAttributionPlugin({
-        ...attributionTrackingOptions,
-        resetSessionOnNewCampaign,
-      });
+      const webAttribution = webAttributionPlugin(attributionTrackingOptions);
       await this.add(webAttribution).promise;
     }
 
@@ -181,8 +171,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     const previousSessionId = this.getSessionId();
-    const lastEventTime = this.config.lastEventTime ?? this.sessionStartEventTime;
-    this.config.lastEventId = this.config.lastEventId ?? 0;
+    const lastEventTime = this.config.lastEventTime;
+    let lastEventId = this.config.lastEventId ?? -1;
 
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
@@ -191,24 +181,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       if (previousSessionId && lastEventTime) {
         this.track(DEFAULT_SESSION_END_EVENT, undefined, {
           device_id: this.previousSessionDeviceId,
-          event_id: ++this.config.lastEventId,
+          event_id: ++lastEventId,
           session_id: previousSessionId,
           time: lastEventTime + 1,
           user_id: this.previousSessionUserId,
         });
-        this.sessionStartEventTime = undefined;
       }
 
+      this.config.lastEventTime = this.config.sessionId;
       this.track(DEFAULT_SESSION_START_EVENT, undefined, {
-        event_id: ++this.config.lastEventId,
+        event_id: ++lastEventId,
         session_id: this.config.sessionId,
-        time: this.config.sessionId,
+        time: this.config.lastEventTime,
       });
-      // `this.lastSessionStartEventTime` is used to handle extreme edge case where session
-      // is restarted before session start event is processed by context plugin to set
-      // the globally used this.config.lastEventTime. `this.config.lastEventTime` should
-      // only be modified by config builder and context plugin to limit tampering.
-      this.sessionStartEventTime = this.config.sessionId;
     }
 
     this.previousSessionDeviceId = this.config.deviceId;
@@ -266,13 +251,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
   async process(event: Event) {
     const currentTime = Date.now();
-    const isMostRecentSessionExpired = isSessionExpired(this.config.sessionTimeout, this.config.lastEventTime);
+    const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
 
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
       (!event.session_id || event.session_id === this.getSessionId()) &&
-      isMostRecentSessionExpired
+      isEventInNewSession
     ) {
       this.setSessionId(currentTime);
     }
