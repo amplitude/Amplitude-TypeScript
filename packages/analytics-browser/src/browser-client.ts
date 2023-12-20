@@ -92,8 +92,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       // has sent an event and has previous session but expired
       (this.config.lastEventTime && Date.now() - this.config.lastEventTime > this.config.sessionTimeout)
     ) {
-      // we need to set the session ID before plugins run
-      // add it to the front of the queue
       this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
       isNewSession = true;
     }
