@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.6...@amplitude/analytics-react-native@1.4.7) (2023-12-21)
+
+### Bug Fixes
+
+- update default not tracking country value ([#641](https://github.com/amplitude/Amplitude-TypeScript/issues/641))
+  ([3262f4e](https://github.com/amplitude/Amplitude-TypeScript/commit/3262f4eed25561fdb98f0140308c5e91405bf175))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.4.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.5...@amplitude/analytics-react-native@1.4.6) (2023-12-19)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
