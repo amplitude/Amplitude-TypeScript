@@ -26,7 +26,7 @@ export const getDefaultConfig = () => {
     platform: true,
     appSetId: true,
     idfv: true,
-    country: true,
+    country: false, // NOTE: tracking country information would disable server-side IP address lookup to fill other information like region, city, dma, etc.
   };
   return {
     cookieExpiration: 365,
