@@ -233,7 +233,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         if (numericSessionId === this.config?.sessionId && numericSeqId === this.currentSequenceId) {
           continue;
         }
-        if (seq.events.length && seq.status === RecordingStatus.RECORDING) {
+        if (seq.events && seq.events.length && seq.status === RecordingStatus.RECORDING) {
           this.sendEventsList({
             events: seq.events,
             sequenceId: numericSeqId,
