@@ -1,3 +1,7 @@
+/* eslint-disable no-restricted-globals */
+import { finder } from './libs/finder';
+import * as constants from './constants';
+
 const SENTITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export const isNonSensitiveString = (text: string | null) => {
@@ -135,6 +139,24 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
   }
   /* istanbul ignore next */
   return getClosestElement(element?.parentElement, selectors);
+};
+
+export const getEventTagProps = (element: Element) => {
+  if (!element) {
+    return {};
+  }
+  /* istanbul ignore next */
+  const tag = element?.tagName?.toLowerCase?.();
+  const selector = finder(element, {
+    className: (name: string) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+  });
+  const properties: Record<string, string> = {
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_SELECTOR]: selector,
+    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
+  };
+  return removeEmptyProperties(properties);
 };
 
 export const asyncLoadScript = (url: string) => {

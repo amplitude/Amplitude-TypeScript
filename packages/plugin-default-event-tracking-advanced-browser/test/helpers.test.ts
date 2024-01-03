@@ -10,8 +10,10 @@ import {
   getNearestLabel,
   querySelectUniqueElements,
   getClosestElement,
+  getEventTagProps,
   asyncLoadScript,
 } from '../src/helpers';
+import { mockWindowLocationFromURL } from './utils';
 
 describe('default-event-tracking-advanced-plugin helpers', () => {
   afterEach(() => {
@@ -392,6 +394,64 @@ describe('default-event-tracking-advanced-plugin helpers', () => {
 
       const inner = document.getElementById('inner');
       expect(getClosestElement(inner, ['div.some-class'])).toEqual(null);
+    });
+  });
+
+  describe('getEventTagProps', () => {
+    beforeAll(() => {
+      Object.defineProperty(window, 'location', {
+        value: {
+          hostname: '',
+          href: '',
+          pathname: '',
+          search: '',
+        },
+        writable: true,
+      });
+    });
+
+    beforeEach(() => {
+      mockWindowLocationFromURL(new URL('https://www.amplitude.com/unit-test?query=getEventTagProps'));
+    });
+
+    test('should return the tag properties', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="container">
+          <div id="inner">
+            xxx
+          </div>
+        </div>
+      `;
+
+      const inner = document.getElementById('inner');
+      expect(getEventTagProps(inner as HTMLElement)).toEqual({
+        '[Amplitude] Element Selector': '#inner',
+        '[Amplitude] Element Tag': 'div',
+        '[Amplitude] Element Text': ' xxx ',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+      });
+    });
+
+    test('should return empty object when element is not present', () => {
+      expect(getEventTagProps(null as unknown as HTMLElement)).toEqual({});
+    });
+
+    test('should not use the visual highlight class when retrieving selector', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="container">
+          <div class="amp-visual-tagging-selector-highlight">
+            xxx
+          </div>
+        </div>
+      `;
+
+      const inner = document.getElementsByClassName('amp-visual-tagging-selector-highlight')[0];
+      expect(getEventTagProps(inner as HTMLElement)).toEqual({
+        '[Amplitude] Element Selector': '#container > div',
+        '[Amplitude] Element Tag': 'div',
+        '[Amplitude] Element Text': ' xxx ',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+      });
     });
   });
 
