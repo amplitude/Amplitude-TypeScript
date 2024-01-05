@@ -120,6 +120,11 @@ export class Destination implements DestinationPlugin {
   }
 
   async flush(useRetry = false) {
+    // Skip flush if offline
+    if (this.config.offline) {
+      return;
+    }
+
     const list: Context[] = [];
     const later: Context[] = [];
     this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));

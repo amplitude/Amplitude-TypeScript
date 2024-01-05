@@ -1,5 +1,6 @@
 import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
 import {
+  getGlobalScope,
   getAnalyticsConnector,
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
@@ -31,6 +32,7 @@ import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
+import { NetworkCheckerPlugin } from './plugins/network-checker-plugin';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -86,6 +88,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 4: Install plugins
     // Do not track any events before this
+    await this.add(new NetworkCheckerPlugin()).promise;
     await this.add(new Destination()).promise;
     await this.add(new Context()).promise;
     await this.add(new IdentityEventSender()).promise;
@@ -120,6 +123,22 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     connector.eventBridge.setEventReceiver((event) => {
       void this.track(event.eventType, event.eventProperties);
     });
+
+    // Step 8: Add network listeners for offline mode
+    const globalScope = getGlobalScope();
+    if (globalScope) {
+      globalScope.addEventListener('online', () => {
+        this.config.offline = false;
+        // Flush immediately cause ERR_NETWORK_CHANGED
+        setTimeout(() => {
+          this.flush();
+        }, this.config.flushIntervalMillis);
+      });
+
+      globalScope.addEventListener('offline', () => {
+        this.config.offline = true;
+      });
+    }
   }
 
   getUserId() {
@@ -263,15 +282,5 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     return super.process(event);
-  }
-
-  setOffline(offline: boolean) {
-    const previousOffline = this.config.offline;
-    this.config.offline = offline;
-
-    // flush when modes changes offline to online
-    if (previousOffline && !offline) {
-      this.flush();
-    }
   }
 }

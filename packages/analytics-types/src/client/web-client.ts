@@ -137,8 +137,6 @@ export interface BrowserClient extends Client {
    * ```
    */
   add(plugin: Plugin<BrowserClient, BrowserConfig>): AmplitudeReturn<void>;
-
-  setOffline(offline: boolean): void;
 }
 
 export interface ReactNativeClient extends Client {

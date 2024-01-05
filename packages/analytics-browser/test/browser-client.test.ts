@@ -10,6 +10,7 @@ import {
   getCookieName,
 } from '@amplitude/analytics-client-common';
 import * as SnippetHelper from '../src/utils/snippet-helper';
+import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
@@ -260,6 +261,67 @@ describe('browser-client', () => {
         sessionId: Date.now(),
       }).promise;
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should listen for network change to online', async () => {
+      jest.useFakeTimers();
+      const addEventListenerMock = jest.spyOn(window, 'addEventListener');
+      // const setTimeoutSpy = jest.spyOn(window, 'setTimeout');
+      const flush = jest.spyOn(client, 'flush').mockReturnValue({ promise: Promise.resolve() });
+
+      await client.init(apiKey, {
+        defaultTracking: false,
+      }).promise;
+      window.dispatchEvent(new Event('online'));
+
+      expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
+      expect(client.config.offline).toBe(false);
+      // expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
+      // expect(setTimeoutSpy).toHaveBeenLastCalledWith(expect.any(Function), client.config.flushIntervalMillis);
+
+      jest.advanceTimersByTime(client.config.flushIntervalMillis);
+      expect(flush).toHaveBeenCalledTimes(1);
+
+      jest.useRealTimers();
+      addEventListenerMock.mockRestore();
+      // setTimeoutSpy.mockRestore();
+      flush.mockRestore();
+    });
+
+    test('should listen for network change to offline', async () => {
+      jest.useFakeTimers();
+      const addEventListenerMock = jest.spyOn(window, 'addEventListener');
+
+      await client.init(apiKey, {
+        defaultTracking: false,
+      }).promise;
+      expect(client.config.offline).toBe(false);
+
+      window.dispatchEvent(new Event('offline'));
+      expect(addEventListenerMock).toHaveBeenCalledWith('offline', expect.any(Function));
+      expect(client.config.offline).toBe(true);
+
+      jest.useRealTimers();
+      addEventListenerMock.mockRestore();
+    });
+
+    test('should not support offline mode if global scope returns undefined', async () => {
+      const getGlobalScopeMock = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValueOnce(undefined);
+      const addEventListenerMock = jest.spyOn(window, 'addEventListener');
+
+      await client.init(apiKey, {
+        defaultTracking: false,
+      }).promise;
+
+      window.dispatchEvent(new Event('online'));
+      expect(client.config.offline).toBe(false);
+
+      client.config.offline = true;
+      window.dispatchEvent(new Event('offline'));
+      expect(client.config.offline).toBe(true);
+
+      getGlobalScopeMock.mockRestore();
+      addEventListenerMock.mockRestore();
     });
   });
 
@@ -835,30 +897,6 @@ describe('browser-client', () => {
       // and once on process
       expect(setSessionId).toHaveBeenCalledTimes(2);
       expect(result.code).toBe(0);
-    });
-  });
-
-  describe('setOffline', () => {
-    test('should set offline to true', async () => {
-      await client.init(apiKey, {
-        defaultTracking: false,
-        offline: false,
-      }).promise;
-
-      client.setOffline(true);
-      expect(client.config.offline).toBe(true);
-    });
-
-    test('should set offline to false', async () => {
-      await client.init(apiKey, {
-        defaultTracking: false,
-        offline: true,
-      }).promise;
-      const flush = jest.spyOn(client, 'flush');
-
-      client.setOffline(false);
-      expect(client.config.offline).toBe(false);
-      expect(flush).toHaveBeenCalledTimes(1);
     });
   });
 });
