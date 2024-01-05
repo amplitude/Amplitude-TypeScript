@@ -16,7 +16,6 @@ export class NetworkCheckerPlugin implements BeforePlugin {
   }
 
   async execute(context: Event): Promise<Event> {
-    console.log('NetworkCheckerPlugin execute, offline: ', !navigator.onLine);
     this.config.offline = !navigator.onLine;
     return context;
   }
