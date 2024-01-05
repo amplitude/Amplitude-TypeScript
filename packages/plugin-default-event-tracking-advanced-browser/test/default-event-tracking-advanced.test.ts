@@ -1,13 +1,7 @@
 import { defaultEventTrackingAdvancedPlugin } from '../src/default-event-tracking-advanced-plugin';
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { createInstance } from '@amplitude/analytics-browser';
-
-const mockWindowLocationFromURL = (url: URL) => {
-  window.location.href = url.toString();
-  window.location.search = url.search;
-  window.location.hostname = url.hostname;
-  window.location.pathname = url.pathname;
-};
+import { mockWindowLocationFromURL } from './utils';
 
 describe('autoTrackingPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;

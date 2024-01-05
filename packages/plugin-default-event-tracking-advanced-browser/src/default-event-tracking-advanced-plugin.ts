@@ -166,7 +166,8 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
   };
 
   const getEventProperties = (actionType: ActionType, element: Element) => {
-    const tag = element.tagName.toLowerCase();
+    /* istanbul ignore next */
+    const tag = element?.tagName?.toLowerCase?.();
     /* istanbul ignore next */
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
@@ -263,7 +264,7 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     // Setup visual tagging selector
     if (window.opener && visualTaggingOptions.enabled) {
       /* istanbul ignore next */
-      visualTaggingOptions.messenger?.setup();
+      visualTaggingOptions.messenger?.setup({ logger: config?.loggerProvider });
     }
   };
 

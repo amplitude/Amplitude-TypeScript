@@ -1,7 +1,11 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
-import { AMPLITUDE_ORIGIN, AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL } from '../constants';
-import { asyncLoadScript } from '../helpers';
+import {
+  AMPLITUDE_ORIGIN,
+  AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL,
+  AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+} from '../constants';
+import { asyncLoadScript, getEventTagProps } from '../helpers';
 import { Logger } from '@amplitude/analytics-types';
 
 export interface Messenger {
@@ -32,19 +36,20 @@ export class WindowMessenger implements Messenger {
   endpoint = AMPLITUDE_ORIGIN;
   logger?: Logger;
 
-  constructor({ logger }: { logger?: Logger } = {}) {
-    this.logger = logger;
+  constructor({ origin = AMPLITUDE_ORIGIN }: { origin?: string } = {}) {
+    this.endpoint = origin;
   }
 
   private notify(message: Message) {
-    this.logger?.debug('Message sent: ', message);
+    this.logger?.debug?.('Message sent: ', JSON.stringify(message));
     (window.opener as WindowProxy)?.postMessage?.(message, this.endpoint);
   }
 
-  setup() {
+  setup({ logger }: { logger?: Logger } = {}) {
+    this.logger = logger;
     let amplitudeVisualTaggingSelectorInstance: any = null;
     window.addEventListener('message', (event) => {
-      this.logger?.debug('Message received: ', event);
+      this.logger?.debug?.('Message received: ', JSON.stringify(event));
       if (this.endpoint !== event.origin) {
         return;
       }
@@ -60,6 +65,8 @@ export class WindowMessenger implements Messenger {
           .then(() => {
             // eslint-disable-next-line
             amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
+              visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+              getEventTagProps,
               onSelect: this.onSelect,
             });
             this.notify({ action: Action.SelectorLoaded });
