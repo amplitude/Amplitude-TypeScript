@@ -68,7 +68,7 @@ export const iife = {
       noEmit: false,
       outDir: 'lib/script',
       rootDir: 'src',
-          }),
+    }),
     resolve({
       browser: true,
     }),
@@ -124,6 +124,7 @@ export const iifeGTM = {
     name: 'amplitudeGTM',
     file: 'lib/scripts/amplitude-gtm-min.js',
     format: 'iife',
+    sourcemap: true,
   },
   plugins: [
     typescript({
