@@ -60,6 +60,7 @@ export const iife = {
     name: 'amplitude',
     file: 'lib/scripts/amplitude-min.js',
     format: 'iife',
+    sourcemap: true,
   },
   plugins: [
     typescript({
@@ -67,7 +68,7 @@ export const iife = {
       noEmit: false,
       outDir: 'lib/script',
       rootDir: 'src',
-    }),
+          }),
     resolve({
       browser: true,
     }),
