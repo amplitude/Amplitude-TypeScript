@@ -60,6 +60,7 @@ export const iife = {
     name: 'amplitude',
     file: 'lib/scripts/amplitude-min.js',
     format: 'iife',
+    sourcemap: true,
   },
   plugins: [
     typescript({
@@ -123,6 +124,7 @@ export const iifeGTM = {
     name: 'amplitudeGTM',
     file: 'lib/scripts/amplitude-gtm-min.js',
     format: 'iife',
+    sourcemap: true,
   },
   plugins: [
     typescript({
