@@ -14,6 +14,7 @@ import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
+import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 
 describe('browser-client', () => {
   let apiKey = '';
@@ -263,10 +264,29 @@ describe('browser-client', () => {
       expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
     });
 
+    test('should add network connectivity checker plugin by default', async () => {
+      const networkConnectivityCheckerPlugin = jest.spyOn(
+        networkConnectivityChecker,
+        'networkConnectivityCheckerPlugin',
+      );
+      await client.init(apiKey, userId).promise;
+      expect(networkConnectivityCheckerPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should not add network connectivity checker plugin if offline is null', async () => {
+      const networkConnectivityCheckerPlugin = jest.spyOn(
+        networkConnectivityChecker,
+        'networkConnectivityCheckerPlugin',
+      );
+      await client.init(apiKey, userId, {
+        offline: null,
+      }).promise;
+      expect(networkConnectivityCheckerPlugin).toHaveBeenCalledTimes(0);
+    });
+
     test('should listen for network change to online', async () => {
       jest.useFakeTimers();
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
-      // const setTimeoutSpy = jest.spyOn(window, 'setTimeout');
       const flush = jest.spyOn(client, 'flush').mockReturnValue({ promise: Promise.resolve() });
 
       await client.init(apiKey, {
@@ -276,15 +296,12 @@ describe('browser-client', () => {
 
       expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
       expect(client.config.offline).toBe(false);
-      // expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
-      // expect(setTimeoutSpy).toHaveBeenLastCalledWith(expect.any(Function), client.config.flushIntervalMillis);
 
       jest.advanceTimersByTime(client.config.flushIntervalMillis);
       expect(flush).toHaveBeenCalledTimes(1);
 
       jest.useRealTimers();
       addEventListenerMock.mockRestore();
-      // setTimeoutSpy.mockRestore();
       flush.mockRestore();
     });
 

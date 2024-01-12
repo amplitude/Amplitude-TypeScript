@@ -60,7 +60,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public loggerProvider: ILogger = new Logger(),
     public logLevel: LogLevel = LogLevel.Warn,
     public minIdLength?: number,
-    public offline = false,
+    public offline: boolean | null = false,
     optOut = false,
     public partnerId?: string,
     public plan?: Plan,

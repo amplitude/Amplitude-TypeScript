@@ -15,7 +15,7 @@ export interface Config {
   logLevel: LogLevel;
   loggerProvider: Logger;
   minIdLength?: number;
-  offline: boolean;
+  offline?: boolean | null;
   optOut: boolean;
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;

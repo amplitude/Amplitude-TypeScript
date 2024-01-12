@@ -42,7 +42,7 @@ export class Config implements IConfig {
   loggerProvider: ILogger;
   logLevel: LogLevel;
   minIdLength?: number;
-  offline: boolean;
+  offline?: boolean | null;
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;
@@ -71,7 +71,7 @@ export class Config implements IConfig {
     this.minIdLength = options.minIdLength;
     this.plan = options.plan;
     this.ingestionMetadata = options.ingestionMetadata;
-    this.offline = options.offline ?? defaultConfig.offline;
+    this.offline = options.offline !== undefined ? options.offline : defaultConfig.offline;
     this.optOut = options.optOut ?? defaultConfig.optOut;
     this.serverUrl = options.serverUrl;
     this.serverZone = options.serverZone || defaultConfig.serverZone;
