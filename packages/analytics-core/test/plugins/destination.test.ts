@@ -144,7 +144,7 @@ describe('destination', () => {
       expect(flush).toHaveBeenCalledTimes(2);
     });
 
-    test('should not schedule a flush', async () => {
+    test('should not schedule a flush if offline', async () => {
       const destination = new Destination();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (destination as any).scheduled = null;
