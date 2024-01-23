@@ -2,7 +2,7 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { UserSession } from '@amplitude/analytics-types';
+import { OfflineDisabled, UserSession } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -273,13 +273,13 @@ describe('browser-client', () => {
       expect(networkConnectivityCheckerPlugin).toHaveBeenCalledTimes(1);
     });
 
-    test('should not add network connectivity checker plugin if offline is null', async () => {
+    test('should not add network connectivity checker plugin if offline is disabled', async () => {
       const networkConnectivityCheckerPlugin = jest.spyOn(
         networkConnectivityChecker,
         'networkConnectivityCheckerPlugin',
       );
       await client.init(apiKey, userId, {
-        offline: null,
+        offline: OfflineDisabled,
       }).promise;
       expect(networkConnectivityCheckerPlugin).toHaveBeenCalledTimes(0);
     });

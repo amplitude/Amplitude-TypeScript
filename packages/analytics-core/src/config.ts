@@ -9,6 +9,7 @@ import {
   IngestionMetadata,
   Options,
   ServerZoneType,
+  OfflineDisabled,
 } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_SERVER_URL,
@@ -42,7 +43,7 @@ export class Config implements IConfig {
   loggerProvider: ILogger;
   logLevel: LogLevel;
   minIdLength?: number;
-  offline?: boolean | null;
+  offline?: boolean | typeof OfflineDisabled;
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;
   serverUrl: string | undefined;

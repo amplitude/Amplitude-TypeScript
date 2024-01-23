@@ -21,6 +21,7 @@ import {
   Identify as IIdentify,
   Revenue as IRevenue,
   TransportType,
+  OfflineDisabled,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -87,7 +88,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 4: Install plugins
     // Do not track any events before this
-    if (this.config.offline !== null) {
+    if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
     await this.add(new Destination()).promise;
