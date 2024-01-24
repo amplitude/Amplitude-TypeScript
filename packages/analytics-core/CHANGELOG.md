@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.1.3...@amplitude/analytics-core@2.2.0) (2024-01-24)
+
+### Features
+
+- add offline mode ([#644](https://github.com/amplitude/Amplitude-TypeScript/issues/644))
+  ([f2cd717](https://github.com/amplitude/Amplitude-TypeScript/commit/f2cd717316eef66b101153cb8eedf37fadc6de0c))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.1.2...@amplitude/analytics-core@2.1.3) (2023-12-20)
 
 ### Reverts
