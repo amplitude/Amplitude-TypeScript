@@ -190,10 +190,20 @@ describe('destination', () => {
 
   describe('flush', () => {
     test('should skip flush if offline', async () => {
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
         offline: true,
+        loggerProvider: loggerProvider,
       };
       destination.queue = [
         {
@@ -206,6 +216,8 @@ describe('destination', () => {
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       await destination.flush();
       expect(send).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush while offline.');
     });
 
     test('should get batch and call send', async () => {

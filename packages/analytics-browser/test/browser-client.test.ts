@@ -288,14 +288,25 @@ describe('browser-client', () => {
       jest.useFakeTimers();
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
       const flush = jest.spyOn(client, 'flush').mockReturnValue({ promise: Promise.resolve() });
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
 
       await client.init(apiKey, {
         defaultTracking: false,
+        loggerProvider: loggerProvider,
       }).promise;
       window.dispatchEvent(new Event('online'));
 
       expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
       expect(client.config.offline).toBe(false);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to online.');
 
       jest.advanceTimersByTime(client.config.flushIntervalMillis);
       expect(flush).toHaveBeenCalledTimes(1);
@@ -308,15 +319,26 @@ describe('browser-client', () => {
     test('should listen for network change to offline', async () => {
       jest.useFakeTimers();
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
 
       await client.init(apiKey, {
         defaultTracking: false,
+        loggerProvider: loggerProvider,
       }).promise;
       expect(client.config.offline).toBe(false);
 
       window.dispatchEvent(new Event('offline'));
       expect(addEventListenerMock).toHaveBeenCalledWith('offline', expect.any(Function));
       expect(client.config.offline).toBe(true);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to offline.');
 
       jest.useRealTimers();
       addEventListenerMock.mockRestore();

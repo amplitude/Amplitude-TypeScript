@@ -122,6 +122,7 @@ export class Destination implements DestinationPlugin {
   async flush(useRetry = false) {
     // Skip flush if offline
     if (this.config.offline) {
+      this.config.loggerProvider.debug('Skipping flush while offline.');
       return;
     }
 
