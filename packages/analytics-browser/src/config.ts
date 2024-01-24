@@ -13,6 +13,7 @@ import {
   IngestionMetadata,
   IdentityStorageType,
   ServerZoneType,
+  OfflineDisabled,
 } from '@amplitude/analytics-types';
 import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
@@ -60,6 +61,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public loggerProvider: ILogger = new Logger(),
     public logLevel: LogLevel = LogLevel.Warn,
     public minIdLength?: number,
+    public offline: boolean | typeof OfflineDisabled = false,
     optOut = false,
     public partnerId?: string,
     public plan?: Plan,
@@ -236,6 +238,7 @@ export const useBrowserConfig = async (
     options.loggerProvider,
     options.logLevel,
     options.minIdLength,
+    options.offline,
     optOut,
     options.partnerId,
     options.plan,

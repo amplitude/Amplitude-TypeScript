@@ -5,6 +5,7 @@ import { ServerZoneType } from '../server-zone';
 import { Storage } from '../storage';
 import { Transport } from '../transport';
 import { Logger, LogLevel } from '../logger';
+import { OfflineDisabled } from '../offline';
 
 export interface Config {
   apiKey: string;
@@ -15,6 +16,7 @@ export interface Config {
   logLevel: LogLevel;
   loggerProvider: Logger;
   minIdLength?: number;
+  offline?: boolean | typeof OfflineDisabled;
   optOut: boolean;
   plan?: Plan;
   ingestionMetadata?: IngestionMetadata;

@@ -106,7 +106,10 @@ export class Destination implements DestinationPlugin {
   }
 
   schedule(timeout: number) {
-    if (this.scheduled) return;
+    if (this.scheduled || this.config.offline) {
+      return;
+    }
+
     this.scheduled = setTimeout(() => {
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {
@@ -117,6 +120,12 @@ export class Destination implements DestinationPlugin {
   }
 
   async flush(useRetry = false) {
+    // Skip flush if offline
+    if (this.config.offline) {
+      this.config.loggerProvider.debug('Skipping flush while offline.');
+      return;
+    }
+
     const list: Context[] = [];
     const later: Context[] = [];
     this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));

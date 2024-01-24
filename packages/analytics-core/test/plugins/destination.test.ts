@@ -122,6 +122,10 @@ describe('destination', () => {
           timeout: 0,
         },
       ];
+      destination.config = {
+        ...destination.config,
+        offline: false,
+      };
       const flush = jest
         .spyOn(destination, 'flush')
         .mockImplementationOnce(() => {
@@ -140,6 +144,40 @@ describe('destination', () => {
       expect(flush).toHaveBeenCalledTimes(2);
     });
 
+    test('should not schedule a flush if offline', async () => {
+      const destination = new Destination();
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      (destination as any).scheduled = null;
+      destination.queue = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+      ];
+      destination.config = {
+        ...destination.config,
+        offline: true,
+      };
+      const flush = jest
+        .spyOn(destination, 'flush')
+        .mockImplementationOnce(() => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (destination as any).scheduled = null;
+          return Promise.resolve(undefined);
+        })
+        .mockReturnValueOnce(Promise.resolve(undefined));
+      destination.schedule(0);
+      // exhause first setTimeout
+      jest.runAllTimers();
+      // wait for next tick to call nested setTimeout
+      await Promise.resolve();
+      // exhause nested setTimeout
+      jest.runAllTimers();
+      expect(flush).toHaveBeenCalledTimes(0);
+    });
+
     test('should not schedule if one is already in progress', () => {
       const destination = new Destination();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -151,6 +189,37 @@ describe('destination', () => {
   });
 
   describe('flush', () => {
+    test('should skip flush if offline', async () => {
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        offline: true,
+        loggerProvider: loggerProvider,
+      };
+      destination.queue = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+      ];
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      await destination.flush();
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush while offline.');
+    });
+
     test('should get batch and call send', async () => {
       const destination = new Destination();
       destination.config = {

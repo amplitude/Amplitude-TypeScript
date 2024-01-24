@@ -26,6 +26,7 @@ describe('config', () => {
       logLevel: LogLevel.Warn,
       loggerProvider: new Logger(),
       minIdLength: undefined,
+      offline: false,
       _optOut: false, // private for `optOut` getter/setter
       partnerId: undefined,
       plan: undefined,
@@ -44,6 +45,7 @@ describe('config', () => {
     const config = new Config({
       apiKey: API_KEY,
       logLevel: LogLevel.Verbose,
+      offline: true,
       optOut: true,
       plan: { version: '0' },
       ingestionMetadata: {
@@ -63,6 +65,7 @@ describe('config', () => {
       logLevel: LogLevel.Verbose,
       loggerProvider: new Logger(),
       minIdLength: undefined,
+      offline: true,
       _optOut: true,
       plan: {
         version: '0',
