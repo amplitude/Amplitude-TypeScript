@@ -16,10 +16,10 @@ This package is published on NPM registry and is available to be installed using
 
 ```sh
 # npm
-npm install @amplitude/plugin-default-event-tracking-advanced-browser
+npm install @amplitude/plugin-default-event-tracking-advanced-browser@beta
 
 # yarn
-yarn add @amplitude/plugin-default-event-tracking-advanced-browser
+yarn add @amplitude/plugin-default-event-tracking-advanced-browser@beta
 ```
 
 ## Usage
@@ -67,7 +67,7 @@ Examples:
 |-|-|-|-|
 |`cssSelectorAllowlist`|`string[]`|`['a', 'button', 'input', 'select', 'textarea', 'label', '[data-amp-default-track]', '.amp-default-track']`| When provided, only allow elements matching any selector to be tracked. |
 |`pageUrlAllowlist`|`(string\|RegExp)[]`|`undefined`| When provided, only allow elements matching URLs to be tracked. |
-|`shouldTrackEventResolver`|`(actionType: ActionType, element: Element) => boolean`|`undefined`| When provided, overwrite the default filter behavior. |
+|`shouldTrackEventResolver`|`(actionType: ActionType, element: Element) => boolean`|`undefined`| When provided, overwrite all other allowlists and configurations. |
 |`dataAttributePrefix`|`string`|`'data-amp-track-'`| Allow data attributes to be collected in event property. |
 
 ### 3. Install plugin to Amplitude SDK

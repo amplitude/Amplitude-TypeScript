@@ -38,7 +38,7 @@ interface Options {
   /**
    * List of CSS selectors to allow auto tracking on.
    * When provided, allow elements matching any selector to be tracked.
-   * Only the ['a', 'button', 'input', 'select', 'textarea', 'label'] tags are tracked regardless the selector provided here.
+   * Default is ['a', 'button', 'input', 'select', 'textarea', 'label', '[data-amp-default-track]', '.amp-default-track'].
    */
   cssSelectorAllowlist?: string[];
 
@@ -51,7 +51,7 @@ interface Options {
 
   /**
    * Function to determine whether an event should be tracked.
-   * When provided, this function overwrites all other allowlist configurations.
+   * When provided, this function overwrites all other allowlists and configurations.
    * If the function returns true, the event will be tracked.
    * If the function returns false, the event will not be tracked.
    * @param actionType - The type of action that triggered the event.
@@ -61,10 +61,13 @@ interface Options {
 
   /**
    * Prefix for data attributes to allow auto collecting.
-   * Default is 'data-amp-auto-track-'.
+   * Default is 'data-amp-track-'.
    */
   dataAttributePrefix?: string;
 
+  /**
+   * Options for integrating visual tagging selector.
+   */
   visualTaggingOptions?: {
     enabled?: boolean;
     messenger?: Messenger;
