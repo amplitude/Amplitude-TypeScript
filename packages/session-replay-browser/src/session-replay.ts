@@ -18,8 +18,9 @@ import {
   SESSION_REPLAY_SERVER_URL,
   STORAGE_PREFIX,
   defaultSessionStore,
+  SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
-import { isSessionInSample, maskInputFn, getCurrentUrl, generateSessionReplayId } from './helpers';
+import { isSessionInSample, maskInputFn, getCurrentUrl, generateSessionReplayId, generateHashCode } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
@@ -103,6 +104,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordEvents();
   }
 
+  getSessionReplayDebugPropertyValue() {
+    let apiKeyHash = '';
+    if (this.config) {
+      apiKeyHash = generateHashCode(this.config.apiKey).toString();
+    }
+    return JSON.stringify({
+      appHash: apiKeyHash,
+    });
+  }
+
   getSessionReplayProperties() {
     if (!this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot get session recording properties.');
@@ -111,9 +122,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const shouldRecord = this.getShouldRecord();
 
     if (shouldRecord) {
-      return {
+      const eventProperties = {
         [DEFAULT_SESSION_REPLAY_PROPERTY]: this.config.sessionReplayId ? this.config.sessionReplayId : null,
       };
+      if (this.config.debugMode) {
+        eventProperties[SESSION_REPLAY_DEBUG_PROPERTY] = this.getSessionReplayDebugPropertyValue();
+      }
+      return eventProperties;
     }
 
     return {};

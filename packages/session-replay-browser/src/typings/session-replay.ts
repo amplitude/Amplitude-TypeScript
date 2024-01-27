@@ -45,6 +45,7 @@ export interface SessionReplayConfig extends Config {
   sampleRate: number;
   sessionReplayId?: string;
   privacyConfig?: SessionReplayPrivacyConfig;
+  debugMode?: boolean;
 }
 
 export type SessionReplayOptions = Omit<Partial<SessionReplayConfig>, 'apiKey'>;

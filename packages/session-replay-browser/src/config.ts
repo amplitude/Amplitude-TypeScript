@@ -23,6 +23,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
   sessionId?: number | undefined;
   sessionReplayId?: string | undefined;
   privacyConfig?: SessionReplayPrivacyConfig;
+  debugMode?: boolean;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -50,6 +51,10 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;
+    }
+
+    if (options.debugMode) {
+      this.debugMode = options.debugMode;
     }
   }
 }
