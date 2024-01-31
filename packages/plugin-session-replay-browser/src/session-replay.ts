@@ -91,6 +91,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
       privacyConfig: {
         blockSelector: this.options.privacyConfig?.blockSelector,
       },
+      debugMode: this.options.debugMode,
     }).promise;
 
     // add enrichment plugin to add session replay properties to events

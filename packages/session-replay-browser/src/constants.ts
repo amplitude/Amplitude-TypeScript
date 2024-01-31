@@ -10,6 +10,8 @@ export const DEFAULT_SESSION_END_EVENT = 'session_end';
 export const DEFAULT_SAMPLE_RATE = 0;
 export const DEFAULT_SERVER_ZONE = ServerZone.US;
 
+export const SESSION_REPLAY_DEBUG_PROPERTY = `${DEFAULT_EVENT_PROPERTY_PREFIX} Session Replay Debug`;
+
 export const BLOCK_CLASS = 'amp-block';
 export const MASK_TEXT_CLASS = 'amp-mask';
 export const UNMASK_TEXT_CLASS = 'amp-unmask';

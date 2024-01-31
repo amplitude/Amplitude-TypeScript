@@ -290,6 +290,18 @@ describe('SessionReplayPlugin', () => {
         '[Amplitude] Session Replay ID': null,
       });
     });
+
+    test('should return debug property', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
+      sessionReplay.getShouldRecord = () => true;
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(result).toEqual({
+        '[Amplitude] Session Replay ID': '1a2b3c/123',
+        '[Amplitude] Session Replay Debug': '{"appHash":"-109988594"}',
+      });
+    });
   });
 
   describe('initalize', () => {
@@ -1849,6 +1861,14 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = undefined;
       expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
+    });
+  });
+
+  describe('getSessionReplayDebugPropertyValue', () => {
+    test('null config', () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = undefined;
+      expect(sessionReplay.getSessionReplayDebugPropertyValue()).toBe('{"appHash":""}');
     });
   });
 });
