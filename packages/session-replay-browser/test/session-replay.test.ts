@@ -635,6 +635,8 @@ describe('SessionReplayPlugin', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+      const sampleRate = sessionReplay.getSampleRate();
+      expect(sampleRate).toBe(0.2);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
@@ -1317,7 +1319,22 @@ describe('SessionReplayPlugin', () => {
       test('should not record session if no sample rate is provided', async () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
-        await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        await sessionReplay.init(apiKey, { ...mockEmptyOptions }).promise;
+        const sampleRate = sessionReplay.getSampleRate();
+        expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+        expect(sessionRecordingProperties).toMatchObject({});
+        expect(record).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        await runScheduleTimers();
+        expect(fetch).not.toHaveBeenCalled();
+      });
+      test('should not record session if sample rate of value 0 is provided', async () => {
+        jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockEmptyOptions, sampleRate: 0 }).promise;
+        const sampleRate = sessionReplay.getSampleRate();
+        expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
         expect(record).not.toHaveBeenCalled();
