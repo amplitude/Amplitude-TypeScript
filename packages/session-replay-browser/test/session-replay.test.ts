@@ -617,12 +617,16 @@ describe('SessionReplayPlugin', () => {
     test('should return true if there are options', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
+      const sampleRate = sessionReplay.getSampleRate();
+      expect(sampleRate).toBe(mockOptions.sampleRate);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
     });
     test('should return false if no options', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockEmptyOptions).promise;
+      const sampleRate = sessionReplay.getSampleRate();
+      expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
@@ -1273,6 +1277,8 @@ describe('SessionReplayPlugin', () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+        const sampleRate = sessionReplay.getSampleRate();
+        expect(sampleRate).toBe(0.2);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
         expect(record).not.toHaveBeenCalled();
