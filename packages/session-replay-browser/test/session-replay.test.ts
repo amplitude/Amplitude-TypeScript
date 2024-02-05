@@ -71,6 +71,16 @@ describe('SessionReplayPlugin', () => {
     loggerProvider: mockLoggerProvider,
     deviceId: '1a2b3c',
     optOut: false,
+    sampleRate: 1,
+    sessionId: 123,
+  };
+  const mockEmptyOptions: SessionReplayOptions = {
+    flushIntervalMillis: 0,
+    flushMaxRetries: 1,
+    flushQueueSize: 0,
+    logLevel: LogLevel.None,
+    loggerProvider: mockLoggerProvider,
+    deviceId: '1a2b3c',
     sessionId: 123,
   };
   beforeEach(() => {
@@ -604,11 +614,17 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('getShouldRecord', () => {
-    test('should return true if no options', async () => {
+    test('should return true if there are options', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
+    });
+    test('should return false if no options', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockEmptyOptions).promise;
+      const shouldRecord = sessionReplay.getShouldRecord();
+      expect(shouldRecord).toBe(false);
     });
     test('should return false if session not included in sample rate', async () => {
       jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => false);
@@ -1119,7 +1135,7 @@ describe('SessionReplayPlugin', () => {
             Accept: '*/*',
             'Content-Type': 'application/json',
             Authorization: 'Bearer static_key',
-            'X-Client-Sample-Rate': `${DEFAULT_SAMPLE_RATE}`,
+            'X-Client-Sample-Rate': `${sessionReplay.getSampleRate()}`,
             'X-Client-Url': '',
             'X-Client-Version': VERSION,
           },
@@ -1149,7 +1165,7 @@ describe('SessionReplayPlugin', () => {
             Accept: '*/*',
             'Content-Type': 'application/json',
             Authorization: 'Bearer static_key',
-            'X-Client-Sample-Rate': `${DEFAULT_SAMPLE_RATE}`,
+            'X-Client-Sample-Rate': `${sessionReplay.getSampleRate()}`,
             'X-Client-Url': '',
             'X-Client-Version': VERSION,
           },
@@ -1289,6 +1305,19 @@ describe('SessionReplayPlugin', () => {
         expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual(getSuccessMessage(123));
+      });
+    });
+    describe('without a sample rate', () => {
+      test('should not record session if no sample rate is provided', async () => {
+        jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+        expect(sessionRecordingProperties).toMatchObject({});
+        expect(record).not.toHaveBeenCalled();
+        expect(update).not.toHaveBeenCalled();
+        await runScheduleTimers();
+        expect(fetch).not.toHaveBeenCalled();
       });
     });
 

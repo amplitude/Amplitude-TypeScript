@@ -224,14 +224,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     } else if (!this.config.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
       return false;
-    } else if (typeof this.config?.sampleRate === 'number' && this.config.sampleRate >= 0) {
-      const isInSample = isSessionInSample(this.config.sessionId, this.config.sampleRate);
-      if (!isInSample) {
-        this.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording due to sample rate.`);
-      }
-      return isInSample;
     }
-    return true;
+
+    const isInSample = isSessionInSample(this.config.sessionId, this.getSampleRate());
+    if (!isInSample) {
+      this.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording due to sample rate.`);
+    }
+    return isInSample;
   }
 
   getBlockSelectors(): string | string[] | undefined {
