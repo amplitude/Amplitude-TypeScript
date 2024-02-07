@@ -51,9 +51,11 @@ const sessionReplayTracking = sessionReplayPlugin({
 
 #### Options
 
-|Name|Type|Default|Description|
-|-|-|-|-|
-|`sampleRate`|`number`|`undefined`|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+|Name|Type|Default|Required|Description|
+|-|-|-|-|-|
+|`sampleRate`|`number`|`undefined`|Yes|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+|`privacyConfig`|`object`|`undefined`|No| Supports advanced masking configs with CSS selectors.|
+|`debugMode`|`boolean`|`false`|No| Adds additional debug event property to help debug instrumentation issues (such as mismatching apps). Only recommended for debugging initial setup, and not recommended for production.|
 
 ### 3. Install plugin to Amplitude SDK
 
@@ -72,3 +74,14 @@ In your application code, add the class `.amp-mask` to any __non-input element__
 
 #### 3. Block non-text elements
 In your application code, add the class `.amp-block` to any element you would like to have blocked from the collection of the replay. The element will appear in the replay as a placeholder with the same dimensions.
+
+#### 4. Block elements by CSS selectors. 
+In the SDK initialization code, you can configure the SDK to block elements based on CSS selectors.
+```typescript
+const sessionReplayTracking = sessionReplayPlugin({
+  sampleRate: 0.01,
+  privacyConfig: {
+      blockSelector: ['.ignoreClass', '#ignoreId']
+  }
+});
+```
