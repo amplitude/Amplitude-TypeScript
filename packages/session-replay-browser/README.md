@@ -75,12 +75,14 @@ sessionReplay.shutdown()
 |-|-|-|-|-|
 |`deviceId`|`string`|Yes|`undefined`|Sets an identifier for the device running your application.|
 |`sessionId`|`number`|Yes|`undefined`|Sets an identifier for the users current session. The value must be in milliseconds since epoch (Unix Timestamp).|
-|`sampleRate`|`number`|No|`0`|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+|`sampleRate`|`number`|No|`0`|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.01`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.01` would select `1%` of those sessions.|
 |`optOut`|`boolean`|No|`false`|Sets permission to collect replays for sessions. Setting a value of true prevents Amplitude from collecting session replays.|
 |`flushMaxRetries`|`number`|No|`5`|Sets the maximum number of retries for failed upload attempts. This is only applicable to retryable errors.|
 |`logLevel`|`number`|No|`LogLevel.Warn`|`LogLevel.None` or `LogLevel.Error` or `LogLevel.Warn` or `LogLevel.Verbose` or `LogLevel.Debug`. Sets the log level.|
 |`loggerProvider`|`Logger`|No|`Logger`|Sets a custom loggerProvider class from the Logger to emit log messages to desired destination.|
 |`serverZone`|`string`|No|`US`|EU or US. Sets the Amplitude server zone. Set this to EU for Amplitude projects created in EU data center.|
+|`privacyConfig`|`object`|No|`undefined`| Supports advanced masking configs with CSS selectors.|
+|`debugMode`|`boolean`|No|`false`| Adds additional debug event property to help debug instrumentation issues (such as mismatching apps). Only recommended for debugging initial setup, and not recommended for production.|
 
 ## Privacy
 By default, the session replay will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:
@@ -93,3 +95,14 @@ In your application code, add the class `.amp-mask` to any __non-input element__
 
 #### 3. Block non-text elements
 In your application code, add the class `.amp-block` to any element you would like to have blocked from the collection of the replay. The element will appear in the replay as a placeholder with the same dimensions.
+
+#### 4. Block elements by CSS selectors. 
+In the SDK initialization code, you can configure the SDK to block elements based on CSS selectors.
+```typescript
+sessionReplay.init(AMPLITUDE_API_KEY, {
+  sampleRate: 0.01, 
+  privacyConfig: {
+      blockSelector: ['.ignoreClass', '#ignoreId']
+  }
+})
+```
