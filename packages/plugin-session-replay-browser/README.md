@@ -53,7 +53,7 @@ const sessionReplayTracking = sessionReplayPlugin({
 
 |Name|Type|Default|Required|Description|
 |-|-|-|-|-|
-|`sampleRate`|`number`|`undefined`|Yes|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.4`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.4` would select `40%` of those sessions.|
+|`sampleRate`|`number`|`undefined`|Yes|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.01`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.01` would select `1%` of those sessions.|
 |`privacyConfig`|`object`|`undefined`|No| Supports advanced masking configs with CSS selectors.|
 |`debugMode`|`boolean`|`false`|No| Adds additional debug event property to help debug instrumentation issues (such as mismatching apps). Only recommended for debugging initial setup, and not recommended for production.|
 
