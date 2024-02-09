@@ -242,6 +242,57 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    test('should mount mutation observer after document.body is available', async () => {
+      const body = document.body;
+      const bodyParent = body?.parentNode;
+      bodyParent?.removeChild(body);
+
+      const loggerProvider: Partial<Logger> = {
+        log: jest.fn(),
+        warn: jest.fn(),
+      };
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider as Logger,
+      };
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      bodyParent?.appendChild(body);
+      // fire the load event, so that the mutation observer can be mounted
+      window.dispatchEvent(new Event('load'));
+
+      // trigger click event
+      const button = document.createElement('button');
+      const buttonText = document.createTextNode('submit');
+      button.setAttribute('id', 'my-button-id');
+      button.setAttribute('class', 'my-button-class');
+      button.setAttribute('aria-label', 'my-button');
+      button.appendChild(buttonText);
+      document.body.appendChild(button);
+      // allow mutation observer to execute and event listener to be attached
+      await new Promise((r) => r(undefined)); // basically, await next clock tick
+      document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
+        '[Amplitude] Element Class': 'my-button-class',
+        '[Amplitude] Element ID': 'my-button-id',
+        '[Amplitude] Element Position Left': 0,
+        '[Amplitude] Element Position Top': 0,
+        '[Amplitude] Element Tag': 'button',
+        '[Amplitude] Element Text': 'submit',
+        '[Amplitude] Element Aria Label': 'my-button',
+        '[Amplitude] Element Selector': '#my-button-id',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+        '[Amplitude] Viewport Height': 768,
+        '[Amplitude] Viewport Width': 1024,
+      });
+
+      // stop observer and listeners
+      await plugin?.teardown?.();
+    });
+
     test('should not track disallowed tag', async () => {
       const div = document.createElement('div');
       div.setAttribute('id', 'my-div-id');
