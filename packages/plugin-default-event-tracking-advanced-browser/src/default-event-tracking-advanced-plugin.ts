@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import { BrowserClient, BrowserConfig, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import * as constants from './constants';
 import {
   getText,
@@ -9,8 +9,8 @@ import {
   getNearestLabel,
   querySelectUniqueElements,
   getClosestElement,
+  getSelector,
 } from './helpers';
-import { finder } from './libs/finder';
 import { Messenger, WindowMessenger } from './libs/messenger';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
@@ -90,6 +90,7 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
 
   let observer: MutationObserver | undefined;
   let eventListeners: EventListener[] = [];
+  let logger: Logger | undefined = undefined;
 
   const addEventListener = (element: Element, type: ActionType, handler: (event: Event) => void) => {
     element.addEventListener(type, handler);
@@ -177,7 +178,7 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     const ariaLabel = element.getAttribute('aria-label');
     const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
     const nearestLabel = getNearestLabel(element);
-    const selector = finder(element);
+    const selector = getSelector(element, logger);
     /* istanbul ignore next */
     const properties: Record<string, any> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.id,
@@ -209,6 +210,8 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
       );
       return;
     }
+    logger = config.loggerProvider;
+
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
@@ -256,10 +259,20 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
           });
         });
       });
-      observer.observe(document.body, {
-        subtree: true,
-        childList: true,
-      });
+      if (document.body) {
+        observer.observe(document.body, {
+          subtree: true,
+          childList: true,
+        });
+      } else {
+        window.addEventListener('load', () => {
+          /* istanbul ignore next */
+          observer?.observe(document.body, {
+            subtree: true,
+            childList: true,
+          });
+        });
+      }
     }
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);

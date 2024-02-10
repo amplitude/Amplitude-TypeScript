@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { finder } from './libs/finder';
 import * as constants from './constants';
+import { Logger } from '@amplitude/analytics-types';
 
 const SENTITIVE_TAGS = ['input', 'select', 'textarea'];
 
@@ -55,6 +56,39 @@ export const getText = (element: Element): string => {
     });
   }
   return text;
+};
+
+export const getSelector = (element: Element, logger?: Logger): string => {
+  let selector = '';
+  try {
+    selector = finder(element, {
+      className: (name: string) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+    });
+    return selector;
+  } catch (error) {
+    if (logger) {
+      const typedError = error as Error;
+      logger.warn(`Failed to get selector with finder, use fallback strategy instead: ${typedError.toString()}`);
+    }
+  }
+  // Fall back to use tag, id, and class name, if finder fails.
+  /* istanbul ignore next */
+  const tag = element?.tagName?.toLowerCase?.();
+  if (tag) {
+    selector = tag;
+  }
+  if (element.id) {
+    selector = `#${element.id}`;
+  } else if (element.className) {
+    const classes = element.className
+      .split(' ')
+      .filter((name) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS)
+      .join('.');
+    if (classes) {
+      selector = `${selector}.${classes}`;
+    }
+  }
+  return selector;
 };
 
 export const isPageUrlAllowed = (url: string, pageUrlAllowlist: (string | RegExp)[] | undefined) => {
@@ -116,16 +150,19 @@ export const getNearestLabel = (element: Element): string => {
 };
 
 export const querySelectUniqueElements = (root: Element | Document, selectors: string[]): Element[] => {
-  const elementSet = selectors.reduce((elements: Set<Element>, selector) => {
-    if (selector) {
-      const selectedElements = Array.from(root.querySelectorAll(selector));
-      selectedElements.forEach((element) => {
-        elements.add(element);
-      });
-    }
-    return elements;
-  }, new Set<Element>());
-  return Array.from(elementSet);
+  if (root && 'querySelectorAll' in root && typeof root.querySelectorAll === 'function') {
+    const elementSet = selectors.reduce((elements: Set<Element>, selector) => {
+      if (selector) {
+        const selectedElements = Array.from(root.querySelectorAll(selector));
+        selectedElements.forEach((element) => {
+          elements.add(element);
+        });
+      }
+      return elements;
+    }, new Set<Element>());
+    return Array.from(elementSet);
+  }
+  return [];
 };
 
 // Similar as element.closest, but works with multiple selectors
@@ -141,15 +178,13 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
   return getClosestElement(element?.parentElement, selectors);
 };
 
-export const getEventTagProps = (element: Element) => {
+export const getEventTagProps = (element: Element, logger?: Logger) => {
   if (!element) {
     return {};
   }
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const selector = finder(element, {
-    className: (name: string) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
-  });
+  const selector = getSelector(element, logger);
   const properties: Record<string, string> = {
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
