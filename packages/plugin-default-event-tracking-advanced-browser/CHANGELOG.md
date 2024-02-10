@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.5.0...@amplitude/plugin-default-event-tracking-advanced-browser@0.5.1) (2024-02-10)
+
+### Bug Fixes
+
+- **deta plugin:** type and error issues ([#660](https://github.com/amplitude/Amplitude-TypeScript/issues/660))
+  ([276ad85](https://github.com/amplitude/Amplitude-TypeScript/commit/276ad85bf61f24ccabe13bfc4a60194c1a5db42e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.4.2...@amplitude/plugin-default-event-tracking-advanced-browser@0.5.0) (2024-01-31)
 
 ### Features
