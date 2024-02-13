@@ -2,6 +2,7 @@ import { defaultEventTrackingAdvancedPlugin } from '../src/default-event-trackin
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { createInstance } from '@amplitude/analytics-browser';
 import { mockWindowLocationFromURL } from './utils';
+import { VERSION } from '../src/version';
 
 describe('autoTrackingPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
@@ -43,6 +44,12 @@ describe('autoTrackingPlugin', () => {
   describe('type', () => {
     test('should return the plugin type', () => {
       expect(plugin?.type).toBe('enrichment');
+    });
+  });
+
+  describe('version', () => {
+    test('should return the plugin version', () => {
+      expect(VERSION != null).toBe(true);
     });
   });
 
