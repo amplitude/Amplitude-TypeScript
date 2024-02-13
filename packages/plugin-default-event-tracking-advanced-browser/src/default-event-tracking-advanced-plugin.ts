@@ -246,8 +246,7 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
         });
       }
     };
-    const allElements = querySelectUniqueElements(document.body, cssSelectorAllowlist);
-    allElements.forEach(addListener);
+
     if (typeof MutationObserver !== 'undefined') {
       observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
@@ -259,20 +258,22 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
           });
         });
       });
-      if (document.body) {
-        observer.observe(document.body, {
-          subtree: true,
-          childList: true,
-        });
-      } else {
-        window.addEventListener('load', () => {
-          /* istanbul ignore next */
-          observer?.observe(document.body, {
-            subtree: true,
-            childList: true,
-          });
-        });
-      }
+    }
+    const attachListeners = () => {
+      const allElements = querySelectUniqueElements(document.body, cssSelectorAllowlist);
+      allElements.forEach(addListener);
+      /* istanbul ignore next */
+      observer?.observe(document.body, {
+        subtree: true,
+        childList: true,
+      });
+    };
+    if (document.body) {
+      attachListeners();
+    } else {
+      // This is to handle the case where the plugin is loaded before the body is available.
+      // E.g., for non-reactive frameworks.
+      window.addEventListener('load', attachListeners);
     }
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
