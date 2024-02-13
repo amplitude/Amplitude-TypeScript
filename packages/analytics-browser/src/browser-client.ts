@@ -11,6 +11,7 @@ import {
   setConnectorDeviceId,
   setConnectorUserId,
   isNewSession,
+  isPageViewTrackingEnabled,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -114,7 +115,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     // Add page view plugin
-    await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+    if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
+      await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+    }
 
     this.initializing = false;
 

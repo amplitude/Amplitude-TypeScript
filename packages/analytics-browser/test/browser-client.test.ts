@@ -15,6 +15,7 @@ import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
+import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 
 describe('browser-client', () => {
   let apiKey = '';
@@ -282,6 +283,30 @@ describe('browser-client', () => {
         offline: OfflineDisabled,
       }).promise;
       expect(networkConnectivityCheckerPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should add page view tracking plugin by default', async () => {
+      const pageViewTrackingPlugin = jest.spyOn(pageViewTracking, 'pageViewTrackingPlugin');
+      await client.init(apiKey, userId).promise;
+      expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT add page view tracking plugin when DET is disabled', async () => {
+      const pageViewTrackingPlugin = jest.spyOn(pageViewTracking, 'pageViewTrackingPlugin');
+      await client.init(apiKey, userId, {
+        defaultTracking: false,
+      }).promise;
+      expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should NOT add page view tracking plugin when page view is disabled', async () => {
+      const pageViewTrackingPlugin = jest.spyOn(pageViewTracking, 'pageViewTrackingPlugin');
+      await client.init(apiKey, userId, {
+        defaultTracking: {
+          pageViews: false,
+        },
+      }).promise;
+      expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
     });
 
     test('should listen for network change to online', async () => {
