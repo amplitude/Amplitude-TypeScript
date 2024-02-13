@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.5.1...@amplitude/plugin-default-event-tracking-advanced-browser@0.6.0) (2024-02-13)
+
+### Features
+
+- **deta:** pass the on track message for instrumentations
+  ([#661](https://github.com/amplitude/Amplitude-TypeScript/issues/661))
+  ([c87a63b](https://github.com/amplitude/Amplitude-TypeScript/commit/c87a63b42e8f314c9dbe6cc634847cb195563913))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.5.0...@amplitude/plugin-default-event-tracking-advanced-browser@0.5.1) (2024-02-10)
 
 ### Bug Fixes
