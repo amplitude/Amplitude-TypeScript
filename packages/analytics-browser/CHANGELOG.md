@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.4.0...@amplitude/analytics-browser@2.4.1) (2024-02-13)
+
+### Bug Fixes
+
+- should not install page view tracking plugin based on config
+  ([#662](https://github.com/amplitude/Amplitude-TypeScript/issues/662))
+  ([178a7f0](https://github.com/amplitude/Amplitude-TypeScript/commit/178a7f0c7943a1b0fed4855c13cea3ee2376f04d))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.3.8...@amplitude/analytics-browser@2.4.0) (2024-01-24)
 
 ### Features
