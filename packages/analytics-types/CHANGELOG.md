@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.4.0...@amplitude/analytics-types@2.5.0) (2024-02-23)
+
+### Features
+
+- landing page improvement ([#667](https://github.com/amplitude/Amplitude-TypeScript/issues/667))
+  ([5f365f0](https://github.com/amplitude/Amplitude-TypeScript/commit/5f365f0b933ee890aee1d9ac083576f09b0defc3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.3.1...@amplitude/analytics-types@2.4.0) (2024-01-24)
 
 ### Features
