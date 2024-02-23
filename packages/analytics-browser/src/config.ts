@@ -188,7 +188,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       optOut: this._optOut,
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
-      pageCount: this._pageCounter,
+      pageCounter: this._pageCounter,
     };
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
