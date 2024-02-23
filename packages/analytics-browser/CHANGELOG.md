@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.5.0...@amplitude/analytics-browser@2.5.1) (2024-02-23)
+
+### Bug Fixes
+
+- fix typo for pageCounter ([#668](https://github.com/amplitude/Amplitude-TypeScript/issues/668))
+  ([ffc1f25](https://github.com/amplitude/Amplitude-TypeScript/commit/ffc1f25137db536885eff13d3920edd02cc4aa46))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.4.1...@amplitude/analytics-browser@2.5.0) (2024-02-23)
 
 ### Features
