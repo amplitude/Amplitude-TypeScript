@@ -36,7 +36,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _optOut = false;
   protected _sessionId?: number;
   protected _userId?: string;
-
+  protected _pageCounter?: number;
   constructor(
     public apiKey: string,
     public appVersion?: string,
@@ -78,6 +78,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
     userId?: string,
+    pageCounter?: number,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -86,6 +87,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.lastEventTime = lastEventTime;
     this.optOut = optOut;
     this.sessionId = sessionId;
+    this.pageCounter = pageCounter;
     this.userId = userId;
     this.loggerProvider.enable(this.logLevel);
   }
@@ -167,6 +169,17 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     }
   }
 
+  get pageCounter() {
+    return this._pageCounter;
+  }
+
+  set pageCounter(pageCounter: number | undefined) {
+    if (this._pageCounter !== pageCounter) {
+      this._pageCounter = pageCounter;
+      this.updateStorage();
+    }
+  }
+
   private updateStorage() {
     const cache = {
       deviceId: this._deviceId,
@@ -175,6 +188,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       optOut: this._optOut,
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
+      pageCount: this._pageCounter,
     };
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
@@ -219,6 +233,7 @@ export const useBrowserConfig = async (
     language: options.trackingOptions?.language ?? true,
     platform: options.trackingOptions?.platform ?? true,
   };
+  const pageCounter = previousCookies?.pageCounter;
 
   return new BrowserConfig(
     apiKey,
@@ -251,6 +266,7 @@ export const useBrowserConfig = async (
     options.transport,
     options.useBatch,
     userId,
+    pageCounter,
   );
 };
 

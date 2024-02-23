@@ -750,6 +750,21 @@ describe('browser-client', () => {
     });
   });
 
+  describe('pageCount', () => {
+    test('init pageCounter should be 0', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      expect(client.config.pageCounter).toBe(0);
+    });
+
+    test('should set pageCounter to 0 in new session', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+      client.config.pageCounter = 2;
+      expect(client.config.pageCounter).toBe(2);
+      client.setSessionId(Date.now() + 5 * 60 * 60);
+      expect(client.config.pageCounter).toBe(0);
+    });
+  });
+
   describe('setTransport', () => {
     test('should set transport', async () => {
       const fetch = new FetchTransport();

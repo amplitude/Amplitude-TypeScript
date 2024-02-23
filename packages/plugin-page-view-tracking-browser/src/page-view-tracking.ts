@@ -17,6 +17,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
   let pushState: undefined | ((data: any, unused: string, url?: string | URL | null) => void);
+  let pageCounter: number;
 
   const createPageViewEvent = async (): Promise<Event> => {
     return {
@@ -32,6 +33,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
         '[Amplitude] Page URL':
           /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
+        '[Amplitude] Page Counter': pageCounter,
       },
     };
   };
@@ -73,6 +75,9 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
       loggerProvider = config.loggerProvider;
       loggerProvider.log('Installing @amplitude/plugin-page-view-tracking-browser');
+
+      config.pageCounter = !config.pageCounter ? 1 : config.pageCounter + 1;
+      pageCounter = config.pageCounter;
 
       if (globalScope) {
         globalScope.addEventListener('popstate', trackHistoryPageViewWrapper);

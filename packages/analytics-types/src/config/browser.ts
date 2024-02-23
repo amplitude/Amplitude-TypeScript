@@ -18,6 +18,7 @@ export interface ExternalBrowserConfig extends Config {
   trackingOptions: TrackingOptions;
   transport?: 'fetch' | 'xhr' | 'beacon';
   userId?: string;
+  pageCounter?: number;
 }
 
 interface InternalBrowserConfig {
@@ -25,6 +26,7 @@ interface InternalBrowserConfig {
   lastEventTime?: number;
   lastEventId?: number;
   transportProvider: Transport;
+  pageCounter?: number;
 }
 
 export interface DefaultTrackingOptions {
