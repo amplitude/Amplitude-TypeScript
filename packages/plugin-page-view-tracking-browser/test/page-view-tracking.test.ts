@@ -56,6 +56,7 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   describe('setup', () => {
+    let currentTestIndex = 0;
     test.each([
       undefined,
       {},
@@ -91,6 +92,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': `https://${hostname}${pathname}`,
+          '[Amplitude] Page Counter': ++currentTestIndex,
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -110,6 +112,7 @@ describe('pageViewTrackingPlugin', () => {
         trackOn: () => false,
       },
     ])('should not track initial page view', async (options) => {
+      ++currentTestIndex;
       const amplitude = createInstance();
       const track = jest.spyOn(amplitude, 'track');
       const plugin = pageViewTrackingPlugin(options);
@@ -154,6 +157,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newURL.toString(),
+          '[Amplitude] Page Counter': ++currentTestIndex,
         },
         event_type: '[Amplitude] Page Viewed',
       });

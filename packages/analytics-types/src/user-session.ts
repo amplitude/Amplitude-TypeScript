@@ -5,4 +5,5 @@ export interface UserSession {
   lastEventTime?: number;
   optOut: boolean;
   lastEventId?: number;
+  pageCounter?: number;
 }

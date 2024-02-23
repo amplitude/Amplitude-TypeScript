@@ -166,6 +166,7 @@ describe('integration', () => {
               '[Amplitude] Page Path': '',
               '[Amplitude] Page Title': '',
               '[Amplitude] Page URL': '',
+              '[Amplitude] Page Counter': 1,
             },
             user_agent: userAgent,
             user_properties: {
@@ -1492,6 +1493,7 @@ describe('integration', () => {
                   '[Amplitude] Page Path': '',
                   '[Amplitude] Page Title': '',
                   '[Amplitude] Page URL': '',
+                  '[Amplitude] Page Counter': 1,
                 },
                 event_type: '[Amplitude] Page Viewed',
                 insert_id: uuid,
@@ -1591,6 +1593,7 @@ describe('integration', () => {
                   '[Amplitude] Page Path': '',
                   '[Amplitude] Page Title': '',
                   '[Amplitude] Page URL': '',
+                  '[Amplitude] Page Counter': 1,
                 },
                 event_type: '[Amplitude] Page Viewed',
                 insert_id: uuid,

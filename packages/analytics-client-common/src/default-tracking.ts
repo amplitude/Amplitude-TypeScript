@@ -45,6 +45,7 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
   let trackOn: PageTrackingTrackOn | undefined = () => false;
   let trackHistoryChanges: PageTrackingHistoryChanges | undefined = undefined;
   let eventType: string | undefined;
+  const pageCounter = config.pageCounter;
 
   const isDefaultPageViewTrackingEnabled = isPageViewTrackingEnabled(config.defaultTracking);
   if (isDefaultPageViewTrackingEnabled) {
@@ -75,6 +76,7 @@ export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingO
     trackOn,
     trackHistoryChanges,
     eventType,
+    pageCounter,
   };
 };
 
