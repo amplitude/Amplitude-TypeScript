@@ -32,6 +32,7 @@ describe('pageViewTrackingPlugin', () => {
       language: true,
       platform: true,
     },
+    pageCounter: 0,
   };
 
   beforeAll(() => {
@@ -56,7 +57,51 @@ describe('pageViewTrackingPlugin', () => {
   });
 
   describe('setup', () => {
-    let currentTestIndex = 0;
+    test.each([
+      { trackHistoryChanges: undefined },
+      { trackHistoryChanges: 'pathOnly' as const },
+      { trackHistoryChanges: 'all' as const },
+    ])('should track dynamic page view', async (options) => {
+      mockConfig.pageCounter = 0;
+
+      const amplitude = createInstance();
+      const track = jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: '[Amplitude] Page Viewed',
+          },
+        }),
+      });
+
+      const oldURL = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(oldURL);
+      const plugin = pageViewTrackingPlugin(options);
+      await plugin.setup?.(mockConfig, amplitude);
+
+      const newURL = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(track).toHaveBeenNthCalledWith(2, {
+        event_properties: {
+          '[Amplitude] Page Domain': newURL.hostname,
+          '[Amplitude] Page Location': newURL.toString(),
+          '[Amplitude] Page Path': newURL.pathname,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': newURL.toString(),
+          '[Amplitude] Page Counter': 2,
+        },
+        event_type: '[Amplitude] Page Viewed',
+      });
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
     test.each([
       undefined,
       {},
@@ -68,6 +113,7 @@ describe('pageViewTrackingPlugin', () => {
         eventType: 'Page Viewed',
       },
     ])('should track initial page view', async (options) => {
+      mockConfig.pageCounter = 0;
       const amplitude = createInstance();
       const search = 'utm_source=google&utm_medium=cpc&utm_campaign=brand&utm_term=keyword&utm_content=adcopy';
       const hostname = 'www.example.com';
@@ -92,7 +138,7 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': `https://${hostname}${pathname}`,
-          '[Amplitude] Page Counter': ++currentTestIndex,
+          '[Amplitude] Page Counter': 1,
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -112,56 +158,11 @@ describe('pageViewTrackingPlugin', () => {
         trackOn: () => false,
       },
     ])('should not track initial page view', async (options) => {
-      ++currentTestIndex;
       const amplitude = createInstance();
       const track = jest.spyOn(amplitude, 'track');
       const plugin = pageViewTrackingPlugin(options);
       await plugin.setup?.(mockConfig, amplitude);
       expect(track).toHaveBeenCalledTimes(0);
-    });
-
-    test.each([
-      { trackHistoryChanges: undefined },
-      { trackHistoryChanges: 'pathOnly' as const },
-      { trackHistoryChanges: 'all' as const },
-    ])('should track dynamic page view', async (options) => {
-      const amplitude = createInstance();
-      const track = jest.spyOn(amplitude, 'track').mockReturnValue({
-        promise: Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: '[Amplitude] Page Viewed',
-          },
-        }),
-      });
-
-      const oldURL = new URL('https://www.example.com/home');
-      mockWindowLocationFromURL(oldURL);
-
-      const plugin = pageViewTrackingPlugin(options);
-      await plugin.setup?.(mockConfig, amplitude);
-
-      const newURL = new URL('https://www.example.com/about');
-      mockWindowLocationFromURL(newURL);
-      window.history.pushState(undefined, newURL.href);
-
-      // Page view tracking on push state executes async
-      // Block event loop for 1s before asserting
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      expect(track).toHaveBeenNthCalledWith(2, {
-        event_properties: {
-          '[Amplitude] Page Domain': newURL.hostname,
-          '[Amplitude] Page Location': newURL.toString(),
-          '[Amplitude] Page Path': newURL.pathname,
-          '[Amplitude] Page Title': '',
-          '[Amplitude] Page URL': newURL.toString(),
-          '[Amplitude] Page Counter': ++currentTestIndex,
-        },
-        event_type: '[Amplitude] Page Viewed',
-      });
-      expect(track).toHaveBeenCalledTimes(2);
     });
 
     test.each([
@@ -203,9 +204,11 @@ describe('pageViewTrackingPlugin', () => {
 
   describe('execute', () => {
     test('should track page view on attribution', async () => {
+      const amplitude = createInstance();
       const plugin = pageViewTrackingPlugin({
         trackOn: 'attribution',
       });
+      await plugin.setup?.(mockConfig, amplitude);
       const event = await plugin.execute?.({
         event_type: '$identify',
         user_properties: {
