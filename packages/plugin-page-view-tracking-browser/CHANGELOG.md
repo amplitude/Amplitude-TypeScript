@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.2.1...@amplitude/plugin-page-view-tracking-browser@2.2.2) (2024-02-27)
+
+### Bug Fixes
+
+- Page counter fix ([#670](https://github.com/amplitude/Amplitude-TypeScript/issues/670))
+  ([1bd9105](https://github.com/amplitude/Amplitude-TypeScript/commit/1bd9105a788d068a2803af91797f8db741ce3a83))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.2.0...@amplitude/plugin-page-view-tracking-browser@2.2.1) (2024-02-23)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
