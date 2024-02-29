@@ -281,7 +281,10 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
     // Setup visual tagging selector
     if (window.opener && visualTaggingOptions.enabled) {
       /* istanbul ignore next */
-      visualTaggingOptions.messenger?.setup({ logger: config?.loggerProvider });
+      visualTaggingOptions.messenger?.setup({
+        logger: config?.loggerProvider,
+        ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
+      });
     }
   };
 

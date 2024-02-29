@@ -72,8 +72,11 @@ export class WindowMessenger implements Messenger {
     (window.opener as WindowProxy)?.postMessage?.(message, this.endpoint);
   }
 
-  setup({ logger }: { logger?: Logger } = {}) {
+  setup({ logger, endpoint }: { logger?: Logger; endpoint?: string } = {}) {
     this.logger = logger;
+    if (endpoint) {
+      this.endpoint = endpoint;
+    }
     let amplitudeVisualTaggingSelectorInstance: any = null;
     window.addEventListener('message', (event) => {
       this.logger?.debug?.('Message received: ', JSON.stringify(event));
