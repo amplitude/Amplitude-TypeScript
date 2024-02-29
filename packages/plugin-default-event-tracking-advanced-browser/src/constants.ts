@@ -21,6 +21,14 @@ export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
 
 // Visual Tagging related constants
 export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
+export const AMPLITUDE_ORIGIN_EU = 'https://app.eu.amplitude.com';
+export const AMPLITUDE_ORIGIN_STAGING = 'https://apps.stag2.amplitude.com';
+export const AMPLITUDE_ORIGINS_MAP = {
+  US: AMPLITUDE_ORIGIN,
+  EU: AMPLITUDE_ORIGIN_EU,
+  STAGING: AMPLITUDE_ORIGIN_STAGING,
+};
+
 export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
   'https://cdn.amplitude.com/libs/visual-tagging-selector-0.1.2.js.gz';
 // This is the class name used by the visual tagging selector to highlight the selected element.
