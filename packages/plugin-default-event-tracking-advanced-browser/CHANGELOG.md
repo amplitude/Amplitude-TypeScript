@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.6.0...@amplitude/plugin-default-event-tracking-advanced-browser@0.7.0) (2024-03-01)
+
+### Features
+
+- **deta:** support eu and staging origins ([#671](https://github.com/amplitude/Amplitude-TypeScript/issues/671))
+  ([9d6144f](https://github.com/amplitude/Amplitude-TypeScript/commit/9d6144fa2f4cba70458c499e0e04255330c57386))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.5.1...@amplitude/plugin-default-event-tracking-advanced-browser@0.6.0) (2024-02-13)
 
 ### Features
