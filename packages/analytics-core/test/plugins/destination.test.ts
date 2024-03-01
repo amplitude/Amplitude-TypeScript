@@ -548,8 +548,15 @@ describe('destination', () => {
     });
   });
 
-  describe('saveEvents', () => {
-    test('should save to storage provider', () => {
+  describe('updateEvents', () => {
+    test('should be ok with no storage provider', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.storageProvider = undefined;
+      expect(await destination.updateEvent(new Set())).toBe(undefined);
+    });
+
+    test('should filter dropped event and update the storage provider', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.storageProvider = {
@@ -560,16 +567,21 @@ describe('destination', () => {
         reset: async () => undefined,
         getRaw: async () => undefined,
       };
+      const storedEvents = [
+        { event_type: 'event1' },
+        { event_type: 'event2' },
+        { event_type: 'filtered_event1' },
+        { event_type: 'filtered_event2' },
+      ];
+      const get = jest.spyOn(destination.config.storageProvider, 'get').mockResolvedValueOnce(storedEvents);
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      destination.saveEvents();
+      await destination.updateEvent(new Set(['filtered_event1', 'filtered_event2']));
+      expect(get).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledTimes(1);
-    });
-
-    test('should be ok with no storage provider', () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.storageProvider = undefined;
-      expect(destination.saveEvents()).toBe(undefined);
+      expect(set).toHaveBeenCalledWith(
+        '',
+        expect.objectContaining([{ event_type: 'event1' }, { event_type: 'event2' }]),
+      );
     });
   });
 
