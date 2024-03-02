@@ -87,11 +87,13 @@ export class Destination implements DestinationPlugin {
         return true;
       }
       //Remove the events more than max retries from the storage.
-      dropEventSet.add(context.event.event_type);
+      if (context.event.insert_id) {
+        dropEventSet.add(context.event.insert_id);
+      }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
-    void this.updateEvent(dropEventSet);
+    void this.filterEvent(dropEventSet);
 
     tryable.forEach((context) => {
       this.queue = this.queue.concat(context);
@@ -216,11 +218,13 @@ export class Destination implements DestinationPlugin {
   handleSuccessResponse(res: SuccessResponse, list: Context[]) {
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
     const dropEventSet = list.reduce(function (filtered, context) {
-      filtered.add(context.event.event_type);
+      if (context.event.insert_id) {
+        filtered.add(context.event.insert_id);
+      }
       return filtered;
     }, new Set<string>());
 
-    void this.updateEvent(dropEventSet);
+    void this.filterEvent(dropEventSet);
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
@@ -240,7 +244,9 @@ export class Destination implements DestinationPlugin {
 
     const retry = list.filter((context, index) => {
       if (dropIndexSet.has(index)) {
-        dropEventSet.add(context.event.event_type);
+        if (context.event.insert_id) {
+          dropEventSet.add(context.event.insert_id);
+        }
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
@@ -252,13 +258,13 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    void this.updateEvent(dropEventSet);
+    void this.filterEvent(dropEventSet);
     this.addToQueue(...retry);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
-      void this.updateEvent(new Set(list[0].event.event_type));
+      void this.filterEvent(new Set(list[0].event.event_type));
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
@@ -284,7 +290,9 @@ export class Destination implements DestinationPlugin {
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
-        dropEventSet.add(context.event.event_type);
+        if (context.event.insert_id) {
+          dropEventSet.add(context.event.insert_id);
+        }
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
@@ -299,7 +307,7 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    void this.updateEvent(dropEventSet);
+    void this.filterEvent(dropEventSet);
     this.addToQueue(...retry);
   }
 
@@ -319,7 +327,7 @@ export class Destination implements DestinationPlugin {
   /**
    * update the event storage
    */
-  async updateEvent(dropEventSet: Set<string>) {
+  async filterEvent(dropEventSet: Set<string>) {
     if (!this.config.storageProvider) {
       return;
     }
