@@ -53,7 +53,7 @@ export class Destination implements DestinationPlugin {
   config: Config;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
-  operationQueue: Promise<any> = Promise.resolve();
+  lock = false;
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -305,25 +305,34 @@ export class Destination implements DestinationPlugin {
    * update the event storage
    */
   async filterEvent(list: Context[]) {
-    const dropEventSet = list.reduce((filtered, context) => {
+    if (!this.config.storageProvider) {
+      return;
+    }
+
+    while (this.lock) {
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for 100ms before retrying
+    }
+
+    this.lock = true;
+    const filterEventSet = list.reduce((filtered, context) => {
       if (context.event.insert_id) {
         filtered.add(context.event.insert_id);
       }
       return filtered;
     }, new Set<string>());
-    if (!this.config.storageProvider) {
-      return;
-    }
+
     const savedEvent = await this.config.storageProvider.get(this.storageKey);
     const reTriedEvents: Event[] = [];
 
     if (savedEvent) {
       savedEvent.filter((event) => {
-        if (!dropEventSet.has(event.event_type)) {
+        if (!filterEventSet.has(event.event_type)) {
           reTriedEvents.push(event);
         }
       });
     }
-    void this.config.storageProvider.set(this.storageKey, reTriedEvents);
+    await this.config.storageProvider.set(this.storageKey, reTriedEvents).finally(() => {
+      this.lock = false;
+    });
   }
 }
