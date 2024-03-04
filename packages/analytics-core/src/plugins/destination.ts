@@ -53,6 +53,7 @@ export class Destination implements DestinationPlugin {
   config: Config;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  operationQueue: Promise<any> = Promise.resolve();
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -79,21 +80,15 @@ export class Destination implements DestinationPlugin {
   }
 
   addToQueue(...list: Context[]) {
-    const dropEventSet = new Set<string>();
     const tryable = list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
 
         return true;
       }
-      //Remove the events more than max retries from the storage.
-      if (context.event.insert_id) {
-        dropEventSet.add(context.event.insert_id);
-      }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
-    void this.filterEvent(dropEventSet);
 
     tryable.forEach((context) => {
       this.queue = this.queue.concat(context);
@@ -217,14 +212,6 @@ export class Destination implements DestinationPlugin {
 
   handleSuccessResponse(res: SuccessResponse, list: Context[]) {
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
-    const dropEventSet = list.reduce(function (filtered, context) {
-      if (context.event.insert_id) {
-        filtered.add(context.event.insert_id);
-      }
-      return filtered;
-    }, new Set<string>());
-
-    void this.filterEvent(dropEventSet);
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
@@ -240,13 +227,9 @@ export class Destination implements DestinationPlugin {
       ...res.body.silencedEvents,
     ].flat();
     const dropIndexSet = new Set(dropIndex);
-    const dropEventSet = new Set<string>();
 
     const retry = list.filter((context, index) => {
       if (dropIndexSet.has(index)) {
-        if (context.event.insert_id) {
-          dropEventSet.add(context.event.insert_id);
-        }
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
@@ -258,13 +241,11 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    void this.filterEvent(dropEventSet);
     this.addToQueue(...retry);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
-      void this.filterEvent(new Set(list[0].event.event_type));
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
     }
@@ -283,16 +264,12 @@ export class Destination implements DestinationPlugin {
     const dropUserIdsSet = new Set(dropUserIds);
     const dropDeviceIdsSet = new Set(dropDeviceIds);
     const throttledIndexSet = new Set(throttledIndex);
-    const dropEventSet = new Set<string>();
 
     const retry = list.filter((context, index) => {
       if (
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
-        if (context.event.insert_id) {
-          dropEventSet.add(context.event.insert_id);
-        }
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
@@ -307,7 +284,6 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    void this.filterEvent(dropEventSet);
     this.addToQueue(...retry);
   }
 
@@ -322,17 +298,25 @@ export class Destination implements DestinationPlugin {
 
   fulfillRequest(list: Context[], code: number, message: string) {
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
+    void this.filterEvent(list);
   }
 
   /**
    * update the event storage
    */
-  async filterEvent(dropEventSet: Set<string>) {
+  async filterEvent(list: Context[]) {
+    const dropEventSet = list.reduce((filtered, context) => {
+      if (context.event.insert_id) {
+        filtered.add(context.event.insert_id);
+      }
+      return filtered;
+    }, new Set<string>());
     if (!this.config.storageProvider) {
       return;
     }
     const savedEvent = await this.config.storageProvider.get(this.storageKey);
     const reTriedEvents: Event[] = [];
+
     if (savedEvent) {
       savedEvent.filter((event) => {
         if (!dropEventSet.has(event.event_type)) {
