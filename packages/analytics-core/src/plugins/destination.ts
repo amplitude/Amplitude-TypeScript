@@ -320,13 +320,11 @@ export class Destination implements DestinationPlugin {
     const savedEvent = await this.config.storageProvider.get(this.storageKey);
     const updatedEvents: Event[] = newContext?.map((context) => context.event) || [];
 
-    if (savedEvent) {
-      savedEvent.filter((event) => {
-        if (event.insert_id && !filterEventInsertIdSet.has(event.insert_id)) {
-          updatedEvents.push(event);
-        }
-      });
-    }
+    savedEvent?.forEach((event) => {
+      if (event.insert_id && !filterEventInsertIdSet.has(event.insert_id)) {
+        updatedEvents.push(event);
+      }
+    });
     await this.config.storageProvider.set(this.storageKey, updatedEvents);
   }
 }
