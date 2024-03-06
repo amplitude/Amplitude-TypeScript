@@ -53,7 +53,6 @@ export class Destination implements DestinationPlugin {
   config: Config;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
-  lock = false;
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -102,6 +101,8 @@ export class Destination implements DestinationPlugin {
         this.schedule(0);
       }, context.timeout);
     });
+
+    void this.updateEventStorage([], this.queue);
   }
 
   schedule(timeout: number) {
@@ -298,23 +299,18 @@ export class Destination implements DestinationPlugin {
 
   fulfillRequest(list: Context[], code: number, message: string) {
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
-    void this.filterEvent(list);
+    void this.updateEventStorage(list);
   }
 
   /**
    * update the event storage
    */
-  async filterEvent(list: Context[]) {
+  async updateEventStorage(filterList: Context[], newContext?: Context[]) {
     if (!this.config.storageProvider) {
       return;
     }
 
-    while (this.lock) {
-      await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for 100ms before retrying
-    }
-
-    this.lock = true;
-    const filterEventSet = list.reduce((filtered, context) => {
+    const filterEventInsertIdSet = filterList.reduce((filtered, context) => {
       if (context.event.insert_id) {
         filtered.add(context.event.insert_id);
       }
@@ -322,17 +318,15 @@ export class Destination implements DestinationPlugin {
     }, new Set<string>());
 
     const savedEvent = await this.config.storageProvider.get(this.storageKey);
-    const reTriedEvents: Event[] = [];
+    const updatedEvents: Event[] = newContext?.map((context) => context.event) || [];
 
     if (savedEvent) {
       savedEvent.filter((event) => {
-        if (!filterEventSet.has(event.event_type)) {
-          reTriedEvents.push(event);
+        if (event.insert_id && !filterEventInsertIdSet.has(event.insert_id)) {
+          updatedEvents.push(event);
         }
       });
     }
-    await this.config.storageProvider.set(this.storageKey, reTriedEvents).finally(() => {
-      this.lock = false;
-    });
+    await this.config.storageProvider.set(this.storageKey, updatedEvents);
   }
 }
