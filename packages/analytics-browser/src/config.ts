@@ -199,6 +199,8 @@ export const useBrowserConfig = async (
   options: BrowserOptions = {},
   amplitudeInstance: AmplitudeBrowser,
 ): Promise<IBrowserConfig> => {
+  console.log('in browser config');
+
   // Step 1: Create identity storage instance
   const identityStorage = options.identityStorage || DEFAULT_IDENTITY_STORAGE;
   const cookieOptions = {
@@ -223,7 +225,7 @@ export const useBrowserConfig = async (
   const lastEventId = previousCookies?.lastEventId ?? legacyCookies.lastEventId;
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
-  const sessionId = previousCookies?.sessionId ?? legacyCookies.sessionId;
+  const sessionId = options.sessionId ?? previousCookies?.sessionId ?? legacyCookies.sessionId;
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
   amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;

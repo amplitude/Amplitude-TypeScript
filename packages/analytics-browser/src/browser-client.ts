@@ -43,6 +43,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   previousSessionUserId: string | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
+    console.log('in browser client init');
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
 
@@ -76,7 +77,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Priority 2: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
-    this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
+    //console.log("before set session Id in init");
+    //this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
@@ -185,7 +187,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
     this.config.pageCounter = 0;
-
+    console.log(this.config.sessionId);
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
         this.track(DEFAULT_SESSION_END_EVENT, undefined, {
@@ -259,6 +261,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   async process(event: Event) {
+    console.log('in process');
     const currentTime = Date.now();
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
 
