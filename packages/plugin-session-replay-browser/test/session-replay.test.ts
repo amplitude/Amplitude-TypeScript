@@ -130,8 +130,43 @@ describe('SessionReplayPlugin', () => {
         );
         expect(sessionReplay.config.defaultTracking).toBe(true);
       });
-      test('should not modify defaultTracking to enable sessions if its set to false', async () => {
+
+      test('should modify defaultTracking to enable sessions if its set to false', async () => {
         const sessionReplay = new SessionReplayPlugin();
+        await sessionReplay.setup(
+          {
+            ...mockConfig,
+            defaultTracking: false,
+          },
+          mockAmplitude,
+        );
+        expect(sessionReplay.config.defaultTracking).toEqual({
+          pageViews: false,
+          formInteractions: false,
+          fileDownloads: false,
+          sessions: true,
+        });
+      });
+
+      test('should modify defaultTracking to enable sessions if it is an object', async () => {
+        const sessionReplay = new SessionReplayPlugin();
+        await sessionReplay.setup(
+          {
+            ...mockConfig,
+            defaultTracking: {
+              pageViews: false,
+            },
+          },
+          mockAmplitude,
+        );
+        expect(sessionReplay.config.defaultTracking).toEqual({
+          pageViews: false,
+          sessions: true,
+        });
+      });
+
+      test('should not modify defaultTracking to enable sessions if session tracking is disbled', async () => {
+        const sessionReplay = new SessionReplayPlugin({ disableSessionTracking: true });
         await sessionReplay.setup(
           {
             ...mockConfig,
@@ -141,8 +176,9 @@ describe('SessionReplayPlugin', () => {
         );
         expect(sessionReplay.config.defaultTracking).toEqual(false);
       });
-      test('should not modify defaultTracking to enable sessions if it is an object', async () => {
-        const sessionReplay = new SessionReplayPlugin();
+
+      test('should not modify defaultTracking object to enable sessions if session tracking is disbled', async () => {
+        const sessionReplay = new SessionReplayPlugin({ disableSessionTracking: true });
         await sessionReplay.setup(
           {
             ...mockConfig,

@@ -5,4 +5,5 @@ export interface SessionReplayOptions {
   sampleRate?: number;
   privacyConfig?: SessionReplayPrivacyConfig;
   debugMode?: boolean;
+  disableSessionTracking?: boolean;
 }

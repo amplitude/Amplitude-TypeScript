@@ -68,6 +68,24 @@ export class SessionReplayPlugin implements DestinationPlugin {
     this.client = client;
     this.config = config;
 
+    if (!this.options.disableSessionTracking) {
+      if (typeof config.defaultTracking === 'boolean') {
+        if (config.defaultTracking === false) {
+          config.defaultTracking = {
+            pageViews: false,
+            formInteractions: false,
+            fileDownloads: false,
+            sessions: true,
+          };
+        }
+      } else {
+        config.defaultTracking = {
+          ...config.defaultTracking,
+          sessions: true,
+        };
+      }
+    }
+
     await sessionReplay.init(config.apiKey, {
       instanceName: this.config.instanceName,
       deviceId: this.config.deviceId,
