@@ -256,6 +256,39 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
+  describe('getSessionId', () => {
+    test('should update session id', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const stopRecordingMock = jest.fn();
+      expect(sessionReplay.getSessionId()).toEqual(mockOptions.sessionId);
+
+      // Mock class as if it has already been recording events
+      sessionReplay.stopRecordingAndSendEvents = stopRecordingMock;
+
+      sessionReplay.setSessionId(456);
+      expect(stopRecordingMock).toHaveBeenCalled();
+      expect(sessionReplay.getSessionId()).toEqual(456);
+    });
+
+    test('should return null if not initialized', () => {
+      const sessionReplay = new SessionReplay();
+      expect(sessionReplay.getSessionId()).toBeUndefined();
+    });
+
+    test('should return early if no session id, device id is set', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, deviceId: undefined }).promise;
+      sessionReplay.loggerProvider = mockLoggerProvider;
+      const stopRecordingMock = jest.fn();
+
+      sessionReplay.setSessionId(123);
+      expect(stopRecordingMock).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalled();
+    });
+  });
+
   describe('getSessionReplayProperties', () => {
     test('should return an empty object if config not set', () => {
       const sessionReplay = new SessionReplay();
