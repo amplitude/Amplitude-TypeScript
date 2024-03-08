@@ -166,7 +166,7 @@ describe('SessionReplayPlugin', () => {
       });
 
       test('should not modify defaultTracking to enable sessions if session tracking is disbled', async () => {
-        const sessionReplay = new SessionReplayPlugin({ disableSessionTracking: true });
+        const sessionReplay = new SessionReplayPlugin({ forceSessionTracking: false });
         await sessionReplay.setup(
           {
             ...mockConfig,
@@ -178,7 +178,7 @@ describe('SessionReplayPlugin', () => {
       });
 
       test('should not modify defaultTracking object to enable sessions if session tracking is disbled', async () => {
-        const sessionReplay = new SessionReplayPlugin({ disableSessionTracking: true });
+        const sessionReplay = new SessionReplayPlugin({ forceSessionTracking: false });
         await sessionReplay.setup(
           {
             ...mockConfig,

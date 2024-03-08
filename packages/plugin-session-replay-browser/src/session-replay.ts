@@ -55,6 +55,10 @@ export class SessionReplayPlugin implements DestinationPlugin {
 
   constructor(options?: SessionReplayOptions) {
     this.options = { ...options };
+    // The user did not explicitly configure forceSessionTracking to false, default to true.
+    if (this.options.forceSessionTracking !== false) {
+      this.options.forceSessionTracking = true;
+    }
   }
 
   async setup(config: BrowserConfig, client?: BrowserClient) {
@@ -68,7 +72,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
     this.client = client;
     this.config = config;
 
-    if (!this.options.disableSessionTracking) {
+    if (this.options.forceSessionTracking) {
       if (typeof config.defaultTracking === 'boolean') {
         if (config.defaultTracking === false) {
           config.defaultTracking = {
