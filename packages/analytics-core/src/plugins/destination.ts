@@ -303,24 +303,28 @@ export class Destination implements DestinationPlugin {
   }
 
   /**
+   * This is called on
+   * 1) new events are added to queue; or
+   * 2) response comes back for a request
+   *
    * update the event storage
    */
-  async updateEventStorage(filterList: Context[], newContext?: Context[]) {
+  async updateEventStorage(eventsToRemove: Context[], eventsToAdd?: Context[]) {
     if (!this.config.storageProvider) {
       return;
     }
 
-    const filterEventInsertIdSet = filterList.reduce((filtered, context) => {
+    const filterEventInsertIdSet = eventsToRemove.reduce((filtered, context) => {
       if (context.event.insert_id) {
         filtered.add(context.event.insert_id);
       }
       return filtered;
     }, new Set<string>());
 
-    const savedEvent = await this.config.storageProvider.get(this.storageKey);
-    const updatedEvents: Event[] = newContext?.map((context) => context.event) || [];
+    const savedEvents = await this.config.storageProvider.get(this.storageKey);
+    const updatedEvents: Event[] = eventsToAdd?.map((context) => context.event) || [];
 
-    savedEvent?.forEach((event) => {
+    savedEvents?.forEach((event) => {
       if (event.insert_id && !filterEventInsertIdSet.has(event.insert_id)) {
         updatedEvents.push(event);
       }
