@@ -89,9 +89,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.error('Session replay init has not been called, cannot set session id.');
       return;
     }
-
-    if (sessionId && this.config.deviceId) {
-      this.config.sessionReplayId = generateSessionReplayId(sessionId, this.config.deviceId);
+    // use a consistent device id.
+    const deviceId = this.getDeviceId();
+    if (sessionId && deviceId) {
+      this.config.sessionReplayId = generateSessionReplayId(sessionId, deviceId);
     } else {
       this.loggerProvider.error('Must provide either session replay id or session id when starting a new session.');
       return;
@@ -119,7 +120,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.error('Session replay init has not been called, cannot get session recording properties.');
       return {};
     }
-    const shouldRecord = this.getShouldRecord();
+    const shouldRecord = this.getShouldRecord(true /* ignoreFocus = true */);
 
     if (shouldRecord) {
       const eventProperties = {
@@ -203,13 +204,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return identityStoreOptOut !== undefined ? identityStoreOptOut : this.config?.optOut;
   }
 
-  getShouldRecord() {
+  getShouldRecord(ignoreFocus = false) {
     if (!this.config) {
       this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
     }
     const globalScope = getGlobalScope();
-    if (globalScope && globalScope.document && !globalScope.document.hasFocus()) {
+    if (!ignoreFocus && globalScope && globalScope.document && !globalScope.document.hasFocus()) {
       if (this.config.sessionId) {
         this.loggerProvider.log(
           `Session ${this.config.sessionId} temporarily not recording due to lack of browser focus.`,
@@ -408,6 +409,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     return identityStoreDeviceId || this.config?.deviceId;
+  }
+
+  getSessionId() {
+    return this.config?.sessionId;
   }
 
   async send(context: SessionReplayContext, useRetry = true) {

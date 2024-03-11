@@ -7,21 +7,27 @@ import {
   Result,
 } from '@amplitude/analytics-types';
 import * as sessionReplay from '@amplitude/session-replay-browser';
-import { DEFAULT_SESSION_START_EVENT } from './constants';
 import { SessionReplayOptions } from './typings/session-replay';
 const ENRICHMENT_PLUGIN_NAME = '@amplitude/plugin-session-replay-enrichment-browser';
 
 class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
   name = ENRICHMENT_PLUGIN_NAME;
   type = 'enrichment' as const;
+  // this.config is defined in setup() which will always be called first
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  config: BrowserConfig;
 
   async setup(_config: BrowserConfig, _client: BrowserClient) {
-    // do nothing
+    this.config = _config;
   }
 
   async execute(event: Event) {
-    if (event.event_type === DEFAULT_SESSION_START_EVENT && event.session_id) {
-      sessionReplay.setSessionId(event.session_id);
+    // On event, synchronize the session id to the what's on the browserConfig (source of truth)
+    // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
+    // in SR.
+    if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
+      sessionReplay.setSessionId(this.config.sessionId);
     }
 
     const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
@@ -49,6 +55,10 @@ export class SessionReplayPlugin implements DestinationPlugin {
 
   constructor(options?: SessionReplayOptions) {
     this.options = { ...options };
+    // The user did not explicitly configure forceSessionTracking to false, default to true.
+    if (this.options.forceSessionTracking !== false) {
+      this.options.forceSessionTracking = true;
+    }
   }
 
   async setup(config: BrowserConfig, client?: BrowserClient) {
@@ -62,20 +72,22 @@ export class SessionReplayPlugin implements DestinationPlugin {
     this.client = client;
     this.config = config;
 
-    if (typeof config.defaultTracking === 'boolean') {
-      if (config.defaultTracking === false) {
+    if (this.options.forceSessionTracking) {
+      if (typeof config.defaultTracking === 'boolean') {
+        if (config.defaultTracking === false) {
+          config.defaultTracking = {
+            pageViews: false,
+            formInteractions: false,
+            fileDownloads: false,
+            sessions: true,
+          };
+        }
+      } else {
         config.defaultTracking = {
-          pageViews: false,
-          formInteractions: false,
-          fileDownloads: false,
+          ...config.defaultTracking,
           sessions: true,
         };
       }
-    } else {
-      config.defaultTracking = {
-        ...config.defaultTracking,
-        sessions: true,
-      };
     }
 
     await sessionReplay.init(config.apiKey, {

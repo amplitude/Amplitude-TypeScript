@@ -1,2 +1,2 @@
 import sessionReplay from './session-replay-factory';
-export const { init, setSessionId, getSessionReplayProperties, flush, shutdown } = sessionReplay;
+export const { init, setSessionId, getSessionId, getSessionReplayProperties, flush, shutdown } = sessionReplay;
