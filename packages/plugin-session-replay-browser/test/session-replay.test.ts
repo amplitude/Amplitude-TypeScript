@@ -245,11 +245,11 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
-    test('should add event property for [Amplitude] Session Recorded', async () => {
+    test('should add event property for [Amplitude] Session Replay ID', async () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig, mockAmplitude);
       getSessionReplayProperties.mockReturnValueOnce({
-        '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': '123',
       });
       const event = {
         event_type: 'event_type',
@@ -257,6 +257,7 @@ describe('SessionReplayPlugin', () => {
           property_a: true,
           property_b: 123,
         },
+        session_id: 123,
       };
 
       expect(plugins.length).toBe(1);
@@ -269,7 +270,35 @@ describe('SessionReplayPlugin', () => {
       expect(enrichedEvent?.event_properties).toEqual({
         property_a: true,
         property_b: 123,
-        '[Amplitude] Session Recorded': true,
+        '[Amplitude] Session Replay ID': '123',
+      });
+    });
+
+    test('should not add event property for for even with mismatching session id.', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      getSessionReplayProperties.mockReturnValueOnce({
+        '[Amplitude] Session Replay ID': '123',
+      });
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+          property_b: 123,
+        },
+        session_id: 124,
+      };
+
+      expect(plugins.length).toBe(1);
+      expect(plugins[0].name).toBe('@amplitude/plugin-session-replay-enrichment-browser');
+
+      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
+      await sessionReplayEnrichmentPlugin.setup(mockConfig);
+      const enrichedEvent = await sessionReplayEnrichmentPlugin.execute(event);
+
+      expect(enrichedEvent?.event_properties).toEqual({
+        property_a: true,
+        property_b: 123,
       });
     });
 

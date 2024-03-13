@@ -120,7 +120,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.error('Session replay init has not been called, cannot get session recording properties.');
       return {};
     }
-    const shouldRecord = this.getShouldRecord(true /* ignoreFocus = true */);
+
+    // If the user is in debug mode, ignore the focus handler when tagging events.
+    // this is a common mishap when someone is developing locally and not seeing events getting tagged.
+    const ignoreFocus = !!this.config.debugMode;
+    const shouldRecord = this.getShouldRecord(ignoreFocus);
 
     if (shouldRecord) {
       const eventProperties = {
