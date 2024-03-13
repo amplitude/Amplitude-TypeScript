@@ -85,3 +85,8 @@ const sessionReplayTracking = sessionReplayPlugin({
   }
 });
 ```
+
+## Debugging 
+
+### Using debugMode when developing locally
+Since the Session Replay plugin only records and tags events when the page is in focus, this can sometimes be problematic when developing locally with the browser console open. If you are having issues with the replays not showing up (while your quota usage going up). Try turning setting `debugMode:true` to see if that helps with the issue.

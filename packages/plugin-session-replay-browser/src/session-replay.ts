@@ -30,12 +30,15 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
       sessionReplay.setSessionId(this.config.sessionId);
     }
 
-    const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-    event.event_properties = {
-      ...event.event_properties,
-      ...sessionRecordingProperties,
-    };
-
+    // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
+    // event is not of the current session (offline/late events). In that case, don't tag the events
+    if (this.config.sessionId && this.config.sessionId === event.session_id) {
+      const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+      event.event_properties = {
+        ...event.event_properties,
+        ...sessionRecordingProperties,
+      };
+    }
     return Promise.resolve(event);
   }
 }

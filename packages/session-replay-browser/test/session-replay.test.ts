@@ -320,6 +320,23 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
+    test('should ignore focus handler when debug mode is on.', async () => {
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        document: {
+          hasFocus: () => false,
+        },
+      } as typeof globalThis);
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
+      const result = sessionReplay.getSessionReplayProperties();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(result).toEqual({
+        '[Amplitude] Session Replay ID': '1a2b3c/123',
+        '[Amplitude] Session Replay Debug': '{"appHash":"-109988594"}',
+      });
+    });
+
     test('should return session replay id property with null', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
