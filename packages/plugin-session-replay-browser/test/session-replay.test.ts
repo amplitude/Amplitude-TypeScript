@@ -274,7 +274,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
-    test('should not add event property for for even with mismatching session id.', async () => {
+    test('should not add event property for for event with mismatching session id.', async () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig, mockAmplitude);
       getSessionReplayProperties.mockReturnValueOnce({
