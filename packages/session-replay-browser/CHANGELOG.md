@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.1.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.0.2...@amplitude/session-replay-browser@1.1.0-beta.0) (2024-03-13)
+
+### Features
+
+- **session replay:** fix event tagging
+  ([1373265](https://github.com/amplitude/Amplitude-TypeScript/commit/1373265b6e6ada9b354646aa5118d3eefa791511))
+- **session replay:** improve initialization
+  ([dbdd2fd](https://github.com/amplitude/Amplitude-TypeScript/commit/dbdd2fd82fa9e5d222d6ac83b8ec2cbeb5acc071))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.0.1...@amplitude/session-replay-browser@1.0.2) (2024-02-10)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

@@ -94,18 +94,6 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@amplitude/session-replay-browser@^0.8.0-beta.0":
-  version "0.8.0-beta.0"
-  resolved "https://registry.yarnpkg.com/@amplitude/session-replay-browser/-/session-replay-browser-0.8.0-beta.0.tgz#fe0ee9f07092f66feefbaf20bc0cb23fefd56145"
-  integrity sha512-n7/P0ezHKuL6q6trNpuEbgPfl0LSqFCunkO3Qsh9bMcbt+6qQ//aKBOC11FGbTb6U21xyo4PAXj7twiKOxtBjw==
-  dependencies:
-    "@amplitude/analytics-client-common" ">=1 <3"
-    "@amplitude/analytics-core" ">=1 <3"
-    "@amplitude/analytics-types" ">=1 <3"
-    "@amplitude/rrweb" "^2.0.0-alpha.12"
-    idb-keyval "^6.2.1"
-    tslib "^2.4.1"
-
 "@amplitude/ua-parser-js@^0.7.31", "@amplitude/ua-parser-js@^0.7.33":
   version "0.7.33"
   resolved "https://registry.yarnpkg.com/@amplitude/ua-parser-js/-/ua-parser-js-0.7.33.tgz#26441a0fb2e956a64e4ede50fb80b848179bb5db"
