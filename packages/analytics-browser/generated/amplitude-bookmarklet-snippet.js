@@ -1,20 +1,21 @@
-"use strict";
+'use strict';
 
 /**
  * Create a bookmark with this code snippet in the browser, update the apiKey, userId, and serverZone, and click the bookmark on any website to run.
  * Script will fail to load if the website has a Content Security Policy (CSP) that blocks third-party inline scripts.
  */
-!function (window, document) {
+!(function (window, document) {
   var amplitude = window.amplitude || {
     _q: [],
-    _iq: {}
+    _iq: {},
   };
-  if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');else {
+  if (amplitude.invoked) window.console && console.error && console.error('Amplitude snippet has been loaded.');
+  else {
     var proxy = function proxy(obj, fn) {
       obj.prototype[fn] = function () {
         this._q.push({
           name: fn,
-          args: Array.prototype.slice.call(arguments, 0)
+          args: Array.prototype.slice.call(arguments, 0),
         });
         return this;
       };
@@ -24,15 +25,16 @@
         instance._q.push({
           name: fn,
           args: Array.prototype.slice.call(args, 0),
-          resolve: resolve
+          resolve: resolve,
         });
       };
     };
     var proxyMain = function proxyMain(instance, fn, isPromise) {
       instance[fn] = function () {
-        if (isPromise) return {
-          promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments)))
-        };
+        if (isPromise)
+          return {
+            promise: new Promise(getPromiseResult(instance, fn, Array.prototype.slice.call(arguments))),
+          };
       };
     };
     var setUpProxy = function setUpProxy(instance) {
@@ -46,15 +48,16 @@
     amplitude.invoked = true;
     var s = document.getElementsByTagName('script')[0];
     var autoTrackingPluginScript = document.createElement('script');
-    autoTrackingPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-auto-tracking-browser-0.1.1-min.js.gz';
+    autoTrackingPluginScript.src =
+      'https://cdn.amplitude.com/libs/plugin-default-event-tracking-advanced-browser-0.7.2-min.js.gz';
     autoTrackingPluginScript.async = false;
     s.parentNode.insertBefore(autoTrackingPluginScript, s);
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-Gzu/3zjG7uZ1G0TIW6BIGIzZHB61u7328yVnZUz4t1dNE/n/dSnABKbOJ+jw6Bnu';
+    as.integrity = 'sha384-wV43EzMsYAnBGrsHb4VUxdN6tB8JXGy0aKDBTy82bYrpd1/hIEkpPFqkzEAkLz8X';
     as.crossOrigin = 'anonymous';
     as.async = false;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.5.2-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.5.3-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -64,12 +67,16 @@
         serverZone: 'YOUR_SERVER_ZONE',
         ingestionMetadata: {
           sourceName: 'browser-typescript-bookmarklet',
-          sourceVersion: '1.0.0'
+          sourceVersion: '1.0.0',
         },
-        optOut: false
+        optOut: false,
       });
-      if (amplitudeAutoTrackingPlugin && amplitudeAutoTrackingPlugin.autoTrackingPlugin && typeof amplitudeAutoTrackingPlugin.autoTrackingPlugin === 'function') {
-        window.amplitude.add(amplitudeAutoTrackingPlugin.autoTrackingPlugin());
+      if (
+        amplitudeDefaultEventTrackingAdvancedPlugin &&
+        amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin &&
+        typeof amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin === 'function'
+      ) {
+        window.amplitude.add(amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin());
       }
       alert('Amplitude is now tracking events!');
     };
@@ -78,7 +85,19 @@
       this._q = [];
       return this;
     };
-    var identifyFuncs = ['add', 'append', 'clearAll', 'prepend', 'set', 'setOnce', 'unset', 'preInsert', 'postInsert', 'remove', 'getUserProperties'];
+    var identifyFuncs = [
+      'add',
+      'append',
+      'clearAll',
+      'prepend',
+      'set',
+      'setOnce',
+      'unset',
+      'preInsert',
+      'postInsert',
+      'remove',
+      'getUserProperties',
+    ];
     for (var i = 0; i < identifyFuncs.length; i++) {
       proxy(Identify, identifyFuncs[i]);
     }
@@ -87,21 +106,52 @@
       this._q = [];
       return this;
     };
-    var revenueFuncs = ['getEventProperties', 'setProductId', 'setQuantity', 'setPrice', 'setRevenue', 'setRevenueType', 'setEventProperties'];
+    var revenueFuncs = [
+      'getEventProperties',
+      'setProductId',
+      'setQuantity',
+      'setPrice',
+      'setRevenue',
+      'setRevenueType',
+      'setEventProperties',
+    ];
     for (var j = 0; j < revenueFuncs.length; j++) {
       proxy(Revenue, revenueFuncs[j]);
     }
     amplitude.Revenue = Revenue;
-    var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset', 'extendSession'];
-    var funcsWithPromise = ['init', 'add', 'remove', 'track', 'logEvent', 'identify', 'groupIdentify', 'setGroup', 'revenue', 'flush'];
+    var funcs = [
+      'getDeviceId',
+      'setDeviceId',
+      'getSessionId',
+      'setSessionId',
+      'getUserId',
+      'setUserId',
+      'setOptOut',
+      'setTransport',
+      'reset',
+      'extendSession',
+    ];
+    var funcsWithPromise = [
+      'init',
+      'add',
+      'remove',
+      'track',
+      'logEvent',
+      'identify',
+      'groupIdentify',
+      'setGroup',
+      'revenue',
+      'flush',
+    ];
     setUpProxy(amplitude);
     amplitude.createInstance = function (instanceName) {
       amplitude._iq[instanceName] = {
-        _q: []
+        _q: [],
       };
       setUpProxy(amplitude._iq[instanceName]);
       return amplitude._iq[instanceName];
     };
     window.amplitude = amplitude;
   }
-}(window, document);
+})(window, document);
+

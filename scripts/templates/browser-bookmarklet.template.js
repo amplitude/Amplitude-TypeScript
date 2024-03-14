@@ -17,7 +17,7 @@ const snippet = (
     amplitude.invoked = true;
     var s = document.getElementsByTagName('script')[0];
     var autoTrackingPluginScript = document.createElement('script');
-    autoTrackingPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-auto-tracking-browser-${autoTrackingPluginVersion}-min.js.gz';
+    autoTrackingPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-default-event-tracking-advanced-browser-${autoTrackingPluginVersion}-min.js.gz';
     autoTrackingPluginScript.async = false;
     s.parentNode.insertBefore(autoTrackingPluginScript, s);
     var as = document.createElement('script');
@@ -39,8 +39,8 @@ const snippet = (
         },
         optOut: false,
       });
-      if (amplitudeAutoTrackingPlugin && amplitudeAutoTrackingPlugin.autoTrackingPlugin && typeof amplitudeAutoTrackingPlugin.autoTrackingPlugin === 'function') {
-        window.${globalVar}.add(amplitudeAutoTrackingPlugin.autoTrackingPlugin());
+      if (amplitudeDefaultEventTrackingAdvancedPlugin && amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin && typeof amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin === 'function') {
+        window.${globalVar}.add(amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin());
       }
       alert('Amplitude is now tracking events!');
     };
