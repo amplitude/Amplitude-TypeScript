@@ -23,6 +23,7 @@ import {
   Revenue as IRevenue,
   TransportType,
   OfflineDisabled,
+  SpecialEventType,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -41,6 +42,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   config: BrowserConfig;
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
+  previousSessionId: number | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -177,16 +179,16 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (sessionId === this.config.sessionId) {
       return;
     }
-
-    const previousSessionId = this.getSessionId();
-    const lastEventTime = this.config.lastEventTime;
-    let lastEventId = this.config.lastEventId ?? -1;
+    this.previousSessionId = this.getSessionId();
+    //const previousSessionId = this.getSessionId();
+    //const lastEventTime = this.config.lastEventTime;
+    //let lastEventId = this.config.lastEventId ?? -1;
 
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
     this.config.pageCounter = 0;
 
-    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+    /*if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
         this.track(DEFAULT_SESSION_END_EVENT, undefined, {
           device_id: this.previousSessionDeviceId,
@@ -203,7 +205,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         session_id: this.config.sessionId,
         time: this.config.lastEventTime,
       });
-    }
+    }*/
 
     this.previousSessionDeviceId = this.config.deviceId;
     this.previousSessionUserId = this.config.userId;
@@ -259,18 +261,67 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   async process(event: Event) {
-    const currentTime = Date.now();
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
 
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
-      (!event.session_id || event.session_id === this.getSessionId()) &&
+      (!event.session_id || event.session_id !== this.getSessionId()) &&
       isEventInNewSession
     ) {
+      const currentTime = Date.now();
       this.setSessionId(currentTime);
+      this.processSessionEvent(event);
+      return super.process(event);
     }
 
     return super.process(event);
+  }
+
+  // There has a new session
+  processSessionEvent(event: Event) {
+    const previousSessionId = this.previousSessionId;
+    const lastEventTime = this.config.lastEventTime;
+    let lastEventId = this.config.lastEventId ?? -1;
+    const shouldApplyBeforeSession = event.event_type == SpecialEventType.IDENTIFY;
+
+    //start session event
+    //should assign the old sessionId
+    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+      if (previousSessionId && lastEventTime) {
+        this.track(DEFAULT_SESSION_END_EVENT, undefined, {
+          device_id: this.previousSessionDeviceId,
+          event_id: ++lastEventId,
+          session_id: previousSessionId,
+          time: lastEventTime + 1,
+          user_id: this.previousSessionUserId,
+        });
+      }
+      this.config.lastEventTime = this.config.sessionId;
+    }
+
+    if (!event.session_id) {
+      event.session_id = this.config.sessionId;
+    }
+
+    //should assign the old sessionId
+    if (shouldApplyBeforeSession) {
+      this.track(event);
+    }
+
+    //end session event
+    //should assign the old sessionId
+    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+      this.track(DEFAULT_SESSION_START_EVENT, undefined, {
+        event_id: ++lastEventId,
+        session_id: this.config.sessionId,
+        time: this.config.lastEventTime,
+      });
+    }
+
+    //should assign the old sessionId
+    if (!shouldApplyBeforeSession) {
+      this.track(event);
+    }
   }
 }
