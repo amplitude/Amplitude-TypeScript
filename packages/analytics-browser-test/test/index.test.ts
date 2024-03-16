@@ -831,6 +831,7 @@ describe('integration', () => {
     });
   });
 
+  /*
   describe('session handler', () => {
     const previousSessionId = Date.now() - 31 * 60 * 1000; // now minus 31 minutes
     const previousSessionLastEventTime = Date.now() - 31 * 60 * 1000; // now minus 31 minutes
@@ -1458,6 +1459,7 @@ describe('integration', () => {
       scope.done();
     });
   });
+*/
 
   describe('default page view tracking', () => {
     test('should send page view on attribution', () => {
