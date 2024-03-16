@@ -180,33 +180,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       return;
     }
     this.previousSessionId = this.getSessionId();
-    //const previousSessionId = this.getSessionId();
-    //const lastEventTime = this.config.lastEventTime;
-    //let lastEventId = this.config.lastEventId ?? -1;
-
-    this.config.sessionId = sessionId;
-    this.config.lastEventTime = undefined;
     this.config.pageCounter = 0;
-
-    /*if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      if (previousSessionId && lastEventTime) {
-        this.track(DEFAULT_SESSION_END_EVENT, undefined, {
-          device_id: this.previousSessionDeviceId,
-          event_id: ++lastEventId,
-          session_id: previousSessionId,
-          time: lastEventTime + 1,
-          user_id: this.previousSessionUserId,
-        });
-      }
-
-      this.config.lastEventTime = this.config.sessionId;
-      this.track(DEFAULT_SESSION_START_EVENT, undefined, {
-        event_id: ++lastEventId,
-        session_id: this.config.sessionId,
-        time: this.config.lastEventTime,
-      });
-    }*/
-
+    this.config.sessionId = sessionId;
     this.previousSessionDeviceId = this.config.deviceId;
     this.previousSessionUserId = this.config.userId;
   }
@@ -266,13 +241,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
-      (!event.session_id || event.session_id !== this.getSessionId()) &&
+      (!event.session_id || event.session_id === this.previousSessionId) &&
       isEventInNewSession
     ) {
-      const currentTime = Date.now();
+      const currentTime = Date.now(); //2
       this.setSessionId(currentTime);
       this.processSessionEvent(event);
-      return super.process(event);
     }
 
     return super.process(event);
@@ -280,43 +254,45 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
   // There has a new session
   processSessionEvent(event: Event) {
-    const previousSessionId = this.previousSessionId;
-    const lastEventTime = this.config.lastEventTime;
-    let lastEventId = this.config.lastEventId ?? -1;
-    const shouldApplyBeforeSession = event.event_type == SpecialEventType.IDENTIFY;
+    const previousSessionId = this.previousSessionId; //1
+    const lastEventTime = this.config.lastEventTime; // undefined
+    let lastEventId = this.config.lastEventId ?? -1; //1
+    const shouldApplyBeforeSession = event.event_type === SpecialEventType.IDENTIFY;
 
-    //start session event
+    //end session event
     //should assign the old sessionId
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
+        // has previous session, need to end session first
         this.track(DEFAULT_SESSION_END_EVENT, undefined, {
           device_id: this.previousSessionDeviceId,
-          event_id: ++lastEventId,
-          session_id: previousSessionId,
+          event_id: ++lastEventId, //2
+          session_id: previousSessionId, //1
           time: lastEventTime + 1,
           user_id: this.previousSessionUserId,
         });
       }
-      this.config.lastEventTime = this.config.sessionId;
     }
 
     if (!event.session_id) {
-      event.session_id = this.config.sessionId;
+      event.session_id = this.config.sessionId; //2
     }
 
     //should assign the old sessionId
     if (shouldApplyBeforeSession) {
-      this.track(event);
+      this.track(event); // this will set the lastEventTime
     }
 
     //end session event
     //should assign the old sessionId
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+      // this.config.lastEventTime = this.config.sessionId;
+      const time = this.config.lastEventTime ? this.config.lastEventTime + 1 : this.config.sessionId;
       this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         event_id: ++lastEventId,
         session_id: this.config.sessionId,
-        time: this.config.lastEventTime,
-      });
+        time: time,
+      }); // will this update lastEven tTime
     }
 
     //should assign the old sessionId

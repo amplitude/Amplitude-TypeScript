@@ -564,6 +564,150 @@ describe('browser-client', () => {
       expect(client.getSessionId()).toBe(1);
     });
 
+    test('should set session id with start session event', async () => {
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      await client.init(apiKey, {
+        sessionId: 1,
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: false,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+      client.processSessionEvent({
+        event_type: 'event_type',
+      });
+      expect(client.getSessionId()).toBe(1);
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should sent end session and start session event with identify event in the middle in a new session', async () => {
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: '$identify',
+          },
+        }),
+      );
+      await client.init(apiKey, {
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: false,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+      // make sure have previous session
+      client.setSessionId(1);
+      // update the lastEventTime
+      client.config.lastEventTime = Date.now();
+
+      const endSessionEvent = { event_type: 'session_end' };
+      const event = { event_type: '$identify' };
+      const startSessionEvent = { event_type: 'session_start' };
+
+      client.processSessionEvent(event);
+      expect(track).toHaveBeenCalledTimes(3);
+
+      const firstCallArguments = track.mock.calls[0];
+      const firstArg = firstCallArguments[0];
+      const secondCallArguments = track.mock.calls[1];
+      const secondArg = secondCallArguments[0];
+      const thirdCallArguments = track.mock.calls[2];
+      const thirdArg = thirdCallArguments[0];
+
+      expect(firstArg).toHaveProperty('event_type');
+      expect(firstArg.event_type).toBe(endSessionEvent.event_type);
+      expect(secondArg).toHaveProperty('event_type');
+      expect(secondArg.event_type).toBe(event.event_type);
+      expect(thirdArg).toHaveProperty('event_type');
+      expect(thirdArg.event_type).toBe(startSessionEvent.event_type);
+    });
+
+    test('should sent end session and start session event with event afterward in a new session', async () => {
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      await client.init(apiKey, {
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: false,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+      // make sure have previous session
+      client.setSessionId(1);
+      // update the lastEventTime
+      client.config.lastEventTime = Date.now();
+
+      const endSessionEvent = { event_type: 'session_end' };
+      const startSessionEvent = { event_type: 'session_start' };
+      const event = { event_type: 'event_type' };
+
+      client.processSessionEvent(event);
+      expect(track).toHaveBeenCalledTimes(3);
+
+      const firstCallArguments = track.mock.calls[0];
+      const firstArg = firstCallArguments[0];
+      const secondCallArguments = track.mock.calls[1];
+      const secondArg = secondCallArguments[0];
+      const thirdCallArguments = track.mock.calls[2];
+      const thirdArg = thirdCallArguments[0];
+
+      expect(firstArg).toHaveProperty('event_type');
+      expect(firstArg.event_type).toBe(endSessionEvent.event_type);
+      expect(secondArg).toHaveProperty('event_type');
+      expect(secondArg.event_type).toBe(startSessionEvent.event_type);
+      expect(thirdArg).toHaveProperty('event_type');
+      expect(thirdArg.event_type).toBe(event.event_type);
+    });
+
+    test('should sent end session and start session event with event in a new session', async () => {
+      const track = jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      await client.init(apiKey, {
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: false,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+      // make sure have previous session
+      client.setSessionId(1);
+      // update the lastEventTime
+      client.config.lastEventTime = Date.now();
+      client.processSessionEvent({
+        event_type: 'event_type',
+      });
+      expect(track).toHaveBeenCalledTimes(3);
+    });
+
     test('should defer set session id', () => {
       return new Promise<void>((resolve) => {
         void client.init(apiKey, { defaultTracking }).promise.then(() => {
@@ -669,6 +813,7 @@ describe('browser-client', () => {
     /**
      * Tests the reverse case of calling expire sessions
      */
+
     test('should expire session w/o calling extend session using proxy', async () => {
       const lastEventTime = Date.now() - 1000;
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
