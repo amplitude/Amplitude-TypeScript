@@ -70,7 +70,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.initializing = true;
 
     // Step 2: Create browser config
+    //console.log(options.sessionId);
+    console.log('in init');
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
+    console.log('init option sessionId: ', browserOptions.sessionId);
     await super._init(browserOptions);
 
     // Step 3: Set session ID
@@ -78,6 +81,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Priority 2: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
+
+    console.log('options.sessionId : ', options.sessionId);
+    console.log('this.config.sessionId: ', this.config.sessionId);
+    console.log('this.config.userId: ', this.config.userId);
+    console.log('this.config.deviceId: ', this.config.deviceId);
+
+    console.log('now: ', Date.now());
     this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
 
     // Set up the analytics connector to integrate with the experiment SDK.
@@ -170,6 +180,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   setSessionId(sessionId: number) {
+    console.log('set session id');
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return;
@@ -177,13 +188,21 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
+      console.log('still in current session');
       return;
     }
     this.previousSessionId = this.getSessionId();
     this.config.pageCounter = 0;
     this.config.sessionId = sessionId;
-    this.previousSessionDeviceId = this.config.deviceId;
-    this.previousSessionUserId = this.config.userId;
+
+    // this.config.lastEventTime  = this.previousSessionId; //???
+
+    //this.previousSessionDeviceId = this.config.deviceId;
+    //this.previousSessionUserId = this.config.userId;
+    console.log('previosu session id: ', this.previousSessionId);
+    console.log('session id: ', sessionId);
+    console.log('previous session device Id: ', this.previousSessionDeviceId);
+    console.log('previous session user id: ', this.previousSessionUserId);
   }
 
   extendSession() {
@@ -236,19 +255,25 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   async process(event: Event) {
+    console.log('%%%%%');
+    console.log('in process');
+    console.log('event type: *******: ', event.event_type);
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
 
+    console.log('is in new session: ', isEventInNewSession);
+    console.log('previous session: ', this.previousSessionId);
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
       (!event.session_id || event.session_id === this.previousSessionId) &&
       isEventInNewSession
     ) {
+      console.log('in process and set session id and log session event');
       const currentTime = Date.now(); //2
       this.setSessionId(currentTime);
       this.processSessionEvent(event);
     }
-
+    console.log(event.event_type, ' has in process');
     return super.process(event);
   }
 
@@ -262,6 +287,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     //end session event
     //should assign the old sessionId
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+      console.log('trying to log session end');
+      console.log('previous session id: ', previousSessionId);
+      console.log('last event time: ', lastEventTime);
+
+      this.config.lastEventTime = this.config.sessionId;
+
       if (previousSessionId && lastEventTime) {
         // has previous session, need to end session first
         this.track(DEFAULT_SESSION_END_EVENT, undefined, {
@@ -274,20 +305,31 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       }
     }
 
+    this.previousSessionDeviceId = this.config.deviceId;
+    this.previousSessionUserId = this.config.userId;
+    // this.previousSessionId;//???? is thi
+
     if (!event.session_id) {
+      console.log('set the session id to regular event: ', this.config.sessionId);
       event.session_id = this.config.sessionId; //2
     }
 
     //should assign the old sessionId
     if (shouldApplyBeforeSession) {
-      this.track(event); // this will set the lastEventTime
+      ++lastEventId;
+      console.log('set the identify event: ', event.event_type);
+      this.track(event);
     }
 
     //end session event
     //should assign the old sessionId
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      // this.config.lastEventTime = this.config.sessionId;
+      //this.config.lastEventTime = time;
+
       const time = this.config.lastEventTime ? this.config.lastEventTime + 1 : this.config.sessionId;
+      console.log('trying to log session start');
+      console.log('new ession id: ', this.config.sessionId);
+      console.log('new event time: ', time);
       this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         event_id: ++lastEventId,
         session_id: this.config.sessionId,
@@ -297,6 +339,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     //should assign the old sessionId
     if (!shouldApplyBeforeSession) {
+      console.log('set the regular event: ', event.event_type);
       this.track(event);
     }
   }

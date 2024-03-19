@@ -227,6 +227,8 @@ export const useBrowserConfig = async (
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
   amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;
+  console.log(amplitudeInstance.previousSessionDeviceId);
+  console.log(amplitudeInstance.previousSessionUserId);
 
   const trackingOptions = {
     ipAddress: options.trackingOptions?.ipAddress ?? true,
