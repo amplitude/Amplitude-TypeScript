@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.7.2...@amplitude/plugin-default-event-tracking-advanced-browser@0.8.0) (2024-03-20)
+
+### Features
+
+- pass iselementselectable to visual selector ([#684](https://github.com/amplitude/Amplitude-TypeScript/issues/684))
+  ([4ca7f9c](https://github.com/amplitude/Amplitude-TypeScript/commit/4ca7f9c2ea546eb79415f2b9ba3336df8f9352ff))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.7.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-default-event-tracking-advanced-browser@0.7.1...@amplitude/plugin-default-event-tracking-advanced-browser@0.7.2) (2024-03-08)
 
 **Note:** Version bump only for package @amplitude/plugin-default-event-tracking-advanced-browser
