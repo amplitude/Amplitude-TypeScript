@@ -12,9 +12,9 @@ import {
   getSelector,
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
+import { ActionType } from './typings/default-event-tracking-advanced';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
-type ActionType = 'click' | 'change';
 
 export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
   'a',
@@ -284,6 +284,7 @@ export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): Brows
       visualTaggingOptions.messenger?.setup({
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
+        isElementSelectable: shouldTrackEvent,
       });
     }
   };

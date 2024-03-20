@@ -7,6 +7,7 @@ import {
 } from '../constants';
 import { asyncLoadScript, getEventTagProps } from '../helpers';
 import { Logger } from '@amplitude/analytics-types';
+import { ActionType } from '../typings/default-event-tracking-advanced';
 
 export interface Messenger {
   logger?: Logger;
@@ -23,6 +24,10 @@ export type Action =
   | 'element-selected'
   | 'track-selector-mode-changed'
   | 'track-selector-moved';
+
+interface InitializeVisualTaggingSelectorData {
+  actionType: ActionType;
+}
 
 interface ElementSelectedData {
   '[Amplitude] Element Tag'?: string;
@@ -47,7 +52,7 @@ export type ActionData = {
   pong: null | undefined;
   'page-loaded': null | undefined;
   'selector-loaded': null | undefined;
-  'initialize-visual-tagging-selector': null | undefined;
+  'initialize-visual-tagging-selector': InitializeVisualTaggingSelectorData | null | undefined;
   'close-visual-tagging-selector': null | undefined;
   'element-selected': ElementSelectedData;
   'track-selector-mode-changed': TrackSelectorModeChangedData;
@@ -72,9 +77,18 @@ export class WindowMessenger implements Messenger {
     (window.opener as WindowProxy)?.postMessage?.(message, this.endpoint);
   }
 
-  setup({ logger, endpoint }: { logger?: Logger; endpoint?: string } = {}) {
+  setup({
+    logger,
+    endpoint,
+    isElementSelectable,
+  }: {
+    logger?: Logger;
+    endpoint?: string;
+    isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
+  } = {}) {
     this.logger = logger;
-    if (endpoint) {
+    // If endpoint is customized, don't override it.
+    if (endpoint && this.endpoint === AMPLITUDE_ORIGIN) {
       this.endpoint = endpoint;
     }
     let amplitudeVisualTaggingSelectorInstance: any = null;
@@ -91,14 +105,21 @@ export class WindowMessenger implements Messenger {
       if (action === 'ping') {
         this.notify({ action: 'pong' });
       } else if (action === 'initialize-visual-tagging-selector') {
+        const actionData = eventData?.data as InitializeVisualTaggingSelectorData;
         asyncLoadScript(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
           .then(() => {
             // eslint-disable-next-line
             amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
-              visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
               getEventTagProps,
+              isElementSelectable: (element: Element) => {
+                if (isElementSelectable) {
+                  return isElementSelectable(actionData?.actionType || 'click', element);
+                }
+                return true;
+              },
               onSelect: this.onSelect,
               onTrack: this.onTrack,
+              visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
             });
             this.notify({ action: 'selector-loaded' });
           })
