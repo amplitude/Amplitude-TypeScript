@@ -59,6 +59,7 @@ export class Destination implements DestinationPlugin {
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
+    this.saveEvents(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
@@ -82,7 +83,6 @@ export class Destination implements DestinationPlugin {
     const tryable = list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
-
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
@@ -102,7 +102,7 @@ export class Destination implements DestinationPlugin {
       }, context.timeout);
     });
 
-    void this.updateEventStorage([], this.queue);
+    this.saveEvents();
   }
 
   schedule(timeout: number) {
@@ -186,19 +186,19 @@ export class Destination implements DestinationPlugin {
 
     switch (status) {
       case Status.Success: {
-        void this.handleSuccessResponse(res, list);
+        this.handleSuccessResponse(res, list);
         break;
       }
       case Status.Invalid: {
-        void this.handleInvalidResponse(res, list);
+        this.handleInvalidResponse(res, list);
         break;
       }
       case Status.PayloadTooLarge: {
-        void this.handlePayloadTooLargeResponse(res, list);
+        this.handlePayloadTooLargeResponse(res, list);
         break;
       }
       case Status.RateLimit: {
-        void this.handleRateLimitResponse(res, list);
+        this.handleRateLimitResponse(res, list);
         break;
       }
       default: {
@@ -241,7 +241,6 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
-
     this.addToQueue(...retry);
   }
 
@@ -298,37 +297,21 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
+    this.saveEvents();
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
-    void this.updateEventStorage(list);
   }
 
   /**
+   * Saves events to storage
    * This is called on
    * 1) new events are added to queue; or
    * 2) response comes back for a request
-   *
-   * update the event storage
    */
-  async updateEventStorage(eventsToRemove: Context[], eventsToAdd?: Context[]) {
+  saveEvents() {
     if (!this.config.storageProvider) {
       return;
     }
-
-    const filterEventInsertIdSet = eventsToRemove.reduce((filtered, context) => {
-      if (context.event.insert_id) {
-        filtered.add(context.event.insert_id);
-      }
-      return filtered;
-    }, new Set<string>());
-
-    const savedEvents = await this.config.storageProvider.get(this.storageKey);
-    const updatedEvents: Event[] = eventsToAdd?.map((context) => context.event) || [];
-
-    savedEvents?.forEach((event) => {
-      if (event.insert_id && !filterEventInsertIdSet.has(event.insert_id)) {
-        updatedEvents.push(event);
-      }
-    });
-    await this.config.storageProvider.set(this.storageKey, updatedEvents);
+    const events = Array.from(this.queue.map((context) => context.event));
+    void this.config.storageProvider.set(this.storageKey, events);
   }
 }
