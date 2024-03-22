@@ -548,65 +548,28 @@ describe('destination', () => {
     });
   });
 
-  describe('filterEvent', () => {
-    test('should be ok with no storage provider', async () => {
+  describe('saveEvents', () => {
+    test('should save to storage provider', () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
+      destination.saveEvents();
+      expect(set).toHaveBeenCalledTimes(1);
+    });
+
+    test('should be ok with no storage provider', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.storageProvider = undefined;
-      expect(await destination.updateEventStorage([])).toBe(undefined);
-    });
-
-    test('should filter dropped event and update the storage provider', async () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.storageProvider = {
-        isEnabled: async () => true,
-        get: async () => undefined,
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-        getRaw: async () => undefined,
-      };
-      const event1 = { event_type: 'event', insert_id: '1' };
-      const event2 = { event_type: 'filtered_event', insert_id: '2' };
-      const get = jest.spyOn(destination.config.storageProvider, 'get').mockResolvedValueOnce([event1, event2]);
-      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      const context = {
-        event: event2,
-        attempts: 0,
-        callback: () => undefined,
-        timeout: 0,
-      };
-      await destination.updateEventStorage([context]);
-      expect(get).toHaveBeenCalledTimes(1);
-      expect(set).toHaveBeenCalledTimes(1);
-      expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
-    });
-
-    test('should save event to the storage provider', async () => {
-      const destination = new Destination();
-      destination.config = useDefaultConfig();
-      destination.config.storageProvider = {
-        isEnabled: async () => true,
-        get: async () => undefined,
-        set: async () => undefined,
-        remove: async () => undefined,
-        reset: async () => undefined,
-        getRaw: async () => undefined,
-      };
-      const event = { event_type: 'event', insert_id: '1' };
-      const get = jest.spyOn(destination.config.storageProvider, 'get').mockResolvedValueOnce([]);
-      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      const context = {
-        event: event,
-        attempts: 0,
-        callback: () => undefined,
-        timeout: 0,
-      };
-      await destination.updateEventStorage([], [context]);
-      expect(get).toHaveBeenCalledTimes(1);
-      expect(set).toHaveBeenCalledTimes(1);
-      expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
+      expect(destination.saveEvents()).toBe(undefined);
     });
   });
 
