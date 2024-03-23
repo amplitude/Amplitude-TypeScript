@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.5.3...@amplitude/analytics-browser@2.6.0) (2024-03-23)
+
+### Features
+
+- update bookmarklet snippet ([#679](https://github.com/amplitude/Amplitude-TypeScript/issues/679))
+  ([790311c](https://github.com/amplitude/Amplitude-TypeScript/commit/790311c1286237c9e081789789b2693a5d67160e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.5.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.5.2...@amplitude/analytics-browser@2.5.3) (2024-03-12)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
