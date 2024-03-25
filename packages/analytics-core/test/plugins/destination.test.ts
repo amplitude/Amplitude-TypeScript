@@ -569,14 +569,18 @@ describe('destination', () => {
       };
       const event1 = { event_type: 'event', insert_id: '1' };
       const event2 = { event_type: 'filtered_event', insert_id: '2' };
+      const events = [event1, event2];
+      const eventsToAdd = events.map((event) => {
+        return {
+          event,
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        };
+      });
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      const context = {
-        event: event2,
-        attempts: 0,
-        callback: () => undefined,
-        timeout: 0,
-      };
-      await destination.updateEventStorage([context]);
+      const eventsToRemove = [eventsToAdd[1]];
+      await destination.updateEventStorage(eventsToRemove, eventsToAdd);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
