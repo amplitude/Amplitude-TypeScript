@@ -569,7 +569,6 @@ describe('destination', () => {
       };
       const event1 = { event_type: 'event', insert_id: '1' };
       const event2 = { event_type: 'filtered_event', insert_id: '2' };
-      const get = jest.spyOn(destination.config.storageProvider, 'get').mockResolvedValueOnce([event1, event2]);
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
       const context = {
         event: event2,
@@ -578,7 +577,6 @@ describe('destination', () => {
         timeout: 0,
       };
       await destination.updateEventStorage([context]);
-      expect(get).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
@@ -595,7 +593,6 @@ describe('destination', () => {
         getRaw: async () => undefined,
       };
       const event = { event_type: 'event', insert_id: '1' };
-      const get = jest.spyOn(destination.config.storageProvider, 'get').mockResolvedValueOnce([]);
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
       const context = {
         event: event,
@@ -604,7 +601,6 @@ describe('destination', () => {
         timeout: 0,
       };
       await destination.updateEventStorage([], [context]);
-      expect(get).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
     });

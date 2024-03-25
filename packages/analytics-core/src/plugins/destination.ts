@@ -138,7 +138,6 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(list, this.config.flushQueueSize);
     await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
-    // should we wait to
   }
 
   async send(list: Context[], useRetry = true) {
@@ -232,7 +231,6 @@ export class Destination implements DestinationPlugin {
     const retry = list.filter(async (context, index) => {
       if (dropIndexSet.has(index)) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
-        // we didn't await at here.
         return;
       }
       return true;
