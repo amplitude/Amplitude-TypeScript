@@ -548,7 +548,7 @@ describe('destination', () => {
     });
   });
 
-  describe('filterEvent', () => {
+  describe('updateEventStorage', () => {
     test('should be ok with no storage provider', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
