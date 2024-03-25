@@ -102,7 +102,7 @@ export class Destination implements DestinationPlugin {
       }, context.timeout);
     });
 
-    void this.updateEventStorage([], this.queue);
+    void this.updateEventStorage(this.queue);
   }
 
   schedule(timeout: number) {
@@ -297,7 +297,7 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    void this.updateEventStorage(list);
+    void this.updateEventStorage(this.queue, list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
@@ -306,22 +306,24 @@ export class Destination implements DestinationPlugin {
    * 1) new events are added to queue; or
    * 2) response comes back for a request
    *
-   * update the event storage
+   * update the event storage based on the queue
    */
-  async updateEventStorage(eventsToRemove: Context[], eventsToAdd?: Context[]) {
+  async updateEventStorage(queuedEvents: Context[], eventsToRemove?: Context[]) {
     if (!this.config.storageProvider) {
       return;
     }
 
-    const filterEventInsertIdSet = eventsToRemove.reduce((filtered, context) => {
+    const eventsToRemoveInsertIdSet = eventsToRemove?.reduce((filtered, context) => {
       if (context.event.insert_id) {
         filtered.add(context.event.insert_id);
       }
       return filtered;
     }, new Set<string>());
 
-    const updatedEvents: Event[] = eventsToAdd?.map((context) => context.event) || [];
-    updatedEvents?.filter((event) => !(event.insert_id && !filterEventInsertIdSet.has(event.insert_id)));
+    const updatedEvents = queuedEvents.map((context) => context.event);
+    if (eventsToRemoveInsertIdSet) {
+      updatedEvents.filter((event) => !(event.insert_id && !eventsToRemoveInsertIdSet.has(event.insert_id)));
+    }
     await this.config.storageProvider.set(this.storageKey, updatedEvents);
   }
 }

@@ -580,7 +580,7 @@ describe('destination', () => {
       });
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
       const eventsToRemove = [eventsToAdd[1]];
-      await destination.updateEventStorage(eventsToRemove, eventsToAdd);
+      await destination.updateEventStorage(eventsToAdd, eventsToRemove);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
@@ -604,7 +604,7 @@ describe('destination', () => {
         callback: () => undefined,
         timeout: 0,
       };
-      await destination.updateEventStorage([], [context]);
+      await destination.updateEventStorage([context]);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
     });
