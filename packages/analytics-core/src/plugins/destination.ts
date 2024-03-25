@@ -101,7 +101,7 @@ export class Destination implements DestinationPlugin {
       }, context.timeout);
     });
 
-    this.updateEventStorage();
+    this.saveEvent();
   }
 
   schedule(timeout: number) {
@@ -136,6 +136,7 @@ export class Destination implements DestinationPlugin {
     }
 
     const batches = chunk(list, this.config.flushQueueSize);
+
     await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
   }
 
@@ -296,7 +297,7 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    this.updateEventStorage(list);
+    this.removeEvent(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
@@ -307,11 +308,19 @@ export class Destination implements DestinationPlugin {
    *
    * Update the event storage based on the queue
    */
-  updateEventStorage(eventsToRemove?: Context[]) {
+  saveEvent() {
     if (!this.config.storageProvider) {
       return;
     }
 
+    const updatedEvents = this.queue.map((context) => context.event);
+    void this.config.storageProvider.set(this.storageKey, updatedEvents);
+  }
+
+  /**
+   * This is called on response comes back for a request
+   */
+  removeEvent(eventsToRemove?: Context[]) {
     const eventsToRemoveInsertIdSet = eventsToRemove?.reduce((filtered, context) => {
       if (context.event.insert_id) {
         filtered.add(context.event.insert_id);
@@ -323,6 +332,6 @@ export class Destination implements DestinationPlugin {
     if (eventsToRemoveInsertIdSet) {
       updatedEvents.filter((event) => !(event.insert_id && !eventsToRemoveInsertIdSet.has(event.insert_id)));
     }
-    void this.config.storageProvider.set(this.storageKey, updatedEvents);
+    this.saveEvent();
   }
 }
