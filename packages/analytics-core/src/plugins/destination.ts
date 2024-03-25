@@ -59,7 +59,6 @@ export class Destination implements DestinationPlugin {
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
-    this.saveEvents(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
@@ -83,6 +82,7 @@ export class Destination implements DestinationPlugin {
     const tryable = list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
+
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
@@ -102,7 +102,7 @@ export class Destination implements DestinationPlugin {
       }, context.timeout);
     });
 
-    this.saveEvents();
+    void this.updateEventStorage([], this.queue);
   }
 
   schedule(timeout: number) {
@@ -138,6 +138,7 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(list, this.config.flushQueueSize);
     await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
+    // should we wait to
   }
 
   async send(list: Context[], useRetry = true) {
@@ -228,10 +229,10 @@ export class Destination implements DestinationPlugin {
       ...res.body.silencedEvents,
     ].flat();
     const dropIndexSet = new Set(dropIndex);
-
-    const retry = list.filter((context, index) => {
+    const retry = list.filter(async (context, index) => {
       if (dropIndexSet.has(index)) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
+        // we didn't await at here.
         return;
       }
       return true;
@@ -241,6 +242,7 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
+
     this.addToQueue(...retry);
   }
 
@@ -297,21 +299,31 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    this.saveEvents();
+    void this.updateEventStorage(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
   /**
-   * Saves events to storage
    * This is called on
    * 1) new events are added to queue; or
    * 2) response comes back for a request
+   *
+   * update the event storage
    */
-  saveEvents() {
+  async updateEventStorage(eventsToRemove: Context[], eventsToAdd?: Context[]) {
     if (!this.config.storageProvider) {
       return;
     }
-    const events = Array.from(this.queue.map((context) => context.event));
-    void this.config.storageProvider.set(this.storageKey, events);
+
+    const filterEventInsertIdSet = eventsToRemove.reduce((filtered, context) => {
+      if (context.event.insert_id) {
+        filtered.add(context.event.insert_id);
+      }
+      return filtered;
+    }, new Set<string>());
+
+    const updatedEvents: Event[] = eventsToAdd?.map((context) => context.event) || [];
+    updatedEvents?.filter((event) => !(event.insert_id && !filterEventInsertIdSet.has(event.insert_id)));
+    await this.config.storageProvider.set(this.storageKey, updatedEvents);
   }
 }
