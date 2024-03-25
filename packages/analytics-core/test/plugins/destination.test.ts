@@ -553,7 +553,7 @@ describe('destination', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.storageProvider = undefined;
-      expect(await destination.updateEventStorage([])).toBe(undefined);
+      expect(destination.updateEventStorage()).toBe(undefined);
     });
 
     test('should filter dropped event and update the storage provider', async () => {
@@ -579,8 +579,9 @@ describe('destination', () => {
         };
       });
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
+      destination.queue = eventsToAdd;
       const eventsToRemove = [eventsToAdd[1]];
-      await destination.updateEventStorage(eventsToAdd, eventsToRemove);
+      destination.updateEventStorage(eventsToRemove);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
@@ -604,7 +605,8 @@ describe('destination', () => {
         callback: () => undefined,
         timeout: 0,
       };
-      await destination.updateEventStorage([context]);
+      destination.queue = [context];
+      destination.updateEventStorage();
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
     });

@@ -102,7 +102,7 @@ export class Destination implements DestinationPlugin {
       }, context.timeout);
     });
 
-    this.updateEventStorage(this.queue);
+    this.updateEventStorage();
   }
 
   schedule(timeout: number) {
@@ -228,14 +228,13 @@ export class Destination implements DestinationPlugin {
       ...res.body.silencedEvents,
     ].flat();
     const dropIndexSet = new Set(dropIndex);
-    const retry = list.filter(async (context, index) => {
+    const retry = list.filter((context, index) => {
       if (dropIndexSet.has(index)) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
       return true;
     });
-
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
@@ -297,7 +296,7 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    this.updateEventStorage(this.queue, list);
+    this.updateEventStorage(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
@@ -306,9 +305,9 @@ export class Destination implements DestinationPlugin {
    * 1) new events are added to queue; or
    * 2) response comes back for a request
    *
-   * update the event storage based on the queue
+   * Update the event storage based on the queue
    */
-  updateEventStorage(queuedEvents: Context[], eventsToRemove?: Context[]) {
+  updateEventStorage(eventsToRemove?: Context[]) {
     if (!this.config.storageProvider) {
       return;
     }
@@ -320,7 +319,7 @@ export class Destination implements DestinationPlugin {
       return filtered;
     }, new Set<string>());
 
-    const updatedEvents = queuedEvents.map((context) => context.event);
+    const updatedEvents = this.queue.map((context) => context.event);
     if (eventsToRemoveInsertIdSet) {
       updatedEvents.filter((event) => !(event.insert_id && !eventsToRemoveInsertIdSet.has(event.insert_id)));
     }
