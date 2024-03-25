@@ -236,7 +236,6 @@ describe('destination', () => {
       ];
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       const result = await destination.flush();
-      expect(destination.queue).toEqual([]);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -256,7 +255,6 @@ describe('destination', () => {
       ];
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       const result = await destination.flush();
-      expect(destination.queue).toEqual([]);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -553,7 +551,7 @@ describe('destination', () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.storageProvider = undefined;
-      expect(destination.saveEvent()).toBe(undefined);
+      expect(destination.saveEvents()).toBe(undefined);
     });
 
     test('should filter dropped event and update the storage provider', async () => {
@@ -581,7 +579,7 @@ describe('destination', () => {
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
       destination.queue = eventsToAdd;
       const eventsToRemove = [eventsToAdd[1]];
-      destination.removeEvent(eventsToRemove);
+      destination.removeEvents(eventsToRemove);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
@@ -606,7 +604,7 @@ describe('destination', () => {
         timeout: 0,
       };
       destination.queue = [context];
-      destination.removeEvent();
+      destination.removeEvents([]);
       expect(set).toHaveBeenCalledTimes(1);
       expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
     });

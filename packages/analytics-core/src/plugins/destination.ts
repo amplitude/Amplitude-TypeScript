@@ -100,8 +100,7 @@ export class Destination implements DestinationPlugin {
         this.schedule(0);
       }, context.timeout);
     });
-
-    this.saveEvent();
+    this.saveEvents();
   }
 
   schedule(timeout: number) {
@@ -125,11 +124,7 @@ export class Destination implements DestinationPlugin {
       return;
     }
 
-    const list: Context[] = [];
-    const later: Context[] = [];
-    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
-    this.queue = later;
-
+    const list = this.queue.filter((context) => context.timeout === 0);
     if (this.scheduled) {
       clearTimeout(this.scheduled);
       this.scheduled = null;
@@ -204,8 +199,6 @@ export class Destination implements DestinationPlugin {
       default: {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
-
-        this.handleOtherResponse(list);
         break;
       }
     }
@@ -241,7 +234,6 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
-    this.addToQueue(...retry);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
@@ -254,7 +246,6 @@ export class Destination implements DestinationPlugin {
     this.config.loggerProvider.warn(getResponseBodyString(res));
 
     this.config.flushQueueSize /= 2;
-    this.addToQueue(...list);
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
@@ -283,21 +274,10 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
-
-    this.addToQueue(...retry);
-  }
-
-  handleOtherResponse(list: Context[]) {
-    this.addToQueue(
-      ...list.map((context) => {
-        context.timeout = context.attempts * this.retryTimeout;
-        return context;
-      }),
-    );
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    this.removeEvent(list);
+    this.removeEvents(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
@@ -308,7 +288,7 @@ export class Destination implements DestinationPlugin {
    *
    * Update the event storage based on the queue
    */
-  saveEvent() {
+  saveEvents() {
     if (!this.config.storageProvider) {
       return;
     }
@@ -320,18 +300,14 @@ export class Destination implements DestinationPlugin {
   /**
    * This is called on response comes back for a request
    */
-  removeEvent(eventsToRemove?: Context[]) {
-    const eventsToRemoveInsertIdSet = eventsToRemove?.reduce((filtered, context) => {
-      if (context.event.insert_id) {
-        filtered.add(context.event.insert_id);
-      }
-      return filtered;
-    }, new Set<string>());
-
-    const updatedEvents = this.queue.map((context) => context.event);
-    if (eventsToRemoveInsertIdSet) {
-      updatedEvents.filter((event) => !(event.insert_id && !eventsToRemoveInsertIdSet.has(event.insert_id)));
-    }
-    this.saveEvent();
+  removeEvents(eventsToRemove: Context[]) {
+    this.queue = this.queue.filter(
+      (queuedContext) =>
+        !(
+          queuedContext.event.insert_id &&
+          eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id)
+        ),
+    );
+    this.saveEvents();
   }
 }
