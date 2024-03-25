@@ -102,7 +102,7 @@ export class Destination implements DestinationPlugin {
       }, context.timeout);
     });
 
-    void this.updateEventStorage(this.queue);
+    this.updateEventStorage(this.queue);
   }
 
   schedule(timeout: number) {
@@ -297,7 +297,7 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    void this.updateEventStorage(this.queue, list);
+    this.updateEventStorage(this.queue, list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
@@ -308,7 +308,7 @@ export class Destination implements DestinationPlugin {
    *
    * update the event storage based on the queue
    */
-  async updateEventStorage(queuedEvents: Context[], eventsToRemove?: Context[]) {
+  updateEventStorage(queuedEvents: Context[], eventsToRemove?: Context[]) {
     if (!this.config.storageProvider) {
       return;
     }
@@ -324,6 +324,6 @@ export class Destination implements DestinationPlugin {
     if (eventsToRemoveInsertIdSet) {
       updatedEvents.filter((event) => !(event.insert_id && !eventsToRemoveInsertIdSet.has(event.insert_id)));
     }
-    await this.config.storageProvider.set(this.storageKey, updatedEvents);
+    void this.config.storageProvider.set(this.storageKey, updatedEvents);
   }
 }
