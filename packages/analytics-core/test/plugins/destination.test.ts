@@ -99,6 +99,32 @@ describe('destination', () => {
       expect(schedule).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
     });
+
+    test('should add to queue and schedule a flush1', () => {
+      jest.useFakeTimers();
+
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        flushIntervalMillis: 0,
+      };
+      const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        event,
+        callback: () => undefined,
+        attempts: 0,
+        timeout: 1,
+      };
+      destination.addToQueue(context);
+      jest.runAllTimers();
+      expect(schedule).toHaveBeenCalledTimes(1);
+      expect(context.attempts).toBe(1);
+
+      jest.useRealTimers();
+    });
   });
 
   describe('schedule', () => {

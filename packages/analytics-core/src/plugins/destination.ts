@@ -67,7 +67,6 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
-    //console.log("testt");
     return new Promise((resolve) => {
       const context = {
         event,
@@ -346,7 +345,7 @@ export class Destination implements DestinationPlugin {
     this.queue = this.queue.filter(
       (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
     );
-    //console.log(this.queue);
+
     this.saveEvents();
   }
 }
