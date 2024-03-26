@@ -713,9 +713,11 @@ describe('destination', () => {
       const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
+          insert_id: '0',
         }),
         destination.execute({
           event_type: 'event_type',
+          insert_id: '1',
         }),
       ]);
       expect(results[0].code).toBe(400);
@@ -882,24 +884,28 @@ describe('destination', () => {
           event_type: 'event_type',
           user_id: '0',
           device_id: '0',
+          insert_id: '0',
         }),
         // exceed daily device quota
         destination.execute({
           event_type: 'event_type',
           user_id: '1',
           device_id: '1',
+          insert_id: '1',
         }),
         // exceed daily user quota
         destination.execute({
           event_type: 'event_type',
           user_id: '2',
           device_id: '2',
+          insert_id: '2',
         }),
         // success
         destination.execute({
           event_type: 'event_type',
           user_id: '3',
           device_id: '3',
+          insert_id: '3',
         }),
       ]);
       expect(results[0].code).toBe(200);
@@ -975,9 +981,11 @@ describe('destination', () => {
       const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
+          insert_id: '0',
         }),
         destination.execute({
           event_type: 'event_type',
+          insert_id: '1',
         }),
       ]);
       expect(results[0].code).toBe(500);

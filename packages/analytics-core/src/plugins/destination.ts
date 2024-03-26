@@ -67,6 +67,7 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
+    //console.log("testt");
     return new Promise((resolve) => {
       const context = {
         event,
@@ -78,8 +79,8 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  addToQueue(...list: Context[]) {
-    const tryable = list.filter((context) => {
+  tryableList(list: Context[]) {
+    return list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
         return true;
@@ -87,6 +88,19 @@ export class Destination implements DestinationPlugin {
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
+  }
+
+  scheduleTryable(list: Context[]) {
+    list.forEach((context) => {
+      setTimeout(() => {
+        context.timeout = 0;
+        this.schedule(0);
+      }, context.timeout);
+    });
+  }
+
+  addToQueue(...list: Context[]) {
+    const tryable = this.tryableList(list);
 
     tryable.forEach((context) => {
       this.queue = this.queue.concat(context);
@@ -100,6 +114,7 @@ export class Destination implements DestinationPlugin {
         this.schedule(0);
       }, context.timeout);
     });
+
     this.saveEvents();
   }
 
@@ -124,11 +139,16 @@ export class Destination implements DestinationPlugin {
       return;
     }
 
-    const list = this.queue.filter((context) => context.timeout === 0);
+    const list: Context[] = [];
+    const later: Context[] = [];
+    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
+
     if (this.scheduled) {
       clearTimeout(this.scheduled);
       this.scheduled = null;
     }
+
+    this.scheduleTryable(later);
 
     const batches = chunk(list, this.config.flushQueueSize);
 
@@ -199,6 +219,7 @@ export class Destination implements DestinationPlugin {
       default: {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
+        this.handleOtherResponse(list);
         break;
       }
     }
@@ -234,6 +255,9 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
+
+    const tryable = this.tryableList(retry);
+    this.scheduleTryable(tryable);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
@@ -246,9 +270,13 @@ export class Destination implements DestinationPlugin {
     this.config.loggerProvider.warn(getResponseBodyString(res));
 
     this.config.flushQueueSize /= 2;
+
+    const tryable = this.tryableList(list);
+    this.scheduleTryable(tryable);
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
+    //console.log(list);
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     const throttledIndex = res.body.throttledEvents;
@@ -274,6 +302,20 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
+
+    const tryable = this.tryableList(retry);
+    this.scheduleTryable(tryable);
+  }
+
+  handleOtherResponse(list: Context[]) {
+    const later = list.map((context) => {
+      context.timeout = context.attempts * this.retryTimeout;
+      return context;
+    });
+
+    const tryable = this.tryableList(later);
+    this.scheduleTryable(tryable);
+    this.saveEvents();
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
@@ -302,12 +344,9 @@ export class Destination implements DestinationPlugin {
    */
   removeEvents(eventsToRemove: Context[]) {
     this.queue = this.queue.filter(
-      (queuedContext) =>
-        !(
-          queuedContext.event.insert_id &&
-          eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id)
-        ),
+      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
     );
+    //console.log(this.queue);
     this.saveEvents();
   }
 }
