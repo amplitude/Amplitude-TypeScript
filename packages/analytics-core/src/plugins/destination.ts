@@ -275,7 +275,6 @@ export class Destination implements DestinationPlugin {
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
-    //console.log(list);
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     const throttledIndex = res.body.throttledEvents;
@@ -314,7 +313,6 @@ export class Destination implements DestinationPlugin {
 
     const tryable = this.tryableList(later);
     this.scheduleTryable(tryable);
-    this.saveEvents();
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
