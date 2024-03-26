@@ -22,6 +22,7 @@ import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig } from '../config';
+import { UUID } from '../utils/uuid';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -67,6 +68,11 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
+    // Assign insert_id for dropping invalid event later
+    if (!event.insert_id) {
+      event.insert_id = UUID();
+    }
+
     return new Promise((resolve) => {
       const context = {
         event,
@@ -78,7 +84,7 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  tryableList(list: Context[]) {
+  getTryableList(list: Context[]) {
     return list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
@@ -104,7 +110,7 @@ export class Destination implements DestinationPlugin {
   }
 
   addToQueue(...list: Context[]) {
-    const tryable = this.tryableList(list);
+    const tryable = this.getTryableList(list);
 
     tryable.forEach((context) => {
       this.queue = this.queue.concat(context);
@@ -260,7 +266,7 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    const tryable = this.tryableList(retry);
+    const tryable = this.getTryableList(retry);
     this.scheduleTryable(tryable);
   }
 
@@ -275,7 +281,7 @@ export class Destination implements DestinationPlugin {
 
     this.config.flushQueueSize /= 2;
 
-    const tryable = this.tryableList(list);
+    const tryable = this.getTryableList(list);
     this.scheduleTryable(tryable);
   }
 
@@ -306,7 +312,7 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    const tryable = this.tryableList(retry);
+    const tryable = this.getTryableList(retry);
     this.scheduleTryable(tryable);
   }
 
@@ -316,7 +322,7 @@ export class Destination implements DestinationPlugin {
       return context;
     });
 
-    const tryable = this.tryableList(later);
+    const tryable = this.getTryableList(later);
     this.scheduleTryable(tryable);
   }
 

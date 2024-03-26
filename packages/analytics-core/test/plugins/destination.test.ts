@@ -7,6 +7,7 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
+import { uuidPattern } from '../helpers/util';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -66,14 +67,20 @@ describe('destination', () => {
 
   describe('execute', () => {
     test('should execute plugin', async () => {
+      const uuid: string = expect.stringMatching(uuidPattern) as string;
       const destination = new Destination();
       const event = {
         event_type: 'event_type',
+      };
+      const expectedEvent = {
+        event_type: 'event_type',
+        insert_id: uuid,
       };
       const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
         context.callback({ event, code: 200, message: Status.Success });
       });
       await destination.execute(event);
+      expect(event).toEqual(expectedEvent);
       expect(addToQueue).toHaveBeenCalledTimes(1);
     });
   });
