@@ -95,8 +95,12 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  scheduleTryable(list: Context[]) {
+  scheduleTryable(list: Context[], shouldAddToQueue = false) {
     list.forEach((context) => {
+      // Only need to concat the queue for the first time
+      if (shouldAddToQueue) {
+        this.queue = this.queue.concat(context);
+      }
       if (context.timeout === 0) {
         this.schedule(this.config.flushIntervalMillis);
         return;
@@ -111,20 +115,7 @@ export class Destination implements DestinationPlugin {
 
   addToQueue(...list: Context[]) {
     const tryable = this.getTryableList(list);
-
-    tryable.forEach((context) => {
-      this.queue = this.queue.concat(context);
-      if (context.timeout === 0) {
-        this.schedule(this.config.flushIntervalMillis);
-        return;
-      }
-
-      setTimeout(() => {
-        context.timeout = 0;
-        this.schedule(0);
-      }, context.timeout);
-    });
-
+    this.scheduleTryable(tryable, true);
     this.saveEvents();
   }
 
