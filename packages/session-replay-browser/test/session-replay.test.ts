@@ -6,8 +6,8 @@ import * as IDBKeyVal from 'idb-keyval';
 import {
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SESSION_REPLAY_PROPERTY,
-  SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_EU_URL,
+  SESSION_REPLAY_SERVER_URL,
   SESSION_REPLAY_STAGING_URL,
 } from '../src/constants';
 import * as Helpers from '../src/helpers';
@@ -239,6 +239,7 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.setSessionId(456);
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.config?.sessionId).toEqual(456);
+      expect(sessionReplay.config?.sessionReplayId).toEqual('1a2b3c/456');
       expect(sessionReplay.events).toEqual([]);
       expect(sessionReplay.currentSequenceId).toEqual(0);
     });
@@ -253,6 +254,18 @@ describe('SessionReplayPlugin', () => {
       expect(stopRecordingMock).not.toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.error).toHaveBeenCalled();
+    });
+
+    test('should update the device id if passed', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.loggerProvider = mockLoggerProvider;
+
+      sessionReplay.setSessionId(456, '9l8m7n');
+      expect(sessionReplay.config?.sessionId).toEqual(456);
+      expect(sessionReplay.config?.sessionReplayId).toEqual('9l8m7n/456');
+      expect(sessionReplay.config?.deviceId).toEqual('9l8m7n');
+      expect(sessionReplay.getDeviceId()).toEqual('9l8m7n');
     });
   });
 
