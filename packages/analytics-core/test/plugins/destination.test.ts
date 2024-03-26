@@ -709,6 +709,7 @@ describe('destination', () => {
         }),
       ]);
       expect(results[0].code).toBe(400);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -756,6 +757,7 @@ describe('destination', () => {
       ]);
       expect(results[0].code).toBe(400);
       expect(results[1].code).toBe(200);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -794,6 +796,7 @@ describe('destination', () => {
       ]);
       expect(results[0].code).toBe(400);
       expect(results[1].code).toBe(400);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -827,6 +830,7 @@ describe('destination', () => {
         message: 'error',
         code: 413,
       });
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -868,6 +872,7 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(3);
     });
 
@@ -946,6 +951,7 @@ describe('destination', () => {
       expect(results[1].code).toBe(429);
       expect(results[2].code).toBe(429);
       expect(results[3].code).toBe(200);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -981,6 +987,7 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -1024,6 +1031,7 @@ describe('destination', () => {
       ]);
       expect(results[0].code).toBe(500);
       expect(results[1].code).toBe(500);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
   });
