@@ -100,9 +100,8 @@ describe('destination', () => {
       expect(context.attempts).toBe(1);
     });
 
-    test('should add to queue and schedule a flush1', () => {
+    test('should add to queue and schedule timeout flush', () => {
       jest.useFakeTimers();
-
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
@@ -119,7 +118,9 @@ describe('destination', () => {
         timeout: 1,
       };
       destination.addToQueue(context);
+
       jest.runAllTimers();
+
       expect(schedule).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
 

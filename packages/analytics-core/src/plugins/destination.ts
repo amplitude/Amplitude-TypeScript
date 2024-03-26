@@ -91,6 +91,11 @@ export class Destination implements DestinationPlugin {
 
   scheduleTryable(list: Context[]) {
     list.forEach((context) => {
+      if (context.timeout === 0) {
+        this.schedule(this.config.flushIntervalMillis);
+        return;
+      }
+
       setTimeout(() => {
         context.timeout = 0;
         this.schedule(0);
