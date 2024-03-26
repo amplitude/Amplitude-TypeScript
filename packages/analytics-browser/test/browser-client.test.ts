@@ -157,11 +157,12 @@ describe('browser-client', () => {
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
     });
 
-    test('should init with session Id before plugin setup', async () => {
+    test('should init with session Id and device Id before plugin setup', async () => {
       class MockedSessionReplayPlugin implements DestinationPlugin {
         type = 'destination' as const;
         async setup(_config: Config.BrowserConfig, _clinet: CoreClient) {
           expect(client.config.sessionId).toBeDefined();
+          expect(client.config.deviceId).toBeDefined();
         }
         execute = jest.fn(async (event: Event): Promise<Result> => {
           return Promise.resolve({
