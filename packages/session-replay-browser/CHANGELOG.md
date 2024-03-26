@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.1.0...@amplitude/session-replay-browser@1.2.0) (2024-03-26)
+
+### Features
+
+- **session replay:** add argument to setSessionId to allow for updating deviceId
+  ([5e5099e](https://github.com/amplitude/Amplitude-TypeScript/commit/5e5099eac768c1243f858a6be185db2ada8c8358))
+- **session replay:** update README
+  ([4c99e3d](https://github.com/amplitude/Amplitude-TypeScript/commit/4c99e3d0a00e2409101cf654a67e8a5420ccc447))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.1.0-beta.0...@amplitude/session-replay-browser@1.1.0) (2024-03-14)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
