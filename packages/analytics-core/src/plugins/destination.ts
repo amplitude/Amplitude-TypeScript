@@ -148,11 +148,11 @@ export class Destination implements DestinationPlugin {
       this.scheduled = null;
     }
 
-    this.scheduleTryable(later);
-
     const batches = chunk(list, this.config.flushQueueSize);
 
     await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
+
+    this.scheduleTryable(later);
   }
 
   async send(list: Context[], useRetry = true) {
