@@ -62,6 +62,10 @@ Any time that the session id for the user changes, the session replay SDK must b
 ```typescript
 sessionReplay.setSessionId(UNIX_TIMESTAMP)
 ```
+You can optionally pass a new device id as a second argument as well:
+```typescript
+sessionReplay.setSessionId(UNIX_TIMESTAMP, deviceId)
+```
 
 ### 5. Shutdown (optional)
 If at any point you would like to discontinue collection of session replays, for example in a part of your application where you would not like sessions to be collected, you can use the following method to stop collection and remove collection event listeners.
