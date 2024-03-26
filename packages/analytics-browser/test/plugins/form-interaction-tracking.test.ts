@@ -32,11 +32,25 @@ describe('formInteractionTracking', () => {
     document.querySelector('form#my-form-id')?.remove();
   });
 
+  test('should not track form_start event when window load event was not triggered', async () => {
+    // setup
+    const config = createConfigurationMock();
+    const plugin = formInteractionTracking();
+    await plugin.setup?.(config, amplitude);
+
+    // trigger change event
+    document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+
+    // assert first event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(0);
+  });
+
   test('should track form_start event', async () => {
     // setup
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // trigger change event
     document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
@@ -61,6 +75,7 @@ describe('formInteractionTracking', () => {
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // add form element dynamically
     const form = document.createElement('form');
@@ -134,6 +149,7 @@ describe('formInteractionTracking', () => {
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // add form element dynamically
     const form = document.createElement('form');
@@ -182,6 +198,7 @@ describe('formInteractionTracking', () => {
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // trigger change event again
     document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
@@ -211,6 +228,7 @@ describe('formInteractionTracking', () => {
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // trigger change event
     document.getElementById('my-form-id')?.dispatchEvent(new Event('submit'));

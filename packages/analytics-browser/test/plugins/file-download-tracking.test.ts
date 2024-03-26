@@ -22,12 +22,27 @@ describe('fileDownloadTracking', () => {
     document.querySelector('a#my-link-id')?.remove();
   });
 
+  test('should not track file_download event if window load event was not triggered', async () => {
+    // setup
+    document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
+    const config = createConfigurationMock();
+    const plugin = fileDownloadTracking();
+    await plugin.setup?.(config, amplitude);
+
+    // trigger click event
+    document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+    // assert file download event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(0);
+  });
+
   test('should track file_download event', async () => {
     // setup
     document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // trigger click event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
@@ -57,6 +72,7 @@ describe('fileDownloadTracking', () => {
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // add anchor element dynamically
     const link = document.createElement('a');
@@ -106,6 +122,7 @@ describe('fileDownloadTracking', () => {
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // add anchor element dynamically
     const link = document.createElement('a');
@@ -142,6 +159,7 @@ describe('fileDownloadTracking', () => {
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // trigger change event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));

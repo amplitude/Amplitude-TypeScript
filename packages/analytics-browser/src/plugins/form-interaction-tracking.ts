@@ -38,77 +38,83 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
   const type = 'enrichment';
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
-    /* istanbul ignore if */
-    if (!amplitude) {
-      // TODO: Add required minimum version of @amplitude/analytics-browser
-      config.loggerProvider.warn(
-        'Form interaction tracking requires a later version of @amplitude/analytics-browser. Form interaction events are not tracked.',
-      );
-      return;
-    }
+    // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
+    // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
+    // only after the window is loaded
+    // eslint-disable-next-line no-restricted-globals
+    window.addEventListener('load', function () {
+      /* istanbul ignore if */
+      if (!amplitude) {
+        // TODO: Add required minimum version of @amplitude/analytics-browser
+        config.loggerProvider.warn(
+          'Form interaction tracking requires a later version of @amplitude/analytics-browser. Form interaction events are not tracked.',
+        );
+        return;
+      }
 
-    /* istanbul ignore if */
-    if (typeof document === 'undefined') {
-      return;
-    }
+      /* istanbul ignore if */
+      if (typeof document === 'undefined') {
+        return;
+      }
 
-    const addFormInteractionListener = (form: HTMLFormElement) => {
-      let hasFormChanged = false;
+      const addFormInteractionListener = (form: HTMLFormElement) => {
+        let hasFormChanged = false;
 
-      addEventListener(form, 'change', () => {
-        if (!hasFormChanged) {
-          amplitude.track(DEFAULT_FORM_START_EVENT, {
+        addEventListener(form, 'change', () => {
+          if (!hasFormChanged) {
+            amplitude.track(DEFAULT_FORM_START_EVENT, {
+              [FORM_ID]: stringOrUndefined(form.id),
+              [FORM_NAME]: stringOrUndefined(form.name),
+              [FORM_DESTINATION]: form.action,
+            });
+          }
+          hasFormChanged = true;
+        });
+
+        addEventListener(form, 'submit', () => {
+          if (!hasFormChanged) {
+            amplitude.track(DEFAULT_FORM_START_EVENT, {
+              [FORM_ID]: stringOrUndefined(form.id),
+              [FORM_NAME]: stringOrUndefined(form.name),
+              [FORM_DESTINATION]: form.action,
+            });
+          }
+
+          amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
             [FORM_ID]: stringOrUndefined(form.id),
             [FORM_NAME]: stringOrUndefined(form.name),
             [FORM_DESTINATION]: form.action,
           });
-        }
-        hasFormChanged = true;
-      });
-
-      addEventListener(form, 'submit', () => {
-        if (!hasFormChanged) {
-          amplitude.track(DEFAULT_FORM_START_EVENT, {
-            [FORM_ID]: stringOrUndefined(form.id),
-            [FORM_NAME]: stringOrUndefined(form.name),
-            [FORM_DESTINATION]: form.action,
-          });
-        }
-
-        amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
-          [FORM_ID]: stringOrUndefined(form.id),
-          [FORM_NAME]: stringOrUndefined(form.name),
-          [FORM_DESTINATION]: form.action,
+          hasFormChanged = false;
         });
-        hasFormChanged = false;
-      });
-    };
+      };
 
-    // Adds listener to existing anchor tags
-    const forms = Array.from(document.getElementsByTagName('form'));
-    forms.forEach(addFormInteractionListener);
+      // Adds listener to existing anchor tags
+      const forms = Array.from(document.getElementsByTagName('form'));
+      forms.forEach(addFormInteractionListener);
 
-    // Adds listener to anchor tags added after initial load
-    /* istanbul ignore else */
-    if (typeof MutationObserver !== 'undefined') {
-      observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          mutation.addedNodes.forEach((node) => {
-            if (node.nodeName === 'FORM') {
-              addFormInteractionListener(node as HTMLFormElement);
-            }
-            if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
-              Array.from(node.querySelectorAll('form') as HTMLFormElement[]).map(addFormInteractionListener);
-            }
+      // Adds listener to anchor tags added after initial load
+      /* istanbul ignore else */
+      if (typeof MutationObserver !== 'undefined') {
+        observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+              if (node.nodeName === 'FORM') {
+                addFormInteractionListener(node as HTMLFormElement);
+              }
+              if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
+                Array.from(node.querySelectorAll('form') as HTMLFormElement[]).map(addFormInteractionListener);
+              }
+            });
           });
         });
-      });
 
-      observer.observe(document.body, {
-        subtree: true,
-        childList: true,
-      });
-    }
+        observer.observe(document.body, {
+          subtree: true,
+          childList: true,
+        });
+      }
+    });
   };
   const execute = async (event: Event) => event;
   const teardown = async () => {
