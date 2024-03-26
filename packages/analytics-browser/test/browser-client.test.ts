@@ -2,7 +2,7 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { OfflineDisabled, UserSession } from '@amplitude/analytics-types';
+import { OfflineDisabled, UserSession, CoreClient, DestinationPlugin, Event, Result } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -155,6 +155,25 @@ describe('browser-client', () => {
       expect(client.getDeviceId()).toBe(deviceId);
       expect(client.getSessionId()).toBe(1);
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
+    });
+
+    test('should init with session Id before plugin setup', async () => {
+      class MockedSessionReplayPlugin implements DestinationPlugin {
+        type = 'destination' as const;
+        async setup(_config: Config.BrowserConfig, _clinet: CoreClient) {
+          expect(client.config.sessionId).toBeDefined();
+        }
+        execute = jest.fn(async (event: Event): Promise<Result> => {
+          return Promise.resolve({
+            event,
+            code: 200,
+            message: 'success',
+          });
+        });
+      }
+
+      client.add(new MockedSessionReplayPlugin());
+      await client.init().promise;
     });
 
     test('should call prevent concurrent init executions', async () => {

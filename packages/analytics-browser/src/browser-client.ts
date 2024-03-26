@@ -69,7 +69,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 2: Create browser config
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
-    await super._init(browserOptions);
+    this.config = browserOptions;
 
     // Step 3: Set session ID
     // Priority 1: `options.sessionId`
@@ -77,6 +77,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
     this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
+
+    await super._init(this.config);
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the
