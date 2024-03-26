@@ -28,6 +28,7 @@ describe('fileDownloadTracking', () => {
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // trigger click event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
@@ -57,6 +58,7 @@ describe('fileDownloadTracking', () => {
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // add anchor element dynamically
     const link = document.createElement('a');
@@ -106,6 +108,7 @@ describe('fileDownloadTracking', () => {
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // add anchor element dynamically
     const link = document.createElement('a');
@@ -142,6 +145,7 @@ describe('fileDownloadTracking', () => {
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
 
     // trigger change event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
