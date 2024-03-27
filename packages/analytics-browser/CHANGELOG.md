@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.6.0...@amplitude/analytics-browser@2.6.1) (2024-03-27)
+
+### Bug Fixes
+
+- adding more tests
+  ([68ca5ab](https://github.com/amplitude/Amplitude-TypeScript/commit/68ca5ab74ddeda559a7a476f6780cbbb84a16c07))
+- fix failing tests
+  ([77e3a60](https://github.com/amplitude/Amplitude-TypeScript/commit/77e3a603ce69c5f9fe63742b07e9f734f0e62fa5))
+- have session and device IDs ready before plugin setup
+  ([#691](https://github.com/amplitude/Amplitude-TypeScript/issues/691))
+  ([83e3eca](https://github.com/amplitude/Amplitude-TypeScript/commit/83e3eca5a529838a19f6c2afb59e1d8a5f2ac650))
+- register download and form listeners after window is loaded
+  ([ccd3766](https://github.com/amplitude/Amplitude-TypeScript/commit/ccd3766d2b2433147a8051e7fdce17b477bd2a2d))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.5.3...@amplitude/analytics-browser@2.6.0) (2024-03-23)
 
 ### Features
