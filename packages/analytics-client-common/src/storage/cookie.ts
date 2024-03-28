@@ -37,7 +37,7 @@ export class CookieStorage<T> implements Storage<T> {
     }
     try {
       try {
-        value = decodeURIComponent(atob(value));
+        value = decodeURIComponent(atob(decodeURIComponent(value)));
       } catch {
         // value not encoded
       }
