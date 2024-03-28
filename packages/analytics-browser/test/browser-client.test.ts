@@ -13,7 +13,6 @@ import * as SnippetHelper from '../src/utils/snippet-helper';
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
-import * as webAttributionPlugin from '@amplitude/plugin-web-attribution-browser';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 
@@ -229,6 +228,55 @@ describe('browser-client', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    test('should enable web attribution tracking', async () => {
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
+        optOut: false,
+        lastEventTime: Date.now(),
+      });
+
+      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: {},
+        },
+        sessionId: Date.now(),
+      }).promise;
+      expect(client.webAttribution).not.toBeNull();
+    });
+
+    test('should not enable web attribution tracking', async () => {
+      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: false,
+        },
+        sessionId: Date.now(),
+      }).promise;
+      expect(client.webAttribution).toBe(undefined);
+    });
+
     test('should add file download and form interaction tracking plugins', async () => {
       const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
@@ -257,32 +305,6 @@ describe('browser-client', () => {
       }).promise;
       expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(0);
       expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
-    });
-
-    test('should add web attribution tracking plugin', async () => {
-      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
-        optOut: false,
-        lastEventTime: Date.now(),
-      });
-      const webAttributionPluginPlugin = jest.spyOn(webAttributionPlugin, 'webAttributionPlugin');
-      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
-        Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: 'event_type',
-          },
-        }),
-      );
-      await client.init(apiKey, userId, {
-        optOut: false,
-        defaultTracking: {
-          ...defaultTracking,
-          attribution: {},
-        },
-        sessionId: Date.now(),
-      }).promise;
-      expect(webAttributionPluginPlugin).toHaveBeenCalledTimes(1);
     });
 
     test('should add network connectivity checker plugin by default', async () => {
@@ -640,6 +662,44 @@ describe('browser-client', () => {
       expect(track).toHaveBeenCalledTimes(2);
     });
 
+    test('should set session id with start and end session event and web attribution event', async () => {
+      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
+        optOut: false,
+        sessionId: 1,
+        lastEventId: 100,
+        lastEventTime: Date.now() - 1000,
+      });
+      const result = {
+        promise: Promise.resolve({
+          code: 200,
+          event: {
+            event_type: 'a',
+          },
+          message: 'success',
+        }),
+      };
+      const track = jest.spyOn(client, 'track').mockReturnValue(result);
+      await client.init(apiKey, {
+        sessionTimeout: 5000,
+        defaultTracking: {
+          ...defaultTracking,
+          attribution: true,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+
+      client.setSessionId(2);
+
+      expect(client.getSessionId()).toBe(2);
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(track).toHaveBeenCalledTimes(3);
+          resolve();
+        }, 4000);
+      });
+    });
+
     test('should defer set session id', () => {
       return new Promise<void>((resolve) => {
         void client.init(apiKey, { defaultTracking }).promise.then(() => {
@@ -742,9 +802,6 @@ describe('browser-client', () => {
       expect(client.config.lastEventTime).not.toBe(lastEventTime);
     });
 
-    /**
-     * Tests the reverse case of calling expire sessions
-     */
     test('should expire session w/o calling extend session using proxy', async () => {
       const lastEventTime = Date.now() - 1000;
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
