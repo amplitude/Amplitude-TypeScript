@@ -22,6 +22,7 @@ import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig } from '../config';
+import { UUID } from '../utils/uuid';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -59,7 +60,6 @@ export class Destination implements DestinationPlugin {
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
-    this.saveEvents(); // sets storage to '[]'
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
@@ -68,6 +68,11 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
+    // Assign insert_id for dropping invalid event later
+    if (!event.insert_id) {
+      event.insert_id = UUID();
+    }
+
     return new Promise((resolve) => {
       const context = {
         event,
@@ -79,8 +84,8 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  addToQueue(...list: Context[]) {
-    const tryable = list.filter((context) => {
+  getTryableList(list: Context[]) {
+    return list.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
         context.attempts += 1;
         return true;
@@ -88,9 +93,14 @@ export class Destination implements DestinationPlugin {
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
+  }
 
-    tryable.forEach((context) => {
-      this.queue = this.queue.concat(context);
+  scheduleTryable(list: Context[], shouldAddToQueue = false) {
+    list.forEach((context) => {
+      // Only need to concat the queue for the first time
+      if (shouldAddToQueue) {
+        this.queue = this.queue.concat(context);
+      }
       if (context.timeout === 0) {
         this.schedule(this.config.flushIntervalMillis);
         return;
@@ -101,7 +111,11 @@ export class Destination implements DestinationPlugin {
         this.schedule(0);
       }, context.timeout);
     });
+  }
 
+  addToQueue(...list: Context[]) {
+    const tryable = this.getTryableList(list);
+    this.scheduleTryable(tryable, true);
     this.saveEvents();
   }
 
@@ -129,7 +143,6 @@ export class Destination implements DestinationPlugin {
     const list: Context[] = [];
     const later: Context[] = [];
     this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
-    this.queue = later;
 
     if (this.scheduled) {
       clearTimeout(this.scheduled);
@@ -137,7 +150,10 @@ export class Destination implements DestinationPlugin {
     }
 
     const batches = chunk(list, this.config.flushQueueSize);
+
     await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
+
+    this.scheduleTryable(later);
   }
 
   async send(list: Context[], useRetry = true) {
@@ -204,7 +220,6 @@ export class Destination implements DestinationPlugin {
       default: {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
-
         this.handleOtherResponse(list);
         break;
       }
@@ -241,7 +256,9 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
-    this.addToQueue(...retry);
+
+    const tryable = this.getTryableList(retry);
+    this.scheduleTryable(tryable);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
@@ -254,7 +271,9 @@ export class Destination implements DestinationPlugin {
     this.config.loggerProvider.warn(getResponseBodyString(res));
 
     this.config.flushQueueSize /= 2;
-    this.addToQueue(...list);
+
+    const tryable = this.getTryableList(list);
+    this.scheduleTryable(tryable);
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
@@ -284,34 +303,49 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    this.addToQueue(...retry);
+    const tryable = this.getTryableList(retry);
+    this.scheduleTryable(tryable);
   }
 
   handleOtherResponse(list: Context[]) {
-    this.addToQueue(
-      ...list.map((context) => {
-        context.timeout = context.attempts * this.retryTimeout;
-        return context;
-      }),
-    );
+    const later = list.map((context) => {
+      context.timeout = context.attempts * this.retryTimeout;
+      return context;
+    });
+
+    const tryable = this.getTryableList(later);
+    this.scheduleTryable(tryable);
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    this.saveEvents();
+    this.removeEvents(list);
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
   /**
-   * Saves events to storage
    * This is called on
    * 1) new events are added to queue; or
    * 2) response comes back for a request
+   *
+   * Update the event storage based on the queue
    */
   saveEvents() {
     if (!this.config.storageProvider) {
       return;
     }
-    const events = Array.from(this.queue.map((context) => context.event));
-    void this.config.storageProvider.set(this.storageKey, events);
+
+    const updatedEvents = this.queue.map((context) => context.event);
+    void this.config.storageProvider.set(this.storageKey, updatedEvents);
+  }
+
+  /**
+   * This is called on response comes back for a request
+   */
+  removeEvents(eventsToRemove: Context[]) {
+    this.queue = this.queue.filter(
+      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
+    );
+
+    this.saveEvents();
   }
 }

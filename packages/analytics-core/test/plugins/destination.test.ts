@@ -7,6 +7,7 @@ import {
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
+import { uuidPattern } from '../helpers/util';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -66,14 +67,20 @@ describe('destination', () => {
 
   describe('execute', () => {
     test('should execute plugin', async () => {
+      const uuid: string = expect.stringMatching(uuidPattern) as string;
       const destination = new Destination();
       const event = {
         event_type: 'event_type',
+      };
+      const expectedEvent = {
+        event_type: 'event_type',
+        insert_id: uuid,
       };
       const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
         context.callback({ event, code: 200, message: Status.Success });
       });
       await destination.execute(event);
+      expect(event).toEqual(expectedEvent);
       expect(addToQueue).toHaveBeenCalledTimes(1);
     });
   });
@@ -98,6 +105,33 @@ describe('destination', () => {
       destination.addToQueue(context);
       expect(schedule).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
+    });
+
+    test('should add to queue and schedule timeout flush', () => {
+      jest.useFakeTimers();
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        flushIntervalMillis: 0,
+      };
+      const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        event,
+        callback: () => undefined,
+        attempts: 0,
+        timeout: 1,
+      };
+      destination.addToQueue(context);
+
+      jest.runAllTimers();
+
+      expect(schedule).toHaveBeenCalledTimes(1);
+      expect(context.attempts).toBe(1);
+
+      jest.useRealTimers();
     });
   });
 
@@ -236,7 +270,6 @@ describe('destination', () => {
       ];
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       const result = await destination.flush();
-      expect(destination.queue).toEqual([]);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -256,7 +289,6 @@ describe('destination', () => {
       ];
       const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
       const result = await destination.flush();
-      expect(destination.queue).toEqual([]);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
@@ -548,8 +580,15 @@ describe('destination', () => {
     });
   });
 
-  describe('saveEvents', () => {
-    test('should save to storage provider', () => {
+  describe('updateEventStorage', () => {
+    test('should be ok with no storage provider', async () => {
+      const destination = new Destination();
+      destination.config = useDefaultConfig();
+      destination.config.storageProvider = undefined;
+      expect(destination.saveEvents()).toBe(undefined);
+    });
+
+    test('should filter dropped event and update the storage provider', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
       destination.config.storageProvider = {
@@ -560,16 +599,48 @@ describe('destination', () => {
         reset: async () => undefined,
         getRaw: async () => undefined,
       };
+      const event1 = { event_type: 'event', insert_id: '1' };
+      const event2 = { event_type: 'filtered_event', insert_id: '2' };
+      const events = [event1, event2];
+      const eventsToAdd = events.map((event) => {
+        return {
+          event,
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        };
+      });
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
-      destination.saveEvents();
+      destination.queue = eventsToAdd;
+      const eventsToRemove = [eventsToAdd[1]];
+      destination.removeEvents(eventsToRemove);
       expect(set).toHaveBeenCalledTimes(1);
+      expect(set).toHaveBeenCalledWith('', expect.objectContaining([event1]));
     });
 
-    test('should be ok with no storage provider', () => {
+    test('should save event to the storage provider', async () => {
       const destination = new Destination();
       destination.config = useDefaultConfig();
-      destination.config.storageProvider = undefined;
-      expect(destination.saveEvents()).toBe(undefined);
+      destination.config.storageProvider = {
+        isEnabled: async () => true,
+        get: async () => undefined,
+        set: async () => undefined,
+        remove: async () => undefined,
+        reset: async () => undefined,
+        getRaw: async () => undefined,
+      };
+      const event = { event_type: 'event', insert_id: '1' };
+      const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
+      const context = {
+        event: event,
+        attempts: 0,
+        callback: () => undefined,
+        timeout: 0,
+      };
+      destination.queue = [context];
+      destination.removeEvents([]);
+      expect(set).toHaveBeenCalledTimes(1);
+      expect(set).toHaveBeenCalledWith('', expect.objectContaining([event]));
     });
   });
 
@@ -638,6 +709,7 @@ describe('destination', () => {
         }),
       ]);
       expect(results[0].code).toBe(400);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -676,13 +748,16 @@ describe('destination', () => {
       const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
+          insert_id: '0',
         }),
         destination.execute({
           event_type: 'event_type',
+          insert_id: '1',
         }),
       ]);
       expect(results[0].code).toBe(400);
       expect(results[1].code).toBe(200);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -721,6 +796,7 @@ describe('destination', () => {
       ]);
       expect(results[0].code).toBe(400);
       expect(results[1].code).toBe(400);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -754,6 +830,7 @@ describe('destination', () => {
         message: 'error',
         code: 413,
       });
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
@@ -795,6 +872,7 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(3);
     });
 
@@ -845,30 +923,35 @@ describe('destination', () => {
           event_type: 'event_type',
           user_id: '0',
           device_id: '0',
+          insert_id: '0',
         }),
         // exceed daily device quota
         destination.execute({
           event_type: 'event_type',
           user_id: '1',
           device_id: '1',
+          insert_id: '1',
         }),
         // exceed daily user quota
         destination.execute({
           event_type: 'event_type',
           user_id: '2',
           device_id: '2',
+          insert_id: '2',
         }),
         // success
         destination.execute({
           event_type: 'event_type',
           user_id: '3',
           device_id: '3',
+          insert_id: '3',
         }),
       ]);
       expect(results[0].code).toBe(200);
       expect(results[1].code).toBe(429);
       expect(results[2].code).toBe(429);
       expect(results[3].code).toBe(200);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -904,6 +987,7 @@ describe('destination', () => {
           event_type: 'event_type',
         }),
       ]);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
@@ -938,13 +1022,16 @@ describe('destination', () => {
       const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
+          insert_id: '0',
         }),
         destination.execute({
           event_type: 'event_type',
+          insert_id: '1',
         }),
       ]);
       expect(results[0].code).toBe(500);
       expect(results[1].code).toBe(500);
+      expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
   });
