@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.4-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.3...@amplitude/analytics-core@2.2.4-beta.0) (2024-03-28)
+
+### Bug Fixes
+
+- fix event drop issue ([#689](https://github.com/amplitude/Amplitude-TypeScript/issues/689))
+  ([43a0ca3](https://github.com/amplitude/Amplitude-TypeScript/commit/43a0ca3e1797bdb8a74938c6a0f65d6dec1e5b89))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.2...@amplitude/analytics-core@2.2.3) (2024-03-23)
 
 ### Bug Fixes
