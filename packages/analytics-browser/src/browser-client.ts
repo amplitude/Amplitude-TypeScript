@@ -27,7 +27,7 @@ import {
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';
-import { webAttributionPlugin } from '@amplitude/plugin-web-attribution-browser';
+import { WebAttribution } from './utils/web-attribution';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
@@ -41,6 +41,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   config: BrowserConfig;
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
+  webAttribution: WebAttribution | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -71,11 +72,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
     this.config = browserOptions;
 
+    // Add web attribution plugin
+    if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
+      const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
+      this.webAttribution = new WebAttribution(attributionTrackingOptions, this, this.config);
+      await this.webAttribution.init();
+    }
+
     // Step 3: Set session ID
     // Priority 1: `options.sessionId`
     // Priority 2: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
+    console.log('before set sesion id');
     this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
 
     await super._init(this.config);
@@ -107,13 +116,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
       await this.add(formInteractionTracking()).promise;
-    }
-
-    // Add web attribution plugin
-    if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
-      const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
-      const webAttribution = webAttributionPlugin(attributionTrackingOptions);
-      await this.add(webAttribution).promise;
     }
 
     // Add page view plugin
@@ -187,9 +189,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
     this.config.pageCounter = 0;
+    console.log(this.config.sessionId);
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
+        console.log('end session track');
         this.track(DEFAULT_SESSION_END_EVENT, undefined, {
           device_id: this.previousSessionDeviceId,
           event_id: ++lastEventId,
@@ -198,8 +202,16 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
           user_id: this.previousSessionUserId,
         });
       }
-
       this.config.lastEventTime = this.config.sessionId;
+    }
+
+    // fire web attribution events
+    console.log('last event time in setSessionId: ', this.config.lastEventTime);
+    this.webAttribution?.track();
+
+    if (isSessionTrackingEnabled(this.config.defaultTracking)) {
+      console.log('start session track');
+
       this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         event_id: ++lastEventId,
         session_id: this.config.sessionId,
@@ -262,15 +274,28 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
   async process(event: Event) {
     const currentTime = Date.now();
+    console.log('currentTime: ', currentTime);
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
-
+    await this.webAttribution?.fetchCampaign();
+    const shouldTrackNewCampaign = this.webAttribution?.shouldTrackNewCampaign();
+    const shouldSetSessionId = shouldTrackNewCampaign && this.webAttribution?.options.resetSessionOnNewCampaign;
+    console.log('isEventInNewSession: ', isEventInNewSession);
+    console.log('shouldTrackNewCampaign: ', shouldTrackNewCampaign);
+    console.log('shouldSetSessionId: ', shouldSetSessionId);
+    console.log('event type', event.event_type);
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
-      (!event.session_id || event.session_id === this.getSessionId()) &&
-      isEventInNewSession
+      (!event.session_id || event.session_id === this.getSessionId())
     ) {
-      this.setSessionId(currentTime);
+      if (isEventInNewSession || shouldSetSessionId) {
+        console.log('setting session id');
+        this.setSessionId(currentTime);
+      } else if (!isEventInNewSession && shouldTrackNewCampaign) {
+        console.log('in process identify track');
+        // web attribution should be track during the middle of the session if there has any new campaign
+        this.webAttribution?.track();
+      }
     }
 
     return super.process(event);
