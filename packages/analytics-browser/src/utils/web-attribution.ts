@@ -14,6 +14,8 @@ export class WebAttribution {
   storage: Storage<Campaign>;
   storageKey: string;
   amplitude: BrowserClient;
+  previousCampaign: Campaign | undefined;
+  currentCampaign!: Campaign;
 
   constructor(options: Options, amplitude: BrowserClient, config: BrowserConfig) {
     this.options = {
@@ -27,32 +29,41 @@ export class WebAttribution {
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
   }
 
-  async shouldTrackNewCampaign() {
-    const [currentCampaign, previousCampaign] = await Promise.all([
-      new CampaignParser().parse(),
-      this.storage.get(this.storageKey),
-    ]);
-    //console.log('currentCampaign: ', currentCampaign);
-    //console.log('previousCampaign: ', previousCampaign);
-    if (isNewCampaign(currentCampaign, previousCampaign, this.options)) {
+  async init() {
+    console.log('in init');
+    await this.fetchCampaign();
+  }
+
+  shouldTrackNewCampaign() {
+    console.log('in should tracknew campaign');
+    if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
       return true;
     }
     return false;
   }
 
+  async fetchCampaign() {
+    console.log('in fetch campaign');
+    [this.currentCampaign, this.previousCampaign] = await Promise.all([
+      new CampaignParser().parse(),
+      this.storage.get(this.storageKey),
+    ]);
+
+    console.log('current campaign', this.currentCampaign);
+    console.log('previous campaign', this.previousCampaign);
+  }
   /**
    * This can be called when
    * 1. set a new session
    * 2. has new campaign and enable resetSessionOnNewCampaign
    */
-  async track() {
-    const currentCampaign = await new CampaignParser().parse();
-    if (await this.shouldTrackNewCampaign()) {
-      //console.log('in web attribution track');
-      const campaignEvent = createCampaignEvent(currentCampaign, this.options);
+  track() {
+    if (this.shouldTrackNewCampaign()) {
+      console.log('in web attribution track');
+      const campaignEvent = createCampaignEvent(this.currentCampaign, this.options);
       this.amplitude.track(campaignEvent);
-      //console.log('after track campaignEvent');
-      await this.storage.set(this.storageKey, currentCampaign);
+      console.log('after track campaignEvent');
+      void this.storage.set(this.storageKey, this.currentCampaign);
     }
   }
 }
