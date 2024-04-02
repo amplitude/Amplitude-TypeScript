@@ -7,7 +7,13 @@ import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY } from '../src/con
 import * as Helpers from '../src/helpers';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
-import { IDBStore, RecordingStatus, SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
+import {
+  IDBStore,
+  RecordingStatus,
+  SessionReplayConfig,
+  SessionReplayOptions,
+  SessionReplaySessionIDBStore,
+} from '../src/typings/session-replay';
 
 jest.mock('idb-keyval');
 type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
@@ -105,7 +111,6 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config?.sessionId).toBe(123);
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.loggerProvider).toBeDefined();
-      expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
     });
 
     test('should setup plugin with privacy config', async () => {
@@ -124,7 +129,6 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toEqual(['.class', '#id']);
       expect(sessionReplay.loggerProvider).toBeDefined();
-      expect(sessionReplay.storageKey).toBe('AMP_replay_unsent_static_key');
     });
 
     test('should call initalize with shouldSendStoredEvents=true', async () => {
@@ -434,27 +438,29 @@ describe('SessionReplayPlugin', () => {
     test('should return early if session id not set', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
-      const getAllSessionEventsFromStore = jest
-        .spyOn(sessionReplay, 'getAllSessionEventsFromStore')
+      const getAllSessionDataFromStore = jest
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'getAllSessionDataFromStore')
         .mockReturnValueOnce(Promise.resolve({}));
       await sessionReplay.initialize();
-      expect(getAllSessionEventsFromStore).not.toHaveBeenCalled();
+      expect(getAllSessionDataFromStore).not.toHaveBeenCalled();
     });
     test('should return early if no config', async () => {
       const sessionReplay = new SessionReplay();
-      const getAllSessionEventsFromStore = jest
-        .spyOn(sessionReplay, 'getAllSessionEventsFromStore')
+      await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
+      sessionReplay.config = undefined;
+      const getAllSessionDataFromStore = jest
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'getAllSessionDataFromStore')
         .mockReturnValueOnce(Promise.resolve({}));
       await sessionReplay.initialize();
-      expect(getAllSessionEventsFromStore).not.toHaveBeenCalled();
+      expect(getAllSessionDataFromStore).not.toHaveBeenCalled();
     });
     test('should return early if stopRecordingEvents is already defined, signaling that recording is already in progress', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       sessionReplay.stopRecordingEvents = () => {};
-      const getAllSessionEventsFromStore = jest
-        .spyOn(sessionReplay, 'getAllSessionEventsFromStore')
+      const getAllSessionDataFromStore = jest
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'getAllSessionDataFromStore')
         .mockReturnValueOnce(
           Promise.resolve({
             123: {
@@ -470,7 +476,7 @@ describe('SessionReplayPlugin', () => {
           }),
         );
       await sessionReplay.initialize();
-      expect(getAllSessionEventsFromStore).toHaveBeenCalled();
+      expect(getAllSessionDataFromStore).toHaveBeenCalled();
       expect(sessionReplay.events).toEqual([]); // events should not be updated to match what is in the store
     });
     test('should configure current sequence id and events correctly if last sequence was sent', async () => {
@@ -672,7 +678,7 @@ describe('SessionReplayPlugin', () => {
     test('should return true if there are options', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const sampleRate = sessionReplay.getSampleRate();
+      const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(mockOptions.sampleRate);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
@@ -680,7 +686,7 @@ describe('SessionReplayPlugin', () => {
     test('should return false if no options', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockEmptyOptions).promise;
-      const sampleRate = sessionReplay.getSampleRate();
+      const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
@@ -690,7 +696,7 @@ describe('SessionReplayPlugin', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-      const sampleRate = sessionReplay.getSampleRate();
+      const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(0.2);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
@@ -997,7 +1003,10 @@ describe('SessionReplayPlugin', () => {
     test('should update IDB store upon success', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const cleanUpSessionEventsStore = jest.spyOn(sessionReplay, 'cleanUpSessionEventsStore');
+      const cleanUpSessionEventsStore = jest.spyOn(
+        sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore,
+        'cleanUpSessionEventsStore',
+      );
       sessionReplay.sendEventsList({
         events: [mockEventString],
         sequenceId: 4,
@@ -1011,7 +1020,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       const cleanUpSessionEventsStore = jest
-        .spyOn(sessionReplay, 'cleanUpSessionEventsStore')
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'cleanUpSessionEventsStore')
         .mockReturnValueOnce(Promise.resolve());
       (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject());
 
@@ -1053,22 +1062,13 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
-  describe('getSampleRate', () => {
-    test('should return default value if no config set', () => {
-      const sessionReplay = new SessionReplay();
-      sessionReplay.config = undefined;
-      const sampleRate = sessionReplay.getSampleRate();
-      expect(sampleRate).toEqual(DEFAULT_SAMPLE_RATE);
-    });
-  });
-
   describe('module level integration', () => {
     describe('with a sample rate', () => {
       test('should not record session if excluded due to sampling', async () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-        const sampleRate = sessionReplay.getSampleRate();
+        const sampleRate = sessionReplay.config?.sampleRate;
         expect(sampleRate).toBe(0.2);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
@@ -1109,7 +1109,7 @@ describe('SessionReplayPlugin', () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockEmptyOptions }).promise;
-        const sampleRate = sessionReplay.getSampleRate();
+        const sampleRate = sessionReplay.config?.sampleRate;
         expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
@@ -1122,7 +1122,7 @@ describe('SessionReplayPlugin', () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockEmptyOptions, sampleRate: 0 }).promise;
-        const sampleRate = sessionReplay.getSampleRate();
+        const sampleRate = sessionReplay.config?.sampleRate;
         expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
@@ -1271,329 +1271,6 @@ describe('SessionReplayPlugin', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(UNEXPECTED_ERROR_MESSAGE);
-    });
-  });
-
-  describe('getAllSessionEventsFromStore', () => {
-    test('should catch errors', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      get.mockImplementationOnce(() => Promise.reject('error'));
-      await sessionReplay.getAllSessionEventsFromStore();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
-        'Failed to store session replay events in IndexedDB: error',
-      );
-    });
-  });
-
-  describe('cleanUpSessionEventsStore', () => {
-    test('should update events and status for current session', async () => {
-      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
-      const mockIDBStore: IDBStore = {
-        [currentSessionId]: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            2: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-            3: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-      };
-      await sessionReplay.cleanUpSessionEventsStore(currentSessionId, 3);
-
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        [currentSessionId]: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            2: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-            3: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      });
-    });
-
-    test('should delete sent sequences for current session', async () => {
-      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
-      const mockIDBStore: IDBStore = {
-        [currentSessionId]: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            2: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-            3: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-      };
-      await sessionReplay.cleanUpSessionEventsStore(currentSessionId, 3);
-
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        [currentSessionId]: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            3: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      });
-    });
-
-    test('should keep sessions that are less than 3 days old, and delete sessions that are more than 3 days old', async () => {
-      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
-      const fourDayOldSessionId = new Date('2023-07-27 07:30:00').getTime();
-      const oneDayOldSessionId = new Date('2023-07-30 07:30:00').getTime();
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const mockIDBStore: IDBStore = {
-        [oneDayOldSessionId]: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            3: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-        [fourDayOldSessionId]: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            3: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      };
-      await sessionReplay.cleanUpSessionEventsStore(oneDayOldSessionId, 3);
-
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        [oneDayOldSessionId]: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            3: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      });
-    });
-    test('should catch errors', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      update.mockImplementationOnce(() => Promise.reject('error'));
-      await sessionReplay.cleanUpSessionEventsStore(123, 1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
-        'Failed to store session replay events in IndexedDB: error',
-      );
-    });
-    test('should handle an undefined store', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      update.mockImplementationOnce(() => Promise.resolve());
-      await sessionReplay.cleanUpSessionEventsStore(123, 1);
-      expect(update.mock.calls[0][1](undefined)).toEqual({});
-    });
-  });
-
-  describe('storeEventsForSession', () => {
-    test('should update the session current sequence id, and the current sequence events and status', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const mockIDBStore: IDBStore = {
-        123: {
-          currentSequenceId: 2,
-          sessionSequences: {
-            2: {
-              events: [],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-        456: {
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      };
-      await sessionReplay.storeEventsForSession([mockEventString], 2, 123);
-
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        123: {
-          currentSequenceId: 2,
-          sessionSequences: {
-            2: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-        456: {
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      });
-    });
-    test('should add a new entry if none exist for sequence id', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const mockIDBStore: IDBStore = {
-        123: {
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-        456: {
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      };
-      await sessionReplay.storeEventsForSession([mockEventString], 2, 123);
-
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        123: {
-          currentSequenceId: 2,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-            2: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-        456: {
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      });
-    });
-    test('should add a new entry if none exist for session id', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const mockIDBStore: IDBStore = {
-        123: {
-          currentSequenceId: 2,
-          sessionSequences: {
-            2: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      };
-      await sessionReplay.storeEventsForSession([mockEventString], 0, 456);
-
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
-        123: {
-          currentSequenceId: 2,
-          sessionSequences: {
-            2: {
-              events: [],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-        456: {
-          currentSequenceId: 0,
-          sessionSequences: {
-            0: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-      });
-    });
-    test('should catch errors', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      update.mockImplementationOnce(() => Promise.reject('error'));
-      await sessionReplay.storeEventsForSession([mockEventString], 0, mockOptions.sessionId as number);
-
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
-        'Failed to store session replay events in IndexedDB: error',
-      );
-    });
-    test('should handle an undefined store', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      update.mockImplementationOnce(() => Promise.resolve());
-      await sessionReplay.storeEventsForSession([mockEventString], 0, 456);
-      expect(update.mock.calls[0][1](undefined)).toEqual({
-        456: {
-          currentSequenceId: 0,
-          sessionSequences: {
-            0: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-      });
     });
   });
 
