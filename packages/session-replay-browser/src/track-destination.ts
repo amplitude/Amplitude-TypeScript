@@ -32,10 +32,6 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     this.loggerProvider = loggerProvider;
   }
 
-  setLoggerProvider(loggerProvider: ILogger) {
-    this.loggerProvider = loggerProvider;
-  }
-
   sendEventsList(destinationData: SessionReplayDestination) {
     this.addToQueue({
       ...destinationData,

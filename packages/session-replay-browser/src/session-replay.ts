@@ -7,24 +7,16 @@ import {
   BLOCK_CLASS,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   MASK_TEXT_CLASS,
-  MAX_EVENT_LIST_SIZE_IN_BYTES,
-  MAX_INTERVAL,
-  MIN_INTERVAL,
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
+import { SessionReplayEventsManager } from './events-manager';
 import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
-import { SessionReplaySessionIDBStore } from './session-idb-store';
-import { SessionReplayTrackDestination } from './track-destination';
 import {
   AmplitudeSessionReplay,
-  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
-  SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
-  Events,
-  IDBStore,
+  SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayConfig as ISessionReplayConfig,
-  RecordingStatus,
   SessionReplayOptions,
 } from './typings/session-replay';
 
@@ -32,19 +24,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: ISessionReplayConfig | undefined;
   identifiers: ISessionIdentifiers | undefined;
-  trackDestination: AmplitudeSessionReplayTrackDestination;
-  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
+  eventsManager: AmplitudeSessionReplayEventsManager | undefined;
   loggerProvider: ILogger;
-  events: Events = [];
-  currentSequenceId = 0;
   stopRecordingEvents: ReturnType<typeof record> | null = null;
-  maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
-  interval = MIN_INTERVAL;
-  timeAtLastSend: number | null = null;
 
   constructor() {
     this.loggerProvider = new Logger();
-    this.trackDestination = new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider });
   }
 
   init(apiKey: string, options: SessionReplayOptions) {
@@ -55,12 +40,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.config = new SessionReplayConfig(apiKey, options);
     this.loggerProvider = this.config.loggerProvider;
     this.identifiers = new SessionIdentifiers(options, this.loggerProvider);
-    // Update logger provider in trackDestination
-    this.trackDestination.setLoggerProvider(this.loggerProvider);
 
-    this.sessionIDBStore = new SessionReplaySessionIDBStore({
-      loggerProvider: this.loggerProvider,
-      apiKey: this.config.apiKey,
+    this.eventsManager = new SessionReplayEventsManager({
+      config: this.config,
     });
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
@@ -96,8 +78,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.stopRecordingAndSendEvents(this.identifiers.sessionId);
     this.identifiers.sessionId = sessionId;
-    this.events = [];
-    this.currentSequenceId = 0;
+    this.eventsManager && this.eventsManager.resetSequence();
     this.recordEvents();
   }
 
@@ -153,44 +134,28 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
-    if (this.events.length && sessionIdToSend) {
-      this.sendEventsList({
-        events: this.events,
-        sequenceId: this.currentSequenceId,
-        sessionId: sessionIdToSend,
-      });
-    }
+    const deviceId = this.getDeviceId();
+    this.eventsManager &&
+      sessionIdToSend &&
+      deviceId &&
+      this.eventsManager.sendEvents({ sessionId: sessionIdToSend, deviceId });
   }
 
   async initialize(shouldSendStoredEvents = false) {
-    this.timeAtLastSend = Date.now(); // Initialize this so we have a point of comparison when events are recorded
     if (!this.identifiers?.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
       return;
     }
-    const storedReplaySessions = this.sessionIDBStore && (await this.sessionIDBStore.getAllSessionDataFromStore());
-    // This resolves a timing issue when focus is fired multiple times in short succession,
-    // we only want the rest of this function to run once. We can be sure that initialize has
-    // already been called if this.stopRecordingEvents is defined
-    if (this.stopRecordingEvents) {
-      return;
-    }
-    const storedSequencesForSession = storedReplaySessions && storedReplaySessions[this.identifiers.sessionId];
-    if (storedReplaySessions && storedSequencesForSession && storedSequencesForSession.sessionSequences) {
-      const storedSeqId = storedSequencesForSession.currentSequenceId;
-      const lastSequence = storedSequencesForSession.sessionSequences[storedSeqId];
-      if (lastSequence && lastSequence.status !== RecordingStatus.RECORDING) {
-        this.currentSequenceId = storedSeqId + 1;
-        this.events = [];
-      } else {
-        // Pick up recording where it was left off in another tab or window
-        this.currentSequenceId = storedSeqId;
-        this.events = lastSequence?.events || [];
-      }
-    }
-    if (shouldSendStoredEvents && storedReplaySessions) {
-      this.sendStoredEvents(storedReplaySessions);
-    }
+
+    const deviceId = this.getDeviceId();
+    this.eventsManager &&
+      deviceId &&
+      (await this.eventsManager.initialize({
+        sessionId: this.identifiers.sessionId,
+        shouldSendStoredEvents,
+        deviceId,
+      }));
+
     this.recordEvents();
   }
 
@@ -238,28 +203,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return this.config?.privacyConfig?.blockSelector;
   }
 
-  sendStoredEvents(storedReplaySessions: IDBStore) {
-    for (const sessionId in storedReplaySessions) {
-      const storedSequences = storedReplaySessions[sessionId].sessionSequences;
-      for (const storedSeqId in storedSequences) {
-        const seq = storedSequences[storedSeqId];
-        const numericSeqId = parseInt(storedSeqId, 10);
-        const numericSessionId = parseInt(sessionId, 10);
-        if (numericSessionId === this.identifiers?.sessionId && numericSeqId === this.currentSequenceId) {
-          continue;
-        }
-
-        if (seq.events && seq.events.length && seq.status === RecordingStatus.RECORDING) {
-          this.sendEventsList({
-            events: seq.events,
-            sequenceId: numericSeqId,
-            sessionId: numericSessionId,
-          });
-        }
-      }
-    }
-  }
-
   recordEvents() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
@@ -274,20 +217,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
           return;
         }
         const eventString = JSON.stringify(event);
-
-        const shouldSplit = this.shouldSplitEventsList(eventString);
-        if (shouldSplit && this.config) {
-          this.sendEventsList({
-            events: this.events,
-            sequenceId: this.currentSequenceId,
-            sessionId: sessionId,
-          });
-          this.events = [];
-          this.currentSequenceId++;
-        }
-        this.events.push(eventString);
-        this.sessionIDBStore &&
-          void this.sessionIDBStore.storeEventsForSession(this.events, this.currentSequenceId, sessionId);
+        const deviceId = this.getDeviceId();
+        deviceId && this.eventsManager && this.eventsManager.addEvent({ event: eventString, sessionId, deviceId });
       },
       packFn: pack,
       maskAllInputs: true,
@@ -306,44 +237,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   }
 
-  /**
-   * Determines whether to send the events list to the backend and start a new
-   * empty events list, based on the size of the list as well as the last time sent
-   * @param nextEventString
-   * @returns boolean
-   */
-  shouldSplitEventsList = (nextEventString: string): boolean => {
-    const sizeOfNextEvent = new Blob([nextEventString]).size;
-    const sizeOfEventsList = new Blob(this.events).size;
-    if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
-      return true;
-    }
-    if (this.timeAtLastSend !== null && Date.now() - this.timeAtLastSend > this.interval && this.events.length) {
-      this.interval = Math.min(MAX_INTERVAL, this.interval + MIN_INTERVAL);
-      this.timeAtLastSend = Date.now();
-      return true;
-    }
-    return false;
-  };
-
-  sendEventsList({ events, sequenceId, sessionId }: { events: string[]; sequenceId: number; sessionId: number }) {
-    if (!this.config || !this.sessionIDBStore) {
-      this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
-      return;
-    }
-    this.trackDestination.sendEventsList({
-      events: events,
-      sequenceId: sequenceId,
-      sessionId: sessionId,
-      flushMaxRetries: this.config.flushMaxRetries,
-      apiKey: this.config.apiKey,
-      deviceId: this.getDeviceId(),
-      sampleRate: this.config.sampleRate,
-      serverZone: this.config.serverZone,
-      onComplete: this.sessionIDBStore.cleanUpSessionEventsStore.bind(this.sessionIDBStore),
-    });
-  }
-
   getDeviceId() {
     let identityStoreDeviceId: string | undefined;
     if (this.config?.instanceName) {
@@ -359,8 +252,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async flush(useRetry = false) {
-    if (this.trackDestination) {
-      return this.trackDestination.flush(useRetry);
+    if (this.eventsManager) {
+      return this.eventsManager.flush(useRetry);
     }
   }
 
