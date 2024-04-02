@@ -1,6 +1,6 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
-import { BaseTransport, Logger, returnWrapper } from '@amplitude/analytics-core';
-import { Logger as ILogger, ServerZone, Status } from '@amplitude/analytics-types';
+import { Logger, returnWrapper } from '@amplitude/analytics-core';
+import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import * as IDBKeyVal from 'idb-keyval';
 import { SessionReplayConfig } from './config';
@@ -14,44 +14,31 @@ import {
   MAX_INTERVAL,
   MIN_INTERVAL,
   SESSION_REPLAY_DEBUG_PROPERTY,
-  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
-  SESSION_REPLAY_SERVER_URL,
-  SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
   STORAGE_PREFIX,
   defaultSessionStore,
 } from './constants';
-import { generateHashCode, generateSessionReplayId, getCurrentUrl, isSessionInSample, maskInputFn } from './helpers';
-import {
-  MAX_RETRIES_EXCEEDED_MESSAGE,
-  MISSING_API_KEY_MESSAGE,
-  MISSING_DEVICE_ID_MESSAGE,
-  STORAGE_FAILURE,
-  UNEXPECTED_ERROR_MESSAGE,
-  UNEXPECTED_NETWORK_ERROR_MESSAGE,
-  getSuccessMessage,
-} from './messages';
+import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
+import { STORAGE_FAILURE } from './messages';
+import { SessionReplayTrackDestination } from './track-destination';
 import {
   AmplitudeSessionReplay,
+  SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
   Events,
   IDBStore,
   IDBStoreSession,
   SessionReplayConfig as ISessionReplayConfig,
   RecordingStatus,
-  SessionReplayContext,
   SessionReplayOptions,
 } from './typings/session-replay';
-import { VERSION } from './version';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: ISessionReplayConfig | undefined;
+  trackDestination: AmplitudeSessionReplayTrackDestination;
   loggerProvider: ILogger;
   storageKey = '';
-  retryTimeout = 1000;
   events: Events = [];
   currentSequenceId = 0;
-  private scheduled: ReturnType<typeof setTimeout> | null = null;
-  queue: SessionReplayContext[] = [];
   stopRecordingEvents: ReturnType<typeof record> | null = null;
   maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
   interval = MIN_INTERVAL;
@@ -59,6 +46,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   constructor() {
     this.loggerProvider = new Logger();
+    this.trackDestination = new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider });
   }
 
   init(apiKey: string, options: SessionReplayOptions) {
@@ -68,6 +56,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.config = new SessionReplayConfig(apiKey, options);
     this.loggerProvider = this.config.loggerProvider;
+    this.trackDestination.setLoggerProvider(this.loggerProvider);
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -256,6 +245,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         if (numericSessionId === this.config?.sessionId && numericSeqId === this.currentSequenceId) {
           continue;
         }
+
         if (seq.events && seq.events.length && seq.status === RecordingStatus.RECORDING) {
           this.sendEventsList({
             events: seq.events,
@@ -283,7 +273,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         const eventString = JSON.stringify(event);
 
         const shouldSplit = this.shouldSplitEventsList(eventString);
-        if (shouldSplit) {
+        if (shouldSplit && this.config) {
           this.sendEventsList({
             events: this.events,
             sequenceId: this.currentSequenceId,
@@ -333,80 +323,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   sendEventsList({ events, sequenceId, sessionId }: { events: string[]; sequenceId: number; sessionId: number }) {
-    this.addToQueue({
-      events,
-      sequenceId,
-      attempts: 0,
-      timeout: 0,
-      sessionId,
-    });
-  }
-
-  addToQueue(...list: SessionReplayContext[]) {
-    const tryable = list.filter((context) => {
-      if (context.attempts < (this.config?.flushMaxRetries || 0)) {
-        context.attempts += 1;
-        return true;
-      }
-      this.completeRequest({
-        context,
-        err: `${MAX_RETRIES_EXCEEDED_MESSAGE}, batch sequence id, ${context.sequenceId}`,
-      });
-      return false;
-    });
-    tryable.forEach((context) => {
-      this.queue = this.queue.concat(context);
-      if (context.timeout === 0) {
-        this.schedule(0);
-        return;
-      }
-
-      setTimeout(() => {
-        context.timeout = 0;
-        this.schedule(0);
-      }, context.timeout);
-    });
-  }
-
-  schedule(timeout: number) {
-    if (this.scheduled) return;
-    this.scheduled = setTimeout(() => {
-      void this.flush(true).then(() => {
-        if (this.queue.length > 0) {
-          this.schedule(timeout);
-        }
-      });
-    }, timeout);
-  }
-
-  async flush(useRetry = false) {
-    const list: SessionReplayContext[] = [];
-    const later: SessionReplayContext[] = [];
-    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
-    this.queue = later;
-
-    if (this.scheduled) {
-      clearTimeout(this.scheduled);
-      this.scheduled = null;
+    if (!this.config) {
+      this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      return;
     }
-
-    await Promise.all(list.map((context) => this.send(context, useRetry)));
+    this.trackDestination.sendEventsList({
+      events: events,
+      sequenceId: sequenceId,
+      sessionId: sessionId,
+      flushMaxRetries: this.config.flushMaxRetries,
+      apiKey: this.config.apiKey,
+      deviceId: this.getDeviceId(),
+      sampleRate: this.getSampleRate(),
+      serverZone: this.config.serverZone,
+      onComplete: this.cleanUpSessionEventsStore.bind(this),
+    });
   }
 
   getSampleRate() {
     return this.config?.sampleRate || DEFAULT_SAMPLE_RATE;
-  }
-
-  getServerUrl() {
-    if (this.config?.serverZone === ServerZone.STAGING) {
-      return SESSION_REPLAY_STAGING_SERVER_URL;
-    }
-
-    if (this.config?.serverZone === ServerZone.EU) {
-      return SESSION_REPLAY_EU_SERVER_URL;
-    }
-
-    return SESSION_REPLAY_SERVER_URL;
   }
 
   getDeviceId() {
@@ -421,89 +356,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   getSessionId() {
     return this.config?.sessionId;
-  }
-
-  async send(context: SessionReplayContext, useRetry = true) {
-    const apiKey = this.config?.apiKey;
-    if (!apiKey) {
-      return this.completeRequest({ context, err: MISSING_API_KEY_MESSAGE });
-    }
-    const deviceId = this.getDeviceId();
-    if (!deviceId) {
-      return this.completeRequest({ context, err: MISSING_DEVICE_ID_MESSAGE });
-    }
-    const url = getCurrentUrl();
-    const version = VERSION;
-    const sampleRate = this.getSampleRate();
-    const urlParams = new URLSearchParams({
-      device_id: deviceId,
-      session_id: `${context.sessionId}`,
-      seq_number: `${context.sequenceId}`,
-    });
-
-    const payload = {
-      version: 1,
-      events: context.events,
-    };
-
-    try {
-      const options: RequestInit = {
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: '*/*',
-          Authorization: `Bearer ${apiKey}`,
-          'X-Client-Version': version,
-          'X-Client-Url': url,
-          'X-Client-Sample-Rate': `${sampleRate}`,
-        },
-        body: JSON.stringify(payload),
-        method: 'POST',
-      };
-      const server_url = `${this.getServerUrl()}?${urlParams.toString()}`;
-      const res = await fetch(server_url, options);
-      if (res === null) {
-        this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });
-        return;
-      }
-      if (!useRetry) {
-        let responseBody = '';
-        try {
-          responseBody = JSON.stringify(res.body, null, 2);
-        } catch {
-          // to avoid crash, but don't care about the error, add comment to avoid empty block lint error
-        }
-        this.completeRequest({ context, success: `${res.status}: ${responseBody}` });
-      } else {
-        this.handleReponse(res.status, context);
-      }
-    } catch (e) {
-      this.completeRequest({ context, err: e as string });
-    }
-  }
-
-  handleReponse(status: number, context: SessionReplayContext) {
-    const parsedStatus = new BaseTransport().buildStatus(status);
-    switch (parsedStatus) {
-      case Status.Success:
-        this.handleSuccessResponse(context);
-        break;
-      case Status.Failed:
-        this.handleOtherResponse(context);
-        break;
-      default:
-        this.completeRequest({ context, err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
-    }
-  }
-
-  handleSuccessResponse(context: SessionReplayContext) {
-    this.completeRequest({ context, success: getSuccessMessage(context.sessionId) });
-  }
-
-  handleOtherResponse(context: SessionReplayContext) {
-    this.addToQueue({
-      ...context,
-      timeout: context.attempts * this.retryTimeout,
-    });
   }
 
   async getAllSessionEventsFromStore() {
@@ -579,12 +431,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
   }
 
-  completeRequest({ context, err, success }: { context: SessionReplayContext; err?: string; success?: string }) {
-    context.sessionId && this.cleanUpSessionEventsStore(context.sessionId, context.sequenceId);
-    if (err) {
-      this.loggerProvider.warn(err);
-    } else if (success) {
-      this.loggerProvider.log(success);
+  async flush(useRetry = false) {
+    if (this.trackDestination) {
+      return this.trackDestination.flush(useRetry);
     }
   }
 

@@ -1,13 +1,22 @@
-import { AmplitudeReturn, Config, LogLevel, Logger } from '@amplitude/analytics-types';
+import { AmplitudeReturn, Config, LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 
 export type Events = string[];
 
-export interface SessionReplayContext {
+export interface SessionReplayDestination {
   events: Events;
   sequenceId: number;
+  sessionId: number;
+  flushMaxRetries?: number;
+  apiKey?: string;
+  deviceId?: string;
+  sampleRate: number;
+  serverZone?: keyof typeof ServerZone;
+  onComplete: (sessionId: number, sequenceId: number) => Promise<void>;
+}
+
+export interface SessionReplayDestinationContext extends SessionReplayDestination {
   attempts: number;
   timeout: number;
-  sessionId: number;
 }
 
 export enum RecordingStatus {
@@ -57,4 +66,12 @@ export interface AmplitudeSessionReplay {
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
   flush: (useRetry: boolean) => Promise<void>;
   shutdown: () => void;
+}
+
+export interface SessionReplayTrackDestination {
+  sendEventsList: (destinationData: SessionReplayDestination) => void;
+  setLoggerProvider: (loggerProvider: Logger) => void;
+  // send(context: SessionReplayDestinationContext, useRetry?: boolean): Promise<void>;
+  // schedule(timeout: number): void;
+  flush: (useRetry: boolean) => Promise<void>;
 }
