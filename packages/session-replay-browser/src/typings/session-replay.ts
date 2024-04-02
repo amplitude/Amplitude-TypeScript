@@ -40,6 +40,13 @@ export interface IDBStore {
   [sessionId: number]: IDBStoreSession;
 }
 
+export interface SessionReplayEventsStorage {
+  getAllSessionEventsFromStore(): Promise<IDBStore | undefined>;
+  storeEventsForSession(events: Events, sequenceId: number, sessionId: number): Promise<void>;
+  cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
+  init: ({ apiKey, loggerProvider }: { apiKey: string; loggerProvider: Logger }) => void;
+}
+
 export interface SessionReplayPrivacyConfig {
   blockSelector?: string | string[];
 }
