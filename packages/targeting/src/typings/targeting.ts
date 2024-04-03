@@ -3,8 +3,9 @@ import { EvaluationFlag, EvaluationVariant } from '@amplitude/experiment-core';
 export interface TargetingParameters {
   event?: Event;
   userProperties?: IdentifyUserProperties;
-  deviceId: string;
+  deviceId?: string;
   flag: EvaluationFlag;
+  sessionId?: string;
 }
 
 export interface Targeting {
