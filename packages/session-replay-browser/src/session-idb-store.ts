@@ -3,14 +3,14 @@ import * as IDBKeyVal from 'idb-keyval';
 import { MAX_IDB_STORAGE_LENGTH, STORAGE_PREFIX, defaultSessionStore } from './constants';
 import { STORAGE_FAILURE } from './messages';
 import {
-  SessionReplayEventsStorage as AmplitudeSessionReplayEventsStorage,
+  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   Events,
   IDBStore,
   IDBStoreSession,
   RecordingStatus,
 } from './typings/session-replay';
 
-export class SessionReplayEventsStorage implements AmplitudeSessionReplayEventsStorage {
+export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessionIDBStore {
   apiKey: string | undefined;
   storageKey = '';
   loggerProvider: ILogger;
@@ -23,7 +23,7 @@ export class SessionReplayEventsStorage implements AmplitudeSessionReplayEventsS
     this.storageKey = `${STORAGE_PREFIX}_${apiKey.substring(0, 10)}`;
   }
 
-  async getAllSessionEventsFromStore() {
+  async getAllSessionDataFromStore() {
     try {
       const storedReplaySessionContexts: IDBStore | undefined = await IDBKeyVal.get(this.storageKey);
 
