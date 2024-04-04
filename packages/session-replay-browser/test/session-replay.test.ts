@@ -107,8 +107,8 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config?.flushMaxRetries).toBe(1);
       expect(sessionReplay.config?.optOut).toBe(false);
       expect(sessionReplay.config?.sampleRate).toBe(0.5);
-      expect(sessionReplay.config?.deviceId).toBe('1a2b3c');
-      expect(sessionReplay.config?.sessionId).toBe(123);
+      expect(sessionReplay.identifiers?.deviceId).toBe('1a2b3c');
+      expect(sessionReplay.identifiers?.sessionId).toBe(123);
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.loggerProvider).toBeDefined();
     });
@@ -124,8 +124,8 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config?.flushMaxRetries).toBe(1);
       expect(sessionReplay.config?.optOut).toBe(false);
       expect(sessionReplay.config?.sampleRate).toBe(0.5);
-      expect(sessionReplay.config?.deviceId).toBe('1a2b3c');
-      expect(sessionReplay.config?.sessionId).toBe(123);
+      expect(sessionReplay.identifiers?.deviceId).toBe('1a2b3c');
+      expect(sessionReplay.identifiers?.sessionId).toBe(123);
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toEqual(['.class', '#id']);
       expect(sessionReplay.loggerProvider).toBeDefined();
@@ -236,8 +236,8 @@ describe('SessionReplayPlugin', () => {
 
       sessionReplay.setSessionId(456);
       expect(stopRecordingMock).toHaveBeenCalled();
-      expect(sessionReplay.config?.sessionId).toEqual(456);
-      expect(sessionReplay.config?.sessionReplayId).toEqual('1a2b3c/456');
+      expect(sessionReplay.identifiers?.sessionId).toEqual(456);
+      expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/456');
       expect(sessionReplay.events).toEqual([]);
       expect(sessionReplay.currentSequenceId).toEqual(0);
     });
@@ -260,9 +260,9 @@ describe('SessionReplayPlugin', () => {
       sessionReplay.loggerProvider = mockLoggerProvider;
 
       sessionReplay.setSessionId(456, '9l8m7n');
-      expect(sessionReplay.config?.sessionId).toEqual(456);
-      expect(sessionReplay.config?.sessionReplayId).toEqual('9l8m7n/456');
-      expect(sessionReplay.config?.deviceId).toEqual('9l8m7n');
+      expect(sessionReplay.identifiers?.sessionId).toEqual(456);
+      expect(sessionReplay.identifiers?.sessionReplayId).toEqual('9l8m7n/456');
+      expect(sessionReplay.identifiers?.deviceId).toEqual('9l8m7n');
       expect(sessionReplay.getDeviceId()).toEqual('9l8m7n');
     });
   });
@@ -352,8 +352,8 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
       sessionReplay.getShouldRecord = () => true;
-      if (sessionReplay.config) {
-        sessionReplay.config.sessionReplayId = undefined;
+      if (sessionReplay.identifiers) {
+        sessionReplay.identifiers.sessionReplayId = undefined;
       }
 
       const result = sessionReplay.getSessionReplayProperties();
@@ -444,10 +444,10 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.initialize();
       expect(getAllSessionDataFromStore).not.toHaveBeenCalled();
     });
-    test('should return early if no config', async () => {
+    test('should return early if no identifiers', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
-      sessionReplay.config = undefined;
+      sessionReplay.identifiers = undefined;
       const getAllSessionDataFromStore = jest
         .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'getAllSessionDataFromStore')
         .mockReturnValueOnce(Promise.resolve({}));
@@ -547,6 +547,11 @@ describe('SessionReplayPlugin', () => {
         ...mockOptions,
         privacyConfig: { blockSelector: ['#id'] },
       } as SessionReplayConfig;
+      sessionReplay.identifiers = {
+        sessionId: mockOptions.sessionId,
+        deviceId: mockOptions.deviceId,
+        sessionReplayId: `${mockOptions.deviceId || 0}/${mockOptions.sessionId || 0}`,
+      };
       const mockGetResolution = Promise.resolve({});
       get.mockReturnValueOnce(mockGetResolution);
       await sessionReplay.initialize();
@@ -702,10 +707,9 @@ describe('SessionReplayPlugin', () => {
       expect(shouldRecord).toBe(false);
     });
     test('should set record as true if session is included in sample rate', async () => {
-      jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => true);
-
       const sessionReplay = new SessionReplay();
-      sessionReplay.config = { apiKey, ...mockOptions, sampleRate: 0.2 } as SessionReplayConfig;
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+      jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => true);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
     });

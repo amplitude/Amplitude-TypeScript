@@ -1,13 +1,12 @@
 import { FetchTransport } from '@amplitude/analytics-client-common';
 import { Config, Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
+import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from './constants';
 import {
   SessionReplayConfig as ISessionReplayConfig,
   SessionReplayOptions,
   SessionReplayPrivacyConfig,
 } from './typings/session-replay';
-import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from './constants';
-import { generateSessionReplayId } from './helpers';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -19,9 +18,6 @@ export const getDefaultConfig = () => ({
 export class SessionReplayConfig extends Config implements ISessionReplayConfig {
   apiKey: string;
   sampleRate: number;
-  deviceId?: string | undefined;
-  sessionId?: number | undefined;
-  sessionReplayId?: string | undefined;
   privacyConfig?: SessionReplayPrivacyConfig;
   debugMode?: boolean;
 
@@ -39,15 +35,7 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
 
     this.apiKey = apiKey;
     this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
-    this.deviceId = options.deviceId;
-    this.sessionId = options.sessionId;
     this.serverZone = options.serverZone || DEFAULT_SERVER_ZONE;
-
-    if (options.sessionId && options.deviceId) {
-      this.sessionReplayId = generateSessionReplayId(options.sessionId, options.deviceId);
-    } else {
-      this.loggerProvider.error('Please provide both sessionId and deviceId.');
-    }
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;
