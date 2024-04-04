@@ -52,18 +52,21 @@ export interface SessionReplayPrivacyConfig {
 
 export interface SessionReplayConfig extends Config {
   apiKey: string;
-  deviceId?: string;
-  sessionId?: number;
   loggerProvider: Logger;
   logLevel: LogLevel;
   flushMaxRetries: number;
   sampleRate: number;
-  sessionReplayId?: string;
   privacyConfig?: SessionReplayPrivacyConfig;
   debugMode?: boolean;
 }
 
-export type SessionReplayOptions = Omit<Partial<SessionReplayConfig>, 'apiKey'>;
+export interface SessionIdentifiers {
+  deviceId?: string;
+  sessionId?: number;
+  sessionReplayId?: string;
+}
+
+export type SessionReplayOptions = Omit<Partial<SessionReplayConfig & SessionIdentifiers>, 'apiKey'>;
 
 export interface AmplitudeSessionReplay {
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;

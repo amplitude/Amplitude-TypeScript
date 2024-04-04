@@ -13,6 +13,7 @@ import {
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
+import { SessionIdentifiers } from './identifiers';
 import { SessionReplaySessionIDBStore } from './session-idb-store';
 import { SessionReplayTrackDestination } from './track-destination';
 import {
@@ -21,6 +22,7 @@ import {
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
   Events,
   IDBStore,
+  SessionIdentifiers as ISessionIdentifiers,
   SessionReplayConfig as ISessionReplayConfig,
   RecordingStatus,
   SessionReplayOptions,
@@ -29,6 +31,7 @@ import {
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: ISessionReplayConfig | undefined;
+  identifiers: ISessionIdentifiers | undefined;
   trackDestination: AmplitudeSessionReplayTrackDestination;
   sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
@@ -51,6 +54,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.config = new SessionReplayConfig(apiKey, options);
     this.loggerProvider = this.config.loggerProvider;
+    this.identifiers = new SessionIdentifiers(options, this.loggerProvider);
     // Update logger provider in trackDestination
     this.trackDestination.setLoggerProvider(this.loggerProvider);
 
@@ -73,25 +77,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   setSessionId(sessionId: number, deviceId?: string) {
-    if (!this.config) {
+    if (!this.identifiers) {
       this.loggerProvider.error('Session replay init has not been called, cannot set session id.');
       return;
     }
 
     if (deviceId) {
-      this.config.deviceId = deviceId;
+      this.identifiers.deviceId = deviceId;
     }
     // use a consistent device id.
     const deviceIdForReplayId = this.getDeviceId();
     if (sessionId && deviceIdForReplayId) {
-      this.config.sessionReplayId = generateSessionReplayId(sessionId, deviceIdForReplayId);
+      this.identifiers.sessionReplayId = generateSessionReplayId(sessionId, deviceIdForReplayId);
     } else {
       this.loggerProvider.error('Must provide either session replay id or session id when starting a new session.');
       return;
     }
 
-    this.stopRecordingAndSendEvents(this.config.sessionId);
-    this.config.sessionId = sessionId;
+    this.stopRecordingAndSendEvents(this.identifiers.sessionId);
+    this.identifiers.sessionId = sessionId;
     this.events = [];
     this.currentSequenceId = 0;
     this.recordEvents();
@@ -108,7 +112,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getSessionReplayProperties() {
-    if (!this.config) {
+    if (!this.config || !this.identifiers) {
       this.loggerProvider.error('Session replay init has not been called, cannot get session recording properties.');
       return {};
     }
@@ -119,8 +123,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const shouldRecord = this.getShouldRecord(ignoreFocus);
 
     if (shouldRecord) {
-      const eventProperties = {
-        [DEFAULT_SESSION_REPLAY_PROPERTY]: this.config.sessionReplayId ? this.config.sessionReplayId : null,
+      const eventProperties: { [key: string]: string | null } = {
+        [DEFAULT_SESSION_REPLAY_PROPERTY]: this.identifiers.sessionReplayId ? this.identifiers.sessionReplayId : null,
       };
       if (this.config.debugMode) {
         eventProperties[SESSION_REPLAY_DEBUG_PROPERTY] = this.getSessionReplayDebugPropertyValue();
@@ -148,7 +152,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
     }
 
-    const sessionIdToSend = sessionId || this.config?.sessionId;
+    const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     if (this.events.length && sessionIdToSend) {
       this.sendEventsList({
         events: this.events,
@@ -160,7 +164,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   async initialize(shouldSendStoredEvents = false) {
     this.timeAtLastSend = Date.now(); // Initialize this so we have a point of comparison when events are recorded
-    if (!this.config?.sessionId) {
+    if (!this.identifiers?.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
       return;
     }
@@ -171,7 +175,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.stopRecordingEvents) {
       return;
     }
-    const storedSequencesForSession = storedReplaySessions && storedReplaySessions[this.config.sessionId];
+    const storedSequencesForSession = storedReplaySessions && storedReplaySessions[this.identifiers.sessionId];
     if (storedReplaySessions && storedSequencesForSession && storedSequencesForSession.sessionSequences) {
       const storedSeqId = storedSequencesForSession.currentSequenceId;
       const lastSequence = storedSequencesForSession.sessionSequences[storedSeqId];
@@ -201,31 +205,31 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getShouldRecord(ignoreFocus = false) {
-    if (!this.config) {
+    if (!this.identifiers || !this.config) {
       this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
     }
     const globalScope = getGlobalScope();
     if (!ignoreFocus && globalScope && globalScope.document && !globalScope.document.hasFocus()) {
-      if (this.config.sessionId) {
+      if (this.identifiers.sessionId) {
         this.loggerProvider.log(
-          `Session ${this.config.sessionId} temporarily not recording due to lack of browser focus.`,
+          `Session ${this.identifiers.sessionId} temporarily not recording due to lack of browser focus.`,
         );
       }
       return false;
     } else if (this.shouldOptOut()) {
-      if (this.config.sessionId) {
-        this.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording due to optOut config.`);
+      if (this.identifiers.sessionId) {
+        this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to optOut config.`);
       }
       return false;
-    } else if (!this.config.sessionId) {
+    } else if (!this.identifiers.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
       return false;
     }
 
-    const isInSample = isSessionInSample(this.config.sessionId, this.config.sampleRate);
+    const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
     if (!isInSample) {
-      this.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording due to sample rate.`);
+      this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`);
     }
     return isInSample;
   }
@@ -241,7 +245,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         const seq = storedSequences[storedSeqId];
         const numericSeqId = parseInt(storedSeqId, 10);
         const numericSessionId = parseInt(sessionId, 10);
-        if (numericSessionId === this.config?.sessionId && numericSeqId === this.currentSequenceId) {
+        if (numericSessionId === this.identifiers?.sessionId && numericSeqId === this.currentSequenceId) {
           continue;
         }
 
@@ -258,7 +262,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   recordEvents() {
     const shouldRecord = this.getShouldRecord();
-    const sessionId = this.config?.sessionId;
+    const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId) {
       return;
     }
@@ -347,11 +351,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       identityStoreDeviceId = identityStore.getIdentity().deviceId;
     }
 
-    return identityStoreDeviceId || this.config?.deviceId;
+    return identityStoreDeviceId || this.identifiers?.deviceId;
   }
 
   getSessionId() {
-    return this.config?.sessionId;
+    return this.identifiers?.sessionId;
   }
 
   async flush(useRetry = false) {
