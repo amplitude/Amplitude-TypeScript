@@ -2,30 +2,25 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
-import * as IDBKeyVal from 'idb-keyval';
 import { SessionReplayConfig } from './config';
 import {
   BLOCK_CLASS,
-  DEFAULT_SAMPLE_RATE,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   MASK_TEXT_CLASS,
   MAX_EVENT_LIST_SIZE_IN_BYTES,
-  MAX_IDB_STORAGE_LENGTH,
   MAX_INTERVAL,
   MIN_INTERVAL,
   SESSION_REPLAY_DEBUG_PROPERTY,
-  STORAGE_PREFIX,
-  defaultSessionStore,
 } from './constants';
 import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
-import { STORAGE_FAILURE } from './messages';
+import { SessionReplaySessionIDBStore } from './session-idb-store';
 import { SessionReplayTrackDestination } from './track-destination';
 import {
   AmplitudeSessionReplay,
+  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
   Events,
   IDBStore,
-  IDBStoreSession,
   SessionReplayConfig as ISessionReplayConfig,
   RecordingStatus,
   SessionReplayOptions,
@@ -35,8 +30,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: ISessionReplayConfig | undefined;
   trackDestination: AmplitudeSessionReplayTrackDestination;
+  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
-  storageKey = '';
   events: Events = [];
   currentSequenceId = 0;
   stopRecordingEvents: ReturnType<typeof record> | null = null;
@@ -56,11 +51,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.config = new SessionReplayConfig(apiKey, options);
     this.loggerProvider = this.config.loggerProvider;
+    // Update logger provider in trackDestination
     this.trackDestination.setLoggerProvider(this.loggerProvider);
 
-    this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
+    this.sessionIDBStore = new SessionReplaySessionIDBStore({
+      loggerProvider: this.loggerProvider,
+      apiKey: this.config.apiKey,
+    });
 
-    this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
+    this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
     const globalScope = getGlobalScope();
     if (globalScope) {
@@ -165,7 +164,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
       return;
     }
-    const storedReplaySessions = await this.getAllSessionEventsFromStore();
+    const storedReplaySessions = this.sessionIDBStore && (await this.sessionIDBStore.getAllSessionDataFromStore());
     // This resolves a timing issue when focus is fired multiple times in short succession,
     // we only want the rest of this function to run once. We can be sure that initialize has
     // already been called if this.stopRecordingEvents is defined
@@ -224,7 +223,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return false;
     }
 
-    const isInSample = isSessionInSample(this.config.sessionId, this.getSampleRate());
+    const isInSample = isSessionInSample(this.config.sessionId, this.config.sampleRate);
     if (!isInSample) {
       this.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording due to sample rate.`);
     }
@@ -283,7 +282,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.currentSequenceId++;
         }
         this.events.push(eventString);
-        void this.storeEventsForSession(this.events, this.currentSequenceId, sessionId);
+        this.sessionIDBStore &&
+          void this.sessionIDBStore.storeEventsForSession(this.events, this.currentSequenceId, sessionId);
       },
       packFn: pack,
       maskAllInputs: true,
@@ -323,7 +323,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   sendEventsList({ events, sequenceId, sessionId }: { events: string[]; sequenceId: number; sessionId: number }) {
-    if (!this.config) {
+    if (!this.config || !this.sessionIDBStore) {
       this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return;
     }
@@ -334,14 +334,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       flushMaxRetries: this.config.flushMaxRetries,
       apiKey: this.config.apiKey,
       deviceId: this.getDeviceId(),
-      sampleRate: this.getSampleRate(),
+      sampleRate: this.config.sampleRate,
       serverZone: this.config.serverZone,
-      onComplete: this.cleanUpSessionEventsStore.bind(this),
+      onComplete: this.sessionIDBStore.cleanUpSessionEventsStore.bind(this),
     });
-  }
-
-  getSampleRate() {
-    return this.config?.sampleRate || DEFAULT_SAMPLE_RATE;
   }
 
   getDeviceId() {
@@ -356,79 +352,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   getSessionId() {
     return this.config?.sessionId;
-  }
-
-  async getAllSessionEventsFromStore() {
-    try {
-      const storedReplaySessionContexts: IDBStore | undefined = await IDBKeyVal.get(this.storageKey);
-
-      return storedReplaySessionContexts;
-    } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
-    }
-    return undefined;
-  }
-
-  async storeEventsForSession(events: Events, sequenceId: number, sessionId: number) {
-    try {
-      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
-        session.currentSequenceId = sequenceId;
-
-        const currentSequence = (session.sessionSequences && session.sessionSequences[sequenceId]) || {};
-
-        currentSequence.events = events;
-        currentSequence.status = RecordingStatus.RECORDING;
-
-        return {
-          ...sessionMap,
-          [sessionId]: {
-            ...session,
-            sessionSequences: {
-              ...session.sessionSequences,
-              [sequenceId]: currentSequence,
-            },
-          },
-        };
-      });
-    } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
-    }
-  }
-
-  async cleanUpSessionEventsStore(sessionId: number, sequenceId: number) {
-    try {
-      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session: IDBStoreSession = sessionMap[sessionId];
-        const sequenceToUpdate = session?.sessionSequences && session.sessionSequences[sequenceId];
-        if (!sequenceToUpdate) {
-          return sessionMap;
-        }
-
-        sequenceToUpdate.events = [];
-        sequenceToUpdate.status = RecordingStatus.SENT;
-
-        // Delete sent sequences for current session
-        Object.entries(session.sessionSequences).forEach(([storedSeqId, sequence]) => {
-          const numericStoredSeqId = parseInt(storedSeqId, 10);
-          if (sequence.status === RecordingStatus.SENT && sequenceId !== numericStoredSeqId) {
-            delete session.sessionSequences[numericStoredSeqId];
-          }
-        });
-
-        // Delete any sessions that are older than 3 days
-        Object.keys(sessionMap).forEach((sessionId: string) => {
-          const numericSessionId = parseInt(sessionId, 10);
-          if (Date.now() - numericSessionId >= MAX_IDB_STORAGE_LENGTH) {
-            delete sessionMap[numericSessionId];
-          }
-        });
-
-        return sessionMap;
-      });
-    } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
-    }
   }
 
   async flush(useRetry = false) {
