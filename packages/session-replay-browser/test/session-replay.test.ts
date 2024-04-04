@@ -7,7 +7,13 @@ import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY } from '../src/con
 import * as Helpers from '../src/helpers';
 import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
-import { IDBStore, RecordingStatus, SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
+import {
+  IDBStore,
+  RecordingStatus,
+  SessionReplayConfig,
+  SessionReplayOptions,
+  SessionReplaySessionIDBStore,
+} from '../src/typings/session-replay';
 
 jest.mock('idb-keyval');
 type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
@@ -433,15 +439,17 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
       const getAllSessionDataFromStore = jest
-        .spyOn(sessionReplay.sessionIDBStore, 'getAllSessionDataFromStore')
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'getAllSessionDataFromStore')
         .mockReturnValueOnce(Promise.resolve({}));
       await sessionReplay.initialize();
       expect(getAllSessionDataFromStore).not.toHaveBeenCalled();
     });
     test('should return early if no config', async () => {
       const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
+      sessionReplay.config = undefined;
       const getAllSessionDataFromStore = jest
-        .spyOn(sessionReplay.sessionIDBStore, 'getAllSessionDataFromStore')
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'getAllSessionDataFromStore')
         .mockReturnValueOnce(Promise.resolve({}));
       await sessionReplay.initialize();
       expect(getAllSessionDataFromStore).not.toHaveBeenCalled();
@@ -452,7 +460,7 @@ describe('SessionReplayPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       sessionReplay.stopRecordingEvents = () => {};
       const getAllSessionDataFromStore = jest
-        .spyOn(sessionReplay.sessionIDBStore, 'getAllSessionDataFromStore')
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'getAllSessionDataFromStore')
         .mockReturnValueOnce(
           Promise.resolve({
             123: {
@@ -670,7 +678,7 @@ describe('SessionReplayPlugin', () => {
     test('should return true if there are options', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const sampleRate = sessionReplay.getSampleRate();
+      const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(mockOptions.sampleRate);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
@@ -678,7 +686,7 @@ describe('SessionReplayPlugin', () => {
     test('should return false if no options', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockEmptyOptions).promise;
-      const sampleRate = sessionReplay.getSampleRate();
+      const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
@@ -688,7 +696,7 @@ describe('SessionReplayPlugin', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-      const sampleRate = sessionReplay.getSampleRate();
+      const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(0.2);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
@@ -995,7 +1003,10 @@ describe('SessionReplayPlugin', () => {
     test('should update IDB store upon success', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const cleanUpSessionEventsStore = jest.spyOn(sessionReplay.sessionIDBStore, 'cleanUpSessionEventsStore');
+      const cleanUpSessionEventsStore = jest.spyOn(
+        sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore,
+        'cleanUpSessionEventsStore',
+      );
       sessionReplay.sendEventsList({
         events: [mockEventString],
         sequenceId: 4,
@@ -1009,7 +1020,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       const cleanUpSessionEventsStore = jest
-        .spyOn(sessionReplay.sessionIDBStore, 'cleanUpSessionEventsStore')
+        .spyOn(sessionReplay.sessionIDBStore as SessionReplaySessionIDBStore, 'cleanUpSessionEventsStore')
         .mockReturnValueOnce(Promise.resolve());
       (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject());
 
@@ -1051,22 +1062,13 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
-  describe('getSampleRate', () => {
-    test('should return default value if no config set', () => {
-      const sessionReplay = new SessionReplay();
-      sessionReplay.config = undefined;
-      const sampleRate = sessionReplay.getSampleRate();
-      expect(sampleRate).toEqual(DEFAULT_SAMPLE_RATE);
-    });
-  });
-
   describe('module level integration', () => {
     describe('with a sample rate', () => {
       test('should not record session if excluded due to sampling', async () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-        const sampleRate = sessionReplay.getSampleRate();
+        const sampleRate = sessionReplay.config?.sampleRate;
         expect(sampleRate).toBe(0.2);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
@@ -1107,7 +1109,7 @@ describe('SessionReplayPlugin', () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockEmptyOptions }).promise;
-        const sampleRate = sessionReplay.getSampleRate();
+        const sampleRate = sessionReplay.config?.sampleRate;
         expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
@@ -1120,7 +1122,7 @@ describe('SessionReplayPlugin', () => {
         jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockEmptyOptions, sampleRate: 0 }).promise;
-        const sampleRate = sessionReplay.getSampleRate();
+        const sampleRate = sessionReplay.config?.sampleRate;
         expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});

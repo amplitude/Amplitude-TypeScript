@@ -36,15 +36,13 @@ describe('SessionReplaySessionIDBStore', () => {
 
   describe('init', () => {
     test('should create a storage key', () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       expect(eventsStorage.storageKey).toBe('AMP_replay_unsent_static_key');
     });
   });
   describe('getAllSessionDataFromStore', () => {
     test('should catch errors', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       get.mockImplementationOnce(() => Promise.reject('error'));
       await eventsStorage.getAllSessionDataFromStore();
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -59,8 +57,7 @@ describe('SessionReplaySessionIDBStore', () => {
   describe('cleanUpSessionEventsStore', () => {
     test('should update events and status for current session', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
       const mockIDBStore: IDBStore = {
         [currentSessionId]: {
@@ -99,8 +96,7 @@ describe('SessionReplaySessionIDBStore', () => {
 
     test('should delete sent sequences for current session', async () => {
       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
       const mockIDBStore: IDBStore = {
         [currentSessionId]: {
@@ -137,8 +133,7 @@ describe('SessionReplaySessionIDBStore', () => {
       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
       const fourDayOldSessionId = new Date('2023-07-27 07:30:00').getTime();
       const oneDayOldSessionId = new Date('2023-07-30 07:30:00').getTime();
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const mockIDBStore: IDBStore = {
         [oneDayOldSessionId]: {
           currentSequenceId: 3,
@@ -175,8 +170,7 @@ describe('SessionReplaySessionIDBStore', () => {
       });
     });
     test('should catch errors', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       update.mockImplementationOnce(() => Promise.reject('error'));
       await eventsStorage.cleanUpSessionEventsStore(123, 1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -187,8 +181,7 @@ describe('SessionReplaySessionIDBStore', () => {
       );
     });
     test('should handle an undefined store', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       update.mockImplementationOnce(() => Promise.resolve());
       await eventsStorage.cleanUpSessionEventsStore(123, 1);
       expect(update.mock.calls[0][1](undefined)).toEqual({});
@@ -197,8 +190,7 @@ describe('SessionReplaySessionIDBStore', () => {
 
   describe('storeEventsForSession', () => {
     test('should update the session current sequence id, and the current sequence events and status', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const mockIDBStore: IDBStore = {
         123: {
           currentSequenceId: 2,
@@ -244,8 +236,7 @@ describe('SessionReplaySessionIDBStore', () => {
       });
     });
     test('should add a new entry if none exist for sequence id', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const mockIDBStore: IDBStore = {
         123: {
           currentSequenceId: 1,
@@ -295,8 +286,7 @@ describe('SessionReplaySessionIDBStore', () => {
       });
     });
     test('should add a new entry if none exist for session id', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const mockIDBStore: IDBStore = {
         123: {
           currentSequenceId: 2,
@@ -333,8 +323,7 @@ describe('SessionReplaySessionIDBStore', () => {
       });
     });
     test('should catch errors', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       update.mockImplementationOnce(() => Promise.reject('error'));
       await eventsStorage.storeEventsForSession([mockEventString], 0, 123);
 
@@ -346,8 +335,7 @@ describe('SessionReplaySessionIDBStore', () => {
       );
     });
     test('should handle an undefined store', async () => {
-      const eventsStorage = new SessionReplaySessionIDBStore({ loggerProvider: mockLoggerProvider });
-      eventsStorage.init({ apiKey, loggerProvider: mockLoggerProvider });
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       update.mockImplementationOnce(() => Promise.resolve());
       await eventsStorage.storeEventsForSession([mockEventString], 0, 456);
       expect(update.mock.calls[0][1](undefined)).toEqual({

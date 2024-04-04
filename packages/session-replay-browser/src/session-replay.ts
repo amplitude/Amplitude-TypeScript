@@ -5,7 +5,6 @@ import { pack, record } from '@amplitude/rrweb';
 import { SessionReplayConfig } from './config';
 import {
   BLOCK_CLASS,
-  DEFAULT_SAMPLE_RATE,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   MASK_TEXT_CLASS,
   MAX_EVENT_LIST_SIZE_IN_BYTES,
@@ -18,7 +17,7 @@ import { SessionReplaySessionIDBStore } from './session-idb-store';
 import { SessionReplayTrackDestination } from './track-destination';
 import {
   AmplitudeSessionReplay,
-  SessionReplaySessionIDBStore as AmplitudeSessionReplayEventsStorage,
+  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
   Events,
   IDBStore,
@@ -31,7 +30,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: ISessionReplayConfig | undefined;
   trackDestination: AmplitudeSessionReplayTrackDestination;
-  sessionIDBStore: AmplitudeSessionReplayEventsStorage;
+  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
   events: Events = [];
   currentSequenceId = 0;
@@ -43,7 +42,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
   constructor() {
     this.loggerProvider = new Logger();
     this.trackDestination = new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider });
-    this.sessionIDBStore = new SessionReplaySessionIDBStore({ loggerProvider: this.loggerProvider });
   }
 
   init(apiKey: string, options: SessionReplayOptions) {
@@ -56,8 +54,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Update logger provider in trackDestination
     this.trackDestination.setLoggerProvider(this.loggerProvider);
 
-    // Update logger provider and apiKey in sessionIDBStore
-    this.sessionIDBStore.init({ loggerProvider: this.loggerProvider, apiKey: this.config.apiKey });
+    this.sessionIDBStore = new SessionReplaySessionIDBStore({
+      loggerProvider: this.loggerProvider,
+      apiKey: this.config.apiKey,
+    });
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -164,7 +164,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
       return;
     }
-    const storedReplaySessions = await this.sessionIDBStore.getAllSessionDataFromStore();
+    const storedReplaySessions = this.sessionIDBStore && (await this.sessionIDBStore.getAllSessionDataFromStore());
     // This resolves a timing issue when focus is fired multiple times in short succession,
     // we only want the rest of this function to run once. We can be sure that initialize has
     // already been called if this.stopRecordingEvents is defined
@@ -223,7 +223,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return false;
     }
 
-    const isInSample = isSessionInSample(this.config.sessionId, this.getSampleRate());
+    const isInSample = isSessionInSample(this.config.sessionId, this.config.sampleRate);
     if (!isInSample) {
       this.loggerProvider.log(`Opting session ${this.config.sessionId} out of recording due to sample rate.`);
     }
@@ -282,7 +282,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.currentSequenceId++;
         }
         this.events.push(eventString);
-        void this.sessionIDBStore.storeEventsForSession(this.events, this.currentSequenceId, sessionId);
+        this.sessionIDBStore &&
+          void this.sessionIDBStore.storeEventsForSession(this.events, this.currentSequenceId, sessionId);
       },
       packFn: pack,
       maskAllInputs: true,
@@ -322,7 +323,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   sendEventsList({ events, sequenceId, sessionId }: { events: string[]; sequenceId: number; sessionId: number }) {
-    if (!this.config) {
+    if (!this.config || !this.sessionIDBStore) {
       this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return;
     }
@@ -333,14 +334,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       flushMaxRetries: this.config.flushMaxRetries,
       apiKey: this.config.apiKey,
       deviceId: this.getDeviceId(),
-      sampleRate: this.getSampleRate(),
+      sampleRate: this.config.sampleRate,
       serverZone: this.config.serverZone,
       onComplete: this.sessionIDBStore.cleanUpSessionEventsStore.bind(this),
     });
-  }
-
-  getSampleRate() {
-    return this.config?.sampleRate || DEFAULT_SAMPLE_RATE;
   }
 
   getDeviceId() {

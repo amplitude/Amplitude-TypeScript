@@ -14,11 +14,7 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
   apiKey: string | undefined;
   storageKey = '';
   loggerProvider: ILogger;
-  constructor({ loggerProvider }: { loggerProvider: ILogger }) {
-    this.loggerProvider = loggerProvider;
-  }
-
-  init({ apiKey, loggerProvider }: { apiKey: string; loggerProvider: ILogger }) {
+  constructor({ apiKey, loggerProvider }: { apiKey: string; loggerProvider: ILogger }) {
     this.loggerProvider = loggerProvider;
     this.storageKey = `${STORAGE_PREFIX}_${apiKey.substring(0, 10)}`;
   }
