@@ -1015,6 +1015,7 @@ describe('SessionReplayPlugin', () => {
       await runScheduleTimers();
       expect(cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
       expect(cleanUpSessionEventsStore.mock.calls[0]).toEqual([123, 4]);
+      expect(update).toHaveBeenCalledWith('AMP_replay_unsent_static_key', expect.anything());
     });
     test('should remove session events from IDB store upon failure', async () => {
       const sessionReplay = new SessionReplay();

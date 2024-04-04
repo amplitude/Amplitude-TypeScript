@@ -19,7 +19,7 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
     this.storageKey = `${STORAGE_PREFIX}_${apiKey.substring(0, 10)}`;
   }
 
-  async getAllSessionDataFromStore() {
+  getAllSessionDataFromStore = async () => {
     try {
       const storedReplaySessionContexts: IDBStore | undefined = await IDBKeyVal.get(this.storageKey);
 
@@ -28,9 +28,9 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
     return undefined;
-  }
+  };
 
-  async storeEventsForSession(events: Events, sequenceId: number, sessionId: number) {
+  storeEventsForSession = async (events: Events, sequenceId: number, sessionId: number) => {
     try {
       await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
         const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
@@ -55,9 +55,9 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
-  }
+  };
 
-  async cleanUpSessionEventsStore(sessionId: number, sequenceId: number) {
+  cleanUpSessionEventsStore = async (sessionId: number, sequenceId: number) => {
     try {
       await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
         const session: IDBStoreSession = sessionMap[sessionId];
@@ -90,5 +90,5 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
-  }
+  };
 }

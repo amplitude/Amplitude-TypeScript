@@ -336,7 +336,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       deviceId: this.getDeviceId(),
       sampleRate: this.config.sampleRate,
       serverZone: this.config.serverZone,
-      onComplete: this.sessionIDBStore.cleanUpSessionEventsStore.bind(this),
+      onComplete: this.sessionIDBStore.cleanUpSessionEventsStore.bind(this.sessionIDBStore),
     });
   }
 
