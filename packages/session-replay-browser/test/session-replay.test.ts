@@ -1,16 +1,10 @@
-/* eslint-disable jest/expect-expect */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
-import * as IDBKeyVal from 'idb-keyval';
-import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY } from '../src/constants';
+import { DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as Helpers from '../src/helpers';
-import { UNEXPECTED_ERROR_MESSAGE, getSuccessMessage } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
-import { IDBStore, RecordingStatus, SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
-
-jest.mock('idb-keyval');
-type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
+import { SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
 
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -24,17 +18,7 @@ const mockEvent = {
 };
 const mockEventString = JSON.stringify(mockEvent);
 
-async function runScheduleTimers() {
-  // exhause first setTimeout
-  jest.runAllTimers();
-  // wait for next tick to call nested setTimeout
-  await Promise.resolve();
-  // exhause nested setTimeout
-  jest.runAllTimers();
-}
-
 describe('SessionReplayPlugin', () => {
-  const { get, update } = IDBKeyVal as MockedIDBKeyVal;
   const { record } = RRWeb as MockedRRWeb;
   let originalFetch: typeof global.fetch;
   let globalSpy: jest.SpyInstance;
@@ -67,6 +51,9 @@ describe('SessionReplayPlugin', () => {
     sampleRate: 1,
     sessionId: 123,
     serverZone: ServerZone.EU,
+    privacyConfig: {
+      blockSelector: '.className',
+    },
   };
   const mockEmptyOptions: SessionReplayOptions = {
     flushIntervalMillis: 0,
@@ -221,21 +208,22 @@ describe('SessionReplayPlugin', () => {
     test('should update the session id, reset events and current sequence id, and start recording', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.identifiers?.sessionId).toEqual(123);
+      expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/123');
       const stopRecordingMock = jest.fn();
+      if (!sessionReplay.eventsManager) {
+        return;
+      }
+      const resetSequenceSpy = jest.spyOn(sessionReplay.eventsManager, 'resetSequence');
 
       // Mock class as if it has already been recording events
       sessionReplay.stopRecordingAndSendEvents = stopRecordingMock;
-      if (sessionReplay.eventsManager) {
-        sessionReplay.eventsManager.events = [mockEventString];
-        sessionReplay.eventsManager.currentSequenceId = 4;
-      }
 
       sessionReplay.setSessionId(456);
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.identifiers?.sessionId).toEqual(456);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/456');
-      expect(sessionReplay.eventsManager?.events).toEqual([]);
-      expect(sessionReplay.eventsManager?.currentSequenceId).toEqual(0);
+      expect(resetSequenceSpy).toHaveBeenCalled();
     });
 
     test('should return early if no session id, device id is set', async () => {
@@ -372,82 +360,15 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('initalize', () => {
-    test('should read events from storage and send them if shouldSendStoredEvents is true', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, sessionId: 456 }).promise;
-      const mockGetResolution: Promise<IDBStore> = Promise.resolve({
-        123: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            3: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-        456: {
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-      });
-      get.mockReturnValueOnce(mockGetResolution);
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const send = jest.spyOn(sessionReplay.eventsManager, 'sendEventsList').mockReturnValueOnce();
-
-      await sessionReplay.initialize(true);
-      await mockGetResolution;
-      jest.runAllTimers();
-      expect(send).toHaveBeenCalledTimes(1);
-
-      // Should send only events from sequences marked as recording and not current session
-      expect(send.mock.calls[0][0]).toEqual({
-        events: [mockEventString],
-        sequenceId: 3,
-        sessionId: 123,
-        deviceId: '1a2b3c',
-      });
-    });
-    test('should return early if using old format of IDBStore', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, sessionId: 456 }).promise;
-      const mockGetResolution = Promise.resolve({
-        123: {
-          events: [mockEventString],
-          sequenceId: 1,
-        },
-        456: {
-          events: [mockEventString],
-          sequenceId: 1,
-        },
-      });
-      get.mockReturnValueOnce(mockGetResolution);
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const send = jest.spyOn(sessionReplay.eventsManager, 'sendEventsList').mockReturnValueOnce();
-      await sessionReplay.initialize(true);
-      await mockGetResolution;
-      jest.runAllTimers();
-      expect(send).toHaveBeenCalledTimes(0);
-    });
     test('should return early if session id not set', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
       if (!sessionReplay.eventsManager) {
         return;
       }
-      const getAllSessionDataFromStore = jest
-        .spyOn(sessionReplay.eventsManager.sessionIDBStore, 'getAllSessionDataFromStore')
-        .mockReturnValueOnce(Promise.resolve({}));
+      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'initialize').mockResolvedValueOnce();
       await sessionReplay.initialize();
-      expect(getAllSessionDataFromStore).not.toHaveBeenCalled();
+      expect(eventsManagerInitSpy).not.toHaveBeenCalled();
     });
     test('should return early if no identifiers', async () => {
       const sessionReplay = new SessionReplay();
@@ -456,114 +377,11 @@ describe('SessionReplayPlugin', () => {
       if (!sessionReplay.eventsManager) {
         return;
       }
-      const getAllSessionDataFromStore = jest
-        .spyOn(sessionReplay.eventsManager.sessionIDBStore, 'getAllSessionDataFromStore')
-        .mockReturnValueOnce(Promise.resolve({}));
+      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'initialize').mockResolvedValueOnce();
       await sessionReplay.initialize();
-      expect(getAllSessionDataFromStore).not.toHaveBeenCalled();
+      expect(eventsManagerInitSpy).not.toHaveBeenCalled();
     });
-    test('should return early if stopRecordingEvents is already defined, signaling that recording is already in progress', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      sessionReplay.stopRecordingEvents = () => {};
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const getAllSessionDataFromStore = jest
-        .spyOn(sessionReplay.eventsManager.sessionIDBStore, 'getAllSessionDataFromStore')
-        .mockReturnValueOnce(
-          Promise.resolve({
-            123: {
-              shouldRecord: true,
-              currentSequenceId: 3,
-              sessionSequences: {
-                3: {
-                  events: [mockEventString],
-                  status: RecordingStatus.RECORDING,
-                },
-              },
-            },
-          }),
-        );
-      await sessionReplay.initialize();
-      expect(getAllSessionDataFromStore).toHaveBeenCalled();
-      expect(sessionReplay.eventsManager.events).toEqual([]); // events should not be updated to match what is in the store
-    });
-    test('should configure current sequence id and events correctly if last sequence was sent', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const mockGetResolution: Promise<IDBStore> = Promise.resolve({
-        123: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            3: {
-              events: [mockEventString],
-              status: RecordingStatus.SENT,
-            },
-          },
-        },
-      });
-      get.mockReturnValueOnce(mockGetResolution);
-      await sessionReplay.initialize();
-      expect(sessionReplay.eventsManager.currentSequenceId).toEqual(4);
-      expect(sessionReplay.eventsManager.events).toEqual([]);
-    });
-    test('should configure current sequence id and events correctly if last sequence was recording', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const mockGetResolution: Promise<IDBStore> = Promise.resolve({
-        123: {
-          currentSequenceId: 3,
-          sessionSequences: {
-            3: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-      });
-      get.mockReturnValueOnce(mockGetResolution);
-      await sessionReplay.initialize();
-      expect(sessionReplay.eventsManager.currentSequenceId).toEqual(3);
-      expect(sessionReplay.eventsManager.events).toEqual([mockEventString]);
-    });
-    test('should handle no stored events', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const mockGetResolution = Promise.resolve({});
-      get.mockReturnValueOnce(mockGetResolution);
-      await sessionReplay.initialize();
-      expect(sessionReplay.eventsManager.currentSequenceId).toBe(0);
-      expect(sessionReplay.eventsManager.events).toEqual([]);
-    });
-    test('should handle no stored sequences for session', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const mockGetResolution = Promise.resolve({
-        123: {
-          currentSequenceId: 0,
-          sessionSequences: {},
-        },
-      });
-      get.mockReturnValueOnce(mockGetResolution);
-      await sessionReplay.initialize();
-      expect(sessionReplay.eventsManager.currentSequenceId).toBe(0);
-      expect(sessionReplay.eventsManager.events).toEqual([]);
-    });
-    test('should record events', async () => {
+    test('should initialize eventsManager and record events', async () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = {
         apiKey,
@@ -575,98 +393,45 @@ describe('SessionReplayPlugin', () => {
         deviceId: mockOptions.deviceId,
         sessionReplayId: `${mockOptions.deviceId || 0}/${mockOptions.sessionId || 0}`,
       };
-      const mockGetResolution = Promise.resolve({});
-      get.mockReturnValueOnce(mockGetResolution);
+      if (!sessionReplay.eventsManager) {
+        return;
+      }
+      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'initialize').mockResolvedValueOnce();
+
       await sessionReplay.initialize();
+      expect(eventsManagerInitSpy).toHaveBeenCalledWith({
+        sessionId: mockOptions.sessionId,
+        deviceId: mockOptions.deviceId,
+        shouldSendStoredEvents: false,
+      });
+      expect(record).toHaveBeenCalledTimes(1);
+    });
+    test('should initialize eventsManager with shouldSendStoredEvents=true', async () => {
+      const sessionReplay = new SessionReplay();
+      sessionReplay.config = {
+        apiKey,
+        ...mockOptions,
+        privacyConfig: { blockSelector: ['#id'] },
+      } as SessionReplayConfig;
+      sessionReplay.identifiers = {
+        sessionId: mockOptions.sessionId,
+        deviceId: mockOptions.deviceId,
+        sessionReplayId: `${mockOptions.deviceId || 0}/${mockOptions.sessionId || 0}`,
+      };
+      if (!sessionReplay.eventsManager) {
+        return;
+      }
+      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'initialize').mockResolvedValueOnce();
+
+      await sessionReplay.initialize(true);
+      expect(eventsManagerInitSpy).toHaveBeenCalledWith({
+        sessionId: mockOptions.sessionId,
+        deviceId: mockOptions.deviceId,
+        shouldSendStoredEvents: true,
+      });
       expect(record).toHaveBeenCalledTimes(1);
     });
   });
-
-  // describe('sendStoredEvents', () => {
-  //   test('should send all recording sequences except the current sequence for the current session', async () => {
-  //     const sessionReplay = new SessionReplay();
-  //     await sessionReplay.init(apiKey, { ...mockOptions, sessionId: 456 }).promise;
-  //     if (!sessionReplay.eventsManager) {
-  //       return;
-  //     }
-  //     sessionReplay.eventsManager.currentSequenceId = 3;
-  //     const store: IDBStore = {
-  //       123: {
-  //         currentSequenceId: 5,
-  //         sessionSequences: {
-  //           3: {
-  //             events: [mockEventString],
-  //             status: RecordingStatus.RECORDING,
-  //           },
-  //           4: {
-  //             events: [],
-  //             status: RecordingStatus.SENT,
-  //           },
-  //           5: {
-  //             events: [mockEventString, mockEventString],
-  //             status: RecordingStatus.RECORDING,
-  //           },
-  //         },
-  //       },
-  //       456: {
-  //         currentSequenceId: 3,
-  //         sessionSequences: {
-  //           1: {
-  //             events: [mockEventString],
-  //             status: RecordingStatus.RECORDING,
-  //           },
-  //           2: {
-  //             events: [],
-  //             status: RecordingStatus.SENT,
-  //           },
-  //           3: {
-  //             events: [mockEventString],
-  //             status: RecordingStatus.RECORDING,
-  //           },
-  //         },
-  //       },
-  //     };
-  //     const sendEventsList = jest.spyOn(sessionReplay.eventsManager, 'sendEventsList');
-  //     sessionReplay.eventsManager.sendStoredEvents({storedReplaySessions: store, sessionId: 456, deviceId: mockOptions.deviceId});
-  //     expect(sendEventsList).toHaveBeenCalledTimes(3);
-  //     expect(sendEventsList.mock.calls[0][0]).toEqual({
-  //       events: [mockEventString],
-  //       sequenceId: 3,
-  //       sessionId: 123,
-  //     });
-  //     expect(sendEventsList.mock.calls[1][0]).toEqual({
-  //       events: [mockEventString, mockEventString],
-  //       sequenceId: 5,
-  //       sessionId: 123,
-  //     });
-  //     expect(sendEventsList.mock.calls[2][0]).toEqual({
-  //       events: [mockEventString],
-  //       sequenceId: 1,
-  //       sessionId: 456,
-  //     });
-  //   });
-  //   test('should handle config not yet set', async () => {
-  //     const sessionReplay = new SessionReplay();
-  //     if (!sessionReplay.eventsManager) {
-  //       return;
-  //     }
-  //     sessionReplay.currentSequenceId = 3;
-  //     const store: IDBStore = {
-  //       123: {
-  //         currentSequenceId: 5,
-  //         sessionSequences: {
-  //           3: {
-  //             events: [mockEventString],
-  //             status: RecordingStatus.RECORDING,
-  //           },
-  //         },
-  //       },
-  //     };
-  //     const sendEventsList = jest.spyOn(sessionReplay, 'sendEventsList');
-  //     sessionReplay.sendStoredEvents(store);
-  //     expect(sendEventsList).toHaveBeenCalledTimes(1);
-  //   });
-  // });
 
   describe('shouldOptOut', () => {
     test('should return undefined if no config set', () => {
@@ -799,48 +564,52 @@ describe('SessionReplayPlugin', () => {
     test('it should send events for passed session', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const sendEventsListMock = jest.fn();
+      const sendEventsMock = jest.fn();
       if (!sessionReplay.eventsManager) {
         return;
       }
-      sessionReplay.eventsManager.sendEventsList = sendEventsListMock;
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.eventsManager.currentSequenceId = 4;
+      sessionReplay.eventsManager.sendEvents = sendEventsMock;
       sessionReplay.stopRecordingAndSendEvents(123);
-      expect(sendEventsListMock).toHaveBeenCalledWith({
-        events: [mockEventString],
+      expect(sendEventsMock).toHaveBeenCalledWith({
         sessionId: 123,
-        sequenceId: 4,
         deviceId: '1a2b3c',
       });
     });
     test('it should send events for config session if none passed', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const sendEventsListMock = jest.fn();
+      const sendEventsMock = jest.fn();
       if (!sessionReplay.eventsManager) {
         return;
       }
-      sessionReplay.eventsManager.sendEventsList = sendEventsListMock;
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.eventsManager.currentSequenceId = 4;
+      sessionReplay.eventsManager.sendEvents = sendEventsMock;
       sessionReplay.stopRecordingAndSendEvents();
-      expect(sendEventsListMock).toHaveBeenCalledWith({
-        events: [mockEventString],
+      expect(sendEventsMock).toHaveBeenCalledWith({
         sessionId: 123,
-        sequenceId: 4,
         deviceId: '1a2b3c',
       });
     });
     test('it should not send if no config', async () => {
       const sessionReplay = new SessionReplay();
-      const sendEventsListMock = jest.fn();
+      const sendEventsMock = jest.fn();
       if (!sessionReplay.eventsManager) {
         return;
       }
-      sessionReplay.eventsManager.sendEventsList = sendEventsListMock;
+      sessionReplay.eventsManager.sendEvents = sendEventsMock;
       sessionReplay.stopRecordingAndSendEvents();
-      expect(sendEventsListMock).not.toHaveBeenCalled();
+      expect(sendEventsMock).not.toHaveBeenCalled();
+    });
+    test('it should not send if no identifiers', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.identifiers = undefined;
+      const sendEventsMock = jest.fn();
+      if (!sessionReplay.eventsManager) {
+        return;
+      }
+      sessionReplay.eventsManager.sendEvents = sendEventsMock;
+      sessionReplay.stopRecordingAndSendEvents();
+      expect(sendEventsMock).not.toHaveBeenCalled();
     });
   });
 
@@ -867,99 +636,23 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.eventsManager.events).toEqual([]);
     });
 
-    test('should store events in class and in IDB', async () => {
+    test('should addEvent to eventManager', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.recordEvents();
       if (!sessionReplay.eventsManager) {
         return;
       }
+      const addEventSpy = jest.spyOn(sessionReplay.eventsManager, 'addEvent');
       expect(sessionReplay.eventsManager.events).toEqual([]);
       const recordArg = record.mock.calls[0][0];
       // Emit event, which is stored in class and IDB
       recordArg?.emit && recordArg?.emit(mockEvent);
-      expect(sessionReplay.eventsManager.events).toEqual([mockEventString]);
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1]({})).toEqual({
-        123: {
-          currentSequenceId: 0,
-          sessionSequences: {
-            0: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
-      });
-    });
-
-    test('should split the events list at an increasing interval and send', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.timeAtLastSend = new Date('2023-07-31 08:30:00').getTime();
-      sessionReplay.recordEvents();
-      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
-      const sendEventsList = jest.spyOn(sessionReplay.eventsManager, 'sendEventsList');
-      const recordArg = record.mock.calls[0][0];
-      // Emit first event, which is not sent immediately
-      recordArg?.emit && recordArg?.emit(mockEvent);
-      expect(sendEventsList).toHaveBeenCalledTimes(0);
-      // Emit second event and advance timers to interval
-      jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:31:00').getTime());
-      recordArg?.emit && recordArg?.emit(mockEvent);
-      expect(sendEventsList).toHaveBeenCalledTimes(1);
-      expect(sendEventsList).toHaveBeenCalledWith({
-        events: [mockEventString],
-        sequenceId: 0,
-        sessionId: 123,
-        deviceId: '1a2b3c',
-      });
-      expect(sessionReplay.eventsManager.events).toEqual([mockEventString]);
-      expect(sessionReplay.eventsManager.currentSequenceId).toEqual(1);
-    });
-
-    test('should split the events list at max size and send', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.maxPersistedEventsSize = 20;
-      // Simulate as if many events have already been built up
-      const events = ['#'.repeat(20)];
-      sessionReplay.eventsManager.events = events;
-      const sendEventsListMock = jest
-        .spyOn(sessionReplay.eventsManager, 'sendEventsList')
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        .mockImplementationOnce(() => {});
-      sessionReplay.recordEvents();
-
-      const recordArg = record.mock.calls[0][0];
-      recordArg?.emit && recordArg?.emit(mockEvent);
-
-      expect(sendEventsListMock).toHaveBeenCalledTimes(1);
-      expect(sendEventsListMock).toHaveBeenCalledWith({
-        events,
-        sequenceId: 0,
-        sessionId: 123,
-        deviceId: '1a2b3c',
-      });
-
-      expect(sessionReplay.eventsManager.events).toEqual([mockEventString]);
-      expect(update).toHaveBeenCalledTimes(1);
-      expect(update.mock.calls[0][1]({})).toEqual({
-        123: {
-          currentSequenceId: 1,
-          sessionSequences: {
-            1: {
-              events: [mockEventString],
-              status: RecordingStatus.RECORDING,
-            },
-          },
-        },
+      expect(addEventSpy).toHaveBeenCalledTimes(1);
+      expect(addEventSpy).toHaveBeenCalledWith({
+        event: mockEventString,
+        sessionId: mockOptions.sessionId,
+        deviceId: mockOptions.deviceId,
       });
     });
 
@@ -979,16 +672,14 @@ describe('SessionReplayPlugin', () => {
           hasFocus: () => false,
         },
       } as typeof globalThis);
-      const sendEventsListMock = jest
-        .spyOn(sessionReplay.eventsManager, 'sendEventsList')
+      const sendEventsMock = jest
+        .spyOn(sessionReplay.eventsManager, 'sendEvents')
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         .mockImplementationOnce(() => {});
       const recordArg = record.mock.calls[0][0];
       recordArg?.emit && recordArg?.emit(mockEvent);
-      expect(sendEventsListMock).toHaveBeenCalledTimes(1);
-      expect(sendEventsListMock).toHaveBeenCalledWith({
-        events: [mockEventString],
-        sequenceId: 0,
+      expect(sendEventsMock).toHaveBeenCalledTimes(1);
+      expect(sendEventsMock).toHaveBeenCalledWith({
         sessionId: 123,
         deviceId: '1a2b3c',
       });
@@ -1008,17 +699,15 @@ describe('SessionReplayPlugin', () => {
       }
       expect(sessionReplay.eventsManager.events).toEqual([]);
       sessionReplay.eventsManager.events = [mockEventString]; // Add one event to list to trigger sending in stopRecordingAndSendEvents
-      const sendEventsListMock = jest
-        .spyOn(sessionReplay.eventsManager, 'sendEventsList')
+      const sendEventsMock = jest
+        .spyOn(sessionReplay.eventsManager, 'sendEvents')
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         .mockImplementationOnce(() => {});
       sessionReplay.shouldOptOut = () => true;
       const recordArg = record.mock.calls[0][0];
       recordArg?.emit && recordArg?.emit(mockEvent);
-      expect(sendEventsListMock).toHaveBeenCalledTimes(1);
-      expect(sendEventsListMock).toHaveBeenCalledWith({
-        events: [mockEventString],
-        sequenceId: 0,
+      expect(sendEventsMock).toHaveBeenCalledTimes(1);
+      expect(sendEventsMock).toHaveBeenCalledWith({
         sessionId: 123,
         deviceId: '1a2b3c',
       });
@@ -1036,94 +725,6 @@ describe('SessionReplayPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
       expect(errorHandlerReturn).toBe(true);
-    });
-  });
-
-  describe('sendEventsList', () => {
-    test('should return early if config is not set', async () => {
-      const sessionReplay = new SessionReplay();
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const trackSendEventsList = jest.spyOn(sessionReplay.eventsManager, 'sendEventsList');
-      sessionReplay.eventsManager.sendEventsList({
-        events: [mockEventString],
-        sequenceId: 4,
-        sessionId: 123,
-        deviceId: '1a2b3c',
-      });
-
-      expect(trackSendEventsList).not.toHaveBeenCalled();
-    });
-
-    test('should call trackDestination sendEventsList', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const trackSendEventsList = jest.spyOn(sessionReplay.eventsManager.trackDestination, 'sendEventsList');
-      sessionReplay.eventsManager.sendEventsList({
-        events: [mockEventString],
-        sequenceId: 4,
-        sessionId: 123,
-        deviceId: sessionReplay.identifiers?.deviceId || '',
-      });
-
-      expect(trackSendEventsList).toHaveBeenCalledWith({
-        events: [mockEventString],
-        sequenceId: 4,
-        sessionId: 123,
-        flushMaxRetries: mockOptions.flushMaxRetries,
-        apiKey: apiKey,
-        deviceId: mockOptions.deviceId,
-        sampleRate: mockOptions.sampleRate,
-        serverZone: mockOptions.serverZone,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        onComplete: expect.anything(),
-      });
-    });
-    test('should update IDB store upon success', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const cleanUpSessionEventsStore = jest.spyOn(
-        sessionReplay.eventsManager.sessionIDBStore,
-        'cleanUpSessionEventsStore',
-      );
-      sessionReplay.eventsManager.sendEventsList({
-        events: [mockEventString],
-        sequenceId: 4,
-        sessionId: 123,
-        deviceId: sessionReplay.identifiers?.deviceId || '',
-      });
-      await runScheduleTimers();
-      expect(cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
-      expect(cleanUpSessionEventsStore.mock.calls[0]).toEqual([123, 4]);
-      expect(update).toHaveBeenCalledWith('AMP_replay_unsent_static_key', expect.anything());
-    });
-    test('should remove session events from IDB store upon failure', async () => {
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      const cleanUpSessionEventsStore = jest
-        .spyOn(sessionReplay.eventsManager.sessionIDBStore, 'cleanUpSessionEventsStore')
-        .mockReturnValueOnce(Promise.resolve());
-      (global.fetch as jest.Mock).mockImplementationOnce(() => Promise.reject());
-
-      sessionReplay.eventsManager.sendEventsList({
-        events: [mockEventString],
-        sequenceId: 4,
-        sessionId: 123,
-        deviceId: sessionReplay.identifiers?.deviceId || '',
-      });
-      await runScheduleTimers();
-      expect(cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
-      expect(cleanUpSessionEventsStore.mock.calls[0]).toEqual([123, 4]);
     });
   });
 
@@ -1153,295 +754,6 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.getDeviceId()).toEqual(mockOptions.deviceId);
     });
   });
-
-  describe('module level integration', () => {
-    describe('with a sample rate', () => {
-      test('should not record session if excluded due to sampling', async () => {
-        jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
-        const sessionReplay = new SessionReplay();
-        await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
-        const sampleRate = sessionReplay.config?.sampleRate;
-        expect(sampleRate).toBe(0.2);
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        expect(sessionRecordingProperties).toMatchObject({});
-        expect(record).not.toHaveBeenCalled();
-        expect(update).not.toHaveBeenCalled();
-        await runScheduleTimers();
-        expect(fetch).not.toHaveBeenCalled();
-      });
-      test('should record session if included due to sampling', async () => {
-        jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => true);
-        (fetch as jest.Mock).mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 200,
-          });
-        });
-        const sessionReplay = new SessionReplay();
-        await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        expect(sessionRecordingProperties).toMatchObject({
-          [DEFAULT_SESSION_REPLAY_PROPERTY]: '1a2b3c/123',
-        });
-        // Log is called from setup, but that's not what we're testing here
-        mockLoggerProvider.log.mockClear();
-        expect(record).toHaveBeenCalled();
-        const recordArg = record.mock.calls[0][0];
-        recordArg?.emit && recordArg?.emit(mockEvent);
-        sessionReplay.stopRecordingAndSendEvents();
-        await runScheduleTimers();
-        expect(fetch).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual(getSuccessMessage(123));
-      });
-    });
-    describe('without a sample rate', () => {
-      test('should not record session if no sample rate is provided', async () => {
-        jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
-        const sessionReplay = new SessionReplay();
-        await sessionReplay.init(apiKey, { ...mockEmptyOptions }).promise;
-        const sampleRate = sessionReplay.config?.sampleRate;
-        expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        expect(sessionRecordingProperties).toMatchObject({});
-        expect(record).not.toHaveBeenCalled();
-        expect(update).not.toHaveBeenCalled();
-        await runScheduleTimers();
-        expect(fetch).not.toHaveBeenCalled();
-      });
-      test('should not record session if sample rate of value 0 is provided', async () => {
-        jest.spyOn(Helpers, 'isSessionInSample').mockImplementation(() => false);
-        const sessionReplay = new SessionReplay();
-        await sessionReplay.init(apiKey, { ...mockEmptyOptions, sampleRate: 0 }).promise;
-        const sampleRate = sessionReplay.config?.sampleRate;
-        expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        expect(sessionRecordingProperties).toMatchObject({});
-        expect(record).not.toHaveBeenCalled();
-        expect(update).not.toHaveBeenCalled();
-        await runScheduleTimers();
-        expect(fetch).not.toHaveBeenCalled();
-      });
-    });
-
-    describe('with optOut in config', () => {
-      test('should not record session if excluded due to optOut', async () => {
-        const sessionReplay = new SessionReplay();
-        await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
-        expect(record).not.toHaveBeenCalled();
-        await runScheduleTimers();
-        expect(fetch).not.toHaveBeenCalled();
-      });
-    });
-    test('should handle unexpected error', async () => {
-      const sessionReplay = new SessionReplay();
-      (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
-      await sessionReplay.init(apiKey, { ...mockOptions }).promise;
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('API Failure');
-    });
-    test('should not retry for 400 error', async () => {
-      (fetch as jest.Mock)
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 400,
-          });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 200,
-          });
-        });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      // Log is called from init, but that's not what we're testing here
-      mockLoggerProvider.log.mockClear();
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-    });
-    test('should not retry for 413 error', async () => {
-      (fetch as jest.Mock)
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 413,
-          });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 200,
-          });
-        });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-    });
-    test('should handle retry for 500 error', async () => {
-      (fetch as jest.Mock)
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 500,
-          });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 200,
-          });
-        });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(2);
-    });
-
-    test('should only retry once for 500 error, even if config set to higher than one retry', async () => {
-      (fetch as jest.Mock)
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 500,
-          });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 500,
-          });
-        });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 10 }).promise;
-
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(2);
-    });
-    test('should handle retry for 503 error', async () => {
-      (fetch as jest.Mock)
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 503,
-          });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({
-            status: 200,
-          });
-        });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(2);
-    });
-    test('should handle unexpected error where fetch response is null', async () => {
-      (fetch as jest.Mock).mockImplementationOnce(() => {
-        return Promise.resolve(null);
-      });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-
-      if (!sessionReplay.eventsManager) {
-        return;
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(UNEXPECTED_ERROR_MESSAGE);
-    });
-  });
-
-  // describe('shouldSplitEventsList', () => {
-  //   describe('event list size', () => {
-  //     test('should return true if size of events list plus size of next event is over the max size', () => {
-  //       const sessionReplay = new SessionReplay();
-  //       const eventsList = ['#'.repeat(20)];
-  //       if (!sessionReplay.eventsManager) {
-  //         return;
-  //       }
-  //       sessionReplay.eventsManager.events = eventsList;
-  //       sessionReplay.maxPersistedEventsSize = 20;
-  //       const nextEvent = 'a';
-  //       const result = sessionReplay.shouldSplitEventsList(nextEvent);
-  //       expect(result).toBe(true);
-  //     });
-  //     test('should return false if size of events list plus size of next event is under the max size', () => {
-  //       const sessionReplay = new SessionReplay();
-  //       const eventsList = ['#'.repeat(20)];
-  //       sessionReplay.events = eventsList;
-  //       sessionReplay.maxPersistedEventsSize = 22;
-  //       const nextEvent = 'a';
-  //       const result = sessionReplay.shouldSplitEventsList(nextEvent);
-  //       expect(result).toBe(false);
-  //     });
-  //   });
-  //   describe('interval', () => {
-  //     test('should return false if timeAtLastSend is null', () => {
-  //       const sessionReplay = new SessionReplay();
-  //       const nextEvent = 'a';
-  //       const result = sessionReplay.shouldSplitEventsList(nextEvent);
-  //       expect(result).toBe(false);
-  //     });
-  //     test('should return false if it has not been long enough since last send', () => {
-  //       const sessionReplay = new SessionReplay();
-  //       sessionReplay.timeAtLastSend = new Date('2023-07-31 08:30:00').getTime();
-  //       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
-  //       const nextEvent = 'a';
-  //       const result = sessionReplay.shouldSplitEventsList(nextEvent);
-  //       expect(result).toBe(false);
-  //     });
-  //     test('should return true if it has been long enough since last send and events have been emitted', () => {
-  //       const sessionReplay = new SessionReplay();
-  //       sessionReplay.events = [mockEventString];
-  //       sessionReplay.timeAtLastSend = new Date('2023-07-31 08:30:00').getTime();
-  //       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:33:00').getTime());
-  //       const nextEvent = 'a';
-  //       const result = sessionReplay.shouldSplitEventsList(nextEvent);
-  //       expect(result).toBe(true);
-  //     });
-  //   });
-  // });
 
   describe('flush', () => {
     test('should call track destination flush with useRetry as true', async () => {
@@ -1491,18 +803,16 @@ describe('SessionReplayPlugin', () => {
         return;
       }
       sessionReplay.eventsManager.events = [mockEventString];
-      const sendEventsListMock = jest
-        .spyOn(sessionReplay.eventsManager, 'sendEventsList')
+      const sendEventsMock = jest
+        .spyOn(sessionReplay.eventsManager, 'sendEvents')
         // eslint-disable-next-line @typescript-eslint/no-empty-function
         .mockImplementationOnce(() => {});
       sessionReplay.shutdown();
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.stopRecordingEvents).toBe(null);
-      expect(sendEventsListMock).toHaveBeenCalled();
+      expect(sendEventsMock).toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(sendEventsListMock.mock.calls[0][0]).toEqual({
-        events: [mockEventString],
-        sequenceId: 0,
+      expect(sendEventsMock.mock.calls[0][0]).toEqual({
         sessionId: 123,
         deviceId: '1a2b3c',
       });
@@ -1532,6 +842,19 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       sessionReplay.config = undefined;
       expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
+    });
+    test('null privacy config', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (sessionReplay.config) {
+        sessionReplay.config.privacyConfig = undefined;
+      }
+      expect(sessionReplay.getBlockSelectors()).not.toBeDefined();
+    });
+    test('returns block selectors', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.getBlockSelectors()).toEqual('.className');
     });
   });
 
