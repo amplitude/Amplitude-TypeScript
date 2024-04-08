@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.1...@amplitude/session-replay-browser@1.2.2) (2024-04-08)
+
+### Bug Fixes
+
+- **session replay:** fix this binding for cleanup store
+  ([d368b6a](https://github.com/amplitude/Amplitude-TypeScript/commit/d368b6a306ffb085485fd9a2e0a3139272168e15))
+- **session replay:** remove unused comments
+  ([d535c45](https://github.com/amplitude/Amplitude-TypeScript/commit/d535c4509e6d19de3fc7575ca6d97725e6adfb47))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.0...@amplitude/session-replay-browser@1.2.1) (2024-04-02)
 
 ### Bug Fixes
