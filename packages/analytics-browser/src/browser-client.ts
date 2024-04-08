@@ -85,10 +85,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
     console.log('before set sesion id');
-    console.log('options.sessionId : ', options.sessionId );
+    console.log('options.sessionId : ', options.sessionId);
 
     console.log('this.config.sessionId:  ', this.config.sessionId);
-    this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
+    await this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
 
     await super._init(this.config);
 
@@ -187,7 +187,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     const previousSessionId = this.getSessionId();
     const lastEventTime = this.config.lastEventTime;
-    let lastEventId = this.config.lastEventId ?? -1;
+    const lastEventId = this.config.lastEventId ?? -1;
 
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
@@ -196,12 +196,16 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     await this.fireUtilEvent(previousSessionId, lastEventTime, lastEventId, shouldTrackNewCampaign);
 
-
     this.previousSessionDeviceId = this.config.deviceId;
     this.previousSessionUserId = this.config.userId;
   }
 
-  async fireUtilEvent(previousSessionId: number | undefined,lastEventTime:  number | undefined, lastEventId: number , shouldTrackNewCampaign?: boolean) {
+  async fireUtilEvent(
+    previousSessionId: number | undefined,
+    lastEventTime: number | undefined,
+    lastEventId: number,
+    shouldTrackNewCampaign?: boolean,
+  ) {
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
         console.log('end session track');
@@ -218,9 +222,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // fire web attribution events
     console.log('last event time in setSessionId: ', this.config.lastEventTime);
-    if (await this.webAttribution?.shouldTrackNewCampaign() || shouldTrackNewCampaign) {
+    if ((await this.webAttribution?.shouldTrackNewCampaign()) || shouldTrackNewCampaign) {
       console.log('in setsession id, should track new campaign');
-      this.webAttribution?.track();
+      this.webAttribution?.track(++lastEventId);
     }
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
