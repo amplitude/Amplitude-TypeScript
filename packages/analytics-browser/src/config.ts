@@ -215,6 +215,7 @@ export const useBrowserConfig = async (
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
   const previousCookies = await cookieStorage.get(getCookieName(apiKey));
+  console.log('privousCookies: ', previousCookies);
   const queryParams = getQueryParams();
 
   // Step 3: Reconcile user identity
@@ -224,6 +225,7 @@ export const useBrowserConfig = async (
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
   const sessionId = previousCookies?.sessionId ?? legacyCookies.sessionId;
+  console.log('sessionid in the config: ', sessionId);
   const userId = options.userId ?? previousCookies?.userId ?? legacyCookies.userId;
   amplitudeInstance.previousSessionDeviceId = previousCookies?.deviceId ?? legacyCookies.deviceId;
   amplitudeInstance.previousSessionUserId = previousCookies?.userId ?? legacyCookies.userId;

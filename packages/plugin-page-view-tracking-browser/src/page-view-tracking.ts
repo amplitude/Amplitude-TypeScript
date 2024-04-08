@@ -58,7 +58,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     if (shouldTrackPageView) {
       /* istanbul ignore next */
       loggerProvider?.log('Tracking page view event');
-      amplitude?.track(await createPageViewEvent());
+      await amplitude?.track(await createPageViewEvent()).promise;
     }
   };
 
@@ -101,7 +101,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       if (shouldTrackOnPageLoad()) {
         loggerProvider.log('Tracking page view event');
 
-        amplitude.track(await createPageViewEvent());
+        await amplitude.track(await createPageViewEvent()).promise;
       }
     },
 

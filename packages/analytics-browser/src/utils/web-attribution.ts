@@ -8,6 +8,7 @@ import {
   isNewCampaign,
 } from './web-attribution-helper';
 import { CampaignParser } from '@amplitude/analytics-client-common';
+//import { returnWrapper } from '@amplitude/analytics-core';
 
 export class WebAttribution {
   options: Options;
@@ -29,13 +30,13 @@ export class WebAttribution {
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
   }
 
-  async init() {
-    console.log('in init');
-    await this.fetchCampaign();
-  }
-
-  shouldTrackNewCampaign() {
+  async shouldTrackNewCampaign() {
+    [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
     console.log('in should tracknew campaign');
+    console.log('this.currentCampaign: ',  this.currentCampaign);
+    console.log('this.previousCampaign: ',  this.previousCampaign );
+    await this.storage.set(this.storageKey, this.currentCampaign);
+    console.log('after set storage');
     if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
       return true;
     }
@@ -44,7 +45,9 @@ export class WebAttribution {
 
   async fetchCampaign() {
     console.log('in fetch campaign');
-    [this.currentCampaign, this.previousCampaign] = await Promise.all([
+    //[this.currentCampaign, this.previousCampaign] = 
+    
+    return await Promise.all([
       new CampaignParser().parse(),
       this.storage.get(this.storageKey),
     ]);
@@ -57,13 +60,17 @@ export class WebAttribution {
    * 1. set a new session
    * 2. has new campaign and enable resetSessionOnNewCampaign
    */
-  track() {
-    if (this.shouldTrackNewCampaign()) {
+  track(){
+    //
+   // if (void this.shouldTrackNewCampaign()) {
       console.log('in web attribution track');
       const campaignEvent = createCampaignEvent(this.currentCampaign, this.options);
-      this.amplitude.track(campaignEvent);
-      console.log('after track campaignEvent');
-      void this.storage.set(this.storageKey, this.currentCampaign);
-    }
+      // This must be update before track otherwise it will cause infinite loop. since shouldTrackNewCampaign will be called before the storage has been updated.
+      // return returnWrapper(this.dispatch(event));
+      // console.log('after track campaignEvent');
+      // return returnWrapper(this.amplitude.dispatch(campaignEvent));
+      // return returnWrapper(this.amplitude.dispatch(campaignEvent));
+      return this.amplitude.track(campaignEvent);
+     // return;
   }
 }
