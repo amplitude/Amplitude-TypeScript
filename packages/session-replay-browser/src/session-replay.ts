@@ -16,6 +16,7 @@ import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
@@ -26,6 +27,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
+  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 

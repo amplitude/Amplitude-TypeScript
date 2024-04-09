@@ -1,7 +1,16 @@
+<<<<<<< HEAD
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
 import { SessionReplayLocalConfig } from '../config/types';
+=======
+import { AmplitudeReturn, Config, LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
+import { TargetingFlag } from '@amplitude/targeting';
+>>>>>>> 69d3d21e (feat(session replay): introduce remote config fetch class)
 
 export type Events = string[];
+
+export interface SessionReplayRemoteConfig {
+  sr_targeting_config: TargetingFlag;
+}
 
 export interface SessionReplayDestination {
   events: Events;
@@ -56,6 +65,14 @@ export interface AmplitudeSessionReplay {
 export interface SessionReplayTrackDestination {
   sendEventsList: (destinationData: SessionReplayDestination) => void;
   flush: (useRetry: boolean) => Promise<void>;
+}
+
+export interface SessionReplayRemoteConfigFetch {
+  getRemoteConfig: (sessionId: number) => Promise<SessionReplayRemoteConfig | void>;
+  getTargetingConfig: (sessionId: number) => Promise<TargetingFlag | void>;
+}
+export interface SessionReplayRemoteConfig {
+  sr_targeting_config: TargetingFlag;
 }
 
 export interface SessionReplayEventsManager {
