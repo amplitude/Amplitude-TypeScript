@@ -179,7 +179,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return;
     }
-    console.log(sessionId, ' ', this.config.sessionId);
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
       return;
@@ -187,28 +186,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     const previousSessionId = this.getSessionId();
     const lastEventTime = this.config.lastEventTime;
-    const lastEventId = this.config.lastEventId ?? -1;
+    let lastEventId = this.config.lastEventId ?? -1;
 
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
     this.config.pageCounter = 0;
-    console.log('the session config: ', this.config.sessionId);
 
-    await this.fireUtilEvent(previousSessionId, lastEventTime, lastEventId, shouldTrackNewCampaign);
-
-    this.previousSessionDeviceId = this.config.deviceId;
-    this.previousSessionUserId = this.config.userId;
-  }
-
-  async fireUtilEvent(
-    previousSessionId: number | undefined,
-    lastEventTime: number | undefined,
-    lastEventId: number,
-    shouldTrackNewCampaign?: boolean,
-  ) {
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
-        console.log('end session track');
         await this.track(DEFAULT_SESSION_END_EVENT, undefined, {
           device_id: this.previousSessionDeviceId,
           event_id: ++lastEventId,
@@ -221,15 +206,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     // fire web attribution events
-    console.log('last event time in setSessionId: ', this.config.lastEventTime);
     if ((this.webAttribution && (await this.webAttribution.shouldTrackNewCampaign())) || shouldTrackNewCampaign) {
-      console.log('in setsession id, should track new campaign');
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.webAttribution!.track(++lastEventId);
     }
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      console.log('start session track');
       // must under await, otherwise, the case resetSessionOnNewCampaign = true and with new campaign input the order of session start will be log after the page view event
       await this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         event_id: ++lastEventId,
@@ -237,6 +219,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         time: this.config.lastEventTime,
       }).promise;
     }
+
+    this.previousSessionDeviceId = this.config.deviceId;
+    this.previousSessionUserId = this.config.userId;
   }
 
   extendSession() {
@@ -290,25 +275,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
   async process(event: Event) {
     const currentTime = Date.now();
-    console.log('currentTime: ', currentTime);
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
     const shouldTrackNewCampaign = this.webAttribution && (await this.webAttribution.shouldTrackNewCampaign());
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const shouldSetSessionId = shouldTrackNewCampaign && this.webAttribution!.options.resetSessionOnNewCampaign;
-    console.log('isEventInNewSession: ', isEventInNewSession);
-    console.log('shouldTrackNewCampaign: ', shouldTrackNewCampaign);
-    console.log('shouldSetSessionId: ', shouldSetSessionId);
-    console.log('event type', event.event_type);
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
       (!event.session_id || event.session_id === this.getSessionId())
     ) {
       if (isEventInNewSession || shouldSetSessionId) {
-        console.log('setting session id');
         await this.setSessionId(currentTime, shouldTrackNewCampaign);
       } else if (!isEventInNewSession && shouldTrackNewCampaign) {
-        console.log('in process identify track');
         // web attribution should be track during the middle of the session if there has any new campaign
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         await this.webAttribution!.track().promise;
