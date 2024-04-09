@@ -1,4 +1,5 @@
 import { AmplitudeReturn, Config, LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
+import { TargetingFlag } from '@amplitude/targeting';
 
 export type Events = string[];
 
@@ -80,6 +81,14 @@ export interface AmplitudeSessionReplay {
 export interface SessionReplayTrackDestination {
   sendEventsList: (destinationData: SessionReplayDestination) => void;
   flush: (useRetry: boolean) => Promise<void>;
+}
+
+export interface SessionReplayRemoteConfigFetch {
+  getRemoteConfig: () => Promise<SessionReplayRemoteConfig | void>;
+  getTargetingConfig: () => Promise<TargetingFlag | void>;
+}
+export interface SessionReplayRemoteConfig {
+  sr_targeting_config: TargetingFlag;
 }
 
 export interface SessionReplayEventsManager {
