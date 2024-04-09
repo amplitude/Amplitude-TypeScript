@@ -1,5 +1,4 @@
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
-import { SessionReplayLocalConfig } from '../config/types';
 
 export type Events = string[];
 
