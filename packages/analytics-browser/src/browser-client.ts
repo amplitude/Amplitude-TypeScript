@@ -76,7 +76,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
       this.webAttribution = new WebAttribution(attributionTrackingOptions, this, this.config);
-      //await this.webAttribution.init();
     }
 
     // Step 3: Set session ID
@@ -84,10 +83,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Priority 2: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
-    console.log('before set sesion id');
-    console.log('options.sessionId : ', options.sessionId);
-
-    console.log('this.config.sessionId:  ', this.config.sessionId);
     await this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
 
     await super._init(this.config);
@@ -205,14 +200,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.config.lastEventTime = this.config.sessionId;
     }
 
-    // fire web attribution events
+    // Fire web attribution events when enable webAttribution tracking and either
+    // 1. has new campaign (manually call setSessionId or call setSessionId from init function)
+    // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
     if ((this.webAttribution && (await this.webAttribution.shouldTrackNewCampaign())) || shouldTrackNewCampaign) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       this.webAttribution!.track(++lastEventId);
     }
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      // must under await, otherwise, the case resetSessionOnNewCampaign = true and with new campaign input the order of session start will be log after the page view event
       await this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         event_id: ++lastEventId,
         session_id: this.config.sessionId,

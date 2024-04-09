@@ -31,6 +31,7 @@ export class WebAttribution {
 
   async shouldTrackNewCampaign() {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
+
     await this.storage.set(this.storageKey, this.currentCampaign);
     if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
       return true;
@@ -41,8 +42,9 @@ export class WebAttribution {
   async fetchCampaign() {
     return await Promise.all([new CampaignParser().parse(), this.storage.get(this.storageKey)]);
   }
+
   /**
-   * This can be called when
+   * This can be called when enable web attribution and either
    * 1. set a new session
    * 2. has new campaign and enable resetSessionOnNewCampaign
    */

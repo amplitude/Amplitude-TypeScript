@@ -7,8 +7,19 @@
     <title>Amplitude SDK Playground</title>
   </head>
   <script src="./amplitude.js"></script>
-	<script>
-    amplitude.init('API_KEY', 'playground.user@amplitude.com');
+	
+  <script>
+    amplitude.init('82b148f7211db7f9ccaff8048d0f7192', 'playground.user@amplitude.com', 
+    {defaultTracking: {
+      attribution: true,
+      pageViews: true,
+      sessions: true,
+      sessionTimeOut: 1000
+    }, flushQueueSize: 10});
+    //{resetSessionOnNewCampaign:true},
+    //, sessionTimeOut: 1000
+       amplitude.track('test_event')
+
   </script>
   <body>
     <h1>Amplitude SDK Playground</h1>
