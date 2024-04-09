@@ -79,6 +79,22 @@ export interface AmplitudeSessionReplay {
 
 export interface SessionReplayTrackDestination {
   sendEventsList: (destinationData: SessionReplayDestination) => void;
-  setLoggerProvider: (loggerProvider: Logger) => void;
   flush: (useRetry: boolean) => Promise<void>;
+}
+
+export interface SessionReplayEventsManager {
+  initialize({
+    sessionId,
+    shouldSendStoredEvents,
+    deviceId,
+  }: {
+    sessionId: number;
+    shouldSendStoredEvents: boolean;
+    deviceId: string;
+  }): Promise<void>;
+  addEvent({ sessionId, event, deviceId }: { sessionId: number; event: string; deviceId: string }): void;
+  sendEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
+  resetSequence(): void;
+  flush(useRetry?: boolean): Promise<void>;
+  events: Events;
 }
