@@ -8,7 +8,6 @@ import {
   isNewCampaign,
 } from './web-attribution-helper';
 import { CampaignParser } from '@amplitude/analytics-client-common';
-//import { returnWrapper } from '@amplitude/analytics-core';
 
 export class WebAttribution {
   options: Options;
@@ -45,12 +44,7 @@ export class WebAttribution {
 
   async fetchCampaign() {
     console.log('in fetch campaign');
-    //[this.currentCampaign, this.previousCampaign] =
-
     return await Promise.all([new CampaignParser().parse(), this.storage.get(this.storageKey)]);
-
-    console.log('current campaign', this.currentCampaign);
-    console.log('previous campaign', this.previousCampaign);
   }
   /**
    * This can be called when

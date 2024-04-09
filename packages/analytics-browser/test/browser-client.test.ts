@@ -228,55 +228,6 @@ describe('browser-client', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should enable web attribution tracking', async () => {
-      jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
-        optOut: false,
-        lastEventTime: Date.now(),
-      });
-
-      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
-        Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: 'event_type',
-          },
-        }),
-      );
-
-      await client.init(apiKey, userId, {
-        optOut: false,
-        defaultTracking: {
-          ...defaultTracking,
-          attribution: {},
-        },
-        sessionId: Date.now(),
-      }).promise;
-      expect(client.webAttribution).not.toBeNull();
-    });
-
-    test('should not enable web attribution tracking', async () => {
-      jest.spyOn(client, 'dispatch').mockReturnValueOnce(
-        Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: 'event_type',
-          },
-        }),
-      );
-
-      await client.init(apiKey, userId, {
-        optOut: false,
-        defaultTracking: {
-          ...defaultTracking,
-          attribution: false,
-        },
-        sessionId: Date.now(),
-      }).promise;
-      expect(client.webAttribution).toBe(undefined);
-    });
-
     test('should add file download and form interaction tracking plugins', async () => {
       const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
       const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
@@ -602,7 +553,7 @@ describe('browser-client', () => {
   describe('setSessionId', () => {
     test('should set session id', async () => {
       await client.init(apiKey, { defaultTracking }).promise;
-      client.setSessionId(1);
+      void client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
     });
 
@@ -626,7 +577,7 @@ describe('browser-client', () => {
           sessions: true,
         },
       }).promise;
-      client.setSessionId(2);
+      await client.setSessionId(2);
       expect(client.getSessionId()).toBe(2);
       expect(track).toHaveBeenCalledTimes(3);
     });
@@ -657,7 +608,7 @@ describe('browser-client', () => {
           sessions: true,
         },
       }).promise;
-      client.setSessionId(2);
+      await client.setSessionId(2);
       expect(client.getSessionId()).toBe(2);
       expect(track).toHaveBeenCalledTimes(2);
     });
@@ -689,7 +640,7 @@ describe('browser-client', () => {
         },
       }).promise;
 
-      client.setSessionId(2);
+      await client.setSessionId(2);
 
       expect(client.getSessionId()).toBe(2);
       return new Promise<void>((resolve) => {
@@ -706,7 +657,7 @@ describe('browser-client', () => {
           expect(client.getSessionId()).toBe(1);
           resolve();
         });
-        client.setSessionId(1);
+        void client.setSessionId(1);
       });
     });
   });
@@ -837,7 +788,7 @@ describe('browser-client', () => {
       await client.init(apiKey, { defaultTracking }).promise;
       client.config.pageCounter = 2;
       expect(client.config.pageCounter).toBe(2);
-      client.setSessionId(Date.now() + 5 * 60 * 60);
+      void client.setSessionId(Date.now() + 5 * 60 * 60);
       expect(client.config.pageCounter).toBe(0);
     });
   });

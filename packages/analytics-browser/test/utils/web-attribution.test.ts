@@ -55,11 +55,11 @@ describe('shouldTrackNewCampaign', () => {
       }),
     });
 
-    await webAttribution.track();
+    await webAttribution.track().promise;
     expect(track).toHaveBeenCalledTimes(1);
   });
 
-  test('should not track new campaign', async () => {
+  test('should not track campaign without new campaign', async () => {
     const overrideMockConfig = {
       ...mockConfig,
       cookieOptions: undefined,
@@ -71,17 +71,6 @@ describe('shouldTrackNewCampaign', () => {
     jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue(emptyCampaign);
     jest.spyOn(webAttribution.storage, 'get').mockResolvedValue(emptyCampaign);
 
-    const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
-      promise: Promise.resolve({
-        code: 200,
-        message: '',
-        event: {
-          event_type: 'event_type',
-        },
-      }),
-    });
-
-    await webAttribution.track();
-    expect(track).toHaveBeenCalledTimes(0);
+    expect(await webAttribution.shouldTrackNewCampaign()).toBe(false);
   });
 });
