@@ -203,9 +203,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Fire web attribution events when enable webAttribution tracking and either
     // 1. has new campaign (manually call setSessionId or call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
-    if ((this.webAttribution && (await this.webAttribution.shouldTrackNewCampaign())) || shouldTrackNewCampaign) {
+    if ((await this.webAttribution?.shouldTrackNewCampaign()) || shouldTrackNewCampaign) {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      this.webAttribution!.track(++lastEventId);
+      this.webAttribution?.track(++lastEventId);
     }
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
@@ -272,9 +272,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   async process(event: Event) {
     const currentTime = Date.now();
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
-    const shouldTrackNewCampaign = this.webAttribution && (await this.webAttribution.shouldTrackNewCampaign());
+    const shouldTrackNewCampaign = await this.webAttribution?.shouldTrackNewCampaign();
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const shouldSetSessionId = shouldTrackNewCampaign && this.webAttribution!.options.resetSessionOnNewCampaign;
+    const shouldSetSessionId = shouldTrackNewCampaign && this.webAttribution?.options.resetSessionOnNewCampaign;
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
@@ -285,7 +285,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       } else if (!isEventInNewSession && shouldTrackNewCampaign) {
         // web attribution should be track during the middle of the session if there has any new campaign
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        await this.webAttribution!.track().promise;
+        await this.webAttribution?.track().promise;
       }
     }
 
