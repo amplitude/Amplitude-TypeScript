@@ -553,7 +553,7 @@ describe('browser-client', () => {
   describe('setSessionId', () => {
     test('should set session id', async () => {
       await client.init(apiKey, { defaultTracking }).promise;
-      void client.setSessionId(1);
+      client.setSessionId(1);
       expect(client.getSessionId()).toBe(1);
     });
 
@@ -657,7 +657,7 @@ describe('browser-client', () => {
           expect(client.getSessionId()).toBe(1);
           resolve();
         });
-        void client.setSessionId(1);
+        client.setSessionId(1);
       });
     });
   });
@@ -754,6 +754,9 @@ describe('browser-client', () => {
       expect(client.config.lastEventTime).not.toBe(lastEventTime);
     });
 
+    /**
+     * Tests the reverse case of calling expire sessions
+     */
     test('should expire session w/o calling extend session using proxy', async () => {
       const lastEventTime = Date.now() - 1000;
       jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
@@ -789,7 +792,7 @@ describe('browser-client', () => {
       await client.init(apiKey, { defaultTracking }).promise;
       client.config.pageCounter = 2;
       expect(client.config.pageCounter).toBe(2);
-      void client.setSessionId(Date.now() + 5 * 60 * 60);
+      client.setSessionId(Date.now() + 5 * 60 * 60);
       expect(client.config.pageCounter).toBe(0);
     });
   });
