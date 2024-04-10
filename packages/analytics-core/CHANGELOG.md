@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.4-beta.0...@amplitude/analytics-core@2.2.4) (2024-04-09)
+
+**Note:** Version bump only for package @amplitude/analytics-core
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.4-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.3...@amplitude/analytics-core@2.2.4-beta.0) (2024-03-28)
 
 ### Bug Fixes
