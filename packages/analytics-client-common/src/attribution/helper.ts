@@ -1,16 +1,12 @@
-import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
-import { AMPLITUDE_PREFIX, createIdentifyEvent, Identify } from '@amplitude/analytics-core';
+import { createIdentifyEvent, Identify } from '@amplitude/analytics-core';
 import { Campaign } from '@amplitude/analytics-types';
+import { BASE_CAMPAIGN } from './constants';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];
   initialEmptyValue?: string;
   resetSessionOnNewCampaign?: boolean;
 }
-
-export const getStorageKey = (apiKey: string, postKey = '', limit = 10) => {
-  return [AMPLITUDE_PREFIX, postKey, apiKey.substring(0, limit)].filter(Boolean).join('_');
-};
 
 const domainWithoutSubdomain = (domain: string) => {
   const parts = domain.split('.');

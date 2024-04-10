@@ -1,11 +1,12 @@
-import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
+import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import {
-  getStorageKey,
   isNewCampaign,
   createCampaignEvent,
   getDefaultExcludedReferrers,
   isExcludedReferrer,
-} from '../../src/utils/web-attribution-helper';
+} from '../../src/attribution/helper';
+
+import { getStorageKey } from '../../src/storage/helper';
 
 describe('getStorageKey', () => {
   test('should return storage key without explicit suffix and limit', () => {

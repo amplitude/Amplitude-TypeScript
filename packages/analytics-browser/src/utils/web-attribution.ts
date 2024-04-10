@@ -6,8 +6,8 @@ import {
   getStorageKey,
   createCampaignEvent,
   isNewCampaign,
-} from './web-attribution-helper';
-import { CampaignParser } from '@amplitude/analytics-client-common';
+  CampaignParser,
+} from '@amplitude/analytics-client-common';
 
 export class WebAttribution {
   options: Options;

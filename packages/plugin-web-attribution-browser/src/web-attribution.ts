@@ -1,6 +1,11 @@
 import { CampaignParser } from '@amplitude/analytics-client-common';
 import { BeforePlugin, BrowserClient, BrowserConfig, Campaign, Event, Storage } from '@amplitude/analytics-types';
-import { createCampaignEvent, getDefaultExcludedReferrers, getStorageKey, isNewCampaign } from './helpers';
+import {
+  createCampaignEvent,
+  getDefaultExcludedReferrers,
+  getStorageKey,
+  isNewCampaign,
+} from '@amplitude/analytics-client-common';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 import { isNewSession } from '@amplitude/analytics-client-common';
 
