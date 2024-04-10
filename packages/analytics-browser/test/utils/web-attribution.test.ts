@@ -1,7 +1,6 @@
 import { BASE_CAMPAIGN, CampaignParser, CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { Logger, UUID } from '@amplitude/analytics-core';
 import { AttributionOptions, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
-import { createInstance } from '@amplitude/analytics-browser';
 import { WebAttribution } from '../../src/utils/web-attribution';
 
 describe('shouldTrackNewCampaign', () => {
@@ -34,9 +33,19 @@ describe('shouldTrackNewCampaign', () => {
   };
   const option: AttributionOptions = {};
 
-  test('should track new campaign', async () => {
-    const amplitude = createInstance();
-    const webAttribution = new WebAttribution(option, amplitude, mockConfig);
+  test('should generate campaign event with given eventId', async () => {
+    const webAttribution = new WebAttribution(option, mockConfig);
+    const event_id = 1;
+    const campaignEvent = webAttribution.generateCampaignEvent(event_id);
+    expect(campaignEvent.event_id).toBe(event_id);
+  });
+
+  test('should track campaign with new campaign', async () => {
+    const overrideMockConfig = {
+      ...mockConfig,
+      cookieOptions: undefined,
+    };
+    const webAttribution = new WebAttribution(option, overrideMockConfig);
 
     jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue({
       ...BASE_CAMPAIGN,
@@ -45,18 +54,7 @@ describe('shouldTrackNewCampaign', () => {
     jest.spyOn(webAttribution.storage, 'get').mockResolvedValueOnce({
       ...BASE_CAMPAIGN,
     });
-    const track = jest.spyOn(amplitude, 'track').mockReturnValueOnce({
-      promise: Promise.resolve({
-        code: 200,
-        message: '',
-        event: {
-          event_type: 'event_type',
-        },
-      }),
-    });
-
-    await webAttribution.track().promise;
-    expect(track).toHaveBeenCalledTimes(1);
+    expect(await webAttribution.shouldTrackNewCampaign()).toBe(true);
   });
 
   test('should not track campaign without new campaign', async () => {
@@ -65,8 +63,7 @@ describe('shouldTrackNewCampaign', () => {
       cookieOptions: undefined,
     };
     const emptyCampaign = { ...BASE_CAMPAIGN };
-    const amplitude = createInstance();
-    const webAttribution = new WebAttribution(option, amplitude, overrideMockConfig);
+    const webAttribution = new WebAttribution(option, overrideMockConfig);
 
     jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue(emptyCampaign);
     jest.spyOn(webAttribution.storage, 'get').mockResolvedValue(emptyCampaign);

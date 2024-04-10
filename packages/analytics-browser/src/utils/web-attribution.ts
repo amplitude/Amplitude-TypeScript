@@ -1,4 +1,4 @@
-import { BrowserClient, BrowserConfig } from '@amplitude/analytics-types';
+import { BrowserConfig } from '@amplitude/analytics-types';
 import { Campaign, Storage } from '@amplitude/analytics-types';
 import {
   Options,
@@ -13,18 +13,16 @@ export class WebAttribution {
   options: Options;
   storage: Storage<Campaign>;
   storageKey: string;
-  amplitude: BrowserClient;
   previousCampaign: Campaign | undefined;
   currentCampaign!: Campaign;
 
-  constructor(options: Options, amplitude: BrowserClient, config: BrowserConfig) {
+  constructor(options: Options, config: BrowserConfig) {
     this.options = {
       initialEmptyValue: 'EMPTY',
       resetSessionOnNewCampaign: false,
       excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain),
       ...options,
     };
-    this.amplitude = amplitude;
     this.storage = config.cookieStorage as unknown as Storage<Campaign>;
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
   }
@@ -48,11 +46,11 @@ export class WebAttribution {
    * 1. set a new session
    * 2. has new campaign and enable resetSessionOnNewCampaign
    */
-  track(event_id?: number) {
+  generateCampaignEvent(event_id?: number) {
     const campaignEvent = createCampaignEvent(this.currentCampaign, this.options);
     if (event_id) {
       campaignEvent.event_id = event_id;
     }
-    return this.amplitude.track(campaignEvent);
+    return campaignEvent;
   }
 }

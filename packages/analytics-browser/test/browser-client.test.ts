@@ -577,7 +577,7 @@ describe('browser-client', () => {
           sessions: true,
         },
       }).promise;
-      await client.setSessionId(2);
+      await client.setSessionId(2).promise;
       expect(client.getSessionId()).toBe(2);
       expect(track).toHaveBeenCalledTimes(3);
     });
@@ -608,7 +608,7 @@ describe('browser-client', () => {
           sessions: true,
         },
       }).promise;
-      await client.setSessionId(2);
+      await client.setSessionId(2).promise;
       expect(client.getSessionId()).toBe(2);
       expect(track).toHaveBeenCalledTimes(2);
     });
@@ -640,7 +640,7 @@ describe('browser-client', () => {
         },
       }).promise;
 
-      await client.setSessionId(2);
+      await client.setSessionId(2).promise;
 
       expect(client.getSessionId()).toBe(2);
       return new Promise<void>((resolve) => {
