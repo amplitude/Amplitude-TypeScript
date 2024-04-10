@@ -54,7 +54,9 @@ describe('shouldTrackNewCampaign', () => {
     jest.spyOn(webAttribution.storage, 'get').mockResolvedValueOnce({
       ...BASE_CAMPAIGN,
     });
-    expect(await webAttribution.shouldTrackNewCampaign()).toBe(true);
+
+    await webAttribution.init();
+    expect(webAttribution.shouldTrackNewCampaign).toBe(true);
   });
 
   test('should not track campaign without new campaign', async () => {
@@ -68,6 +70,7 @@ describe('shouldTrackNewCampaign', () => {
     jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue(emptyCampaign);
     jest.spyOn(webAttribution.storage, 'get').mockResolvedValue(emptyCampaign);
 
-    expect(await webAttribution.shouldTrackNewCampaign()).toBe(false);
+    await webAttribution.init();
+    expect(webAttribution.shouldTrackNewCampaign).toBe(false);
   });
 });

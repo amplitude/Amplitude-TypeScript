@@ -15,6 +15,7 @@ export class WebAttribution {
   storageKey: string;
   previousCampaign: Campaign | undefined;
   currentCampaign!: Campaign;
+  shouldTrackNewCampaign = false;
 
   constructor(options: Options, config: BrowserConfig) {
     this.options = {
@@ -27,14 +28,12 @@ export class WebAttribution {
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
   }
 
-  async shouldTrackNewCampaign() {
+  async init() {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
-
-    await this.storage.set(this.storageKey, this.currentCampaign);
     if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
-      return true;
+      this.shouldTrackNewCampaign = true;
+      await this.storage.set(this.storageKey, this.currentCampaign);
     }
-    return false;
   }
 
   async fetchCampaign() {
@@ -47,6 +46,7 @@ export class WebAttribution {
    * 2. has new campaign and enable resetSessionOnNewCampaign
    */
   generateCampaignEvent(event_id?: number) {
+    this.shouldTrackNewCampaign = false;
     const campaignEvent = createCampaignEvent(this.currentCampaign, this.options);
     if (event_id) {
       campaignEvent.event_id = event_id;
