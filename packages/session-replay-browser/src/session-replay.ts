@@ -2,6 +2,7 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
+import { TargetingParameters, evaluateTargeting } from '@amplitude/targeting';
 import { SessionReplayConfig } from './config';
 import {
   BLOCK_CLASS,
@@ -12,10 +13,12 @@ import {
 import { SessionReplayEventsManager } from './events-manager';
 import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
+import { SessionReplayRemoteConfigFetch } from './remote-config-fetch';
 import { SessionReplaySessionIDBStore } from './session-idb-store';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  SessionReplayRemoteConfigFetch as AmplitudeSessionReplayRemoteConfigFetch,
   SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayConfig as ISessionReplayConfig,
@@ -26,10 +29,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: ISessionReplayConfig | undefined;
   identifiers: ISessionIdentifiers | undefined;
+  remoteConfigFetch: AmplitudeSessionReplayRemoteConfigFetch | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
   sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+  sessionTargetingMatch = false;
 
   constructor() {
     this.loggerProvider = new Logger();
@@ -48,10 +53,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       apiKey: this.config.apiKey,
     });
 
-    this.eventsManager = new SessionReplayEventsManager({
+    this.remoteConfigFetch = new SessionReplayRemoteConfigFetch({
       config: this.config,
       sessionIDBStore: this.sessionIDBStore,
     });
+    this.eventsManager = new SessionReplayEventsManager({ config: this.config, sessionIDBStore: this.sessionIDBStore });
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -134,6 +140,34 @@ export class SessionReplay implements AmplitudeSessionReplay {
     void this.initialize();
   };
 
+  evaluateTargeting = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
+    if (!this.identifiers || !this.identifiers.sessionId || !this.remoteConfigFetch || !this.config) {
+      this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
+      return;
+    }
+
+    try {
+      const targetingConfig = await this.remoteConfigFetch.getTargetingConfig(this.identifiers.sessionId);
+      console.log('targetingConfig', targetingConfig);
+      if (targetingConfig && Object.keys(targetingConfig).length > 0) {
+        const targetingResult = evaluateTargeting({
+          flag: targetingConfig,
+          sessionId: this.identifiers.sessionId,
+          deviceId: this.getDeviceId(),
+          ...targetingParams,
+        });
+        this.sessionTargetingMatch =
+          this.sessionTargetingMatch === false && targetingResult.sr_targeting_config.key === 'on';
+        // todo, need to save this in idb too
+      } else {
+        this.sessionTargetingMatch = true;
+      }
+    } catch (err: unknown) {
+      const knownError = err as Error;
+      this.config.loggerProvider.warn(knownError.message);
+    }
+  };
+
   stopRecordingAndSendEvents(sessionId?: number) {
     this.stopRecordingEvents();
 
@@ -159,6 +193,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
         shouldSendStoredEvents,
         deviceId,
       }));
+
+    let userProperties;
+    if (this.config?.instanceName) {
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      userProperties = identityStore.getIdentity().userProperties;
+    }
+    await this.evaluateTargeting({ userProperties });
 
     this.recordEvents();
   }

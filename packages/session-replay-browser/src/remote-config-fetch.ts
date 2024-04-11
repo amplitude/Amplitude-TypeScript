@@ -103,7 +103,7 @@ export class SessionReplayRemoteConfigFetch implements AmplitudeSessionReplayRem
   completeRequest({ err, success }: { err?: string; success?: string }) {
     this.attempts = 0; // Reset attempts back to 0 for restart
     if (err) {
-      this.config.loggerProvider.warn(err);
+      throw new Error(err);
     } else if (success) {
       this.config.loggerProvider.log(success);
     }
