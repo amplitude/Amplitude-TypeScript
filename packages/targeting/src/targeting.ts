@@ -9,6 +9,7 @@ export class Targeting implements AmplitudeTargeting {
     this.evaluationEngine = new EvaluationEngine();
   }
 
+<<<<<<< HEAD
   evaluateTargeting = async ({
     apiKey,
     loggerProvider,
@@ -31,6 +32,9 @@ export class Targeting implements AmplitudeTargeting {
 
     const eventStrings = eventTypes && new Set(Object.keys(eventTypes));
 
+=======
+  evaluateTargeting = ({ event, sessionId, userProperties, deviceId, flag }: TargetingParameters) => {
+>>>>>>> 8243269e (feat(session replay): evaluate targeting with user properties in initialization)
     const context = {
       session_id: sessionId,
       event,

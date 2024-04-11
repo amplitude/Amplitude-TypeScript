@@ -1,6 +1,5 @@
 import { Logger } from '@amplitude/analytics-types';
 import { SessionReplayConfig } from '../src/config';
-import { UNEXPECTED_ERROR_MESSAGE } from '../src/messages';
 import { SessionReplayRemoteConfigFetch } from '../src/remote-config-fetch';
 import { SessionReplaySessionIDBStore } from '../src/session-idb-store';
 import { SessionReplayRemoteConfig } from '../src/typings/session-replay';
@@ -168,14 +167,16 @@ describe('SessionReplayRemoteConfigFetch', () => {
       (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
-      return fetchPromise.then(() => {
-        expect(fetch).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('API Failure');
-        expect(remoteConfigFetch.attempts).toBe(0);
-      });
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(1);
+          expect(err.message).toEqual('API Failure');
+          expect(remoteConfigFetch.attempts).toBe(0);
+        });
     });
     test('should not retry for 400 error', async () => {
       (fetch as jest.Mock)
@@ -191,12 +192,16 @@ describe('SessionReplayRemoteConfigFetch', () => {
         });
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
-      return fetchPromise.then(() => {
-        expect(fetch).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-        expect(remoteConfigFetch.attempts).toBe(0);
-      });
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(1);
+          expect(err.message).toEqual('Error: Network error occurred, session replay remote config fetch failed');
+          expect(remoteConfigFetch.attempts).toBe(0);
+        });
     });
     test('should not retry for 413 error', async () => {
       (fetch as jest.Mock)
@@ -213,12 +218,16 @@ describe('SessionReplayRemoteConfigFetch', () => {
         });
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
-      return fetchPromise.then(() => {
-        expect(fetch).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-        expect(remoteConfigFetch.attempts).toBe(0);
-      });
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(1);
+          expect(err.message).toEqual('Error: Network error occurred, session replay remote config fetch failed');
+          expect(remoteConfigFetch.attempts).toBe(0);
+        });
     });
     test('should handle retry for 500 error', async () => {
       (fetch as jest.Mock)
@@ -251,10 +260,16 @@ describe('SessionReplayRemoteConfigFetch', () => {
       remoteConfigFetch.config.flushMaxRetries = 2;
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
-      return fetchPromise.then(() => {
-        expect(fetch).toHaveBeenCalledTimes(2);
-        expect(remoteConfigFetch.attempts).toBe(0);
-      });
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(2);
+          expect(err.message).toEqual('Network error occurred, session replay remote config fetch failed');
+          expect(remoteConfigFetch.attempts).toBe(0);
+        });
     });
     test('should handle retry for 503 error', async () => {
       (fetch as jest.Mock)
@@ -282,14 +297,16 @@ describe('SessionReplayRemoteConfigFetch', () => {
       });
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
-      return fetchPromise.then(() => {
-        expect(fetch).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(UNEXPECTED_ERROR_MESSAGE);
-        expect(remoteConfigFetch.attempts).toBe(0);
-      });
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(1);
+          expect(err.message).toEqual('Error: Unexpected error occurred');
+          expect(remoteConfigFetch.attempts).toBe(0);
+        });
     });
   });
 });
