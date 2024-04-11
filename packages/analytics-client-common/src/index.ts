@@ -6,12 +6,13 @@ export {
   isExcludedReferrer,
   createCampaignEvent,
   getDefaultExcludedReferrers,
-} from './attribution/helper';
+} from './attribution/helpers';
+export { WebAttribution } from './attribution/web-attribution';
 export { BASE_CAMPAIGN } from './attribution/constants';
 export { getQueryParams } from './query-params';
 export { isNewSession } from './session';
 export { getCookieName, getOldCookieName } from './cookie-name';
-export { getStorageKey } from './storage/helper';
+export { getStorageKey } from './storage/helpers';
 export { CookieStorage } from './storage/cookie';
 export { FetchTransport } from './transports/fetch';
 export { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from './analytics-connector';

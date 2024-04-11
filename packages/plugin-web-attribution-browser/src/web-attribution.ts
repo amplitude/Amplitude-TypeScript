@@ -1,11 +1,6 @@
-import { CampaignParser } from '@amplitude/analytics-client-common';
-import { BeforePlugin, BrowserClient, BrowserConfig, Campaign, Event, Storage } from '@amplitude/analytics-types';
-import {
-  createCampaignEvent,
-  getDefaultExcludedReferrers,
-  getStorageKey,
-  isNewCampaign,
-} from '@amplitude/analytics-client-common';
+import { WebAttribution } from '@amplitude/analytics-client-common';
+import { BeforePlugin, BrowserClient, BrowserConfig, Event } from '@amplitude/analytics-types';
+import { isNewCampaign } from '@amplitude/analytics-client-common';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 import { isNewSession } from '@amplitude/analytics-client-common';
 
@@ -15,22 +10,12 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
     type: 'before',
 
     setup: async function (config: BrowserConfig, amplitude: BrowserClient) {
-      const pluginConfig = {
-        initialEmptyValue: 'EMPTY',
-        resetSessionOnNewCampaign: false,
-        excludeReferrers: getDefaultExcludedReferrers(config.cookieOptions?.domain),
-        ...options,
-      };
-      config.loggerProvider.log('Installing @amplitude/plugin-web-attribution-browser.');
+      const webAttribution = new WebAttribution(options, config);
+      await webAttribution.init();
 
-      // Share cookie storage with user session storage
-      const storage = config.cookieStorage as unknown as Storage<Campaign>;
-      const storageKey = getStorageKey(config.apiKey, 'MKTG');
-
-      const [currentCampaign, previousCampaign] = await Promise.all([
-        new CampaignParser().parse(),
-        storage.get(storageKey),
-      ]);
+      const pluginConfig = webAttribution.options;
+      const currentCampaign = webAttribution.currentCampaign;
+      const previousCampaign = webAttribution.previousCampaign;
 
       const isEventInNewSession = isNewSession(config.sessionTimeout, config.lastEventTime);
 
@@ -39,10 +24,8 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
           amplitude.setSessionId(Date.now());
           config.loggerProvider.log('Created a new session for new campaign.');
         }
-        config.loggerProvider.log('Tracking attribution.');
-        const campaignEvent = createCampaignEvent(currentCampaign, pluginConfig);
+        const campaignEvent = webAttribution.generateCampaignEvent();
         amplitude.track(campaignEvent);
-        void storage.set(storageKey, currentCampaign);
       }
     },
 

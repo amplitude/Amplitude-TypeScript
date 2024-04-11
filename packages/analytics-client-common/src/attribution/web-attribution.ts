@@ -1,13 +1,8 @@
 import { BrowserConfig } from '@amplitude/analytics-types';
 import { Campaign, Storage } from '@amplitude/analytics-types';
-import {
-  Options,
-  getDefaultExcludedReferrers,
-  getStorageKey,
-  createCampaignEvent,
-  isNewCampaign,
-  CampaignParser,
-} from '@amplitude/analytics-client-common';
+import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
+import { getStorageKey } from '../storage/helpers';
+import { CampaignParser } from './campaign-parser';
 
 export class WebAttribution {
   options: Options;
@@ -26,11 +21,14 @@ export class WebAttribution {
     };
     this.storage = config.cookieStorage as unknown as Storage<Campaign>;
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
+    config.loggerProvider.log('Installing web attribution tracking.');
   }
 
   async init() {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
+
     if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
+      console.log(isNewCampaign);
       this.shouldTrackNewCampaign = true;
       await this.storage.set(this.storageKey, this.currentCampaign);
     }

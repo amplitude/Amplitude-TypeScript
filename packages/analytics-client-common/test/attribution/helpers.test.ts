@@ -4,9 +4,9 @@ import {
   createCampaignEvent,
   getDefaultExcludedReferrers,
   isExcludedReferrer,
-} from '../../src/attribution/helper';
+} from '../../src/attribution/helpers';
 
-import { getStorageKey } from '../../src/storage/helper';
+import { getStorageKey } from '../../src/storage/helpers';
 
 describe('getStorageKey', () => {
   test('should return storage key without explicit suffix and limit', () => {

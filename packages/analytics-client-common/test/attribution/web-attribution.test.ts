@@ -1,7 +1,10 @@
-import { BASE_CAMPAIGN, CampaignParser, CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { Logger, UUID } from '@amplitude/analytics-core';
 import { AttributionOptions, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
-import { WebAttribution } from '../../src/utils/web-attribution';
+import { BASE_CAMPAIGN } from '../../src/attribution/constants';
+import { CampaignParser } from '../../src/attribution/campaign-parser';
+import { WebAttribution } from '../../src/attribution/web-attribution';
+import { FetchTransport } from '../../src/transports/fetch';
+import { CookieStorage } from '../../src/storage/cookie';
 
 describe('shouldTrackNewCampaign', () => {
   const mockConfig: BrowserConfig = {
@@ -33,13 +36,6 @@ describe('shouldTrackNewCampaign', () => {
   };
   const option: AttributionOptions = {};
 
-  test('should generate campaign event with given eventId', async () => {
-    const webAttribution = new WebAttribution(option, mockConfig);
-    const event_id = 1;
-    const campaignEvent = webAttribution.generateCampaignEvent(event_id);
-    expect(campaignEvent.event_id).toBe(event_id);
-  });
-
   test('should track campaign with new campaign', async () => {
     const overrideMockConfig = {
       ...mockConfig,
@@ -47,7 +43,7 @@ describe('shouldTrackNewCampaign', () => {
     };
     const webAttribution = new WebAttribution(option, overrideMockConfig);
 
-    jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue({
+    jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValueOnce({
       ...BASE_CAMPAIGN,
       utm_source: 'amp-test',
     });
@@ -72,5 +68,12 @@ describe('shouldTrackNewCampaign', () => {
 
     await webAttribution.init();
     expect(webAttribution.shouldTrackNewCampaign).toBe(false);
+  });
+
+  test('should generate campaign event with given eventId', async () => {
+    const webAttribution = new WebAttribution(option, mockConfig);
+    const event_id = 1;
+    const campaignEvent = webAttribution.generateCampaignEvent(event_id);
+    expect(campaignEvent.event_id).toBe(event_id);
   });
 });
