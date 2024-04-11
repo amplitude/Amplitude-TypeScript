@@ -46,6 +46,7 @@ export class WebAttribution {
    * 2. has new campaign and enable resetSessionOnNewCampaign
    */
   generateCampaignEvent(event_id?: number) {
+    // Mark this campaign has been tracked
     this.shouldTrackNewCampaign = false;
     const campaignEvent = createCampaignEvent(this.currentCampaign, this.options);
     if (event_id) {

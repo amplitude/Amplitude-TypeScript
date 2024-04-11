@@ -76,6 +76,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
       const attributionTrackingOptions = getAttributionTrackingConfig(this.config);
       this.webAttribution = new WebAttribution(attributionTrackingOptions, this.config);
+      // Fetch the current campaign, check if need to track web attribution later
       await this.webAttribution.init();
     }
 
