@@ -3,6 +3,7 @@ import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
+import { TargetingParameters, evaluateTargeting } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
@@ -38,6 +39,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+  sessionTargetingMatch = false;
 
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
@@ -237,6 +239,34 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   };
 
+  evaluateTargeting = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
+    if (!this.identifiers || !this.identifiers.sessionId || !this.remoteConfigFetch || !this.config) {
+      this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
+      return;
+    }
+
+    try {
+      const targetingConfig = await this.remoteConfigFetch.getTargetingConfig(this.identifiers.sessionId);
+      console.log('targetingConfig', targetingConfig);
+      if (targetingConfig && Object.keys(targetingConfig).length > 0) {
+        const targetingResult = evaluateTargeting({
+          flag: targetingConfig,
+          sessionId: this.identifiers.sessionId,
+          deviceId: this.getDeviceId(),
+          ...targetingParams,
+        });
+        this.sessionTargetingMatch =
+          this.sessionTargetingMatch === false && targetingResult.sr_targeting_config.key === 'on';
+        // todo, need to save this in idb too
+      } else {
+        this.sessionTargetingMatch = true;
+      }
+    } catch (err: unknown) {
+      const knownError = err as Error;
+      this.config.loggerProvider.warn(knownError.message);
+    }
+  };
+
   sendEvents(sessionId?: number) {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
@@ -258,6 +288,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.eventsManager && shouldSendStoredEvents && this.eventsManager.sendStoredEvents({ deviceId });
+
+    let userProperties;
+    if (this.config?.instanceName) {
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      userProperties = identityStore.getIdentity().userProperties;
+    }
+    await this.evaluateTargeting({ userProperties });
 
     this.recordEvents();
   }
