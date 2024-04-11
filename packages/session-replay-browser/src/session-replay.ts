@@ -2,6 +2,7 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
+import { TargetingParameters, evaluateTargeting } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
@@ -16,6 +17,7 @@ import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  SessionReplayRemoteConfigFetch as AmplitudeSessionReplayRemoteConfigFetch,
   SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
@@ -26,10 +28,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
+  remoteConfigFetch: AmplitudeSessionReplayRemoteConfigFetch | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
   sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+  sessionTargetingMatch = false;
 
   constructor() {
     this.loggerProvider = new Logger();
@@ -171,6 +175,34 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.initialize();
   };
 
+  evaluateTargeting = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
+    if (!this.identifiers || !this.identifiers.sessionId || !this.remoteConfigFetch || !this.config) {
+      this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
+      return;
+    }
+
+    try {
+      const targetingConfig = await this.remoteConfigFetch.getTargetingConfig(this.identifiers.sessionId);
+      console.log('targetingConfig', targetingConfig);
+      if (targetingConfig && Object.keys(targetingConfig).length > 0) {
+        const targetingResult = evaluateTargeting({
+          flag: targetingConfig,
+          sessionId: this.identifiers.sessionId,
+          deviceId: this.getDeviceId(),
+          ...targetingParams,
+        });
+        this.sessionTargetingMatch =
+          this.sessionTargetingMatch === false && targetingResult.sr_targeting_config.key === 'on';
+        // todo, need to save this in idb too
+      } else {
+        this.sessionTargetingMatch = true;
+      }
+    } catch (err: unknown) {
+      const knownError = err as Error;
+      this.config.loggerProvider.warn(knownError.message);
+    }
+  };
+
   stopRecordingAndSendEvents(sessionId?: number) {
     this.stopRecordingEvents();
 
@@ -199,6 +231,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventsManager.sendStoredEvents({
         deviceId,
       });
+
+    let userProperties;
+    if (this.config?.instanceName) {
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      userProperties = identityStore.getIdentity().userProperties;
+    }
+    await this.evaluateTargeting({ userProperties });
 
     this.recordEvents();
   }

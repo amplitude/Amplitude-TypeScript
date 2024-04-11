@@ -1,15 +1,15 @@
-import { Event, IdentifyUserProperties } from '@amplitude/analytics-types';
+import { Event } from '@amplitude/analytics-types';
 import { EvaluationFlag, EvaluationVariant } from '@amplitude/experiment-core';
 
 export type TargetingFlag = EvaluationFlag;
 export interface TargetingParameters {
   event?: Event;
-  userProperties?: IdentifyUserProperties;
+  userProperties?: { [key: string]: any };
   deviceId?: string;
   flag: EvaluationFlag;
-  sessionId?: string;
+  sessionId: number;
 }
 
 export interface Targeting {
-  evaluateTargeting(args: TargetingParameters): Record<string, EvaluationVariant>;
+  evaluateTargeting: (args: TargetingParameters) => Record<string, EvaluationVariant>;
 }

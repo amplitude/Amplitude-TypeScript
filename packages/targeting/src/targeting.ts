@@ -8,7 +8,7 @@ export class Targeting implements AmplitudeTargeting {
     this.evaluationEngine = new EvaluationEngine();
   }
 
-  evaluateTargeting({ event, sessionId, userProperties, deviceId, flag }: TargetingParameters) {
+  evaluateTargeting = ({ event, sessionId, userProperties, deviceId, flag }: TargetingParameters) => {
     const context = {
       session_id: sessionId,
       event,
@@ -18,5 +18,5 @@ export class Targeting implements AmplitudeTargeting {
       },
     };
     return this.evaluationEngine.evaluate(context, [flag]);
-  }
+  };
 }
