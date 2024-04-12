@@ -795,6 +795,7 @@ describe('SessionReplayPlugin', () => {
     test('should remove event listeners', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
+      removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
       expect(removeEventListenerMock).toHaveBeenCalledTimes(2);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
