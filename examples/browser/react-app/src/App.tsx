@@ -1,38 +1,40 @@
-import React, { useEffect } from 'react';
 import logo from './logo.svg';
 import './App.css';
-import { track, identify, setGroup, groupIdentify, Identify } from '@amplitude/analytics-browser';
+import {
+    Route,
+  Routes,
+    NavLink,
+    HashRouter
+  } from "react-router-dom";
+
+import Home from "./Home";
+import Other from "./Other";
+import Contact from "./Contact";
 
 function App() {
-  useEffect(() => {
-    track('Page View', {
-      name: 'App',
-    });
-  }, []);
-
   return (
+    <HashRouter>
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        <h2>Amplitude Analytics Browser Example with React</h2>
-
-        <button onClick={() => identify(new Identify().set('role', 'engineer'))}>
-          Identify
-        </button>
-
-        <button onClick={() => setGroup('org', 'engineering')}>
-          Group
-        </button>
-
-        <button onClick={() => groupIdentify('org', 'engineering', new Identify().set('technology', 'react.js'))}>
-          Group Identify
-        </button>
-
-        <button onClick={() => track('Button Click', { name: 'App' })}>
-          Track
-        </button>
       </header>
+      <div>
+            <h1>Amplitude Analytics Browser Example with React</h1>
+            <ul className="header">
+              <li><NavLink to="/home">Home</NavLink></li>
+              <li><NavLink to="/other">Other</NavLink></li>
+              <li><NavLink to="/contact">Contact</NavLink></li>
+            </ul>
+            <div className="content">
+                <Routes>
+                 <Route path="/home"  element={<Home/>}/>
+                 <Route path="/other"  element={<Other/>}/>
+                 <Route path="/contact"  element={<Contact/>}/>
+               </Routes>
+            </div>
+          </div>
     </div>
+    </HashRouter>
   );
 }
 
