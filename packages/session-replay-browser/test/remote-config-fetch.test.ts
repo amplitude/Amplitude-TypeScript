@@ -2,6 +2,7 @@ import { Logger } from '@amplitude/analytics-types';
 import { SessionReplayConfig } from '../src/config';
 import { UNEXPECTED_ERROR_MESSAGE } from '../src/messages';
 import { SessionReplayRemoteConfigFetch } from '../src/remote-config-fetch';
+import { SessionReplaySessionIDBStore } from '../src/session-idb-store';
 import { SessionReplayRemoteConfig } from '../src/typings/session-replay';
 import { flagConfig } from './flag-config-data';
 
@@ -31,10 +32,15 @@ describe('SessionReplayRemoteConfigFetch', () => {
     debug: jest.fn(),
   };
   let config: SessionReplayConfig;
+  let sessionIDBStore: SessionReplaySessionIDBStore;
   beforeEach(() => {
     config = new SessionReplayConfig('static_key', {
       loggerProvider: mockLoggerProvider,
       sampleRate: 1,
+    });
+    sessionIDBStore = new SessionReplaySessionIDBStore({
+      loggerProvider: config.loggerProvider,
+      apiKey: config.apiKey,
     });
     jest.useFakeTimers();
     originalFetch = global.fetch;
@@ -52,23 +58,35 @@ describe('SessionReplayRemoteConfigFetch', () => {
   });
 
   describe('getRemoteConfig', () => {
-    test('should return remote config from memory if it exists', async () => {
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
-      remoteConfigFetch.remoteConfig = mockRemoteConfig;
-      const fetchMock = jest.fn();
+    let remoteConfigFetch: SessionReplayRemoteConfigFetch;
+    let fetchMock: jest.Mock;
+    let idbRemoteConfigMock: jest.Mock;
+    beforeEach(() => {
+      idbRemoteConfigMock = jest.fn().mockResolvedValue(mockRemoteConfig);
+      sessionIDBStore.getRemoteConfigForSession = idbRemoteConfigMock;
+      remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config, sessionIDBStore });
+      fetchMock = jest.fn();
       remoteConfigFetch.fetchRemoteConfig = fetchMock;
+    });
+    test('should return remote config from memory if it exists', async () => {
+      remoteConfigFetch.remoteConfig = mockRemoteConfig;
 
-      const remoteConfig = await remoteConfigFetch.getRemoteConfig();
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig(123);
       expect(remoteConfig).toEqual(mockRemoteConfig);
       expect(fetchMock).not.toHaveBeenCalled();
     });
-    test('should call fetchRemoteConfig if no config exists in memory', async () => {
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
+    test('should return remote config from indexedDB if it exists, and no config in memory', async () => {
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig(123);
+      expect(remoteConfig).toEqual(mockRemoteConfig);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(idbRemoteConfigMock).toHaveBeenCalled();
+    });
+    test('should call fetchRemoteConfig if no config exists in memory or indexeddb', async () => {
+      idbRemoteConfigMock = jest.fn().mockResolvedValue(undefined);
+      sessionIDBStore.getRemoteConfigForSession = idbRemoteConfigMock;
+      fetchMock.mockResolvedValue(mockRemoteConfig);
 
-      const fetchMock = jest.fn().mockResolvedValueOnce(mockRemoteConfig);
-      remoteConfigFetch.fetchRemoteConfig = fetchMock;
-
-      const remoteConfig = await remoteConfigFetch.getRemoteConfig();
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig(123);
       expect(remoteConfig).toEqual(mockRemoteConfig);
       expect(fetchMock).toHaveBeenCalled();
     });
@@ -76,29 +94,35 @@ describe('SessionReplayRemoteConfigFetch', () => {
 
   describe('getTargetingConfig', () => {
     test('should return sr_targeting_config from remote config', async () => {
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
+      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config, sessionIDBStore });
       remoteConfigFetch.getRemoteConfig = jest.fn().mockResolvedValue(mockRemoteConfig);
-      const targetingConfig = await remoteConfigFetch.getTargetingConfig();
+      const targetingConfig = await remoteConfigFetch.getTargetingConfig(123);
       expect(targetingConfig).toEqual(flagConfig);
     });
     test('should return undefined if no remote config', async () => {
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
+      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config, sessionIDBStore });
       remoteConfigFetch.getRemoteConfig = jest.fn().mockResolvedValue(undefined);
-      const targetingConfig = await remoteConfigFetch.getTargetingConfig();
+      const targetingConfig = await remoteConfigFetch.getTargetingConfig(123);
       expect(targetingConfig).toEqual(undefined);
     });
   });
 
   describe('fetchRemoteConfig', () => {
+    let remoteConfigFetch: SessionReplayRemoteConfigFetch;
+    let storeRemoteConfigMock: jest.Mock;
+    beforeEach(() => {
+      storeRemoteConfigMock = jest.fn();
+      sessionIDBStore.storeRemoteConfigForSession = storeRemoteConfigMock;
+      remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config, sessionIDBStore });
+    });
     test('should fetch and return config', async () => {
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
       (fetch as jest.Mock).mockImplementationOnce(() =>
         Promise.resolve({
           status: 200,
           json: () => mockRemoteConfig,
         }),
       );
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then((remoteConfig) => {
         expect(fetch).toHaveBeenCalledTimes(1);
@@ -107,10 +131,10 @@ describe('SessionReplayRemoteConfigFetch', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual('Session replay remote config successfully fetched');
         expect(remoteConfig).toEqual(mockRemoteConfig);
+        expect(remoteConfigFetch.attempts).toBe(0);
       });
     });
     test('should fetch and set config in memory', async () => {
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
       (fetch as jest.Mock).mockImplementationOnce(() =>
         Promise.resolve({
           status: 200,
@@ -119,22 +143,30 @@ describe('SessionReplayRemoteConfigFetch', () => {
       );
       // Ensure remote config has not been set yet
       expect(remoteConfigFetch.remoteConfig).toEqual(undefined);
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
-        expect(fetch).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.log).toHaveBeenCalledTimes(1);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual('Session replay remote config successfully fetched');
         expect(remoteConfigFetch.remoteConfig).toEqual(mockRemoteConfig);
-        expect(remoteConfigFetch.attempts).toBe(0);
+      });
+    });
+    test('should fetch and set config in indexedDB', async () => {
+      (fetch as jest.Mock).mockImplementationOnce(() =>
+        Promise.resolve({
+          status: 200,
+          json: () => mockRemoteConfig,
+        }),
+      );
+      // Ensure remote config has not been set yet
+      expect(remoteConfigFetch.remoteConfig).toEqual(undefined);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      await runScheduleTimers();
+      return fetchPromise.then(() => {
+        expect(storeRemoteConfigMock).toHaveBeenCalledWith(123, mockRemoteConfig);
       });
     });
     test('should handle unexpected error', async () => {
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
       (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(1);
@@ -157,8 +189,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
             status: 200,
           });
         });
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(1);
@@ -180,8 +211,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
             json: () => mockRemoteConfig,
           });
         });
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(1);
@@ -203,8 +233,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
             json: () => mockRemoteConfig,
           });
         });
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -219,9 +248,8 @@ describe('SessionReplayRemoteConfigFetch', () => {
           status: 500,
         });
       });
-      config.flushMaxRetries = 2;
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      remoteConfigFetch.config.flushMaxRetries = 2;
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -241,8 +269,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
             json: () => mockRemoteConfig,
           });
         });
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -253,8 +280,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
       (fetch as jest.Mock).mockImplementationOnce(() => {
         return Promise.resolve(null);
       });
-      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig();
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(1);

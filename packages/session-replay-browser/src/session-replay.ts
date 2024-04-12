@@ -12,9 +12,11 @@ import {
 import { SessionReplayEventsManager } from './events-manager';
 import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
+import { SessionReplaySessionIDBStore } from './session-idb-store';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayConfig as ISessionReplayConfig,
   SessionReplayOptions,
@@ -25,6 +27,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   config: ISessionReplayConfig | undefined;
   identifiers: ISessionIdentifiers | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
+  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -40,9 +43,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.config = new SessionReplayConfig(apiKey, options);
     this.loggerProvider = this.config.loggerProvider;
     this.identifiers = new SessionIdentifiers(options, this.loggerProvider);
+    this.sessionIDBStore = new SessionReplaySessionIDBStore({
+      loggerProvider: this.config.loggerProvider,
+      apiKey: this.config.apiKey,
+    });
 
     this.eventsManager = new SessionReplayEventsManager({
       config: this.config,
+      sessionIDBStore: this.sessionIDBStore,
     });
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');

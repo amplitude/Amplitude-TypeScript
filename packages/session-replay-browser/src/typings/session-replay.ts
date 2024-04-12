@@ -3,6 +3,10 @@ import { TargetingFlag } from '@amplitude/targeting';
 
 export type Events = string[];
 
+export interface SessionReplayRemoteConfig {
+  sr_targeting_config: TargetingFlag;
+}
+
 export interface SessionReplayDestination {
   events: Events;
   sequenceId: number;
@@ -32,6 +36,7 @@ export interface IDBStoreSequence {
 
 export interface IDBStoreSession {
   currentSequenceId: number;
+  remoteConfig?: SessionReplayRemoteConfig;
   sessionSequences: {
     [sequenceId: number]: IDBStoreSequence;
   };
@@ -44,6 +49,8 @@ export interface IDBStore {
 export interface SessionReplaySessionIDBStore {
   getAllSessionDataFromStore(): Promise<IDBStore | undefined>;
   storeEventsForSession(events: Events, sequenceId: number, sessionId: number): Promise<void>;
+  storeRemoteConfigForSession(sessionId: number, remoteConfig: SessionReplayRemoteConfig): Promise<void>;
+  getRemoteConfigForSession(sessionId: number): Promise<SessionReplayRemoteConfig | void>;
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
 
@@ -84,8 +91,8 @@ export interface SessionReplayTrackDestination {
 }
 
 export interface SessionReplayRemoteConfigFetch {
-  getRemoteConfig: () => Promise<SessionReplayRemoteConfig | void>;
-  getTargetingConfig: () => Promise<TargetingFlag | void>;
+  getRemoteConfig: (sessionId: number) => Promise<SessionReplayRemoteConfig | void>;
+  getTargetingConfig: (sessionId: number) => Promise<TargetingFlag | void>;
 }
 export interface SessionReplayRemoteConfig {
   sr_targeting_config: TargetingFlag;
