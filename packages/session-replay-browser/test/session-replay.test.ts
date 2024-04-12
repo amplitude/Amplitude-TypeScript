@@ -124,7 +124,7 @@ describe('SessionReplayPlugin', () => {
     test('should set up blur and focus event listeners', async () => {
       const sessionReplay = new SessionReplay();
       const stopRecordingMock = jest.fn();
-      sessionReplay.stopRecordingEvents = stopRecordingMock;
+      sessionReplay.recordCancelCallback = stopRecordingMock;
       const initialize = jest.spyOn(sessionReplay, 'initialize').mockReturnValueOnce(Promise.resolve());
       await sessionReplay.init(apiKey, mockOptions).promise;
       initialize.mockReset();
@@ -136,7 +136,7 @@ describe('SessionReplayPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       blurCallback();
       expect(stopRecordingMock).toHaveBeenCalled();
-      expect(sessionReplay.stopRecordingEvents).toEqual(null);
+      expect(sessionReplay.recordCancelCallback).toEqual(null);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(addEventListenerMock.mock.calls[1][0]).toEqual('focus');
@@ -556,7 +556,7 @@ describe('SessionReplayPlugin', () => {
       const mockStopRecordingEvents = jest.fn().mockImplementation(() => {
         throw new Error('test error');
       });
-      sessionReplay.stopRecordingEvents = mockStopRecordingEvents;
+      sessionReplay.recordCancelCallback = mockStopRecordingEvents;
       sessionReplay.stopRecordingAndSendEvents();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -656,12 +656,21 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
+    test('should stop recording before starting anew', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const stopRecordingMock = jest.fn();
+      sessionReplay.recordCancelCallback = stopRecordingMock;
+      sessionReplay.recordEvents();
+      expect(stopRecordingMock).toHaveBeenCalled();
+    });
+
     test('should stop recording and send events if document is not in focus', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.recordEvents();
       const stopRecordingMock = jest.fn();
-      sessionReplay.stopRecordingEvents = stopRecordingMock;
+      sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
         return;
       }
@@ -684,7 +693,7 @@ describe('SessionReplayPlugin', () => {
         deviceId: '1a2b3c',
       });
       expect(stopRecordingMock).toHaveBeenCalled();
-      expect(sessionReplay.stopRecordingEvents).toEqual(null);
+      expect(sessionReplay.recordCancelCallback).toEqual(null);
       expect(sessionReplay.eventsManager.events).toEqual([mockEventString]); // events should not change, emmitted event should be ignored
     });
 
@@ -693,7 +702,7 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.recordEvents();
       const stopRecordingMock = jest.fn();
-      sessionReplay.stopRecordingEvents = stopRecordingMock;
+      sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
         return;
       }
@@ -712,7 +721,7 @@ describe('SessionReplayPlugin', () => {
         deviceId: '1a2b3c',
       });
       expect(stopRecordingMock).toHaveBeenCalled();
-      expect(sessionReplay.stopRecordingEvents).toEqual(null);
+      expect(sessionReplay.recordCancelCallback).toEqual(null);
       expect(sessionReplay.eventsManager.events).toEqual([mockEventString]); // events should not change, emmitted event should be ignored
     });
 
@@ -798,7 +807,7 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       const stopRecordingMock = jest.fn();
-      sessionReplay.stopRecordingEvents = stopRecordingMock;
+      sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
         return;
       }
@@ -809,7 +818,7 @@ describe('SessionReplayPlugin', () => {
         .mockImplementationOnce(() => {});
       sessionReplay.shutdown();
       expect(stopRecordingMock).toHaveBeenCalled();
-      expect(sessionReplay.stopRecordingEvents).toBe(null);
+      expect(sessionReplay.recordCancelCallback).toBe(null);
       expect(sendEventsMock).toHaveBeenCalled();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(sendEventsMock.mock.calls[0][0]).toEqual({

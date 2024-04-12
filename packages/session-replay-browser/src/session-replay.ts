@@ -26,7 +26,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   identifiers: ISessionIdentifiers | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
   loggerProvider: ILogger;
-  stopRecordingEvents: ReturnType<typeof record> | null = null;
+  recordCancelCallback: ReturnType<typeof record> | null = null;
 
   constructor() {
     this.loggerProvider = new Logger();
@@ -125,13 +125,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   stopRecordingAndSendEvents(sessionId?: number) {
-    try {
-      this.stopRecordingEvents && this.stopRecordingEvents();
-      this.stopRecordingEvents = null;
-    } catch (error) {
-      const typedError = error as Error;
-      this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
-    }
+    this.stopRecordingEvents();
 
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
@@ -209,7 +203,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!shouldRecord || !sessionId) {
       return;
     }
-    this.stopRecordingEvents = record({
+    this.stopRecordingEvents();
+    this.recordCancelCallback = record({
       emit: (event) => {
         const globalScope = getGlobalScope();
         if ((globalScope && globalScope.document && !globalScope.document.hasFocus()) || !this.getShouldRecord()) {
@@ -236,6 +231,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
       },
     });
   }
+
+  stopRecordingEvents = () => {
+    try {
+      this.recordCancelCallback && this.recordCancelCallback();
+      this.recordCancelCallback = null;
+    } catch (error) {
+      const typedError = error as Error;
+      this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
+    }
+  };
 
   getDeviceId() {
     let identityStoreDeviceId: string | undefined;
