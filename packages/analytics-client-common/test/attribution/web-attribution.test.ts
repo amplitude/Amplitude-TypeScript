@@ -76,4 +76,27 @@ describe('shouldTrackNewCampaign', () => {
     const campaignEvent = webAttribution.generateCampaignEvent(event_id);
     expect(campaignEvent.event_id).toBe(event_id);
   });
+
+  test('should set session id on a new Campaign', async () => {
+    const option = {
+      resetSessionOnNewCampaign: true,
+    };
+    const webAttribution = new WebAttribution(option, mockConfig);
+    await webAttribution.init();
+    console.log(webAttribution.shouldTrackNewCampaign);
+
+    expect(webAttribution.shouldSetSessionIdOnNewCampaign()).toBe(true);
+  });
+
+  test('should not set session id on a new Campaign', async () => {
+    const option = {
+      resetSessionOnNewCampaign: true,
+    };
+    const webAttribution = new WebAttribution(option, mockConfig);
+    await webAttribution.init();
+    console.log(webAttribution.shouldTrackNewCampaign);
+
+    webAttribution.generateCampaignEvent();
+    expect(webAttribution.shouldSetSessionIdOnNewCampaign()).toBe(false);
+  });
 });

@@ -24,6 +24,7 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
           amplitude.setSessionId(Date.now());
           config.loggerProvider.log('Created a new session for new campaign.');
         }
+        config.loggerProvider.log('Tracking attribution.');
         const campaignEvent = webAttribution.generateCampaignEvent();
         amplitude.track(campaignEvent);
       }

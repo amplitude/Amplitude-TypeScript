@@ -3,13 +3,14 @@ import { Campaign, Storage } from '@amplitude/analytics-types';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
 import { getStorageKey } from '../storage/helpers';
 import { CampaignParser } from './campaign-parser';
+import { BASE_CAMPAIGN } from './constants';
 
 export class WebAttribution {
   options: Options;
   storage: Storage<Campaign>;
   storageKey: string;
-  previousCampaign: Campaign | undefined;
-  currentCampaign!: Campaign;
+  previousCampaign?: Campaign;
+  currentCampaign: Campaign;
   shouldTrackNewCampaign = false;
 
   constructor(options: Options, config: BrowserConfig) {
@@ -21,6 +22,7 @@ export class WebAttribution {
     };
     this.storage = config.cookieStorage as unknown as Storage<Campaign>;
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
+    this.currentCampaign = BASE_CAMPAIGN;
     config.loggerProvider.log('Installing web attribution tracking.');
   }
 
@@ -28,7 +30,6 @@ export class WebAttribution {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
 
     if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
-      console.log(isNewCampaign);
       this.shouldTrackNewCampaign = true;
       await this.storage.set(this.storageKey, this.currentCampaign);
     }
@@ -51,5 +52,9 @@ export class WebAttribution {
       campaignEvent.event_id = event_id;
     }
     return campaignEvent;
+  }
+
+  shouldSetSessionIdOnNewCampaign() {
+    return this.shouldTrackNewCampaign && !!this.options.resetSessionOnNewCampaign;
   }
 }

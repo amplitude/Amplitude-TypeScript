@@ -2,7 +2,7 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { OfflineDisabled, UserSession, CoreClient, DestinationPlugin, Event, Result } from '@amplitude/analytics-types';
+import { OfflineDisabled, UserSession, CoreClient, DestinationPlugin, Event, Result, LogLevel } from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -964,6 +964,32 @@ describe('browser-client', () => {
   });
 
   describe('process', () => {
+    test(' should process create new session for new campain', async () => {
+      await client.init(apiKey, {
+        optOut: true,
+        logLevel: LogLevel.Warn,
+        defaultTracking: {
+          attribution: {
+            resetSessionOnNewCampaign: true,
+          }
+        }
+      }).promise;
+
+      expect(client.webAttribution).toBeDefined();
+
+      //TODO: Avoid calling `expect` conditionally`
+      if (client.webAttribution) {
+        jest.spyOn(client.webAttribution, 'shouldSetSessionIdOnNewCampaign').mockReturnValueOnce(true);
+        const logSpy = jest.spyOn(client.config.loggerProvider, 'log');
+
+        await client.process({
+          event_type: 'event',
+        });
+  
+        expect(logSpy).toHaveBeenCalledWith("Created a new session for new campaign.");
+      }
+    })
+
     test('should proceed with unexpired session', async () => {
       const setSessionId = jest.spyOn(client, 'setSessionId');
       await client.init(apiKey, {

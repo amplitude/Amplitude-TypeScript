@@ -171,7 +171,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return this.config?.sessionId;
   }
 
-  setSessionId(sessionId: number, shouldTrackNewCampaign?: boolean) {
+  setSessionId(sessionId: number) {
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return;
@@ -202,19 +202,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.config.lastEventTime = this.config.sessionId;
     }
 
-    // Fire web attribution events when enable webAttribution tracking and either
-    // 1. has new campaign (manually call setSessionId or call setSessionId from init function)
+    // Fire web attribution event when enable webAttribution tracking
+    // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
-    if (this.webAttribution?.shouldTrackNewCampaign || shouldTrackNewCampaign) {
-      if (this.webAttribution) {
-        const campaignEvent = this.webAttribution.generateCampaignEvent(++lastEventId);
-        this.track(campaignEvent);
-      }
-    }
+    const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId);
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       this.track(DEFAULT_SESSION_START_EVENT, undefined, {
-        event_id: ++lastEventId,
+        event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,
         session_id: this.config.sessionId,
         time: this.config.lastEventTime,
       });
@@ -273,27 +268,34 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return super.revenue(revenue, eventOptions);
   }
 
-  async process(event: Event) {
-    let shouldTrackNewCampaign = false;
-    let shouldSetSessionId = false;
-    if (this.webAttribution) {
-      shouldTrackNewCampaign = this.webAttribution.shouldTrackNewCampaign;
-      shouldSetSessionId = shouldTrackNewCampaign && !!this.webAttribution.options.resetSessionOnNewCampaign;
+  private trackCampaignEventIfNeeded(lastEventId?: number) {
+    if (!this.webAttribution || !this.webAttribution.shouldTrackNewCampaign) {
+      return false;
     }
+    const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
+    this.track(campaignEvent);
+    this.config.loggerProvider.log('Tracking attribution.');
+    return true;
+  }
 
+  async process(event: Event) {
     const currentTime = Date.now();
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
+    const shouldSetSessionIdOnNewCampaign = this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
+    
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
       (!event.session_id || event.session_id === this.getSessionId())
     ) {
-      if (isEventInNewSession || shouldSetSessionId) {
-        this.setSessionId(currentTime, shouldTrackNewCampaign);
-      } else if (this.webAttribution && !isEventInNewSession && shouldTrackNewCampaign) {
+      if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
+        this.setSessionId(currentTime);
+        if (shouldSetSessionIdOnNewCampaign) {
+          this.config.loggerProvider.log('Created a new session for new campaign.');
+        }
+      } else if (!isEventInNewSession) {
         // web attribution should be track during the middle of the session if there has any new campaign
-        const campaignEvent = this.webAttribution.generateCampaignEvent();
-        this.track(campaignEvent);
+        this.trackCampaignEventIfNeeded();
       }
     }
 
