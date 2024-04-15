@@ -17,7 +17,6 @@ describe('pageViewTrackingPlugin', () => {
     serverUrl: undefined,
     transportProvider: new FetchTransport(),
     useBatch: false,
-
     cookieOptions: {
       domain: '.amplitude.com',
       expiration: 365,
@@ -199,6 +198,31 @@ describe('pageViewTrackingPlugin', () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should setSessionId if event in new session', async () => {
+      const config = { ...mockConfig };
+      config.lastEventTime = Date.now() - config.sessionTimeout * 2;
+      config.pageCounter = 0;
+      const url = new URL('https://www.example.com');
+      const amplitude = createInstance();
+      jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: '[Amplitude] Page Viewed',
+          },
+        }),
+      });
+      // Make sure session expire
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(config, amplitude);
+      const setSessionId = jest.spyOn(amplitude, 'setSessionId');
+      mockWindowLocationFromURL(url);
+
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(config.pageCounter).toBe(1);
     });
   });
 

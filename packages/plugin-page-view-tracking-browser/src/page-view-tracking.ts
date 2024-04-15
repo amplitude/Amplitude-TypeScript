@@ -1,4 +1,4 @@
-import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-common';
+import { CampaignParser, getGlobalScope, isNewSession } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
   BrowserConfig,
@@ -20,7 +20,12 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let localConfig: BrowserConfig;
 
   const createPageViewEvent = async (): Promise<Event> => {
+    const isEventInNewSession = isNewSession(localConfig.sessionTimeout, localConfig.lastEventTime);
+    if (isEventInNewSession && amplitude) {
+      amplitude.setSessionId(Date.now());
+    }
     localConfig.pageCounter = !localConfig.pageCounter ? 1 : localConfig.pageCounter + 1;
+
     return {
       event_type: options.eventType ?? '[Amplitude] Page Viewed',
       event_properties: {
