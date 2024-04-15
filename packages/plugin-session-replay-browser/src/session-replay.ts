@@ -105,6 +105,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
       sampleRate: this.options.sampleRate,
       privacyConfig: {
         blockSelector: this.options.privacyConfig?.blockSelector,
+        maskTextFn: this.options.privacyConfig?.maskTextFn,
       },
       debugMode: this.options.debugMode,
     }).promise;
