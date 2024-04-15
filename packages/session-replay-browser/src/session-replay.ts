@@ -49,6 +49,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const globalScope = getGlobalScope();
     if (globalScope) {
+      globalScope.removeEventListener('blur', this.blurListener);
+      globalScope.removeEventListener('focus', this.focusListener);
       globalScope.addEventListener('blur', this.blurListener);
       globalScope.addEventListener('focus', this.focusListener);
     }
