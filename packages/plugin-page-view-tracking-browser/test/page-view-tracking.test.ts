@@ -215,10 +215,11 @@ describe('pageViewTrackingPlugin', () => {
           },
         }),
       });
+      const setSessionId = jest.spyOn(amplitude, 'setSessionId');
+
       // Make sure session expire
       const plugin = pageViewTrackingPlugin();
       await plugin.setup?.(config, amplitude);
-      const setSessionId = jest.spyOn(amplitude, 'setSessionId');
       mockWindowLocationFromURL(url);
 
       expect(setSessionId).toHaveBeenCalledTimes(1);
