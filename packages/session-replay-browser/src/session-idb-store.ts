@@ -8,6 +8,7 @@ import {
   IDBStore,
   IDBStoreSession,
   RecordingStatus,
+  SessionReplayRemoteConfig,
 } from './typings/session-replay';
 
 export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessionIDBStore {
@@ -52,6 +53,35 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
           },
         };
       });
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+  };
+
+  storeRemoteConfigForSession = async (sessionId: number, remoteConfig: SessionReplayRemoteConfig) => {
+    try {
+      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
+        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
+
+        session.remoteConfig = remoteConfig;
+
+        return {
+          ...sessionMap,
+          [sessionId]: {
+            ...session,
+          },
+        };
+      });
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+  };
+
+  getRemoteConfigForSession = async (sessionId: number): Promise<SessionReplayRemoteConfig | void> => {
+    try {
+      const sessionMap: IDBStore = (await IDBKeyVal.get(this.storageKey)) || {};
+      const session: IDBStoreSession = sessionMap[sessionId];
+      return session?.remoteConfig;
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
