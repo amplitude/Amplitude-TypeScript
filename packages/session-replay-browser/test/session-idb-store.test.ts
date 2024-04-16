@@ -540,4 +540,149 @@ describe('SessionReplaySessionIDBStore', () => {
       });
     });
   });
+  describe('getTargetingMatchForSession', () => {
+    test('should return the remote config from idb store', async () => {
+      const mockStore: IDBStore = {
+        123: {
+          currentSequenceId: 3,
+          remoteConfig: mockRemoteConfig,
+          targetingMatch: true,
+          sessionSequences: {
+            3: {
+              events: [mockEventString],
+              status: RecordingStatus.RECORDING,
+            },
+          },
+        },
+      };
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      get.mockResolvedValueOnce(mockStore);
+      const targetingMatch = await eventsStorage.getTargetingMatchForSession(123);
+      expect(targetingMatch).toEqual(true);
+    });
+    test('should handle an undefined store', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      get.mockResolvedValueOnce(undefined);
+      const targetingMatch = await eventsStorage.getTargetingMatchForSession(123);
+      expect(targetingMatch).toEqual(undefined);
+    });
+    test('should catch errors', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      get.mockImplementationOnce(() => Promise.reject('error'));
+      await eventsStorage.getTargetingMatchForSession(123);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
+        'Failed to store session replay events in IndexedDB: error',
+      );
+    });
+  });
+
+  describe('storeTargetingMatchForSession', () => {
+    test('should set the targeting match on the session map', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const mockIDBStore: IDBStore = {
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [mockEventString],
+              status: RecordingStatus.RECORDING,
+            },
+          },
+        },
+        456: {
+          currentSequenceId: 1,
+          sessionSequences: {
+            1: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      };
+      await eventsStorage.storeTargetingMatchForSession(123, true);
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
+        123: {
+          currentSequenceId: 2,
+          targetingMatch: true,
+          sessionSequences: {
+            2: {
+              events: [mockEventString],
+              status: RecordingStatus.RECORDING,
+            },
+          },
+        },
+        456: {
+          currentSequenceId: 1,
+          sessionSequences: {
+            1: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      });
+    });
+    test('should add a new entry if none exist for session id', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const mockIDBStore: IDBStore = {
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      };
+      await eventsStorage.storeTargetingMatchForSession(456, true);
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+        456: {
+          currentSequenceId: 0,
+          targetingMatch: true,
+          sessionSequences: {},
+        },
+      });
+    });
+    test('should catch errors', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      update.mockImplementationOnce(() => Promise.reject('error'));
+      await eventsStorage.storeTargetingMatchForSession(123, true);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
+        'Failed to store session replay events in IndexedDB: error',
+      );
+    });
+    test('should handle an undefined store', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      update.mockImplementationOnce(() => Promise.resolve());
+      await eventsStorage.storeTargetingMatchForSession(456, true);
+      expect(update.mock.calls[0][1](undefined)).toEqual({
+        456: {
+          currentSequenceId: 0,
+          targetingMatch: true,
+          sessionSequences: {},
+        },
+      });
+    });
+  });
 });
