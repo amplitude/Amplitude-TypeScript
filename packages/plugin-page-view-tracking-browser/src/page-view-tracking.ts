@@ -21,9 +21,10 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
 
   const createPageViewEvent = async (): Promise<Event> => {
     const isEventInNewSession = isNewSession(localConfig.sessionTimeout, localConfig.lastEventTime);
-    if (isEventInNewSession && amplitude) {
-      amplitude.setSessionId(Date.now());
+    if (isEventInNewSession) {
+      localConfig.pageCounter = 0;
     }
+
     localConfig.pageCounter = !localConfig.pageCounter ? 1 : localConfig.pageCounter + 1;
 
     return {

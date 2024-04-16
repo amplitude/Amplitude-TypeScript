@@ -200,7 +200,7 @@ describe('pageViewTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should setSessionId if event in new session', async () => {
+    test('should clear pageCounter if event in new session', async () => {
       const config = { ...mockConfig };
       config.lastEventTime = Date.now() - config.sessionTimeout * 2;
       config.pageCounter = 0;
@@ -215,14 +215,13 @@ describe('pageViewTrackingPlugin', () => {
           },
         }),
       });
-      const setSessionId = jest.spyOn(amplitude, 'setSessionId');
 
       // Make sure session expire
       const plugin = pageViewTrackingPlugin();
       await plugin.setup?.(config, amplitude);
       mockWindowLocationFromURL(url);
 
-      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(config.pageCounter).toBe(1);
       expect(config.pageCounter).toBe(1);
     });
   });
