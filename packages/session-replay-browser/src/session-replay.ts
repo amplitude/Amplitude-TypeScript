@@ -2,7 +2,7 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
-import { TargetingParameters, evaluateTargeting } from '@amplitude/targeting';
+import { TargetingParameters } from '@amplitude/targeting';
 import { SessionReplayConfig } from './config';
 import {
   BLOCK_CLASS,
@@ -34,7 +34,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
   sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
-  sessionTargetingMatch = false;
 
   constructor() {
     this.loggerProvider = new Logger();
@@ -146,26 +145,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
 
-    try {
-      const targetingConfig = await this.remoteConfigFetch.getTargetingConfig(this.identifiers.sessionId);
-      console.log('targetingConfig', targetingConfig);
-      if (targetingConfig && Object.keys(targetingConfig).length > 0) {
-        const targetingResult = evaluateTargeting({
-          flag: targetingConfig,
-          sessionId: this.identifiers.sessionId,
-          deviceId: this.getDeviceId(),
-          ...targetingParams,
-        });
-        this.sessionTargetingMatch =
-          this.sessionTargetingMatch === false && targetingResult.sr_targeting_config.key === 'on';
-        // todo, need to save this in idb too
-      } else {
-        this.sessionTargetingMatch = true;
-      }
-    } catch (err: unknown) {
-      const knownError = err as Error;
-      this.config.loggerProvider.warn(knownError.message);
-    }
+    await this.remoteConfigFetch.evaluateTargeting({
+      sessionId: this.identifiers.sessionId,
+      deviceId: this.getDeviceId(),
+      ...targetingParams,
+    });
   };
 
   stopRecordingAndSendEvents(sessionId?: number) {

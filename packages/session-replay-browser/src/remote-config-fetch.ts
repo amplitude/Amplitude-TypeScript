@@ -1,6 +1,6 @@
 import { BaseTransport } from '@amplitude/analytics-core';
 import { Status } from '@amplitude/analytics-types';
-import { TargetingFlag } from '@amplitude/targeting';
+import { TargetingFlag, TargetingParameters, evaluateTargeting } from '@amplitude/targeting';
 import { UNEXPECTED_ERROR_MESSAGE } from './messages';
 import {
   SessionReplayRemoteConfigFetch as AmplitudeSessionReplayRemoteConfigFetch,
@@ -19,6 +19,7 @@ export class SessionReplayRemoteConfigFetch implements AmplitudeSessionReplayRem
   sessionIDBStore: AmplitudeSessionReplaySessionIDBStore;
   retryTimeout = 1000;
   attempts = 0;
+  sessionTargetingMatch = false;
 
   constructor({
     config,
@@ -31,15 +32,53 @@ export class SessionReplayRemoteConfigFetch implements AmplitudeSessionReplayRem
     this.sessionIDBStore = sessionIDBStore;
   }
 
+  /**
+   * Once targeting has been evaluated to positive for the session,
+   * it should not be reevaluated. A sessionTargetingMatch of true should
+   * stay true for the remainder of the session.
+   */
+  evaluateTargeting = async (targetingParams: Omit<TargetingParameters, 'flag'>) => {
+    // First check memory for existing true decision
+    if (this.sessionTargetingMatch === true) {
+      return;
+    }
+
+    // Then check IndexedDB for existing true decision
+    const idbTargetingMatch = await this.sessionIDBStore.getTargetingMatchForSession(targetingParams.sessionId);
+    if (idbTargetingMatch === true) {
+      this.sessionTargetingMatch = true;
+      return;
+    }
+
+    // Finally evaluate targeting if previous two checks were false or undefined
+    try {
+      const targetingConfig = await this.getTargetingConfig(targetingParams.sessionId);
+      if (targetingConfig && Object.keys(targetingConfig).length > 0) {
+        const targetingResult = evaluateTargeting({ ...targetingParams, flag: targetingConfig });
+        this.sessionTargetingMatch =
+          this.sessionTargetingMatch === false && targetingResult.sr_targeting_config.key === 'on';
+      } else {
+        // If the targeting config is undefined or an empty object,
+        // assume the response was valid but no conditions were set,
+        // so all users match targeting
+        this.sessionTargetingMatch = true;
+      }
+      void this.sessionIDBStore.storeTargetingMatchForSession(targetingParams.sessionId, this.sessionTargetingMatch);
+    } catch (err: unknown) {
+      const knownError = err as Error;
+      this.config.loggerProvider.warn(knownError.message);
+    }
+  };
+
   getRemoteConfig = async (sessionId: number): Promise<SessionReplayRemoteConfig | void> => {
     // First check memory
     if (this.remoteConfig) {
       return Promise.resolve(this.remoteConfig);
     }
     // Then check IndexedDB for session
-    const remoteConfigFromIDB = await this.sessionIDBStore.getRemoteConfigForSession(sessionId);
-    if (remoteConfigFromIDB) {
-      return remoteConfigFromIDB;
+    const remoteConfig = await this.sessionIDBStore.getRemoteConfigForSession(sessionId);
+    if (remoteConfig) {
+      return remoteConfig;
     }
     // Finally fetch via API
     return this.fetchRemoteConfig(sessionId);

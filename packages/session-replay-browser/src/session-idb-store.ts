@@ -87,6 +87,35 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
     }
   };
 
+  storeTargetingMatchForSession = async (sessionId: number, targetingMatch: boolean) => {
+    try {
+      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
+        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
+
+        session.targetingMatch = targetingMatch;
+
+        return {
+          ...sessionMap,
+          [sessionId]: {
+            ...session,
+          },
+        };
+      });
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+  };
+
+  getTargetingMatchForSession = async (sessionId: number): Promise<boolean | void> => {
+    try {
+      const sessionMap: IDBStore = (await IDBKeyVal.get(this.storageKey)) || {};
+      const session: IDBStoreSession = sessionMap[sessionId];
+      return session?.targetingMatch;
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+  };
+
   cleanUpSessionEventsStore = async (sessionId: number, sequenceId: number) => {
     try {
       await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {

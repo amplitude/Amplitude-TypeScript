@@ -1,4 +1,5 @@
 import { Logger } from '@amplitude/analytics-types';
+import * as Targeting from '@amplitude/targeting';
 import { SessionReplayConfig } from '../src/config';
 import { SessionReplayRemoteConfigFetch } from '../src/remote-config-fetch';
 import { SessionReplaySessionIDBStore } from '../src/session-idb-store';
@@ -6,6 +7,9 @@ import { SessionReplayRemoteConfig } from '../src/typings/session-replay';
 import { flagConfig } from './flag-config-data';
 
 type MockedLogger = jest.Mocked<Logger>;
+
+jest.mock('@amplitude/targeting');
+type MockedTargeting = jest.Mocked<typeof import('@amplitude/targeting')>;
 
 const mockRemoteConfig: SessionReplayRemoteConfig = {
   sr_targeting_config: flagConfig,
@@ -21,6 +25,7 @@ async function runScheduleTimers() {
 }
 
 describe('SessionReplayRemoteConfigFetch', () => {
+  const { evaluateTargeting } = Targeting as MockedTargeting;
   let originalFetch: typeof global.fetch;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -307,6 +312,84 @@ describe('SessionReplayRemoteConfigFetch', () => {
           expect(err.message).toEqual('Error: Unexpected error occurred');
           expect(remoteConfigFetch.attempts).toBe(0);
         });
+    });
+  });
+
+  describe('evaluateTargeting', () => {
+    let remoteConfigFetch: SessionReplayRemoteConfigFetch;
+    let storeTargetingMatchForSessionMock: jest.Mock;
+    let getTargetingMatchForSessionMock: jest.Mock;
+    let getTargetingConfigMock: jest.Mock;
+    beforeEach(() => {
+      storeTargetingMatchForSessionMock = jest.fn();
+      getTargetingMatchForSessionMock = jest.fn();
+      getTargetingConfigMock = jest.fn();
+      sessionIDBStore.storeRemoteConfigForSession = storeTargetingMatchForSessionMock;
+      sessionIDBStore.getTargetingMatchForSession = getTargetingMatchForSessionMock;
+      remoteConfigFetch = new SessionReplayRemoteConfigFetch({ config, sessionIDBStore });
+    });
+    test('should do nothing if sessionTargetingMatch is true', async () => {
+      remoteConfigFetch.sessionTargetingMatch = true;
+      await remoteConfigFetch.evaluateTargeting({ sessionId: 123 });
+      expect(getTargetingMatchForSessionMock).not.toHaveBeenCalled();
+    });
+    test('should return a true match from IndexedDB', async () => {
+      remoteConfigFetch.sessionTargetingMatch = false;
+      getTargetingMatchForSessionMock.mockResolvedValueOnce(true);
+      await remoteConfigFetch.evaluateTargeting({ sessionId: 123 });
+      expect(getTargetingMatchForSessionMock).toHaveBeenCalled();
+      expect(getTargetingConfigMock).not.toHaveBeenCalled();
+      expect(remoteConfigFetch.sessionTargetingMatch).toBe(true);
+    });
+
+    test('should fetch remote config and use it to determine targeting match', async () => {
+      remoteConfigFetch.sessionTargetingMatch = false;
+      getTargetingConfigMock.mockResolvedValueOnce(flagConfig);
+      remoteConfigFetch.getTargetingConfig = getTargetingConfigMock;
+      evaluateTargeting.mockReturnValueOnce({
+        sr_targeting_config: {
+          key: 'on',
+        },
+      });
+      const mockUserProperties = {
+        country: 'US',
+        city: 'San Francisco',
+      };
+      await remoteConfigFetch.evaluateTargeting({
+        sessionId: 123,
+        deviceId: '1a2b3c',
+        userProperties: mockUserProperties,
+      });
+      expect(evaluateTargeting).toHaveBeenCalledWith({
+        flag: flagConfig,
+        sessionId: 123,
+        deviceId: '1a2b3c',
+        userProperties: mockUserProperties,
+      });
+      expect(remoteConfigFetch.sessionTargetingMatch).toBe(true);
+    });
+    test('should set sessionTargetingMatch to true if no targeting config returned', async () => {
+      getTargetingConfigMock = jest.fn().mockResolvedValue(undefined);
+      remoteConfigFetch.getTargetingConfig = getTargetingConfigMock;
+      await remoteConfigFetch.evaluateTargeting({ sessionId: 123 });
+      expect(evaluateTargeting).not.toHaveBeenCalled();
+      expect(remoteConfigFetch.sessionTargetingMatch).toBe(true);
+    });
+    test('should set sessionTargetingMatch to true if targeting config returned as empty object', async () => {
+      getTargetingConfigMock = jest.fn().mockResolvedValue({});
+      remoteConfigFetch.getTargetingConfig = getTargetingConfigMock;
+      await remoteConfigFetch.evaluateTargeting({ sessionId: 123 });
+      expect(evaluateTargeting).not.toHaveBeenCalled();
+      expect(remoteConfigFetch.sessionTargetingMatch).toBe(true);
+    });
+    test('should not update sessionTargetingMatch getTargetingConfig throws error', async () => {
+      expect(remoteConfigFetch.sessionTargetingMatch).toBe(false);
+      getTargetingConfigMock = jest.fn().mockImplementation(() => {
+        throw new Error();
+      });
+      await remoteConfigFetch.evaluateTargeting({ sessionId: 123 });
+      expect(evaluateTargeting).not.toHaveBeenCalled();
+      expect(remoteConfigFetch.sessionTargetingMatch).toBe(false);
     });
   });
 });

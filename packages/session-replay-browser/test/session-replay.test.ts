@@ -1,15 +1,10 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
-import * as Targeting from '@amplitude/targeting';
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayConfig, SessionReplayOptions } from '../src/typings/session-replay';
-import { flagConfig } from './flag-config-data';
-
-jest.mock('@amplitude/targeting');
-type MockedTargeting = jest.Mocked<typeof import('@amplitude/targeting')>;
 
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -24,7 +19,6 @@ const mockEvent = {
 const mockEventString = JSON.stringify(mockEvent);
 
 describe('SessionReplayPlugin', () => {
-  const { evaluateTargeting } = Targeting as MockedTargeting;
   const { record } = RRWeb as MockedRRWeb;
   let originalFetch: typeof global.fetch;
   let globalSpy: jest.SpyInstance;
@@ -781,10 +775,17 @@ describe('SessionReplayPlugin', () => {
 
   describe('evaluateTargeting', () => {
     let sessionReplay: SessionReplay;
+    let evaluateTargetingMock: jest.Mock;
     beforeEach(async () => {
+      evaluateTargetingMock = jest.fn();
       sessionReplay = new SessionReplay();
       sessionReplay.initialize = jest.fn(); // Mock out the initialize method as it calls evaluateTargeting, creates testing conflicts
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+
+      if (!sessionReplay.remoteConfigFetch) {
+        throw new Error('no remote config fetch');
+      }
+      sessionReplay.remoteConfigFetch.evaluateTargeting = evaluateTargetingMock;
     });
     test('should return undefined if no identifiers set', async () => {
       sessionReplay.identifiers = undefined;
@@ -793,86 +794,20 @@ describe('SessionReplayPlugin', () => {
       expect(mockLoggerProvider.error).toHaveBeenCalledWith(
         'Session replay init has not been called, cannot evaluate targeting.',
       );
+      expect(evaluateTargetingMock).not.toHaveBeenCalled();
     });
 
-    test('should fetch remote config and use it to determine targeting match', async () => {
-      expect(sessionReplay.sessionTargetingMatch).toBe(false);
-      const getTargetingConfigMock = jest.fn().mockResolvedValue(flagConfig);
-      if (!sessionReplay.remoteConfigFetch) {
-        return;
-      }
-      evaluateTargeting.mockReturnValueOnce({
-        sr_targeting_config: {
-          key: 'on',
-        },
-      });
-      sessionReplay.remoteConfigFetch = { getTargetingConfig: getTargetingConfigMock, getRemoteConfig: jest.fn() };
-      await sessionReplay.evaluateTargeting();
-      expect(evaluateTargeting).toHaveBeenCalledWith({
-        flag: flagConfig,
-        sessionId: mockOptions.sessionId,
-        deviceId: mockOptions.deviceId,
-      });
-      expect(sessionReplay.sessionTargetingMatch).toBe(true);
-    });
-    test('should pass user properties to evaluateTargeting', async () => {
-      expect(sessionReplay.sessionTargetingMatch).toBe(false);
-      const getTargetingConfigMock = jest.fn().mockResolvedValue(flagConfig);
-      if (!sessionReplay.remoteConfigFetch) {
-        return;
-      }
-      evaluateTargeting.mockReturnValueOnce({
-        sr_targeting_config: {
-          key: 'on',
-        },
-      });
+    test('should pass identifiers and user properties to evaluateTargeting', async () => {
       const mockUserProperties = {
         country: 'US',
         city: 'San Francisco',
       };
-      sessionReplay.remoteConfigFetch = { getTargetingConfig: getTargetingConfigMock, getRemoteConfig: jest.fn() };
       await sessionReplay.evaluateTargeting({ userProperties: mockUserProperties });
-      expect(evaluateTargeting).toHaveBeenCalled();
-      expect(evaluateTargeting).toHaveBeenCalledWith({
-        flag: flagConfig,
+      expect(evaluateTargetingMock).toHaveBeenCalledWith({
         sessionId: mockOptions.sessionId,
         deviceId: mockOptions.deviceId,
         userProperties: mockUserProperties,
       });
-      expect(sessionReplay.sessionTargetingMatch).toBe(true);
-    });
-    test('should set sessionTargetingMatch to true if no targeting config returned', async () => {
-      const getTargetingConfigMock = jest.fn().mockResolvedValue(undefined);
-      if (!sessionReplay.remoteConfigFetch) {
-        return;
-      }
-      sessionReplay.remoteConfigFetch = { getTargetingConfig: getTargetingConfigMock, getRemoteConfig: jest.fn() };
-      await sessionReplay.evaluateTargeting();
-      expect(evaluateTargeting).not.toHaveBeenCalled();
-      expect(sessionReplay.sessionTargetingMatch).toBe(true);
-    });
-    test('should set sessionTargetingMatch to true if targeting config returned as empty object', async () => {
-      const getTargetingConfigMock = jest.fn().mockResolvedValue({});
-      if (!sessionReplay.remoteConfigFetch) {
-        return;
-      }
-      sessionReplay.remoteConfigFetch = { getTargetingConfig: getTargetingConfigMock, getRemoteConfig: jest.fn() };
-      await sessionReplay.evaluateTargeting();
-      expect(evaluateTargeting).not.toHaveBeenCalled();
-      expect(sessionReplay.sessionTargetingMatch).toBe(true);
-    });
-    test('should not update sessionTargetingMatch getTargetingConfig throws error', async () => {
-      expect(sessionReplay.sessionTargetingMatch).toBe(false);
-      const getTargetingConfigMock = jest.fn().mockImplementation(() => {
-        throw new Error();
-      });
-      if (!sessionReplay.remoteConfigFetch) {
-        return;
-      }
-      sessionReplay.remoteConfigFetch = { getTargetingConfig: getTargetingConfigMock, getRemoteConfig: jest.fn() };
-      await sessionReplay.evaluateTargeting();
-      expect(evaluateTargeting).not.toHaveBeenCalled();
-      expect(sessionReplay.sessionTargetingMatch).toBe(false);
     });
   });
 
