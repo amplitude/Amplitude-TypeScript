@@ -200,9 +200,8 @@ describe('pageViewTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should clear pageCounter if event in new session', async () => {
+    test('should set the pageCounter accordingly', async () => {
       const config = { ...mockConfig };
-      config.lastEventTime = Date.now() - config.sessionTimeout * 2;
       config.pageCounter = 0;
       const url = new URL('https://www.example.com');
       const amplitude = createInstance();
@@ -216,12 +215,24 @@ describe('pageViewTrackingPlugin', () => {
         }),
       });
 
-      // Make sure session expire
+      // Should increase the page conter if in session
       const plugin = pageViewTrackingPlugin();
       await plugin.setup?.(config, amplitude);
       mockWindowLocationFromURL(url);
-
       expect(config.pageCounter).toBe(1);
+
+      // pageCounter should increase
+      const newURL = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+      expect(config.pageCounter).toBe(2);
+
+      // Should clean pageCounter after session expire
+      config.lastEventTime = Date.now() - config.sessionTimeout * 2;
+
+      const anotherURL = new URL('https://www.example.com/contact');
+      mockWindowLocationFromURL(anotherURL);
+      window.history.pushState(undefined, anotherURL.href);
       expect(config.pageCounter).toBe(1);
     });
   });
