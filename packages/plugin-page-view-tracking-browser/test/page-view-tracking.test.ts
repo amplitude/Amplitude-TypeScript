@@ -33,6 +33,7 @@ describe('pageViewTrackingPlugin', () => {
     },
     pageCounter: 0,
   };
+  const defaultPageViewEvent = '[Amplitude] Page Viewed';
 
   beforeAll(() => {
     Object.defineProperty(window, 'location', {
@@ -94,7 +95,6 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newURL.toString(),
-          '[Amplitude] Page Counter': 2,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -137,7 +137,6 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': `https://${hostname}${pathname}`,
-          '[Amplitude] Page Counter': 1,
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -198,42 +197,6 @@ describe('pageViewTrackingPlugin', () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       expect(track).toHaveBeenCalledTimes(1);
-    });
-
-    test('should set the pageCounter accordingly', async () => {
-      const config = { ...mockConfig };
-      config.pageCounter = 0;
-      const url = new URL('https://www.example.com');
-      const amplitude = createInstance();
-      jest.spyOn(amplitude, 'track').mockReturnValue({
-        promise: Promise.resolve({
-          code: 200,
-          message: '',
-          event: {
-            event_type: '[Amplitude] Page Viewed',
-          },
-        }),
-      });
-
-      // Should increase the page conter if in session
-      const plugin = pageViewTrackingPlugin();
-      await plugin.setup?.(config, amplitude);
-      mockWindowLocationFromURL(url);
-      expect(config.pageCounter).toBe(1);
-
-      // pageCounter should increase
-      const newURL = new URL('https://www.example.com/about');
-      mockWindowLocationFromURL(newURL);
-      window.history.pushState(undefined, newURL.href);
-      expect(config.pageCounter).toBe(2);
-
-      // Should clean pageCounter after session expire
-      config.lastEventTime = Date.now() - config.sessionTimeout * 2;
-
-      const anotherURL = new URL('https://www.example.com/contact');
-      mockWindowLocationFromURL(anotherURL);
-      window.history.pushState(undefined, anotherURL.href);
-      expect(config.pageCounter).toBe(1);
     });
   });
 
@@ -330,6 +293,49 @@ describe('pageViewTrackingPlugin', () => {
       };
       const event = await plugin.execute?.(sentEvent);
       expect(event).toBe(sentEvent);
+    });
+
+    test('should set the pageCounter', async () => {
+      const config = { ...mockConfig };
+      config.pageCounter = 0;
+      const amplitude = createInstance();
+      jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: defaultPageViewEvent,
+          },
+        }),
+      });
+
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(config, amplitude);
+      await plugin.execute?.({ event_type: defaultPageViewEvent });
+      expect(config.pageCounter).toBe(1);
+
+      await plugin.execute?.({ event_type: defaultPageViewEvent });
+      expect(config.pageCounter).toBe(2);
+    });
+
+    test('should not set the pageCounter', async () => {
+      const config = { ...mockConfig };
+      config.pageCounter = 0;
+      const amplitude = createInstance();
+      jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: defaultPageViewEvent,
+          },
+        }),
+      });
+
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(config, amplitude);
+      await plugin.execute?.({ event_type: 'other event' });
+      expect(config.pageCounter).toBe(0);
     });
   });
 

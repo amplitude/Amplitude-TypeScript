@@ -1,4 +1,4 @@
-import { CampaignParser, getGlobalScope, isNewSession } from '@amplitude/analytics-client-common';
+import { CampaignParser, getGlobalScope } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
   BrowserConfig,
@@ -12,6 +12,8 @@ import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 
+const defaultPageViewEvent = '[Amplitude] Page Viewed';
+
 export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Options = {}) => {
   let amplitude: BrowserClient | undefined;
   const globalScope = getGlobalScope();
@@ -20,15 +22,8 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let localConfig: BrowserConfig;
 
   const createPageViewEvent = async (): Promise<Event> => {
-    const isEventInNewSession = isNewSession(localConfig.sessionTimeout, localConfig.lastEventTime);
-    if (isEventInNewSession) {
-      localConfig.pageCounter = 0;
-    }
-
-    localConfig.pageCounter = !localConfig.pageCounter ? 1 : localConfig.pageCounter + 1;
-
     return {
-      event_type: options.eventType ?? '[Amplitude] Page Viewed',
+      event_type: options.eventType ?? defaultPageViewEvent,
       event_properties: {
         ...(await getCampaignParams()),
         '[Amplitude] Page Domain':
@@ -40,7 +35,6 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
         '[Amplitude] Page URL':
           /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
-        '[Amplitude] Page Counter': localConfig.pageCounter,
       },
     };
   };
@@ -120,6 +114,15 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         event.event_properties = {
           ...event.event_properties,
           ...pageViewEvent.event_properties,
+        };
+      }
+
+      // Update the pageCounter for the page view event
+      if (localConfig && (event.event_type === options.eventType || event.event_type === defaultPageViewEvent)) {
+        localConfig.pageCounter = !localConfig.pageCounter ? 1 : localConfig.pageCounter + 1;
+        event.event_properties = {
+          ...event.event_properties,
+          '[Amplitude] Page Counter': localConfig.pageCounter,
         };
       }
       return event;

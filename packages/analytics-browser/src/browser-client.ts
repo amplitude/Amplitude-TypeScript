@@ -186,6 +186,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     this.config.sessionId = sessionId;
     this.config.lastEventTime = undefined;
+    this.config.pageCounter = 0;
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
