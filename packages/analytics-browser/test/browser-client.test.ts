@@ -2,7 +2,15 @@ import { AmplitudeBrowser } from '../src/browser-client';
 import * as core from '@amplitude/analytics-core';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
-import { OfflineDisabled, UserSession, CoreClient, DestinationPlugin, Event, Result, LogLevel } from '@amplitude/analytics-types';
+import {
+  OfflineDisabled,
+  UserSession,
+  CoreClient,
+  DestinationPlugin,
+  Event,
+  Result,
+  LogLevel,
+} from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
@@ -15,6 +23,7 @@ import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
+import { WebAttribution } from '@amplitude/analytics-client-common/src';
 
 describe('browser-client', () => {
   let apiKey = '';
@@ -964,31 +973,32 @@ describe('browser-client', () => {
   });
 
   describe('process', () => {
-    test(' should process create new session for new campain', async () => {
+    test('should process create new session for new campain', async () => {
       await client.init(apiKey, {
         optOut: true,
         logLevel: LogLevel.Warn,
         defaultTracking: {
           attribution: {
             resetSessionOnNewCampaign: true,
-          }
-        }
+          },
+        },
       }).promise;
 
       expect(client.webAttribution).toBeDefined();
 
-      //TODO: Avoid calling `expect` conditionally`
-      if (client.webAttribution) {
-        jest.spyOn(client.webAttribution, 'shouldSetSessionIdOnNewCampaign').mockReturnValueOnce(true);
-        const logSpy = jest.spyOn(client.config.loggerProvider, 'log');
-
-        await client.process({
-          event_type: 'event',
-        });
-  
-        expect(logSpy).toHaveBeenCalledWith("Created a new session for new campaign.");
+      // Making sure client.webAttribution is not undefined
+      if (!client.webAttribution) {
+        client.webAttribution = new WebAttribution({}, client.config);
       }
-    })
+      jest.spyOn(client.webAttribution, 'shouldSetSessionIdOnNewCampaign').mockReturnValueOnce(true);
+      const logSpy = jest.spyOn(client.config.loggerProvider, 'log');
+
+      await client.process({
+        event_type: 'event',
+      });
+
+      expect(logSpy).toHaveBeenCalledWith('Created a new session for new campaign.');
+    });
 
     test('should proceed with unexpired session', async () => {
       const setSessionId = jest.spyOn(client, 'setSessionId');
