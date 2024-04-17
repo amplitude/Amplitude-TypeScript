@@ -12,6 +12,7 @@ import {
   setConnectorUserId,
   isNewSession,
   isPageViewTrackingEnabled,
+  WebAttribution,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -23,11 +24,12 @@ import {
   Revenue as IRevenue,
   TransportType,
   OfflineDisabled,
+  AmplitudeReturn,
+  Result,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';
-import { WebAttribution } from '@amplitude/analytics-client-common';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
@@ -172,13 +174,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   setSessionId(sessionId: number) {
+    const promise = [];
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
-      return;
+      return returnWrapper(Promise.resolve());
     }
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
-      return;
+      return returnWrapper(Promise.resolve());
     }
 
     const previousSessionId = this.getSessionId();
@@ -191,13 +194,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       if (previousSessionId && lastEventTime) {
-        this.track(DEFAULT_SESSION_END_EVENT, undefined, {
-          device_id: this.previousSessionDeviceId,
-          event_id: ++lastEventId,
-          session_id: previousSessionId,
-          time: lastEventTime + 1,
-          user_id: this.previousSessionUserId,
-        });
+        promise.push(
+          this.track(DEFAULT_SESSION_END_EVENT, undefined, {
+            device_id: this.previousSessionDeviceId,
+            event_id: ++lastEventId,
+            session_id: previousSessionId,
+            time: lastEventTime + 1,
+            user_id: this.previousSessionUserId,
+          }),
+        );
       }
       this.config.lastEventTime = this.config.sessionId;
     }
@@ -205,18 +210,21 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Fire web attribution event when enable webAttribution tracking
     // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
-    const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId);
+    const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId, promise);
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
-      this.track(DEFAULT_SESSION_START_EVENT, undefined, {
-        event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,
-        session_id: this.config.sessionId,
-        time: this.config.lastEventTime,
-      });
+      promise.push(
+        this.track(DEFAULT_SESSION_START_EVENT, undefined, {
+          event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,
+          session_id: this.config.sessionId,
+          time: this.config.lastEventTime,
+        }),
+      );
     }
 
     this.previousSessionDeviceId = this.config.deviceId;
     this.previousSessionUserId = this.config.userId;
+    return returnWrapper(Promise.all(promise));
   }
 
   extendSession() {
@@ -268,12 +276,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return super.revenue(revenue, eventOptions);
   }
 
-  private trackCampaignEventIfNeeded(lastEventId?: number) {
+  private trackCampaignEventIfNeeded(lastEventId?: number, eventsPromise?: AmplitudeReturn<Result>[]) {
     if (!this.webAttribution || !this.webAttribution.shouldTrackNewCampaign) {
       return false;
     }
     const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
-    this.track(campaignEvent);
+    eventsPromise?.push(this.track(campaignEvent));
     this.config.loggerProvider.log('Tracking attribution.');
     return true;
   }
@@ -281,8 +289,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   async process(event: Event) {
     const currentTime = Date.now();
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
-    const shouldSetSessionIdOnNewCampaign = this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
-    
+    const shouldSetSessionIdOnNewCampaign =
+      this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
+
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
