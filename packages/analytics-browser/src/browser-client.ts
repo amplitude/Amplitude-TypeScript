@@ -85,9 +85,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Priority 2: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
-    await this.add(new Context()).promise;
-    await this.add(new Destination()).promise;
-    await this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now()).promise;
+    this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
 
     await super._init(this.config);
 
@@ -105,6 +103,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (this.config.offline !== OfflineDisabled) {
       await this.add(networkConnectivityCheckerPlugin()).promise;
     }
+    await this.add(new Context()).promise;
+    await this.add(new Destination()).promise;
     await this.add(new IdentityEventSender()).promise;
 
     // Notify if DET is enabled
@@ -175,12 +175,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
       console.log('Returned since config was not ready');
-      return returnWrapper(Promise.resolve());
+      return;
     }
     // Prevents starting a new session with the same session ID
     if (sessionId === this.config.sessionId) {
       console.log('Returned since session ids were same');
-      return returnWrapper(Promise.resolve());
+      return;
     }
 
     this.config.sessionId = sessionId;
@@ -188,10 +188,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.config.pageCounter = 0;
 
     console.log('Returning wrapper');
-    return returnWrapper(this._fireSessionEvents());
+    this._fireSessionEvents();
   }
 
-  async _fireSessionEvents() {
+  _fireSessionEvents() {
     console.log('Firing session start events');
     const previousSessionId = this.getSessionId();
     const lastEventTime = this.config.lastEventTime;
@@ -200,13 +200,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       console.log('Firing session start');
       if (previousSessionId && lastEventTime) {
-        await this.track(DEFAULT_SESSION_END_EVENT, undefined, {
+        this.track(DEFAULT_SESSION_END_EVENT, undefined, {
           device_id: this.previousSessionDeviceId,
           event_id: ++lastEventId,
           session_id: previousSessionId,
           time: lastEventTime + 1,
           user_id: this.previousSessionUserId,
-        }).promise;
+        });
       }
       this.config.lastEventTime = this.config.sessionId;
     }
@@ -215,15 +215,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // 1. has new campaign (call setSessionId from init function)
     // 2. or shouldTrackNewCampaign (call setSessionId from async process(event) when there has new campaign and resetSessionOnNewCampaign = true )
     console.log('Firing session identify');
-    const isCampaignEventTracked = await this.trackCampaignEventIfNeeded(++lastEventId);
+    const isCampaignEventTracked = this.trackCampaignEventIfNeeded(++lastEventId);
 
     if (isSessionTrackingEnabled(this.config.defaultTracking)) {
       console.log('Firing session end');
-      await this.track(DEFAULT_SESSION_START_EVENT, undefined, {
+      this.track(DEFAULT_SESSION_START_EVENT, undefined, {
         event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,
         session_id: this.config.sessionId,
         time: this.config.lastEventTime,
-      }).promise;
+      });
     }
 
     this.previousSessionDeviceId = this.config.deviceId;
@@ -279,12 +279,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return super.revenue(revenue, eventOptions);
   }
 
-  private async trackCampaignEventIfNeeded(lastEventId?: number) {
+  private trackCampaignEventIfNeeded(lastEventId?: number) {
     if (!this.webAttribution || !this.webAttribution.shouldTrackNewCampaign) {
       return false;
     }
     const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
-    await this.track(campaignEvent).promise;
+    this.track(campaignEvent);
     this.config.loggerProvider.log('Tracking attribution.');
     return true;
   }
@@ -301,13 +301,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       (!event.session_id || event.session_id === this.getSessionId())
     ) {
       if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
-        await this.setSessionId(currentTime).promise;
+        this.setSessionId(currentTime);
         if (shouldSetSessionIdOnNewCampaign) {
           this.config.loggerProvider.log('Created a new session for new campaign.');
         }
       } else if (!isEventInNewSession) {
         // web attribution should be track during the middle of the session if there has any new campaign
-        await this.trackCampaignEventIfNeeded();
+        this.trackCampaignEventIfNeeded();
       }
     }
 
