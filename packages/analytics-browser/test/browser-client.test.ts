@@ -689,7 +689,6 @@ describe('browser-client', () => {
       // send an event
       await client.track('test 1').promise;
       const eventTime1 = client.config.lastEventTime ?? -1;
-      console.log(eventTime1);
       expect(eventTime1 > 0).toBeTruthy();
 
       // wait for session to almost expire, then extend it

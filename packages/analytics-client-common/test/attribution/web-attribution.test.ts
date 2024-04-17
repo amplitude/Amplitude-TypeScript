@@ -83,7 +83,6 @@ describe('shouldTrackNewCampaign', () => {
     };
     const webAttribution = new WebAttribution(option, mockConfig);
     await webAttribution.init();
-    console.log(webAttribution.shouldTrackNewCampaign);
 
     expect(webAttribution.shouldSetSessionIdOnNewCampaign()).toBe(true);
   });
@@ -94,7 +93,6 @@ describe('shouldTrackNewCampaign', () => {
     };
     const webAttribution = new WebAttribution(option, mockConfig);
     await webAttribution.init();
-    console.log(webAttribution.shouldTrackNewCampaign);
 
     webAttribution.generateCampaignEvent();
     expect(webAttribution.shouldSetSessionIdOnNewCampaign()).toBe(false);
