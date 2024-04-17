@@ -1,3 +1,4 @@
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { SessionReplayRemoteConfig } from './config/types';
@@ -13,17 +14,81 @@ import {
 } from './typings/session-replay';
 
 export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessionIDBStore {
-  apiKey: string | undefined;
-  storageKey = '';
+  apiKey: string;
+  customStore: IDBKeyVal.UseStore;
   loggerProvider: ILogger;
+  storageKey = '';
+
   constructor({ apiKey, loggerProvider }: { apiKey: string; loggerProvider: ILogger }) {
     this.loggerProvider = loggerProvider;
-    this.storageKey = `${STORAGE_PREFIX}_${apiKey.substring(0, 10)}`;
+    this.apiKey = apiKey;
+    const customStore = `amp_session_replay_${apiKey.substring(0, 10)}`;
+    this.customStore = IDBKeyVal.createStore(customStore, 'amp_session_replay');
+    // todo cant be void
+    void this.transitionFromKeyValStore();
   }
+
+  transitionFromKeyValStore = async () => {
+    function keyValDatabaseExists() {
+      let dbExists = true;
+      const globalScope = getGlobalScope();
+      return new Promise((resolve) => {
+        if (globalScope) {
+          const request = globalScope.indexedDB.open('keyval-store');
+          request.onupgradeneeded = function () {
+            if (request.result.version === 1) {
+              dbExists = false;
+              request.result.close();
+              request.transaction?.abort();
+              globalScope.indexedDB.deleteDatabase('keyval-store');
+              resolve(dbExists);
+            }
+          };
+          request.onsuccess = function () {
+            resolve(dbExists);
+          };
+        }
+      });
+    }
+    const hasKeyValDb = await keyValDatabaseExists();
+    console.log('hasKeyValDb', hasKeyValDb);
+    const storageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
+    const storedReplaySessionContexts = await IDBKeyVal.get<IDBStore>(storageKey);
+    if (storedReplaySessionContexts) {
+      await Promise.all(
+        Object.keys(storedReplaySessionContexts).map(async (sessionId) => {
+          const oldSessionStore = storedReplaySessionContexts[sessionId];
+          const numericSessionId = parseInt(sessionId, 10);
+          await IDBKeyVal.update<IDBStoreSession>(
+            numericSessionId,
+            (newSessionStore) => {
+              console.log('newSessionStore', newSessionStore);
+              if (!newSessionStore) {
+                return oldSessionStore;
+              }
+              if (newSessionStore.currentSequenceId < oldSessionStore.currentSequenceId) {
+                return oldSessionStore;
+              }
+
+              return newSessionStore;
+            },
+            this.customStore,
+          );
+        }),
+      );
+    }
+
+    const globalScope = getGlobalScope();
+    globalScope?.indexedDB.deleteDatabase('keyval-store');
+  };
 
   getAllSessionDataFromStore = async () => {
     try {
-      const storedReplaySessionContexts: IDBStore | undefined = await IDBKeyVal.get(this.storageKey);
+      const storedReplaySessionContextsArr = await IDBKeyVal.entries<number, IDBStoreSession>(this.customStore);
+      const storedReplaySessionContexts: { [sessionId: number]: IDBStoreSession } = {};
+      storedReplaySessionContextsArr.forEach(([sessionId, sessionData]) => {
+        storedReplaySessionContexts[sessionId] = sessionData;
+      });
 
       return storedReplaySessionContexts;
     } catch (e) {
@@ -34,26 +99,29 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
 
   storeEventsForSession = async (events: Events, sequenceId: number, sessionId: number) => {
     try {
-      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
-        session.currentSequenceId = sequenceId;
+      await IDBKeyVal.update<IDBStoreSession>(
+        sessionId,
+        (session) => {
+          if (!session) {
+            session = { ...defaultSessionStore };
+          }
+          session.currentSequenceId = sequenceId;
 
-        const currentSequence = (session.sessionSequences && session.sessionSequences[sequenceId]) || {};
+          const currentSequence = (session.sessionSequences && session.sessionSequences[sequenceId]) || {};
 
-        currentSequence.events = events;
-        currentSequence.status = RecordingStatus.RECORDING;
+          currentSequence.events = events;
+          currentSequence.status = RecordingStatus.RECORDING;
 
-        return {
-          ...sessionMap,
-          [sessionId]: {
+          return {
             ...session,
             sessionSequences: {
               ...session.sessionSequences,
               [sequenceId]: currentSequence,
             },
-          },
-        };
-      });
+          };
+        },
+        this.customStore,
+      );
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
@@ -86,34 +154,40 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
 
   cleanUpSessionEventsStore = async (sessionId: number, sequenceId: number) => {
     try {
-      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session: IDBStoreSession = sessionMap[sessionId];
-        const sequenceToUpdate = session?.sessionSequences && session.sessionSequences[sequenceId];
-        if (!sequenceToUpdate) {
-          return sessionMap;
+      await IDBKeyVal.update<IDBStoreSession>(
+        sessionId,
+        (session) => {
+          if (!session) {
+            session = { ...defaultSessionStore };
+          }
+          const sequenceToUpdate = session.sessionSequences && session.sessionSequences[sequenceId];
+          if (!sequenceToUpdate) {
+            return session;
+          }
+          sequenceToUpdate.events = [];
+          sequenceToUpdate.status = RecordingStatus.SENT;
+          // Delete sent sequences for current session
+          Object.entries(session.sessionSequences).forEach(([storedSeqId, sequence]) => {
+            const numericStoredSeqId = parseInt(storedSeqId, 10);
+            if (sequence.status === RecordingStatus.SENT && sequenceId !== numericStoredSeqId) {
+              delete session?.sessionSequences[numericStoredSeqId];
+            }
+          });
+          return session;
+        },
+        this.customStore,
+      );
+      // TODO can use get all?
+      const storedReplaySessionContextsArr = await IDBKeyVal.entries<number, IDBStoreSession>(this.customStore);
+
+      // Delete any sessions that are older than 3 days
+      const sessionsToDelete: number[] = [];
+      storedReplaySessionContextsArr.forEach(([sessionId]) => {
+        if (Date.now() - sessionId >= MAX_IDB_STORAGE_LENGTH) {
+          sessionsToDelete.push(sessionId);
         }
-
-        sequenceToUpdate.events = [];
-        sequenceToUpdate.status = RecordingStatus.SENT;
-
-        // Delete sent sequences for current session
-        Object.entries(session.sessionSequences).forEach(([storedSeqId, sequence]) => {
-          const numericStoredSeqId = parseInt(storedSeqId, 10);
-          if (sequence.status === RecordingStatus.SENT && sequenceId !== numericStoredSeqId) {
-            delete session.sessionSequences[numericStoredSeqId];
-          }
-        });
-
-        // Delete any sessions that are older than 3 days
-        Object.keys(sessionMap).forEach((sessionId: string) => {
-          const numericSessionId = parseInt(sessionId, 10);
-          if (Date.now() - numericSessionId >= MAX_IDB_STORAGE_LENGTH) {
-            delete sessionMap[numericSessionId];
-          }
-        });
-
-        return sessionMap;
       });
+      void IDBKeyVal.delMany(sessionsToDelete, this.customStore);
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
