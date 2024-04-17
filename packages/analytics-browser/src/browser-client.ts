@@ -281,7 +281,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       return false;
     }
     const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
-    eventsPromise?.push(this.track(campaignEvent));
+    if (eventsPromise) {
+      eventsPromise.push(this.track(campaignEvent));
+    } else {
+      this.track(campaignEvent);
+    }
     this.config.loggerProvider.log('Tracking attribution.');
     return true;
   }
