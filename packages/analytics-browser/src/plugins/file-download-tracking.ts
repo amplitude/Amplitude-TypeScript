@@ -30,6 +30,12 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-file-download-tracking-browser';
   const type = 'enrichment';
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
+    if (typeof window === 'undefined') {
+      // eslint-disable-line no-restricted-globals
+      config.loggerProvider.debug('File download tracking plugin is disabled because window is not available.');
+      return;
+    }
+
     // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
     // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
     // only after the window is loaded
