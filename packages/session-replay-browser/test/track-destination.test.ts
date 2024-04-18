@@ -95,6 +95,29 @@ describe('SessionReplayTrackDestination', () => {
         err: 'Session replay event batch rejected due to exceeded retry count, batch sequence id, 1',
       });
     });
+
+    test('should not add a duplicate sequence to the queue', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      const schedule = jest.spyOn(trackDestination, 'schedule').mockReturnValueOnce(undefined);
+      const context = {
+        events: [mockEventString],
+        sequenceId: 1,
+        sessionId: 123,
+        apiKey,
+        attempts: 0,
+        timeout: 0,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        onComplete: mockOnComplete,
+        flushMaxRetries: 1,
+      };
+      trackDestination.addToQueue(context);
+      // Add the same context a second time
+      trackDestination.addToQueue(context);
+      expect(schedule).toHaveBeenCalledTimes(1);
+      expect(trackDestination.queue).toEqual([context]);
+    });
   });
 
   describe('schedule', () => {
@@ -353,7 +376,6 @@ describe('SessionReplayTrackDestination', () => {
         attempts: 1,
         timeout: 0,
       });
-      await runScheduleTimers();
     });
 
     test('should not retry if retry param is false', async () => {

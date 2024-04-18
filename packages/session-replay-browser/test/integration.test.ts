@@ -323,4 +323,22 @@ describe('module level integration', () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(UNEXPECTED_ERROR_MESSAGE);
   });
+  test('should not allow multiple of the same list to be sent', async () => {
+    (fetch as jest.Mock).mockImplementation(() => {
+      return Promise.resolve({
+        status: 200,
+      });
+    });
+    const sessionReplay = new SessionReplay();
+    await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+
+    if (!sessionReplay.eventsManager) {
+      return;
+    }
+    sessionReplay.eventsManager.events = [mockEventString];
+    sessionReplay.stopRecordingAndSendEvents();
+    sessionReplay.stopRecordingAndSendEvents();
+    await runScheduleTimers();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });
