@@ -1,7 +1,7 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { BASE_CAMPAIGN, CampaignParser, CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 import { webAttributionPlugin } from '../src/web-attribution';
-import * as helpers from '../src/helpers';
+import * as helpers from '@amplitude/analytics-client-common';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import { Logger, UUID } from '@amplitude/analytics-core';
 

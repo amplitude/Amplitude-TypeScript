@@ -48,7 +48,6 @@
     "@amplitude/analytics-core": "^2.2.4",
     "@amplitude/analytics-types": "^2.5.0",
     "@amplitude/plugin-page-view-tracking-browser": "^2.2.6",
-    "@amplitude/plugin-web-attribution-browser": "^2.1.7",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
