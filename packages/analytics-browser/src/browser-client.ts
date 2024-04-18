@@ -294,13 +294,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     const isEventInNewSession = isNewSession(this.config.sessionTimeout, this.config.lastEventTime);
     const shouldSetSessionIdOnNewCampaign =
       this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
-
     if (
       event.event_type !== DEFAULT_SESSION_START_EVENT &&
       event.event_type !== DEFAULT_SESSION_END_EVENT &&
       (!event.session_id || event.session_id === this.getSessionId())
     ) {
       if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
+        if (this.webAttribution) {
+          await this.webAttribution.init();
+        }
         this.setSessionId(currentTime);
         if (shouldSetSessionIdOnNewCampaign) {
           this.config.loggerProvider.log('Created a new session for new campaign.');
