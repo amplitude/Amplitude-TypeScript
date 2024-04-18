@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.5...@amplitude/session-replay-browser@1.2.6) (2024-04-18)
+
+### Bug Fixes
+
+- **session replay:** prevent multiple of the same sequences from being added to send queue
+  ([2c73dfd](https://github.com/amplitude/Amplitude-TypeScript/commit/2c73dfdf5c2d6d6a8dc9ae958a767394d4e5e341))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.4...@amplitude/session-replay-browser@1.2.5) (2024-04-15)
 
 ### Bug Fixes
