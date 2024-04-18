@@ -173,7 +173,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   setSessionId(sessionId: number) {
-    const promises = [];
+    const promises: Promise<Result>[] = [];
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
       return returnWrapper(Promise.resolve());
