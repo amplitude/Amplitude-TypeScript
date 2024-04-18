@@ -11,7 +11,6 @@ export class WebAttribution {
   storageKey: string;
   previousCampaign?: Campaign;
   currentCampaign: Campaign;
-  shouldTrackNewCampaign = false;
 
   constructor(options: Options, config: BrowserConfig) {
     this.options = {
@@ -30,7 +29,6 @@ export class WebAttribution {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
 
     if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
-      this.shouldTrackNewCampaign = true;
       await this.storage.set(this.storageKey, this.currentCampaign);
     }
   }
@@ -46,7 +44,6 @@ export class WebAttribution {
    */
   generateCampaignEvent(event_id?: number) {
     // Mark this campaign has been tracked
-    this.shouldTrackNewCampaign = false;
     const campaignEvent = createCampaignEvent(this.currentCampaign, this.options);
     if (event_id) {
       campaignEvent.event_id = event_id;
@@ -55,6 +52,6 @@ export class WebAttribution {
   }
 
   shouldSetSessionIdOnNewCampaign() {
-    return this.shouldTrackNewCampaign && !!this.options.resetSessionOnNewCampaign;
+    return !!this.options.resetSessionOnNewCampaign;
   }
 }

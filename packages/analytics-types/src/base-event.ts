@@ -49,4 +49,5 @@ export interface EventOptions {
   user_agent?: string;
   android_app_set_id?: string;
   extra?: { [key: string]: any };
+  skip_session_start?: boolean;
 }

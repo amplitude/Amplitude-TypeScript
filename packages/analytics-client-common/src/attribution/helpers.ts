@@ -69,7 +69,7 @@ export const createCampaignEvent = (campaign: Campaign, options: Options) => {
     return identify.unset(key);
   }, new Identify());
 
-  return createIdentifyEvent(identifyEvent);
+  return createIdentifyEvent(identifyEvent, { skip_session_start: true });
 };
 
 export const getDefaultExcludedReferrers = (cookieDomain: string | undefined) => {

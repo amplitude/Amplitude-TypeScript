@@ -200,6 +200,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
             session_id: previousSessionId,
             time: lastEventTime + 1,
             user_id: this.previousSessionUserId,
+            skip_session_start: true,
           }).promise,
         );
       }
@@ -217,6 +218,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
           event_id: isCampaignEventTracked ? ++lastEventId : lastEventId,
           session_id: this.config.sessionId,
           time: this.config.lastEventTime,
+          skip_session_start: true,
         }).promise,
       );
     }
@@ -276,7 +278,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   }
 
   private trackCampaignEventIfNeeded(lastEventId?: number, promises?: Promise<Result>[]) {
-    if (!this.webAttribution || !this.webAttribution.shouldTrackNewCampaign) {
+    if (!this.webAttribution) {
       return false;
     }
     const campaignEvent = this.webAttribution.generateCampaignEvent(lastEventId);
@@ -295,11 +297,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     const shouldSetSessionIdOnNewCampaign =
       this.webAttribution && this.webAttribution.shouldSetSessionIdOnNewCampaign();
 
-    if (
-      event.event_type !== DEFAULT_SESSION_START_EVENT &&
-      event.event_type !== DEFAULT_SESSION_END_EVENT &&
-      (!event.session_id || event.session_id === this.getSessionId())
-    ) {
+    if ((event.skip_session_start !== true, !event.session_id || event.session_id === this.getSessionId())) {
       if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
         this.setSessionId(currentTime);
         if (shouldSetSessionIdOnNewCampaign) {
