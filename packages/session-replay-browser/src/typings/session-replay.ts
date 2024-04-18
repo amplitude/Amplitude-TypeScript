@@ -20,14 +20,21 @@ export interface SessionReplayDestinationContext extends SessionReplayDestinatio
   timeout: number;
 }
 
-export enum RecordingStatus {
-  RECORDING = 'recording',
+export enum SendingStatus {
+  SENDING = 'sending',
   SENT = 'sent',
 }
 
 export interface IDBStoreSequence {
   events: Events;
-  status: RecordingStatus;
+  status: SendingStatus;
+}
+
+export interface SendingSequencesData {
+  sequenceId?: number;
+  sessionId: number;
+  events: Events;
+  status: SendingStatus;
 }
 
 export interface IDBStoreSession {
@@ -47,11 +54,12 @@ export interface IDBStore {
   [sessionId: number]: IDBStoreSession;
 }
 
-export interface SessionReplaySessionIDBStore {
-  getAllSessionDataFromStore(): Promise<IDBStore | undefined>;
-  storeEventsForSession(events: Events, sequenceId: number, sessionId: number): Promise<void>;
-  storeRemoteConfig(remoteConfig: SessionReplayRemoteConfig, sessionId?: number): Promise<void>;
-  getRemoteConfig(): Promise<IDBRemoteConfig | void>;
+export interface SessionReplayEventsIDBStore {
+  initialize(): Promise<void>;
+  getUnsentSequences(): Promise<SendingSequencesData[] | undefined>;
+  getCurrentSequenceForSession(sessionId: number): Promise<Events | undefined>;
+  addEventToSequence(sessionId: number, event: string): Promise<Events | undefined>;
+  storeSendingEvents(sessionId: number, events: Events): Promise<number | undefined>;
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
 export interface SessionIdentifiers {
@@ -77,18 +85,8 @@ export interface SessionReplayTrackDestination {
 }
 
 export interface SessionReplayEventsManager {
-  initialize({
-    sessionId,
-    shouldSendStoredEvents,
-    deviceId,
-  }: {
-    sessionId: number;
-    shouldSendStoredEvents: boolean;
-    deviceId: string;
-  }): Promise<void>;
+  sendStoredEvents({ deviceId }: { deviceId: string }): Promise<void>;
   addEvent({ sessionId, event, deviceId }: { sessionId: number; event: string; deviceId: string }): void;
   sendEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
-  resetSequence(): void;
   flush(useRetry?: boolean): Promise<void>;
-  events: Events;
 }

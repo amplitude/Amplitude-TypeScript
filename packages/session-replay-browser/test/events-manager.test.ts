@@ -1,8 +1,8 @@
 import { Logger } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
+import { SessionReplaySessionIDBStore } from '../src/events-idb-store';
 import { SessionReplayEventsManager } from '../src/events-manager';
-import { SessionReplaySessionIDBStore } from '../src/session-idb-store';
 import { IDBStore, RecordingStatus } from '../src/typings/session-replay';
 
 jest.mock('idb-keyval');

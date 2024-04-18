@@ -96,6 +96,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   async flush(useRetry = false) {
     const list: SessionReplayDestinationContext[] = [];
     const later: SessionReplayDestinationContext[] = [];
+    this.queue.filter(
+      (context, index, q) => q.findIndex((context2) => context2.sequenceId === context.sequenceId) === index,
+    );
     this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
     this.queue = later;
 
