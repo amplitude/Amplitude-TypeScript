@@ -2,7 +2,7 @@ import logo from './logo.svg';
 import './App.css';
 import {
     Route,
-  Routes,
+    Routes,
     NavLink,
     HashRouter
   } from "react-router-dom";
