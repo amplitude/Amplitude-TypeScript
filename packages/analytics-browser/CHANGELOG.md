@@ -3,6 +3,21 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.6.3-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.6.2...@amplitude/analytics-browser@2.6.3-beta.0) (2024-04-19)
+
+### Bug Fixes
+
+- fetch the campaign in SPA at session start ([#723](https://github.com/amplitude/Amplitude-TypeScript/issues/723))
+  ([6961717](https://github.com/amplitude/Amplitude-TypeScript/commit/696171780d6e3e02d3531f230bdceb3c36d8af38))
+- fix web attribution identify and session start order
+  ([#696](https://github.com/amplitude/Amplitude-TypeScript/issues/696))
+  ([2f077da](https://github.com/amplitude/Amplitude-TypeScript/commit/2f077da7b528ed6f23f7459b7c961c099dbcb1bb))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.6.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.6.2-beta.0...@amplitude/analytics-browser@2.6.2) (2024-04-09)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
