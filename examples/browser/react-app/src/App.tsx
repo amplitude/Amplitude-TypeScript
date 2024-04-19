@@ -4,7 +4,8 @@ import {
     Route,
     Routes,
     NavLink,
-    HashRouter
+    HashRouter,
+    BrowserRouter
   } from "react-router-dom";
 
 import Home from "./Home";
@@ -13,7 +14,7 @@ import Contact from "./Contact";
 
 function App() {
   return (
-    <HashRouter>
+    <BrowserRouter>
     <div className="App">
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
@@ -29,12 +30,12 @@ function App() {
                 <Routes>
                  <Route path="/home"  element={<Home/>}/>
                  <Route path="/other"  element={<Other/>}/>
-                 <Route path="/contact"  element={<Contact/>}/>
+                 <Route path="/contact" element={<Contact/>}/>
                </Routes>
             </div>
           </div>
     </div>
-    </HashRouter>
+    </BrowserRouter>
   );
 }
 

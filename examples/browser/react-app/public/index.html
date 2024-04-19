@@ -42,7 +42,12 @@
        for object properties.
       */
 
-      amplitude.init('API-KEY', 'spa-react-123@amplitude.com');
+      amplitude.init('82b148f7211db7f9ccaff8048d0f7192', 'spa-react-123@amplitude.com', {
+        sessionTimeout: 20000,
+        defaultTracking: {
+          attribution: true, //{resetSessionOnNewCampaign: true}
+        }
+      });
     </script>
     <title>React App</title>
   </head>
