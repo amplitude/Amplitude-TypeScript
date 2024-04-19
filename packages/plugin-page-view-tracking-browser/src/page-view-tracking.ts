@@ -21,6 +21,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let pushState: undefined | ((data: any, unused: string, url?: string | URL | null) => void);
   let localConfig: BrowserConfig;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
+
   const createPageViewEvent = async (): Promise<Event> => {
     return {
       event_type: eventType,
