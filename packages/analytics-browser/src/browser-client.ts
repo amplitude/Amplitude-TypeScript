@@ -303,15 +303,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     ) {
       if (isEventInNewSession || shouldSetSessionIdOnNewCampaign) {
         // Reinitialize the web attribution to refetch the current campaign in the new session
-        // to catch campaign change for the SPA new session event.
+        // if the campaign changed without a page reload (SPA's run into this scenario).
         await this.webAttribution?.init();
         this.setSessionId(currentTime);
         if (shouldSetSessionIdOnNewCampaign) {
           this.config.loggerProvider.log('Created a new session for new campaign.');
         }
       } else if (!isEventInNewSession) {
-        // Web attribution should be track during the middle of the session
-        // if there has any new campaign after page reloading.
+        // Web attribution should be tracked during the middle of a session
+        // if there has been a chance in the campaign information.
         this.trackCampaignEventIfNeeded();
       }
     }
