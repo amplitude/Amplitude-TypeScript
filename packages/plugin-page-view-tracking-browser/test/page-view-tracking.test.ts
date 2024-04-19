@@ -1,7 +1,7 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { Logger, UUID } from '@amplitude/analytics-core';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
-import { pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
+import { defaultPageViewEvent, pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 
 describe('pageViewTrackingPlugin', () => {
@@ -33,7 +33,6 @@ describe('pageViewTrackingPlugin', () => {
     },
     pageCounter: 0,
   };
-  const defaultPageViewEvent = '[Amplitude] Page Viewed';
 
   beforeAll(() => {
     Object.defineProperty(window, 'location', {
