@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-global-user-properties",
-  "version": "1.2.14",
+  "version": "1.2.15-beta.0",
   "description": "An event enrichment plugin that adds the experimental global user properties field to events",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -40,7 +40,7 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.6.2",
+    "@amplitude/analytics-browser": "^2.6.3-beta.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

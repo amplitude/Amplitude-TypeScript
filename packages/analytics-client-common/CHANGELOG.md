@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.4-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.1.3...@amplitude/analytics-client-common@2.1.4-beta.0) (2024-04-19)
+
+### Bug Fixes
+
+- fix web attribution identify and session start order
+  ([#696](https://github.com/amplitude/Amplitude-TypeScript/issues/696))
+  ([2f077da](https://github.com/amplitude/Amplitude-TypeScript/commit/2f077da7b528ed6f23f7459b7c961c099dbcb1bb))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.1.3-beta.0...@amplitude/analytics-client-common@2.1.3) (2024-04-09)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common

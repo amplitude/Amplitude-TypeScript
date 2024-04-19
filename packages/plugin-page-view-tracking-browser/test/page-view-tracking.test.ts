@@ -342,6 +342,15 @@ describe('pageViewTrackingPlugin', () => {
     test('should call remove listeners', async () => {
       const amplitude = createInstance();
       const removeEventListener = jest.spyOn(window, 'removeEventListener');
+      jest.spyOn(amplitude, 'track').mockReturnValueOnce({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      });
       const plugin = pageViewTrackingPlugin();
       await plugin.setup?.(mockConfig, amplitude);
       await plugin.teardown?.();
