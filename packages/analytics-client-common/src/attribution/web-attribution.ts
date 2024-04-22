@@ -4,6 +4,7 @@ import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaig
 import { getStorageKey } from '../storage/helpers';
 import { CampaignParser } from './campaign-parser';
 import { BASE_CAMPAIGN } from './constants';
+import { isNewSession } from '../session';
 
 export class WebAttribution {
   options: Options;
@@ -12,6 +13,8 @@ export class WebAttribution {
   previousCampaign?: Campaign;
   currentCampaign: Campaign;
   shouldTrackNewCampaign = false;
+  sessionTimeout: number;
+  lastEventTime?: number;
 
   constructor(options: Options, config: BrowserConfig) {
     this.options = {
@@ -23,13 +26,16 @@ export class WebAttribution {
     this.storage = config.cookieStorage as unknown as Storage<Campaign>;
     this.storageKey = getStorageKey(config.apiKey, 'MKTG');
     this.currentCampaign = BASE_CAMPAIGN;
+    this.sessionTimeout = config.sessionTimeout;
+    this.lastEventTime = config.lastEventTime;
     config.loggerProvider.log('Installing web attribution tracking.');
   }
 
   async init() {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
+    const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
 
-    if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options)) {
+    if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options, isEventInNewSession)) {
       this.shouldTrackNewCampaign = true;
       await this.storage.set(this.storageKey, this.currentCampaign);
     }
