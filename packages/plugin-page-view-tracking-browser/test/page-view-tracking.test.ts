@@ -1,7 +1,7 @@
 import { createInstance } from '@amplitude/analytics-browser';
 import { Logger, UUID } from '@amplitude/analytics-core';
 import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
-import { pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
+import { defaultPageViewEvent, pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 
 describe('pageViewTrackingPlugin', () => {
@@ -17,7 +17,6 @@ describe('pageViewTrackingPlugin', () => {
     serverUrl: undefined,
     transportProvider: new FetchTransport(),
     useBatch: false,
-
     cookieOptions: {
       domain: '.amplitude.com',
       expiration: 365,
@@ -95,7 +94,6 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': newURL.pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': newURL.toString(),
-          '[Amplitude] Page Counter': 2,
         },
         event_type: '[Amplitude] Page Viewed',
       });
@@ -138,7 +136,6 @@ describe('pageViewTrackingPlugin', () => {
           '[Amplitude] Page Path': pathname,
           '[Amplitude] Page Title': '',
           '[Amplitude] Page URL': `https://${hostname}${pathname}`,
-          '[Amplitude] Page Counter': 1,
           utm_source: 'google',
           utm_medium: 'cpc',
           utm_campaign: 'brand',
@@ -295,6 +292,49 @@ describe('pageViewTrackingPlugin', () => {
       };
       const event = await plugin.execute?.(sentEvent);
       expect(event).toBe(sentEvent);
+    });
+
+    test('should set the pageCounter', async () => {
+      const config = { ...mockConfig };
+      config.pageCounter = 0;
+      const amplitude = createInstance();
+      jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: defaultPageViewEvent,
+          },
+        }),
+      });
+
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(config, amplitude);
+      await plugin.execute?.({ event_type: defaultPageViewEvent });
+      expect(config.pageCounter).toBe(1);
+
+      await plugin.execute?.({ event_type: defaultPageViewEvent });
+      expect(config.pageCounter).toBe(2);
+    });
+
+    test('should not set the pageCounter', async () => {
+      const config = { ...mockConfig };
+      config.pageCounter = 0;
+      const amplitude = createInstance();
+      jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: defaultPageViewEvent,
+          },
+        }),
+      });
+
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(config, amplitude);
+      await plugin.execute?.({ event_type: 'other event' });
+      expect(config.pageCounter).toBe(0);
     });
   });
 

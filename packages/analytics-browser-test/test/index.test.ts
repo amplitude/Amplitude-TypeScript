@@ -5,7 +5,7 @@ import * as amplitude from '@amplitude/analytics-browser';
 import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
-import { path, SUCCESS_MESSAGE, url, uuidPattern } from './constants';
+import { path, url, SUCCESS_MESSAGE, uuidPattern } from './constants';
 import { LogLevel } from '@amplitude/analytics-types';
 import { UUID } from '@amplitude/analytics-core';
 
@@ -28,9 +28,27 @@ describe('integration', () => {
   const event_upload_time = '2023-01-01T12:00:00:000Z';
   Date.prototype.toISOString = jest.fn(() => event_upload_time);
 
+  beforeAll(() => {
+    Object.defineProperty(window, 'location', {
+      value: {
+        hostname: '',
+        href: '',
+        pathname: '',
+        search: '',
+      },
+      writable: true,
+    });
+  });
+
   beforeEach(() => {
     client = amplitude.createInstance();
     apiKey = UUID();
+    (window.location as any) = {
+      hostname: '',
+      href: '',
+      pathname: '',
+      search: '',
+    };
   });
 
   afterEach(() => {
@@ -1563,6 +1581,154 @@ describe('integration', () => {
       });
     });
 
+    test('should send page view with and clear pageCounter in new session', () => {
+      let payload: any = undefined;
+      const scope = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          payload = body;
+          return true;
+        })
+        .reply(200, success);
+
+      const client = amplitude.createInstance();
+      client.init(apiKey, 'user1@amplitude.com', {
+        defaultTracking: {
+          ...defaultTracking,
+          pageViews: true,
+        },
+        sessionTimeout: 500,
+        flushIntervalMillis: 3000,
+      });
+
+      client.track('Event in first session');
+
+      const oldURL = new URL('https://www.example.com');
+      mockWindowLocationFromURL(oldURL);
+      window.history.pushState(undefined, oldURL.href);
+
+      const newURL = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+
+      // Fire page view event in current session
+      setTimeout(() => {
+        const latestURL = new URL('https://www.example.com/contact');
+        mockWindowLocationFromURL(latestURL);
+        window.history.pushState(undefined, latestURL.href);
+      }, 500);
+
+      // Fire page view event in new session
+      setTimeout(() => {
+        const anotherURL = new URL('https://www.example.com/more');
+        mockWindowLocationFromURL(anotherURL);
+        window.history.pushState(undefined, anotherURL.href);
+      }, 2000);
+
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          expect(payload).toEqual({
+            api_key: apiKey,
+            client_upload_time: event_upload_time,
+            events: [
+              {
+                device_id: uuid,
+                event_id: 0,
+                event_properties: {
+                  '[Amplitude] Page Domain': 'www.example.com',
+                  '[Amplitude] Page Location': 'https://www.example.com/about',
+                  '[Amplitude] Page Path': '/about',
+                  '[Amplitude] Page Title': '',
+                  '[Amplitude] Page URL': 'https://www.example.com/about',
+                  '[Amplitude] Page Counter': 1,
+                },
+                event_type: '[Amplitude] Page Viewed',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 1,
+                event_type: 'Event in first session',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 2,
+                event_properties: {
+                  '[Amplitude] Page Domain': 'www.example.com',
+                  '[Amplitude] Page Location': 'https://www.example.com/contact',
+                  '[Amplitude] Page Path': '/contact',
+                  '[Amplitude] Page Title': '',
+                  '[Amplitude] Page URL': 'https://www.example.com/contact',
+                  '[Amplitude] Page Counter': 2,
+                },
+                event_type: '[Amplitude] Page Viewed',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+              {
+                device_id: uuid,
+                event_id: 3,
+                event_properties: {
+                  '[Amplitude] Page Domain': 'www.example.com',
+                  '[Amplitude] Page Location': 'https://www.example.com/more',
+                  '[Amplitude] Page Path': '/more',
+                  '[Amplitude] Page Title': '',
+                  '[Amplitude] Page URL': 'https://www.example.com/more',
+                  '[Amplitude] Page Counter': 1,
+                },
+                event_type: '[Amplitude] Page Viewed',
+                insert_id: uuid,
+                ip: '$remote',
+                language: 'en-US',
+                library,
+                partner_id: undefined,
+                plan: undefined,
+                platform: 'Web',
+                session_id: number,
+                time: number,
+                user_agent: userAgent,
+                user_id: 'user1@amplitude.com',
+              },
+            ],
+            options: {
+              min_id_length: undefined,
+            },
+          });
+          scope.done();
+          resolve();
+        }, 4000);
+      });
+    });
+
     test('should send page view', () => {
       let payload: any = undefined;
       const scope = nock(url)
@@ -1872,4 +2038,11 @@ const setLegacyCookie = (
     lastEventTime ? lastEventTime.toString(32) : '',
     eventId ? eventId.toString(32) : '',
   ].join('.')}`;
+};
+
+const mockWindowLocationFromURL = (url: URL) => {
+  window.location.href = url.toString();
+  window.location.search = url.search;
+  window.location.hostname = url.hostname;
+  window.location.pathname = url.pathname;
 };
