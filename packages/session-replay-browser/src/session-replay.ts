@@ -2,7 +2,8 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
-import { SessionReplayConfig } from './config';
+import { SessionReplayJoinedConfigGenerator } from './config/joined-config';
+import { SessionReplayJoinedConfig } from './config/types';
 import {
   BLOCK_CLASS,
   DEFAULT_SESSION_REPLAY_PROPERTY,
@@ -12,19 +13,22 @@ import {
 import { SessionReplayEventsManager } from './events-manager';
 import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
+import { SessionReplaySessionIDBStore } from './session-idb-store';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionIdentifiers as ISessionIdentifiers,
-  SessionReplayConfig as ISessionReplayConfig,
   SessionReplayOptions,
 } from './typings/session-replay';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
-  config: ISessionReplayConfig | undefined;
+  config: SessionReplayJoinedConfig | undefined;
+  joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
+  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -37,13 +41,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
-    this.config = new SessionReplayConfig(apiKey, options);
-    this.loggerProvider = this.config.loggerProvider;
-    this.identifiers = new SessionIdentifiers(options, this.loggerProvider);
-
-    this.eventsManager = new SessionReplayEventsManager({
-      config: this.config,
+    this.loggerProvider = options.loggerProvider || new Logger();
+    this.sessionIDBStore = new SessionReplaySessionIDBStore({
+      loggerProvider: this.loggerProvider,
+      apiKey: apiKey,
     });
+    this.identifiers = new SessionIdentifiers(options, this.loggerProvider);
+    this.joinedConfigGenerator = new SessionReplayJoinedConfigGenerator(apiKey, options, this.sessionIDBStore);
+    if (this.identifiers.sessionId) {
+      this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+    }
+    if (this.config) {
+      this.eventsManager = new SessionReplayEventsManager({
+        config: this.config,
+        sessionIDBStore: this.sessionIDBStore,
+      });
+    }
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -81,7 +94,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.stopRecordingAndSendEvents(this.identifiers.sessionId);
     this.identifiers.sessionId = sessionId;
     this.eventsManager && this.eventsManager.resetSequence();
-    this.recordEvents();
+    if (this.joinedConfigGenerator) {
+      this.joinedConfigGenerator
+        .generateJoinedConfig(this.identifiers.sessionId)
+        .then((updatedConfig) => {
+          this.config = updatedConfig;
+          this.recordEvents();
+        })
+        .catch(() => {
+          this.loggerProvider.error('Problem generating joined config for session replay.');
+        });
+    }
   }
 
   getSessionReplayDebugPropertyValue() {
@@ -148,7 +171,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       deviceId &&
       (await this.eventsManager.initialize({
         sessionId: this.identifiers.sessionId,
-        shouldSendStoredEvents,
+        shouldSendStoredEvents: shouldSendStoredEvents,
         deviceId,
       }));
 
@@ -166,25 +189,28 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getShouldRecord(ignoreFocus = false) {
-    if (!this.identifiers || !this.config) {
+    if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
       this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
     }
+
+    if (!this.config.captureEnabled) {
+      this.loggerProvider.log(
+        `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project.`,
+      );
+      return false;
+    }
+
     const globalScope = getGlobalScope();
     if (!ignoreFocus && globalScope && globalScope.document && !globalScope.document.hasFocus()) {
-      if (this.identifiers.sessionId) {
-        this.loggerProvider.log(
-          `Session ${this.identifiers.sessionId} temporarily not recording due to lack of browser focus.`,
-        );
-      }
+      this.loggerProvider.log(
+        `Session ${this.identifiers.sessionId} temporarily not recording due to lack of browser focus.`,
+      );
       return false;
-    } else if (this.shouldOptOut()) {
-      if (this.identifiers.sessionId) {
-        this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to optOut config.`);
-      }
-      return false;
-    } else if (!this.identifiers.sessionId) {
-      this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
+    }
+
+    if (this.shouldOptOut()) {
+      this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to optOut config.`);
       return false;
     }
 

@@ -1,5 +1,5 @@
-import { AmplitudeReturn, Config, LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
-import { TargetingFlag } from '@amplitude/targeting';
+import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
+import { SessionReplayLocalConfig, SessionReplayRemoteConfig } from '../config/types';
 
 export type Events = string[];
 
@@ -32,6 +32,7 @@ export interface IDBStoreSequence {
 
 export interface IDBStoreSession {
   currentSequenceId: number;
+  remoteConfig?: SessionReplayRemoteConfig;
   sessionSequences: {
     [sequenceId: number]: IDBStoreSequence;
   };
@@ -44,30 +45,17 @@ export interface IDBStore {
 export interface SessionReplaySessionIDBStore {
   getAllSessionDataFromStore(): Promise<IDBStore | undefined>;
   storeEventsForSession(events: Events, sequenceId: number, sessionId: number): Promise<void>;
+  storeRemoteConfigForSession(sessionId: number, remoteConfig: SessionReplayRemoteConfig): Promise<void>;
+  getRemoteConfigForSession(sessionId: number): Promise<SessionReplayRemoteConfig | void>;
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
-
-export interface SessionReplayPrivacyConfig {
-  blockSelector?: string | string[];
-}
-
-export interface SessionReplayConfig extends Config {
-  apiKey: string;
-  loggerProvider: Logger;
-  logLevel: LogLevel;
-  flushMaxRetries: number;
-  sampleRate: number;
-  privacyConfig?: SessionReplayPrivacyConfig;
-  debugMode?: boolean;
-}
-
 export interface SessionIdentifiers {
   deviceId?: string;
   sessionId?: number;
   sessionReplayId?: string;
 }
 
-export type SessionReplayOptions = Omit<Partial<SessionReplayConfig & SessionIdentifiers>, 'apiKey'>;
+export type SessionReplayOptions = Omit<Partial<SessionReplayLocalConfig & SessionIdentifiers>, 'apiKey'>;
 
 export interface AmplitudeSessionReplay {
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
@@ -81,14 +69,6 @@ export interface AmplitudeSessionReplay {
 export interface SessionReplayTrackDestination {
   sendEventsList: (destinationData: SessionReplayDestination) => void;
   flush: (useRetry: boolean) => Promise<void>;
-}
-
-export interface SessionReplayRemoteConfigFetch {
-  getRemoteConfig: () => Promise<SessionReplayRemoteConfig | void>;
-  getTargetingConfig: () => Promise<TargetingFlag | void>;
-}
-export interface SessionReplayRemoteConfig {
-  sr_targeting_config: TargetingFlag;
 }
 
 export interface SessionReplayEventsManager {

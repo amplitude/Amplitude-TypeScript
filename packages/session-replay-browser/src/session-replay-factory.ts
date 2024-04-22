@@ -1,6 +1,6 @@
 import { debugWrapper } from '@amplitude/analytics-core';
 import { LogConfig } from '@amplitude/analytics-types';
-import { getDefaultConfig } from './config';
+import { getDefaultConfig } from './config/local-config';
 import { SessionReplay } from './session-replay';
 import { AmplitudeSessionReplay } from './typings/session-replay';
 

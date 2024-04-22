@@ -1,15 +1,14 @@
+import { SessionReplayJoinedConfig } from './config/types';
 import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from './constants';
 import {
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
-  SessionReplaySessionIDBStore as AmplitudeSessionReplayEventsStorage,
+  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
   Events,
   IDBStore,
   RecordingStatus,
-  SessionReplayConfig,
 } from './typings/session-replay';
 
-import { SessionReplaySessionIDBStore } from './session-idb-store';
 import { SessionReplayTrackDestination } from './track-destination';
 
 export class SessionReplayEventsManager implements AmplitudeSessionReplayEventsManager {
@@ -18,17 +17,20 @@ export class SessionReplayEventsManager implements AmplitudeSessionReplayEventsM
   maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
   interval = MIN_INTERVAL;
   timeAtLastSend: number | null = null;
-  sessionIDBStore: AmplitudeSessionReplayEventsStorage;
+  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore;
   trackDestination: AmplitudeSessionReplayTrackDestination;
-  config: SessionReplayConfig;
+  config: SessionReplayJoinedConfig;
 
-  constructor({ config }: { config: SessionReplayConfig }) {
+  constructor({
+    config,
+    sessionIDBStore,
+  }: {
+    config: SessionReplayJoinedConfig;
+    sessionIDBStore: AmplitudeSessionReplaySessionIDBStore;
+  }) {
     this.config = config;
     this.trackDestination = new SessionReplayTrackDestination({ loggerProvider: this.config.loggerProvider });
-    this.sessionIDBStore = new SessionReplaySessionIDBStore({
-      loggerProvider: this.config.loggerProvider,
-      apiKey: this.config.apiKey,
-    });
+    this.sessionIDBStore = sessionIDBStore;
   }
 
   async initialize({

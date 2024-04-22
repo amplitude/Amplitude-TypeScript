@@ -1,7 +1,8 @@
 import { Logger } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
-import { SessionReplayConfig } from '../src/config';
+import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { SessionReplayEventsManager } from '../src/events-manager';
+import { SessionReplaySessionIDBStore } from '../src/session-idb-store';
 import { IDBStore, RecordingStatus } from '../src/typings/session-replay';
 
 jest.mock('idb-keyval');
@@ -36,9 +37,13 @@ describe('SessionReplayEventsManager', () => {
     warn: jest.fn(),
     debug: jest.fn(),
   };
-  const config = new SessionReplayConfig('static_key', {
+  const config = new SessionReplayLocalConfig('static_key', {
     loggerProvider: mockLoggerProvider,
     sampleRate: 1,
+  });
+  const sessionIDBStore = new SessionReplaySessionIDBStore({
+    loggerProvider: config.loggerProvider,
+    apiKey: config.apiKey,
   });
   beforeEach(() => {
     jest.useFakeTimers();
@@ -57,7 +62,7 @@ describe('SessionReplayEventsManager', () => {
   });
   describe('initialize', () => {
     test('should read events from storage and send them if shouldSendStoredEvents is true', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const mockGetResolution: Promise<IDBStore> = Promise.resolve({
         123: {
           currentSequenceId: 3,
@@ -96,7 +101,7 @@ describe('SessionReplayEventsManager', () => {
     });
 
     test('should not send stored events if shouldSendStoredEvents is false', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const mockGetResolution: Promise<IDBStore> = Promise.resolve({
         123: {
           currentSequenceId: 3,
@@ -117,7 +122,7 @@ describe('SessionReplayEventsManager', () => {
       expect(send).toHaveBeenCalledTimes(0);
     });
     test('should return early if using old format of IDBStore', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const mockGetResolution = Promise.resolve({
         123: {
           events: [mockEventString],
@@ -136,7 +141,7 @@ describe('SessionReplayEventsManager', () => {
       expect(send).toHaveBeenCalledTimes(0);
     });
     test('should configure current sequence id and events correctly if last sequence was sent', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const mockGetResolution: Promise<IDBStore> = Promise.resolve({
         123: {
           currentSequenceId: 3,
@@ -154,7 +159,7 @@ describe('SessionReplayEventsManager', () => {
       expect(eventsManager.events).toEqual([]);
     });
     test('should configure current sequence id and events correctly if last sequence was recording', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const mockGetResolution: Promise<IDBStore> = Promise.resolve({
         123: {
           currentSequenceId: 3,
@@ -172,7 +177,7 @@ describe('SessionReplayEventsManager', () => {
       expect(eventsManager.events).toEqual([mockEventString]);
     });
     test('should handle no stored events', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const mockGetResolution = Promise.resolve({});
       get.mockReturnValueOnce(mockGetResolution);
       await eventsManager.initialize({ sessionId: 123, deviceId: '1a2b3c', shouldSendStoredEvents: true });
@@ -180,7 +185,7 @@ describe('SessionReplayEventsManager', () => {
       expect(eventsManager.events).toEqual([]);
     });
     test('should handle no stored sequences for session', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const mockGetResolution = Promise.resolve({
         123: {
           currentSequenceId: 0,
@@ -196,7 +201,7 @@ describe('SessionReplayEventsManager', () => {
 
   describe('sendStoredEvents', () => {
     test('should send all recording sequences except the current sequence for the current session', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       eventsManager.currentSequenceId = 3;
       const store: IDBStore = {
         123: {
@@ -260,7 +265,7 @@ describe('SessionReplayEventsManager', () => {
 
   describe('addEvent', () => {
     test('should store events in class and in IDB', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       eventsManager.addEvent({ event: mockEventString, sessionId: 123, deviceId: '1a2b3c' });
       expect(eventsManager.events).toEqual([mockEventString]);
       expect(update).toHaveBeenCalledTimes(1);
@@ -278,7 +283,7 @@ describe('SessionReplayEventsManager', () => {
     });
 
     test('should split the events list at an increasing interval and send', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       eventsManager.timeAtLastSend = new Date('2023-07-31 08:30:00').getTime();
       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
       const sendEventsList = jest.spyOn(eventsManager, 'sendEventsList');
@@ -301,7 +306,7 @@ describe('SessionReplayEventsManager', () => {
     });
 
     test('should split the events list at max size and send', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       eventsManager.maxPersistedEventsSize = 20;
       // Simulate as if many events have already been built up
       const events = ['#'.repeat(20)];
@@ -337,7 +342,7 @@ describe('SessionReplayEventsManager', () => {
 
   describe('sendEvents', () => {
     test('should call trackDestination sendEventsList', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       eventsManager.events = [mockEventString];
       eventsManager.currentSequenceId = 4;
       const trackSendEventsList = jest.spyOn(eventsManager.trackDestination, 'sendEventsList');
@@ -360,7 +365,7 @@ describe('SessionReplayEventsManager', () => {
       });
     });
     test('should update IDB store upon success', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const cleanUpSessionEventsStore = jest.spyOn(eventsManager.sessionIDBStore, 'cleanUpSessionEventsStore');
       eventsManager.events = [mockEventString];
       eventsManager.currentSequenceId = 4;
@@ -374,7 +379,7 @@ describe('SessionReplayEventsManager', () => {
       expect(update).toHaveBeenCalledWith('AMP_replay_unsent_static_key', expect.anything());
     });
     test('should remove session events from IDB store upon failure', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       eventsManager.events = [mockEventString];
       eventsManager.currentSequenceId = 4;
       const cleanUpSessionEventsStore = jest
@@ -395,7 +400,7 @@ describe('SessionReplayEventsManager', () => {
   describe('shouldSplitEventsList', () => {
     describe('event list size', () => {
       test('should return true if size of events list plus size of next event is over the max size', () => {
-        const eventsManager = new SessionReplayEventsManager({ config });
+        const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
         const eventsList = ['#'.repeat(20)];
         eventsManager.events = eventsList;
         eventsManager.maxPersistedEventsSize = 20;
@@ -404,7 +409,7 @@ describe('SessionReplayEventsManager', () => {
         expect(result).toBe(true);
       });
       test('should return false if size of events list plus size of next event is under the max size', () => {
-        const eventsManager = new SessionReplayEventsManager({ config });
+        const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
         const eventsList = ['#'.repeat(20)];
         eventsManager.events = eventsList;
         eventsManager.maxPersistedEventsSize = 22;
@@ -415,13 +420,13 @@ describe('SessionReplayEventsManager', () => {
     });
     describe('interval', () => {
       test('should return false if timeAtLastSend is null', () => {
-        const eventsManager = new SessionReplayEventsManager({ config });
+        const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
         const nextEvent = 'a';
         const result = eventsManager.shouldSplitEventsList(nextEvent);
         expect(result).toBe(false);
       });
       test('should return false if it has not been long enough since last send', () => {
-        const eventsManager = new SessionReplayEventsManager({ config });
+        const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
         eventsManager.timeAtLastSend = new Date('2023-07-31 08:30:00').getTime();
         jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
         const nextEvent = 'a';
@@ -429,7 +434,7 @@ describe('SessionReplayEventsManager', () => {
         expect(result).toBe(false);
       });
       test('should return true if it has been long enough since last send and events have been emitted', () => {
-        const eventsManager = new SessionReplayEventsManager({ config });
+        const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
         eventsManager.events = [mockEventString];
         eventsManager.timeAtLastSend = new Date('2023-07-31 08:30:00').getTime();
         jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:33:00').getTime());
@@ -442,7 +447,7 @@ describe('SessionReplayEventsManager', () => {
 
   describe('flush', () => {
     test('should call track destination flush with useRetry as true', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const flushMock = jest.spyOn(eventsManager.trackDestination, 'flush');
 
       await eventsManager.flush(true);
@@ -450,7 +455,7 @@ describe('SessionReplayEventsManager', () => {
       expect(flushMock).toHaveBeenCalledWith(true);
     });
     test('should call track destination flush without useRetry', async () => {
-      const eventsManager = new SessionReplayEventsManager({ config });
+      const eventsManager = new SessionReplayEventsManager({ config, sessionIDBStore });
       const flushMock = jest.spyOn(eventsManager.trackDestination, 'flush');
 
       await eventsManager.flush();
