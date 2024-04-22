@@ -1,4 +1,4 @@
-import { defaultEventTrackingAdvancedPlugin } from '../src/default-event-tracking-advanced-plugin';
+import { autocapturePlugin } from '../src/autocapture-plugin';
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { createInstance } from '@amplitude/analytics-browser';
 import { mockWindowLocationFromURL } from './utils';
@@ -26,7 +26,7 @@ describe('autoTrackingPlugin', () => {
       pathname: '',
       search: '',
     };
-    plugin = defaultEventTrackingAdvancedPlugin();
+    plugin = autocapturePlugin();
   });
 
   afterEach(() => {
@@ -37,7 +37,7 @@ describe('autoTrackingPlugin', () => {
 
   describe('name', () => {
     test('should return the plugin name', () => {
-      expect(plugin?.name).toBe('@amplitude/plugin-default-event-tracking-advanced-browser');
+      expect(plugin?.name).toBe('@amplitude/plugin-autocapture-browser');
     });
   });
 
@@ -94,7 +94,7 @@ describe('autoTrackingPlugin', () => {
       const messengerMock = {
         setup: jest.fn(),
       };
-      plugin = defaultEventTrackingAdvancedPlugin({
+      plugin = autocapturePlugin({
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         visualTaggingOptions: { enabled: true, messenger: messengerMock as any },
       });
@@ -133,7 +133,7 @@ describe('autoTrackingPlugin', () => {
     let track: jest.SpyInstance;
 
     beforeEach(async () => {
-      plugin = defaultEventTrackingAdvancedPlugin();
+      plugin = autocapturePlugin();
       instance = createInstance();
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track');
@@ -305,7 +305,7 @@ describe('autoTrackingPlugin', () => {
       div.setAttribute('id', 'my-div-id');
       document.body.appendChild(div);
 
-      plugin = defaultEventTrackingAdvancedPlugin();
+      plugin = autocapturePlugin();
       const loggerProvider: Partial<Logger> = {
         log: jest.fn(),
         warn: jest.fn(),
@@ -334,7 +334,7 @@ describe('autoTrackingPlugin', () => {
         button.appendChild(buttonText);
         document.body.appendChild(button);
 
-        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['.my-button-class'] });
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['.my-button-class'] });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -365,7 +365,7 @@ describe('autoTrackingPlugin', () => {
         button.setAttribute('id', 'my-button-id');
         document.body.appendChild(button);
 
-        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['div'] });
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'] });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -403,7 +403,7 @@ describe('autoTrackingPlugin', () => {
         button.setAttribute('id', 'my-button-id');
         document.body.appendChild(button);
 
-        plugin = defaultEventTrackingAdvancedPlugin();
+        plugin = autocapturePlugin();
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -429,7 +429,7 @@ describe('autoTrackingPlugin', () => {
     });
 
     test('should follow pageUrlAllowlist configuration', async () => {
-      plugin = defaultEventTrackingAdvancedPlugin({ pageUrlAllowlist: [new RegExp('https://www.test.com')] });
+      plugin = autocapturePlugin({ pageUrlAllowlist: [new RegExp('https://www.test.com')] });
       const loggerProvider: Partial<Logger> = {
         log: jest.fn(),
         warn: jest.fn(),
@@ -476,7 +476,7 @@ describe('autoTrackingPlugin', () => {
       button2.appendChild(buttonText2);
       document.body.appendChild(button2);
 
-      plugin = defaultEventTrackingAdvancedPlugin({
+      plugin = autocapturePlugin({
         shouldTrackEventResolver: (actionType, element) =>
           actionType === 'click' && element.id === 'my-button-id-1' && element.tagName === 'BUTTON',
       });
@@ -510,7 +510,7 @@ describe('autoTrackingPlugin', () => {
       button.appendChild(buttonText);
       document.body.appendChild(button);
 
-      plugin = defaultEventTrackingAdvancedPlugin({
+      plugin = autocapturePlugin({
         dataAttributePrefix: 'data-amp-test-',
       });
       const loggerProvider: Partial<Logger> = {
@@ -698,7 +698,7 @@ describe('autoTrackingPlugin', () => {
           </div>
         `;
 
-        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['div'] });
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'] });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -754,7 +754,7 @@ describe('autoTrackingPlugin', () => {
           </div>
         `;
 
-        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['.match-me'] });
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['.match-me'] });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -806,7 +806,7 @@ describe('autoTrackingPlugin', () => {
           </button>
         `;
 
-        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['button'] });
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['button'] });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -859,7 +859,7 @@ describe('autoTrackingPlugin', () => {
           </button>
         `;
 
-        plugin = defaultEventTrackingAdvancedPlugin({ cssSelectorAllowlist: ['[data-track]'] });
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['[data-track]'] });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),

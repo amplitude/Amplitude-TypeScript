@@ -5,10 +5,10 @@
   <br />
 </p>
 
-# @amplitude/plugin-default-event-tracking-advanced-browser (beta)
+# @amplitude/plugin-autocapture-browser (beta)
 **This plugin is in beta at the moment, naming and interface might change in the future.**
 
-Browser SDK plugin for default event tracking advanced.
+Browser SDK plugin for autocapture.
 
 ## Installation
 
@@ -16,10 +16,10 @@ This package is published on NPM registry and is available to be installed using
 
 ```sh
 # npm
-npm install @amplitude/plugin-default-event-tracking-advanced-browser@beta
+npm install @amplitude/plugin-autocapture-browser@beta
 
 # yarn
-yarn add @amplitude/plugin-default-event-tracking-advanced-browser@beta
+yarn add @amplitude/plugin-autocapture-browser@beta
 ```
 
 ## Usage
@@ -31,11 +31,11 @@ To use this plugin, you need to install `@amplitude/analytics-browser` version `
 ### 1. Import Amplitude packages
 
 * `@amplitude/analytics-browser`
-* `@amplitude/plugin-default-event-tracking-advanced-browser`
+* `@amplitude/plugin-autocapture-browser`
 
 ```typescript
 import * as amplitude from '@amplitude/analytics-browser';
-import { defaultEventTrackingAdvancedPlugin } from '@amplitude/plugin-default-event-tracking-advanced-browser';
+import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
 ```
 
 ### 2. Instantiate the plugin
@@ -43,7 +43,7 @@ import { defaultEventTrackingAdvancedPlugin } from '@amplitude/plugin-default-ev
 The plugin accepts 1 optional parameter, which is an `Object` to configure the allowed tracking options.
 
 ```typescript
-const plugin = defaultEventTrackingAdvancedPlugin({
+const plugin = autocapturePlugin({
   cssSelectorAllowlist: [
     '.amp-tracking',
     '[amp-tracking]'

@@ -1,7 +1,7 @@
 export {
-  defaultEventTrackingAdvancedPlugin as plugin,
-  defaultEventTrackingAdvancedPlugin,
+  autocapturePlugin as plugin,
+  autocapturePlugin,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
-} from './default-event-tracking-advanced-plugin';
+} from './autocapture-plugin';
 export { Messenger, Action, ActionData, Message, WindowMessenger } from './libs/messenger';

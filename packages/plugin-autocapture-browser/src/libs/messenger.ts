@@ -7,7 +7,7 @@ import {
 } from '../constants';
 import { asyncLoadScript, getEventTagProps } from '../helpers';
 import { Logger } from '@amplitude/analytics-types';
-import { ActionType } from '../typings/default-event-tracking-advanced';
+import { ActionType } from '../typings/autocapture';
 
 export interface Messenger {
   logger?: Logger;

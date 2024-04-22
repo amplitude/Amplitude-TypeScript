@@ -1,5 +1,5 @@
 {
-  "name": "@amplitude/plugin-default-event-tracking-advanced-browser",
+  "name": "@amplitude/plugin-autocapture-browser",
   "version": "0.8.0",
   "description": "",
   "author": "Amplitude Inc",

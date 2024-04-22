@@ -17,7 +17,7 @@ import {
 import { mockWindowLocationFromURL } from './utils';
 import { Logger } from '@amplitude/analytics-types';
 
-describe('default-event-tracking-advanced-plugin helpers', () => {
+describe('autocapture-plugin helpers', () => {
   afterEach(() => {
     document.getElementsByTagName('body')[0].innerHTML = '';
     jest.clearAllMocks();
