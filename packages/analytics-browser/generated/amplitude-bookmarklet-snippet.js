@@ -46,7 +46,7 @@
     amplitude.invoked = true;
     var s = document.getElementsByTagName('script')[0];
     var autoTrackingPluginScript = document.createElement('script');
-    autoTrackingPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-default-event-tracking-advanced-browser-0.7.2-min.js.gz';
+    autoTrackingPluginScript.src = 'https://cdn.amplitude.com/libs/plugin-autocapture-browser-0.9.0-min.js.gz';
     autoTrackingPluginScript.async = false;
     s.parentNode.insertBefore(autoTrackingPluginScript, s);
     var as = document.createElement('script');
@@ -68,8 +68,8 @@
         },
         optOut: false
       });
-      if (amplitudeDefaultEventTrackingAdvancedPlugin && amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin && typeof amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin === 'function') {
-        window.amplitude.add(amplitudeDefaultEventTrackingAdvancedPlugin.defaultEventTrackingAdvancedPlugin());
+      if (amplitudeAutocapturePlugin && amplitudeAutocapturePlugin.autocapturePlugin && typeof amplitudeAutocapturePlugin.autocapturePlugin === 'function') {
+        window.amplitude.add(amplitudeAutocapturePlugin.autocapturePlugin());
       }
       alert('Amplitude is now tracking events!');
     };
