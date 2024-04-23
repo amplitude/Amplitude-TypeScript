@@ -227,8 +227,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       recordCanvas: false,
       errorHandler: (error) => {
         const typedError = error as Error;
-        this.loggerProvider.warn('Error while recording: ', typedError.toString());
 
+        // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
+        if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
+          throw typedError;
+        }
+        this.loggerProvider.warn('Error while recording: ', typedError.toString());
+        // Return true so that we don't clutter user's consoles with internal rrweb errors
         return true;
       },
     });
