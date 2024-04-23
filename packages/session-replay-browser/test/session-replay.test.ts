@@ -735,6 +735,18 @@ describe('SessionReplayPlugin', () => {
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
       expect(errorHandlerReturn).toBe(true);
     });
+
+    test('should rethrow CSSStylesheet errors', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const stylesheetErrorMessage =
+        "Failed to execute 'insertRule' on 'CSSStyleSheet': Failed to parse the rule 'body::-ms-expand{display: none}";
+      expect(() => {
+        recordArg?.errorHandler && recordArg?.errorHandler(new Error(stylesheetErrorMessage));
+      }).toThrow(stylesheetErrorMessage);
+    });
   });
 
   describe('getDeviceId', () => {
