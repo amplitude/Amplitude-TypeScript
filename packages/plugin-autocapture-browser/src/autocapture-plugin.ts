@@ -12,7 +12,7 @@ import {
   getSelector,
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
-import { ActionType } from './typings/default-event-tracking-advanced';
+import { ActionType } from './typings/autocapture';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -74,7 +74,7 @@ interface Options {
   };
 }
 
-export const defaultEventTrackingAdvancedPlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
+export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
   const {
     cssSelectorAllowlist = DEFAULT_CSS_SELECTOR_ALLOWLIST,
     pageUrlAllowlist,
