@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.7...@amplitude/session-replay-browser@1.2.8) (2024-04-23)
+
+### Bug Fixes
+
+- **session replay:** throw error for styled-components
+  ([0a53e33](https://github.com/amplitude/Amplitude-TypeScript/commit/0a53e33cf7fb50f5c8bde7bc6627625660ae9a4d))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.6...@amplitude/session-replay-browser@1.2.7) (2024-04-22)
 
 ### Bug Fixes
