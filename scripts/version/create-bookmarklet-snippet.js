@@ -37,7 +37,7 @@ const integrity = algorithm + '-' + crypto.createHash(algorithm).update(inputTex
 const version = getVersion() || '';
 const ingestionSourceName = 'browser-typescript-bookmarklet';
 const ingestionSourceVersion = '1.0.0';
-const autoTrackingPluginVersion = '0.7.2';
+const autoTrackingPluginVersion = '0.9.0';
 const outputText =
   header +
   snippet(
