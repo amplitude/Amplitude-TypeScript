@@ -48,6 +48,7 @@ export interface SessionReplaySessionIDBStore {
 
 export interface SessionReplayPrivacyConfig {
   blockSelector?: string | string[];
+  maskTextFn?: (text: string, element: HTMLElement | null) => string;
 }
 
 export interface SessionReplayConfig extends Config {
