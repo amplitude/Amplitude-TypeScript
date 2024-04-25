@@ -97,4 +97,49 @@ describe('shouldTrackNewCampaign', () => {
     webAttribution.generateCampaignEvent();
     expect(webAttribution.shouldSetSessionIdOnNewCampaign()).toBe(false);
   });
+
+  test('should ignore the campaign for direct traffic in session', async () => {
+    const lastEventTime = Date.now();
+
+    const overrideMockConfig = {
+      ...mockConfig,
+      // In session event
+      lastEventTime,
+    };
+    const webAttribution = new WebAttribution({}, overrideMockConfig);
+    const previousCampaign = {
+      ...BASE_CAMPAIGN,
+      referrer: 'https://www.google.com',
+      referring_domain: 'www.google.com',
+    };
+
+    jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue(BASE_CAMPAIGN); // Direct Traffic
+    jest.spyOn(webAttribution.storage, 'get').mockResolvedValue(previousCampaign);
+
+    await webAttribution.init();
+    expect(webAttribution.shouldTrackNewCampaign).toBe(false);
+  });
+
+  test('should not ignore the campaign for direct traffic in new session', async () => {
+    const lastEventTime = Date.now() - 2 * 30 * 60 * 1000;
+
+    const overrideMockConfig = {
+      ...mockConfig,
+      // Out of session event
+      lastEventTime,
+    };
+
+    const webAttribution = new WebAttribution({}, overrideMockConfig);
+    const previousCampaign = {
+      ...BASE_CAMPAIGN,
+      referrer: 'https://www.google.com',
+      referring_domain: 'www.google.com',
+    };
+
+    jest.spyOn(CampaignParser.prototype, 'parse').mockResolvedValue(BASE_CAMPAIGN); // Direct Traffic
+    jest.spyOn(webAttribution.storage, 'get').mockResolvedValue(previousCampaign);
+
+    await webAttribution.init();
+    expect(webAttribution.shouldTrackNewCampaign).toBe(true);
+  });
 });
