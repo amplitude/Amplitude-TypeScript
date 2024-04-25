@@ -244,7 +244,6 @@ make sure the campaign event is right
           },
           writable: true,
         });
-        console.log(document.referrer);
 
         let payload: any = undefined;
         const scope = nock(httpEndPoint)
@@ -302,6 +301,313 @@ make sure the campaign event is right
                     utm_source: 'test_utm_source',
                     referrer: 'https://www.google.com/',
                     referring_domain: 'www.google.com',
+                  },
+                  event_type: '[Amplitude] Page Viewed',
+                  insert_id: uuid,
+                  ip: '$remote',
+                  language: 'en-US',
+                  library,
+                  partner_id: undefined,
+                  plan: undefined,
+                  platform: 'Web',
+                  session_id: number,
+                  time: number,
+                  user_agent: userAgent,
+                  user_id: 'user1@amplitude.com',
+                },
+              ],
+              options: {
+                min_id_length: undefined,
+              },
+            });
+            scope.done();
+            resolve();
+          }, 4000);
+        });
+      });
+
+      test('Should not fire campaign identify event for direct traffic', async () => {
+        const url = new URL('https://www.example.com?utm_source=test_utm_source');
+        Object.defineProperty(window, 'location', {
+          value: {
+            hostname: url.hostname,
+            href: url.href,
+            pathname: url.pathname,
+            search: url.search,
+          },
+          writable: true,
+        });
+
+        let payload: any = undefined;
+        const scope = nock(httpEndPoint)
+          .post(path, (body: Record<string, any>) => {
+            payload = body;
+            return true;
+          })
+          .reply(200, success);
+
+        nock(httpEndPoint)
+          .post(path, (body: Record<string, any>) => {
+            payload = body;
+            return true;
+          })
+          .reply(200, success);
+
+        await client.init(apiKey, 'user1@amplitude.com', {
+          deviceId: UUID(),
+          defaultTracking: {
+            ...defaultTracking,
+            attribution: {
+              resetSessionOnNewCampaign: true,
+            },
+            sessions: true,
+          },
+          sessionTimeout: 500,
+          flushIntervalMillis: 3000,
+        }).promise;
+
+        // refresh during the session.
+        const directUrl = new URL('https://www.example.com/?utm_content=test_utm_content');
+        Object.defineProperty(window, 'location', {
+          value: {
+            hostname: directUrl.hostname,
+            href: directUrl.href,
+            pathname: directUrl.pathname,
+            search: directUrl.search,
+          },
+          writable: true,
+        });
+
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        setTimeout(async () => {
+          await client.init(apiKey, 'user1@amplitude.com', {
+            deviceId: UUID(),
+            defaultTracking: {
+              ...defaultTracking,
+              attribution: {
+                resetSessionOnNewCampaign: true,
+              },
+              sessions: true,
+            },
+            sessionTimeout: 500,
+            flushIntervalMillis: 3000,
+          }).promise;
+        }, 400);
+
+        return new Promise<void>((resolve) => {
+          setTimeout(() => {
+            expect(payload).toEqual({
+              api_key: apiKey,
+              client_upload_time: event_upload_time,
+              events: [
+                {
+                  device_id: uuid,
+                  event_id: 0,
+                  event_type: '$identify',
+                  insert_id: uuid,
+                  ip: '$remote',
+                  language: 'en-US',
+                  library,
+                  partner_id: undefined,
+                  plan: undefined,
+                  platform: 'Web',
+                  session_id: number,
+                  time: number,
+                  user_agent: userAgent,
+                  user_id: 'user1@amplitude.com',
+                  user_properties: {
+                    $set: {
+                      utm_source: 'test_utm_source',
+                    },
+                    $setOnce: {
+                      initial_dclid: 'EMPTY',
+                      initial_fbclid: 'EMPTY',
+                      initial_gbraid: 'EMPTY',
+                      initial_gclid: 'EMPTY',
+                      initial_ko_click_id: 'EMPTY',
+                      initial_li_fat_id: 'EMPTY',
+                      initial_msclkid: 'EMPTY',
+                      initial_referrer: 'EMPTY',
+                      initial_referring_domain: 'EMPTY',
+                      initial_rtd_cid: 'EMPTY',
+                      initial_ttclid: 'EMPTY',
+                      initial_twclid: 'EMPTY',
+                      initial_utm_campaign: 'EMPTY',
+                      initial_utm_content: 'EMPTY',
+                      initial_utm_id: 'EMPTY',
+                      initial_utm_medium: 'EMPTY',
+                      initial_utm_source: 'test_utm_source',
+                      initial_utm_term: 'EMPTY',
+                      initial_wbraid: 'EMPTY',
+                    },
+                    $unset: {
+                      dclid: '-',
+                      fbclid: '-',
+                      gbraid: '-',
+                      gclid: '-',
+                      ko_click_id: '-',
+                      li_fat_id: '-',
+                      msclkid: '-',
+                      referrer: '-',
+                      referring_domain: '-',
+                      rtd_cid: '-',
+                      ttclid: '-',
+                      twclid: '-',
+                      utm_campaign: '-',
+                      utm_content: '-',
+                      utm_id: '-',
+                      utm_medium: '-',
+                      utm_term: '-',
+                      wbraid: '-',
+                    },
+                  },
+                },
+                {
+                  device_id: uuid,
+                  event_id: 1,
+                  event_type: 'session_start',
+                  insert_id: uuid,
+                  ip: '$remote',
+                  language: 'en-US',
+                  library,
+                  partner_id: undefined,
+                  plan: undefined,
+                  platform: 'Web',
+                  session_id: number,
+                  time: number,
+                  user_agent: userAgent,
+                  user_id: 'user1@amplitude.com',
+                },
+                {
+                  device_id: uuid,
+                  event_id: 2,
+                  event_properties: {
+                    '[Amplitude] Page Counter': 1,
+                    '[Amplitude] Page Domain': 'www.example.com',
+                    '[Amplitude] Page Location': 'https://www.example.com/?utm_source=test_utm_source',
+                    '[Amplitude] Page Path': '/',
+                    '[Amplitude] Page Title': '',
+                    '[Amplitude] Page URL': 'https://www.example.com/',
+                    utm_source: 'test_utm_source',
+                  },
+                  event_type: '[Amplitude] Page Viewed',
+                  insert_id: uuid,
+                  ip: '$remote',
+                  language: 'en-US',
+                  library,
+                  partner_id: undefined,
+                  plan: undefined,
+                  platform: 'Web',
+                  session_id: number,
+                  time: number,
+                  user_agent: userAgent,
+                  user_id: 'user1@amplitude.com',
+                },
+                {
+                  device_id: uuid,
+                  event_id: 3,
+                  event_type: 'session_end',
+                  insert_id: uuid,
+                  ip: '$remote',
+                  language: 'en-US',
+                  library,
+                  partner_id: undefined,
+                  plan: undefined,
+                  platform: 'Web',
+                  session_id: number,
+                  time: number,
+                  user_agent: userAgent,
+                  user_id: 'user1@amplitude.com',
+                },
+                {
+                  device_id: uuid,
+                  event_id: 4,
+                  event_type: '$identify',
+                  insert_id: uuid,
+                  ip: '$remote',
+                  language: 'en-US',
+                  library,
+                  partner_id: undefined,
+                  plan: undefined,
+                  platform: 'Web',
+                  session_id: number,
+                  time: number,
+                  user_agent: userAgent,
+                  user_id: 'user1@amplitude.com',
+                  user_properties: {
+                    $set: {
+                      utm_content: 'test_utm_content',
+                    },
+                    $setOnce: {
+                      initial_dclid: 'EMPTY',
+                      initial_fbclid: 'EMPTY',
+                      initial_gbraid: 'EMPTY',
+                      initial_gclid: 'EMPTY',
+                      initial_ko_click_id: 'EMPTY',
+                      initial_li_fat_id: 'EMPTY',
+                      initial_msclkid: 'EMPTY',
+                      initial_referrer: 'EMPTY',
+                      initial_referring_domain: 'EMPTY',
+                      initial_rtd_cid: 'EMPTY',
+                      initial_ttclid: 'EMPTY',
+                      initial_twclid: 'EMPTY',
+                      initial_utm_campaign: 'EMPTY',
+                      initial_utm_content: 'test_utm_content',
+                      initial_utm_id: 'EMPTY',
+                      initial_utm_medium: 'EMPTY',
+                      initial_utm_source: 'EMPTY',
+                      initial_utm_term: 'EMPTY',
+                      initial_wbraid: 'EMPTY',
+                    },
+                    $unset: {
+                      dclid: '-',
+                      fbclid: '-',
+                      gbraid: '-',
+                      gclid: '-',
+                      ko_click_id: '-',
+                      li_fat_id: '-',
+                      msclkid: '-',
+                      referrer: '-',
+                      referring_domain: '-',
+                      rtd_cid: '-',
+                      ttclid: '-',
+                      twclid: '-',
+                      utm_campaign: '-',
+                      utm_id: '-',
+                      utm_medium: '-',
+                      utm_source: '-',
+                      utm_term: '-',
+                      wbraid: '-',
+                    },
+                  },
+                },
+                {
+                  device_id: uuid,
+                  event_id: 5,
+                  event_type: 'session_start',
+                  insert_id: uuid,
+                  ip: '$remote',
+                  language: 'en-US',
+                  library,
+                  partner_id: undefined,
+                  plan: undefined,
+                  platform: 'Web',
+                  session_id: number,
+                  time: number,
+                  user_agent: userAgent,
+                  user_id: 'user1@amplitude.com',
+                },
+                {
+                  device_id: uuid,
+                  event_id: 6,
+                  event_properties: {
+                    '[Amplitude] Page Counter': 2,
+                    '[Amplitude] Page Domain': 'www.example.com',
+                    '[Amplitude] Page Location': 'https://www.example.com/?utm_content=test_utm_content',
+                    '[Amplitude] Page Path': '/',
+                    '[Amplitude] Page Title': '',
+                    '[Amplitude] Page URL': 'https://www.example.com/',
+                    utm_content: 'test_utm_content',
                   },
                   event_type: '[Amplitude] Page Viewed',
                   insert_id: uuid,
