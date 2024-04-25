@@ -555,7 +555,7 @@ describe('destination', () => {
       });
     });
 
-    test('should handle unexpected error', async () => {
+    test('should not drop data on unexpected error', async () => {
       const destination = new Destination();
       const callback = jest.fn();
       const context = {
@@ -576,7 +576,8 @@ describe('destination', () => {
         transportProvider,
       });
       await destination.send([context]);
-      expect(callback).toHaveBeenCalledTimes(1);
+      // We should not fulfill request when the request fails with an unknown error. This should be retried
+      expect(callback).toHaveBeenCalledTimes(0);
     });
   });
 
@@ -1187,7 +1188,7 @@ describe('destination', () => {
 
         expect(transportProvider.send).toHaveBeenCalledTimes(eventCount + 1);
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(eventCount);
         // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
         expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
       },
@@ -1220,7 +1221,8 @@ describe('destination', () => {
         loggerProvider,
       });
       await destination.send([context]);
-      expect(callback).toHaveBeenCalledTimes(1);
+      // Callback should not be called since errors get retried
+      expect(callback).toHaveBeenCalledTimes(0);
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(loggerProvider.error).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method
