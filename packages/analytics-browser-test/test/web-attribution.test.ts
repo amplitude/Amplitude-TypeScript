@@ -14,7 +14,7 @@ import {
   generateSessionEndEvent,
   generatePageViewEvent,
   navigateTo,
-} from './helper';
+} from './helpers';
 
 describe('Web attribution', () => {
   const defaultTracking = {

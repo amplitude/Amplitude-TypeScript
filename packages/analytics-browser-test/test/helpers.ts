@@ -2,34 +2,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BaseEvent, Campaign } from '@amplitude/analytics-types';
+import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
 import { uuidPattern } from './constants';
 
 const uuid: string = expect.stringMatching(uuidPattern) as string;
 const userAgent = expect.any(String) as string;
 const library = expect.stringMatching(/^amplitude-ts\/.+/) as string;
 const number = expect.any(Number) as number;
-
-const BASE_CAMPAIGN: Campaign = {
-  utm_campaign: undefined,
-  utm_content: undefined,
-  utm_id: undefined,
-  utm_medium: undefined,
-  utm_source: undefined,
-  utm_term: undefined,
-  referrer: undefined,
-  referring_domain: undefined,
-  dclid: undefined,
-  gbraid: undefined,
-  gclid: undefined,
-  fbclid: undefined,
-  ko_click_id: undefined,
-  li_fat_id: undefined,
-  msclkid: undefined,
-  rtd_cid: undefined,
-  ttclid: undefined,
-  twclid: undefined,
-  wbraid: undefined,
-};
 
 const parseQueryString = (url: string) => {
   const params: { [key: string]: string } = {};
@@ -52,15 +31,15 @@ const generateAttributionUserProps = (campaignURL: string) => {
     ...BASE_CAMPAIGN,
     ...campaign,
   };
-  const hasNoCampaign = Object.entries(campaign).length == 0;
+  const hasNoCampaign = Object.entries(campaign).length === 0;
+  const hasAllCampaign = Object.entries(campaign).length === Object.entries(BASE_CAMPAIGN).length;
   const operationObject: { [key: string]: { [key: string]: string } } = {
     $setOnce: {},
-    $unset: {},
+    ...(!hasAllCampaign ? { $unset: {} } : {}),
     ...(!hasNoCampaign ? { $set: {} } : {}),
   };
 
   const user_properties = Object.keys(campaignObject).reduce((operationObject, key) => {
-    // Assign each key-value pair to the $set object
     if (campaignObject[key] !== undefined) {
       operationObject.$setOnce['initial_' + key] = campaignObject[key] as string;
       operationObject.$set[key] = campaignObject[key] as string; // Assert that the value is a string
