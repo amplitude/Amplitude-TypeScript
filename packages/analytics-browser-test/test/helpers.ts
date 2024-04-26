@@ -32,9 +32,9 @@ const getReferrerObject = (referrerString?: string) => {
   const referring_domain = referrerURL.hostname;
   return { referrer, referring_domain };
 };
+
 const generateAttributionUserProps = (campaignURL: string, referrerString?: string) => {
   const referrer = getReferrerObject(referrerString);
-
   const campaign = parseQueryString(campaignURL);
   const campaignObject: Campaign = {
     ...BASE_CAMPAIGN,
