@@ -48,8 +48,9 @@ describe('Web attribution', () => {
       });
 
       test('should track all UTMs and referrers', async () => {
+        const referrer = 'https://www.google.com/';
         const url = 'https://www.example.com?utm_source=test_utm_source';
-        navigateTo(url);
+        navigateTo(url, referrer);
 
         let payload: any = undefined;
         const scope = nock(httpEndPoint)
@@ -72,9 +73,9 @@ describe('Web attribution', () => {
               api_key: apiKey,
               client_upload_time: event_upload_time,
               events: [
-                generateAttributionEvent(++eventId, url),
+                generateAttributionEvent(++eventId, url, referrer),
                 generateSessionStartEvent(++eventId),
-                generatePageViewEvent(++eventId, 1, url),
+                generatePageViewEvent(++eventId, 1, url, referrer),
               ],
               options: {
                 min_id_length: undefined,
@@ -477,6 +478,7 @@ describe('Web attribution', () => {
       });
     });
 
+    // Specific tests for an SPA. The SPA won't reload the page when redirected. We don't track campaign updates without reinitializing the SDK (reloading the page).
     describe('during a session', () => {
       let eventId = -1;
       beforeEach(() => {
@@ -487,7 +489,7 @@ describe('Web attribution', () => {
         cleanup();
       });
 
-      test('should not track updated campaign during', async () => {
+      test('should not track updated campaign', async () => {
         const url = 'https://www.example.com?utm_source=test_utm_source';
         navigateTo(url);
 
@@ -510,7 +512,7 @@ describe('Web attribution', () => {
         const newCampaignURL = 'https://www.example.com?utm_source=second_utm_source&utm_content=test_utm_content';
         navigateTo(newCampaignURL);
 
-        client.track('test event after session timeout');
+        client.track('test event in the same session');
 
         return new Promise<void>((resolve) => {
           setTimeout(() => {
@@ -521,7 +523,7 @@ describe('Web attribution', () => {
                 generateAttributionEvent(++eventId, url),
                 generateSessionStartEvent(++eventId),
                 generatePageViewEvent(++eventId, 1, url),
-                generateEvent(++eventId, 'test event after session timeout'),
+                generateEvent(++eventId, 'test event in the same session'),
               ],
               options: {
                 min_id_length: undefined,

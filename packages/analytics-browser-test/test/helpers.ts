@@ -25,11 +25,21 @@ const parseQueryString = (url: string) => {
   return params;
 };
 
-const generateAttributionUserProps = (campaignURL: string) => {
+const getReferrerObject = (referrerString?: string) => {
+  if (!referrerString) return {};
+  const referrerURL = new URL(referrerString);
+  const referrer = referrerURL.href.split('?')[0];
+  const referring_domain = referrerURL.hostname;
+  return { referrer, referring_domain };
+};
+const generateAttributionUserProps = (campaignURL: string, referrerString?: string) => {
+  const referrer = getReferrerObject(referrerString);
+
   const campaign = parseQueryString(campaignURL);
   const campaignObject: Campaign = {
     ...BASE_CAMPAIGN,
     ...campaign,
+    ...referrer,
   };
   const hasNoCampaign = Object.entries(campaign).length === 0;
   const hasAllCampaign = Object.entries(campaign).length === Object.entries(BASE_CAMPAIGN).length;
@@ -57,8 +67,8 @@ const generateAttributionUserProps = (campaignURL: string) => {
 export const generateEvent = (event_id: number, event_type: string): BaseEvent => {
   return {
     device_id: uuid,
-    event_id,
-    event_type,
+    event_id: event_id,
+    event_type: event_type,
     insert_id: uuid,
     ip: '$remote',
     language: 'en-US',
@@ -73,9 +83,9 @@ export const generateEvent = (event_id: number, event_type: string): BaseEvent =
   };
 };
 
-export const generateAttributionEvent = (event_id: number, campaignURL: string) => {
+export const generateAttributionEvent = (event_id: number, campaignURL: string, referrer?: string) => {
   const attributionEvent = generateEvent(event_id, '$identify');
-  attributionEvent.user_properties = generateAttributionUserProps(campaignURL);
+  attributionEvent.user_properties = generateAttributionUserProps(campaignURL, referrer);
   return attributionEvent;
 };
 
@@ -88,16 +98,7 @@ export const generateSessionEndEvent = (event_id: number) => {
 };
 
 const generatePageViewEventProps = (pageCounter: number, urlString: string, referrerString?: string) => {
-  let referrerObj = {};
-  if (referrerString) {
-    const referrerURL = new URL(referrerString);
-    const referrer = referrerURL.href.split('?')[0];
-    const referring_domain = referrerURL.hostname;
-    referrerObj = {
-      referrer,
-      referring_domain,
-    };
-  }
+  const referrer = getReferrerObject(referrerString);
 
   const url = new URL(urlString);
   const campaign = parseQueryString(urlString);
@@ -110,7 +111,7 @@ const generatePageViewEventProps = (pageCounter: number, urlString: string, refe
     '[Amplitude] Page Title': '',
     '[Amplitude] Page URL': url.href.split('?')[0],
     ...campaign,
-    ...referrerObj,
+    ...referrer,
   };
 };
 
