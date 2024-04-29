@@ -30,18 +30,20 @@ export class SessionReplayJoinedConfigGenerator {
     config.optOut = this.localConfig.optOut;
     try {
       const samplingConfig = await this.remoteConfigFetch.getSamplingConfig(sessionId);
-
-      if (samplingConfig) {
+      if (samplingConfig && Object.keys(samplingConfig).length > 0) {
         if (Object.prototype.hasOwnProperty.call(samplingConfig, 'capture_enabled')) {
           config.captureEnabled = samplingConfig.capture_enabled;
         } else {
-          config.captureEnabled = true;
+          config.captureEnabled = false;
         }
 
         if (samplingConfig.sample_rate) {
           config.sampleRate = samplingConfig.sample_rate;
         }
       } else {
+        // If config API response was valid (ie 200), but no config returned, assume that
+        // customer has not yet set up config, and use sample rate from SDK options,
+        // allowing for immediate replay capture
         config.captureEnabled = true;
       }
     } catch (err: unknown) {

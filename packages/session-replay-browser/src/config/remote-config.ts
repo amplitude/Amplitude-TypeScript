@@ -1,5 +1,5 @@
 import { BaseTransport } from '@amplitude/analytics-core';
-import { Status } from '@amplitude/analytics-types';
+import { ServerZone, Status } from '@amplitude/analytics-types';
 import { UNEXPECTED_ERROR_MESSAGE } from '../messages';
 import { SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore } from '../typings/session-replay';
 import {
@@ -7,12 +7,14 @@ import {
   SessionReplayRemoteConfig as ISessionReplayRemoteConfig,
   SessionReplayRemoteConfigFetch as ISessionReplayRemoteConfigFetch,
   SamplingConfig,
+  SessionReplayRemoteConfigAPIResponse,
 } from './types';
 
 const UNEXPECTED_NETWORK_ERROR_MESSAGE = 'Network error occurred, session replay remote config fetch failed';
 const SUCCESS_REMOTE_CONFIG = 'Session replay remote config successfully fetched';
 const MAX_RETRIES_EXCEEDED_MESSAGE = 'Session replay remote config fetch rejected due to exceeded retry count';
-export const SERVER_URL = '/sessions/v2/targeting.json';
+export const REMOTE_CONFIG_SERVER_URL = 'https://sr-config.amplitude.com/config';
+export const REMOTE_CONFIG_SERVER_URL_STAGING = 'https://sr-client-cfg.stag2.amplitude.com/config';
 
 export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfigFetch {
   localConfig: ISessionReplayLocalConfig;
@@ -49,11 +51,15 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
   };
 
   getServerUrl() {
-    return SERVER_URL;
+    if (this.localConfig.serverZone === ServerZone.STAGING) {
+      return REMOTE_CONFIG_SERVER_URL_STAGING;
+    }
+
+    return REMOTE_CONFIG_SERVER_URL;
   }
 
   fetchRemoteConfig = async (sessionId: number): Promise<ISessionReplayRemoteConfig | void> => {
-    if (this.attempts >= this.localConfig.flushMaxRetries && sessionId === this.lastFetchedSessionId) {
+    if (sessionId === this.lastFetchedSessionId && this.attempts >= this.localConfig.flushMaxRetries) {
       return this.completeRequest({ err: MAX_RETRIES_EXCEEDED_MESSAGE });
     } else if (sessionId !== this.lastFetchedSessionId) {
       this.lastFetchedSessionId = sessionId;
@@ -61,15 +67,18 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
     }
 
     try {
+      const urlParams = new URLSearchParams({
+        api_key: this.localConfig.apiKey,
+        config_keys: 'sessionReplay',
+      });
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
           Accept: '*/*',
-          Authorization: `Bearer ${this.localConfig.apiKey}`,
         },
         method: 'GET',
       };
-      const server_url = `${this.getServerUrl()}`;
+      const server_url = `${this.getServerUrl()}?${urlParams.toString()}`;
       this.attempts += 1;
       const res = await fetch(server_url, options);
       if (res === null) {
@@ -95,10 +104,11 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
   };
 
   parseAndStoreConfig = async (sessionId: number, res: Response): Promise<ISessionReplayRemoteConfig> => {
-    const remoteConfig: ISessionReplayRemoteConfig = (await res.json()) as ISessionReplayRemoteConfig;
+    const remoteConfig: SessionReplayRemoteConfigAPIResponse =
+      (await res.json()) as SessionReplayRemoteConfigAPIResponse;
     this.completeRequest({ success: SUCCESS_REMOTE_CONFIG });
-    void this.sessionIDBStore.storeRemoteConfigForSession(sessionId, remoteConfig);
-    return remoteConfig;
+    void this.sessionIDBStore.storeRemoteConfigForSession(sessionId, remoteConfig.configs.sessionReplay);
+    return remoteConfig.configs.sessionReplay;
   };
 
   completeRequest({ err, success }: { err?: string; success?: string }) {

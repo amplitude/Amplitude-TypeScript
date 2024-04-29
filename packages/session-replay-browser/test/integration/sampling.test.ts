@@ -3,8 +3,8 @@ import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import * as IDBKeyVal from 'idb-keyval';
 import { SessionReplayOptions } from 'src/typings/session-replay';
-import { SERVER_URL as REMOTE_CONFIG_SERVER_URL } from '../../src/config/remote-config';
-import { SessionReplayRemoteConfig } from '../../src/config/types';
+import { REMOTE_CONFIG_SERVER_URL } from '../../src/config/remote-config';
+import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../../src/config/types';
 import {
   DEFAULT_SAMPLE_RATE,
   DEFAULT_SESSION_REPLAY_PROPERTY,
@@ -32,6 +32,12 @@ const samplingConfig = {
 };
 const mockRemoteConfig: SessionReplayRemoteConfig = {
   sr_sampling_config: samplingConfig,
+};
+
+const mockRemoteConfigAPIResponse: SessionReplayRemoteConfigAPIResponse = {
+  configs: {
+    sessionReplay: mockRemoteConfig,
+  },
 };
 
 async function runScheduleTimers() {
@@ -102,8 +108,8 @@ describe('module level integration', () => {
   describe('sampleRate and captureEnabled', () => {
     describe('remote config API failure', () => {
       beforeEach(() => {
-        (global.fetch as jest.Mock) = jest.fn((url) => {
-          if (url === REMOTE_CONFIG_SERVER_URL) {
+        (global.fetch as jest.Mock) = jest.fn((url: string) => {
+          if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
             return Promise.resolve({
               status: 500,
             });
@@ -135,12 +141,12 @@ describe('module level integration', () => {
     });
     describe('without remote config set', () => {
       beforeEach(() => {
-        (global.fetch as jest.Mock) = jest.fn((url) => {
-          if (url === REMOTE_CONFIG_SERVER_URL) {
+        (global.fetch as jest.Mock) = jest.fn((url: string) => {
+          if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
             return Promise.resolve({
               status: 200,
               json: () => {
-                return {};
+                return { configs: { sessionReplay: {} } };
               },
             });
           }
@@ -178,11 +184,11 @@ describe('module level integration', () => {
     });
     describe('with remote config set', () => {
       beforeEach(() => {
-        (global.fetch as jest.Mock) = jest.fn((url) => {
-          if (url === REMOTE_CONFIG_SERVER_URL) {
+        (global.fetch as jest.Mock) = jest.fn((url: string) => {
+          if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
             return Promise.resolve({
               status: 200,
-              json: () => mockRemoteConfig,
+              json: () => mockRemoteConfigAPIResponse,
             });
           }
           return Promise.resolve({
@@ -222,12 +228,12 @@ describe('module level integration', () => {
     beforeEach(() => {
       // Mimic remote config fetch as if no settings returned,
       // so fallback to using SDK options in subsequent tests
-      (global.fetch as jest.Mock) = jest.fn((url) => {
-        if (url === REMOTE_CONFIG_SERVER_URL) {
+      (global.fetch as jest.Mock) = jest.fn((url: string) => {
+        if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
           return Promise.resolve({
             status: 200,
             json: () => {
-              return {};
+              return { configs: { sessionReplay: {} } };
             },
           });
         }

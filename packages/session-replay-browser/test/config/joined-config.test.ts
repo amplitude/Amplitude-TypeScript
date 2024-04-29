@@ -87,7 +87,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
           sampleRate: samplingConfig.sample_rate,
-          captureEnabled: true,
+          captureEnabled: false,
         });
       });
       test('should use capture_enabled only from API', async () => {

@@ -8,6 +8,11 @@ export interface SessionReplayRemoteConfig {
   sr_sampling_config: SamplingConfig;
 }
 
+export interface SessionReplayRemoteConfigAPIResponse {
+  configs: {
+    sessionReplay: SessionReplayRemoteConfig;
+  };
+}
 export interface SessionReplayPrivacyConfig {
   blockSelector?: string | string[];
 }

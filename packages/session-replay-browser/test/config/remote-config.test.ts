@@ -1,7 +1,11 @@
-import { Logger } from '@amplitude/analytics-types';
+import { Logger, ServerZone } from '@amplitude/analytics-types';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
-import { SessionReplayRemoteConfigFetch } from '../../src/config/remote-config';
-import { SessionReplayRemoteConfig } from '../../src/config/types';
+import {
+  REMOTE_CONFIG_SERVER_URL,
+  REMOTE_CONFIG_SERVER_URL_STAGING,
+  SessionReplayRemoteConfigFetch,
+} from '../../src/config/remote-config';
+import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../../src/config/types';
 import { SessionReplaySessionIDBStore } from '../../src/session-idb-store';
 
 type MockedLogger = jest.Mocked<Logger>;
@@ -11,6 +15,12 @@ const samplingConfig = {
 };
 const mockRemoteConfig: SessionReplayRemoteConfig = {
   sr_sampling_config: samplingConfig,
+};
+
+const mockRemoteConfigAPIResponse: SessionReplayRemoteConfigAPIResponse = {
+  configs: {
+    sessionReplay: mockRemoteConfig,
+  },
 };
 
 async function runScheduleTimers() {
@@ -113,7 +123,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
       (fetch as jest.Mock).mockImplementationOnce(() =>
         Promise.resolve({
           status: 200,
-          json: () => mockRemoteConfig,
+          json: () => mockRemoteConfigAPIResponse,
         }),
       );
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
@@ -132,7 +142,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
       (fetch as jest.Mock).mockImplementationOnce(() =>
         Promise.resolve({
           status: 200,
-          json: () => mockRemoteConfig,
+          json: () => mockRemoteConfigAPIResponse,
         }),
       );
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
@@ -191,7 +201,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
         .mockImplementationOnce(() => {
           return Promise.resolve({
             status: 200,
-            json: () => mockRemoteConfig,
+            json: () => mockRemoteConfigAPIResponse,
           });
         });
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
@@ -217,7 +227,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
         .mockImplementationOnce(() => {
           return Promise.resolve({
             status: 200,
-            json: () => mockRemoteConfig,
+            json: () => mockRemoteConfigAPIResponse,
           });
         });
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
@@ -276,7 +286,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
       (fetch as jest.Mock).mockImplementationOnce(() => {
         return Promise.resolve({
           status: 200,
-          json: () => mockRemoteConfig,
+          json: () => mockRemoteConfigAPIResponse,
         });
       });
 
@@ -298,7 +308,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
         .mockImplementationOnce(() => {
           return Promise.resolve({
             status: 200,
-            json: () => mockRemoteConfig,
+            json: () => mockRemoteConfigAPIResponse,
           });
         });
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
@@ -324,6 +334,19 @@ describe('SessionReplayRemoteConfigFetch', () => {
           expect(err.message).toEqual('Error: Unexpected error occurred');
           expect(remoteConfigFetch.attempts).toBe(1);
         });
+    });
+  });
+
+  describe('getServerUrl', () => {
+    test('should return us server url if us server zone config set', () => {
+      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ localConfig, sessionIDBStore });
+      expect(remoteConfigFetch.getServerUrl()).toEqual(REMOTE_CONFIG_SERVER_URL);
+    });
+
+    test('should return staging server url if staging config set', async () => {
+      const config = { ...localConfig, optOut: localConfig.optOut, serverZone: ServerZone.STAGING };
+      const remoteConfigFetch = new SessionReplayRemoteConfigFetch({ localConfig: config, sessionIDBStore });
+      expect(remoteConfigFetch.getServerUrl()).toEqual(REMOTE_CONFIG_SERVER_URL_STAGING);
     });
   });
 });
