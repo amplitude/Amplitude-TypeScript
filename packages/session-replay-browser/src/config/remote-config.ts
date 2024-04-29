@@ -13,7 +13,7 @@ import {
 const UNEXPECTED_NETWORK_ERROR_MESSAGE = 'Network error occurred, session replay remote config fetch failed';
 const SUCCESS_REMOTE_CONFIG = 'Session replay remote config successfully fetched';
 const MAX_RETRIES_EXCEEDED_MESSAGE = 'Session replay remote config fetch rejected due to exceeded retry count';
-export const REMOTE_CONFIG_SERVER_URL = 'https://sr-config.amplitude.com/config';
+export const REMOTE_CONFIG_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const REMOTE_CONFIG_SERVER_URL_STAGING = 'https://sr-client-cfg.stag2.amplitude.com/config';
 
 export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfigFetch {
@@ -78,9 +78,9 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
         },
         method: 'GET',
       };
-      const server_url = `${this.getServerUrl()}?${urlParams.toString()}`;
+      const serverUrl = `${this.getServerUrl()}?${urlParams.toString()}`;
       this.attempts += 1;
-      const res = await fetch(server_url, options);
+      const res = await fetch(serverUrl, options);
       if (res === null) {
         return this.completeRequest({ err: UNEXPECTED_ERROR_MESSAGE });
       }

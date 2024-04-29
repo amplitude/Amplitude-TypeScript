@@ -552,6 +552,35 @@ describe('SessionReplay', () => {
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
+    test('should return false if captureEnabled is false', async () => {
+      // Mock as if remote config call fails
+      (global.fetch as jest.Mock) = jest.fn((url: string) => {
+        if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
+          return Promise.resolve({
+            status: 200,
+            json: () => {
+              return {
+                configs: {
+                  sessionReplay: {
+                    sr_sampling_config: {
+                      sampleRate: 0.5,
+                      captureEnabled: false,
+                    },
+                  },
+                },
+              };
+            },
+          });
+        }
+        return Promise.resolve({
+          status: 200,
+        });
+      });
+
+      await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      const shouldRecord = sessionReplay.getShouldRecord();
+      expect(shouldRecord).toBe(false);
+    });
     test('should return false if session not included in sample rate', async () => {
       // Mock as if remote config call fails
       (global.fetch as jest.Mock) = jest.fn(() => {

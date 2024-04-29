@@ -193,7 +193,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
     }
-
     if (!this.config.captureEnabled) {
       this.loggerProvider.log(
         `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project.`,

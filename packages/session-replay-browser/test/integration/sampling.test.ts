@@ -1,7 +1,6 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
-import * as IDBKeyVal from 'idb-keyval';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import { REMOTE_CONFIG_SERVER_URL } from '../../src/config/remote-config';
 import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../../src/config/types';
@@ -15,8 +14,6 @@ import { getSuccessMessage } from '../../src/messages';
 import { SessionReplay } from '../../src/session-replay';
 import { SESSION_ID_IN_20_SAMPLE } from '../test-data';
 
-jest.mock('idb-keyval');
-type MockedIDBKeyVal = jest.Mocked<typeof import('idb-keyval')>;
 type MockedLogger = jest.Mocked<Logger>;
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -47,7 +44,6 @@ async function runScheduleTimers() {
 }
 
 describe('module level integration', () => {
-  const { update } = IDBKeyVal as MockedIDBKeyVal;
   const { record } = RRWeb as MockedRRWeb;
   const addEventListenerMock = jest.fn() as jest.Mock<typeof window.addEventListener>;
   const removeEventListenerMock = jest.fn() as jest.Mock<typeof window.removeEventListener>;
@@ -119,23 +115,21 @@ describe('module level integration', () => {
           });
         });
       });
-      test('should not capture replays', async () => {
+      test('should capture replays and use options sampleRate', async () => {
         const sessionReplay = new SessionReplay();
-        // Set sample rate high enough that session id should be included
-        const initPromise = sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.4, flushMaxRetries: 0 }).promise;
-
+        const initPromise = sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 0 }).promise;
         // eslint-disable-next-line @typescript-eslint/unbound-method
         await new Promise(process.nextTick);
         jest.runAllTimers();
         return initPromise.then(() => {
           const sampleRate = sessionReplay.config?.sampleRate;
           // Ensure that sample rate matches what's passed in the options
-          expect(sampleRate).toBe(0.4);
+          expect(sampleRate).toBe(1);
           const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-          expect(sessionRecordingProperties).toMatchObject({});
-          expect(record).not.toHaveBeenCalled();
-          expect(update).not.toHaveBeenCalled();
-          expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_EU_SERVER_URL);
+          expect(sessionRecordingProperties).toMatchObject({
+            [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
+          });
+          expect(record).toHaveBeenCalled();
         });
       });
     });

@@ -49,7 +49,7 @@ export class SessionReplayJoinedConfigGenerator {
     } catch (err: unknown) {
       const knownError = err as Error;
       this.localConfig.loggerProvider.warn(knownError.message);
-      config.captureEnabled = false;
+      config.captureEnabled = true;
     }
 
     return config;

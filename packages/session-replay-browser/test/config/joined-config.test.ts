@@ -112,14 +112,14 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
     });
     describe('with unsuccessful sampling config fetch', () => {
-      test('should set captureEnabled to false', async () => {
+      test('should set captureEnabled to true', async () => {
         getSamplingConfigMock = jest.fn().mockRejectedValue({});
         joinedConfigGenerator.remoteConfigFetch.getSamplingConfig = getSamplingConfigMock;
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
-          captureEnabled: false,
+          captureEnabled: true,
         });
       });
     });
