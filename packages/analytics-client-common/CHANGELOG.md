@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.1.4-beta.0...@amplitude/analytics-client-common@2.1.4) (2024-04-29)
+
+### Bug Fixes
+
+- add logic to escape campaign tracking for direct traffic in session
+  ([#726](https://github.com/amplitude/Amplitude-TypeScript/issues/726))
+  ([c0c9a9d](https://github.com/amplitude/Amplitude-TypeScript/commit/c0c9a9d3fcd2a9d6dfe9e12d4a187cf2dba6424c))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.1.4-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.1.3...@amplitude/analytics-client-common@2.1.4-beta.0) (2024-04-19)
 
 ### Bug Fixes

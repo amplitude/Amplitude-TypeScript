@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.4...@amplitude/analytics-core@2.2.5) (2024-04-29)
+
+### Bug Fixes
+
+- error when sending data to Amplitude should get retried
+  ([fb29785](https://github.com/amplitude/Amplitude-TypeScript/commit/fb297852288a9cd158b6171e79697e990f375a49))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.4-beta.0...@amplitude/analytics-core@2.2.4) (2024-04-09)
 
 **Note:** Version bump only for package @amplitude/analytics-core

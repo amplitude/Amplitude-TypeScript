@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.6.3-beta.0...@amplitude/analytics-browser@2.7.0) (2024-04-29)
+
+### Bug Fixes
+
+- [AMP-95816] fix pageCounter bug ([#720](https://github.com/amplitude/Amplitude-TypeScript/issues/720))
+  ([8899853](https://github.com/amplitude/Amplitude-TypeScript/commit/88998534b3bd3c88e66fb88bafd41768e41d377c))
+
+### Features
+
+- update bookmarklet to use autocapture plugin ([#728](https://github.com/amplitude/Amplitude-TypeScript/issues/728))
+  ([6bbb69d](https://github.com/amplitude/Amplitude-TypeScript/commit/6bbb69d971dfabab533c60930551bb5e3578bed0))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.6.3-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.6.2...@amplitude/analytics-browser@2.6.3-beta.0) (2024-04-19)
 
 ### Bug Fixes
