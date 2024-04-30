@@ -15,6 +15,7 @@ const SUCCESS_REMOTE_CONFIG = 'Session replay remote config successfully fetched
 const MAX_RETRIES_EXCEEDED_MESSAGE = 'Session replay remote config fetch rejected due to exceeded retry count';
 export const REMOTE_CONFIG_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const REMOTE_CONFIG_SERVER_URL_STAGING = 'https://sr-client-cfg.stag2.amplitude.com/config';
+export const REMOTE_CONFIG_SERVER_URL_EU = 'https://sr-client-cfg.eu.amplitude.com/config';
 
 export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfigFetch {
   localConfig: ISessionReplayLocalConfig;
@@ -53,6 +54,10 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
   getServerUrl() {
     if (this.localConfig.serverZone === ServerZone.STAGING) {
       return REMOTE_CONFIG_SERVER_URL_STAGING;
+    }
+
+    if (this.localConfig.serverZone === ServerZone.EU) {
+      return REMOTE_CONFIG_SERVER_URL_EU;
     }
 
     return REMOTE_CONFIG_SERVER_URL;

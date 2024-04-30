@@ -4,11 +4,7 @@ import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import { REMOTE_CONFIG_SERVER_URL } from '../../src/config/remote-config';
 import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../../src/config/types';
-import {
-  DEFAULT_SAMPLE_RATE,
-  DEFAULT_SESSION_REPLAY_PROPERTY,
-  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
-} from '../../src/constants';
+import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../../src/constants';
 import * as Helpers from '../../src/helpers';
 import { getSuccessMessage } from '../../src/messages';
 import { SessionReplay } from '../../src/session-replay';
@@ -74,7 +70,7 @@ describe('module level integration', () => {
     optOut: false,
     sampleRate: 1,
     sessionId: SESSION_ID_IN_20_SAMPLE,
-    serverZone: ServerZone.EU,
+    serverZone: ServerZone.US,
   };
   const mockEmptyOptions: SessionReplayOptions = {
     flushIntervalMillis: 0,
@@ -162,7 +158,7 @@ describe('module level integration', () => {
         sessionReplay.stopRecordingAndSendEvents();
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -203,7 +199,7 @@ describe('module level integration', () => {
         sessionReplay.stopRecordingAndSendEvents();
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -247,7 +243,7 @@ describe('module level integration', () => {
         expect(sessionRecordingProperties).toMatchObject({});
         expect(record).not.toHaveBeenCalled();
         await runScheduleTimers();
-        expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_EU_SERVER_URL);
+        expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });
       test('should record session if included due to sampling', async () => {
         const sessionReplay = new SessionReplay();
@@ -264,7 +260,7 @@ describe('module level integration', () => {
         sessionReplay.stopRecordingAndSendEvents();
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -281,7 +277,7 @@ describe('module level integration', () => {
         expect(sessionRecordingProperties).toMatchObject({});
         expect(record).not.toHaveBeenCalled();
         await runScheduleTimers();
-        expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_EU_SERVER_URL);
+        expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });
       test('should not record session if sample rate of value 0 is provided', async () => {
         const sessionReplay = new SessionReplay();
@@ -292,7 +288,7 @@ describe('module level integration', () => {
         expect(sessionRecordingProperties).toMatchObject({});
         expect(record).not.toHaveBeenCalled();
         await runScheduleTimers();
-        expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_EU_SERVER_URL);
+        expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });
     });
   });

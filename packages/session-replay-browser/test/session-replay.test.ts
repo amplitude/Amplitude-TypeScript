@@ -1,7 +1,7 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
-import { REMOTE_CONFIG_SERVER_URL } from '../src/config/remote-config';
+import { REMOTE_CONFIG_SERVER_URL_EU } from '../src/config/remote-config';
 import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../src/config/types';
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as Helpers from '../src/helpers';
@@ -86,7 +86,7 @@ describe('SessionReplay', () => {
     jest.useFakeTimers();
     originalFetch = global.fetch;
     (global.fetch as jest.Mock) = jest.fn((url: string) => {
-      if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
+      if (url.includes(REMOTE_CONFIG_SERVER_URL_EU)) {
         return Promise.resolve({
           status: 200,
           json: () => mockRemoteConfigAPIResponse,
@@ -555,7 +555,7 @@ describe('SessionReplay', () => {
     test('should return false if captureEnabled is false', async () => {
       // Mock as if remote config call fails
       (global.fetch as jest.Mock) = jest.fn((url: string) => {
-        if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
+        if (url.includes(REMOTE_CONFIG_SERVER_URL_EU)) {
           return Promise.resolve({
             status: 200,
             json: () => {
