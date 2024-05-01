@@ -1,22 +1,31 @@
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import { AmplitudeBrowser } from '../src/browser-client';
+import * as core from '@amplitude/analytics-core';
+import * as Config from '../src/config';
+import * as CookieMigration from '../src/cookie-migration';
+import {
+  OfflineDisabled,
+  UserSession,
+  CoreClient,
+  DestinationPlugin,
+  Event,
+  Result,
+  LogLevel,
+  BrowserConfig,
+} from '@amplitude/analytics-types';
 import {
   CookieStorage,
   FetchTransport,
   getAnalyticsConnector,
   getCookieName,
 } from '@amplitude/analytics-client-common';
-import { WebAttribution } from '@amplitude/analytics-client-common/src';
-import * as core from '@amplitude/analytics-core';
-import { Logger, UUID } from '@amplitude/analytics-core';
-import { BrowserConfig, LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
-import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
-import { AmplitudeBrowser } from '../src/browser-client';
-import * as Config from '../src/config';
-import * as CookieMigration from '../src/cookie-migration';
+import * as SnippetHelper from '../src/utils/snippet-helper';
+import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
-import * as SnippetHelper from '../src/utils/snippet-helper';
+import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
+import { WebAttribution } from '@amplitude/analytics-client-common/src';
+import { Logger, UUID } from '@amplitude/analytics-core';
 
 describe('browser-client', () => {
   let apiKey = '';
@@ -156,6 +165,26 @@ describe('browser-client', () => {
       expect(client.getDeviceId()).toBe(deviceId);
       expect(client.getSessionId()).toBe(1);
       expect(parseLegacyCookies).toHaveBeenCalledTimes(1);
+    });
+
+    test('should init with session Id and device Id before plugin setup', async () => {
+      class MockedSessionReplayPlugin implements DestinationPlugin {
+        type = 'destination' as const;
+        async setup(_config: Config.BrowserConfig, _clinet: CoreClient) {
+          expect(client.config.sessionId).toBeDefined();
+          expect(client.config.deviceId).toBeDefined();
+        }
+        execute = jest.fn(async (event: Event): Promise<Result> => {
+          return Promise.resolve({
+            event,
+            code: 200,
+            message: 'success',
+          });
+        });
+      }
+
+      client.add(new MockedSessionReplayPlugin());
+      await client.init().promise;
     });
 
     test('should call prevent concurrent init executions', async () => {
