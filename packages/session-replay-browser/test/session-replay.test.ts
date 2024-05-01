@@ -1,6 +1,7 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
+import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { REMOTE_CONFIG_SERVER_URL_EU } from '../src/config/remote-config';
 import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../src/config/types';
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
@@ -202,16 +203,6 @@ describe('SessionReplay', () => {
   });
 
   describe('setSessionId', () => {
-    test('should return early if config not set', () => {
-      sessionReplay.loggerProvider = mockLoggerProvider;
-      const stopRecordingMock = jest.fn();
-
-      sessionReplay.setSessionId(456);
-      expect(stopRecordingMock).not.toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
-    });
-
     test('should stop recording events for current session', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const stopRecordingMock = jest.fn();
@@ -258,47 +249,23 @@ describe('SessionReplay', () => {
       if (!sessionReplay.joinedConfigGenerator || !sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
-      const generateJoinedConfig = jest.spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig');
+      const mockUpdatedConfig = new SessionReplayLocalConfig('static_key', { ...mockOptions, sampleRate: 0.6 });
+      const generateJoinedConfig = jest
+        .spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig')
+        .mockResolvedValue(mockUpdatedConfig);
       expect(sessionReplay.identifiers?.sessionId).toEqual(123);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/123');
 
-      sessionReplay.setSessionId(456);
+      await sessionReplay.setSessionId(456).promise;
 
       expect(generateJoinedConfig).toHaveBeenCalledTimes(1);
+      expect(sessionReplay.config).toEqual(mockUpdatedConfig);
     });
 
-    test('should log if regenerate config call fails', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
-      if (!sessionReplay.joinedConfigGenerator || !sessionReplay.eventsManager) {
-        throw new Error('Did not call init');
-      }
-      const generateJoinedConfigPromise = Promise.reject(null);
-      jest
-        .spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig')
-        .mockReturnValue(generateJoinedConfigPromise);
-      expect(sessionReplay.identifiers?.sessionId).toEqual(123);
-      expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/123');
+    test('should not record if no config', async () => {
+      await sessionReplay.setSessionId(456).promise;
 
-      sessionReplay.setSessionId(456);
-      return generateJoinedConfigPromise
-        .catch(() => {
-          // swallow error from promise rejection
-        })
-        .finally(() => {
-          expect(record).not.toHaveBeenCalled();
-        });
-    });
-
-    test('should return early if no session id, device id is set', async () => {
-      await sessionReplay.init(apiKey, { ...mockOptions, deviceId: undefined }).promise;
-      sessionReplay.loggerProvider = mockLoggerProvider;
-      const stopRecordingMock = jest.fn();
-
-      sessionReplay.setSessionId(123);
-      expect(stopRecordingMock).not.toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
+      expect(record).not.toHaveBeenCalled();
     });
 
     test('should update the device id if passed', async () => {
@@ -329,17 +296,6 @@ describe('SessionReplay', () => {
 
     test('should return null if not initialized', () => {
       expect(sessionReplay.getSessionId()).toBeUndefined();
-    });
-
-    test('should return early if no session id, device id is set', async () => {
-      await sessionReplay.init(apiKey, { ...mockOptions, deviceId: undefined }).promise;
-      sessionReplay.loggerProvider = mockLoggerProvider;
-      const stopRecordingMock = jest.fn();
-
-      sessionReplay.setSessionId(123);
-      expect(stopRecordingMock).not.toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
     });
   });
 
@@ -430,6 +386,27 @@ describe('SessionReplay', () => {
         throw new Error('Did not call init');
       }
       const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'initialize').mockResolvedValueOnce();
+      await sessionReplay.initialize();
+      expect(eventsManagerInitSpy).not.toHaveBeenCalled();
+    });
+    test('should return early if no device id', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.getDeviceId = jest.fn().mockReturnValue(undefined);
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'initialize').mockResolvedValueOnce();
+      await sessionReplay.initialize();
+      expect(eventsManagerInitSpy).not.toHaveBeenCalled();
+    });
+    test('should not return early if no events manager', async () => {
+      // This is purely a code coverage test, events manager will always be defined by this point
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'initialize').mockResolvedValueOnce();
+      sessionReplay.eventsManager = undefined;
       await sessionReplay.initialize();
       expect(eventsManagerInitSpy).not.toHaveBeenCalled();
     });

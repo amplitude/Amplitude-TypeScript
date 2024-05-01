@@ -27,7 +27,7 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
     // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
     // in SR.
     if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
-      sessionReplay.setSessionId(this.config.sessionId);
+      await sessionReplay.setSessionId(this.config.sessionId).promise;
     }
 
     // Treating config.sessionId as source of truth, if the event's session id doesn't match, the

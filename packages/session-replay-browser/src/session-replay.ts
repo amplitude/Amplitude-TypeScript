@@ -11,7 +11,7 @@ import {
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { SessionReplayEventsManager } from './events-manager';
-import { generateHashCode, generateSessionReplayId, isSessionInSample, maskInputFn } from './helpers';
+import { generateHashCode, isSessionInSample, maskInputFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
 import { SessionReplaySessionIDBStore } from './session-idb-store';
 import {
@@ -46,7 +46,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       loggerProvider: this.loggerProvider,
       apiKey: apiKey,
     });
-    this.identifiers = new SessionIdentifiers(options, this.loggerProvider);
+    this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = new SessionReplayJoinedConfigGenerator(apiKey, options, this.sessionIDBStore);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
 
@@ -71,37 +71,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   setSessionId(sessionId: number, deviceId?: string) {
-    if (!this.identifiers) {
-      this.loggerProvider.error('Session replay init has not been called, cannot set session id.');
-      return;
+    return returnWrapper(this.asyncSetSessionId(sessionId, deviceId));
+  }
+
+  async asyncSetSessionId(sessionId: number, deviceId?: string) {
+    if (this.identifiers && this.identifiers.sessionId) {
+      this.stopRecordingAndSendEvents(this.identifiers.sessionId);
     }
 
-    if (deviceId) {
-      this.identifiers.deviceId = deviceId;
-    }
-    // use a consistent device id.
-    const deviceIdForReplayId = this.getDeviceId();
-    if (sessionId && deviceIdForReplayId) {
-      this.identifiers.sessionReplayId = generateSessionReplayId(sessionId, deviceIdForReplayId);
-    } else {
-      this.loggerProvider.error('Must provide either session replay id or session id when starting a new session.');
-      return;
-    }
+    const deviceIdForReplayId = deviceId || this.getDeviceId();
+    this.identifiers = new SessionIdentifiers({
+      sessionId: sessionId,
+      deviceId: deviceIdForReplayId,
+    });
 
-    this.stopRecordingAndSendEvents(this.identifiers.sessionId);
-    this.identifiers.sessionId = sessionId;
     this.eventsManager && this.eventsManager.resetSequence();
     if (this.joinedConfigGenerator) {
-      this.joinedConfigGenerator
-        .generateJoinedConfig(this.identifiers.sessionId)
-        .then((updatedConfig) => {
-          this.config = updatedConfig;
-          this.recordEvents();
-        })
-        .catch(() => {
-          this.loggerProvider.error('Problem generating joined config for session replay.');
-        });
+      this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
     }
+    this.recordEvents();
   }
 
   getSessionReplayDebugPropertyValue() {
@@ -159,13 +147,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   async initialize(shouldSendStoredEvents = false) {
     if (!this.identifiers?.sessionId) {
-      this.loggerProvider.warn(`Session is not being recorded due to lack of session id.`);
+      this.loggerProvider.log(`Session is not being recorded due to lack of session id.`);
       return;
     }
 
     const deviceId = this.getDeviceId();
+    if (!deviceId) {
+      this.loggerProvider.log(`Session is not being recorded due to lack of device id.`);
+      return;
+    }
+
     this.eventsManager &&
-      deviceId &&
       (await this.eventsManager.initialize({
         sessionId: this.identifiers.sessionId,
         shouldSendStoredEvents: shouldSendStoredEvents,
