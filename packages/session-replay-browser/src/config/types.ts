@@ -1,13 +1,10 @@
 import { Config, LogLevel, Logger } from '@amplitude/analytics-types';
 
-export interface SamplingConfig {
-  sample_rate: number;
-  capture_enabled: boolean;
-}
-
 export type SessionReplayRemoteConfig = {
-  sr_sampling_config?: SamplingConfig;
-  sr_privacy_config?: PrivacyConfig;
+  sr_sampling_config: {
+    sample_rate: number;
+    capture_enabled: boolean;
+  };
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
@@ -15,10 +12,9 @@ export interface SessionReplayRemoteConfigAPIResponse {
     sessionReplay: SessionReplayRemoteConfig;
   };
 }
-
-export type PrivacyConfig = {
+export interface SessionReplayPrivacyConfig {
   blockSelector?: string | string[];
-};
+}
 
 export interface SessionReplayLocalConfig extends Config {
   apiKey: string;
@@ -26,9 +22,8 @@ export interface SessionReplayLocalConfig extends Config {
   logLevel: LogLevel;
   flushMaxRetries: number;
   sampleRate: number;
-  privacyConfig?: PrivacyConfig;
+  privacyConfig?: SessionReplayPrivacyConfig;
   debugMode?: boolean;
-  configEndpointUrl?: string;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
