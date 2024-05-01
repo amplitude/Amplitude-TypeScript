@@ -24,12 +24,14 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
   }
 
   async execute(event: Event) {
+    console.log('event', event, 'this.config.sessionId', this.config.sessionId);
     // On event, synchronize the session id to the what's on the browserConfig (source of truth)
     // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
     // in SR.
     if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
       await sessionReplay.setSessionId(this.config.sessionId).promise;
     }
+    console.log('past set session id');
 
     // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
     // event is not of the current session (offline/late events). In that case, don't tag the events
@@ -121,6 +123,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
   }
 
   async execute(event: Event): Promise<Result> {
+    console.log('event in destination', event);
     return Promise.resolve({
       event,
       code: 200,
