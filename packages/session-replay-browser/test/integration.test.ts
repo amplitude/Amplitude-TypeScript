@@ -100,7 +100,7 @@ describe('module level integration', () => {
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
       (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
       if (!sessionReplay.eventsManager) {
-        return;
+        throw new Error('did not init');
       }
       sessionReplay.eventsManager.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
@@ -129,7 +129,7 @@ describe('module level integration', () => {
       // Log is called from init, but that's not what we're testing here
       mockLoggerProvider.log.mockClear();
       if (!sessionReplay.eventsManager) {
-        return;
+        throw new Error('did not init');
       }
       sessionReplay.eventsManager.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
@@ -157,7 +157,7 @@ describe('module level integration', () => {
         });
 
       if (!sessionReplay.eventsManager) {
-        return;
+        throw new Error('did not init');
       }
       sessionReplay.eventsManager.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
@@ -186,7 +186,7 @@ describe('module level integration', () => {
         });
 
       if (!sessionReplay.eventsManager) {
-        return;
+        throw new Error('did not init');
       }
       sessionReplay.eventsManager.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
@@ -211,7 +211,7 @@ describe('module level integration', () => {
         });
 
       if (!sessionReplay.eventsManager) {
-        return;
+        throw new Error('did not init');
       }
       sessionReplay.eventsManager.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
@@ -235,7 +235,7 @@ describe('module level integration', () => {
         });
 
       if (!sessionReplay.eventsManager) {
-        return;
+        throw new Error('did not init');
       }
       sessionReplay.eventsManager.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
@@ -250,7 +250,7 @@ describe('module level integration', () => {
       });
 
       if (!sessionReplay.eventsManager) {
-        return;
+        throw new Error('did not init');
       }
       sessionReplay.eventsManager.events = [mockEventString];
       sessionReplay.stopRecordingAndSendEvents();
@@ -261,6 +261,25 @@ describe('module level integration', () => {
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(UNEXPECTED_ERROR_MESSAGE);
+    });
+    test('should not allow multiple of the same list to be sent', async () => {
+      (fetch as jest.Mock).mockImplementation(() => {
+        return Promise.resolve({
+          status: 200,
+        });
+      });
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      (fetch as jest.Mock).mockReset();
+
+      if (!sessionReplay.eventsManager) {
+        throw new Error('did not init');
+      }
+      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.stopRecordingAndSendEvents();
+      await runScheduleTimers();
+      expect(fetch).toHaveBeenCalledTimes(1);
     });
   });
 });
