@@ -48,15 +48,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
     this.identifiers = new SessionIdentifiers(options, this.loggerProvider);
     this.joinedConfigGenerator = new SessionReplayJoinedConfigGenerator(apiKey, options, this.sessionIDBStore);
-    if (this.identifiers.sessionId) {
-      this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
-    }
-    if (this.config) {
-      this.eventsManager = new SessionReplayEventsManager({
-        config: this.config,
-        sessionIDBStore: this.sessionIDBStore,
-      });
-    }
+    this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+
+    this.eventsManager = new SessionReplayEventsManager({
+      config: this.config,
+      sessionIDBStore: this.sessionIDBStore,
+    });
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 

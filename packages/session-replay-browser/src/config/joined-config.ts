@@ -24,7 +24,7 @@ export class SessionReplayJoinedConfigGenerator {
     });
   }
 
-  async generateJoinedConfig(sessionId: number) {
+  async generateJoinedConfig(sessionId?: number) {
     const config: SessionReplayJoinedConfig = { ...this.localConfig };
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;

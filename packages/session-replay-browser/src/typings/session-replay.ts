@@ -32,21 +32,26 @@ export interface IDBStoreSequence {
 
 export interface IDBStoreSession {
   currentSequenceId: number;
-  remoteConfig?: SessionReplayRemoteConfig;
   sessionSequences: {
     [sequenceId: number]: IDBStoreSequence;
   };
 }
 
+export interface IDBRemoteConfig {
+  config: SessionReplayRemoteConfig;
+  lastFetchedSessionId: number | undefined;
+}
+
 export interface IDBStore {
+  remoteConfig?: IDBRemoteConfig;
   [sessionId: number]: IDBStoreSession;
 }
 
 export interface SessionReplaySessionIDBStore {
   getAllSessionDataFromStore(): Promise<IDBStore | undefined>;
   storeEventsForSession(events: Events, sequenceId: number, sessionId: number): Promise<void>;
-  storeRemoteConfigForSession(sessionId: number, remoteConfig: SessionReplayRemoteConfig): Promise<void>;
-  getRemoteConfigForSession(sessionId: number): Promise<SessionReplayRemoteConfig | void>;
+  storeRemoteConfig(remoteConfig: SessionReplayRemoteConfig, sessionId?: number): Promise<void>;
+  getRemoteConfig(): Promise<IDBRemoteConfig | void>;
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
 export interface SessionIdentifiers {

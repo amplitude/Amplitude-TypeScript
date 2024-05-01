@@ -6,6 +6,7 @@ import { STORAGE_FAILURE } from './messages';
 import {
   SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   Events,
+  IDBRemoteConfig,
   IDBStore,
   IDBStoreSession,
   RecordingStatus,
@@ -58,17 +59,14 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
     }
   };
 
-  storeRemoteConfigForSession = async (sessionId: number, remoteConfig: SessionReplayRemoteConfig) => {
+  storeRemoteConfig = async (remoteConfig: SessionReplayRemoteConfig, sessionId?: number) => {
     try {
       await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
-        const session: IDBStoreSession = sessionMap[sessionId] || { ...defaultSessionStore };
-
-        session.remoteConfig = remoteConfig;
-
         return {
           ...sessionMap,
-          [sessionId]: {
-            ...session,
+          remoteConfig: {
+            config: remoteConfig,
+            lastFetchedSessionId: sessionId,
           },
         };
       });
@@ -77,11 +75,10 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
     }
   };
 
-  getRemoteConfigForSession = async (sessionId: number): Promise<SessionReplayRemoteConfig | void> => {
+  getRemoteConfig = async (): Promise<IDBRemoteConfig | void> => {
     try {
       const sessionMap: IDBStore = (await IDBKeyVal.get(this.storageKey)) || {};
-      const session: IDBStoreSession = sessionMap[sessionId];
-      return session?.remoteConfig;
+      return sessionMap.remoteConfig;
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }

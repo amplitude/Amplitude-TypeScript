@@ -1,4 +1,5 @@
 import { Logger, ServerZone } from '@amplitude/analytics-types';
+import { IDBRemoteConfig } from 'src/typings/session-replay';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
 import {
   REMOTE_CONFIG_SERVER_URL,
@@ -21,6 +22,11 @@ const mockRemoteConfigAPIResponse: SessionReplayRemoteConfigAPIResponse = {
   configs: {
     sessionReplay: mockRemoteConfig,
   },
+};
+
+const mockIDBRemoteConfig: IDBRemoteConfig = {
+  config: mockRemoteConfig,
+  lastFetchedSessionId: 123,
 };
 
 async function runScheduleTimers() {
@@ -73,22 +79,41 @@ describe('SessionReplayRemoteConfigFetch', () => {
     let fetchMock: jest.Mock;
     let idbRemoteConfigMock: jest.Mock;
     beforeEach(() => {
-      idbRemoteConfigMock = jest.fn().mockResolvedValue(mockRemoteConfig);
-      sessionIDBStore.getRemoteConfigForSession = idbRemoteConfigMock;
+      idbRemoteConfigMock = jest.fn().mockResolvedValue(mockIDBRemoteConfig);
+      sessionIDBStore.getRemoteConfig = idbRemoteConfigMock;
       remoteConfigFetch = new SessionReplayRemoteConfigFetch({ localConfig, sessionIDBStore });
       fetchMock = jest.fn();
       remoteConfigFetch.fetchRemoteConfig = fetchMock;
+      fetchMock.mockResolvedValue(mockRemoteConfig);
     });
-    test('should return remote config from indexedDB if it exists, and no config in memory', async () => {
+    test('should return remote config from indexedDB if it exists and matches session id', async () => {
       const remoteConfig = await remoteConfigFetch.getRemoteConfig(123);
       expect(remoteConfig).toEqual(mockRemoteConfig);
       expect(fetchMock).not.toHaveBeenCalled();
       expect(idbRemoteConfigMock).toHaveBeenCalled();
     });
+    test('should call fetchRemoteConfig if lastFetchedSessionId does not match session id', async () => {
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig(456);
+      expect(remoteConfig).toEqual(mockRemoteConfig);
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    test('should call fetchRemoteConfig if lastFetchedSessionId is undefined', async () => {
+      idbRemoteConfigMock = jest.fn().mockResolvedValue({
+        lastFetchedSessionId: undefined,
+        config: mockRemoteConfig,
+      });
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig(456);
+      expect(remoteConfig).toEqual(mockRemoteConfig);
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    test('should call fetchRemoteConfig if sessionId is undefined', async () => {
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig();
+      expect(remoteConfig).toEqual(mockRemoteConfig);
+      expect(fetchMock).toHaveBeenCalled();
+    });
     test('should call fetchRemoteConfig if no config exists in memory or indexeddb', async () => {
       idbRemoteConfigMock = jest.fn().mockResolvedValue(undefined);
-      sessionIDBStore.getRemoteConfigForSession = idbRemoteConfigMock;
-      fetchMock.mockResolvedValue(mockRemoteConfig);
+      sessionIDBStore.getRemoteConfig = idbRemoteConfigMock;
 
       const remoteConfig = await remoteConfigFetch.getRemoteConfig(123);
       expect(remoteConfig).toEqual(mockRemoteConfig);
@@ -116,7 +141,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
     let storeRemoteConfigMock: jest.Mock;
     beforeEach(() => {
       storeRemoteConfigMock = jest.fn();
-      sessionIDBStore.storeRemoteConfigForSession = storeRemoteConfigMock;
+      sessionIDBStore.storeRemoteConfig = storeRemoteConfigMock;
       remoteConfigFetch = new SessionReplayRemoteConfigFetch({ localConfig, sessionIDBStore });
     });
     test('should fetch and return config', async () => {
@@ -148,7 +173,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
       const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
-        expect(storeRemoteConfigMock).toHaveBeenCalledWith(123, mockRemoteConfig);
+        expect(storeRemoteConfigMock).toHaveBeenCalledWith(mockRemoteConfig, 123);
       });
     });
     test('should handle unexpected error', async () => {

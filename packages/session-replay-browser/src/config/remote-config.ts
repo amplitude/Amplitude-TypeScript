@@ -36,17 +36,17 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
     this.sessionIDBStore = sessionIDBStore;
   }
 
-  getRemoteConfig = async (sessionId: number): Promise<ISessionReplayRemoteConfig | void> => {
+  getRemoteConfig = async (sessionId?: number): Promise<ISessionReplayRemoteConfig | void> => {
     // Then check IndexedDB for session
-    const remoteConfig = await this.sessionIDBStore.getRemoteConfigForSession(sessionId);
-    if (remoteConfig) {
-      return remoteConfig;
+    const idbRemoteConfig = await this.sessionIDBStore.getRemoteConfig();
+    if (idbRemoteConfig && idbRemoteConfig.lastFetchedSessionId === sessionId) {
+      return idbRemoteConfig.config;
     }
     // Finally fetch via API
     return this.fetchRemoteConfig(sessionId);
   };
 
-  getSamplingConfig = async (sessionId: number): Promise<SamplingConfig | void> => {
+  getSamplingConfig = async (sessionId?: number): Promise<SamplingConfig | void> => {
     const remoteConfig = await this.getRemoteConfig(sessionId);
     return remoteConfig?.sr_sampling_config;
   };
@@ -63,7 +63,7 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
     return REMOTE_CONFIG_SERVER_URL;
   }
 
-  fetchRemoteConfig = async (sessionId: number): Promise<ISessionReplayRemoteConfig | void> => {
+  fetchRemoteConfig = async (sessionId?: number): Promise<ISessionReplayRemoteConfig | void> => {
     if (sessionId === this.lastFetchedSessionId && this.attempts >= this.localConfig.flushMaxRetries) {
       return this.completeRequest({ err: MAX_RETRIES_EXCEEDED_MESSAGE });
     } else if (sessionId !== this.lastFetchedSessionId) {
@@ -92,7 +92,7 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
       const parsedStatus = new BaseTransport().buildStatus(res.status);
       switch (parsedStatus) {
         case Status.Success:
-          return this.parseAndStoreConfig(sessionId, res);
+          return this.parseAndStoreConfig(res, sessionId);
         case Status.Failed:
           return this.retryFetch(sessionId);
         default:
@@ -103,16 +103,16 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
     }
   };
 
-  retryFetch = async (sessionId: number): Promise<ISessionReplayRemoteConfig | void> => {
+  retryFetch = async (sessionId?: number): Promise<ISessionReplayRemoteConfig | void> => {
     await new Promise((resolve) => setTimeout(resolve, this.attempts * this.retryTimeout));
     return this.fetchRemoteConfig(sessionId);
   };
 
-  parseAndStoreConfig = async (sessionId: number, res: Response): Promise<ISessionReplayRemoteConfig> => {
+  parseAndStoreConfig = async (res: Response, sessionId?: number): Promise<ISessionReplayRemoteConfig> => {
     const remoteConfig: SessionReplayRemoteConfigAPIResponse =
       (await res.json()) as SessionReplayRemoteConfigAPIResponse;
     this.completeRequest({ success: SUCCESS_REMOTE_CONFIG });
-    void this.sessionIDBStore.storeRemoteConfigForSession(sessionId, remoteConfig.configs.sessionReplay);
+    void this.sessionIDBStore.storeRemoteConfig(remoteConfig.configs.sessionReplay, sessionId);
     return remoteConfig.configs.sessionReplay;
   };
 

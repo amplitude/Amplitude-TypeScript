@@ -32,5 +32,5 @@ export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
 }
 
 export interface SessionReplayRemoteConfigFetch {
-  getSamplingConfig: (sessionId: number) => Promise<SamplingConfig | void>;
+  getSamplingConfig: (sessionId?: number) => Promise<SamplingConfig | void>;
 }
