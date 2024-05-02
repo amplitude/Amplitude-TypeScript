@@ -971,6 +971,34 @@ describe('browser-client', () => {
 
       expect(logSpy).toHaveBeenCalledWith('Created a new session for new campaign.');
     });
+    test('should track web attribution if change in campaign information', async () => {
+      const track = jest.spyOn(client, 'dispatch').mockReturnValue(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      await client.init(apiKey, {
+        optOut: true,
+        logLevel: LogLevel.Warn,
+        defaultTracking: {
+          attribution: {
+            resetSessionOnNewCampaign: true,
+          },
+        },
+      }).promise;
+
+      client.webAttribution = new WebAttribution({}, { ...client.config, lastEventTime: undefined });
+      client.webAttribution.shouldTrackNewCampaign = true;
+      jest.spyOn(AnalyticsClientCommon, 'isNewSession').mockReturnValueOnce(false);
+      await client.process({
+        event_type: 'event',
+      });
+      expect(track).toHaveBeenCalled();
+    });
 
     test('should reinit web attribution when procee new session event', async () => {
       const mockConfig: BrowserConfig = {
