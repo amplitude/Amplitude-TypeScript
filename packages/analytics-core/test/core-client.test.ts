@@ -4,12 +4,24 @@ import { Event, Plugin, Status } from '@amplitude/analytics-types';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/messages';
 import { useDefaultConfig } from './helpers/default';
-
+async function runScheduleTimers() {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  await new Promise(process.nextTick);
+  jest.runAllTimers();
+}
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
   const badRequest = { event: { event_type: 'sample' }, code: 400, message: Status.Invalid };
   const continueRequest = { event: { event_type: 'sample' }, code: 100, message: Status.Unknown };
   const client = new AmplitudeCore();
+
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ['nextTick'] });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   describe('init', () => {
     test('should call init', async () => {
@@ -105,6 +117,44 @@ describe('core-client', () => {
       await (client as any)._init(useDefaultConfig());
       expect(register).toHaveBeenCalledTimes(1);
       expect(deregister).toHaveBeenCalledTimes(1);
+    });
+
+    test('should queue promises in correct order', async () => {
+      function sleep(ms: number) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+      const client = new AmplitudeCore();
+      const register = jest.spyOn(client.timeline, 'register');
+      const setupMockResolve = Promise.resolve();
+      const setupMock = jest.fn().mockResolvedValue(setupMockResolve);
+      await client.add({
+        name: 'firstPlugin',
+        type: 'before',
+        setup: async () => {
+          await sleep(10);
+          setupMock('firstPlugin');
+          return;
+        },
+        execute: jest.fn(),
+      }).promise;
+      client.add({
+        name: 'secondPlugin',
+        type: 'before',
+        setup: async () => {
+          setupMock('secondPlugin');
+          return;
+        },
+        execute: jest.fn(),
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const initPromise = (client as any)._init(useDefaultConfig());
+      await runScheduleTimers();
+      await initPromise;
+      await setupMockResolve;
+      expect(register).toHaveBeenCalledTimes(2);
+      expect(setupMock).toHaveBeenCalledTimes(2);
+      expect(setupMock.mock.calls[0][0]).toEqual('firstPlugin');
+      expect(setupMock.mock.calls[1][0]).toEqual('secondPlugin');
     });
   });
 

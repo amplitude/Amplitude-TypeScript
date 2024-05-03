@@ -30,8 +30,8 @@ export class AmplitudeCore implements CoreClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   timeline: Timeline;
-  protected q: CallableFunction[] = [];
-  protected dispatchQ: CallableFunction[] = [];
+  protected q: Array<CallableFunction | typeof returnWrapper> = [];
+  protected dispatchQ: Array<CallableFunction> = [];
 
   constructor(name = '$default') {
     this.timeline = new Timeline(this);
@@ -48,7 +48,15 @@ export class AmplitudeCore implements CoreClient {
     const queuedFunctions = this[queueName];
     this[queueName] = [];
     for (const queuedFunction of queuedFunctions) {
-      await queuedFunction();
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const val: ReturnType<typeof returnWrapper> | Promise<any> = queuedFunction();
+      if (val && 'promise' in val) {
+        await val.promise;
+      } else {
+        await val;
+      }
     }
   }
 
