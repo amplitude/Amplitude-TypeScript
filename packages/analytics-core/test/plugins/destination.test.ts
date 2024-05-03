@@ -150,10 +150,10 @@ describe('destination', () => {
       jest.useRealTimers();
     });
 
-    /*     test('should schedule a flush', async () => {
+    test('should schedule a flush', async () => {
       const destination = new Destination();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (destination as any).scheduled = false;
+      (destination as any).scheduled = null;
       destination.queue = [
         {
           event: { event_type: 'event_type' },
@@ -162,7 +162,7 @@ describe('destination', () => {
         },
       ];
       destination.config = {
-        ...destination.config,
+        ...useDefaultConfig(),
         offline: false,
         flushIntervalMillis: 0,
       };
@@ -170,7 +170,7 @@ describe('destination', () => {
         .spyOn(destination, 'flush')
         .mockImplementationOnce(() => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (destination as any).scheduled = false;
+          (destination as any).scheduled = null;
           return Promise.resolve(undefined);
         })
         .mockReturnValueOnce(Promise.resolve(undefined));
@@ -182,7 +182,7 @@ describe('destination', () => {
       // exhause nested setTimeout
       jest.runAllTimers();
       expect(flush).toHaveBeenCalledTimes(2);
-    });*/
+    });
 
     test('should not schedule a flush if offline', async () => {
       const destination = new Destination();
@@ -980,7 +980,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      //destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushMaxRetries: 1,

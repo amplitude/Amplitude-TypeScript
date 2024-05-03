@@ -98,6 +98,7 @@ export class Destination implements DestinationPlugin {
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
+    console.log('queue in fliter triableList :');
   }
 
   sendEventIfReady() {
