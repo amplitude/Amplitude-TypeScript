@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.5...@amplitude/analytics-core@2.2.6) (2024-05-03)
+
+### Bug Fixes
+
+- **core:** correctly await promises called before init
+  ([b329e05](https://github.com/amplitude/Amplitude-TypeScript/commit/b329e057023d266abb6b1145ea45e3c3471335fc))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.4...@amplitude/analytics-core@2.2.5) (2024-04-29)
 
 ### Bug Fixes

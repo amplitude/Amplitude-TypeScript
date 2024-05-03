@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.7.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.7.0...@amplitude/analytics-browser@2.7.1) (2024-05-03)
+
+### Reverts
+
+- Revert "fix: have session and device IDs ready before plugin setup (#691)"
+  ([7411a6d](https://github.com/amplitude/Amplitude-TypeScript/commit/7411a6ddf22119aa7c1b0928035a1b31624e47f3)), closes
+  [#691](https://github.com/amplitude/Amplitude-TypeScript/issues/691)
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.6.3-beta.0...@amplitude/analytics-browser@2.7.0) (2024-04-29)
 
 ### Bug Fixes
