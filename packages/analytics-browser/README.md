@@ -15,7 +15,7 @@ See our [Analytics SDK for Browser](https://amplitude.github.io/Amplitude-TypeSc
 
 # Installation and Quick Start
 
-Please visit our :100:[Developer Center](https://www.docs.developers.amplitude.com/data/sdks/typescript-browser/) for instructions on installing and using our the SDK.
+Please visit our :100:[Developer Center](https://www.docs.developers.amplitude.com/data/sdks/browser-2/) for instructions on installing and using our the SDK.
 
 ## Installation
 
