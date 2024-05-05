@@ -54,7 +54,6 @@ export class Destination implements DestinationPlugin {
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
-    console.log(this.config.flushQueueSize);
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
@@ -81,9 +80,6 @@ export class Destination implements DestinationPlugin {
   }
 
   addToQueue(...list: Context[]) {
-    console.log('addToQueue');
-    console.log(this.queue);
-    console.log('list: ', list);
     this.queue = this.queue.concat(list);
     this.sendEventIfReady();
     this.saveEvents();
@@ -98,39 +94,32 @@ export class Destination implements DestinationPlugin {
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
     });
-    console.log('queue in fliter triableList :');
   }
 
   sendEventIfReady() {
     this.filterTriableList();
-
-    console.log('sendEventIfReady');
-    console.log('flush queue size: ', this.config.flushQueueSize);
-    if (this.scheduled || this.config.offline) {
+    if (this.scheduled || this.config.offline || this.queue.length === 0) {
       return;
     }
-    console.log('****1****');
     // if batching enabled, check if min threshold met for batch size
     if (this.queue.length >= this.config.flushQueueSize) {
-      console.log('*****1.5***');
       void this.flush(true);
+      // return;
     }
-    console.log('****2****');
-    console.log(this.config.flushIntervalMillis);
 
     this.scheduled = setTimeout(() => {
-      console.log('in set time out');
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {
           this.sendEventIfReady();
         }
       });
     }, this.config.flushIntervalMillis);
+
+    return;
   }
 
   // flush the queue
   async flush(useRetry = false) {
-    console.log('in flush');
     // Skip flush if offline
     if (this.config.offline) {
       this.config.loggerProvider.debug('Skipping flush while offline.');
@@ -143,15 +132,10 @@ export class Destination implements DestinationPlugin {
     }
 
     const currentFlushQueue = this.queue.slice(0, this.config.flushQueueSize);
-    console.log(currentFlushQueue);
-    console.log(this.queue);
-    console.log(this.config.flushQueueSize);
     await this.send(currentFlushQueue, useRetry);
   }
 
   async send(list: Context[], useRetry = true) {
-    console.log('in send');
-    console.log(list);
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
@@ -171,9 +155,8 @@ export class Destination implements DestinationPlugin {
 
     try {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
-      console.log(' befreo transportProvider');
       const res = await this.config.transportProvider.send(serverUrl, payload);
-      console.log(res?.status);
+
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
@@ -225,7 +208,6 @@ export class Destination implements DestinationPlugin {
   }
 
   handleSuccessResponse(res: SuccessResponse, list: Context[]) {
-    console.log('in success response', list);
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
   }
 
@@ -259,7 +241,6 @@ export class Destination implements DestinationPlugin {
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
-    console.log('in handlePayloadTooLargeResponse', list);
     if (list.length === 1) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return;
@@ -269,7 +250,6 @@ export class Destination implements DestinationPlugin {
     this.config.loggerProvider.warn(getResponseBodyString(res));
 
     this.config.flushQueueSize /= 2;
-    console.log(this.config.flushQueueSize);
     // All the events are still queued, and will be retried with next trigger
   }
 
@@ -299,12 +279,8 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    console.log(this.queue);
-    console.log(list);
-    console.log('full fill before send callback');
     list.forEach((context) => context.callback(buildResult(context.event, code, message)));
     this.removeEvents(list);
-    console.log(this.queue);
   }
 
   /**
@@ -327,12 +303,8 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
-    console.log(eventsToRemove);
-    console.log(this.queue);
     this.queue = this.queue.filter((queuedContext) => {
-      console.log(queuedContext.event.insert_id);
       const test = !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id);
-      console.log(test);
       return test;
     });
 

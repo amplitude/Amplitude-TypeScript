@@ -826,7 +826,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      //destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -1139,8 +1138,7 @@ describe('destination', () => {
       },
     );
 
-    /*  THIS SHOULD BE FIX
-    test('should log immidiate response body for retries of 413 payload_to_large', async ()=>{
+    test('should log immidiate response body for retries of 413 payload_to_large', async () => {
       const uuid: string = expect.stringMatching(uuidPattern) as string;
 
       const { statusCode, status, body } = {
@@ -1163,16 +1161,7 @@ describe('destination', () => {
           .mockImplementationOnce(() => {
             return Promise.resolve(response);
           })
-          .mockImplementationOnce(() => {
-            return Promise.resolve({
-              status: Status.Success,
-              statusCode: 200,
-              body: {
-                message: SUCCESS_MESSAGE,
-              },
-            });
-          })
-          .mockImplementationOnce(() => {
+          .mockImplementation(() => {
             return Promise.resolve({
               status: Status.Success,
               statusCode: 200,
@@ -1181,7 +1170,7 @@ describe('destination', () => {
               },
             });
           });
-        }
+      }
 
       const transportProvider = new Http();
       const destination = new Destination();
@@ -1198,38 +1187,29 @@ describe('destination', () => {
       await destination.setup(config);
       const event = {
         event_type: 'event_type',
-        insert_id: uuid,
       };
 
-      const result =  await new Promise((resolve) => {
-        const context: DestinationContext = {
-          event: {...event, insert_id: UUID()},
-          attempts: 0,
-          callback: (result: Result) => resolve(result),
-        };
+      const events = [{ ...event }, { ...event }];
+      const results = await Promise.all(events.map((event) => destination.execute(event))).catch();
 
-        const context2: DestinationContext = {
-          event: {...event, insert_id: UUID()},
-          attempts: 0,
-          callback: (result: Result) => resolve(result),
-        };
-        void destination.addToQueue(context, context2);
+      expect(config.flushQueueSize).toEqual(eventCount / 2);
+      results.every((result) => {
+        expect(result).toEqual({
+          event: {
+            ...event,
+            insert_id: uuid,
+          },
+          message: SUCCESS_MESSAGE,
+          code: 200,
+        });
       });
 
-      expect(result).toEqual({
-        event,
-        message: SUCCESS_MESSAGE,
-        code: 200,
-      });
-
-      expect(transportProvider.send).toHaveBeenCalledTimes(eventCount + 1);
+      expect(transportProvider.send).toHaveBeenCalledTimes(3);
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(eventCount);
+      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
       expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
-
-    })
-*/
+    });
 
     test.each([
       { err: new Error('Error'), message: 'Error' },
