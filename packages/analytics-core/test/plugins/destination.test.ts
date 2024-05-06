@@ -877,8 +877,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      // destination.retryTimeout = 10;
-      //destination.throttleTimeout = 1;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 4,
@@ -940,7 +938,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      //destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
