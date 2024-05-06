@@ -1,5 +1,6 @@
 import { Logger } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
+import { SessionReplayRemoteConfig } from '../src/config/types';
 import { SessionReplaySessionIDBStore } from '../src/session-idb-store';
 import { IDBStore, RecordingStatus } from '../src/typings/session-replay';
 
@@ -15,6 +16,14 @@ const mockEvent = {
   timestamp: 1687358660935,
 };
 const mockEventString = JSON.stringify(mockEvent);
+
+const samplingConfig = {
+  sample_rate: 1,
+  capture_enabled: true,
+};
+const mockRemoteConfig: SessionReplayRemoteConfig = {
+  sr_sampling_config: samplingConfig,
+};
 
 describe('SessionReplaySessionIDBStore', () => {
   const { get, update } = IDBKeyVal as MockedIDBKeyVal;
@@ -188,7 +197,7 @@ describe('SessionReplaySessionIDBStore', () => {
     });
   });
 
-  describe('storeEventsForSession', () => {
+  describe('storeEvents', () => {
     test('should update the session current sequence id, and the current sequence events and status', async () => {
       const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const mockIDBStore: IDBStore = {
@@ -347,6 +356,190 @@ describe('SessionReplaySessionIDBStore', () => {
               status: RecordingStatus.RECORDING,
             },
           },
+        },
+      });
+    });
+  });
+
+  describe('getRemoteConfig', () => {
+    test('should return the remote config from idb store', async () => {
+      const mockStore: IDBStore = {
+        remoteConfig: {
+          lastFetchedSessionId: 1687358660935,
+          config: mockRemoteConfig,
+        },
+        123: {
+          currentSequenceId: 3,
+          sessionSequences: {
+            3: {
+              events: [mockEventString],
+              status: RecordingStatus.RECORDING,
+            },
+          },
+        },
+      };
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      get.mockResolvedValueOnce(mockStore);
+      const remoteConfig = await eventsStorage.getRemoteConfig();
+      expect(remoteConfig).toEqual({
+        lastFetchedSessionId: 1687358660935,
+        config: mockRemoteConfig,
+      });
+    });
+    test('should handle an undefined store', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      get.mockResolvedValueOnce(undefined);
+      const remoteConfig = await eventsStorage.getRemoteConfig();
+      expect(remoteConfig).toEqual(undefined);
+    });
+    test('should catch errors', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      get.mockImplementationOnce(() => Promise.reject('error'));
+      await eventsStorage.getRemoteConfig();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
+        'Failed to store session replay events in IndexedDB: error',
+      );
+    });
+  });
+
+  describe('storeRemoteConfig', () => {
+    test('should set the remote config on the session map', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const mockIDBStore: IDBStore = {
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [mockEventString],
+              status: RecordingStatus.RECORDING,
+            },
+          },
+        },
+        456: {
+          currentSequenceId: 1,
+          sessionSequences: {
+            1: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      };
+      await eventsStorage.storeRemoteConfig(mockRemoteConfig, 123);
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
+        remoteConfig: {
+          config: mockRemoteConfig,
+          lastFetchedSessionId: 123,
+        },
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [mockEventString],
+              status: RecordingStatus.RECORDING,
+            },
+          },
+        },
+        456: {
+          currentSequenceId: 1,
+          sessionSequences: {
+            1: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      });
+    });
+    test('should add a new entry if none exist for session id', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const mockIDBStore: IDBStore = {
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      };
+      await eventsStorage.storeRemoteConfig(mockRemoteConfig, 456);
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+        remoteConfig: {
+          config: mockRemoteConfig,
+          lastFetchedSessionId: 456,
+        },
+      });
+    });
+    test('should handle undefined session id', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const mockIDBStore: IDBStore = {
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+      };
+      await eventsStorage.storeRemoteConfig(mockRemoteConfig);
+
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(update.mock.calls[0][1](mockIDBStore)).toEqual({
+        123: {
+          currentSequenceId: 2,
+          sessionSequences: {
+            2: {
+              events: [],
+              status: RecordingStatus.SENT,
+            },
+          },
+        },
+        remoteConfig: {
+          config: mockRemoteConfig,
+          lastFetchedSessionId: undefined,
+        },
+      });
+    });
+    test('should catch errors', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      update.mockImplementationOnce(() => Promise.reject('error'));
+      await eventsStorage.storeRemoteConfig(mockRemoteConfig, 123);
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
+        'Failed to store session replay events in IndexedDB: error',
+      );
+    });
+    test('should handle an undefined store', async () => {
+      const eventsStorage = new SessionReplaySessionIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      update.mockImplementationOnce(() => Promise.resolve());
+      await eventsStorage.storeRemoteConfig(mockRemoteConfig, 123);
+      expect(update.mock.calls[0][1](undefined)).toEqual({
+        remoteConfig: {
+          config: mockRemoteConfig,
+          lastFetchedSessionId: 123,
         },
       });
     });

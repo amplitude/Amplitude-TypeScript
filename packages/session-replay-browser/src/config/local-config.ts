@@ -1,12 +1,9 @@
 import { FetchTransport } from '@amplitude/analytics-client-common';
 import { Config, Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
-import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from './constants';
-import {
-  SessionReplayConfig as ISessionReplayConfig,
-  SessionReplayOptions,
-  SessionReplayPrivacyConfig,
-} from './typings/session-replay';
+import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from '../constants';
+import { SessionReplayOptions } from '../typings/session-replay';
+import { SessionReplayLocalConfig as ISessionReplayLocalConfig, SessionReplayPrivacyConfig } from './types';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -15,7 +12,7 @@ export const getDefaultConfig = () => ({
   transportProvider: new FetchTransport(),
 });
 
-export class SessionReplayConfig extends Config implements ISessionReplayConfig {
+export class SessionReplayLocalConfig extends Config implements ISessionReplayLocalConfig {
   apiKey: string;
   sampleRate: number;
   privacyConfig?: SessionReplayPrivacyConfig;
@@ -40,7 +37,6 @@ export class SessionReplayConfig extends Config implements ISessionReplayConfig 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;
     }
-
     if (options.debugMode) {
       this.debugMode = options.debugMode;
     }

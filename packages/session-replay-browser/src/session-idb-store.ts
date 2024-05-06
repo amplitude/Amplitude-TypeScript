@@ -1,10 +1,12 @@
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import * as IDBKeyVal from 'idb-keyval';
+import { SessionReplayRemoteConfig } from './config/types';
 import { MAX_IDB_STORAGE_LENGTH, STORAGE_PREFIX, defaultSessionStore } from './constants';
 import { STORAGE_FAILURE } from './messages';
 import {
   SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
   Events,
+  IDBRemoteConfig,
   IDBStore,
   IDBStoreSession,
   RecordingStatus,
@@ -52,6 +54,31 @@ export class SessionReplaySessionIDBStore implements AmplitudeSessionReplaySessi
           },
         };
       });
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+  };
+
+  storeRemoteConfig = async (remoteConfig: SessionReplayRemoteConfig, sessionId?: number) => {
+    try {
+      await IDBKeyVal.update(this.storageKey, (sessionMap: IDBStore = {}): IDBStore => {
+        return {
+          ...sessionMap,
+          remoteConfig: {
+            config: remoteConfig,
+            lastFetchedSessionId: sessionId,
+          },
+        };
+      });
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+  };
+
+  getRemoteConfig = async (): Promise<IDBRemoteConfig | void> => {
+    try {
+      const sessionMap: IDBStore = (await IDBKeyVal.get(this.storageKey)) || {};
+      return sessionMap.remoteConfig;
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }

@@ -1,4 +1,4 @@
-import { BrowserConfig, LogLevel, Logger, BrowserClient, Plugin, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
 
@@ -10,7 +10,7 @@ type MockedLogger = jest.Mocked<Logger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionReplayProperties, flush, shutdown } =
+  const { init, setSessionId, getSessionReplayProperties, flush, shutdown, getSessionId } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -55,6 +55,9 @@ describe('SessionReplayPlugin', () => {
 
   beforeEach(() => {
     init.mockReturnValue({
+      promise: Promise.resolve(),
+    });
+    setSessionId.mockReturnValue({
       promise: Promise.resolve(),
     });
     plugins.splice(0, plugins.length);
@@ -316,6 +319,22 @@ describe('SessionReplayPlugin', () => {
       await sessionReplayEnrichmentPlugin.execute(event);
       expect(setSessionId).toHaveBeenCalledTimes(1);
       expect(setSessionId).toHaveBeenCalledWith(456);
+    });
+
+    test('should not update if session id unchanged', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
+      const updatedConfig: BrowserConfig = { ...mockConfig, sessionId: 123 };
+      await sessionReplayEnrichmentPlugin.setup(updatedConfig, mockAmplitude);
+      getSessionId.mockReturnValueOnce(123);
+
+      const event = {
+        event_type: 'page view',
+        session_id: 123,
+      };
+      await sessionReplayEnrichmentPlugin.execute(event);
+      expect(setSessionId).not.toHaveBeenCalled();
     });
   });
 
