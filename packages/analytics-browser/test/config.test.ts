@@ -377,5 +377,21 @@ describe('config', () => {
         configurable: true,
       });
     });
+
+    test('should return empty string when location is undefined', async () => {
+      const originalLocation = window.location;
+
+      Object.defineProperty(window, 'location', {
+        value: undefined,
+        configurable: true,
+      });
+
+      expect(await Config.getTopLevelDomain()).toBe('');
+
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        configurable: true,
+      });
+    });
   });
 });
