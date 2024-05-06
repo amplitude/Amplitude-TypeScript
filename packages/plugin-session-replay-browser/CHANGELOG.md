@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.1.9...@amplitude/plugin-session-replay-browser@1.2.0) (2024-05-06)
+
+### Features
+
+- **session replay:** add ability to wait for setSessionId process to complete
+  ([a60b0c9](https://github.com/amplitude/Amplitude-TypeScript/commit/a60b0c9f3fe668c87d82d75a4f566262107e748c))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.1.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.1.8...@amplitude/plugin-session-replay-browser@1.1.9) (2024-04-23)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

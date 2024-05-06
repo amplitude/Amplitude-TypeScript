@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.8...@amplitude/session-replay-browser@1.3.0) (2024-05-06)
+
+### Bug Fixes
+
+- **session replay:** add eu remote config url
+  ([6fc92ce](https://github.com/amplitude/Amplitude-TypeScript/commit/6fc92ceb8404635ab27a94e44bc26b8b82226b13))
+- **session replay:** set captureEnabled to true if api fails
+  ([51b4c87](https://github.com/amplitude/Amplitude-TypeScript/commit/51b4c879b633daf4c21b558965179a28faefdaca))
+- **session replay:** support undefined session id in initialization
+  ([8befdc1](https://github.com/amplitude/Amplitude-TypeScript/commit/8befdc1e982356c217bc5c2f9b50c11e6415072a))
+- **session replay:** use correct url and other fixes from bug bash
+  ([438d692](https://github.com/amplitude/Amplitude-TypeScript/commit/438d692b96d04ba945aaf4b1d44d58d7f040cb35))
+
+### Features
+
+- **session replay:** add ability to wait for setSessionId process to complete
+  ([a60b0c9](https://github.com/amplitude/Amplitude-TypeScript/commit/a60b0c9f3fe668c87d82d75a4f566262107e748c))
+- **session replay:** create joined config class and generate config upon init and setSessionId
+  ([90b341b](https://github.com/amplitude/Amplitude-TypeScript/commit/90b341bf545877401d34eaf0b46b77167ced3c1f))
+- **session replay:** introduce remote config fetch class
+  ([5c0e038](https://github.com/amplitude/Amplitude-TypeScript/commit/5c0e038a8a1a53408ae582e2acbe12d7d27b773b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.7...@amplitude/session-replay-browser@1.2.8) (2024-04-23)
 
 ### Bug Fixes
