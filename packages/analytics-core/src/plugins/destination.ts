@@ -104,7 +104,6 @@ export class Destination implements DestinationPlugin {
     // if batching enabled, check if min threshold met for batch size
     if (this.queue.length >= this.config.flushQueueSize) {
       void this.flush(true);
-      // return;
     }
 
     this.scheduled = setTimeout(() => {
@@ -303,10 +302,9 @@ export class Destination implements DestinationPlugin {
    * This is called on response comes back for a request
    */
   removeEvents(eventsToRemove: Context[]) {
-    this.queue = this.queue.filter((queuedContext) => {
-      const test = !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id);
-      return test;
-    });
+    this.queue = this.queue.filter(
+      (queuedContext) => !eventsToRemove.some((context) => context.event.insert_id === queuedContext.event.insert_id),
+    );
 
     this.saveEvents();
   }

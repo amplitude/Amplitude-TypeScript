@@ -1064,6 +1064,14 @@ describe('destination', () => {
         },
       },
       {
+        statusCode: 413,
+        status: Status.PayloadTooLarge,
+        body: {
+          code: 413,
+          error: 'error',
+        },
+      },
+      {
         statusCode: 429,
         status: Status.RateLimit,
         body: {
@@ -1089,6 +1097,7 @@ describe('destination', () => {
           statusCode,
           body,
         };
+        const uuid: string = expect.stringMatching(uuidPattern) as string;
 
         class Http {
           send = jest
@@ -1096,7 +1105,7 @@ describe('destination', () => {
             .mockImplementationOnce(() => {
               return Promise.resolve(response);
             })
-            .mockImplementationOnce(() => {
+            .mockImplementation(() => {
               return Promise.resolve({
                 status: Status.Success,
                 statusCode: 200,
@@ -1109,7 +1118,7 @@ describe('destination', () => {
         const transportProvider = new Http();
         const destination = new Destination();
         const loggerProvider = getMockLogger();
-        const eventCount = 1;
+        const eventCount = status === Status.PayloadTooLarge ? 2 : 1;
 
         const config = {
           ...useDefaultConfig(),
@@ -1122,94 +1131,32 @@ describe('destination', () => {
         const event = {
           event_type: 'event_type',
         };
-        const result = await destination.execute(event);
 
-        expect(result).toEqual({
-          event,
-          message: SUCCESS_MESSAGE,
-          code: 200,
+        const events = [];
+        for (let count = 0; count < eventCount; count++) {
+          events.push({ ...event });
+        }
+
+        const results = await Promise.all(events.map((event) => destination.execute(event))).catch();
+
+        results.every((result) => {
+          expect(result).toEqual({
+            event: {
+              ...event,
+              insert_id: uuid,
+            },
+            message: SUCCESS_MESSAGE,
+            code: 200,
+          });
         });
 
         expect(transportProvider.send).toHaveBeenCalledTimes(eventCount + 1);
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(loggerProvider.warn).toHaveBeenCalledTimes(eventCount);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
         expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
       },
     );
-
-    test('should log immidiate response body for retries of 413 payload_to_large', async () => {
-      const uuid: string = expect.stringMatching(uuidPattern) as string;
-
-      const { statusCode, status, body } = {
-        statusCode: 413,
-        status: Status.PayloadTooLarge,
-        body: {
-          code: 413,
-          error: 'error',
-        },
-      };
-      const response = {
-        status,
-        statusCode,
-        body,
-      };
-
-      class Http {
-        send = jest
-          .fn()
-          .mockImplementationOnce(() => {
-            return Promise.resolve(response);
-          })
-          .mockImplementation(() => {
-            return Promise.resolve({
-              status: Status.Success,
-              statusCode: 200,
-              body: {
-                message: SUCCESS_MESSAGE,
-              },
-            });
-          });
-      }
-
-      const transportProvider = new Http();
-      const destination = new Destination();
-      const loggerProvider = getMockLogger();
-      const eventCount = 2;
-
-      const config = {
-        ...useDefaultConfig(),
-        flushQueueSize: eventCount,
-        flushIntervalMillis: 1,
-        transportProvider,
-        loggerProvider,
-      };
-      await destination.setup(config);
-      const event = {
-        event_type: 'event_type',
-      };
-
-      const events = [{ ...event }, { ...event }];
-      const results = await Promise.all(events.map((event) => destination.execute(event))).catch();
-
-      expect(config.flushQueueSize).toEqual(eventCount / 2);
-      results.every((result) => {
-        expect(result).toEqual({
-          event: {
-            ...event,
-            insert_id: uuid,
-          },
-          message: SUCCESS_MESSAGE,
-          code: 200,
-        });
-      });
-
-      expect(transportProvider.send).toHaveBeenCalledTimes(3);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
-      expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
-    });
 
     test.each([
       { err: new Error('Error'), message: 'Error' },
