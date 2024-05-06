@@ -97,13 +97,13 @@ export class Destination implements DestinationPlugin {
   }
 
   sendEventIfReady() {
-    this.filterTriableList();
-    if (this.scheduled || this.config.offline || this.queue.length === 0) {
+    if (this.scheduled || this.config.offline) {
       return;
     }
     // if batching enabled, check if min threshold met for batch size
     if (this.queue.length >= this.config.flushQueueSize) {
       void this.flush(true);
+      // return;
     }
 
     this.scheduled = setTimeout(() => {
@@ -135,6 +135,8 @@ export class Destination implements DestinationPlugin {
   }
 
   async send(list: Context[], useRetry = true) {
+    this.filterTriableList();
+
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
@@ -155,7 +157,6 @@ export class Destination implements DestinationPlugin {
     try {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
-
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return;
