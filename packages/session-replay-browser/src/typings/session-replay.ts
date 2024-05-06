@@ -64,7 +64,7 @@ export type SessionReplayOptions = Omit<Partial<SessionReplayLocalConfig & Sessi
 
 export interface AmplitudeSessionReplay {
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
-  setSessionId: (sessionId: number, deviceId?: string) => void;
+  setSessionId: (sessionId: number, deviceId?: string) => AmplitudeReturn<void>;
   getSessionId: () => number | undefined;
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
   flush: (useRetry: boolean) => Promise<void>;
