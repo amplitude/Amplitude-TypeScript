@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.4...@amplitude/analytics-browser@1.13.5) (2024-05-07)
+
+### Bug Fixes
+
+- location is polyfilled to an empty object ([#739](https://github.com/amplitude/Amplitude-TypeScript/issues/739))
+  ([25dfbdf](https://github.com/amplitude/Amplitude-TypeScript/commit/25dfbdf6f72d12dbb6c4d8f932e7ba7f34bb5dc3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.3...@amplitude/analytics-browser@1.13.4) (2023-12-20)
 
 ### Reverts

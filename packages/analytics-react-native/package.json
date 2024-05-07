@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "1.4.7",
+  "version": "1.4.8",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
