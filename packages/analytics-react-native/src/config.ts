@@ -289,7 +289,10 @@ export const createEventsStorage = async (overrides?: ReactNativeOptions): Promi
 };
 
 export const getTopLevelDomain = async (url?: string) => {
-  if (!(await new CookieStorage<string>().isEnabled()) || (!url && typeof location === 'undefined')) {
+  if (
+    !(await new CookieStorage<number>().isEnabled()) ||
+    (!url && (typeof location === 'undefined' || !location.hostname))
+  ) {
     return '';
   }
 

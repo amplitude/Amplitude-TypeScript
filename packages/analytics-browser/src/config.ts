@@ -268,7 +268,10 @@ export const createTransport = (transport?: TransportType | keyof typeof Transpo
 };
 
 export const getTopLevelDomain = async (url?: string) => {
-  if (!(await new CookieStorage<number>().isEnabled()) || (!url && typeof location === 'undefined')) {
+  if (
+    !(await new CookieStorage<number>().isEnabled()) ||
+    (!url && (typeof location === 'undefined' || !location.hostname))
+  ) {
     return '';
   }
 
