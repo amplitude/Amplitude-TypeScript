@@ -344,5 +344,37 @@ describe('config', () => {
         });
       expect(await Config.getTopLevelDomain('www.legislation.gov.uk')).toBe('.legislation.gov.uk');
     });
+
+    test('should not throw an error when location is an empty object', async () => {
+      const originalLocation = window.location;
+
+      Object.defineProperty(window, 'location', {
+        value: {} as Location,
+        configurable: true,
+      });
+
+      expect(await Config.getTopLevelDomain()).toBe('');
+
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        configurable: true,
+      });
+    });
+
+    test('should return empty string when location is undefined', async () => {
+      const originalLocation = window.location;
+
+      Object.defineProperty(window, 'location', {
+        value: undefined,
+        configurable: true,
+      });
+
+      expect(await Config.getTopLevelDomain()).toBe('');
+
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        configurable: true,
+      });
+    });
   });
 });

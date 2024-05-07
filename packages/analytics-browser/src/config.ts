@@ -301,7 +301,10 @@ export const createTransport = (transport?: TransportType) => {
 };
 
 export const getTopLevelDomain = async (url?: string) => {
-  if (!(await new CookieStorage<number>().isEnabled()) || (!url && typeof location === 'undefined')) {
+  if (
+    !(await new CookieStorage<number>().isEnabled()) ||
+    (!url && (typeof location === 'undefined' || !location.hostname))
+  ) {
     return '';
   }
 
