@@ -8,7 +8,6 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
 import { uuidPattern } from '../helpers/util';
-//import { UUID } from '../../src/utils/uuid';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 describe('destination', () => {
