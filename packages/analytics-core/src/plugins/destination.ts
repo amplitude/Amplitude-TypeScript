@@ -103,7 +103,6 @@ export class Destination implements DestinationPlugin {
     // if batching enabled, check if min threshold met for batch size
     if (this.queue.length >= this.config.flushQueueSize) {
       void this.flush(true);
-      // return;
     }
 
     this.scheduled = setTimeout(() => {
@@ -130,13 +129,16 @@ export class Destination implements DestinationPlugin {
       this.scheduled = null;
     }
 
+    this.filterTriableList();
+    if (this.queue.length === 0) {
+      return;
+    }
+
     const currentFlushQueue = this.queue.slice(0, this.config.flushQueueSize);
     await this.send(currentFlushQueue, useRetry);
   }
 
   async send(list: Context[], useRetry = true) {
-    this.filterTriableList();
-
     if (!this.config.apiKey) {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
