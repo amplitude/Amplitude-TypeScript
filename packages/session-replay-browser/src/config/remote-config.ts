@@ -13,6 +13,7 @@ import {
 const UNEXPECTED_NETWORK_ERROR_MESSAGE = 'Network error occurred, session replay remote config fetch failed';
 const SUCCESS_REMOTE_CONFIG = 'Session replay remote config successfully fetched';
 const MAX_RETRIES_EXCEEDED_MESSAGE = 'Session replay remote config fetch rejected due to exceeded retry count';
+const TIMEOUT_MESSAGE = 'Session replay remote config fetch rejected due to timeout after 5 seconds';
 export const REMOTE_CONFIG_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const REMOTE_CONFIG_SERVER_URL_STAGING = 'https://sr-client-cfg.stag2.amplitude.com/config';
 export const REMOTE_CONFIG_SERVER_URL_EU = 'https://sr-client-cfg.eu.amplitude.com/config';
@@ -43,7 +44,7 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
       return idbRemoteConfig.config;
     }
     // Finally fetch via API
-    return this.fetchRemoteConfig(sessionId);
+    return this.fetchWithTimeout(sessionId);
   };
 
   getSamplingConfig = async (sessionId?: number): Promise<SamplingConfig | void> => {
@@ -63,9 +64,22 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
     return REMOTE_CONFIG_SERVER_URL;
   }
 
-  fetchRemoteConfig = async (sessionId?: number): Promise<ISessionReplayRemoteConfig | void> => {
+  fetchWithTimeout = async (sessionId?: number): Promise<ISessionReplayRemoteConfig | void> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const remoteConfig = await this.fetchRemoteConfig(controller.signal, sessionId);
+    clearTimeout(timeoutId);
+    return remoteConfig;
+  };
+
+  fetchRemoteConfig = async (
+    signal: AbortController['signal'],
+    sessionId?: number,
+  ): Promise<ISessionReplayRemoteConfig | void> => {
     if (sessionId === this.lastFetchedSessionId && this.attempts >= this.localConfig.flushMaxRetries) {
       return this.completeRequest({ err: MAX_RETRIES_EXCEEDED_MESSAGE });
+    } else if (signal.aborted) {
+      return this.completeRequest({ err: TIMEOUT_MESSAGE });
     } else if (sessionId !== this.lastFetchedSessionId) {
       this.lastFetchedSessionId = sessionId;
       this.attempts = 0;
@@ -85,7 +99,7 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
       };
       const serverUrl = `${this.getServerUrl()}?${urlParams.toString()}`;
       this.attempts += 1;
-      const res = await fetch(serverUrl, options);
+      const res = await fetch(serverUrl, { ...options, signal: signal });
       if (res === null) {
         return this.completeRequest({ err: UNEXPECTED_ERROR_MESSAGE });
       }
@@ -94,18 +108,25 @@ export class SessionReplayRemoteConfigFetch implements ISessionReplayRemoteConfi
         case Status.Success:
           return this.parseAndStoreConfig(res, sessionId);
         case Status.Failed:
-          return this.retryFetch(sessionId);
+          return this.retryFetch(signal, sessionId);
         default:
           return this.completeRequest({ err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
       }
     } catch (e) {
-      return this.completeRequest({ err: e as string });
+      const knownError = e as Error;
+      if (signal.aborted) {
+        return this.completeRequest({ err: TIMEOUT_MESSAGE });
+      }
+      return this.completeRequest({ err: knownError.message });
     }
   };
 
-  retryFetch = async (sessionId?: number): Promise<ISessionReplayRemoteConfig | void> => {
+  retryFetch = async (
+    signal: AbortController['signal'],
+    sessionId?: number,
+  ): Promise<ISessionReplayRemoteConfig | void> => {
     await new Promise((resolve) => setTimeout(resolve, this.attempts * this.retryTimeout));
-    return this.fetchRemoteConfig(sessionId);
+    return this.fetchRemoteConfig(signal, sessionId);
   };
 
   parseAndStoreConfig = async (res: Response, sessionId?: number): Promise<ISessionReplayRemoteConfig> => {
