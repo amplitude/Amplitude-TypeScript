@@ -22,6 +22,7 @@ import { STORAGE_PREFIX } from '../constants';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig } from '../config';
 import { UUID } from '../utils/uuid';
+import { chunk } from '../utils/chunk';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -100,7 +101,7 @@ export class Destination implements DestinationPlugin {
     if (this.scheduled || this.config.offline) {
       return;
     }
-    // if batching enabled, check if min threshold met for batch size
+
     if (this.queue.length >= this.config.flushQueueSize) {
       void this.flush(true);
     }
@@ -134,8 +135,10 @@ export class Destination implements DestinationPlugin {
       return;
     }
 
-    const currentFlushQueue = this.queue.slice(0, this.config.flushQueueSize);
-    await this.send(currentFlushQueue, useRetry);
+    const batches = chunk(this.queue, this.config.flushQueueSize);
+    for (const batch of batches) {
+      await this.send(batch, useRetry);
+    }
   }
 
   async send(list: Context[], useRetry = true) {
