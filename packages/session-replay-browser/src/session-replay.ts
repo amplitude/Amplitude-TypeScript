@@ -75,8 +75,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async asyncSetSessionId(sessionId: number, deviceId?: string) {
-    if (this.identifiers && this.identifiers.sessionId) {
-      this.stopRecordingAndSendEvents(this.identifiers.sessionId);
+    const previousSessionId = this.identifiers && this.identifiers.sessionId;
+    if (previousSessionId) {
+      this.stopRecordingAndSendEvents(previousSessionId);
     }
 
     const deviceIdForReplayId = deviceId || this.getDeviceId();
@@ -86,7 +87,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
 
     this.eventsManager && this.eventsManager.resetSequence();
-    if (this.joinedConfigGenerator) {
+    // If there is no previous session id, SDK is being initialized for the first time,
+    // and config was just fetched in initialization, so no need to fetch it a second time
+    if (this.joinedConfigGenerator && previousSessionId) {
       this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
     }
     this.recordEvents();

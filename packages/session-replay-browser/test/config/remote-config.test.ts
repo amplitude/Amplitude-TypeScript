@@ -40,6 +40,11 @@ async function runScheduleTimers() {
 
 describe('SessionReplayRemoteConfigFetch', () => {
   let originalFetch: typeof global.fetch;
+  let originalAbortController: typeof global.AbortController;
+  const abortMock = jest.fn();
+  const mockSignal = {
+    aborted: false,
+  } as AbortSignal;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
     log: jest.fn(),
@@ -66,10 +71,17 @@ describe('SessionReplayRemoteConfigFetch', () => {
         status: 200,
       }),
     ) as jest.Mock;
+    global.AbortController = jest.fn(() => {
+      return {
+        abort: abortMock,
+        signal: mockSignal,
+      };
+    });
   });
   afterEach(() => {
     jest.resetAllMocks();
     global.fetch = originalFetch;
+    global.AbortController = originalAbortController;
 
     jest.useRealTimers();
   });
@@ -83,7 +95,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
       sessionIDBStore.getRemoteConfig = idbRemoteConfigMock;
       remoteConfigFetch = new SessionReplayRemoteConfigFetch({ localConfig, sessionIDBStore });
       fetchMock = jest.fn();
-      remoteConfigFetch.fetchRemoteConfig = fetchMock;
+      remoteConfigFetch.fetchWithTimeout = fetchMock;
       fetchMock.mockResolvedValue(mockRemoteConfig);
     });
     test('should return remote config from indexedDB if it exists and matches session id', async () => {
@@ -92,12 +104,12 @@ describe('SessionReplayRemoteConfigFetch', () => {
       expect(fetchMock).not.toHaveBeenCalled();
       expect(idbRemoteConfigMock).toHaveBeenCalled();
     });
-    test('should call fetchRemoteConfig if lastFetchedSessionId does not match session id', async () => {
+    test('should call fetchWithTimeout if lastFetchedSessionId does not match session id', async () => {
       const remoteConfig = await remoteConfigFetch.getRemoteConfig(456);
       expect(remoteConfig).toEqual(mockRemoteConfig);
       expect(fetchMock).toHaveBeenCalled();
     });
-    test('should call fetchRemoteConfig if lastFetchedSessionId is undefined', async () => {
+    test('should call fetchWithTimeout if lastFetchedSessionId is undefined', async () => {
       idbRemoteConfigMock = jest.fn().mockResolvedValue({
         lastFetchedSessionId: undefined,
         config: mockRemoteConfig,
@@ -106,12 +118,12 @@ describe('SessionReplayRemoteConfigFetch', () => {
       expect(remoteConfig).toEqual(mockRemoteConfig);
       expect(fetchMock).toHaveBeenCalled();
     });
-    test('should call fetchRemoteConfig if sessionId is undefined', async () => {
+    test('should call fetchWithTimeout if sessionId is undefined', async () => {
       const remoteConfig = await remoteConfigFetch.getRemoteConfig();
       expect(remoteConfig).toEqual(mockRemoteConfig);
       expect(fetchMock).toHaveBeenCalled();
     });
-    test('should call fetchRemoteConfig if no config exists in memory or indexeddb', async () => {
+    test('should call fetchWithTimeout if no config exists in memory or indexeddb', async () => {
       idbRemoteConfigMock = jest.fn().mockResolvedValue(undefined);
       sessionIDBStore.getRemoteConfig = idbRemoteConfigMock;
 
@@ -151,7 +163,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
           json: () => mockRemoteConfigAPIResponse,
         }),
       );
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
       await runScheduleTimers();
       return fetchPromise.then((remoteConfig) => {
         expect(fetch).toHaveBeenCalledTimes(1);
@@ -170,15 +182,15 @@ describe('SessionReplayRemoteConfigFetch', () => {
           json: () => mockRemoteConfigAPIResponse,
         }),
       );
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(storeRemoteConfigMock).toHaveBeenCalledWith(mockRemoteConfig, 123);
       });
     });
     test('should handle unexpected error', async () => {
-      (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject(new Error('API Failure')));
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
       await runScheduleTimers();
       let err: Error;
       return fetchPromise
@@ -188,6 +200,27 @@ describe('SessionReplayRemoteConfigFetch', () => {
         .finally(() => {
           expect(fetch).toHaveBeenCalledTimes(1);
           expect(err.message).toEqual('API Failure');
+          expect(remoteConfigFetch.attempts).toBe(1);
+        });
+    });
+    test('should handle timeout error', async () => {
+      const signalToAbort = {
+        aborted: false,
+      };
+      (fetch as jest.Mock).mockImplementationOnce(() => {
+        signalToAbort.aborted = true;
+        return Promise.reject(new Error('API Failure'));
+      });
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(signalToAbort as AbortSignal, 123);
+      await runScheduleTimers();
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(1);
+          expect(err.message).toEqual('Session replay remote config fetch rejected due to timeout after 5 seconds');
           expect(remoteConfigFetch.attempts).toBe(1);
         });
     });
@@ -203,7 +236,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
             status: 200,
           });
         });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
       await runScheduleTimers();
       let err: Error;
       return fetchPromise
@@ -212,7 +245,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
         })
         .finally(() => {
           expect(fetch).toHaveBeenCalledTimes(1);
-          expect(err.message).toEqual('Error: Network error occurred, session replay remote config fetch failed');
+          expect(err.message).toEqual('Network error occurred, session replay remote config fetch failed');
           expect(remoteConfigFetch.attempts).toBe(1);
         });
     });
@@ -229,7 +262,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
             json: () => mockRemoteConfigAPIResponse,
           });
         });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
       await runScheduleTimers();
       let err: Error;
       return fetchPromise
@@ -238,8 +271,30 @@ describe('SessionReplayRemoteConfigFetch', () => {
         })
         .finally(() => {
           expect(fetch).toHaveBeenCalledTimes(1);
-          expect(err.message).toEqual('Error: Network error occurred, session replay remote config fetch failed');
+          expect(err.message).toEqual('Network error occurred, session replay remote config fetch failed');
           expect(remoteConfigFetch.attempts).toBe(1);
+        });
+    });
+    test('should return early if signal has been aborted', async () => {
+      (fetch as jest.Mock).mockImplementationOnce(() => {
+        return Promise.resolve({
+          status: 500,
+        });
+      });
+      const abortedMockSignal = {
+        aborted: true,
+      } as AbortSignal;
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(abortedMockSignal, 123);
+
+      await runScheduleTimers();
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(0);
+          expect(err.message).toEqual('Session replay remote config fetch rejected due to timeout after 5 seconds');
         });
     });
     test('should handle retry for 500 error', async () => {
@@ -255,7 +310,8 @@ describe('SessionReplayRemoteConfigFetch', () => {
             json: () => mockRemoteConfigAPIResponse,
           });
         });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
+
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -271,7 +327,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
         });
       });
       remoteConfigFetch.localConfig.flushMaxRetries = 2;
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
 
       // Need to run 3x to get through all setTimeout calls
       await runScheduleTimers();
@@ -297,7 +353,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
         });
       });
       remoteConfigFetch.localConfig.flushMaxRetries = 1;
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
 
       await runScheduleTimers();
       try {
@@ -315,7 +371,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
         });
       });
 
-      const fetchPromiseNextSession = remoteConfigFetch.fetchRemoteConfig(456);
+      const fetchPromiseNextSession = remoteConfigFetch.fetchRemoteConfig(mockSignal, 456);
 
       return fetchPromiseNextSession.finally(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -336,7 +392,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
             json: () => mockRemoteConfigAPIResponse,
           });
         });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
@@ -347,7 +403,7 @@ describe('SessionReplayRemoteConfigFetch', () => {
       (fetch as jest.Mock).mockImplementationOnce(() => {
         return Promise.resolve(null);
       });
-      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(123);
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
       await runScheduleTimers();
       let err: Error;
       return fetchPromise
@@ -356,8 +412,32 @@ describe('SessionReplayRemoteConfigFetch', () => {
         })
         .finally(() => {
           expect(fetch).toHaveBeenCalledTimes(1);
-          expect(err.message).toEqual('Error: Unexpected error occurred');
+          expect(err.message).toEqual('Unexpected error occurred');
           expect(remoteConfigFetch.attempts).toBe(1);
+        });
+    });
+  });
+
+  describe('fetchWithTimeout', () => {
+    let remoteConfigFetch: SessionReplayRemoteConfigFetch;
+    beforeEach(() => {
+      remoteConfigFetch = new SessionReplayRemoteConfigFetch({ localConfig, sessionIDBStore });
+    });
+    test('should set up a controller to cancel fetch requests after 5 seconds', async () => {
+      remoteConfigFetch.localConfig.flushMaxRetries = 2;
+      remoteConfigFetch.fetchRemoteConfig = jest.fn().mockResolvedValue(mockRemoteConfig);
+      const fetchPromise = remoteConfigFetch.fetchWithTimeout(123);
+
+      // Need to run 3x to get through all setTimeout calls
+      await runScheduleTimers();
+
+      return fetchPromise
+        .then((remoteConfigResponse) => {
+          expect(remoteConfigResponse).toEqual(mockRemoteConfig);
+        })
+        .finally(() => {
+          expect(remoteConfigFetch.fetchRemoteConfig).toHaveBeenCalledTimes(1);
+          expect(abortMock).toHaveBeenCalledTimes(1);
         });
     });
   });
