@@ -81,8 +81,8 @@ export class Destination implements DestinationPlugin {
 
   addToQueue(...list: Context[]) {
     this.queue = this.queue.concat(list);
-    this.sendEventIfReady();
     this.saveEvents();
+    this.sendEventIfReady();
   }
 
   filterTriableList() {
