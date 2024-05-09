@@ -1,5 +1,5 @@
 import { Destination, getResponseBodyString } from '../../src/plugins/destination';
-import { Config, DestinationContext, Logger, Payload, Status } from '@amplitude/analytics-types';
+import { Config, DestinationContext, Logger, Payload, Status, BaseEvent } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -10,6 +10,16 @@ import {
 import { uuidPattern } from '../helpers/util';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
+const successResponse = {
+  status: Status.Success,
+  statusCode: 200,
+  body: {
+    eventsIngested: 1,
+    payloadSizeBytes: 1,
+    serverUploadTime: 1,
+  },
+};
+
 describe('destination', () => {
   describe('setup', () => {
     test('should setup plugin', async () => {
@@ -173,7 +183,7 @@ describe('destination', () => {
           return Promise.resolve(undefined);
         })
         .mockReturnValueOnce(Promise.resolve(undefined));
-      destination.sendEventIfReady();
+      destination.sendEventsIfReady();
       // exhause first setTimeout
       jest.runAllTimers();
       // wait for next tick to call nested setTimeout
@@ -207,7 +217,7 @@ describe('destination', () => {
           return Promise.resolve(undefined);
         })
         .mockReturnValueOnce(Promise.resolve(undefined));
-      destination.sendEventIfReady();
+      destination.sendEventsIfReady();
       // exhause first setTimeout
       jest.runAllTimers();
       // wait for next tick to call nested setTimeout
@@ -226,7 +236,7 @@ describe('destination', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (destination as any).scheduled = true;
       const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
-      destination.sendEventIfReady();
+      destination.sendEventsIfReady();
       expect(flush).toHaveBeenCalledTimes(0);
     });
   });
@@ -255,7 +265,7 @@ describe('destination', () => {
           callback: () => undefined,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(Status.Success));
       await destination.flush();
       expect(send).toHaveBeenCalledTimes(0);
       expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
@@ -275,7 +285,7 @@ describe('destination', () => {
           callback: () => undefined,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(Status.Success));
       const result = await destination.flush();
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
@@ -293,7 +303,7 @@ describe('destination', () => {
           callback: () => undefined,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(Status.Success));
       const result = await destination.flush();
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
@@ -550,6 +560,106 @@ describe('destination', () => {
       // We should not fulfill request when the request fails with an unknown error. This should be retried
       expect(callback).toHaveBeenCalledTimes(0);
     });
+
+    test.each([
+      {
+        statusCode: 400,
+        status: Status.Invalid,
+        body: {
+          code: 400,
+          error: 'error',
+          missingField: undefined,
+          eventsWithInvalidFields: {},
+          eventsWithMissingFields: {},
+          eventsWithInvalidIdLengths: {},
+          silencedEvents: [],
+        },
+      },
+      {
+        statusCode: 413,
+        status: Status.PayloadTooLarge,
+        body: {
+          code: 413,
+          error: 'error',
+        },
+      },
+      {
+        statusCode: 429,
+        status: Status.RateLimit,
+        body: {
+          code: 429,
+          error: 'error',
+          epsThreshold: 1,
+          throttledDevices: {},
+          throttledUsers: {},
+          exceededDailyQuotaDevices: {
+            '1': 1,
+          },
+          exceededDailyQuotaUsers: {
+            '2': 1,
+          },
+          throttledEvents: [0],
+        },
+      },
+    ])('should retry in order of $statusCode $status', async ({ statusCode, body }) => {
+      class Http {
+        send = jest
+          .fn()
+          .mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.PayloadTooLarge,
+              statusCode: statusCode,
+              body,
+            });
+          })
+          .mockImplementation(() => {
+            return Promise.resolve(successResponse);
+          });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination();
+      const config = {
+        ...useDefaultConfig(),
+        flushIntervalMillis: 100,
+        transportProvider,
+      };
+      await destination.setup(config);
+
+      const results = await Promise.all([
+        destination.execute({
+          event_type: 'event_type_1',
+          event_id: 0,
+        }),
+        destination.execute({
+          event_type: 'event_type_2',
+          event_id: 1,
+        }),
+        destination.execute({
+          event_type: 'event_type_3',
+          event_id: 2,
+        }),
+        destination.execute({
+          event_type: 'event_type_4',
+          event_id: 3,
+        }),
+      ]);
+
+      const sendCalls = transportProvider.send.mock.calls;
+      // #1 call with error, #2 200 call
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      sendCalls.forEach((sendCall) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const payload = sendCall[1] as Payload;
+        payload.events.forEach((event: BaseEvent, index: number) => {
+          expect(event.event_id).toBe(index);
+        });
+      });
+      results.forEach((result, index) => {
+        expect(result.code).toBe(200);
+        expect(result.message).toBe('Event tracked successfully');
+        expect(result.event.event_id).toBe(index);
+      });
+    });
   });
 
   describe('updateEventStorage', () => {
@@ -615,16 +725,6 @@ describe('destination', () => {
   });
 
   describe('module level integration', () => {
-    const successResponse = {
-      status: Status.Success,
-      statusCode: 200,
-      body: {
-        eventsIngested: 1,
-        payloadSizeBytes: 1,
-        serverUploadTime: 1,
-      },
-    };
-
     test('should handle unexpected error', async () => {
       class Http {
         send = jest.fn().mockImplementationOnce(() => {
