@@ -24,6 +24,8 @@ import { createServerConfig } from '../config';
 import { UUID } from '../utils/uuid';
 import { chunk } from '../utils/chunk';
 
+const retryStatus = new Set([Status.Invalid, Status.PayloadTooLarge, Status.RateLimit]);
+
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   return String(error);
@@ -83,7 +85,7 @@ export class Destination implements DestinationPlugin {
   addToQueue(...list: Context[]) {
     this.queue = this.queue.concat(list);
     this.saveEvents();
-    this.sendEventIfReady();
+    this.sendEventsIfReady();
   }
 
   filterTriableList() {
@@ -97,8 +99,8 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  sendEventIfReady() {
-    if (this.scheduled || this.config.offline) {
+  sendEventsIfReady() {
+    if (this.config.offline) {
       return;
     }
 
@@ -106,10 +108,14 @@ export class Destination implements DestinationPlugin {
       void this.flush(true);
     }
 
+    if (this.scheduled) {
+      return;
+    }
+
     this.scheduled = setTimeout(() => {
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {
-          this.sendEventIfReady();
+          this.sendEventsIfReady();
         }
       });
     }, this.config.flushIntervalMillis);
@@ -137,13 +143,19 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(this.queue, this.config.flushQueueSize);
     for (const batch of batches) {
-      await this.send(batch, useRetry);
+      const responseStatus = await this.send(batch, useRetry);
+      // To keep the order of events sending to the backend, stop sending the other requests while error happending.
+      // All the events are still queued, and will be retried with next trigger.
+      if (retryStatus.has(responseStatus) && useRetry) {
+        break;
+      }
     }
   }
 
   async send(list: Context[], useRetry = true) {
     if (!this.config.apiKey) {
-      return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
+      this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
+      return Status.Invalid;
     }
 
     const payload = {
@@ -164,7 +176,7 @@ export class Destination implements DestinationPlugin {
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
-        return;
+        return Status.Invalid;
       }
 
       if (!useRetry) {
@@ -173,14 +185,16 @@ export class Destination implements DestinationPlugin {
         } else {
           this.fulfillRequest(list, res.statusCode, res.status);
         }
-        return;
+        return res.status;
       }
 
       this.handleResponse(res, list);
+      return res.status;
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
       this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
+      return Status.Failed;
     }
   }
 
@@ -284,8 +298,8 @@ export class Destination implements DestinationPlugin {
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
-    list.forEach((context) => context.callback(buildResult(context.event, code, message)));
     this.removeEvents(list);
+    list.forEach((context) => context.callback(buildResult(context.event, code, message)));
   }
 
   /**
