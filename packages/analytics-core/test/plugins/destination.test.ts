@@ -308,6 +308,45 @@ describe('destination', () => {
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
+
+    test('should update the attempts', async () => {
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+      };
+      destination.queue = [
+        {
+          event: {
+            event_type: 'event_type_1',
+            insert_id: '1',
+          },
+          attempts: 0,
+          callback: () => undefined,
+        },
+        {
+          event: {
+            event_type: 'event_type_2',
+            insert_id: '2',
+          },
+          attempts: 0,
+          callback: () => undefined,
+        },
+      ];
+
+      const context = [
+        {
+          event: {
+            event_type: 'event_type_2',
+            insert_id: '2',
+          },
+          attempts: 0,
+          callback: () => undefined,
+        },
+      ];
+      destination.increaseAttempts(context);
+      expect(destination.queue[0].attempts).toBe(0);
+      expect(destination.queue[1].attempts).toBe(1);
+    });
   });
 
   describe('send', () => {

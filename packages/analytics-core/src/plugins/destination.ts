@@ -91,11 +91,19 @@ export class Destination implements DestinationPlugin {
   filterTriableList() {
     this.queue = this.queue.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
-        context.attempts += 1;
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
       return false;
+    });
+  }
+
+  increaseAttempts(list: Context[]) {
+    const updateEventSet = new Set(list.map((context) => context.event.insert_id));
+    this.queue.forEach((context) => {
+      if (updateEventSet.has(context.event.insert_id)) {
+        context.attempts += 1;
+      }
     });
   }
 
@@ -143,6 +151,7 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(this.queue, this.config.flushQueueSize);
     for (const batch of batches) {
+      this.increaseAttempts(batch);
       const responseStatus = await this.send(batch, useRetry);
       // To keep the order of events sending to the backend, stop sending the other requests while error happending.
       // All the events are still queued, and will be retried with next trigger.
