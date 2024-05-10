@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.3.0...@amplitude/session-replay-browser@1.3.1) (2024-05-10)
+
+### Bug Fixes
+
+- **session replay:** add a timeout to remote config fetch
+  ([66ca51e](https://github.com/amplitude/Amplitude-TypeScript/commit/66ca51e22e2a9fc54bed18efb68398a29c158794))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.2.8...@amplitude/session-replay-browser@1.3.0) (2024-05-06)
 
 ### Bug Fixes
