@@ -60,6 +60,10 @@ export class AmplitudeCore implements CoreClient {
         await val;
       }
     }
+    // Rerun queued functions if the queue has accrued more while awaiting promises
+    if (this[queueName].length) {
+      await this.runQueuedFunctions(queueName);
+    }
   }
 
   track(eventInput: BaseEvent | string, eventProperties?: Record<string, any>, eventOptions?: EventOptions) {

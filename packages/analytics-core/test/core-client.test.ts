@@ -161,7 +161,6 @@ describe('core-client', () => {
 
     test('should queue while promise is being awaited', async () => {
       const client = new AmplitudeCore();
-      // const register = jest.spyOn(client.timeline, 'register');
       const process = jest.spyOn(client, 'process');
       const setupMockResolve = Promise.resolve();
       const setupMock = jest.fn().mockResolvedValue(setupMockResolve);
@@ -185,6 +184,33 @@ describe('core-client', () => {
       await client.runQueuedFunctions('dispatchQ');
       expect(process).toHaveBeenCalled();
       expect(process).toHaveBeenCalledWith({ event_type: 'myEvent' });
+    });
+
+    test('should flush queue if new functions are queued while awaiting a promise', async () => {
+      const client = new AmplitudeCore();
+      const _setOptOut = jest.spyOn(client, '_setOptOut');
+      const setupMockResolve = Promise.resolve();
+      const setupMock = jest.fn().mockResolvedValue(setupMockResolve);
+      await client.add({
+        name: 'firstPlugin',
+        type: 'before',
+        setup: async () => {
+          await sleep(10);
+          setupMock('firstPlugin');
+          return;
+        },
+        execute: jest.fn(),
+      }).promise;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const initPromise = (client as any)._init(useDefaultConfig());
+      client.setOptOut(true);
+      await runScheduleTimers();
+      await setupMockResolve;
+      expect(_setOptOut).not.toHaveBeenCalled();
+      expect(client.config.optOut).toBe(false);
+      await initPromise;
+      expect(_setOptOut).toHaveBeenCalledWith(true);
+      expect(client.config.optOut).toBe(true);
     });
   });
 
