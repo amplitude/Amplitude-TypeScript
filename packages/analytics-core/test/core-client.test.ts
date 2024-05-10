@@ -9,6 +9,11 @@ async function runScheduleTimers() {
   await new Promise(process.nextTick);
   jest.runAllTimers();
 }
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 describe('core-client', () => {
   const success = { event: { event_type: 'sample' }, code: 200, message: Status.Success };
   const badRequest = { event: { event_type: 'sample' }, code: 400, message: Status.Invalid };
@@ -120,9 +125,6 @@ describe('core-client', () => {
     });
 
     test('should queue promises in correct order', async () => {
-      function sleep(ms: number) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-      }
       const client = new AmplitudeCore();
       const register = jest.spyOn(client.timeline, 'register');
       const setupMockResolve = Promise.resolve();
@@ -155,6 +157,34 @@ describe('core-client', () => {
       expect(setupMock).toHaveBeenCalledTimes(2);
       expect(setupMock.mock.calls[0][0]).toEqual('firstPlugin');
       expect(setupMock.mock.calls[1][0]).toEqual('secondPlugin');
+    });
+
+    test('should queue while promise is being awaited', async () => {
+      const client = new AmplitudeCore();
+      // const register = jest.spyOn(client.timeline, 'register');
+      const process = jest.spyOn(client, 'process');
+      const setupMockResolve = Promise.resolve();
+      const setupMock = jest.fn().mockResolvedValue(setupMockResolve);
+      await client.add({
+        name: 'firstPlugin',
+        type: 'before',
+        setup: async () => {
+          await sleep(10);
+          setupMock('firstPlugin');
+          return;
+        },
+        execute: jest.fn(),
+      }).promise;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const initPromise = (client as any)._init(useDefaultConfig());
+      client.track('myEvent');
+      await runScheduleTimers();
+      await initPromise;
+      await setupMockResolve;
+      expect(process).not.toHaveBeenCalled();
+      await client.runQueuedFunctions('dispatchQ');
+      expect(process).toHaveBeenCalled();
+      expect(process).toHaveBeenCalledWith({ event_type: 'myEvent' });
     });
   });
 

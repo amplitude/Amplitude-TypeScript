@@ -30,6 +30,7 @@ export class AmplitudeCore implements CoreClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   timeline: Timeline;
+  isReady = false;
   protected q: Array<CallableFunction | typeof returnWrapper> = [];
   protected dispatchQ: Array<CallableFunction> = [];
 
@@ -42,6 +43,7 @@ export class AmplitudeCore implements CoreClient {
     this.config = config;
     this.timeline.reset(this);
     await this.runQueuedFunctions('q');
+    this.isReady = true;
   }
 
   async runQueuedFunctions(queueName: 'q' | 'dispatchQ') {
@@ -88,30 +90,38 @@ export class AmplitudeCore implements CoreClient {
   }
 
   add(plugin: Plugin) {
-    if (!this.config) {
-      this.q.push(this.add.bind(this, plugin));
+    if (!this.isReady) {
+      this.q.push(this._addPlugin.bind(this, plugin));
       return returnWrapper();
     }
+    return this._addPlugin(plugin);
+  }
+
+  _addPlugin(plugin: Plugin) {
     return returnWrapper(this.timeline.register(plugin, this.config));
   }
 
   remove(pluginName: string) {
-    if (!this.config) {
-      this.q.push(this.remove.bind(this, pluginName));
+    if (!this.isReady) {
+      this.q.push(this._removePlugin.bind(this, pluginName));
       return returnWrapper();
     }
+    return this._removePlugin(pluginName);
+  }
+
+  _removePlugin(pluginName: string) {
     return returnWrapper(this.timeline.deregister(pluginName));
   }
 
   dispatchWithCallback(event: Event, callback: (result: Result) => void): void {
-    if (!this.config) {
+    if (!this.isReady) {
       return callback(buildResult(event, 0, CLIENT_NOT_INITIALIZED));
     }
     void this.process(event).then(callback);
   }
 
   async dispatch(event: Event): Promise<Result> {
-    if (!this.config) {
+    if (!this.isReady) {
       return new Promise<Result>((resolve) => {
         this.dispatchQ.push(this.dispatchWithCallback.bind(this, event, resolve));
       });
@@ -146,10 +156,14 @@ export class AmplitudeCore implements CoreClient {
   }
 
   setOptOut(optOut: boolean) {
-    if (!this.config) {
-      this.q.push(this.setOptOut.bind(this, Boolean(optOut)));
+    if (!this.isReady) {
+      this.q.push(this._setOptOut.bind(this, Boolean(optOut)));
       return;
     }
+    this._setOptOut(optOut);
+  }
+
+  _setOptOut(optOut: boolean) {
     this.config.optOut = Boolean(optOut);
   }
 
