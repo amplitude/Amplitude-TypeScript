@@ -1,9 +1,9 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
-import { REMOTE_CONFIG_SERVER_URL } from '../../src/config/remote-config';
-import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../../src/config/types';
+
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../../src/constants';
 import * as Helpers from '../../src/helpers';
 import { getSuccessMessage } from '../../src/messages';
@@ -22,15 +22,6 @@ const mockEvent = {
 const samplingConfig = {
   sample_rate: 0.5,
   capture_enabled: true,
-};
-const mockRemoteConfig: SessionReplayRemoteConfig = {
-  sr_sampling_config: samplingConfig,
-};
-
-const mockRemoteConfigAPIResponse: SessionReplayRemoteConfigAPIResponse = {
-  configs: {
-    sessionReplay: mockRemoteConfig,
-  },
 };
 
 async function runScheduleTimers() {
@@ -81,7 +72,12 @@ describe('module level integration', () => {
     deviceId: '1a2b3c',
     sessionId: SESSION_ID_IN_20_SAMPLE,
   };
+  let getRemoteConfigMock: jest.Mock;
   beforeEach(() => {
+    getRemoteConfigMock = jest.fn();
+    jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+      getRemoteConfig: getRemoteConfigMock,
+    });
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -100,16 +96,7 @@ describe('module level integration', () => {
   describe('sampleRate and captureEnabled', () => {
     describe('remote config API failure', () => {
       beforeEach(() => {
-        (global.fetch as jest.Mock) = jest.fn((url: string) => {
-          if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
-            return Promise.resolve({
-              status: 500,
-            });
-          }
-          return Promise.resolve({
-            status: 200,
-          });
-        });
+        getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
       });
       test('should capture replays and use options sampleRate', async () => {
         const sessionReplay = new SessionReplay();
@@ -131,19 +118,7 @@ describe('module level integration', () => {
     });
     describe('without remote config set', () => {
       beforeEach(() => {
-        (global.fetch as jest.Mock) = jest.fn((url: string) => {
-          if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
-            return Promise.resolve({
-              status: 200,
-              json: () => {
-                return { configs: { sessionReplay: {} } };
-              },
-            });
-          }
-          return Promise.resolve({
-            status: 200,
-          });
-        });
+        getRemoteConfigMock.mockResolvedValue({});
       });
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
@@ -174,17 +149,7 @@ describe('module level integration', () => {
     });
     describe('with remote config set', () => {
       beforeEach(() => {
-        (global.fetch as jest.Mock) = jest.fn((url: string) => {
-          if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
-            return Promise.resolve({
-              status: 200,
-              json: () => mockRemoteConfigAPIResponse,
-            });
-          }
-          return Promise.resolve({
-            status: 200,
-          });
-        });
+        getRemoteConfigMock.mockResolvedValue(samplingConfig);
       });
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
@@ -216,21 +181,7 @@ describe('module level integration', () => {
   });
   describe('sampling logic', () => {
     beforeEach(() => {
-      // Mimic remote config fetch as if no settings returned,
-      // so fallback to using SDK options in subsequent tests
-      (global.fetch as jest.Mock) = jest.fn((url: string) => {
-        if (url.includes(REMOTE_CONFIG_SERVER_URL)) {
-          return Promise.resolve({
-            status: 200,
-            json: () => {
-              return { configs: { sessionReplay: {} } };
-            },
-          });
-        }
-        return Promise.resolve({
-          status: 200,
-        });
-      });
+      getRemoteConfigMock.mockResolvedValue({});
     });
     describe('with a sample rate', () => {
       test('should not record session if excluded due to sampling', async () => {

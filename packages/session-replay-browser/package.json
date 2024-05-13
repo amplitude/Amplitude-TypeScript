@@ -41,6 +41,7 @@
     "@amplitude/analytics-client-common": ">=1 <3",
     "@amplitude/analytics-core": ">=1 <3",
     "@amplitude/analytics-types": ">=1 <3",
+    "@amplitude/analytics-remote-config": "0.1.0",
     "@amplitude/rrweb": "^2.0.0-alpha.12",
     "idb-keyval": "^6.2.1",
     "tslib": "^2.4.1"
