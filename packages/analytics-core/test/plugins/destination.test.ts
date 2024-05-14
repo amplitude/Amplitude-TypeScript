@@ -620,7 +620,7 @@ describe('destination', () => {
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
           return Promise.resolve({
-            status: Status.PayloadTooLarge,
+            status: Status.Invalid,
             statusCode: 400,
             body: {
               code: 400,
