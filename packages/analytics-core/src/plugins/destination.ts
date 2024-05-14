@@ -237,12 +237,12 @@ export class Destination implements DestinationPlugin {
     return isFullfilledRequest;
   }
 
-  handleSuccessResponse(res: SuccessResponse, list: Context[]) {
+  handleSuccessResponse(res: SuccessResponse, list: Context[]): boolean {
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
     return true;
   }
 
-  handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+  handleInvalidResponse(res: InvalidResponse, list: Context[]): boolean {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return true;
@@ -273,7 +273,7 @@ export class Destination implements DestinationPlugin {
     return true;
   }
 
-  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
+  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]): boolean {
     if (list.length === 1) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
       return true;
@@ -287,7 +287,7 @@ export class Destination implements DestinationPlugin {
     return false;
   }
 
-  handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
+  handleRateLimitResponse(res: RateLimitResponse, list: Context[]): boolean {
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     const dropUserIdsSet = new Set(dropUserIds);
