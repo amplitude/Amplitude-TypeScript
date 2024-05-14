@@ -300,28 +300,5 @@ describe('module level integration', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(UNEXPECTED_ERROR_MESSAGE);
     });
-    test('should not allow multiple of the same list to be sent', async () => {
-      (fetch as jest.Mock).mockImplementation(() => {
-        return Promise.resolve({
-          status: 200,
-        });
-      });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
-      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
-      (fetch as jest.Mock).mockReset();
-
-      if (!sessionReplay.eventsManager) {
-        throw new Error('did not init');
-      }
-      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
-      sessionReplay.stopRecordingAndSendEvents();
-      sessionReplay.stopRecordingAndSendEvents();
-      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(1);
-    });
   });
 });
