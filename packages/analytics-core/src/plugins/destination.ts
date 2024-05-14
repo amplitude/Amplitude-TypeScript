@@ -24,8 +24,6 @@ import { createServerConfig } from '../config';
 import { UUID } from '../utils/uuid';
 import { chunk } from '../utils/chunk';
 
-const retryStatus = new Set([Status.Invalid, Status.PayloadTooLarge, Status.RateLimit]);
-
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
   return String(error);
@@ -152,19 +150,24 @@ export class Destination implements DestinationPlugin {
     const batches = chunk(this.queue, this.config.flushQueueSize);
     for (const batch of batches) {
       this.increaseAttempts(batch);
-      const responseStatus = await this.send(batch, useRetry);
-      // To keep the order of events sending to the backend, stop sending the other requests while error happending.
+      const isFullfilledRequest = await this.send(batch, useRetry);
+      // To keep the order of events sending to the backend, stop sending the other requests while the request is not been fullfilled.
       // All the events are still queued, and will be retried with next trigger.
-      if (retryStatus.has(responseStatus) && useRetry) {
+      if (!isFullfilledRequest) {
         break;
       }
     }
   }
 
-  async send(list: Context[], useRetry = true): Promise<Status> {
+  /**
+   * Send the events to the server
+   *
+   * @returns if the request has been fullfilled.
+   */
+  async send(list: Context[], useRetry = true): Promise<boolean> {
     if (!this.config.apiKey) {
       this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
-      return Status.Invalid;
+      return true;
     }
 
     const payload = {
@@ -185,7 +188,7 @@ export class Destination implements DestinationPlugin {
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
-        return Status.Invalid;
+        return true;
       }
 
       if (!useRetry) {
@@ -194,37 +197,35 @@ export class Destination implements DestinationPlugin {
         } else {
           this.fulfillRequest(list, res.statusCode, res.status);
         }
-        return res.status;
+        return true;
       }
 
-      this.handleResponse(res, list);
-      return res.status;
+      return this.handleResponse(res, list);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
-      this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
-      return Status.Failed;
+      return this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
     }
   }
 
-  handleResponse(res: Response, list: Context[]) {
+  handleResponse(res: Response, list: Context[]): boolean {
     const { status } = res;
-
+    let isFullfilledRequest = false;
     switch (status) {
       case Status.Success: {
-        this.handleSuccessResponse(res, list);
+        isFullfilledRequest = this.handleSuccessResponse(res, list);
         break;
       }
       case Status.Invalid: {
-        this.handleInvalidResponse(res, list);
+        isFullfilledRequest = this.handleInvalidResponse(res, list);
         break;
       }
       case Status.PayloadTooLarge: {
-        this.handlePayloadTooLargeResponse(res, list);
+        isFullfilledRequest = this.handlePayloadTooLargeResponse(res, list);
         break;
       }
       case Status.RateLimit: {
-        this.handleRateLimitResponse(res, list);
+        isFullfilledRequest = this.handleRateLimitResponse(res, list);
         break;
       }
       default: {
@@ -233,16 +234,18 @@ export class Destination implements DestinationPlugin {
         break;
       }
     }
+    return isFullfilledRequest;
   }
 
   handleSuccessResponse(res: SuccessResponse, list: Context[]) {
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
+    return true;
   }
 
   handleInvalidResponse(res: InvalidResponse, list: Context[]) {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
-      return;
+      return true;
     }
 
     const dropIndex = [
@@ -265,13 +268,15 @@ export class Destination implements DestinationPlugin {
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
+      return false;
     }
+    return true;
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
     if (list.length === 1) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
-      return;
+      return true;
     }
 
     // log intermediate event status before retry
@@ -279,6 +284,7 @@ export class Destination implements DestinationPlugin {
 
     this.config.flushQueueSize /= 2;
     // All the events are still queued, and will be retried with next trigger
+    return false;
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
@@ -302,7 +308,10 @@ export class Destination implements DestinationPlugin {
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
+      return false;
     }
+
+    return true;
     // All the events are still queued, and will be retried with next trigger
   }
 

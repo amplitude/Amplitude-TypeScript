@@ -265,7 +265,7 @@ describe('destination', () => {
           callback: () => undefined,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(Status.Success));
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
       await destination.flush();
       expect(send).toHaveBeenCalledTimes(0);
       expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
@@ -285,7 +285,7 @@ describe('destination', () => {
           callback: () => undefined,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(Status.Success));
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
       const result = await destination.flush();
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
@@ -303,7 +303,7 @@ describe('destination', () => {
           callback: () => undefined,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(Status.Success));
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
       const result = await destination.flush();
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
@@ -384,13 +384,14 @@ describe('destination', () => {
         apiKey: API_KEY,
         minIdLength: 10,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 200,
         message: SUCCESS_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should include min id length', async () => {
@@ -424,13 +425,14 @@ describe('destination', () => {
         apiKey: API_KEY,
         minIdLength: 10,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 200,
         message: SUCCESS_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should not include extra', async () => {
@@ -466,13 +468,14 @@ describe('destination', () => {
         apiKey: API_KEY,
         minIdLength: 10,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 200,
         message: SUCCESS_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should not retry', async () => {
@@ -499,13 +502,14 @@ describe('destination', () => {
         transportProvider,
         apiKey: API_KEY,
       });
-      await destination.send([context], false);
+      const isFullfilledRequest = await destination.send([context], false);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 500,
         message: Status.Failed,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should provide error details', async () => {
@@ -537,13 +541,14 @@ describe('destination', () => {
         transportProvider,
         apiKey: API_KEY,
       });
-      await destination.send([context], false);
+      const isFullfilledRequest = await destination.send([context], false);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 400,
         message: `${Status.Invalid}: ${jsons(body)}`,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should handle no api key', async () => {
@@ -567,13 +572,14 @@ describe('destination', () => {
         transportProvider,
         apiKey: '',
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 400,
         message: MISSING_API_KEY_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should not drop data on unexpected error', async () => {
@@ -595,9 +601,10 @@ describe('destination', () => {
         ...useDefaultConfig(),
         transportProvider,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       // We should not fulfill request when the request fails with an unknown error. This should be retried
       expect(callback).toHaveBeenCalledTimes(0);
+      expect(isFullfilledRequest).toBe(false);
     });
 
     test.each([
