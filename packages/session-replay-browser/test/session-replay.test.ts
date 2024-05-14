@@ -7,8 +7,9 @@ import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 
+import { IDBFactory } from 'fake-indexeddb';
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
-import * as SessionReplayIDB from '../src/events-idb-store';
+import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
@@ -50,6 +51,7 @@ describe('SessionReplay', () => {
     document: {
       hasFocus: () => true,
     },
+    indexedDB: new IDBFactory(),
   } as unknown as typeof globalThis;
   const apiKey = 'static_key';
   const mockOptions: SessionReplayOptions = {

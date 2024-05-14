@@ -3,8 +3,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Logger } from '@amplitude/analytics-types';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
-import * as SessionReplayIDB from '../src/events-idb-store';
-import { createEventsManager } from '../src/events-manager';
+import * as SessionReplayIDB from '../src/events/events-idb-store';
+import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayTrackDestination } from '../src/track-destination';
 
 jest.mock('idb-keyval');

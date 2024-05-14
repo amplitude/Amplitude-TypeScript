@@ -1,5 +1,5 @@
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
-import { SessionReplayLocalConfig, SessionReplayRemoteConfig } from '../config/types';
+import { SessionReplayLocalConfig } from '../config/types';
 
 export type Events = string[];
 
@@ -20,16 +20,6 @@ export interface SessionReplayDestinationContext extends SessionReplayDestinatio
   timeout: number;
 }
 
-export enum SendingStatus {
-  SENDING = 'sending',
-  SENT = 'sent',
-}
-
-export interface IDBStoreSequence {
-  events: Events;
-  status: SendingStatus;
-}
-
 export interface SendingSequencesIDBInput {
   sequenceId?: number;
   sessionId: number;
@@ -37,23 +27,6 @@ export interface SendingSequencesIDBInput {
 }
 
 export type SendingSequencesIDBReturn = Required<SendingSequencesIDBInput>;
-
-export interface IDBStoreSession {
-  currentSequenceId: number;
-  sessionSequences: {
-    [sequenceId: number]: IDBStoreSequence;
-  };
-}
-
-export interface IDBRemoteConfig {
-  config: SessionReplayRemoteConfig;
-  lastFetchedSessionId: number | undefined;
-}
-
-export interface IDBStore {
-  remoteConfig?: IDBRemoteConfig;
-  [sessionId: number]: IDBStoreSession;
-}
 
 export interface SessionReplayEventsIDBStore {
   initialize(): Promise<void>;

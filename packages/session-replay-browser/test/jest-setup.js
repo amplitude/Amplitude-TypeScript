@@ -4,5 +4,5 @@ const structuredClone = require('@ungap/structured-clone');
 
 global.structuredClone = structuredClone.default;
 global.beforeEach(() => {
-  indexedDB = new IDBFactory();
+  global.indexedDB = new IDBFactory();
 });

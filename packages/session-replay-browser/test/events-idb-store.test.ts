@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Logger } from '@amplitude/analytics-types';
-import { IDBPDatabase } from 'idb';
-import * as EventsIDBStore from '../src/events-idb-store';
-import { SessionReplayDB, SessionReplayEventsIDBStore } from '../src/events-idb-store';
+import { IDBPDatabase, openDB } from 'idb';
+import * as EventsIDBStore from '../src/events/events-idb-store';
+import { SessionReplayDB, SessionReplayEventsIDBStore } from '../src/events/events-idb-store';
 
 type MockedLogger = jest.Mocked<Logger>;
 
@@ -310,6 +310,161 @@ describe('SessionReplayEventsIDBStore', () => {
 
       await eventsStorage.cleanUpSessionEventsStore(1);
       expect(mockLoggerProvider.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('transitionFromKeyValStore', () => {
+    const mockKeyValStore = {
+      123: {
+        currentSequenceId: 3,
+        sessionSequences: {
+          1: {
+            events: [],
+            status: 'sent',
+          },
+          2: {
+            events: [mockEventString],
+            status: 'recording',
+          },
+          3: {
+            events: [mockEventString, mockEventString2],
+            status: 'recording',
+          },
+        },
+      },
+      456: {
+        currentSequenceId: 6,
+        sessionSequences: {
+          4: {
+            events: [mockEventString],
+            status: 'recording',
+          },
+          5: {
+            events: [],
+            status: 'sent',
+          },
+          6: {
+            events: [mockEventString, mockEventString2],
+            status: 'recording',
+          },
+        },
+      },
+    };
+    async function createKeyValDB() {
+      return await openDB('keyval-store', 1, {
+        upgrade: (db) => {
+          if (!db.objectStoreNames.contains('keyval')) {
+            db.createObjectStore('keyval');
+          }
+        },
+      });
+    }
+    test('should return early if no keyval database exists', async () => {
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      await eventsStorage.initialize();
+
+      jest.spyOn(EventsIDBStore, 'keyValDatabaseExists').mockResolvedValueOnce(undefined);
+      jest.spyOn(global.indexedDB, 'deleteDatabase');
+
+      await eventsStorage.transitionFromKeyValStore();
+      expect(global.indexedDB.deleteDatabase).not.toHaveBeenCalled();
+    });
+
+    test('should add current session events to new idb sessionCurrentSequence', async () => {
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const db = await createKeyValDB();
+      await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
+      await eventsStorage.initialize(123);
+      const sessionCurrentSequence = await eventsStorage.db?.get('sessionCurrentSequence', 123);
+      expect(sessionCurrentSequence).toEqual({ events: [mockEventString, mockEventString2], sessionId: 123 });
+    });
+
+    test('should add unsent old session events to sequencesToSend', async () => {
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const db = await createKeyValDB();
+      await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
+      await eventsStorage.initialize(123);
+      const sequencesToSend = await eventsStorage.getSequencesToSend();
+      expect(sequencesToSend).toEqual([
+        {
+          events: [mockEventString],
+          sequenceId: 1,
+          sessionId: 123,
+        },
+        {
+          events: [mockEventString],
+          sequenceId: 2,
+          sessionId: 456,
+        },
+        {
+          events: [mockEventString, mockEventString2],
+          sequenceId: 3,
+          sessionId: 456,
+        },
+      ]);
+    });
+
+    test('should only operate on current api key store', async () => {
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      const db = await createKeyValDB();
+      await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
+      //  Fill out a store for another api key to ensure we are grabbing the right events
+      await db.put(
+        'keyval',
+        {
+          789: {
+            currentSequenceId: 11,
+            sessionSequences: {
+              11: {
+                events: [],
+                status: 'sent',
+              },
+            },
+          },
+        },
+        'AMP_unsent_other_api_key',
+      );
+      await eventsStorage.initialize(123);
+      const sequencesToSend = await eventsStorage.getSequencesToSend();
+      expect(sequencesToSend).toEqual([
+        {
+          events: [mockEventString],
+          sequenceId: 1,
+          sessionId: 123,
+        },
+        {
+          events: [mockEventString],
+          sequenceId: 2,
+          sessionId: 456,
+        },
+        {
+          events: [mockEventString, mockEventString2],
+          sequenceId: 3,
+          sessionId: 456,
+        },
+      ]);
+    });
+    test('should catch errors', async () => {
+      const db = await createKeyValDB();
+      await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
+      jest.spyOn(EventsIDBStore, 'keyValDatabaseExists').mockResolvedValue({
+        transaction: jest.fn().mockImplementation(() => {
+          throw new Error('error');
+        }),
+      } as unknown as IDBDatabase);
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      await eventsStorage.initialize();
+
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
+    });
+
+    test('should delete keyval database', async () => {
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      await eventsStorage.initialize();
+      await createKeyValDB();
+      jest.spyOn(global.indexedDB, 'deleteDatabase');
+      await eventsStorage.transitionFromKeyValStore();
+      expect(global.indexedDB.deleteDatabase).toHaveBeenCalledWith('keyval-store');
     });
   });
 

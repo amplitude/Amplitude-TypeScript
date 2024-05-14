@@ -10,7 +10,7 @@ import {
   MASK_TEXT_CLASS,
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
-import { createEventsManager } from './events-manager';
+import { createEventsManager } from './events/events-manager';
 import { generateHashCode, isSessionInSample, maskInputFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
 import {
@@ -45,6 +45,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.eventsManager = await createEventsManager({
       config: this.config,
+      sessionId: this.identifiers.sessionId,
     });
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');

@@ -5,8 +5,9 @@ import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
+import { IDBFactory } from 'fake-indexeddb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
-import * as SessionReplayIDB from '../../src/events-idb-store';
+import * as SessionReplayIDB from '../../src/events/events-idb-store';
 
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../../src/constants';
 import * as Helpers from '../../src/helpers';
@@ -44,6 +45,7 @@ describe('module level integration', () => {
     document: {
       hasFocus: () => true,
     },
+    indexedDB: new IDBFactory(),
   } as unknown as typeof globalThis;
   let originalFetch: typeof global.fetch;
   const mockLoggerProvider: MockedLogger = {

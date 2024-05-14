@@ -1,14 +1,20 @@
+import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { STORAGE_PREFIX } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
-import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from './constants';
-import { currentSequenceKey, sequencesToSendKey } from './idb-helpers';
-import { STORAGE_FAILURE } from './messages';
+import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
+import { STORAGE_FAILURE } from '../messages';
 import {
   SessionReplayEventsIDBStore as AmplitudeSessionReplayEventsIDBStore,
   Events,
   SendingSequencesIDBInput,
   SendingSequencesIDBReturn,
-} from './typings/session-replay';
+} from '../typings/session-replay';
+import { IDBStore, IDBStoreSession, RecordingStatus } from './legacy-idb-types';
+
+export const currentSequenceKey = 'sessionCurrentSequence';
+export const sequencesToSendKey = 'sequencesToSend';
+export const remoteConfigKey = 'remoteConfig';
 
 export interface SessionReplayDB extends DBSchema {
   sessionCurrentSequence: {
@@ -24,6 +30,26 @@ export interface SessionReplayDB extends DBSchema {
     indexes: { sessionId: number };
   };
 }
+
+export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
+  const globalScope = getGlobalScope();
+  return new Promise((resolve) => {
+    if (globalScope) {
+      const request = globalScope.indexedDB.open('keyval-store');
+      request.onupgradeneeded = function () {
+        if (request.result.version === 1) {
+          request.result.close();
+          request.transaction && request.transaction.abort();
+          globalScope.indexedDB.deleteDatabase('keyval-store');
+          resolve();
+        }
+      };
+      request.onsuccess = function () {
+        resolve(request.result);
+      };
+    }
+  });
+};
 
 export const defineObjectStores = (db: IDBPDatabase<SessionReplayDB>) => {
   let sequencesStore;
@@ -66,11 +92,11 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     this.apiKey = apiKey;
   }
 
-  async initialize() {
+  async initialize(sessionId?: number) {
     const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events`;
     this.db = await createStore(dbName);
     this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
-    // await transitionFromKeyValStore({ db: this.db, apiKey: this.apiKey });
+    await this.transitionFromKeyValStore(sessionId);
   }
 
   /**
@@ -198,10 +224,85 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
   };
+
+  transitionFromKeyValStore = async (sessionId?: number) => {
+    const keyValDb = await keyValDatabaseExists();
+    if (!keyValDb) {
+      return;
+    }
+
+    const transitionCurrentSessionSequences = async (numericSessionId: number, sessionStore: IDBStoreSession) => {
+      const currentSessionSequences = sessionStore.sessionSequences;
+      await Promise.all(
+        Object.keys(currentSessionSequences).map(async (sequenceId) => {
+          const numericSequenceId = parseInt(sequenceId, 10);
+          if (numericSequenceId === sessionStore.currentSequenceId) {
+            await Promise.all(
+              currentSessionSequences[sessionStore.currentSequenceId].events.map(async (event) => {
+                await this.addEventToCurrentSequence(numericSessionId, event);
+              }),
+            );
+          } else if (currentSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
+            await this.storeSendingEvents(numericSessionId, currentSessionSequences[numericSequenceId].events);
+          }
+        }),
+      );
+    };
+
+    const storageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
+    try {
+      const getAllRequest = keyValDb.transaction('keyval').objectStore('keyval').getAll(storageKey);
+      const transitionPromise = new Promise<void>((resolve) => {
+        getAllRequest.onsuccess = async (e) => {
+          const storedReplaySessionContextList = e && ((e.target as IDBRequest).result as IDBStore[]);
+          const storedReplaySessionContexts = storedReplaySessionContextList && storedReplaySessionContextList[0];
+          if (storedReplaySessionContexts) {
+            await Promise.all(
+              Object.keys(storedReplaySessionContexts).map(async (storedSessionId) => {
+                const numericSessionId = parseInt(storedSessionId, 10);
+                const oldSessionStore = storedReplaySessionContexts[numericSessionId];
+
+                if (sessionId === numericSessionId) {
+                  await transitionCurrentSessionSequences(numericSessionId, oldSessionStore);
+                } else {
+                  const oldSessionSequences = oldSessionStore.sessionSequences;
+                  await Promise.all(
+                    Object.keys(oldSessionSequences).map(async (sequenceId) => {
+                      const numericSequenceId = parseInt(sequenceId, 10);
+                      if (oldSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
+                        await this.storeSendingEvents(numericSessionId, oldSessionSequences[numericSequenceId].events);
+                      }
+                    }),
+                  );
+                }
+              }),
+            );
+          }
+          resolve();
+        };
+      });
+
+      await transitionPromise;
+      const globalScope = getGlobalScope();
+      if (globalScope) {
+        globalScope.indexedDB.deleteDatabase('keyval-store');
+      }
+    } catch (e) {
+      this.loggerProvider.warn(`Failed to transition session replay events from keyval to new store: ${e as string}`);
+    }
+  };
 }
 
-export const createEventsIDBStore = async ({ loggerProvider, apiKey }: { loggerProvider: ILogger; apiKey: string }) => {
+export const createEventsIDBStore = async ({
+  loggerProvider,
+  apiKey,
+  sessionId,
+}: {
+  loggerProvider: ILogger;
+  apiKey: string;
+  sessionId?: number;
+}) => {
   const eventsIDBStore = new SessionReplayEventsIDBStore({ loggerProvider, apiKey });
-  await eventsIDBStore.initialize();
+  await eventsIDBStore.initialize(sessionId);
   return eventsIDBStore;
 };
