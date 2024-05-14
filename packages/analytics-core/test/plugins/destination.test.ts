@@ -607,6 +607,85 @@ describe('destination', () => {
       expect(isFullfilledRequest).toBe(false);
     });
 
+    test('should marked as fillfiled request for 400 response if no retried events', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+        },
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.PayloadTooLarge,
+            statusCode: 400,
+            body: {
+              code: 400,
+              error: 'error',
+              missingField: undefined,
+              eventsWithInvalidFields: {},
+              eventsWithMissingFields: {},
+              eventsWithInvalidIdLengths: {},
+              silencedEvents: [0],
+            },
+          });
+        }),
+      };
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+      });
+      const isFullfilledRequest = await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(isFullfilledRequest).toBe(true);
+    });
+
+    test('should marked as fillfiled request for 413 response if no retried events', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+          device_id: '0',
+        },
+      };
+
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.RateLimit,
+            statusCode: 429,
+            body: {
+              code: 429,
+              error: 'error',
+              epsThreshold: 1,
+              throttledDevices: {},
+              throttledUsers: {},
+              exceededDailyQuotaDevices: {
+                '0': 1,
+              },
+              exceededDailyQuotaUsers: {},
+              throttledEvents: [0],
+            },
+          });
+        }),
+      };
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+      });
+      const isFullfilledRequest = await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(isFullfilledRequest).toBe(true);
+    });
+
     test.each([
       {
         statusCode: 400,
