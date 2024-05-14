@@ -20,39 +20,35 @@ export const createEventsManager = async ({
     events,
     sessionId,
     deviceId,
+    sequenceId,
   }: {
     events: string[];
     sessionId: number;
     deviceId: string;
+    sequenceId: number;
   }) => {
-    eventsIDBStore
-      .storeSendingEvents(sessionId, events)
-      .then((sequenceId) => {
-        trackDestination.sendEventsList({
-          events: events,
-          sequenceId: sequenceId || 0,
-          sessionId: sessionId,
-          flushMaxRetries: config.flushMaxRetries,
-          apiKey: config.apiKey,
-          deviceId: deviceId,
-          sampleRate: config.sampleRate,
-          serverZone: config.serverZone,
-          onComplete: eventsIDBStore.cleanUpSessionEventsStore.bind(eventsIDBStore),
-        });
-      })
-      .catch((e) => {
-        config.loggerProvider.warn('Failed to store session replay events to send:', e);
-      });
+    trackDestination.sendEventsList({
+      events: events,
+      sequenceId: sequenceId,
+      sessionId: sessionId,
+      flushMaxRetries: config.flushMaxRetries,
+      apiKey: config.apiKey,
+      deviceId: deviceId,
+      sampleRate: config.sampleRate,
+      serverZone: config.serverZone,
+      onComplete: eventsIDBStore.cleanUpSessionEventsStore.bind(eventsIDBStore),
+    });
   };
 
-  const sendEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
+  const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
     eventsIDBStore
-      .getCurrentSequenceForSession(sessionId)
-      .then((eventsToSend) => {
-        if (eventsToSend && eventsToSend.length && sessionId) {
+      .storeCurrentSequence(sessionId)
+      .then((currentSequence) => {
+        if (currentSequence) {
           sendEventsList({
-            events: eventsToSend,
-            sessionId,
+            sequenceId: currentSequence.sequenceId,
+            events: currentSequence.events,
+            sessionId: currentSequence.sessionId,
             deviceId,
           });
         }
@@ -63,26 +59,31 @@ export const createEventsManager = async ({
   };
 
   const sendStoredEvents = async ({ deviceId }: { deviceId: string }) => {
-    const unsentSequences = await eventsIDBStore.getUnsentSequences();
-    unsentSequences?.forEach((sequence) => {
-      sendEventsList({
-        events: sequence.events,
-        sessionId: sequence.sessionId,
-        deviceId,
+    const sequencesToSend = await eventsIDBStore.getSequencesToSend();
+    sequencesToSend &&
+      sequencesToSend.forEach((sequence) => {
+        sendEventsList({
+          sequenceId: sequence.sequenceId,
+          events: sequence.events,
+          sessionId: sequence.sessionId,
+          deviceId,
+        });
       });
-    });
   };
 
   const addEvent = ({ event, sessionId, deviceId }: { event: string; sessionId: number; deviceId: string }) => {
     eventsIDBStore
-      .addEventToSequence(sessionId, event)
-      .then((eventsToSend) => {
-        eventsToSend &&
+      .addEventToCurrentSequence(sessionId, event)
+      .then((sequenceToSend) => {
+        return (
+          sequenceToSend &&
           sendEventsList({
-            events: eventsToSend,
-            sessionId,
+            sequenceId: sequenceToSend.sequenceId,
+            events: sequenceToSend.events,
+            sessionId: sequenceToSend.sessionId,
             deviceId,
-          });
+          })
+        );
       })
       .catch((e) => {
         config.loggerProvider.warn('Failed to add event to session replay capture:', e);
@@ -96,7 +97,7 @@ export const createEventsManager = async ({
   }
 
   return {
-    sendEvents,
+    sendCurrentSequenceEvents,
     addEvent,
     sendStoredEvents,
     flush,

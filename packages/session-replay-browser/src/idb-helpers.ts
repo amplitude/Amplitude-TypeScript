@@ -4,7 +4,7 @@ import * as IDBKeyVal from 'idb-keyval';
 import { IDBStore, IDBStoreSession } from './typings/session-replay';
 
 export const currentSequenceKey = 'sessionCurrentSequence';
-export const sendingSequencesKey = 'sendingSequences';
+export const sequencesToSendKey = 'sequencesToSend';
 export const remoteConfigKey = 'remoteConfig';
 
 function keyValDatabaseExists() {

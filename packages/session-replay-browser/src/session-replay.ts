@@ -136,7 +136,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.eventsManager &&
       sessionIdToSend &&
       deviceId &&
-      this.eventsManager.sendEvents({ sessionId: sessionIdToSend, deviceId });
+      this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
   }
 
   initialize(shouldSendStoredEvents = false) {

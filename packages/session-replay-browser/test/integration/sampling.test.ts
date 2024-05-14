@@ -1,8 +1,12 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
+import * as SessionReplayIDB from '../../src/events-idb-store';
 
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../../src/constants';
 import * as Helpers from '../../src/helpers';
@@ -78,6 +82,7 @@ describe('module level integration', () => {
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
     });
+    jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -123,6 +128,10 @@ describe('module level integration', () => {
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+          .value;
+
+        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
@@ -131,12 +140,13 @@ describe('module level integration', () => {
         const recordArg = record.mock.calls[0][0];
         recordArg?.emit && recordArg?.emit(mockEvent);
         sessionReplay.stopRecordingAndSendEvents();
+        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1`,
           expect.anything(),
         );
-        // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(mockLoggerProvider.log).toHaveBeenCalledWith(getSuccessMessage(SESSION_ID_IN_20_SAMPLE));
       });
 
@@ -155,6 +165,10 @@ describe('module level integration', () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+          .value;
+
+        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
         });
@@ -162,9 +176,10 @@ describe('module level integration', () => {
         const recordArg = record.mock.calls[0][0];
         recordArg?.emit && recordArg?.emit(mockEvent);
         sessionReplay.stopRecordingAndSendEvents();
+        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -199,6 +214,9 @@ describe('module level integration', () => {
       test('should record session if included due to sampling', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
+        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+          .value;
+        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
@@ -209,9 +227,10 @@ describe('module level integration', () => {
         const recordArg = record.mock.calls[0][0];
         recordArg?.emit && recordArg?.emit(mockEvent);
         sessionReplay.stopRecordingAndSendEvents();
+        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=0`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method

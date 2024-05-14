@@ -1,13 +1,13 @@
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
-import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_IDB_STORAGE_LENGTH, MAX_INTERVAL, MIN_INTERVAL } from './constants';
-import { currentSequenceKey, sendingSequencesKey } from './idb-helpers';
+import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from './constants';
+import { currentSequenceKey, sequencesToSendKey } from './idb-helpers';
 import { STORAGE_FAILURE } from './messages';
 import {
   SessionReplayEventsIDBStore as AmplitudeSessionReplayEventsIDBStore,
   Events,
-  SendingSequencesData,
-  SendingStatus,
+  SendingSequencesIDBInput,
+  SendingSequencesIDBReturn,
 } from './typings/session-replay';
 
 export interface SessionReplayDB extends DBSchema {
@@ -18,9 +18,9 @@ export interface SessionReplayDB extends DBSchema {
       events: Events;
     };
   };
-  sendingSequences: {
+  sequencesToSend: {
     key: number;
-    value: SendingSequencesData;
+    value: SendingSequencesIDBInput;
     indexes: { sessionId: number };
   };
 }
@@ -33,8 +33,8 @@ export const defineObjectStores = (db: IDBPDatabase<SessionReplayDB>) => {
       keyPath: 'sessionId',
     });
   }
-  if (!db.objectStoreNames.contains(sendingSequencesKey)) {
-    sequencesStore = db.createObjectStore(sendingSequencesKey, {
+  if (!db.objectStoreNames.contains(sequencesToSendKey)) {
+    sequencesStore = db.createObjectStore(sequencesToSendKey, {
       keyPath: 'sequenceId',
       autoIncrement: true,
     });
@@ -79,7 +79,7 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
    * @param nextEventString
    * @returns boolean
    */
-  private shouldSplitEventsList = (events: Events, nextEventString: string): boolean => {
+  shouldSplitEventsList = (events: Events, nextEventString: string): boolean => {
     const sizeOfNextEvent = new Blob([nextEventString]).size;
     const sizeOfEventsList = new Blob(events).size;
     if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
@@ -93,44 +93,48 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     return false;
   };
 
-  getUnsentSequences = async () => {
+  getSequencesToSend = async () => {
     try {
-      const tx = this.db?.transaction<'sendingSequences', 'readonly'>(sendingSequencesKey, 'readonly');
-      if (!tx) {
-        return;
-      }
+      const sequencesToSend = (await this.db?.getAll<'sequencesToSend'>(
+        sequencesToSendKey,
+      )) as SendingSequencesIDBReturn[];
 
-      let cursor = await tx.store.openCursor();
-      const unsentSequences = [];
-
-      while (cursor) {
-        if (cursor.value.events.length && cursor.value.status === SendingStatus.SENDING) {
-          unsentSequences.push(cursor.value);
-        }
-
-        // Advance the cursor to the next row:
-        cursor = await cursor.continue();
-      }
-
-      await tx.done;
-      return unsentSequences;
+      return sequencesToSend;
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
     return undefined;
   };
 
-  getCurrentSequenceForSession = async (sessionId: number) => {
+  storeCurrentSequence = async (sessionId: number) => {
     try {
-      const currentSequenceData = await this.db?.get<'sessionCurrentSequence'>(currentSequenceKey, sessionId);
-      return currentSequenceData?.events;
+      if (!this.db) {
+        return undefined;
+      }
+      const currentSequenceData = await this.db.get<'sessionCurrentSequence'>(currentSequenceKey, sessionId);
+      if (!currentSequenceData) {
+        return undefined;
+      }
+
+      const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
+        sessionId: sessionId,
+        events: currentSequenceData.events,
+      });
+
+      await this.db.put<'sessionCurrentSequence'>(currentSequenceKey, { sessionId, events: [] });
+
+      return {
+        ...currentSequenceData,
+        sessionId,
+        sequenceId,
+      };
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
     return undefined;
   };
 
-  addEventToSequence = async (sessionId: number, event: string) => {
+  addEventToCurrentSequence = async (sessionId: number, event: string) => {
     try {
       const tx = this.db?.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
       if (!tx) {
@@ -138,14 +142,14 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
       }
       const sequenceEvents = await tx.store.get(sessionId);
       if (!sequenceEvents) {
-        await tx.store.put({ sessionId, events: [] });
+        await tx.store.put({ sessionId, events: [event] });
         return;
       }
       let eventsToSend;
       if (this.shouldSplitEventsList(sequenceEvents.events, event)) {
         eventsToSend = sequenceEvents.events;
         // set store to empty array
-        await tx.store.put({ sessionId, events: [] });
+        await tx.store.put({ sessionId, events: [event] });
       } else {
         // add event to array
         const updatedEvents = sequenceEvents.events.concat(event);
@@ -153,7 +157,21 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
       }
 
       await tx.done;
-      return eventsToSend;
+      if (!eventsToSend) {
+        return undefined;
+      }
+
+      const sequenceId = await this.storeSendingEvents(sessionId, eventsToSend);
+
+      if (!sequenceId) {
+        return undefined;
+      }
+
+      return {
+        events: eventsToSend,
+        sessionId,
+        sequenceId,
+      };
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
@@ -162,10 +180,9 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
   storeSendingEvents = async (sessionId: number, events: Events) => {
     try {
-      const sequenceId = await this.db?.put<'sendingSequences'>(sendingSequencesKey, {
+      const sequenceId = await this.db?.put<'sequencesToSend'>(sequencesToSendKey, {
         sessionId: sessionId,
         events: events,
-        status: SendingStatus.SENDING,
       });
       return sequenceId;
     } catch (e) {
@@ -174,43 +191,9 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     return undefined;
   };
 
-  private deleteSentAndOldFromSession = async (sessionId: number) => {
-    const tx = this.db?.transaction<'sendingSequences', 'readwrite'>(sendingSequencesKey, 'readwrite');
-    if (!tx) {
-      return;
-    }
-
-    let cursor = await tx.store.openCursor();
-    const currentTime = Date.now();
-
-    while (cursor) {
-      // Delete sent sequences for current session
-      if (cursor.value.sessionId === sessionId && cursor.value.status === SendingStatus.SENT) {
-        await cursor.delete();
-      }
-
-      // Delete any sessions that are older than 3 days
-      if (currentTime - cursor.value.sessionId >= MAX_IDB_STORAGE_LENGTH) {
-        await cursor.delete();
-      }
-
-      // Advance the cursor to the next row:
-      cursor = await cursor.continue();
-    }
-
-    await tx.done;
-  };
-
-  cleanUpSessionEventsStore = async (sessionId: number, sequenceId: number) => {
+  cleanUpSessionEventsStore = async (sequenceId: number) => {
     try {
-      await this.deleteSentAndOldFromSession(sessionId);
-
-      await this.db?.put<'sendingSequences'>(sendingSequencesKey, {
-        sequenceId: sequenceId,
-        sessionId: sessionId,
-        events: [],
-        status: SendingStatus.SENT,
-      });
+      await this.db?.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }

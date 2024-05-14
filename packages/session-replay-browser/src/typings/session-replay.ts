@@ -12,7 +12,7 @@ export interface SessionReplayDestination {
   deviceId?: string;
   sampleRate: number;
   serverZone?: keyof typeof ServerZone;
-  onComplete: (sessionId: number, sequenceId: number) => Promise<void>;
+  onComplete: (sequenceId: number) => Promise<void>;
 }
 
 export interface SessionReplayDestinationContext extends SessionReplayDestination {
@@ -30,12 +30,13 @@ export interface IDBStoreSequence {
   status: SendingStatus;
 }
 
-export interface SendingSequencesData {
+export interface SendingSequencesIDBInput {
   sequenceId?: number;
   sessionId: number;
   events: Events;
-  status: SendingStatus;
 }
+
+export type SendingSequencesIDBReturn = Required<SendingSequencesIDBInput>;
 
 export interface IDBStoreSession {
   currentSequenceId: number;
@@ -56,9 +57,9 @@ export interface IDBStore {
 
 export interface SessionReplayEventsIDBStore {
   initialize(): Promise<void>;
-  getUnsentSequences(): Promise<SendingSequencesData[] | undefined>;
-  getCurrentSequenceForSession(sessionId: number): Promise<Events | undefined>;
-  addEventToSequence(sessionId: number, event: string): Promise<Events | undefined>;
+  getSequencesToSend(): Promise<SendingSequencesIDBReturn[] | undefined>;
+  storeCurrentSequence(sessionId: number): Promise<SendingSequencesIDBInput | undefined>;
+  addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesIDBReturn | undefined>;
   storeSendingEvents(sessionId: number, events: Events): Promise<number | undefined>;
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
@@ -87,6 +88,6 @@ export interface SessionReplayTrackDestination {
 export interface SessionReplayEventsManager {
   sendStoredEvents({ deviceId }: { deviceId: string }): Promise<void>;
   addEvent({ sessionId, event, deviceId }: { sessionId: number; event: string; deviceId: string }): void;
-  sendEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
+  sendCurrentSequenceEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
   flush(useRetry?: boolean): Promise<void>;
 }

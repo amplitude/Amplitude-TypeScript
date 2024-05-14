@@ -202,7 +202,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     err?: string;
     success?: string;
   }) {
-    void context.onComplete(context.sessionId, context.sequenceId);
+    void context.onComplete(context.sequenceId);
     if (err) {
       this.loggerProvider.warn(err);
     } else if (success) {
