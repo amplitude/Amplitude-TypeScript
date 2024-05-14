@@ -161,7 +161,7 @@ export class Destination implements DestinationPlugin {
     }
   }
 
-  async send(list: Context[], useRetry = true) {
+  async send(list: Context[], useRetry = true): Promise<Status> {
     if (!this.config.apiKey) {
       this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
       return Status.Invalid;
