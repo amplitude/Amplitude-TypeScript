@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.2.1...@amplitude/plugin-session-replay-browser@1.2.2) (2024-05-15)
+
+### Bug Fixes
+
+- **plugin session replay browser:** remove circular dependency
+  ([177c8d8](https://github.com/amplitude/Amplitude-TypeScript/commit/177c8d8add53bc8869bf4b77af8586659e747edd))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.2.0...@amplitude/plugin-session-replay-browser@1.2.1) (2024-05-10)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
