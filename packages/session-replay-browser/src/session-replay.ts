@@ -2,7 +2,7 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
-import { SessionReplayJoinedConfigGenerator } from './config/joined-config';
+import { SessionReplayJoinedConfigGenerator, createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig } from './config/types';
 import {
   BLOCK_CLASS,
@@ -47,7 +47,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       apiKey: apiKey,
     });
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
-    this.joinedConfigGenerator = new SessionReplayJoinedConfigGenerator(apiKey, options, this.sessionIDBStore);
+    this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
 
     this.eventsManager = new SessionReplayEventsManager({

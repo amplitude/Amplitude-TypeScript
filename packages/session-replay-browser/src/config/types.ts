@@ -1,12 +1,11 @@
 import { Config, LogLevel, Logger } from '@amplitude/analytics-types';
 
-export interface SamplingConfig {
-  sample_rate: number;
-  capture_enabled: boolean;
-}
-export interface SessionReplayRemoteConfig {
-  sr_sampling_config: SamplingConfig;
-}
+export type SessionReplayRemoteConfig = {
+  sr_sampling_config: {
+    sample_rate: number;
+    capture_enabled: boolean;
+  };
+};
 
 export interface SessionReplayRemoteConfigAPIResponse {
   configs: {
@@ -32,5 +31,12 @@ export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
 }
 
 export interface SessionReplayRemoteConfigFetch {
-  getSamplingConfig: (sessionId?: number) => Promise<SamplingConfig | void>;
+  getServerUrl: () => void;
+  getSamplingConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig['sr_sampling_config'] | void>;
+  fetchRemoteConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig | void>;
+  getRemoteConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig | void>;
+}
+
+export interface SessionReplayJoinedConfigGenerator {
+  generateJoinedConfig: (sessionId?: number) => Promise<SessionReplayJoinedConfig>;
 }

@@ -1,9 +1,9 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
-import { REMOTE_CONFIG_SERVER_URL_EU } from '../src/config/remote-config';
-import { SessionReplayRemoteConfig, SessionReplayRemoteConfigAPIResponse } from '../src/config/types';
+
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
@@ -24,15 +24,6 @@ const mockEventString = JSON.stringify(mockEvent);
 const samplingConfig = {
   sample_rate: 1,
   capture_enabled: true,
-};
-const mockRemoteConfig: SessionReplayRemoteConfig = {
-  sr_sampling_config: samplingConfig,
-};
-
-const mockRemoteConfigAPIResponse: SessionReplayRemoteConfigAPIResponse = {
-  configs: {
-    sessionReplay: mockRemoteConfig,
-  },
 };
 
 describe('SessionReplay', () => {
@@ -82,17 +73,16 @@ describe('SessionReplay', () => {
     sessionId: 123,
   };
   let sessionReplay: SessionReplay;
+  let getRemoteConfigMock: jest.Mock;
   beforeEach(() => {
+    getRemoteConfigMock = jest.fn().mockResolvedValue(samplingConfig);
+    jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+      getRemoteConfig: getRemoteConfigMock,
+    });
     sessionReplay = new SessionReplay();
     jest.useFakeTimers();
     originalFetch = global.fetch;
-    (global.fetch as jest.Mock) = jest.fn((url: string) => {
-      if (url.includes(REMOTE_CONFIG_SERVER_URL_EU)) {
-        return Promise.resolve({
-          status: 200,
-          json: () => mockRemoteConfigAPIResponse,
-        });
-      }
+    (global.fetch as jest.Mock) = jest.fn(() => {
       return Promise.resolve({
         status: 200,
       });
@@ -518,11 +508,7 @@ describe('SessionReplay', () => {
     });
     test('should return false if no options', async () => {
       // Mock as if remote config call fails
-      (global.fetch as jest.Mock) = jest.fn(() => {
-        return Promise.resolve({
-          status: 400,
-        });
-      });
+      getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
       await sessionReplay.init(apiKey, mockEmptyOptions).promise;
       const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
@@ -530,28 +516,9 @@ describe('SessionReplay', () => {
       expect(shouldRecord).toBe(false);
     });
     test('should return false if captureEnabled is false', async () => {
-      // Mock as if remote config call fails
-      (global.fetch as jest.Mock) = jest.fn((url: string) => {
-        if (url.includes(REMOTE_CONFIG_SERVER_URL_EU)) {
-          return Promise.resolve({
-            status: 200,
-            json: () => {
-              return {
-                configs: {
-                  sessionReplay: {
-                    sr_sampling_config: {
-                      sampleRate: 0.5,
-                      captureEnabled: false,
-                    },
-                  },
-                },
-              };
-            },
-          });
-        }
-        return Promise.resolve({
-          status: 200,
-        });
+      getRemoteConfigMock.mockResolvedValue({
+        sampleRate: 0.5,
+        captureEnabled: false,
       });
 
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
@@ -560,11 +527,7 @@ describe('SessionReplay', () => {
     });
     test('should return false if session not included in sample rate', async () => {
       // Mock as if remote config call fails
-      (global.fetch as jest.Mock) = jest.fn(() => {
-        return Promise.resolve({
-          status: 400,
-        });
-      });
+      getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
       jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => false);
 
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;

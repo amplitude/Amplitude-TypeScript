@@ -1,8 +1,8 @@
+import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import { SessionReplayJoinedConfigGenerator } from '../../src/config/joined-config';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
-import { SessionReplaySessionIDBStore } from '../../src/session-idb-store';
 
 type MockedLogger = jest.Mocked<Logger>;
 const samplingConfig = {
@@ -38,19 +38,11 @@ const mockOptions: SessionReplayOptions = {
 const mockLocalConfig = new SessionReplayLocalConfig('static_key', mockOptions);
 
 describe('SessionReplayJoinedConfigGenerator', () => {
-  const mockLoggerProvider: MockedLogger = {
-    error: jest.fn(),
-    log: jest.fn(),
-    disable: jest.fn(),
-    enable: jest.fn(),
-    warn: jest.fn(),
-    debug: jest.fn(),
-  };
-  let sessionIDBStore: SessionReplaySessionIDBStore;
+  let getRemoteConfigMock: jest.Mock;
   beforeEach(() => {
-    sessionIDBStore = new SessionReplaySessionIDBStore({
-      loggerProvider: mockLoggerProvider,
-      apiKey: 'static_key',
+    getRemoteConfigMock = jest.fn();
+    jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+      getRemoteConfig: getRemoteConfigMock,
     });
     jest.useFakeTimers();
   });
@@ -62,15 +54,14 @@ describe('SessionReplayJoinedConfigGenerator', () => {
 
   describe('generateJoinedConfig', () => {
     let joinedConfigGenerator: SessionReplayJoinedConfigGenerator;
-    let getSamplingConfigMock: jest.Mock;
-    beforeEach(() => {
-      joinedConfigGenerator = new SessionReplayJoinedConfigGenerator('static_key', mockOptions, sessionIDBStore);
+    beforeEach(async () => {
+      joinedConfigGenerator = new SessionReplayJoinedConfigGenerator('static_key', mockOptions);
+      await joinedConfigGenerator.initialize();
     });
 
     describe('with successful samping config fetch', () => {
       test('should use sample_rate and capture_enabled from API', async () => {
-        getSamplingConfigMock = jest.fn().mockResolvedValue(samplingConfig);
-        joinedConfigGenerator.remoteConfigFetch.getSamplingConfig = getSamplingConfigMock;
+        getRemoteConfigMock.mockResolvedValue(samplingConfig);
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -80,8 +71,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
       test('should use sample_rate only from API', async () => {
-        getSamplingConfigMock = jest.fn().mockResolvedValue({ sample_rate: samplingConfig.sample_rate });
-        joinedConfigGenerator.remoteConfigFetch.getSamplingConfig = getSamplingConfigMock;
+        getRemoteConfigMock.mockResolvedValue({ sample_rate: samplingConfig.sample_rate });
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -91,8 +81,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
       test('should use capture_enabled only from API', async () => {
-        getSamplingConfigMock = jest.fn().mockResolvedValue({ capture_enabled: false });
-        joinedConfigGenerator.remoteConfigFetch.getSamplingConfig = getSamplingConfigMock;
+        getRemoteConfigMock.mockResolvedValue({ capture_enabled: false });
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -101,8 +90,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
       test('should set captureEnabled to true if no values returned from API', async () => {
-        getSamplingConfigMock = jest.fn().mockResolvedValue({});
-        joinedConfigGenerator.remoteConfigFetch.getSamplingConfig = getSamplingConfigMock;
+        getRemoteConfigMock.mockResolvedValue({});
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -113,8 +101,18 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     });
     describe('with unsuccessful sampling config fetch', () => {
       test('should set captureEnabled to true', async () => {
-        getSamplingConfigMock = jest.fn().mockRejectedValue({});
-        joinedConfigGenerator.remoteConfigFetch.getSamplingConfig = getSamplingConfigMock;
+        getRemoteConfigMock.mockRejectedValue({});
+        const config = await joinedConfigGenerator.generateJoinedConfig(123);
+        expect(config).toEqual({
+          ...mockLocalConfig,
+          optOut: mockLocalConfig.optOut,
+          captureEnabled: true,
+        });
+      });
+    });
+    describe('without first initializing', () => {
+      test('should set captureEnabled to true', async () => {
+        joinedConfigGenerator = new SessionReplayJoinedConfigGenerator('static_key', mockOptions);
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,

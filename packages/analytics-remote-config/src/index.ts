@@ -1,3 +1,3 @@
 import * as remoteConfigFetch from './remote-config';
-export { ConfigNamespace } from './types';
-export const { createRemoteConfigFetch, RemoteConfigFetch } = remoteConfigFetch;
+export { RemoteConfigFetch } from './types';
+export const { createRemoteConfigFetch } = remoteConfigFetch;

@@ -2,9 +2,8 @@ import { BaseTransport } from '@amplitude/analytics-core';
 import { Config, ServerZone, Status } from '@amplitude/analytics-types';
 import * as RemoteConfigAPIStore from './remote-config-idb-store';
 import {
-  ConfigNamespace,
+  CreateRemoteConfigFetch,
   RemoteConfigFetch as IRemoteConfigFetch,
-  RemoteConfig,
   RemoteConfigAPIResponse,
   RemoteConfigIDBStore,
 } from './types';
@@ -19,43 +18,52 @@ export const REMOTE_CONFIG_SERVER_URL = 'https://sr-client-cfg.amplitude.com/con
 export const REMOTE_CONFIG_SERVER_URL_STAGING = 'https://sr-client-cfg.stag2.amplitude.com/config';
 export const REMOTE_CONFIG_SERVER_URL_EU = 'https://sr-client-cfg.eu.amplitude.com/config';
 
-export class RemoteConfigFetch implements IRemoteConfigFetch {
+export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
+  implements IRemoteConfigFetch<RemoteConfig>
+{
   localConfig: Config;
-  remoteConfigIDBStore: RemoteConfigIDBStore | undefined;
+  remoteConfigIDBStore: RemoteConfigIDBStore<RemoteConfig> | undefined;
   retryTimeout = 1000;
   attempts = 0;
   lastFetchedSessionId: number | undefined;
   sessionTargetingMatch = false;
-  configKeys: ConfigNamespace[];
+  configKeys: string[];
 
-  constructor({ localConfig, configKeys }: { localConfig: Config; configKeys: ConfigNamespace[] }) {
+  constructor({ localConfig, configKeys }: { localConfig: Config; configKeys: string[] }) {
     this.localConfig = localConfig;
     this.configKeys = configKeys;
   }
 
   async initialize() {
-    this.remoteConfigIDBStore = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+    this.remoteConfigIDBStore = await RemoteConfigAPIStore.createRemoteConfigIDBStore<RemoteConfig>({
       apiKey: this.localConfig.apiKey,
       loggerProvider: this.localConfig.loggerProvider,
+      configKeys: this.configKeys,
     });
   }
 
   getRemoteConfig = async (
-    configNamespace: ConfigNamespace,
+    configNamespace: string,
     key: string,
     sessionId?: number,
-  ): Promise<RemoteConfig | void> => {
-    // Then check IndexedDB for session
+  ): Promise<RemoteConfig[typeof key] | void> => {
+    // First check IndexedDB for session
     if (this.remoteConfigIDBStore) {
       const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
       const lastFetchedSessionId = await this.remoteConfigIDBStore.getLastFetchedSessionId();
+      // Another option is to empty the db if current session doesn't match lastFetchedSessionId
       if (idbRemoteConfig && lastFetchedSessionId === sessionId) {
         return idbRemoteConfig;
       }
     }
     // Finally fetch via API
     const configAPIResponse = await this.fetchWithTimeout(sessionId);
-    return configAPIResponse && configAPIResponse.configs && configAPIResponse.configs[configNamespace];
+    if (configAPIResponse) {
+      const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
+      if (remoteConfig) {
+        return remoteConfig[key] as RemoteConfig[typeof key];
+      }
+    }
   };
 
   getServerUrl() {
@@ -70,7 +78,7 @@ export class RemoteConfigFetch implements IRemoteConfigFetch {
     return REMOTE_CONFIG_SERVER_URL;
   }
 
-  fetchWithTimeout = async (sessionId?: number): Promise<RemoteConfigAPIResponse | void> => {
+  fetchWithTimeout = async (sessionId?: number): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     const remoteConfig = await this.fetchRemoteConfig(controller.signal, sessionId);
@@ -81,7 +89,7 @@ export class RemoteConfigFetch implements IRemoteConfigFetch {
   fetchRemoteConfig = async (
     signal: AbortController['signal'],
     sessionId?: number,
-  ): Promise<RemoteConfigAPIResponse | void> => {
+  ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     if (sessionId === this.lastFetchedSessionId && this.attempts >= this.localConfig.flushMaxRetries) {
       return this.completeRequest({ err: MAX_RETRIES_EXCEEDED_MESSAGE });
     } else if (signal.aborted) {
@@ -130,13 +138,14 @@ export class RemoteConfigFetch implements IRemoteConfigFetch {
   retryFetch = async (
     signal: AbortController['signal'],
     sessionId?: number,
-  ): Promise<RemoteConfigAPIResponse | void> => {
+  ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     await new Promise((resolve) => setTimeout(resolve, this.attempts * this.retryTimeout));
     return this.fetchRemoteConfig(signal, sessionId);
   };
 
-  parseAndStoreConfig = async (res: Response, sessionId?: number): Promise<RemoteConfigAPIResponse> => {
-    const remoteConfig: RemoteConfigAPIResponse = (await res.json()) as RemoteConfigAPIResponse;
+  parseAndStoreConfig = async (res: Response, sessionId?: number): Promise<RemoteConfigAPIResponse<RemoteConfig>> => {
+    const remoteConfig: RemoteConfigAPIResponse<RemoteConfig> =
+      (await res.json()) as RemoteConfigAPIResponse<RemoteConfig>;
     this.completeRequest({ success: SUCCESS_REMOTE_CONFIG });
     this.remoteConfigIDBStore && void this.remoteConfigIDBStore.storeRemoteConfig(remoteConfig, sessionId);
     return remoteConfig;
@@ -151,14 +160,14 @@ export class RemoteConfigFetch implements IRemoteConfigFetch {
   }
 }
 
-export const createRemoteConfigFetch = async ({
+export const createRemoteConfigFetch: CreateRemoteConfigFetch = async <RemoteConfig extends { [key: string]: object }>({
   localConfig,
   configKeys,
 }: {
   localConfig: Config;
-  configKeys: ConfigNamespace[];
-}): Promise<RemoteConfigFetch> => {
-  const remoteConfigFetch = new RemoteConfigFetch({ localConfig, configKeys });
+  configKeys: string[];
+}) => {
+  const remoteConfigFetch = new RemoteConfigFetch<RemoteConfig>({ localConfig, configKeys });
   await remoteConfigFetch.initialize();
   return remoteConfigFetch;
 };

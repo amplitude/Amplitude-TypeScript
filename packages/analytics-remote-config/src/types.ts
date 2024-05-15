@@ -1,30 +1,29 @@
-export interface SessionReplaySamplingConfig {
-  sample_rate: number;
-  capture_enabled: boolean;
-}
+import { Config } from '@amplitude/analytics-types';
 
-export interface SessionReplayRemoteConfig {
-  sr_sampling_config: SessionReplaySamplingConfig;
-}
-
-export type RemoteConfig = SessionReplayRemoteConfig;
-
-export enum ConfigNamespace {
-  SESSION_REPLAY = 'sessionReplay',
-}
-
-export interface RemoteConfigAPIResponse {
+export interface RemoteConfigAPIResponse<RemoteConfig extends { [key: string]: object }> {
   configs: {
-    [ConfigNamespace.SESSION_REPLAY]: SessionReplayRemoteConfig;
+    [key: string]: RemoteConfig;
   };
 }
 
-export interface RemoteConfigFetch {
-  getRemoteConfig: (configNamespace: ConfigNamespace, key: string, sessionId?: number) => Promise<RemoteConfig | void>;
+export interface RemoteConfigFetch<RemoteConfig extends { [key: string]: object }> {
+  getRemoteConfig: (
+    configNamespace: string,
+    key: string,
+    sessionId?: number,
+  ) => Promise<RemoteConfig[typeof key] | void>;
 }
 
-export interface RemoteConfigIDBStore {
-  storeRemoteConfig: (remoteConfig: RemoteConfigAPIResponse, sessionId?: number) => Promise<void>;
-  getRemoteConfig: (configNamespace: ConfigNamespace, key: string) => Promise<RemoteConfig | void>;
+export interface RemoteConfigIDBStore<RemoteConfig extends { [key: string]: object }> {
+  storeRemoteConfig: (remoteConfig: RemoteConfigAPIResponse<RemoteConfig>, sessionId?: number) => Promise<void>;
+  getRemoteConfig: (configNamespace: string, key: string) => Promise<RemoteConfig[typeof key] | void>;
   getLastFetchedSessionId: () => Promise<number | void>;
 }
+
+export type CreateRemoteConfigFetch = <RemoteConfig extends { [key: string]: object }>({
+  localConfig,
+  configKeys,
+}: {
+  localConfig: Config;
+  configKeys: string[];
+}) => Promise<RemoteConfigFetch<RemoteConfig>>;

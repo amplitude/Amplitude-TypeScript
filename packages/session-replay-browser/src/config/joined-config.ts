@@ -1,26 +1,24 @@
-import {
-  SessionReplaySessionIDBStore as AmplitudeSessionReplaySessionIDBStore,
-  SessionReplayOptions,
-} from '../typings/session-replay';
+import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
+import { SessionReplayOptions } from '../typings/session-replay';
 import { SessionReplayLocalConfig } from './local-config';
-import { SessionReplayRemoteConfigFetch } from './remote-config';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
-  SessionReplayRemoteConfigFetch as ISessionReplayRemoteConfigFetch,
   SessionReplayJoinedConfig,
+  SessionReplayRemoteConfig,
 } from './types';
 
 export class SessionReplayJoinedConfigGenerator {
   localConfig: ISessionReplayLocalConfig;
-  remoteConfigFetch: ISessionReplayRemoteConfigFetch;
-  sessionIDBStore: AmplitudeSessionReplaySessionIDBStore;
+  remoteConfigFetch: RemoteConfigFetch<SessionReplayRemoteConfig> | undefined;
 
-  constructor(apiKey: string, options: SessionReplayOptions, sessionIDBStore: AmplitudeSessionReplaySessionIDBStore) {
-    this.sessionIDBStore = sessionIDBStore;
+  constructor(apiKey: string, options: SessionReplayOptions) {
     this.localConfig = new SessionReplayLocalConfig(apiKey, options);
-    this.remoteConfigFetch = new SessionReplayRemoteConfigFetch({
+  }
+
+  async initialize() {
+    this.remoteConfigFetch = await createRemoteConfigFetch<SessionReplayRemoteConfig>({
       localConfig: this.localConfig,
-      sessionIDBStore: this.sessionIDBStore,
+      configKeys: ['sessionReplay'],
     });
   }
 
@@ -29,7 +27,14 @@ export class SessionReplayJoinedConfigGenerator {
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;
     try {
-      const samplingConfig = await this.remoteConfigFetch.getSamplingConfig(sessionId);
+      const samplingConfig =
+        this.remoteConfigFetch &&
+        ((await this.remoteConfigFetch.getRemoteConfig(
+          'sessionReplay',
+          'sr_sampling_config',
+          sessionId,
+        )) as SessionReplayRemoteConfig['sr_sampling_config']);
+
       if (samplingConfig && Object.keys(samplingConfig).length > 0) {
         if (Object.prototype.hasOwnProperty.call(samplingConfig, 'capture_enabled')) {
           config.captureEnabled = samplingConfig.capture_enabled;
@@ -55,3 +60,9 @@ export class SessionReplayJoinedConfigGenerator {
     return config;
   }
 }
+
+export const createSessionReplayJoinedConfigGenerator = async (apiKey: string, options: SessionReplayOptions) => {
+  const joinedConfigGenerator = new SessionReplayJoinedConfigGenerator(apiKey, options);
+  await joinedConfigGenerator.initialize();
+  return joinedConfigGenerator;
+};

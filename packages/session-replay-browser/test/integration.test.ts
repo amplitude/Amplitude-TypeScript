@@ -1,4 +1,5 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
@@ -59,7 +60,12 @@ describe('module level integration', () => {
     sessionId: 123,
     serverZone: ServerZone.EU,
   };
+  let getRemoteConfigMock: jest.Mock;
   beforeEach(() => {
+    getRemoteConfigMock = jest.fn();
+    jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+      getRemoteConfig: getRemoteConfigMock,
+    });
     jest.useFakeTimers();
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
