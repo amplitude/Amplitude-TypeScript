@@ -77,7 +77,7 @@ interface InternalBrowserConfig {
 
 export interface DefaultTrackingOptions {
   /**
-   * Enables/disables marketing attribution tracking or with detailed attribution options.
+   * Enables/disables marketing attribution tracking or config with detailed attribution options.
    * @defaultValue `true`
    */
   attribution?: boolean | AttributionOptions;
@@ -105,17 +105,17 @@ export interface DefaultTrackingOptions {
 
 export interface TrackingOptions {
   /**
-   * Enables/disables ip address.
+   * Enables/disables ip address tracking.
    * @defaultValue `true`
    */
   ipAddress?: boolean;
   /**
-   * Enables/disables the language.
+   * Enables/disables language tracking.
    * @defaultValue `true`
    */
   language?: boolean;
   /**
-   * Enables/disables plantform.
+   * Enables/disables plantform tracking.
    * @defaultValue `true`
    */
   platform?: boolean;
@@ -133,7 +133,7 @@ export interface AttributionOptions {
    */
   initialEmptyValue?: string;
   /**
-   * Configures Amplitude to start a new session if any campaign parameter changes.
+   * The flag of if Amplitude to start a new session if any campaign parameter changes.
    * @defaultValue `false`
    */
   resetSessionOnNewCampaign?: boolean;
@@ -156,12 +156,12 @@ export interface CookieOptions {
    */
   sameSite?: 'Strict' | 'Lax' | 'None';
   /**
-   * If cookies should be sent over secure protocols
+   * The flag of if send cookies over secure protocols.
    * @defaultValue `false`
    */
   secure?: boolean;
   /**
-   * If upgrade the cookies created by maintenance Browser SDK.
+   * The flag of if upgrade the cookies created by maintenance Browser SDK.
    * @defaultValue `true`
    */
   upgrade?: boolean;

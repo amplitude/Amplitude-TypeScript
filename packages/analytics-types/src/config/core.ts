@@ -9,7 +9,7 @@ import { OfflineDisabled } from '../offline';
 
 export interface Config {
   /**
-   * Your Amplitude Project API key
+   * Your Amplitude Project API key.
    */
   apiKey: string;
   /**
