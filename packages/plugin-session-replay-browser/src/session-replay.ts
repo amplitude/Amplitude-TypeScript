@@ -49,7 +49,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
   // this.client is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  client: BrowserClient;
+  clientRemove: BrowserClient['remove'];
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -72,7 +72,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
 
     config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
 
-    this.client = client;
+    this.clientRemove = client.remove.bind(client);
     this.config = config;
 
     if (this.options.forceSessionTracking) {
@@ -126,7 +126,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
   }
 
   async teardown(): Promise<void> {
-    await this.client.remove(ENRICHMENT_PLUGIN_NAME).promise;
+    await this.clientRemove(ENRICHMENT_PLUGIN_NAME).promise;
     sessionReplay.shutdown();
     // the following are initialized in setup() which will always be called first
     // here we reset them to null to prevent memory leaks
@@ -135,7 +135,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
     this.config = null;
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    this.client = null;
+    this.clientRemove = null;
   }
 
   getSessionReplayProperties() {
