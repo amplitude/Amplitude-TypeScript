@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.6...@amplitude/analytics-core@2.2.7) (2024-05-15)
+
+### Bug Fixes
+
+- **core:** api calls should queue while awaiting queued promises
+  ([60fe272](https://github.com/amplitude/Amplitude-TypeScript/commit/60fe272d7bc4ea20944dbf444f73fa14e4785030))
+- **core:** flush queue if more functions are added while awaiting promises in queue
+  ([1b7ce6d](https://github.com/amplitude/Amplitude-TypeScript/commit/1b7ce6dd36c98ac4a0d49241284d763cf56960cb))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.5...@amplitude/analytics-core@2.2.6) (2024-05-03)
 
 ### Bug Fixes
