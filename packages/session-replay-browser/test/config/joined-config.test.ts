@@ -1,13 +1,20 @@
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import { SessionReplayOptions } from 'src/typings/session-replay';
-import { SessionReplayJoinedConfigGenerator } from '../../src/config/joined-config';
+import {
+  SessionReplayJoinedConfigGenerator,
+  createSessionReplayJoinedConfigGenerator,
+} from '../../src/config/joined-config';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
+import { PrivacyConfig, SessionReplayRemoteConfig } from 'src/config/types';
 
 type MockedLogger = jest.Mocked<Logger>;
 const samplingConfig = {
   sample_rate: 0.4,
   capture_enabled: true,
+};
+const privacyConfig = {
+  blockSelector: '.anotherClassName',
 };
 
 const mockLoggerProvider: MockedLogger = {
@@ -38,6 +45,25 @@ const mockOptions: SessionReplayOptions = {
 const mockLocalConfig = new SessionReplayLocalConfig('static_key', mockOptions);
 
 describe('SessionReplayJoinedConfigGenerator', () => {
+  const getRemoteConfigMockImplementation = ({
+    samplingConfig,
+    privacyConfig,
+  }: {
+    samplingConfig?: Partial<SessionReplayRemoteConfig['sr_sampling_config']>;
+    privacyConfig?: SessionReplayRemoteConfig['sr_privacy_config'];
+  }) => {
+    getRemoteConfigMock.mockImplementation((_, key: keyof SessionReplayRemoteConfig) => {
+      let result = undefined;
+      if (key === 'sr_sampling_config') {
+        result = samplingConfig;
+      } else if (key === 'sr_privacy_config') {
+        result = privacyConfig;
+      }
+
+      return Promise.resolve(result);
+    });
+  };
+
   let getRemoteConfigMock: jest.Mock;
   beforeEach(() => {
     getRemoteConfigMock = jest.fn();
@@ -55,13 +81,12 @@ describe('SessionReplayJoinedConfigGenerator', () => {
   describe('generateJoinedConfig', () => {
     let joinedConfigGenerator: SessionReplayJoinedConfigGenerator;
     beforeEach(async () => {
-      joinedConfigGenerator = new SessionReplayJoinedConfigGenerator('static_key', mockOptions);
-      await joinedConfigGenerator.initialize();
+      joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', mockOptions);
     });
 
-    describe('with successful samping config fetch', () => {
+    describe('with successful sampling config fetch', () => {
       test('should use sample_rate and capture_enabled from API', async () => {
-        getRemoteConfigMock.mockResolvedValue(samplingConfig);
+        getRemoteConfigMockImplementation({ samplingConfig });
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -71,7 +96,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
       test('should use sample_rate only from API', async () => {
-        getRemoteConfigMock.mockResolvedValue({ sample_rate: samplingConfig.sample_rate });
+        getRemoteConfigMockImplementation({ samplingConfig: { sample_rate: samplingConfig.sample_rate } });
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -81,7 +106,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
       test('should use capture_enabled only from API', async () => {
-        getRemoteConfigMock.mockResolvedValue({ capture_enabled: false });
+        getRemoteConfigMockImplementation({ samplingConfig: { capture_enabled: false } });
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -90,7 +115,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
       });
       test('should set captureEnabled to true if no values returned from API', async () => {
-        getRemoteConfigMock.mockResolvedValue({});
+        getRemoteConfigMockImplementation({ samplingConfig: {} });
         const config = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
@@ -118,6 +143,59 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
           captureEnabled: true,
+        });
+      });
+    });
+    describe('with successful privacy config fetch', () => {
+      const privacySelectorTest = async (privacyConfig?: PrivacyConfig) => {
+        getRemoteConfigMockImplementation({ privacyConfig });
+        getRemoteConfigMock = jest.fn().mockImplementation((_, key) => {
+          const result = key === 'sr_privacy_config' ? privacyConfig : undefined;
+          return Promise.resolve(result);
+        });
+        if (joinedConfigGenerator.remoteConfigFetch) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          joinedConfigGenerator.remoteConfigFetch.getRemoteConfig = getRemoteConfigMock;
+        }
+        return joinedConfigGenerator.generateJoinedConfig(123);
+      };
+
+      test('should use block selector from API', async () => {
+        const config = await privacySelectorTest(privacyConfig);
+        expect(config).toEqual({
+          ...mockLocalConfig,
+          captureEnabled: true,
+          optOut: mockLocalConfig.optOut,
+          privacyConfig,
+        });
+      });
+
+      test('should use block selector from local if no API response', async () => {
+        const config = await privacySelectorTest({});
+        expect(config).toEqual({
+          ...mockLocalConfig,
+          captureEnabled: true,
+          optOut: mockLocalConfig.optOut,
+          privacyConfig: mockLocalConfig.privacyConfig,
+        });
+      });
+
+      test('should update to remote config when local privacy config is undefined', async () => {
+        const configGenerator = await createSessionReplayJoinedConfigGenerator('static_key', {
+          ...mockOptions,
+          privacyConfig: undefined,
+        });
+        getRemoteConfigMockImplementation({ privacyConfig });
+        if (configGenerator.remoteConfigFetch) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          configGenerator.remoteConfigFetch.getRemoteConfig = getRemoteConfigMock;
+        }
+        const config = await configGenerator.generateJoinedConfig(123);
+        expect(config).toEqual({
+          ...mockLocalConfig,
+          captureEnabled: true,
+          optOut: mockLocalConfig.optOut,
+          privacyConfig,
         });
       });
     });
