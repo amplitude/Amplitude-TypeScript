@@ -27,7 +27,7 @@ export class SessionReplayJoinedConfigGenerator {
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;
     try {
-      const sessionReplayConfig =
+      const samplingConfig =
         this.remoteConfigFetch &&
         ((await this.remoteConfigFetch.getRemoteConfig(
           'sessionReplay',
@@ -35,7 +35,6 @@ export class SessionReplayJoinedConfigGenerator {
           sessionId,
         )) as SessionReplayRemoteConfig['sr_sampling_config']);
 
-      const samplingConfig = sessionReplayConfig;
       if (samplingConfig && Object.keys(samplingConfig).length > 0) {
         if (Object.prototype.hasOwnProperty.call(samplingConfig, 'capture_enabled')) {
           config.captureEnabled = samplingConfig.capture_enabled;

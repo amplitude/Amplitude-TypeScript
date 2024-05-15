@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Logger } from '@amplitude/analytics-types';
 import * as IDB from 'idb';
 import { IDBPDatabase } from 'idb';
@@ -16,7 +17,7 @@ const samplingConfig = {
     capture_enabled: true,
   },
 };
-const mockRemoteConfig: RemoteConfigAPIResponse<typeof samplingConfig> = {
+const mockRemoteConfigAPIResponse: RemoteConfigAPIResponse<typeof samplingConfig> = {
   configs: {
     sessionReplay: samplingConfig,
   },
@@ -31,23 +32,15 @@ describe('RemoteConfigIDBStore', () => {
     warn: jest.fn(),
     debug: jest.fn(),
   };
-  let putMockRemoteConfigDB: jest.Mock;
-  let putMockMetaDB: jest.Mock;
-  let mockRemoteConfigDB: IDBPDatabase<unknown>;
-  let mockMetaDB: IDBPDatabase<RemoteConfigAPIStore.MetaDB>;
-  beforeEach(() => {
-    putMockRemoteConfigDB = jest.fn();
-    putMockMetaDB = jest.fn();
-    mockRemoteConfigDB = {
-      get: jest.fn().mockImplementation(async () => mockRemoteConfig),
-      put: putMockRemoteConfigDB,
-    } as unknown as IDBPDatabase<unknown>;
-    mockMetaDB = {
-      get: jest.fn().mockImplementation(async () => undefined),
-      put: putMockMetaDB,
-    } as unknown as IDBPDatabase<RemoteConfigAPIStore.MetaDB>;
-    jest.spyOn(RemoteConfigAPIStore, 'openOrCreateMetaStore').mockResolvedValue(mockMetaDB);
-    jest.spyOn(RemoteConfigAPIStore, 'openOrCreateRemoteConfigStore').mockResolvedValue(mockRemoteConfigDB);
+  let remoteConfigStore: IDBPDatabase<unknown>;
+  let metaStore: IDBPDatabase<RemoteConfigAPIStore.MetaDB>;
+  beforeEach(async () => {
+    remoteConfigStore = await RemoteConfigAPIStore.openOrCreateRemoteConfigStore('static_key_amp_config', [
+      'sessionReplay',
+    ]);
+    metaStore = await RemoteConfigAPIStore.openOrCreateMetaStore('static_key_amp_config_meta');
+    jest.spyOn(RemoteConfigAPIStore, 'openOrCreateMetaStore');
+    jest.spyOn(RemoteConfigAPIStore, 'openOrCreateRemoteConfigStore');
     jest.useFakeTimers();
   });
   afterEach(() => {
@@ -67,13 +60,12 @@ describe('RemoteConfigIDBStore', () => {
       ]);
       expect(RemoteConfigAPIStore.openOrCreateMetaStore).toHaveBeenCalledWith('static_key_amp_config_meta');
     });
-
     test('should delete store and recreate if lastFetchedSessionId is older than MAX_IDB_STORAGE_TIME', async () => {
       jest.spyOn(IDB, 'deleteDB').mockResolvedValue();
       const sessionIdTimestamp = new Date('2023-07-27 08:30:00').getTime();
       const currentTime = new Date('2023-07-31 08:30:00').getTime(); // 4 days ahead
       jest.useFakeTimers().setSystemTime(currentTime);
-      mockMetaDB.get = jest.fn().mockResolvedValue(sessionIdTimestamp);
+      await metaStore.put('lastFetchedSessionId', sessionIdTimestamp, 'sessionId');
 
       await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
@@ -89,16 +81,16 @@ describe('RemoteConfigIDBStore', () => {
 
   describe('getRemoteConfig', () => {
     test('should return the remote config from idb store', async () => {
+      await remoteConfigStore.put('sessionReplay', samplingConfig.sr_sampling_config, 'sr_sampling_config');
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
         loggerProvider: mockLoggerProvider,
         configKeys: ['sessionReplay'],
       });
       const remoteConfig = await store.getRemoteConfig('sessionReplay', 'sr_sampling_config');
-      expect(remoteConfig).toEqual(mockRemoteConfig);
+      expect(remoteConfig).toEqual(samplingConfig.sr_sampling_config);
     });
     test('should handle an undefined store', async () => {
-      mockRemoteConfigDB.get = jest.fn().mockResolvedValue(undefined);
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
         loggerProvider: mockLoggerProvider,
@@ -108,17 +100,18 @@ describe('RemoteConfigIDBStore', () => {
       expect(remoteConfig).toEqual(undefined);
     });
     test('should catch errors', async () => {
-      mockRemoteConfigDB.get = jest.fn().mockImplementationOnce(() => Promise.reject('error'));
+      const mockDB: IDBPDatabase<unknown> = {
+        get: jest.fn().mockImplementation(() => Promise.reject('get error')),
+      } as unknown as IDBPDatabase<unknown>;
+      jest.spyOn(RemoteConfigAPIStore, 'openOrCreateRemoteConfigStore').mockResolvedValue(mockDB);
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
         loggerProvider: mockLoggerProvider,
         configKeys: ['sessionReplay'],
       });
       await store.getRemoteConfig('sessionReplay', 'sr_sampling_config');
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('Failed to fetch remote config: error');
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('Failed to fetch remote config: get error');
     });
   });
 
@@ -128,8 +121,7 @@ describe('RemoteConfigIDBStore', () => {
       jest.useFakeTimers().setSystemTime(sessionIdTimestamp);
     });
     test('should return the last fetched session id from idb store', async () => {
-      mockMetaDB.get = jest.fn().mockResolvedValue(sessionIdTimestamp);
-      jest.spyOn(RemoteConfigAPIStore, 'openOrCreateMetaStore').mockResolvedValueOnce(mockMetaDB);
+      await metaStore.put('lastFetchedSessionId', sessionIdTimestamp, 'sessionId');
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
         loggerProvider: mockLoggerProvider,
@@ -139,21 +131,18 @@ describe('RemoteConfigIDBStore', () => {
       expect(lastFetchedSessionId).toEqual(sessionIdTimestamp);
     });
     test('should catch errors', async () => {
-      mockMetaDB.get = jest
-        .fn()
-        .mockResolvedValueOnce(sessionIdTimestamp)
-        .mockImplementationOnce(() => Promise.reject('error'));
-      jest.spyOn(RemoteConfigAPIStore, 'openOrCreateMetaStore').mockResolvedValueOnce(mockMetaDB);
+      const mockDB: IDBPDatabase<RemoteConfigAPIStore.MetaDB> = {
+        get: jest.fn().mockImplementation(() => Promise.reject('get error')),
+      } as unknown as IDBPDatabase<RemoteConfigAPIStore.MetaDB>;
+      jest.spyOn(RemoteConfigAPIStore, 'openOrCreateMetaStore').mockResolvedValue(mockDB);
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
         loggerProvider: mockLoggerProvider,
         configKeys: ['sessionReplay'],
       });
       await store.getLastFetchedSessionId();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('Failed to fetch lastFetchedSessionId: error');
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(2);
+      expect(mockLoggerProvider.warn.mock.calls[1][0]).toEqual('Failed to fetch lastFetchedSessionId: get error');
     });
   });
 
@@ -164,14 +153,13 @@ describe('RemoteConfigIDBStore', () => {
         loggerProvider: mockLoggerProvider,
         configKeys: ['sessionReplay'],
       });
-      await store.storeRemoteConfig(mockRemoteConfig, 456);
-
-      expect(putMockMetaDB).toHaveBeenCalledWith('lastFetchedSessionId', 456, 'sessionId');
-      expect(putMockRemoteConfigDB).toHaveBeenCalledWith(
-        'sessionReplay',
-        mockRemoteConfig.configs['sessionReplay'].sr_sampling_config,
-        'sr_sampling_config',
-      );
+      await store.storeRemoteConfig(mockRemoteConfigAPIResponse, 456);
+      const lastFetchedSessionId = await metaStore.get('lastFetchedSessionId', 'sessionId');
+      expect(lastFetchedSessionId).toBe(456);
+      const storedConfigKeys = await remoteConfigStore.getAllKeys('sessionReplay');
+      expect(storedConfigKeys).toEqual(['sr_sampling_config']);
+      const storedConfig = await remoteConfigStore.getAll('sessionReplay');
+      expect(storedConfig[0]).toEqual(mockRemoteConfigAPIResponse.configs['sessionReplay'].sr_sampling_config);
     });
 
     test('should handle undefined session id', async () => {
@@ -180,28 +168,33 @@ describe('RemoteConfigIDBStore', () => {
         loggerProvider: mockLoggerProvider,
         configKeys: ['sessionReplay'],
       });
-      await store.storeRemoteConfig(mockRemoteConfig);
+      await store.storeRemoteConfig(mockRemoteConfigAPIResponse);
 
-      expect(putMockMetaDB).not.toHaveBeenCalled();
-      expect(putMockRemoteConfigDB).toHaveBeenCalledWith(
-        'sessionReplay',
-        mockRemoteConfig.configs['sessionReplay'].sr_sampling_config,
-        'sr_sampling_config',
-      );
+      const lastFetchedSessionId = await metaStore.get('lastFetchedSessionId', 'sessionId');
+      expect(lastFetchedSessionId).toBe(undefined);
+      const storedConfigKeys = await remoteConfigStore.getAllKeys('sessionReplay');
+      expect(storedConfigKeys).toEqual(['sr_sampling_config']);
+      const storedConfig = await remoteConfigStore.getAll('sessionReplay');
+      expect(storedConfig[0]).toEqual(mockRemoteConfigAPIResponse.configs['sessionReplay'].sr_sampling_config);
     });
     test('should catch errors', async () => {
-      mockRemoteConfigDB.put = jest.fn().mockImplementationOnce(() => Promise.reject('error'));
+      const mockDB: IDBPDatabase<unknown> = {
+        transaction: jest.fn().mockImplementation(() => {
+          throw new Error('transaction error');
+        }),
+      } as unknown as IDBPDatabase<unknown>;
+      jest.spyOn(RemoteConfigAPIStore, 'openOrCreateRemoteConfigStore').mockResolvedValue(mockDB);
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
         loggerProvider: mockLoggerProvider,
         configKeys: ['sessionReplay'],
       });
-      await store.storeRemoteConfig(mockRemoteConfig, 123);
+      await store.storeRemoteConfig(mockRemoteConfigAPIResponse, 123);
 
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('Failed to store remote config: error');
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual(
+        'Failed to store remote config: Error: transaction error',
+      );
     });
   });
   describe('stores', () => {

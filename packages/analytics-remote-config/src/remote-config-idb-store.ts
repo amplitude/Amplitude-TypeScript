@@ -46,10 +46,14 @@ export const createRemoteConfigIDBStore = async <RemoteConfig extends { [key: st
   const metaDBName = `${apiKey.substring(0, 10)}_amp_config_meta`;
   const metaDB = await openOrCreateMetaStore(metaDBName);
 
-  const lastFetchedSessionId = await metaDB.get('lastFetchedSessionId', 'sessionId');
-  if (lastFetchedSessionId && Date.now() - lastFetchedSessionId >= MAX_IDB_STORAGE_TIME) {
-    await deleteDB(remoteConfigDBName);
-    remoteConfigDB = await openOrCreateRemoteConfigStore(apiKey, configKeys);
+  try {
+    const lastFetchedSessionId = await metaDB.get('lastFetchedSessionId', 'sessionId');
+    if (lastFetchedSessionId && Date.now() - lastFetchedSessionId >= MAX_IDB_STORAGE_TIME) {
+      await deleteDB(remoteConfigDBName);
+      remoteConfigDB = await openOrCreateRemoteConfigStore(apiKey, configKeys);
+    }
+  } catch (e) {
+    loggerProvider.warn(`Failed to reset store: ${e as string}`);
   }
 
   const storeRemoteConfig = async (remoteConfig: RemoteConfigAPIResponse<RemoteConfig>, sessionId?: number) => {
@@ -59,9 +63,8 @@ export const createRemoteConfigIDBStore = async <RemoteConfig extends { [key: st
       }
       for (const configNamespace in remoteConfig.configs) {
         const config = remoteConfig.configs[configNamespace];
-        for (const key in config) {
-          await remoteConfigDB.put(configNamespace, { ...config[key] }, key);
-        }
+        const tx = remoteConfigDB.transaction(configNamespace, 'readwrite');
+        await Promise.all([...Object.keys(config).map((key) => tx.store.put({ ...config[key] }, key)), tx.done]);
       }
     } catch (e) {
       loggerProvider.warn(`Failed to store remote config: ${e as string}`);
