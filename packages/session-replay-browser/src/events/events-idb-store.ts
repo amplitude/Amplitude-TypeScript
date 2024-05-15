@@ -51,6 +51,14 @@ export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
   });
 };
 
+const batchPromiseAll = async (promiseBatch: Promise<any>[]) => {
+  while (promiseBatch.length > 0) {
+    const chunkSize = 10;
+    const batch = promiseBatch.splice(0, chunkSize);
+    await Promise.all(batch);
+  }
+};
+
 export const defineObjectStores = (db: IDBPDatabase<SessionReplayDB>) => {
   let sequencesStore;
   let currentSequenceStore;
@@ -233,20 +241,22 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
     const transitionCurrentSessionSequences = async (numericSessionId: number, sessionStore: IDBStoreSession) => {
       const currentSessionSequences = sessionStore.sessionSequences;
-      await Promise.all(
-        Object.keys(currentSessionSequences).map(async (sequenceId) => {
-          const numericSequenceId = parseInt(sequenceId, 10);
-          if (numericSequenceId === sessionStore.currentSequenceId) {
-            await Promise.all(
-              currentSessionSequences[sessionStore.currentSequenceId].events.map(async (event) => {
-                await this.addEventToCurrentSequence(numericSessionId, event);
-              }),
-            );
-          } else if (currentSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
-            await this.storeSendingEvents(numericSessionId, currentSessionSequences[numericSequenceId].events);
-          }
-        }),
-      );
+      const promisesToBatch: Promise<number | SendingSequencesIDBReturn | undefined>[] = [];
+
+      Object.keys(currentSessionSequences).forEach((sequenceId) => {
+        const numericSequenceId = parseInt(sequenceId, 10);
+        const sequence = currentSessionSequences[numericSequenceId];
+        if (numericSequenceId === sessionStore.currentSequenceId) {
+          const eventAddPromises: Promise<SendingSequencesIDBReturn | undefined>[] = sequence.events.map(
+            async (event) => this.addEventToCurrentSequence(numericSessionId, event),
+          );
+          promisesToBatch.concat(eventAddPromises);
+        } else if (sequence.status !== RecordingStatus.SENT) {
+          promisesToBatch.push(this.storeSendingEvents(numericSessionId, sequence.events));
+        }
+      });
+
+      await batchPromiseAll(promisesToBatch);
     };
 
     const storageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
@@ -257,26 +267,28 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
           const storedReplaySessionContextList = e && ((e.target as IDBRequest).result as IDBStore[]);
           const storedReplaySessionContexts = storedReplaySessionContextList && storedReplaySessionContextList[0];
           if (storedReplaySessionContexts) {
-            await Promise.all(
-              Object.keys(storedReplaySessionContexts).map(async (storedSessionId) => {
-                const numericSessionId = parseInt(storedSessionId, 10);
-                const oldSessionStore = storedReplaySessionContexts[numericSessionId];
+            const promisesToBatch: Promise<any>[] = [];
 
-                if (sessionId === numericSessionId) {
-                  await transitionCurrentSessionSequences(numericSessionId, oldSessionStore);
-                } else {
-                  const oldSessionSequences = oldSessionStore.sessionSequences;
-                  await Promise.all(
-                    Object.keys(oldSessionSequences).map(async (sequenceId) => {
-                      const numericSequenceId = parseInt(sequenceId, 10);
-                      if (oldSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
-                        await this.storeSendingEvents(numericSessionId, oldSessionSequences[numericSequenceId].events);
-                      }
-                    }),
-                  );
-                }
-              }),
-            );
+            Object.keys(storedReplaySessionContexts).forEach((storedSessionId) => {
+              const numericSessionId = parseInt(storedSessionId, 10);
+              const oldSessionStore = storedReplaySessionContexts[numericSessionId];
+
+              if (sessionId === numericSessionId) {
+                promisesToBatch.push(transitionCurrentSessionSequences(numericSessionId, oldSessionStore));
+              } else {
+                const oldSessionSequences = oldSessionStore.sessionSequences;
+                Object.keys(oldSessionSequences).forEach((sequenceId) => {
+                  const numericSequenceId = parseInt(sequenceId, 10);
+                  if (oldSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
+                    promisesToBatch.push(
+                      this.storeSendingEvents(numericSessionId, oldSessionSequences[numericSequenceId].events),
+                    );
+                  }
+                });
+              }
+            });
+
+            await batchPromiseAll(promisesToBatch);
           }
           resolve();
         };
