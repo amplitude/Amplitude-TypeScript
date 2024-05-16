@@ -6,17 +6,17 @@ export interface RemoteConfigAPIResponse<RemoteConfig extends { [key: string]: o
   };
 }
 
-export interface RemoteConfigFetch<RemoteConfig extends { [key: string]: object }> {
-  getRemoteConfig: (
+export interface RemoteConfigFetch<T> {
+  getRemoteConfig: <K extends keyof T>(
     configNamespace: string,
-    key: string,
+    key: K,
     sessionId?: number,
-  ) => Promise<RemoteConfig[typeof key] | void>;
+  ) => Promise<T[K] | undefined>;
 }
 
-export interface RemoteConfigIDBStore<RemoteConfig extends { [key: string]: object }> {
+export interface RemoteConfigIDBStore<RemoteConfig extends { [key: string]: object }>
+  extends RemoteConfigFetch<RemoteConfig> {
   storeRemoteConfig: (remoteConfig: RemoteConfigAPIResponse<RemoteConfig>, sessionId?: number) => Promise<void>;
-  getRemoteConfig: (configNamespace: string, key: string) => Promise<RemoteConfig[typeof key] | void>;
   getLastFetchedSessionId: () => Promise<number | void>;
 }
 

@@ -9,7 +9,6 @@ import {
 } from '../src/remote-config';
 import * as RemoteConfigAPIStore from '../src/remote-config-idb-store';
 import { RemoteConfigAPIResponse } from '../src/types';
-// import { RemoteConfigFetch as IRemoteConfigFetch } from '../src/types';
 
 type MockedLogger = jest.Mocked<Logger>;
 
@@ -62,7 +61,12 @@ describe('RemoteConfigFetch', () => {
     await remoteConfigFetch.initialize();
     fetchMock = jest.fn();
     remoteConfigFetch.fetchWithTimeout = fetchMock;
-    fetchMock.mockResolvedValue(mockRemoteConfig);
+    fetchMock.mockImplementation(async (sessionId) => {
+      if (sessionId === 42) {
+        return Promise.resolve(undefined);
+      }
+      return Promise.resolve(mockRemoteConfig);
+    });
   }
   beforeEach(() => {
     jest.spyOn(RemoteConfigAPIStore, 'createRemoteConfigIDBStore').mockResolvedValue(mockConfigStore);
@@ -87,6 +91,7 @@ describe('RemoteConfigFetch', () => {
   });
   afterEach(() => {
     jest.resetAllMocks();
+    jest.restoreAllMocks();
     global.fetch = originalFetch;
     global.AbortController = originalAbortController;
 
@@ -102,6 +107,10 @@ describe('RemoteConfigFetch', () => {
       expect(remoteConfig).toEqual(samplingConfig.sr_sampling_config);
       expect(fetchMock).not.toHaveBeenCalled();
       expect(mockConfigStore.getRemoteConfig).toHaveBeenCalled();
+    });
+    test('should return undefined if remote config is undefined', async () => {
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 42); // 42 returns undefined
+      expect(remoteConfig).toBeUndefined();
     });
     test('should call fetchWithTimeout if lastFetchedSessionId does not match session id', async () => {
       const remoteConfig = await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 456);

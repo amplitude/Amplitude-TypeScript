@@ -6,4 +6,5 @@ export interface SessionReplayOptions {
   privacyConfig?: SessionReplayPrivacyConfig;
   debugMode?: boolean;
   forceSessionTracking?: boolean;
+  configEndpointUrl?: string;
 }
