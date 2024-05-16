@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.2.3...@amplitude/plugin-session-replay-browser@1.3.0) (2024-05-16)
+
+### Features
+
+- **session-replay-browser:** fetch privacy configs remotely and join with local
+  ([c224041](https://github.com/amplitude/Amplitude-TypeScript/commit/c22404195e894c85d1d463b3b6d14e52beeeef50))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.2.2...@amplitude/plugin-session-replay-browser@1.2.3) (2024-05-16)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
