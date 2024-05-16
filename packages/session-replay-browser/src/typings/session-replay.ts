@@ -1,5 +1,5 @@
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
-import { SessionReplayLocalConfig, SessionReplayRemoteConfig } from '../config/types';
+import { SessionReplayLocalConfig } from '../config/types';
 
 export type Events = string[];
 
@@ -12,7 +12,7 @@ export interface SessionReplayDestination {
   deviceId?: string;
   sampleRate: number;
   serverZone?: keyof typeof ServerZone;
-  onComplete: (sessionId: number, sequenceId: number) => Promise<void>;
+  onComplete: (sequenceId: number) => Promise<void>;
 }
 
 export interface SessionReplayDestinationContext extends SessionReplayDestination {
@@ -20,38 +20,20 @@ export interface SessionReplayDestinationContext extends SessionReplayDestinatio
   timeout: number;
 }
 
-export enum RecordingStatus {
-  RECORDING = 'recording',
-  SENT = 'sent',
-}
-
-export interface IDBStoreSequence {
+export interface SendingSequencesIDBInput {
+  sequenceId?: number;
+  sessionId: number;
   events: Events;
-  status: RecordingStatus;
 }
 
-export interface IDBStoreSession {
-  currentSequenceId: number;
-  sessionSequences: {
-    [sequenceId: number]: IDBStoreSequence;
-  };
-}
+export type SendingSequencesIDBReturn = Required<SendingSequencesIDBInput>;
 
-export interface IDBRemoteConfig {
-  config: SessionReplayRemoteConfig;
-  lastFetchedSessionId: number | undefined;
-}
-
-export interface IDBStore {
-  remoteConfig?: IDBRemoteConfig;
-  [sessionId: number]: IDBStoreSession;
-}
-
-export interface SessionReplaySessionIDBStore {
-  getAllSessionDataFromStore(): Promise<IDBStore | undefined>;
-  storeEventsForSession(events: Events, sequenceId: number, sessionId: number): Promise<void>;
-  storeRemoteConfig(remoteConfig: SessionReplayRemoteConfig, sessionId?: number): Promise<void>;
-  getRemoteConfig(): Promise<IDBRemoteConfig | void>;
+export interface SessionReplayEventsIDBStore {
+  initialize(): Promise<void>;
+  getSequencesToSend(): Promise<SendingSequencesIDBReturn[] | undefined>;
+  storeCurrentSequence(sessionId: number): Promise<SendingSequencesIDBInput | undefined>;
+  addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesIDBReturn | undefined>;
+  storeSendingEvents(sessionId: number, events: Events): Promise<number | undefined>;
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
 export interface SessionIdentifiers {
@@ -77,18 +59,8 @@ export interface SessionReplayTrackDestination {
 }
 
 export interface SessionReplayEventsManager {
-  initialize({
-    sessionId,
-    shouldSendStoredEvents,
-    deviceId,
-  }: {
-    sessionId: number;
-    shouldSendStoredEvents: boolean;
-    deviceId: string;
-  }): Promise<void>;
+  sendStoredEvents({ deviceId }: { deviceId: string }): Promise<void>;
   addEvent({ sessionId, event, deviceId }: { sessionId: number; event: string; deviceId: string }): void;
-  sendEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
-  resetSequence(): void;
+  sendCurrentSequenceEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
   flush(useRetry?: boolean): Promise<void>;
-  events: Events;
 }

@@ -65,10 +65,6 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       return false;
     });
     tryable.forEach((context) => {
-      // Prevent duplicates from being added to the queue
-      if (this.queue.findIndex((qContext) => qContext.sequenceId === context.sequenceId) !== -1) {
-        return;
-      }
       this.queue = this.queue.concat(context);
       if (context.timeout === 0) {
         this.schedule(0);
@@ -199,7 +195,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     err?: string;
     success?: string;
   }) {
-    void context.onComplete(context.sessionId, context.sequenceId);
+    void context.onComplete(context.sequenceId);
     if (err) {
       this.loggerProvider.warn(err);
     } else if (success) {

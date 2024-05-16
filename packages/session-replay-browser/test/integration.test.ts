@@ -1,9 +1,14 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
+import { IDBFactory } from 'fake-indexeddb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import { SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL } from '../src/constants';
+import * as SessionReplayIDB from '../src/events/events-idb-store';
 import { UNEXPECTED_ERROR_MESSAGE } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
 
@@ -37,6 +42,7 @@ describe('module level integration', () => {
     document: {
       hasFocus: () => true,
     },
+    indexedDB: new IDBFactory(),
   } as unknown as typeof globalThis;
   let originalFetch: typeof global.fetch;
   const mockLoggerProvider: MockedLogger = {
@@ -66,6 +72,7 @@ describe('module level integration', () => {
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
     });
+    jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
     jest.useFakeTimers();
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -104,23 +111,29 @@ describe('module level integration', () => {
     test('should handle unexpected error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
       }
-      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
       sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=0`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1`,
         expect.anything(),
       );
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith('API Failure');
     });
     test('should not retry for 400 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
           return Promise.resolve({
@@ -137,11 +150,12 @@ describe('module level integration', () => {
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
       }
-      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
       sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=0`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -150,6 +164,9 @@ describe('module level integration', () => {
     test('should not retry for 413 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
           return Promise.resolve({
@@ -165,11 +182,12 @@ describe('module level integration', () => {
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
       }
-      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
       sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=0`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -178,6 +196,9 @@ describe('module level integration', () => {
     test('should handle retry for 500 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockReset();
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
@@ -194,8 +215,9 @@ describe('module level integration', () => {
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
       }
-      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
       sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
     });
@@ -203,6 +225,9 @@ describe('module level integration', () => {
     test('should only retry once for 500 error, even if config set to higher than one retry', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 10 }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockReset();
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
@@ -219,14 +244,18 @@ describe('module level integration', () => {
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
       }
-      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
       sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
     });
     test('should handle retry for 503 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockReset();
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
@@ -243,14 +272,18 @@ describe('module level integration', () => {
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
       }
-      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
       sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
     });
     test('should handle unexpected error where fetch response is null', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockImplementationOnce(() => {
         return Promise.resolve(null);
       });
@@ -258,34 +291,16 @@ describe('module level integration', () => {
       if (!sessionReplay.eventsManager) {
         throw new Error('did not init');
       }
-      sessionReplay.eventsManager.events = [mockEventString];
+      sessionReplay.eventsManager.addEvent({ sessionId: 123, event: mockEventString, deviceId: '1a2b3c' });
       sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=0`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith(UNEXPECTED_ERROR_MESSAGE);
-    });
-    test('should not allow multiple of the same list to be sent', async () => {
-      (fetch as jest.Mock).mockImplementation(() => {
-        return Promise.resolve({
-          status: 200,
-        });
-      });
-      const sessionReplay = new SessionReplay();
-      await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      (fetch as jest.Mock).mockReset();
-
-      if (!sessionReplay.eventsManager) {
-        throw new Error('did not init');
-      }
-      sessionReplay.eventsManager.events = [mockEventString];
-      sessionReplay.stopRecordingAndSendEvents();
-      sessionReplay.stopRecordingAndSendEvents();
-      await runScheduleTimers();
-      expect(fetch).toHaveBeenCalledTimes(1);
     });
   });
 });
