@@ -1,10 +1,10 @@
-import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
+import { RemoteConfigFetch, createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import { SessionReplayOptions } from '../typings/session-replay';
 import { SessionReplayLocalConfig } from './local-config';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   SessionReplayJoinedConfig,
-  SessionReplayPrivacyConfig,
+  PrivacyConfig,
   SessionReplayRemoteConfig,
 } from './types';
 
@@ -36,22 +36,17 @@ export class SessionReplayJoinedConfigGenerator {
         return config;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const samplingConfig =
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        (await this.remoteConfigFetch.getRemoteConfig(
-          'sessionReplay',
-          'sr_sampling_config',
-          sessionId,
-        )) as SessionReplayRemoteConfig['sr_sampling_config'];
+      const samplingConfig = await this.remoteConfigFetch.getRemoteConfig(
+        'sessionReplay',
+        'sr_sampling_config',
+        sessionId,
+      );
 
-      const privacyConfig =
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
-        (await this.remoteConfigFetch.getRemoteConfig(
-          'sessionReplay',
-          'sr_privacy_config',
-          sessionId,
-        )) as SessionReplayRemoteConfig['sr_privacy_config'];
+      const privacyConfig = await this.remoteConfigFetch.getRemoteConfig(
+        'sessionReplay',
+        'sr_privacy_config',
+        sessionId,
+      );
 
       if (samplingConfig || privacyConfig) {
         remoteConfig = {};
@@ -89,7 +84,7 @@ export class SessionReplayJoinedConfigGenerator {
       // allowing for immediate replay capture
       config.captureEnabled = true;
       this.localConfig.loggerProvider.debug(
-        'assuming config API response was valid, but no config returned. session replay capture enabled.',
+        'Remote config successfully fetched, but no values set for project, Session Replay capture enabled.',
       );
     }
 
@@ -100,7 +95,7 @@ export class SessionReplayJoinedConfigGenerator {
       }
 
       for (const key in privacyConfig) {
-        const k = key as keyof SessionReplayPrivacyConfig;
+        const k = key as keyof PrivacyConfig;
         config.privacyConfig[k] = privacyConfig[k];
       }
     }

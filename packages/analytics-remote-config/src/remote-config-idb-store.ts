@@ -81,9 +81,12 @@ export const createRemoteConfigIDBStore = async <RemoteConfig extends { [key: st
     return undefined;
   };
 
-  const getRemoteConfig = async (configNamespace: string, key: string): Promise<RemoteConfig[typeof key] | void> => {
+  const getRemoteConfig = async <K extends keyof RemoteConfig>(
+    configNamespace: string,
+    key: K,
+  ): Promise<RemoteConfig[K] | undefined> => {
     try {
-      const config = (await remoteConfigDB.get(configNamespace, key)) as RemoteConfig[typeof key];
+      const config = (await remoteConfigDB.get(configNamespace, key as string)) as RemoteConfig[K];
       return config;
     } catch (e) {
       loggerProvider.warn(`Failed to fetch remote config: ${e as string}`);

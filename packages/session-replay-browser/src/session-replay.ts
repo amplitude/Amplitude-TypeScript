@@ -49,7 +49,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
-    this.loggerProvider.debug(JSON.stringify(this.config, null, 2));
 
     this.eventsManager = new SessionReplayEventsManager({
       config: this.config,

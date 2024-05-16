@@ -5,15 +5,6 @@ export interface SamplingConfig {
   capture_enabled: boolean;
 }
 
-/**
- * NOTE(lew): defining the type like this so that it's easy to convert to
- * the local config. This won't handle deep copies (probably), so it may
- * need to be updated in the future.
- */
-export type PrivacyConfig = {
-  [k in keyof SessionReplayPrivacyConfig]: SessionReplayPrivacyConfig[k];
-};
-
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
@@ -25,7 +16,7 @@ export interface SessionReplayRemoteConfigAPIResponse {
   };
 }
 
-export type SessionReplayPrivacyConfig = {
+export type PrivacyConfig = {
   blockSelector?: string | string[];
 };
 
@@ -35,7 +26,7 @@ export interface SessionReplayLocalConfig extends Config {
   logLevel: LogLevel;
   flushMaxRetries: number;
   sampleRate: number;
-  privacyConfig?: SessionReplayPrivacyConfig;
+  privacyConfig?: PrivacyConfig;
   debugMode?: boolean;
   configEndpointUrl?: string;
 }

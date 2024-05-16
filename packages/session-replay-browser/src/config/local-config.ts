@@ -3,7 +3,7 @@ import { Config, Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from '../constants';
 import { SessionReplayOptions } from '../typings/session-replay';
-import { SessionReplayLocalConfig as ISessionReplayLocalConfig, SessionReplayPrivacyConfig } from './types';
+import { SessionReplayLocalConfig as ISessionReplayLocalConfig, PrivacyConfig } from './types';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -15,7 +15,7 @@ export const getDefaultConfig = () => ({
 export class SessionReplayLocalConfig extends Config implements ISessionReplayLocalConfig {
   apiKey: string;
   sampleRate: number;
-  privacyConfig?: SessionReplayPrivacyConfig;
+  privacyConfig?: PrivacyConfig;
   debugMode?: boolean;
   configEndpointUrl?: string;
 

@@ -42,11 +42,11 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     });
   }
 
-  getRemoteConfig = async (
+  getRemoteConfig = async <K extends keyof RemoteConfig>(
     configNamespace: string,
-    key: string,
+    key: K,
     sessionId?: number,
-  ): Promise<RemoteConfig[typeof key] | void> => {
+  ): Promise<RemoteConfig[K] | undefined> => {
     // First check IndexedDB for session
     if (this.remoteConfigIDBStore) {
       const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
@@ -61,9 +61,10 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     if (configAPIResponse) {
       const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
       if (remoteConfig) {
-        return remoteConfig[key] as RemoteConfig[typeof key];
+        return remoteConfig[key];
       }
     }
+    return undefined;
   };
 
   getServerUrl() {
@@ -160,7 +161,9 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   }
 }
 
-export const createRemoteConfigFetch: CreateRemoteConfigFetch = async <RemoteConfig extends { [key: string]: object }>({
+export const createRemoteConfigFetch: CreateRemoteConfigFetch = async <
+  RemoteConfig extends { [Property in keyof RemoteConfig]: RemoteConfig[Property] },
+>({
   localConfig,
   configKeys,
 }: {
