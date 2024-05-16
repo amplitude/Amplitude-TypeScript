@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.3.2...@amplitude/session-replay-browser@1.4.0) (2024-05-16)
+
+### Bug Fixes
+
+- **session replay:** add batching logic for promises
+  ([602f0c9](https://github.com/amplitude/Amplitude-TypeScript/commit/602f0c99729cf038a1b97a78cff8c4d4dc3ee74a))
+
+### Features
+
+- **session replay:** implement custom store using idb package
+  ([b92d511](https://github.com/amplitude/Amplitude-TypeScript/commit/b92d511af7c58e1e3d51c7e950c1965f224b7d37))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.3.1...@amplitude/session-replay-browser@1.3.2) (2024-05-15)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
