@@ -7,5 +7,5 @@ module.exports = {
   rootDir: '.',
   testEnvironment: 'jsdom',
   coveragePathIgnorePatterns: ['index.ts'],
-  setupFiles: ['fake-indexeddb/auto'],
+  setupFilesAfterEnv: ['./test/jest-setup.js'],
 };

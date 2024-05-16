@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as amplitude from '@amplitude/analytics-browser';
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { sessionReplayPlugin } from '../src/session-replay';
@@ -59,7 +61,7 @@ describe('SessionReplayPlugin Integration with Browser SDK', () => {
   beforeEach(() => {
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
     originalFetch = global.fetch;
-    global.fetch = jest.fn((url) => {
+    global.fetch = jest.fn((url: string) => {
       console.log('url', url);
       if (url.includes('/config')) {
         console.log('config returned');
