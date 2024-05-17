@@ -3,7 +3,6 @@ import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
-import { TargetingParameters, evaluateTargeting } from '@amplitude/targeting';
 import { TargetingParameters } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
@@ -21,6 +20,7 @@ import { generateHashCode, getDebugConfig, getStorageSize, isSessionInSample, ma
 import { clickBatcher, clickHook } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
+import * as TargetingIDBStore from './targeting-idb-store';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
@@ -42,6 +42,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+  sessionTargetingMatch = false;
 
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
@@ -202,16 +203,47 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   evaluateTargeting = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
-    if (!this.identifiers || !this.identifiers.sessionId || !this.remoteConfigFetch || !this.config) {
+    if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
       return;
     }
 
-    await this.remoteConfigFetch.evaluateTargeting({
+    const idbTargetingMatch = await TargetingIDBStore.getTargetingMatchForSession({
+      loggerProvider: this.config.loggerProvider,
+      apiKey: this.config.apiKey,
       sessionId: this.identifiers.sessionId,
-      deviceId: this.getDeviceId(),
-      ...targetingParams,
     });
+    if (idbTargetingMatch === true) {
+      this.sessionTargetingMatch = true;
+      return;
+    }
+
+    // Finally evaluate targeting if previous two checks were false or undefined
+    try {
+      if (this.config.targetingConfig) {
+        const targetingResult = evaluateTargeting({
+          ...targetingParams,
+          flag: this.config.targetingConfig,
+          sessionId: this.identifiers.sessionId,
+        });
+        this.sessionTargetingMatch =
+          this.sessionTargetingMatch === false && targetingResult.sr_targeting_config.key === 'on';
+      } else {
+        // If the targeting config is undefined or an empty object,
+        // assume the response was valid but no conditions were set,
+        // so all users match targeting
+        this.sessionTargetingMatch = true;
+      }
+      void TargetingIDBStore.storeTargetingMatchForSession({
+        loggerProvider: this.config.loggerProvider,
+        apiKey: this.config.apiKey,
+        sessionId: this.identifiers.sessionId,
+        targetingMatch: this.sessionTargetingMatch,
+      });
+    } catch (err: unknown) {
+      const knownError = err as Error;
+      this.config.loggerProvider.warn(knownError.message);
+    }
   };
 
   sendEvents(sessionId?: number) {
@@ -223,7 +255,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
   }
 
-  initialize(shouldSendStoredEvents = false) {
+  async initialize(shouldSendStoredEvents = false) {
     if (!this.identifiers?.sessionId) {
       this.loggerProvider.log(`Session is not being recorded due to lack of session id.`);
       return;
