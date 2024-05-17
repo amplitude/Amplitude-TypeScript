@@ -392,8 +392,8 @@ describe('Web attribution', () => {
         const newCampaignURL = 'https://www.example.com?utm_source=second_utm_source&utm_content=test_utm_content';
         setTimeout(() => {
           navigateTo(newCampaignURL);
-
           client.track('test event after session timeout');
+          client.track('test event 2 after session timeout');
         }, 600);
 
         return new Promise<void>((resolve) => {
@@ -409,6 +409,7 @@ describe('Web attribution', () => {
                 generateAttributionEvent(++eventId, newCampaignURL),
                 generateSessionStartEvent(++eventId),
                 generateEvent(++eventId, 'test event after session timeout'),
+                generateEvent(++eventId, 'test event 2 after session timeout'),
               ],
               options: {
                 min_id_length: undefined,
