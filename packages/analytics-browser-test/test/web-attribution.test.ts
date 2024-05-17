@@ -369,7 +369,8 @@ describe('Web attribution', () => {
         cleanup();
       });
 
-      test('should track all UTMs and referrers while processing any event', async () => {
+      //The SPA won't reload the page when redirected. We don't track campaign updates without reinitializing the SDK (reloading the page) for now.
+      test('Not track campaign change while processing any event', async () => {
         const url = 'https://www.example.com?utm_source=test_utm_source';
         navigateTo(url);
 
@@ -406,7 +407,6 @@ describe('Web attribution', () => {
                 generateSessionStartEvent(++eventId),
                 generatePageViewEvent(++eventId, 1, url),
                 generateSessionEndEvent(++eventId),
-                generateAttributionEvent(++eventId, newCampaignURL),
                 generateSessionStartEvent(++eventId),
                 generateEvent(++eventId, 'test event after session timeout'),
               ],

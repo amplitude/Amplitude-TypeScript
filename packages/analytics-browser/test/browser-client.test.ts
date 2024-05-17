@@ -7,8 +7,7 @@ import {
 } from '@amplitude/analytics-client-common';
 import { WebAttribution } from '@amplitude/analytics-client-common/src';
 import * as core from '@amplitude/analytics-core';
-import { Logger, UUID } from '@amplitude/analytics-core';
-import { BrowserConfig, LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
+import { LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
@@ -998,42 +997,6 @@ describe('browser-client', () => {
         event_type: 'event',
       });
       expect(track).toHaveBeenCalled();
-    });
-
-    test('should reinit web attribution when procee new session event', async () => {
-      const mockConfig: BrowserConfig = {
-        apiKey: UUID(),
-        flushIntervalMillis: 0,
-        flushMaxRetries: 0,
-        flushQueueSize: 0,
-        logLevel: LogLevel.None,
-        loggerProvider: new Logger(),
-        offline: false,
-        optOut: false,
-        serverUrl: undefined,
-        transportProvider: new FetchTransport(),
-        useBatch: false,
-        cookieOptions: undefined,
-        cookieStorage: new CookieStorage(),
-        sessionTimeout: 30 * 60 * 1000,
-        trackingOptions: {
-          ipAddress: true,
-          language: true,
-          platform: true,
-        },
-        lastEventTime: Date.now() - 30 * 60 * 1000 * 2,
-      };
-      const webAttribution = new WebAttribution({}, mockConfig);
-      client.config = mockConfig;
-      client.webAttribution = webAttribution;
-      const webAttributionInit = jest.spyOn(webAttribution, 'init');
-      const setSessionId = jest.spyOn(client, 'setSessionId');
-
-      //new session event
-      await client.process({ event_type: 'test event' });
-
-      expect(webAttributionInit).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenCalledTimes(1);
     });
 
     test('should proceed with unexpired session', async () => {
