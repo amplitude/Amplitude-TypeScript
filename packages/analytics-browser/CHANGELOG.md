@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.7.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.7.3...@amplitude/analytics-browser@2.7.4) (2024-05-17)
+
+### Bug Fixes
+
+- fix the session event fire too often issue ([#751](https://github.com/amplitude/Amplitude-TypeScript/issues/751))
+  ([69bc69b](https://github.com/amplitude/Amplitude-TypeScript/commit/69bc69bd8e05b36ca76079dc9a01552315aaef5a))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.7.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.7.2...@amplitude/analytics-browser@2.7.3) (2024-05-15)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
