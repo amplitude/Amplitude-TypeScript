@@ -48,6 +48,12 @@ export class SessionReplayJoinedConfigGenerator {
         sessionId,
       );
 
+      const targetingConfig = await this.remoteConfigFetch.getRemoteConfig(
+        'sessionReplay',
+        'sr_targeting_config',
+        sessionId,
+      );
+
       // This is intentionally forced to only be set through the remote config.
       config.interactionConfig = await this.remoteConfigFetch.getRemoteConfig(
         'sessionReplay',
@@ -63,6 +69,9 @@ export class SessionReplayJoinedConfigGenerator {
         if (privacyConfig) {
           remoteConfig.sr_privacy_config = privacyConfig;
         }
+        if (targetingConfig) {
+          remoteConfig.sr_targeting_config = targetingConfig;
+        }
       }
     } catch (err: unknown) {
       const knownError = err as Error;
@@ -74,7 +83,11 @@ export class SessionReplayJoinedConfigGenerator {
       return config;
     }
 
-    const { sr_sampling_config: samplingConfig, sr_privacy_config: remotePrivacyConfig } = remoteConfig;
+    const {
+      sr_sampling_config: samplingConfig,
+      sr_privacy_config: privacyConfig,
+      sr_targeting_config: targetingConfig,
+    } = remoteConfig;
     if (samplingConfig && Object.keys(samplingConfig).length > 0) {
       if (Object.prototype.hasOwnProperty.call(samplingConfig, 'capture_enabled')) {
         config.captureEnabled = samplingConfig.capture_enabled;
@@ -153,6 +166,10 @@ export class SessionReplayJoinedConfigGenerator {
       }
 
       config.privacyConfig = joinedPrivacyConfig;
+    }
+
+    if (targetingConfig && Object.keys(targetingConfig).length > 0) {
+      config.targetingConfig = targetingConfig;
     }
 
     return config;
