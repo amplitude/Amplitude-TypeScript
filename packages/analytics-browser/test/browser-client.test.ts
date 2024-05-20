@@ -22,6 +22,9 @@ describe('browser-client', () => {
   let userId = '';
   let deviceId = '';
   let client = new AmplitudeBrowser();
+  const testDeviceId = 'test-device-id';
+  const testSessionId = 12345;
+  const url = new URL(`https://www.example.com?deviceId=${testDeviceId}&sessionId=${testSessionId}`);
   const defaultTracking = {
     attribution: false,
     fileDownloadTracking: false,
@@ -360,6 +363,55 @@ describe('browser-client', () => {
 
       getGlobalScopeMock.mockRestore();
       addEventListenerMock.mockRestore();
+    });
+
+    test('should set device id from url', async () => {
+      const originalLocation = window.location;
+
+      Object.defineProperty(window, 'location', {
+        value: {
+          ...originalLocation,
+          search: url.search,
+        } as Location,
+        writable: true,
+      });
+
+      await client.init(apiKey, userId, {
+        defaultTracking: false,
+      }).promise;
+      expect(client.config.deviceId).toEqual(testDeviceId);
+
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      });
+    });
+
+    test('should set session id from url', async () => {
+      const originalLocation = window.location;
+
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: url.search,
+        } as Location,
+        writable: true,
+      });
+
+      await client.init(apiKey, userId, {
+        defaultTracking: {
+          attribution: false,
+          fileDownloads: false,
+          formInteractions: false,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+      expect(client.config.sessionId).toEqual(testSessionId);
+
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      });
     });
   });
 
