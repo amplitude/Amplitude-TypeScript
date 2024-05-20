@@ -397,6 +397,8 @@ describe('browser-client', () => {
         writable: true,
       });
 
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+
       await client.init(apiKey, userId, {
         defaultTracking: {
           attribution: false,
@@ -407,6 +409,8 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(client.config.sessionId).toEqual(testSessionId);
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(setSessionId).toHaveBeenLastCalledWith(testSessionId);
 
       Object.defineProperty(window, 'location', {
         value: originalLocation,
