@@ -52,6 +52,8 @@ export class Destination implements DestinationPlugin {
   config: Config;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  shouldThrottled = false;
+  throttleTimeout = 3000;
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -106,21 +108,32 @@ export class Destination implements DestinationPlugin {
   }
 
   sendEventsIfReady() {
+    console.log('sendEventsIfReady');
     if (this.config.offline) {
       return;
     }
 
-    if (this.queue.length >= this.config.flushQueueSize) {
-      void this.flush(true);
-    }
+    console.log(this.shouldThrottled);
 
-    if (this.scheduled) {
+    if (this.shouldThrottled) {
       return;
     }
 
+    if (this.queue.length >= this.config.flushQueueSize) {
+      console.log('in size flush');
+      void this.flush(true);
+    }
+
+    console.log(this.scheduled);
+    if (this.scheduled) {
+      return;
+    }
+    console.log('before set timer');
     this.scheduled = setTimeout(() => {
+      console.log('in schedule timeout');
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {
+          console.log('in flush try to sendEventsIfReady');
           this.sendEventsIfReady();
         }
       });
@@ -131,9 +144,14 @@ export class Destination implements DestinationPlugin {
 
   // flush the queue
   async flush(useRetry = false) {
+    console.log('flush');
     // Skip flush if offline
     if (this.config.offline) {
       this.config.loggerProvider.debug('Skipping flush while offline.');
+      return;
+    }
+
+    if (this.shouldThrottled) {
       return;
     }
 
@@ -149,8 +167,10 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(this.queue, this.config.flushQueueSize);
     for (const batch of batches) {
+      console.log(1);
       this.increaseAttempts(batch);
       const isFullfilledRequest = await this.send(batch, useRetry);
+      console.log(isFullfilledRequest);
       // To keep the order of events sending to the backend, stop sending the other requests while the request is not been fullfilled.
       // All the events are still queued, and will be retried with next trigger.
       if (!isFullfilledRequest) {
@@ -288,26 +308,46 @@ export class Destination implements DestinationPlugin {
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]): boolean {
+    console.log('in handleRateLimitResponse');
+    console.log(res.body);
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
+    // Array of indexes in the events array indicating events whose user_id or device_id were throttled.
+    const throttledIndexSet = new Set(res.body.throttledEvents);
     const dropUserIdsSet = new Set(dropUserIds);
     const dropDeviceIdsSet = new Set(dropDeviceIds);
-
-    const retry = list.filter((context) => {
+    console.log(throttledIndexSet);
+    console.log(list);
+    const retry = list.filter((context, index) => {
       if (
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
+        console.log(index);
+        throttledIndexSet.delete(index);
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
 
       return true;
     });
+    console.log(retry);
 
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
+
+      // Has throttled event and dot dropped before
+      if (throttledIndexSet.size > 0) {
+        console.log('set up shouldThrottled status');
+        this.shouldThrottled = true;
+        console.log('has been throttled');
+        setTimeout(() => {
+          this.shouldThrottled = false;
+          console.log('clean throttled status');
+        }, this.throttleTimeout);
+      }
+
       return false;
     }
 
