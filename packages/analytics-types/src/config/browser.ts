@@ -14,6 +14,7 @@ export interface ExternalBrowserConfig extends Config {
   appVersion?: string;
   /**
    * The default event tracking configuration.
+   * See {@link https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-default-events}.
    * @defaultValue `true`
    */
   defaultTracking?: boolean | DefaultTrackingOptions;
@@ -44,11 +45,12 @@ export interface ExternalBrowserConfig extends Config {
   sessionId?: number;
   /**
    * The period of inactivity from the last tracked event before a session expires in milliseconds.
-   * @defaultValue `1800000`
+   * @defaultValue `1,800,000` (30 minutes)
    */
   sessionTimeout: number;
   /**
    * The configurations for tracking additional properties.
+   * See {@link https://www.docs.developers.amplitude.com/data/sdks/browser-2/#optional-tracking}.
    */
   trackingOptions: TrackingOptions;
   /**
