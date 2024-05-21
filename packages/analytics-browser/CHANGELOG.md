@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.7.4...@amplitude/analytics-browser@2.8.0) (2024-05-21)
+
+### Features
+
+- support sessionId from url for cross domain tracking
+  ([#753](https://github.com/amplitude/Amplitude-TypeScript/issues/753))
+  ([691d725](https://github.com/amplitude/Amplitude-TypeScript/commit/691d725131b5dfba497084fcf101a4e6e22bbd59))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.7.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.7.3...@amplitude/analytics-browser@2.7.4) (2024-05-17)
 
 ### Bug Fixes

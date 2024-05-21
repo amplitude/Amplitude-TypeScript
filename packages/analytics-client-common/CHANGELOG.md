@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.1.6...@amplitude/analytics-client-common@2.2.0) (2024-05-21)
+
+### Features
+
+- support sessionId from url for cross domain tracking
+  ([#753](https://github.com/amplitude/Amplitude-TypeScript/issues/753))
+  ([691d725](https://github.com/amplitude/Amplitude-TypeScript/commit/691d725131b5dfba497084fcf101a4e6e22bbd59))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.1.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.1.5...@amplitude/analytics-client-common@2.1.6) (2024-05-15)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
