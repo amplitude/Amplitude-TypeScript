@@ -89,16 +89,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
     const queryParams = getQueryParams();
-    this.setSessionId(
-      options.sessionId ??
-        (queryParams.ampSessionId
-          ? Number.isNaN(Number(queryParams.ampSessionId))
-            ? undefined
-            : Number(queryParams.ampSessionId)
-          : undefined) ??
-        this.config.sessionId ??
-        Date.now(),
-    );
+    const querySessionId = Number.isNaN(Number(queryParams.ampSessionId))
+      ? undefined
+      : Number(queryParams.ampSessionId);
+    this.setSessionId(options.sessionId ?? querySessionId ?? this.config.sessionId ?? Date.now());
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the

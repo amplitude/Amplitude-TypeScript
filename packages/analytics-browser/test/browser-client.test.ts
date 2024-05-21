@@ -421,45 +421,47 @@ describe('browser-client', () => {
       });
     });
 
-    test('should fall back to other options when session id from url is not Number', async () => {
-      // Mock window.location
-      const originalLocation = window.location;
-      const urlWithNaNSessionId = new URL(`https://www.example.com?ampSessionId=test}`);
-      Object.defineProperty(window, 'location', {
-        value: {
-          search: urlWithNaNSessionId.search,
-        } as Location,
-        writable: true,
-      });
+    test.each([[new URL(`https://www.example.com?ampSessionId=test}`)], [new URL(`https://www.example.com`)]])(
+      'should fall back to other options when session id from url is not Number',
+      async (mockedUrl) => {
+        // Mock window.location
+        const originalLocation = window.location;
+        Object.defineProperty(window, 'location', {
+          value: {
+            search: mockedUrl.search,
+          } as Location,
+          writable: true,
+        });
 
-      // Mock Date.now()
-      const originalDate = Date.now;
-      const currentTimestamp = Date.now();
-      Date.now = jest.fn(() => currentTimestamp);
+        // Mock Date.now()
+        const originalDate = Date.now;
+        const currentTimestamp = Date.now();
+        Date.now = jest.fn(() => currentTimestamp);
 
-      const setSessionId = jest.spyOn(client, 'setSessionId');
-      await client.init(apiKey, userId, {
-        defaultTracking: {
-          attribution: false,
-          fileDownloads: false,
-          formInteractions: false,
-          pageViews: false,
-          sessions: true,
-        },
-      }).promise;
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
 
-      // Should fall back to use Date.now() because "test" from ampSessionId is NaN
-      expect(client.config.sessionId).toEqual(currentTimestamp);
-      expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenLastCalledWith(currentTimestamp);
+        // Should fall back to use Date.now() because "test" from ampSessionId is NaN
+        expect(client.config.sessionId).toEqual(currentTimestamp);
+        expect(setSessionId).toHaveBeenCalledTimes(1);
+        expect(setSessionId).toHaveBeenLastCalledWith(currentTimestamp);
 
-      // Restore mocks
-      Object.defineProperty(window, 'location', {
-        value: originalLocation,
-        writable: true,
-      });
-      Date.now = originalDate;
-    });
+        // Restore mocks
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          writable: true,
+        });
+        Date.now = originalDate;
+      },
+    );
   });
 
   describe('getUserId', () => {
