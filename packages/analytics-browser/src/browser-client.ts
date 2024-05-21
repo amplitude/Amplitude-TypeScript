@@ -84,14 +84,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 3: Set session ID
     // Priority 1: `options.sessionId`
-    // Priority 2: sessionId from url
+    // Priority 2: sessionId from url if it's Number
     // Priority 3: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
     const queryParams = getQueryParams();
     this.setSessionId(
       options.sessionId ??
-        (queryParams.ampSessionId ? Number(queryParams.ampSessionId) : undefined) ??
+        (queryParams.ampSessionId
+          ? Number.isNaN(Number(queryParams.ampSessionId))
+            ? undefined
+            : Number(queryParams.ampSessionId)
+          : undefined) ??
         this.config.sessionId ??
         Date.now(),
     );
