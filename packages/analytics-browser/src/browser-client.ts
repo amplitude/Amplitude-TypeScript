@@ -13,6 +13,7 @@ import {
   isNewSession,
   isPageViewTrackingEnabled,
   WebAttribution,
+  getQueryParams,
 } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
@@ -83,10 +84,15 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 3: Set session ID
     // Priority 1: `options.sessionId`
-    // Priority 2: last known sessionId from user identity storage
+    // Priority 2: sessionId from url if it's Number
+    // Priority 3: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
-    this.setSessionId(options.sessionId ?? this.config.sessionId ?? Date.now());
+    const queryParams = getQueryParams();
+    const querySessionId = Number.isNaN(Number(queryParams.ampSessionId))
+      ? undefined
+      : Number(queryParams.ampSessionId);
+    this.setSessionId(options.sessionId ?? querySessionId ?? this.config.sessionId ?? Date.now());
 
     // Set up the analytics connector to integrate with the experiment SDK.
     // Send events from the experiment SDK and forward identifies to the

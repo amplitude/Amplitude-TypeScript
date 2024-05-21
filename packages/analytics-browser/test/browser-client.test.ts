@@ -22,6 +22,9 @@ describe('browser-client', () => {
   let userId = '';
   let deviceId = '';
   let client = new AmplitudeBrowser();
+  const testDeviceId = 'test-device-id';
+  const testSessionId = 12345;
+  const url = new URL(`https://www.example.com?ampDeviceId=${testDeviceId}&ampSessionId=${testSessionId}`);
   const defaultTracking = {
     attribution: false,
     fileDownloadTracking: false,
@@ -361,6 +364,104 @@ describe('browser-client', () => {
       getGlobalScopeMock.mockRestore();
       addEventListenerMock.mockRestore();
     });
+
+    test.each([[url], [new URL(`https://www.example.com?deviceId=${testDeviceId}`)]])(
+      'should set device id from url',
+      async (mockedUrl) => {
+        const originalLocation = window.location;
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: mockedUrl.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+        expect(client.config.deviceId).toEqual(testDeviceId);
+
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          writable: true,
+        });
+      },
+    );
+
+    test('should set session id from url', async () => {
+      const originalLocation = window.location;
+
+      Object.defineProperty(window, 'location', {
+        value: {
+          search: url.search,
+        } as Location,
+        writable: true,
+      });
+
+      const setSessionId = jest.spyOn(client, 'setSessionId');
+
+      await client.init(apiKey, userId, {
+        defaultTracking: {
+          attribution: false,
+          fileDownloads: false,
+          formInteractions: false,
+          pageViews: false,
+          sessions: true,
+        },
+      }).promise;
+      expect(client.config.sessionId).toEqual(testSessionId);
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(setSessionId).toHaveBeenLastCalledWith(testSessionId);
+
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      });
+    });
+
+    test.each([[new URL(`https://www.example.com?ampSessionId=test}`)], [new URL(`https://www.example.com`)]])(
+      'should fall back to other options when session id from url is not Number',
+      async (mockedUrl) => {
+        // Mock window.location
+        const originalLocation = window.location;
+        Object.defineProperty(window, 'location', {
+          value: {
+            search: mockedUrl.search,
+          } as Location,
+          writable: true,
+        });
+
+        // Mock Date.now()
+        const originalDate = Date.now;
+        const currentTimestamp = Date.now();
+        Date.now = jest.fn(() => currentTimestamp);
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        // Should fall back to use Date.now() because "test" from ampSessionId is NaN
+        expect(client.config.sessionId).toEqual(currentTimestamp);
+        expect(setSessionId).toHaveBeenCalledTimes(1);
+        expect(setSessionId).toHaveBeenLastCalledWith(currentTimestamp);
+
+        // Restore mocks
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          writable: true,
+        });
+        Date.now = originalDate;
+      },
+    );
   });
 
   describe('getUserId', () => {

@@ -27,6 +27,9 @@ describe('analytics-connector', () => {
         updateUserProperties: function () {
           return this;
         },
+        setOptOut: function () {
+          return this;
+        },
         commit,
       };
       const instance = new AnalyticsConnector();
@@ -52,6 +55,9 @@ describe('analytics-connector', () => {
           return this;
         },
         updateUserProperties: function () {
+          return this;
+        },
+        setOptOut: function () {
           return this;
         },
         commit,

@@ -219,7 +219,12 @@ export const useBrowserConfig = async (
 
   // Step 3: Reconcile user identity
   const deviceId =
-    options.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? legacyCookies.deviceId ?? UUID();
+    options.deviceId ??
+    queryParams.ampDeviceId ??
+    queryParams.deviceId ??
+    previousCookies?.deviceId ??
+    legacyCookies.deviceId ??
+    UUID();
   const lastEventId = previousCookies?.lastEventId ?? legacyCookies.lastEventId;
   const lastEventTime = previousCookies?.lastEventTime ?? legacyCookies.lastEventTime;
   const optOut = options.optOut ?? previousCookies?.optOut ?? legacyCookies.optOut;
