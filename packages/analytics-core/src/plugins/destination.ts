@@ -106,15 +106,7 @@ export class Destination implements DestinationPlugin {
   }
 
   sendEventsIfReady() {
-    if (this.config.offline) {
-      return;
-    }
-
-    if (this.queue.length >= this.config.flushQueueSize) {
-      void this.flush(true);
-    }
-
-    if (this.scheduled) {
+    if (this.config.offline || this.scheduled) {
       return;
     }
 
@@ -125,8 +117,6 @@ export class Destination implements DestinationPlugin {
         }
       });
     }, this.config.flushIntervalMillis);
-
-    return;
   }
 
   // flush the queue
