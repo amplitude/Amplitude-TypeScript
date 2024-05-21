@@ -91,7 +91,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     const queryParams = getQueryParams();
     this.setSessionId(
       options.sessionId ??
-        (queryParams.sessionId ? Number(queryParams.sessionId) : undefined) ??
+        (queryParams.ampSessionId ? Number(queryParams.ampSessionId) : undefined) ??
         this.config.sessionId ??
         Date.now(),
     );
