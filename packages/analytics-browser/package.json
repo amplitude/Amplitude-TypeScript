@@ -33,12 +33,12 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "playground-html": "cp lib/scripts/amplitude-min.js playground/html/amplitude.js && http-server ./playground/html",
-    "playground-react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && yarn start",
+    "playground:html": "cp lib/scripts/amplitude-min.js playground/html/amplitude.js && http-server ./playground/html",
+    "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && yarn start",
     "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/amplitude.js",
+    "version": "yarn version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
