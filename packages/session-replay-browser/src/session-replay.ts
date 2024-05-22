@@ -1,7 +1,7 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
-import { pack, record } from '@amplitude/rrweb';
+import { EventType, IncrementalSource, MouseInteractions, record } from '@amplitude/rrweb';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
@@ -19,6 +19,7 @@ import {
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
+import { PageDetailsPlugin } from './plugins/page-details-plugin';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -225,7 +226,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         const deviceId = this.getDeviceId();
         deviceId && this.eventsManager && this.eventsManager.addEvent({ event: eventString, sessionId, deviceId });
       },
-      packFn: pack,
+      // packFn: pack,
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
@@ -233,6 +234,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       blockSelector: this.getBlockSelectors() as string,
       maskInputFn,
       recordCanvas: false,
+      plugins: [
+        PageDetailsPlugin({
+          eventTypes: [
+            {
+              type: EventType.IncrementalSnapshot,
+              source: { id: IncrementalSource.MouseInteraction, type: MouseInteractions.Click },
+            },
+            {
+              type: EventType.IncrementalSnapshot,
+              source: { id: IncrementalSource.Scroll },
+            },
+          ],
+        }),
+      ],
       errorHandler: (error) => {
         const typedError = error as Error;
 
