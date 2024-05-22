@@ -53,7 +53,7 @@ export class Destination implements DestinationPlugin {
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
   shouldThrottled = false;
-  throttleTimeout = 3000;
+  throttleTimeout = 10;
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -67,6 +67,7 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
+    console.log(event.event_type);
     // Assign insert_id for dropping invalid event later
     if (!event.insert_id) {
       event.insert_id = UUID();
@@ -109,19 +110,11 @@ export class Destination implements DestinationPlugin {
 
   sendEventsIfReady() {
     console.log('sendEventsIfReady');
-    if (this.config.offline) {
-      return;
-    }
-
+    console.log(this.queue);
     console.log(this.shouldThrottled);
 
-    if (this.shouldThrottled) {
+    if (this.config.offline || this.scheduled || this.shouldThrottled) {
       return;
-    }
-
-    if (this.queue.length >= this.config.flushQueueSize) {
-      console.log('in size flush');
-      void this.flush(true);
     }
 
     console.log(this.scheduled);
@@ -138,8 +131,6 @@ export class Destination implements DestinationPlugin {
         }
       });
     }, this.config.flushIntervalMillis);
-
-    return;
   }
 
   // flush the queue
@@ -170,6 +161,7 @@ export class Destination implements DestinationPlugin {
       console.log(1);
       this.increaseAttempts(batch);
       const isFullfilledRequest = await this.send(batch, useRetry);
+      console.log(this.queue);
       console.log(isFullfilledRequest);
       // To keep the order of events sending to the backend, stop sending the other requests while the request is not been fullfilled.
       // All the events are still queued, and will be retried with next trigger.
@@ -186,8 +178,13 @@ export class Destination implements DestinationPlugin {
    */
   async send(list: Context[], useRetry = true): Promise<boolean> {
     if (!this.config.apiKey) {
+      console.log('no api');
       this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
       return true;
+    }
+
+    if (this.shouldThrottled) {
+      return false;
     }
 
     const payload = {
@@ -206,15 +203,24 @@ export class Destination implements DestinationPlugin {
     try {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
+      console.log(res);
       if (res === null) {
+        console.log('no res');
+
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return true;
       }
 
       if (!useRetry) {
+        console.log('no use retry');
+
         if ('body' in res) {
+          console.log('no use retry with body');
+
           this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
+          console.log('no use retry without body');
+
           this.fulfillRequest(list, res.statusCode, res.status);
         }
         return true;
@@ -338,7 +344,7 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
 
       // Has throttled event and dot dropped before
-      if (throttledIndexSet.size > 0) {
+      if (throttledIndexSet.size > 0 && !this.shouldThrottled) {
         console.log('set up shouldThrottled status');
         this.shouldThrottled = true;
         console.log('has been throttled');
