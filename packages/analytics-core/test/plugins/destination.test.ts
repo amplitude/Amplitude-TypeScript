@@ -272,6 +272,36 @@ describe('destination', () => {
       expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush while offline.');
     });
 
+    test('should skip flush if throttled', async () => {
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        loggerProvider: loggerProvider,
+      };
+      destination.throttled = true;
+      destination.queue = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+        },
+      ];
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
+      await destination.flush();
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush while throttled. Will retry after 30 seconds.');
+    });
+
     test('should get batch and call send', async () => {
       const destination = new Destination();
       destination.config = {
@@ -307,6 +337,30 @@ describe('destination', () => {
       const result = await destination.flush();
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
+    });
+
+    test('should skip send if throttled', async () => {
+      const transportProvider = {
+        send: jest.fn(),
+      };
+
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        transportProvider: transportProvider,
+      };
+      destination.throttled = true;
+      const contexts = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+        },
+      ];
+      const send = jest.spyOn(transportProvider, 'send');
+      const isFullfilledRequest = await destination.send(contexts);
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(isFullfilledRequest).toBe(false);
     });
 
     test('should update the attempts', async () => {
@@ -1139,7 +1193,7 @@ describe('destination', () => {
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
-    test('should set shouldThrottled to true for 429 response throttled event and set to false after throttled timeout', async () => {
+    test('should set throttled to true for 429 response throttled event and set to false after throttled timeout', async () => {
       jest.useFakeTimers();
 
       class Http {
@@ -1185,11 +1239,11 @@ describe('destination', () => {
       // wait for next tick to call nested setTimeout
       await Promise.resolve();
 
-      expect(destination.shouldThrottled).toBe(true);
+      expect(destination.throttled).toBe(true);
       // exhause throttle setTimeout
       jest.runAllTimers();
 
-      expect(destination.shouldThrottled).toBe(false);
+      expect(destination.throttled).toBe(false);
       jest.runOnlyPendingTimers();
       jest.useRealTimers();
     });

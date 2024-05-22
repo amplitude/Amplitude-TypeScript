@@ -52,8 +52,8 @@ export class Destination implements DestinationPlugin {
   config: Config;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
-  shouldThrottled = false;
-  throttleTimeout = 10;
+  throttled = false;
+  throttleTimeout = 30000;
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -67,7 +67,6 @@ export class Destination implements DestinationPlugin {
   }
 
   execute(event: Event): Promise<Result> {
-    console.log(event.event_type);
     // Assign insert_id for dropping invalid event later
     if (!event.insert_id) {
       event.insert_id = UUID();
@@ -109,24 +108,13 @@ export class Destination implements DestinationPlugin {
   }
 
   sendEventsIfReady() {
-    console.log('sendEventsIfReady');
-    console.log(this.queue);
-    console.log(this.shouldThrottled);
-
-    if (this.config.offline || this.scheduled || this.shouldThrottled) {
+    if (this.config.offline || this.scheduled || this.throttled) {
       return;
     }
 
-    console.log(this.scheduled);
-    if (this.scheduled) {
-      return;
-    }
-    console.log('before set timer');
     this.scheduled = setTimeout(() => {
-      console.log('in schedule timeout');
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {
-          console.log('in flush try to sendEventsIfReady');
           this.sendEventsIfReady();
         }
       });
@@ -135,14 +123,14 @@ export class Destination implements DestinationPlugin {
 
   // flush the queue
   async flush(useRetry = false) {
-    console.log('flush');
     // Skip flush if offline
     if (this.config.offline) {
       this.config.loggerProvider.debug('Skipping flush while offline.');
       return;
     }
 
-    if (this.shouldThrottled) {
+    if (this.throttled) {
+      this.config.loggerProvider.debug('Skipping flush while throttled. Will retry after 30 seconds.');
       return;
     }
 
@@ -158,11 +146,9 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(this.queue, this.config.flushQueueSize);
     for (const batch of batches) {
-      console.log(1);
       this.increaseAttempts(batch);
       const isFullfilledRequest = await this.send(batch, useRetry);
-      console.log(this.queue);
-      console.log(isFullfilledRequest);
+
       // To keep the order of events sending to the backend, stop sending the other requests while the request is not been fullfilled.
       // All the events are still queued, and will be retried with next trigger.
       if (!isFullfilledRequest) {
@@ -178,12 +164,11 @@ export class Destination implements DestinationPlugin {
    */
   async send(list: Context[], useRetry = true): Promise<boolean> {
     if (!this.config.apiKey) {
-      console.log('no api');
       this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
       return true;
     }
 
-    if (this.shouldThrottled) {
+    if (this.throttled) {
       return false;
     }
 
@@ -203,24 +188,15 @@ export class Destination implements DestinationPlugin {
     try {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);
       const res = await this.config.transportProvider.send(serverUrl, payload);
-      console.log(res);
       if (res === null) {
-        console.log('no res');
-
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
         return true;
       }
 
       if (!useRetry) {
-        console.log('no use retry');
-
         if ('body' in res) {
-          console.log('no use retry with body');
-
           this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
-          console.log('no use retry without body');
-
           this.fulfillRequest(list, res.statusCode, res.status);
         }
         return true;
@@ -314,22 +290,17 @@ export class Destination implements DestinationPlugin {
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]): boolean {
-    console.log('in handleRateLimitResponse');
-    console.log(res.body);
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
     // Array of indexes in the events array indicating events whose user_id or device_id were throttled.
     const throttledIndexSet = new Set(res.body.throttledEvents);
     const dropUserIdsSet = new Set(dropUserIds);
     const dropDeviceIdsSet = new Set(dropDeviceIds);
-    console.log(throttledIndexSet);
-    console.log(list);
     const retry = list.filter((context, index) => {
       if (
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
-        console.log(index);
         throttledIndexSet.delete(index);
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
@@ -337,20 +308,17 @@ export class Destination implements DestinationPlugin {
 
       return true;
     });
-    console.log(retry);
 
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
 
       // Has throttled event and dot dropped before
-      if (throttledIndexSet.size > 0 && !this.shouldThrottled) {
-        console.log('set up shouldThrottled status');
-        this.shouldThrottled = true;
-        console.log('has been throttled');
+      if (throttledIndexSet.size > 0 && !this.throttled) {
+        this.throttled = true;
         setTimeout(() => {
-          this.shouldThrottled = false;
-          console.log('clean throttled status');
+          this.throttled = false;
+          this.sendEventsIfReady();
         }, this.throttleTimeout);
       }
 
