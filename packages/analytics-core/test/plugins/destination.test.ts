@@ -706,6 +706,38 @@ describe('destination', () => {
         callback,
         event: {
           event_type: 'event_type',
+        },
+      };
+
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.PayloadTooLarge,
+            statusCode: 413,
+            body: {
+              code: 413,
+              error: 'error',
+            },
+          });
+        }),
+      };
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+      });
+      const isFullfilledRequest = await destination.send([context]);
+      expect(isFullfilledRequest).toBe(true);
+    });
+
+    test('should marked as fillfiled request for 429 response if no retried events', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
           device_id: '0',
         },
       };
@@ -1193,7 +1225,7 @@ describe('destination', () => {
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
-    test('should set throttled to true for 429 response throttled event and set to false after throttled timeout', async () => {
+    test('should set throttled to true for 429 response with throttled event and set to false after throttled timeout', async () => {
       jest.useFakeTimers();
 
       class Http {

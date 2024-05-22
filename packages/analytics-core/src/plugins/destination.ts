@@ -148,7 +148,6 @@ export class Destination implements DestinationPlugin {
     for (const batch of batches) {
       this.increaseAttempts(batch);
       const isFullfilledRequest = await this.send(batch, useRetry);
-
       // To keep the order of events sending to the backend, stop sending the other requests while the request is not been fullfilled.
       // All the events are still queued, and will be retried with next trigger.
       if (!isFullfilledRequest) {

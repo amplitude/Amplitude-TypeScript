@@ -602,6 +602,7 @@ describe('integration', () => {
       first.done();
       second.done();
     });
+
     test('should handle 429 error with throttled event', async () => {
       const first = nock(url)
         .post(path)
@@ -671,7 +672,7 @@ describe('integration', () => {
       const eventTypes = ['test event 1', 'test event 2', 'test event 3'];
       client.track(eventTypes[0]);
       client.track(eventTypes[1]);
-      // Make sure throttled timeout and events have been successfully sent to server
+      // Make sure throttled timeout and events have been sent to server
       await client.track(eventTypes[2]).promise;
 
       expect(payload).toEqual({
