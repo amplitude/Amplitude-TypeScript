@@ -11,7 +11,7 @@ import {
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { createEventsManager } from './events/events-manager';
-import { generateHashCode, isSessionInSample, maskInputFn } from './helpers';
+import { generateHashCode, isSessionInSample, maskInputFn, maskTextFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
@@ -207,13 +207,23 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return this.config?.privacyConfig?.blockSelector;
   }
 
+  getMaskTextSelectors(): string | undefined {
+    const maskSelector = this.config?.privacyConfig?.maskSelector;
+    if (!maskSelector) {
+      return;
+    }
+
+    return maskSelector as unknown as string;
+  }
+
   recordEvents() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
-    if (!shouldRecord || !sessionId) {
+    if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
     this.stopRecordingEvents();
+    const privacyConfig = this.config.privacyConfig;
     this.recordCancelCallback = record({
       emit: (event) => {
         const globalScope = getGlobalScope();
@@ -229,9 +239,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
-      // rrweb only exposes array type through its types, but arrays are also be supported. #class, ['#class', 'id']
+      // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
       blockSelector: this.getBlockSelectors() as string,
-      maskInputFn,
+      maskInputFn: maskInputFn(privacyConfig),
+      maskTextFn: maskTextFn(privacyConfig),
+      // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
+      maskTextSelector: this.getMaskTextSelectors(),
       recordCanvas: false,
       errorHandler: (error) => {
         const typedError = error as Error;

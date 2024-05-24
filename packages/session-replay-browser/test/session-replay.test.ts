@@ -67,6 +67,7 @@ describe('SessionReplay', () => {
     serverZone: ServerZone.EU,
     privacyConfig: {
       blockSelector: '.className',
+      maskSelector: ['.className1', '.className2']
     },
   };
   const mockEmptyOptions: SessionReplayOptions = {
@@ -837,6 +838,24 @@ describe('SessionReplay', () => {
       expect(url).toEqual('');
     });
   });
+
+  describe('getMaskTextSelectors', () => {
+    test('null config', () => {
+      sessionReplay.config = undefined;
+      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+    });
+    test('null privacy config', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (sessionReplay.config) {
+        sessionReplay.config.privacyConfig = undefined;
+      }
+      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+    });
+    test('returns mask text selectors', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual(['.className1', '.className2']);
+    });
+  })
 
   describe('getBlockSelectors', () => {
     test('null config', () => {

@@ -1,12 +1,101 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { UNMASK_TEXT_CLASS } from './constants';
+import { MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
+import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig } from './config/types';
+import { getInputType } from '@amplitude/rrweb-snapshot';
 
-export const maskInputFn = (text: string, element: HTMLElement) => {
-  if (element.classList?.contains(UNMASK_TEXT_CLASS)) {
-    return text;
-  }
-  return '*'.repeat(text.length);
+// compiler guard
+/* istanbul ignore next */
+const assertUnreachable = (_: never): never => {
+  throw new Error('did not expect to get here');
 };
+
+/**
+ * Light: Subset of inputs
+ * Medium: All inputs
+ * Conservative: All inputs and all texts
+ */
+const isMaskedForLevel = (element: HTMLElement, elementType: 'input' | 'text', level: MaskLevel): boolean => {
+  switch (level) {
+    case MaskLevel.LIGHT: {
+      if (elementType !== 'input') {
+        return false;
+      }
+
+      const inputType = getInputType(element);
+      /* istanbul ignore if */ // For some reason it's impossible to test this.
+      if (!inputType) {
+        return false;
+      }
+
+      if (['password', 'hidden', 'email', 'tel'].includes(inputType)) {
+        return true;
+      }
+
+      if ((element as HTMLInputElement).autocomplete.startsWith('cc-')) {
+        return true;
+      }
+
+      return false;
+    }
+    case MaskLevel.MEDIUM:
+      return elementType === 'input';
+    case MaskLevel.CONSERVATIVE:
+      return elementType === 'input' || elementType === 'text';
+  }
+  /* istanbul ignore next */
+  return assertUnreachable(level);
+};
+
+/**
+ * Checks if the given element set to be masked by rrweb
+ *
+ * Priority is:
+ *  1. [In code] Element/class based masking/unmasking
+ *  2. [Config based] Selector based masking/unmasking
+ *  3. Use app defaults
+ */
+const isMasked = (element: HTMLElement, elementType: 'input' | 'text', config?: PrivacyConfig): boolean => {
+  // Element is explicitly instrumented to mask/unmask
+  if (element.classList) {
+    if (element.classList.contains(MASK_TEXT_CLASS)) {
+      return true;
+    } else if (element.classList.contains(UNMASK_TEXT_CLASS)) {
+      return false;
+    }
+  }
+
+  // No privacy config? Default to medium policy
+  if (!config) {
+    return isMaskedForLevel(element, elementType, DEFAULT_MASK_LEVEL);
+  }
+
+  // Config has override for mask/unmask
+  const shouldMask = (config.maskSelector ?? []).find((selector) => element.matches(selector)) != null;
+  if (shouldMask) {
+    return true;
+  }
+  const shouldInclude = (config.includeSelector ?? []).find((selector) => element.matches(selector)) != null;
+  if (shouldInclude) {
+    return false;
+  }
+
+  return isMaskedForLevel(element, elementType, config.defaultMaskLevel ?? DEFAULT_MASK_LEVEL);
+};
+
+export const maskInputFn =
+  (config?: PrivacyConfig) =>
+  (text: string, element: HTMLElement): string => {
+    return isMasked(element, 'input', config) ? '*'.repeat(text.length) : text;
+  };
+
+export const maskTextFn =
+  (config?: PrivacyConfig) =>
+  (text: string, element: HTMLElement | null): string => {
+    if (!element) {
+      return text;
+    }
+    return isMasked(element, 'text', config) ? '*'.repeat(text.length) : text;
+  };
 
 export const generateHashCode = function (str: string) {
   let hash = 0;
