@@ -133,6 +133,7 @@ describe('http transport', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       cb({
+        statusCode: 502,
         complete: true,
         on: jest.fn().mockImplementation((event: string, callback: (data?: string) => void) => {
           if (event === 'data') {
@@ -152,7 +153,8 @@ describe('http transport', () => {
     });
 
     const response = await provider.send(url, payload);
-    expect(response).toBe(null);
+    expect(response?.status).toBe(Status.Failed);
+    expect(response?.statusCode).toBe(502);
     expect(request).toHaveBeenCalledTimes(1);
   });
 });
