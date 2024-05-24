@@ -17,13 +17,13 @@ export class XHRTransport extends BaseTransport implements Transport {
       xhr.open('POST', serverUrl, true);
       xhr.onreadystatechange = () => {
         if (xhr.readyState === this.state.done) {
-          const responsePayload = xhr.responseText;
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          const parsedResponsePayload: Record<string, any> = responsePayload
-            ? JSON.parse(responsePayload)
-            : { code: xhr.status };
-          const result = this.buildResponse(parsedResponsePayload);
-          resolve(result);
+          const responseText = xhr.responseText;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            resolve(this.buildResponse(JSON.parse(responseText)));
+          } catch {
+            resolve(this.buildResponse({ code: xhr.status }));
+          }
         }
       };
       xhr.setRequestHeader('Content-Type', 'application/json');
