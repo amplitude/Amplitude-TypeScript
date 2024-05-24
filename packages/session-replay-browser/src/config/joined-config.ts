@@ -4,7 +4,6 @@ import { SessionReplayLocalConfig } from './local-config';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   SessionReplayJoinedConfig,
-  PrivacyConfig,
   SessionReplayRemoteConfig,
 } from './types';
 
@@ -89,16 +88,10 @@ export class SessionReplayJoinedConfigGenerator {
     }
 
     // Override all keys in the local config with the remote privacy config.
-    if (privacyConfig && Object.keys(privacyConfig).length > 0) {
-      if (!config.privacyConfig) {
-        config.privacyConfig = {};
-      }
-
-      for (const key in privacyConfig) {
-        const k = key as keyof PrivacyConfig;
-        config.privacyConfig[k] = privacyConfig[k];
-      }
-    }
+    config.privacyConfig = {
+      ...(config.privacyConfig ?? {}),
+      ...privacyConfig,
+    };
 
     return config;
   }

@@ -16,8 +16,20 @@ export interface SessionReplayRemoteConfigAPIResponse {
   };
 }
 
+export enum MaskLevel {
+  LIGHT, // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
+  MEDIUM, // mask all inputs
+  CONSERVATIVE, // mask all inputs and all texts
+}
+
+export const DEFAULT_MASK_LEVEL = MaskLevel.MEDIUM;
+
+// err on the side of excluding more
 export type PrivacyConfig = {
-  blockSelector?: string | string[];
+  blockSelector?: string | string[]; // exclude in the UI
+  defaultMaskLevel?: MaskLevel;
+  maskSelector?: string[];
+  includeSelector?: string[];
 };
 
 export interface SessionReplayLocalConfig extends Config {

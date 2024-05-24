@@ -52,9 +52,6 @@ describe('SessionReplayEventsIDBStore', () => {
       await eventsStorage.initialize();
       expect(EventsIDBStore.createStore).toHaveBeenCalledWith('static_key_amp_session_replay_events');
     });
-    // test.skip('should transition from keyval', () => {
-    //   //todo
-    // })
   });
 
   describe('getSequencesToSend', () => {
