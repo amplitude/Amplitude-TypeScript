@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.8.0...@amplitude/analytics-browser@2.8.1) (2024-05-24)
+
+### Bug Fixes
+
+- success response with no body ([#755](https://github.com/amplitude/Amplitude-TypeScript/issues/755))
+  ([5d1eb72](https://github.com/amplitude/Amplitude-TypeScript/commit/5d1eb72bf9114acd884e709660eeedb0511ef4af))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.7.4...@amplitude/analytics-browser@2.8.0) (2024-05-21)
 
 ### Features
