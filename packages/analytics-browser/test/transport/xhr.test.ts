@@ -3,7 +3,10 @@ import { Status } from '@amplitude/analytics-types';
 
 describe('xhr', () => {
   describe('send', () => {
-    test('should resolve with response', async () => {
+    test.each([
+      ['{}'], // ideally response body should be json format to an application/json request
+      [''], // test the edge case where response body is non-json format
+    ])('should resolve with response', async (body) => {
       const transport = new XHRTransport();
       const url = 'http://localhost:3000';
       const payload = {
@@ -29,7 +32,7 @@ describe('xhr', () => {
         setRequestHeader,
         send,
         readyState: 4,
-        responseText: '{}',
+        responseText: body,
       };
       jest.spyOn(window, 'XMLHttpRequest').mockReturnValueOnce(mock);
       jest.spyOn(transport, 'buildResponse').mockReturnValueOnce(result);

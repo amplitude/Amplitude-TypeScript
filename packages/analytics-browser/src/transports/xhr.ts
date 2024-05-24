@@ -20,7 +20,9 @@ export class XHRTransport extends BaseTransport implements Transport {
           try {
             const responsePayload = xhr.responseText;
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            const parsedResponsePayload: Record<string, any> = JSON.parse(responsePayload);
+            const parsedResponsePayload: Record<string, any> = responsePayload
+              ? JSON.parse(responsePayload)
+              : { code: xhr.status };
             const result = this.buildResponse(parsedResponsePayload);
             resolve(result);
           } catch (e) {
