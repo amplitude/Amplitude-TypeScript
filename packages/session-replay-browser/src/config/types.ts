@@ -29,7 +29,7 @@ export type PrivacyConfig = {
   blockSelector?: string | string[]; // exclude in the UI
   defaultMaskLevel?: MaskLevel;
   maskSelector?: string[];
-  includeSelector?: string[];
+  unmaskSelector?: string[];
 };
 
 export interface SessionReplayLocalConfig extends Config {
