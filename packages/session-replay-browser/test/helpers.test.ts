@@ -4,9 +4,18 @@ import { generateHashCode, isSessionInSample, maskInputFn, maskTextFn } from '..
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskInputFn', () => {
+    test('masking takes priority over code unmask', () => {
+      const htmlElement = document.createElement('input');
+      htmlElement.classList.add(UNMASK_TEXT_CLASS);
+      const result = maskInputFn({ maskSelector: ['.' + UNMASK_TEXT_CLASS], unmaskSelector: [] })(
+        'some text',
+        htmlElement,
+      );
+      expect(result).toEqual('*********');
+    });
     test('should mask on default config', () => {
       const htmlElement = document.createElement('div');
-      const result = maskInputFn({ maskSelector: [], includeSelector: [] })('some text', htmlElement);
+      const result = maskInputFn({ maskSelector: [], unmaskSelector: [] })('some text', htmlElement);
       expect(result).toEqual('*********');
     });
     test('should mask instead of unmask for certain selectors', () => {
@@ -15,7 +24,7 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskInputFn({
         defaultMaskLevel: MaskLevel.LIGHT,
         maskSelector: ['.mask-this'],
-        includeSelector: ['.mask-this'],
+        unmaskSelector: ['.mask-this'],
       })('some text', htmlElement);
       expect(result).toEqual('*********');
     });
@@ -31,7 +40,7 @@ describe('SessionReplayPlugin helpers', () => {
     test('should specifically unmask certain selectors', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('unmask-this');
-      const result = maskInputFn({ defaultMaskLevel: MaskLevel.CONSERVATIVE, includeSelector: ['.unmask-this'] })(
+      const result = maskInputFn({ defaultMaskLevel: MaskLevel.CONSERVATIVE, unmaskSelector: ['.unmask-this'] })(
         'some text',
         htmlElement,
       );
