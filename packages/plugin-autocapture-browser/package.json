@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-autocapture-browser",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
