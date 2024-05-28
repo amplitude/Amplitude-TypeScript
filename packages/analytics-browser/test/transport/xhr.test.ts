@@ -6,6 +6,7 @@ describe('xhr', () => {
     test.each([
       ['{}'], // ideally response body should be json format to an application/json request
       [''], // test the edge case where response body is non-json format
+      ['<'],
     ])('should resolve with response', async (body) => {
       const transport = new XHRTransport();
       const url = 'http://localhost:3000';

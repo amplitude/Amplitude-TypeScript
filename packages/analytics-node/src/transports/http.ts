@@ -42,9 +42,8 @@ export class Http extends BaseTransport implements Transport {
               const parsedResponsePayload: Record<string, any> = JSON.parse(responsePayload);
               const result = this.buildResponse(parsedResponsePayload);
               resolve(result);
-              return;
             } catch {
-              resolve(null);
+              resolve(this.buildResponse({ code: res.statusCode }));
             }
           }
         });

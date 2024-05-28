@@ -17,8 +17,11 @@ export class FetchTransport extends BaseTransport implements Transport {
     };
     const response = await fetch(serverUrl, options);
     const responseText = await response.text();
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    return this.buildResponse(responseText ? JSON.parse(responseText) : { code: response.status });
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      return this.buildResponse(JSON.parse(responseText));
+    } catch {
+      return this.buildResponse({ code: response.status });
+    }
   }
 }
