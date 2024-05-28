@@ -312,7 +312,7 @@ export class Destination implements DestinationPlugin {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
 
-      // Has throttled event and dot dropped before
+      // Has not dropped throttled event
       if (throttledIndexSet.size > 0 && !this.throttled) {
         this.throttled = true;
         setTimeout(() => {
