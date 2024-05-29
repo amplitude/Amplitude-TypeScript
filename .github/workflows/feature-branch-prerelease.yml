@@ -1,0 +1,102 @@
+name: Prerelease feature branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        type: choice
+        description: Select dry-run for testing before real prerelease
+        required: true
+        options:
+          - dry-run
+          - prerelease
+        
+
+jobs:
+  authorize:
+    name: Authorize
+    runs-on: ubuntu-latest
+    steps:
+      - name: ${{ github.actor }} permission check to do a release
+        uses: 'lannonbr/repo-permission-check-action@2.0.2'
+        with:
+          permission: 'write'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: [authorize]
+    permissions:
+      id-token: write
+      contents: write
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-name@v7
+
+      - name: Check out git repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.branch-name.outputs.ref_branch }}
+          fetch-depth: 0
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+      - name: Build all packages
+        run: |
+          yarn build
+      - name: Lint all packages
+        run: |
+          yarn lint
+      - name: Configure Git User
+        run: |
+          git config --global user.name amplitude-sdk-bot
+          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
+      - name: Configure NPM User
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
+          npm whoami
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
+          aws-region: us-west-2
+
+      # Converted to all lowercase and stripped of non-letter characters
+      - name: Transform feature branch name
+        run: |
+          echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
+      # Use --no-push to prevent pushing to remote
+      - name: Dry run pre-release version
+        if: ${{ github.event.inputs.releaseType == 'dry-run' }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
+      - name: Pre-release version
+        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
+      # Use 'from git' option if `lerna version` has already been run
+      - name: Publish Release to NPM
+        if: ${{ github.event.inputs.releaseType == 'prerelease' }}
+        run: |
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
+        env:
+          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
