@@ -52,6 +52,8 @@ export class Destination implements DestinationPlugin {
   config: Config;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  throttled = false;
+  throttleTimeout = 30000;
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -106,7 +108,7 @@ export class Destination implements DestinationPlugin {
   }
 
   sendEventsIfReady() {
-    if (this.config.offline || this.scheduled) {
+    if (this.config.offline || this.scheduled || this.throttled) {
       return;
     }
 
@@ -124,6 +126,11 @@ export class Destination implements DestinationPlugin {
     // Skip flush if offline
     if (this.config.offline) {
       this.config.loggerProvider.debug('Skipping flush while offline.');
+      return;
+    }
+
+    if (this.throttled) {
+      this.config.loggerProvider.debug('Skipping flush while throttled. Will retry after 30 seconds.');
       return;
     }
 
@@ -158,6 +165,10 @@ export class Destination implements DestinationPlugin {
     if (!this.config.apiKey) {
       this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
       return true;
+    }
+
+    if (this.throttled) {
+      return false;
     }
 
     const payload = {
@@ -280,14 +291,16 @@ export class Destination implements DestinationPlugin {
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]): boolean {
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
+    // Array of indexes in the events array indicating events whose user_id or device_id were throttled.
+    const throttledIndexSet = new Set(res.body.throttledEvents);
     const dropUserIdsSet = new Set(dropUserIds);
     const dropDeviceIdsSet = new Set(dropDeviceIds);
-
-    const retry = list.filter((context) => {
+    const retry = list.filter((context, index) => {
       if (
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
+        throttledIndexSet.delete(index);
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
@@ -298,6 +311,16 @@ export class Destination implements DestinationPlugin {
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
+
+      // Has not dropped throttled event
+      if (throttledIndexSet.size > 0 && !this.throttled) {
+        this.throttled = true;
+        setTimeout(() => {
+          this.throttled = false;
+          this.sendEventsIfReady();
+        }, this.throttleTimeout);
+      }
+
       return false;
     }
 

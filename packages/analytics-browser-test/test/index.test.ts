@@ -603,6 +603,105 @@ describe('integration', () => {
       second.done();
     });
 
+    test('should handle 429 error with throttled event', async () => {
+      const first = nock(url)
+        .post(path)
+        .reply(429, {
+          code: 429,
+          error: 'Too many requests for some devices and users',
+          throttled_events: [0],
+        });
+
+      const second = nock(url).post(path).reply(200, success);
+
+      await client.init(apiKey, {
+        logLevel: 0,
+        defaultTracking,
+        flushIntervalMillis: 100,
+      }).promise;
+
+      const responses = await Promise.all([client.track('test event 1').promise, client.track('test event 2').promise]);
+
+      responses.forEach((response, index) => {
+        expect(response.event).toEqual({
+          user_id: undefined,
+          device_id: uuid,
+          session_id: number,
+          time: number,
+          platform: 'Web',
+          language: 'en-US',
+          ip: '$remote',
+          insert_id: uuid,
+          partner_id: undefined,
+          event_type: `test event ${index + 1}`,
+          event_id: index,
+          library: library,
+          user_agent: userAgent,
+        });
+        expect(response.code).toBe(200);
+        expect(response.message).toBe(SUCCESS_MESSAGE);
+      });
+
+      first.done();
+      second.done();
+    });
+
+    test('should handle 429 error with throttled event async', async () => {
+      const first = nock(url)
+        .post(path)
+        .reply(429, {
+          code: 429,
+          error: 'Too many requests for some devices and users',
+          throttled_events: [0],
+        });
+      let payload: any = undefined;
+
+      const second = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          payload = body;
+          return true;
+        })
+        .reply(200, success);
+
+      await client.init(apiKey, {
+        logLevel: 0,
+        defaultTracking,
+        flushIntervalMillis: 500,
+      }).promise;
+
+      const eventTypes = ['test event 1', 'test event 2', 'test event 3'];
+      client.track(eventTypes[0]);
+      client.track(eventTypes[1]);
+      // Make sure throttled timeout and events have been sent to server
+      await client.track(eventTypes[2]).promise;
+
+      expect(payload).toEqual({
+        api_key: apiKey,
+        client_upload_time: event_upload_time,
+        events: eventTypes.map((eventType, index) => ({
+          device_id: uuid,
+          event_id: index,
+          event_type: eventType,
+          insert_id: uuid,
+          ip: '$remote',
+          language: 'en-US',
+          library,
+          partner_id: undefined,
+          plan: undefined,
+          platform: 'Web',
+          session_id: number,
+          time: number,
+          user_agent: userAgent,
+        })),
+        options: {
+          min_id_length: undefined,
+        },
+      });
+
+      first.done();
+      second.done();
+    });
+
     test('should handle 500 error', async () => {
       const first = nock(url).post(path).reply(500, {
         code: 500,
