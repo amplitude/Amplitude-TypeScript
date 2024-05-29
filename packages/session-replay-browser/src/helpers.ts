@@ -4,7 +4,7 @@ import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig } from './config/types';
 import { getInputType } from '@amplitude/rrweb-snapshot';
 
 // compiler guard
-/* istanbul ignore next */
+/* istanbul ignore next */ // TODO(lew): figure out a way to test this.
 const assertUnreachable = (_: never): never => {
   throw new Error('did not expect to get here');
 };
@@ -22,7 +22,7 @@ const isMaskedForLevel = (element: HTMLElement, elementType: 'input' | 'text', l
       }
 
       const inputType = getInputType(element);
-      /* istanbul ignore if */ // For some reason it's impossible to test this.
+      /* istanbul ignore if */ // TODO(lew): For some reason it's impossible to test this.
       if (!inputType) {
         return false;
       }
@@ -42,7 +42,8 @@ const isMaskedForLevel = (element: HTMLElement, elementType: 'input' | 'text', l
     case MaskLevel.CONSERVATIVE:
       return elementType === 'input' || elementType === 'text';
   }
-  /* istanbul ignore next */
+
+  /* istanbul ignore next */ // TODO (lew): figure out a way to test this.
   return assertUnreachable(level);
 };
 
