@@ -21,7 +21,7 @@ import {
 } from './typings/session-replay';
 
 export class SessionReplay implements AmplitudeSessionReplay {
-  name = '@lewgordon-amplitude/session-replay-browser';
+  name = '@amplitude/session-replay-browser';
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
@@ -48,7 +48,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       sessionId: this.identifiers.sessionId,
     });
 
-    this.loggerProvider.log('Installing @lewgordon-amplitude/session-replay-browser.');
+    this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
     const globalScope = getGlobalScope();
     if (globalScope) {
