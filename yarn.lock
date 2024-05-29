@@ -101,10 +101,10 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@amplitude/session-replay-browser@npm:@lewgordon-amplitude/session-replay-browser@^1.6.0-beta.3":
-  version "1.6.0-beta.3"
-  resolved "https://registry.yarnpkg.com/@lewgordon-amplitude/session-replay-browser/-/session-replay-browser-1.6.0-beta.3.tgz#1bd20f3e63003c2173af5b3a207b85ab6f0d169a"
-  integrity sha512-olc77JlnPZ3gwftIVs/kEGa2dgNNyIVJEdH9efOasNZAXTBSyGneP9O0QuScHQD8o9LRa/+ZfZFMaVJxmPDz8Q==
+"@amplitude/session-replay-browser@npm:@lewgordon-amplitude/session-replay-browser@^1.6.0-beta.7":
+  version "1.6.0-beta.6"
+  resolved "https://registry.yarnpkg.com/@lewgordon-amplitude/session-replay-browser/-/session-replay-browser-1.6.0-beta.6.tgz#8ff96e9db4c4935b17150195aa1486faa2a97343"
+  integrity sha512-Uh014rTnErJK1+TQrDhNYBds+G9ilaj9cCC1vyCsub11x4BmaOXZXwvTeTeH9wQS/DP3lRNYNx3hOWbns2dJCg==
   dependencies:
     "@amplitude/analytics-client-common" ">=1 <3"
     "@amplitude/analytics-core" ">=1 <3"
