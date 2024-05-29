@@ -6,7 +6,7 @@ import {
   Event,
   Result,
 } from '@amplitude/analytics-types';
-import * as sessionReplay from '@amplitude/session-replay-browser';
+import * as sessionReplay from '@lewgordon-amplitude/session-replay-browser';
 import { SessionReplayOptions } from './typings/session-replay';
 const ENRICHMENT_PLUGIN_NAME = '@amplitude/plugin-session-replay-enrichment-browser';
 
