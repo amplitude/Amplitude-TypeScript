@@ -146,7 +146,7 @@ describe('config', () => {
       });
       const logger = new core.Logger();
       logger.enable(LogLevel.Warn);
-      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(cookieStorage);
+      jest.spyOn(Config, 'createCookieStorage').mockReturnValueOnce(Promise.resolve(cookieStorage));
       const config = await Config.useBrowserConfig(
         apiKey,
         {
@@ -276,6 +276,47 @@ describe('config', () => {
     test('should return cookies', async () => {
       const storage = Config.createCookieStorage(DEFAULT_IDENTITY_STORAGE);
       expect(storage).toBeInstanceOf(BrowserUtils.CookieStorage);
+    });
+
+    test('should return custom cookie storage derp', async () => {
+      // This is a mock implementation of how someone might override the default cookie storage
+      class StorageOverride<T> implements Storage<T> {
+        private _storage: Record<string, UserSession> = {};
+
+        async get(key: string): Promise<T | undefined> {
+          return this._storage[key] as T;
+        }
+
+        async set(key: string, value: T): Promise<void> {
+          this._storage[key] = value as UserSession;
+          return Promise.resolve();
+        }
+        async remove(key: string): Promise<void> {
+          delete this._storage[key];
+          return Promise.resolve();
+        }
+
+        async reset(): Promise<void> {
+          this._storage = {};
+          return Promise.resolve();
+        }
+        async isEnabled(): Promise<boolean> {
+          await this.set('test', { deviceId: 'abc123' } as T);
+          const value = (await this.get('test')) as UserSession;
+
+          return Promise.resolve(value?.deviceId === 'abc123');
+        }
+
+        async getRaw(key: string): Promise<string | undefined> {
+          this._storage = {};
+          return this._storage[key].toString();
+        }
+      }
+
+      const storage = await Config.createCookieStorage(DEFAULT_IDENTITY_STORAGE, {
+        cookieStorage: new StorageOverride(),
+      });
+      expect(storage instanceof StorageOverride).toBe(true);
     });
 
     test('should use return storage', async () => {

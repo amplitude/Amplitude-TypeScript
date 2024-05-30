@@ -167,6 +167,10 @@ export interface CookieOptions {
    * @defaultValue `true`
    */
   upgrade?: boolean;
+  /**
+   * lorem ipsum
+   */
+  cookieStorage?: Storage<UserSession>;
 }
 
 type HiddenOptions = 'apiKey' | 'transportProvider';

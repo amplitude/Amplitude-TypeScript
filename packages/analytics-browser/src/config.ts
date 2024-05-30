@@ -210,7 +210,7 @@ export const useBrowserConfig = async (
     upgrade: true,
     ...options.cookieOptions,
   };
-  const cookieStorage = createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
+  const cookieStorage = await createCookieStorage<UserSession>(options.identityStorage, cookieOptions);
 
   // Step 1: Parse cookies using identity storage instance
   const legacyCookies = await parseLegacyCookies(apiKey, cookieStorage, options.cookieOptions?.upgrade ?? true);
@@ -275,10 +275,14 @@ export const useBrowserConfig = async (
   );
 };
 
-export const createCookieStorage = <T>(
+export const validateCustomCookieStorage = async (cookieStorage: Storage<UserSession>) => {
+  return typeof cookieStorage.isEnabled === 'function' && (await cookieStorage.isEnabled());
+};
+export const createCookieStorage = async <T>(
   identityStorage: IdentityStorageType = DEFAULT_IDENTITY_STORAGE,
   cookieOptions: CookieOptions = {},
 ) => {
+  let cookieStorage;
   switch (identityStorage) {
     case 'localStorage':
       return new LocalStorage<T>();
@@ -288,10 +292,15 @@ export const createCookieStorage = <T>(
       return new MemoryStorage<T>();
     case 'cookie':
     default:
-      return new CookieStorage<T>({
-        ...cookieOptions,
-        expirationDays: cookieOptions.expiration,
-      });
+      cookieStorage = cookieOptions?.cookieStorage as Storage<UserSession>;
+      if (cookieStorage && (await validateCustomCookieStorage(cookieStorage))) {
+        return cookieStorage;
+      } else {
+        return new CookieStorage<T>({
+          ...cookieOptions,
+          expirationDays: cookieOptions.expiration,
+        });
+      }
   }
 };
 
