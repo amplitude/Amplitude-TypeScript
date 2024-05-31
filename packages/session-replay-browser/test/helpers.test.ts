@@ -1,46 +1,46 @@
 import { MaskLevel, PrivacyConfig } from '../src/config/types';
 import { MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from '../src/constants';
-import { generateHashCode, isSessionInSample, maskInputFn, maskTextFn } from '../src/helpers';
+import { generateHashCode, isSessionInSample, maskFn } from '../src/helpers';
 
 describe('SessionReplayPlugin helpers', () => {
-  describe('maskInputFn', () => {
+  describe('maskFn -- input', () => {
     test('masking takes priority over code unmask', () => {
       const htmlElement = document.createElement('input');
       htmlElement.classList.add(UNMASK_TEXT_CLASS);
-      const result = maskInputFn({ maskSelector: ['.' + UNMASK_TEXT_CLASS], unmaskSelector: [] })(
+      const result = maskFn('input', { maskSelector: ['.' + UNMASK_TEXT_CLASS], unmaskSelector: [] })(
         'some text',
         htmlElement,
       );
-      expect(result).toEqual('*********');
+      expect(result).toEqual('**** ****');
     });
     test('should mask on default config', () => {
       const htmlElement = document.createElement('div');
-      const result = maskInputFn({ maskSelector: [], unmaskSelector: [] })('some text', htmlElement);
-      expect(result).toEqual('*********');
+      const result = maskFn('input', { maskSelector: [], unmaskSelector: [] })('some text', htmlElement);
+      expect(result).toEqual('**** ****');
     });
     test('should mask instead of unmask for certain selectors', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('mask-this');
-      const result = maskInputFn({
+      const result = maskFn('input', {
         defaultMaskLevel: MaskLevel.LIGHT,
         maskSelector: ['.mask-this'],
         unmaskSelector: ['.mask-this'],
       })('some text', htmlElement);
-      expect(result).toEqual('*********');
+      expect(result).toEqual('**** ****');
     });
     test('should specifically mask certain selectors', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('mask-this');
-      const result = maskInputFn({ defaultMaskLevel: MaskLevel.LIGHT, maskSelector: ['.mask-this'] })(
+      const result = maskFn('input', { defaultMaskLevel: MaskLevel.LIGHT, maskSelector: ['.mask-this'] })(
         'some text',
         htmlElement,
       );
-      expect(result).toEqual('*********');
+      expect(result).toEqual('**** ****');
     });
     test('should specifically unmask certain selectors', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('unmask-this');
-      const result = maskInputFn({ defaultMaskLevel: MaskLevel.CONSERVATIVE, unmaskSelector: ['.unmask-this'] })(
+      const result = maskFn('input', { defaultMaskLevel: MaskLevel.CONSERVATIVE, unmaskSelector: ['.unmask-this'] })(
         'some text',
         htmlElement,
       );
@@ -49,24 +49,24 @@ describe('SessionReplayPlugin helpers', () => {
     test('should not mask an element whose class list has amp-unmask in it', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add(UNMASK_TEXT_CLASS);
-      const result = maskInputFn(undefined)('some text', htmlElement);
+      const result = maskFn('input')('some text', htmlElement);
       expect(result).toEqual('some text');
     });
     test('should mask any other element', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('another-class');
-      const result = maskInputFn(undefined)('some text', htmlElement);
-      expect(result).toEqual('*********');
+      const result = maskFn('input')('some text', htmlElement);
+      expect(result).toEqual('**** ****');
     });
     test('should handle an element without a class list', () => {
       const htmlElement = {} as unknown as HTMLElement;
-      const result = maskInputFn(undefined)('some text', htmlElement);
-      expect(result).toEqual('*********');
+      const result = maskFn('input')('some text', htmlElement);
+      expect(result).toEqual('**** ****');
     });
     test('should mask on conservative level', () => {
       const htmlElement = document.createElement('input');
-      const result = maskInputFn({ defaultMaskLevel: MaskLevel.CONSERVATIVE })('some text', htmlElement);
-      expect(result).toEqual('*********');
+      const result = maskFn('input', { defaultMaskLevel: MaskLevel.CONSERVATIVE })('some text', htmlElement);
+      expect(result).toEqual('**** ****');
     });
 
     describe('light mask level', () => {
@@ -133,48 +133,50 @@ describe('SessionReplayPlugin helpers', () => {
         },
       ])('check masked', ({ el, masked }) => {
         const inputElement = document.createElement('input');
-        const result = maskInputFn(privacyConfig)('some text', el(inputElement));
-        expect(result).toStrictEqual(masked ? '*********' : 'some text');
+        const result = maskFn('input', privacyConfig)('some text', el(inputElement));
+        expect(result).toStrictEqual(masked ? '**** ****' : 'some text');
       });
     });
   });
 
-  describe('maskTextFn', () => {
+  describe('maskFn -- text', () => {
     test('should mask on amp mask', () => {
       const htmlElement = document.createElement('text');
       htmlElement.classList.add(MASK_TEXT_CLASS);
-      const result = maskTextFn()('some text', htmlElement);
-      expect(result).toEqual('*********');
+      const result = maskFn('text')('some text', htmlElement);
+      expect(result).toEqual('**** ****');
     });
     test('should mask on conservative level', () => {
       const htmlElement = document.createElement('text');
-      const result = maskTextFn({ defaultMaskLevel: MaskLevel.CONSERVATIVE })('some text', htmlElement);
-      expect(result).toEqual('*********');
+      const result = maskFn('text', { defaultMaskLevel: MaskLevel.CONSERVATIVE })('some text', htmlElement);
+      expect(result).toEqual('**** ****');
     });
-    test('should not mask an element on light mask level', () => {
+    // this will never happen in reality since rrweb will not call this
+    // function if we had not registered selectors
+    test('should mask an element on light mask level', () => {
       const htmlElement = document.createElement('div');
-      const result = maskTextFn({ defaultMaskLevel: MaskLevel.LIGHT })('some text', htmlElement);
-      expect(result).toEqual('some text');
+      const result = maskFn('text', { defaultMaskLevel: MaskLevel.LIGHT })('some text', htmlElement);
+      expect(result).toEqual('**** ****');
     });
     test('should not mask an element whose class list has amp-unmask in it', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add(UNMASK_TEXT_CLASS);
-      const result = maskTextFn(undefined)('some text', htmlElement);
+      const result = maskFn('text')('some text', htmlElement);
       expect(result).toEqual('some text');
     });
     test('should not mask any other element', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('another-class');
-      const result = maskTextFn(undefined)('some text', htmlElement);
+      const result = maskFn('text')('some text', htmlElement);
       expect(result).toEqual('some text');
     });
     test('should handle null element', () => {
-      const result = maskTextFn(undefined)('some text', null);
+      const result = maskFn('text')('some text', null);
       expect(result).toEqual('some text');
     });
     test('should handle an element without a class list', () => {
       const htmlElement = {} as unknown as HTMLElement;
-      const result = maskTextFn(undefined)('some text', htmlElement);
+      const result = maskFn('text')('some text', htmlElement);
       expect(result).toEqual('some text');
     });
   });

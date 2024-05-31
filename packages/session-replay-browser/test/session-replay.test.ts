@@ -871,7 +871,7 @@ describe('SessionReplay', () => {
     });
     test('returns block selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.getBlockSelectors()).toEqual('.className');
+      expect(sessionReplay.getBlockSelectors()).toStrictEqual(['.className']);
     });
   });
 
