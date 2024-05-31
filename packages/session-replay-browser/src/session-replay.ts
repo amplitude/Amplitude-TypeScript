@@ -37,11 +37,43 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return returnWrapper(this._init(apiKey, options));
   }
 
+  private removeInvalidSelectors() {
+    if (!this.config?.privacyConfig) {
+      return;
+    }
+
+    // This allows us to not search the DOM.
+    const fragment = document.createDocumentFragment();
+
+    const dropInvalidSelectors = (selectors: string[] | string = []): string[] | undefined => {
+      if (typeof selectors === 'string') {
+        selectors = [selectors];
+      }
+      selectors = selectors.filter((selector: string) => {
+        try {
+          fragment.querySelector(selector);
+        } catch {
+          return false;
+        }
+        return true;
+      });
+      if (selectors.length === 0) {
+        return undefined;
+      }
+      return selectors;
+    };
+    this.config.privacyConfig.blockSelector = dropInvalidSelectors(this.config.privacyConfig.blockSelector);
+    this.config.privacyConfig.maskSelector = dropInvalidSelectors(this.config.privacyConfig.maskSelector);
+    this.config.privacyConfig.unmaskSelector = dropInvalidSelectors(this.config.privacyConfig.unmaskSelector);
+  }
+
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.loggerProvider = options.loggerProvider || new Logger();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+
+    this.removeInvalidSelectors();
 
     this.eventsManager = await createEventsManager({
       config: this.config,
@@ -204,12 +236,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getBlockSelectors(): string | string[] | undefined {
-    const blockSelector = this.config?.privacyConfig?.blockSelector ?? [];
-    if (blockSelector.length === 0) {
-      return undefined;
-    }
-
-    return blockSelector;
+    return this.config?.privacyConfig?.blockSelector;
   }
 
   getMaskTextSelectors(): string | undefined {
