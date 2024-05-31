@@ -204,12 +204,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getBlockSelectors(): string | string[] | undefined {
-    return this.config?.privacyConfig?.blockSelector;
+    const blockSelector = this.config?.privacyConfig?.blockSelector ?? [];
+    if (blockSelector.length === 0) {
+      return undefined;
+    }
+
+    return blockSelector;
   }
 
   getMaskTextSelectors(): string | undefined {
     if (this.config?.privacyConfig?.defaultMaskLevel === MaskLevel.CONSERVATIVE) {
-      return '*'
+      return '*';
     }
 
     const maskSelector = this.config?.privacyConfig?.maskSelector;
