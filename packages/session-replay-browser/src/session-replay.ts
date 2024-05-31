@@ -11,7 +11,7 @@ import {
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { createEventsManager } from './events/events-manager';
-import { generateHashCode, isSessionInSample, maskInputFn, maskTextFn } from './helpers';
+import { generateHashCode, isSessionInSample, maskFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
@@ -53,6 +53,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         try {
           fragment.querySelector(selector);
         } catch {
+          console.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`)
           return false;
         }
         return true;
@@ -277,8 +278,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       blockClass: BLOCK_CLASS,
       // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
       blockSelector: this.getBlockSelectors() as string,
-      maskInputFn: maskInputFn(privacyConfig),
-      maskTextFn: maskTextFn(privacyConfig),
+      maskInputFn: maskFn('input', privacyConfig),
+      maskTextFn: maskFn('text', privacyConfig),
       // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
       maskTextSelector: this.getMaskTextSelectors(),
       recordCanvas: false,

@@ -14,7 +14,7 @@ const assertUnreachable = (_: never): never => {
  * Medium: All inputs
  * Conservative: All inputs and all texts
  */
-const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, element?: HTMLElement): boolean => {
+const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, element: HTMLElement | null): boolean => {
   switch (level) {
     case MaskLevel.LIGHT: {
       if (elementType !== 'input') {
@@ -57,7 +57,7 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
 const isMasked = (
   elementType: 'input' | 'text',
   config: PrivacyConfig = { defaultMaskLevel: DEFAULT_MASK_LEVEL },
-  element?: HTMLElement,
+  element: HTMLElement | null,
 ): boolean => {
   if (element) {
     // Element is explicitly instrumented in code to mask
@@ -84,21 +84,11 @@ const isMasked = (
   return isMaskedForLevel(elementType, config.defaultMaskLevel ?? DEFAULT_MASK_LEVEL, element);
 };
 
-export const maskInputFn =
-  (config?: PrivacyConfig) =>
-  (text: string, element: HTMLElement): string => {
-    return maskFn('input', text, element, config);
-  };
-
-export const maskTextFn =
-  (config?: PrivacyConfig) =>
+export const maskFn =
+  (elementType: 'text' | 'input', config?: PrivacyConfig) =>
   (text: string, element: HTMLElement | null): string => {
-    return maskFn('text', text, element ?? undefined, config);
+    return isMasked(elementType, config, element) ? text.replace(/[^\s]/g, '*') : text;
   };
-
-const maskFn = (elementType: 'text' | 'input', text: string, element?: HTMLElement, config?: PrivacyConfig): string => {
-  return isMasked(elementType, config, element) ? text.replace(/[^\s]/g, '*') : text;
-};
 
 export const generateHashCode = function (str: string) {
   let hash = 0;
