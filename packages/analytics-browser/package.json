@@ -34,7 +34,7 @@
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "playground:html": "cp lib/scripts/amplitude-min.js playground/html/amplitude.js && http-server ./playground/html",
-    "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && yarn start",
+    "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && yarn install && yarn start",
     "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
