@@ -14,14 +14,14 @@ const assertUnreachable = (_: never): never => {
  * Medium: All inputs
  * Conservative: All inputs and all texts
  */
-const isMaskedForLevel = (element: HTMLElement, elementType: 'input' | 'text', level: MaskLevel): boolean => {
+const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, element?: HTMLElement): boolean => {
   switch (level) {
     case MaskLevel.LIGHT: {
       if (elementType !== 'input') {
-        return false;
+        return true;
       }
 
-      const inputType = getInputType(element);
+      const inputType = element ? getInputType(element) : '';
       /* istanbul ignore if */ // TODO(lew): For some reason it's impossible to test this.
       if (!inputType) {
         return false;
@@ -54,49 +54,51 @@ const isMaskedForLevel = (element: HTMLElement, elementType: 'input' | 'text', l
  *  1. [In code] Element/class based masking/unmasking <> [Config based] Selector based masking/unmasking
  *  2. Use app defaults
  */
-const isMasked = (element: HTMLElement, elementType: 'input' | 'text', config?: PrivacyConfig): boolean => {
-  // Element is explicitly instrumented in code to mask
-  if (element.classList && element.classList.contains(MASK_TEXT_CLASS)) {
-    return true;
+const isMasked = (
+  elementType: 'input' | 'text',
+  config: PrivacyConfig = { defaultMaskLevel: DEFAULT_MASK_LEVEL },
+  element?: HTMLElement,
+): boolean => {
+  if (element) {
+    // Element is explicitly instrumented in code to mask
+    if (element.classList && element.classList.contains(MASK_TEXT_CLASS)) {
+      return true;
+    }
+
+    // Config has override for mask
+    const shouldMask = (config.maskSelector ?? []).some((selector) => element.matches(selector));
+    if (shouldMask) {
+      return true;
+    }
+
+    // Code or config has override to unmask
+    if (element.classList && element.classList.contains(UNMASK_TEXT_CLASS)) {
+      return false;
+    }
+    const shouldUnmask = (config.unmaskSelector ?? []).some((selector) => element.matches(selector));
+    if (shouldUnmask) {
+      return false;
+    }
   }
 
-  // No privacy config? Default to medium policy
-  if (!config) {
-    config = { defaultMaskLevel: DEFAULT_MASK_LEVEL };
-  }
-
-  // Config has override for mask
-  const shouldMask = (config.maskSelector ?? []).some((selector) => element.matches(selector));
-  if (shouldMask) {
-    return true;
-  }
-
-  // Code or config has override to unmask
-  if (element.classList && element.classList.contains(UNMASK_TEXT_CLASS)) {
-    return false;
-  }
-  const shouldUnmask = (config.unmaskSelector ?? []).some((selector) => element.matches(selector));
-  if (shouldUnmask) {
-    return false;
-  }
-
-  return isMaskedForLevel(element, elementType, config.defaultMaskLevel ?? DEFAULT_MASK_LEVEL);
+  return isMaskedForLevel(elementType, config.defaultMaskLevel ?? DEFAULT_MASK_LEVEL, element);
 };
 
 export const maskInputFn =
   (config?: PrivacyConfig) =>
   (text: string, element: HTMLElement): string => {
-    return isMasked(element, 'input', config) ? '*'.repeat(text.length) : text;
+    return maskFn('input', text, element, config);
   };
 
 export const maskTextFn =
   (config?: PrivacyConfig) =>
   (text: string, element: HTMLElement | null): string => {
-    if (!element) {
-      return text;
-    }
-    return isMasked(element, 'text', config) ? '*'.repeat(text.length) : text;
+    return maskFn('text', text, element ?? undefined, config);
   };
+
+const maskFn = (elementType: 'text' | 'input', text: string, element?: HTMLElement, config?: PrivacyConfig): string => {
+  return isMasked(elementType, config, element) ? text.replace(/[^\s]/g, '*') : text;
+};
 
 export const generateHashCode = function (str: string) {
   let hash = 0;
