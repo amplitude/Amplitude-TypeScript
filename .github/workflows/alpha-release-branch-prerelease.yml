@@ -1,4 +1,4 @@
-name: Prerelease feature branch
+name: Prerelease on alpha-release branch
 
 on:
   workflow_dispatch:
@@ -36,14 +36,10 @@ jobs:
         node-version: [16.x]
 
     steps:
-      - name: Get branch name
-        id: branch-name
-        uses: tj-actions/branch-name@v7
-
       - name: Check out git repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ steps.branch-name.outputs.ref_branch }}
+          ref: alpha-release
           fetch-depth: 0
 
       - name: Cache dependencies
@@ -89,21 +85,16 @@ jobs:
           role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
           aws-region: us-west-2
 
-      # Converted to all lowercase and stripped of non-letter characters
-      - name: Transform feature branch name
-        run: |
-          echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
-
       # Use --no-push to prevent pushing to remote
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid alpha-release --allow-branch alpha-release --no-changelog --no-push
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid alpha-release --allow-branch alpha-release --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
