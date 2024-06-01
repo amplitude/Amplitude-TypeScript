@@ -16,7 +16,7 @@ const assertUnreachable = (_: never): never => {
  */
 const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, element: HTMLElement | null): boolean => {
   switch (level) {
-    case MaskLevel.LIGHT: {
+    case 'light': {
       if (elementType !== 'input') {
         return true;
       }
@@ -37,9 +37,9 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
 
       return false;
     }
-    case MaskLevel.MEDIUM:
+    case 'medium':
       return elementType === 'input';
-    case MaskLevel.CONSERVATIVE:
+    case 'conservative':
       return elementType === 'input' || elementType === 'text';
   }
 

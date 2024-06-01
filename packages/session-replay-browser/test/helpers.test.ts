@@ -1,11 +1,11 @@
-import { MaskLevel, PrivacyConfig } from '../src/config/types';
+import { PrivacyConfig } from '../src/config/types';
 import { MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from '../src/constants';
 import { generateHashCode, isSessionInSample, maskFn } from '../src/helpers';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
     test('should not mask on null element', () => {
-      const result = maskFn('input', { defaultMaskLevel: MaskLevel.LIGHT })('some text', null);
+      const result = maskFn('input', { defaultMaskLevel: 'light' })('some text', null);
       expect(result).toEqual('some text');
     });
 
@@ -27,7 +27,7 @@ describe('SessionReplayPlugin helpers', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('mask-this');
       const result = maskFn('input', {
-        defaultMaskLevel: MaskLevel.LIGHT,
+        defaultMaskLevel: 'light',
         maskSelector: ['.mask-this'],
         unmaskSelector: ['.mask-this'],
       })('some text', htmlElement);
@@ -36,7 +36,7 @@ describe('SessionReplayPlugin helpers', () => {
     test('should specifically mask certain selectors', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('mask-this');
-      const result = maskFn('input', { defaultMaskLevel: MaskLevel.LIGHT, maskSelector: ['.mask-this'] })(
+      const result = maskFn('input', { defaultMaskLevel: 'light', maskSelector: ['.mask-this'] })(
         'some text',
         htmlElement,
       );
@@ -45,7 +45,7 @@ describe('SessionReplayPlugin helpers', () => {
     test('should specifically unmask certain selectors', () => {
       const htmlElement = document.createElement('div');
       htmlElement.classList.add('unmask-this');
-      const result = maskFn('input', { defaultMaskLevel: MaskLevel.CONSERVATIVE, unmaskSelector: ['.unmask-this'] })(
+      const result = maskFn('input', { defaultMaskLevel: 'conservative', unmaskSelector: ['.unmask-this'] })(
         'some text',
         htmlElement,
       );
@@ -70,12 +70,12 @@ describe('SessionReplayPlugin helpers', () => {
     });
     test('should mask on conservative level', () => {
       const htmlElement = document.createElement('input');
-      const result = maskFn('input', { defaultMaskLevel: MaskLevel.CONSERVATIVE })('some text', htmlElement);
+      const result = maskFn('input', { defaultMaskLevel: 'conservative' })('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
 
     describe('light mask level', () => {
-      const privacyConfig: PrivacyConfig = { defaultMaskLevel: MaskLevel.LIGHT };
+      const privacyConfig: PrivacyConfig = { defaultMaskLevel: 'light' };
 
       test.each([
         {
@@ -153,14 +153,14 @@ describe('SessionReplayPlugin helpers', () => {
     });
     test('should mask on conservative level', () => {
       const htmlElement = document.createElement('text');
-      const result = maskFn('text', { defaultMaskLevel: MaskLevel.CONSERVATIVE })('some text', htmlElement);
+      const result = maskFn('text', { defaultMaskLevel: 'conservative' })('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
     // this will never happen in reality since rrweb will not call this
     // function if we had not registered selectors
     test('should mask an element on light mask level', () => {
       const htmlElement = document.createElement('div');
-      const result = maskFn('text', { defaultMaskLevel: MaskLevel.LIGHT })('some text', htmlElement);
+      const result = maskFn('text', { defaultMaskLevel: 'light' })('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
     test('should not mask an element whose class list has amp-unmask in it', () => {

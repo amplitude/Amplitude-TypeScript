@@ -16,13 +16,12 @@ export interface SessionReplayRemoteConfigAPIResponse {
   };
 }
 
-export enum MaskLevel {
-  LIGHT, // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
-  MEDIUM, // mask all inputs
-  CONSERVATIVE, // mask all inputs and all texts
-}
+export type MaskLevel =
+  'light' | // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
+  'medium' | // mask all inputs
+  'conservative' // mask all inputs and all texts
 
-export const DEFAULT_MASK_LEVEL = MaskLevel.MEDIUM;
+export const DEFAULT_MASK_LEVEL = 'medium';
 
 // err on the side of excluding more
 export type PrivacyConfig = {

@@ -3,7 +3,7 @@ import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
-import { MaskLevel, SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
+import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
   BLOCK_CLASS,
   DEFAULT_SESSION_REPLAY_PROPERTY,
@@ -241,7 +241,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getMaskTextSelectors(): string | undefined {
-    if (this.config?.privacyConfig?.defaultMaskLevel === MaskLevel.CONSERVATIVE) {
+    if (this.config?.privacyConfig?.defaultMaskLevel === 'conservative') {
       return '*';
     }
 

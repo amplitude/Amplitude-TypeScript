@@ -6,7 +6,7 @@ import {
   createSessionReplayJoinedConfigGenerator,
 } from '../../src/config/joined-config';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
-import { MaskLevel, PrivacyConfig, SessionReplayRemoteConfig } from '../../src/config/types';
+import { PrivacyConfig, SessionReplayRemoteConfig } from '../../src/config/types';
 
 type MockedLogger = jest.Mocked<Logger>;
 const samplingConfig = {
@@ -173,7 +173,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       test('should use default mask level from API', async () => {
         const config = await privacySelectorTest({
           ...privacyConfig,
-          defaultMaskLevel: MaskLevel.LIGHT,
+          defaultMaskLevel: 'light',
         });
         expect(config).toStrictEqual({
           ...mockLocalConfig,
@@ -181,7 +181,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           optOut: mockLocalConfig.optOut,
           privacyConfig: {
             ...privacyConfig,
-            defaultMaskLevel: MaskLevel.LIGHT,
+            defaultMaskLevel: 'light',
           },
         });
       });

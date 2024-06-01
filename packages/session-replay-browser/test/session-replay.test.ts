@@ -13,7 +13,6 @@ import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
-import { MaskLevel } from '../src/config/types';
 
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -880,7 +879,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         privacyConfig: {
-          defaultMaskLevel: MaskLevel.CONSERVATIVE,
+          defaultMaskLevel: 'conservative',
         },
       }).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
