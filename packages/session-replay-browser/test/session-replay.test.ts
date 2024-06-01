@@ -108,19 +108,23 @@ describe('SessionReplay', () => {
   });
   describe('init', () => {
     test('should do nothing if config is undefined for removeInvalidSelectors', async () => {
-      expect(sessionReplay.removeInvalidSelectors()).toBeUndefined()
-    })
+      expect(sessionReplay.removeInvalidSelectors()).toBeUndefined();
+    });
 
     test('should remove invalid selectors', async () => {
-      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5, privacyConfig: {
-        blockSelector: ['AF<S>FA$!@$'],
-        maskSelector: ['AF<S>FA$!@$!!'],
-        unmaskSelector: ['AF<S>FA$!@$@@'],
-      } }).promise;
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        privacyConfig: {
+          blockSelector: ['AF<S>FA$!@$'],
+          maskSelector: ['AF<S>FA$!@$!!'],
+          unmaskSelector: ['AF<S>FA$!@$@@'],
+        },
+      }).promise;
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.maskSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(undefined);
-    })
+    });
 
     test('should setup sdk', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5 }).promise;
@@ -873,9 +877,12 @@ describe('SessionReplay', () => {
     });
 
     test('should track all text elements when level is conservative', async () => {
-      await sessionReplay.init(apiKey, {...mockOptions, privacyConfig: {
-        defaultMaskLevel: MaskLevel.CONSERVATIVE,
-      }}).promise;
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: MaskLevel.CONSERVATIVE,
+        },
+      }).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
   });

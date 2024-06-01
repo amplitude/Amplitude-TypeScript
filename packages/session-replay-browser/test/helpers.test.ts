@@ -5,12 +5,9 @@ import { generateHashCode, isSessionInSample, maskFn } from '../src/helpers';
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
     test('should not mask on null element', () => {
-      const result = maskFn('input', { defaultMaskLevel: MaskLevel.LIGHT })(
-        'some text',
-        null,
-      );
+      const result = maskFn('input', { defaultMaskLevel: MaskLevel.LIGHT })('some text', null);
       expect(result).toEqual('some text');
-    })
+    });
 
     test('masking takes priority over code unmask', () => {
       const htmlElement = document.createElement('input');

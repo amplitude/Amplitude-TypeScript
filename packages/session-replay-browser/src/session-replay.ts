@@ -53,7 +53,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         try {
           fragment.querySelector(selector);
         } catch {
-          console.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`)
+          console.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`);
           return false;
         }
         return true;
