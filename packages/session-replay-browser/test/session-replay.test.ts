@@ -13,6 +13,7 @@ import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
+import { MaskLevel } from '../src/config/types';
 
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -106,6 +107,21 @@ describe('SessionReplay', () => {
     jest.useRealTimers();
   });
   describe('init', () => {
+    test('should do nothing if config is undefined for removeInvalidSelectors', async () => {
+      expect(sessionReplay.removeInvalidSelectors()).toBeUndefined()
+    })
+
+    test('should remove invalid selectors', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5, privacyConfig: {
+        blockSelector: ['AF<S>FA$!@$'],
+        maskSelector: ['AF<S>FA$!@$!!'],
+        unmaskSelector: ['AF<S>FA$!@$@@'],
+      } }).promise;
+      expect(sessionReplay.config?.privacyConfig?.blockSelector).toStrictEqual(undefined);
+      expect(sessionReplay.config?.privacyConfig?.maskSelector).toStrictEqual(undefined);
+      expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(undefined);
+    })
+
     test('should setup sdk', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5 }).promise;
       expect(sessionReplay.config?.transportProvider).toBeDefined();
@@ -854,6 +870,13 @@ describe('SessionReplay', () => {
     test('returns mask text selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       expect(sessionReplay.getMaskTextSelectors()).toEqual(['.className1', '.className2']);
+    });
+
+    test('should track all text elements when level is conservative', async () => {
+      await sessionReplay.init(apiKey, {...mockOptions, privacyConfig: {
+        defaultMaskLevel: MaskLevel.CONSERVATIVE,
+      }}).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
     });
   });
 

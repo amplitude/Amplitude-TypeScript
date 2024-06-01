@@ -37,7 +37,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return returnWrapper(this._init(apiKey, options));
   }
 
-  private removeInvalidSelectors() {
+  removeInvalidSelectors() {
     if (!this.config?.privacyConfig) {
       return;
     }
