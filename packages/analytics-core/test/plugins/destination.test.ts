@@ -1,15 +1,24 @@
 import { Destination, getResponseBodyString } from '../../src/plugins/destination';
-import { Config, DestinationContext, Logger, Payload, Result, Status } from '@amplitude/analytics-types';
+import { Config, DestinationContext, Logger, Payload, Status, BaseEvent } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
-  MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
+  MISSING_API_KEY_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
 import { uuidPattern } from '../helpers/util';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
+const successResponse = {
+  status: Status.Success,
+  statusCode: 200,
+  body: {
+    eventsIngested: 1,
+    payloadSizeBytes: 1,
+    serverUploadTime: 1,
+  },
+};
 
 describe('destination', () => {
   describe('setup', () => {
@@ -86,13 +95,22 @@ describe('destination', () => {
   });
 
   describe('addToQueue', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
+    });
+
     test('should add to queue and schedule a flush', () => {
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
         flushIntervalMillis: 0,
       };
-      const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
+      const flush = jest.spyOn(destination, 'flush');
       const event = {
         event_type: 'event_type',
       };
@@ -100,21 +118,21 @@ describe('destination', () => {
         event,
         callback: () => undefined,
         attempts: 0,
-        timeout: 0,
       };
       destination.addToQueue(context);
-      expect(schedule).toHaveBeenCalledTimes(1);
+      jest.runAllTimers();
+
+      expect(flush).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
     });
 
     test('should add to queue and schedule timeout flush', () => {
-      jest.useFakeTimers();
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
-        flushIntervalMillis: 0,
+        flushIntervalMillis: 1,
       };
-      const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
+      const flush = jest.spyOn(destination, 'flush');
       const event = {
         event_type: 'event_type',
       };
@@ -122,16 +140,13 @@ describe('destination', () => {
         event,
         callback: () => undefined,
         attempts: 0,
-        timeout: 1,
       };
       destination.addToQueue(context);
 
       jest.runAllTimers();
 
-      expect(schedule).toHaveBeenCalledTimes(1);
+      expect(flush).toHaveBeenCalledTimes(1);
       expect(context.attempts).toBe(1);
-
-      jest.useRealTimers();
     });
   });
 
@@ -153,12 +168,12 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          timeout: 0,
         },
       ];
       destination.config = {
-        ...destination.config,
+        ...useDefaultConfig(),
         offline: false,
+        flushIntervalMillis: 0,
       };
       const flush = jest
         .spyOn(destination, 'flush')
@@ -168,7 +183,7 @@ describe('destination', () => {
           return Promise.resolve(undefined);
         })
         .mockReturnValueOnce(Promise.resolve(undefined));
-      destination.schedule(0);
+      destination.sendEventsIfReady();
       // exhause first setTimeout
       jest.runAllTimers();
       // wait for next tick to call nested setTimeout
@@ -181,28 +196,28 @@ describe('destination', () => {
     test('should not schedule a flush if offline', async () => {
       const destination = new Destination();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (destination as any).scheduled = null;
+      (destination as any).scheduled = false;
       destination.queue = [
         {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          timeout: 0,
         },
       ];
       destination.config = {
         ...destination.config,
         offline: true,
+        flushIntervalMillis: 0,
       };
       const flush = jest
         .spyOn(destination, 'flush')
         .mockImplementationOnce(() => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          (destination as any).scheduled = null;
+          (destination as any).scheduled = false;
           return Promise.resolve(undefined);
         })
         .mockReturnValueOnce(Promise.resolve(undefined));
-      destination.schedule(0);
+      destination.sendEventsIfReady();
       // exhause first setTimeout
       jest.runAllTimers();
       // wait for next tick to call nested setTimeout
@@ -214,10 +229,14 @@ describe('destination', () => {
 
     test('should not schedule if one is already in progress', () => {
       const destination = new Destination();
+      destination.config = {
+        ...destination.config,
+        flushIntervalMillis: 0,
+      };
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (destination as any).scheduled = setTimeout(jest.fn, 0);
+      (destination as any).scheduled = true;
       const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
-      destination.schedule(0);
+      destination.sendEventsIfReady();
       expect(flush).toHaveBeenCalledTimes(0);
     });
   });
@@ -244,14 +263,43 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          timeout: 0,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
       await destination.flush();
       expect(send).toHaveBeenCalledTimes(0);
       expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush while offline.');
+    });
+
+    test('should skip flush if throttled', async () => {
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        loggerProvider: loggerProvider,
+      };
+      destination.throttled = true;
+      destination.queue = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+        },
+      ];
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
+      await destination.flush();
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush while throttled. Will retry after 30 seconds.');
     });
 
     test('should get batch and call send', async () => {
@@ -265,10 +313,9 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          timeout: 0,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
       const result = await destination.flush();
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
@@ -284,41 +331,75 @@ describe('destination', () => {
           event: { event_type: 'event_type' },
           attempts: 0,
           callback: () => undefined,
-          timeout: 0,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve(true));
       const result = await destination.flush();
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(1);
     });
 
-    test('should send later', async () => {
+    test('should skip send if throttled', async () => {
+      const transportProvider = {
+        send: jest.fn(),
+      };
+
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        transportProvider: transportProvider,
+      };
+      destination.throttled = true;
+      const contexts = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+        },
+      ];
+      const send = jest.spyOn(transportProvider, 'send');
+      const isFullfilledRequest = await destination.send(contexts);
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(isFullfilledRequest).toBe(false);
+    });
+
+    test('should update the attempts', async () => {
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
       };
       destination.queue = [
         {
-          event: { event_type: 'event_type' },
+          event: {
+            event_type: 'event_type_1',
+            insert_id: '1',
+          },
           attempts: 0,
           callback: () => undefined,
-          timeout: 1000,
+        },
+        {
+          event: {
+            event_type: 'event_type_2',
+            insert_id: '2',
+          },
+          attempts: 0,
+          callback: () => undefined,
         },
       ];
-      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
-      const result = await destination.flush();
-      expect(destination.queue).toEqual([
+
+      const context = [
         {
-          event: { event_type: 'event_type' },
+          event: {
+            event_type: 'event_type_2',
+            insert_id: '2',
+          },
           attempts: 0,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          callback: expect.any(Function),
-          timeout: 1000,
+          callback: () => undefined,
         },
-      ]);
-      expect(result).toBe(undefined);
-      expect(send).toHaveBeenCalledTimes(0);
+      ];
+      destination.increaseAttempts(context);
+      expect(destination.queue[0].attempts).toBe(0);
+      expect(destination.queue[1].attempts).toBe(1);
     });
   });
 
@@ -333,7 +414,6 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        timeout: 0,
       };
       const event_upload_time = '2023-01-01T12:00:00:000Z';
       Date.prototype.toISOString = jest.fn().mockReturnValueOnce(event_upload_time);
@@ -358,13 +438,14 @@ describe('destination', () => {
         apiKey: API_KEY,
         minIdLength: 10,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 200,
         message: SUCCESS_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should include min id length', async () => {
@@ -377,7 +458,6 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
@@ -399,13 +479,14 @@ describe('destination', () => {
         apiKey: API_KEY,
         minIdLength: 10,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 200,
         message: SUCCESS_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should not include extra', async () => {
@@ -419,7 +500,6 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
@@ -442,13 +522,14 @@ describe('destination', () => {
         apiKey: API_KEY,
         minIdLength: 10,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 200,
         message: SUCCESS_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should not retry', async () => {
@@ -461,7 +542,6 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
@@ -476,13 +556,14 @@ describe('destination', () => {
         transportProvider,
         apiKey: API_KEY,
       });
-      await destination.send([context], false);
+      const isFullfilledRequest = await destination.send([context], false);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 500,
         message: Status.Failed,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should provide error details', async () => {
@@ -495,7 +576,6 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        timeout: 0,
       };
       const body = {
         error: 'Request missing required field',
@@ -515,13 +595,14 @@ describe('destination', () => {
         transportProvider,
         apiKey: API_KEY,
       });
-      await destination.send([context], false);
+      const isFullfilledRequest = await destination.send([context], false);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 400,
         message: `${Status.Invalid}: ${jsons(body)}`,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should handle no api key', async () => {
@@ -534,7 +615,6 @@ describe('destination', () => {
         attempts: 0,
         callback,
         event,
-        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
@@ -546,13 +626,14 @@ describe('destination', () => {
         transportProvider,
         apiKey: '',
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
         code: 400,
         message: MISSING_API_KEY_MESSAGE,
       });
+      expect(isFullfilledRequest).toBe(true);
     });
 
     test('should not drop data on unexpected error', async () => {
@@ -564,7 +645,6 @@ describe('destination', () => {
         event: {
           event_type: 'event_type',
         },
-        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {
@@ -575,9 +655,221 @@ describe('destination', () => {
         ...useDefaultConfig(),
         transportProvider,
       });
-      await destination.send([context]);
+      const isFullfilledRequest = await destination.send([context]);
       // We should not fulfill request when the request fails with an unknown error. This should be retried
       expect(callback).toHaveBeenCalledTimes(0);
+      expect(isFullfilledRequest).toBe(false);
+    });
+
+    test('should marked as fillfiled request for 400 response if no retried events', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+        },
+      };
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.Invalid,
+            statusCode: 400,
+            body: {
+              code: 400,
+              error: 'error',
+              missingField: undefined,
+              eventsWithInvalidFields: {},
+              eventsWithMissingFields: {},
+              eventsWithInvalidIdLengths: {},
+              silencedEvents: [0],
+            },
+          });
+        }),
+      };
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+      });
+      const isFullfilledRequest = await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(isFullfilledRequest).toBe(true);
+    });
+
+    test('should marked as fillfiled request for 413 response if no retried events', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+        },
+      };
+
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.PayloadTooLarge,
+            statusCode: 413,
+            body: {
+              code: 413,
+              error: 'error',
+            },
+          });
+        }),
+      };
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+      });
+      const isFullfilledRequest = await destination.send([context]);
+      expect(isFullfilledRequest).toBe(true);
+    });
+
+    test('should marked as fillfiled request for 429 response if no retried events', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const context = {
+        attempts: 0,
+        callback,
+        event: {
+          event_type: 'event_type',
+          device_id: '0',
+        },
+      };
+
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve({
+            status: Status.RateLimit,
+            statusCode: 429,
+            body: {
+              code: 429,
+              error: 'error',
+              epsThreshold: 1,
+              throttledDevices: {},
+              throttledUsers: {},
+              exceededDailyQuotaDevices: {
+                '0': 1,
+              },
+              exceededDailyQuotaUsers: {},
+              throttledEvents: [0],
+            },
+          });
+        }),
+      };
+
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+      });
+      const isFullfilledRequest = await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(isFullfilledRequest).toBe(true);
+    });
+
+    test.each([
+      {
+        statusCode: 400,
+        status: Status.Invalid,
+        body: {
+          code: 400,
+          error: 'error',
+          missingField: undefined,
+          eventsWithInvalidFields: {},
+          eventsWithMissingFields: {},
+          eventsWithInvalidIdLengths: {},
+          silencedEvents: [],
+        },
+      },
+      {
+        statusCode: 413,
+        status: Status.PayloadTooLarge,
+        body: {
+          code: 413,
+          error: 'error',
+        },
+      },
+      {
+        statusCode: 429,
+        status: Status.RateLimit,
+        body: {
+          code: 429,
+          error: 'error',
+          epsThreshold: 1,
+          throttledDevices: {},
+          throttledUsers: {},
+          exceededDailyQuotaDevices: {
+            '1': 1,
+          },
+          exceededDailyQuotaUsers: {
+            '2': 1,
+          },
+          throttledEvents: [0],
+        },
+      },
+    ])('should retry in order of $statusCode $status', async ({ statusCode, body }) => {
+      class Http {
+        send = jest
+          .fn()
+          .mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.PayloadTooLarge,
+              statusCode: statusCode,
+              body,
+            });
+          })
+          .mockImplementation(() => {
+            return Promise.resolve(successResponse);
+          });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination();
+      const config = {
+        ...useDefaultConfig(),
+        flushIntervalMillis: 100,
+        transportProvider,
+      };
+      await destination.setup(config);
+
+      const results = await Promise.all([
+        destination.execute({
+          event_type: 'event_type_1',
+          event_id: 0,
+        }),
+        destination.execute({
+          event_type: 'event_type_2',
+          event_id: 1,
+        }),
+        destination.execute({
+          event_type: 'event_type_3',
+          event_id: 2,
+        }),
+        destination.execute({
+          event_type: 'event_type_4',
+          event_id: 3,
+        }),
+      ]);
+
+      const sendCalls = transportProvider.send.mock.calls;
+      // #1 call with error, #2 200 call
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+      sendCalls.forEach((sendCall) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const payload = sendCall[1] as Payload;
+        payload.events.forEach((event: BaseEvent, index: number) => {
+          expect(event.event_id).toBe(index);
+        });
+      });
+      results.forEach((result, index) => {
+        expect(result.code).toBe(200);
+        expect(result.message).toBe('Event tracked successfully');
+        expect(result.event.event_id).toBe(index);
+      });
     });
   });
 
@@ -608,7 +900,6 @@ describe('destination', () => {
           event,
           attempts: 0,
           callback: () => undefined,
-          timeout: 0,
         };
       });
       const set = jest.spyOn(destination.config.storageProvider, 'set').mockResolvedValueOnce(undefined);
@@ -636,7 +927,6 @@ describe('destination', () => {
         event: event,
         attempts: 0,
         callback: () => undefined,
-        timeout: 0,
       };
       destination.queue = [context];
       destination.removeEvents([]);
@@ -646,16 +936,6 @@ describe('destination', () => {
   });
 
   describe('module level integration', () => {
-    const successResponse = {
-      status: Status.Success,
-      statusCode: 200,
-      body: {
-        eventsIngested: 1,
-        payloadSizeBytes: 1,
-        serverUploadTime: 1,
-      },
-    };
-
     test('should handle unexpected error', async () => {
       class Http {
         send = jest.fn().mockImplementationOnce(() => {
@@ -693,7 +973,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -738,7 +1017,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -749,11 +1027,9 @@ describe('destination', () => {
       const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
-          insert_id: '0',
         }),
         destination.execute({
           event_type: 'event_type',
-          insert_id: '1',
         }),
       ]);
       expect(results[0].code).toBe(400);
@@ -857,7 +1133,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -896,7 +1171,7 @@ describe('destination', () => {
                 exceededDailyQuotaUsers: {
                   '2': 1,
                 },
-                throttledEvents: [0],
+                throttledEvents: [],
               },
             });
           })
@@ -909,8 +1184,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.retryTimeout = 10;
-      destination.throttleTimeout = 1;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 4,
@@ -924,28 +1197,24 @@ describe('destination', () => {
           event_type: 'event_type',
           user_id: '0',
           device_id: '0',
-          insert_id: '0',
         }),
         // exceed daily device quota
         destination.execute({
           event_type: 'event_type',
           user_id: '1',
           device_id: '1',
-          insert_id: '1',
         }),
         // exceed daily user quota
         destination.execute({
           event_type: 'event_type',
           user_id: '2',
           device_id: '2',
-          insert_id: '2',
         }),
         // success
         destination.execute({
           event_type: 'event_type',
           user_id: '3',
           device_id: '3',
-          insert_id: '3',
         }),
       ]);
       expect(results[0].code).toBe(200);
@@ -954,6 +1223,61 @@ describe('destination', () => {
       expect(results[3].code).toBe(200);
       expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
+    });
+
+    test('should set throttled to true for 429 response with throttled event and set to false after throttled timeout', async () => {
+      jest.useFakeTimers();
+
+      class Http {
+        send = jest
+          .fn()
+          .mockImplementationOnce(() => {
+            return Promise.resolve({
+              status: Status.RateLimit,
+              statusCode: 429,
+              body: {
+                error: 'error',
+                epsThreshold: 1,
+                throttledDevices: {},
+                throttledUsers: {},
+                exceededDailyQuotaDevices: {
+                  '1': 1,
+                },
+                exceededDailyQuotaUsers: {
+                  '2': 1,
+                },
+                throttledEvents: [0],
+              },
+            });
+          })
+          .mockImplementationOnce(() => {
+            return Promise.resolve(successResponse);
+          });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination();
+      const config = {
+        ...useDefaultConfig(),
+        flushIntervalMillis: 0,
+        transportProvider,
+      };
+      await destination.setup(config);
+      void destination.execute({
+        event_type: 'event_type_1',
+        event_id: 0,
+      });
+      // exhause schedule setTimeout
+      jest.runAllTimers();
+      // wait for next tick to call nested setTimeout
+      await Promise.resolve();
+
+      expect(destination.throttled).toBe(true);
+      // exhause throttle setTimeout
+      jest.runAllTimers();
+
+      expect(destination.throttled).toBe(false);
+      jest.runOnlyPendingTimers();
+      jest.useRealTimers();
     });
 
     test('should handle retry for 500 error', async () => {
@@ -972,7 +1296,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushQueueSize: 2,
@@ -1011,7 +1334,6 @@ describe('destination', () => {
       }
       const transportProvider = new Http();
       const destination = new Destination();
-      destination.retryTimeout = 10;
       const config = {
         ...useDefaultConfig(),
         flushMaxRetries: 1,
@@ -1023,11 +1345,9 @@ describe('destination', () => {
       const results = await Promise.all([
         destination.execute({
           event_type: 'event_type',
-          insert_id: '0',
         }),
         destination.execute({
           event_type: 'event_type',
-          insert_id: '1',
         }),
       ]);
       expect(results[0].code).toBe(500);
@@ -1119,7 +1439,7 @@ describe('destination', () => {
           exceededDailyQuotaUsers: {
             '2': 1,
           },
-          throttledEvents: [0],
+          throttledEvents: [],
         },
       },
     ])(
@@ -1130,6 +1450,7 @@ describe('destination', () => {
           statusCode,
           body,
         };
+        const uuid: string = expect.stringMatching(uuidPattern) as string;
 
         class Http {
           send = jest
@@ -1137,7 +1458,7 @@ describe('destination', () => {
             .mockImplementationOnce(() => {
               return Promise.resolve(response);
             })
-            .mockImplementationOnce(() => {
+            .mockImplementation(() => {
               return Promise.resolve({
                 status: Status.Success,
                 statusCode: 200,
@@ -1151,6 +1472,7 @@ describe('destination', () => {
         const destination = new Destination();
         const loggerProvider = getMockLogger();
         const eventCount = status === Status.PayloadTooLarge ? 2 : 1;
+
         const config = {
           ...useDefaultConfig(),
           flushQueueSize: eventCount,
@@ -1159,36 +1481,31 @@ describe('destination', () => {
           loggerProvider,
         };
         await destination.setup(config);
-        destination.retryTimeout = 10;
-        destination.throttleTimeout = 1;
         const event = {
           event_type: 'event_type',
         };
-        let result;
-        if (eventCount > 1) {
-          // Need 2 events for 413 to retry, send them both at the same time
-          result = await new Promise((resolve) => {
-            const context: DestinationContext = {
-              event,
-              attempts: 0,
-              callback: (result: Result) => resolve(result),
-              timeout: 0,
-            };
-            void destination.addToQueue(context, context);
-          });
-        } else {
-          result = await destination.execute(event);
+
+        const events = [];
+        for (let count = 0; count < eventCount; count++) {
+          events.push({ ...event });
         }
 
-        expect(result).toEqual({
-          event,
-          message: SUCCESS_MESSAGE,
-          code: 200,
+        const results = await Promise.all(events.map((event) => destination.execute(event))).catch();
+
+        results.every((result) => {
+          expect(result).toEqual({
+            event: {
+              ...event,
+              insert_id: uuid,
+            },
+            message: SUCCESS_MESSAGE,
+            code: 200,
+          });
         });
 
         expect(transportProvider.send).toHaveBeenCalledTimes(eventCount + 1);
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(loggerProvider.warn).toHaveBeenCalledTimes(eventCount);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
         expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
       },
@@ -1206,7 +1523,6 @@ describe('destination', () => {
         event: {
           event_type: 'event_type',
         },
-        timeout: 0,
       };
       const transportProvider = {
         send: jest.fn().mockImplementationOnce(() => {

@@ -19,10 +19,10 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from '../messages';
 import { STORAGE_PREFIX } from '../constants';
-import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig } from '../config';
 import { UUID } from '../utils/uuid';
+import { chunk } from '../utils/chunk';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -45,8 +45,6 @@ export class Destination implements DestinationPlugin {
   name = 'amplitude';
   type = 'destination' as const;
 
-  retryTimeout = 1000;
-  throttleTimeout = 30000;
   storageKey = '';
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -54,6 +52,8 @@ export class Destination implements DestinationPlugin {
   config: Config;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
+  throttled = false;
+  throttleTimeout = 30000;
 
   async setup(config: Config): Promise<undefined> {
     this.config = config;
@@ -63,7 +63,6 @@ export class Destination implements DestinationPlugin {
     if (unsent && unsent.length > 0) {
       void Promise.all(unsent.map((event) => this.execute(event))).catch();
     }
-
     return Promise.resolve(undefined);
   }
 
@@ -78,16 +77,20 @@ export class Destination implements DestinationPlugin {
         event,
         attempts: 0,
         callback: (result: Result) => resolve(result),
-        timeout: 0,
       };
       void this.addToQueue(context);
     });
   }
 
-  getTryableList(list: Context[]) {
-    return list.filter((context) => {
+  addToQueue(...list: Context[]) {
+    this.queue = this.queue.concat(list);
+    this.saveEvents();
+    this.sendEventsIfReady();
+  }
+
+  filterTriableList() {
+    this.queue = this.queue.filter((context) => {
       if (context.attempts < this.config.flushMaxRetries) {
-        context.attempts += 1;
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
@@ -95,44 +98,30 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  scheduleTryable(list: Context[], shouldAddToQueue = false) {
-    list.forEach((context) => {
-      // Only need to concat the queue for the first time
-      if (shouldAddToQueue) {
-        this.queue = this.queue.concat(context);
+  increaseAttempts(list: Context[]) {
+    const updateEventSet = new Set(list.map((context) => context.event.insert_id));
+    this.queue.forEach((context) => {
+      if (updateEventSet.has(context.event.insert_id)) {
+        context.attempts += 1;
       }
-      if (context.timeout === 0) {
-        this.schedule(this.config.flushIntervalMillis);
-        return;
-      }
-
-      setTimeout(() => {
-        context.timeout = 0;
-        this.schedule(0);
-      }, context.timeout);
     });
   }
 
-  addToQueue(...list: Context[]) {
-    const tryable = this.getTryableList(list);
-    this.scheduleTryable(tryable, true);
-    this.saveEvents();
-  }
-
-  schedule(timeout: number) {
-    if (this.scheduled || this.config.offline) {
+  sendEventsIfReady() {
+    if (this.config.offline || this.scheduled || this.throttled) {
       return;
     }
 
     this.scheduled = setTimeout(() => {
       void this.flush(true).then(() => {
         if (this.queue.length > 0) {
-          this.schedule(timeout);
+          this.sendEventsIfReady();
         }
       });
-    }, timeout);
+    }, this.config.flushIntervalMillis);
   }
 
+  // flush the queue
   async flush(useRetry = false) {
     // Skip flush if offline
     if (this.config.offline) {
@@ -140,25 +129,46 @@ export class Destination implements DestinationPlugin {
       return;
     }
 
-    const list: Context[] = [];
-    const later: Context[] = [];
-    this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
+    if (this.throttled) {
+      this.config.loggerProvider.debug('Skipping flush while throttled. Will retry after 30 seconds.');
+      return;
+    }
 
     if (this.scheduled) {
       clearTimeout(this.scheduled);
       this.scheduled = null;
     }
 
-    const batches = chunk(list, this.config.flushQueueSize);
+    this.filterTriableList();
+    if (this.queue.length === 0) {
+      return;
+    }
 
-    await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
-
-    this.scheduleTryable(later);
+    const batches = chunk(this.queue, this.config.flushQueueSize);
+    for (const batch of batches) {
+      this.increaseAttempts(batch);
+      const isFullfilledRequest = await this.send(batch, useRetry);
+      // To keep the order of events sending to the backend, stop sending the other requests while the request is not been fullfilled.
+      // All the events are still queued, and will be retried with next trigger.
+      if (!isFullfilledRequest) {
+        break;
+      }
+    }
   }
 
-  async send(list: Context[], useRetry = true) {
+  /**
+   * Send the events to the server
+   *
+   * @returns if the request has been fullfilled.
+   */
+  async send(list: Context[], useRetry = true): Promise<boolean> {
     if (!this.config.apiKey) {
-      return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
+      this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
+      return true;
+    }
+
+    if (this.throttled) {
+      return false;
     }
 
     const payload = {
@@ -179,61 +189,64 @@ export class Destination implements DestinationPlugin {
       const res = await this.config.transportProvider.send(serverUrl, payload);
       if (res === null) {
         this.fulfillRequest(list, 0, UNEXPECTED_ERROR_MESSAGE);
-        return;
+        return true;
       }
+
       if (!useRetry) {
         if ('body' in res) {
           this.fulfillRequest(list, res.statusCode, `${res.status}: ${getResponseBodyString(res)}`);
         } else {
           this.fulfillRequest(list, res.statusCode, res.status);
         }
-        return;
+        return true;
       }
-      this.handleResponse(res, list);
+
+      return this.handleResponse(res, list);
     } catch (e) {
       const errorMessage = getErrorMessage(e);
       this.config.loggerProvider.error(errorMessage);
-      this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
+      return this.handleResponse({ status: Status.Failed, statusCode: 0 }, list);
     }
   }
 
-  handleResponse(res: Response, list: Context[]) {
+  handleResponse(res: Response, list: Context[]): boolean {
     const { status } = res;
-
+    let isFullfilledRequest = false;
     switch (status) {
       case Status.Success: {
-        this.handleSuccessResponse(res, list);
+        isFullfilledRequest = this.handleSuccessResponse(res, list);
         break;
       }
       case Status.Invalid: {
-        this.handleInvalidResponse(res, list);
+        isFullfilledRequest = this.handleInvalidResponse(res, list);
         break;
       }
       case Status.PayloadTooLarge: {
-        this.handlePayloadTooLargeResponse(res, list);
+        isFullfilledRequest = this.handlePayloadTooLargeResponse(res, list);
         break;
       }
       case Status.RateLimit: {
-        this.handleRateLimitResponse(res, list);
+        isFullfilledRequest = this.handleRateLimitResponse(res, list);
         break;
       }
       default: {
         // log intermediate event status before retry
         this.config.loggerProvider.warn(`{code: 0, error: "Status '${status}' provided for ${list.length} events"}`);
-        this.handleOtherResponse(list);
         break;
       }
     }
+    return isFullfilledRequest;
   }
 
-  handleSuccessResponse(res: SuccessResponse, list: Context[]) {
+  handleSuccessResponse(res: SuccessResponse, list: Context[]): boolean {
     this.fulfillRequest(list, res.statusCode, SUCCESS_MESSAGE);
+    return true;
   }
 
-  handleInvalidResponse(res: InvalidResponse, list: Context[]) {
+  handleInvalidResponse(res: InvalidResponse, list: Context[]): boolean {
     if (res.body.missingField || res.body.error.startsWith(INVALID_API_KEY)) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
-      return;
+      return true;
     }
 
     const dropIndex = [
@@ -244,6 +257,7 @@ export class Destination implements DestinationPlugin {
     ].flat();
     const dropIndexSet = new Set(dropIndex);
 
+    // All the events are still queued, and will be retried with next trigger
     const retry = list.filter((context, index) => {
       if (dropIndexSet.has(index)) {
         this.fulfillRequest([context], res.statusCode, res.body.error);
@@ -255,66 +269,63 @@ export class Destination implements DestinationPlugin {
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
+      return false;
     }
-
-    const tryable = this.getTryableList(retry);
-    this.scheduleTryable(tryable);
+    return true;
   }
 
-  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
+  handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]): boolean {
     if (list.length === 1) {
       this.fulfillRequest(list, res.statusCode, res.body.error);
-      return;
+      return true;
     }
 
     // log intermediate event status before retry
     this.config.loggerProvider.warn(getResponseBodyString(res));
 
     this.config.flushQueueSize /= 2;
-
-    const tryable = this.getTryableList(list);
-    this.scheduleTryable(tryable);
+    // All the events are still queued, and will be retried with next trigger
+    return false;
   }
 
-  handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
+  handleRateLimitResponse(res: RateLimitResponse, list: Context[]): boolean {
     const dropUserIds = Object.keys(res.body.exceededDailyQuotaUsers);
     const dropDeviceIds = Object.keys(res.body.exceededDailyQuotaDevices);
-    const throttledIndex = res.body.throttledEvents;
+    // Array of indexes in the events array indicating events whose user_id or device_id were throttled.
+    const throttledIndexSet = new Set(res.body.throttledEvents);
     const dropUserIdsSet = new Set(dropUserIds);
     const dropDeviceIdsSet = new Set(dropDeviceIds);
-    const throttledIndexSet = new Set(throttledIndex);
-
     const retry = list.filter((context, index) => {
       if (
         (context.event.user_id && dropUserIdsSet.has(context.event.user_id)) ||
         (context.event.device_id && dropDeviceIdsSet.has(context.event.device_id))
       ) {
+        throttledIndexSet.delete(index);
         this.fulfillRequest([context], res.statusCode, res.body.error);
         return;
       }
-      if (throttledIndexSet.has(index)) {
-        context.timeout = this.throttleTimeout;
-      }
+
       return true;
     });
 
     if (retry.length > 0) {
       // log intermediate event status before retry
       this.config.loggerProvider.warn(getResponseBodyString(res));
+
+      // Has not dropped throttled event
+      if (throttledIndexSet.size > 0 && !this.throttled) {
+        this.throttled = true;
+        setTimeout(() => {
+          this.throttled = false;
+          this.sendEventsIfReady();
+        }, this.throttleTimeout);
+      }
+
+      return false;
     }
 
-    const tryable = this.getTryableList(retry);
-    this.scheduleTryable(tryable);
-  }
-
-  handleOtherResponse(list: Context[]) {
-    const later = list.map((context) => {
-      context.timeout = context.attempts * this.retryTimeout;
-      return context;
-    });
-
-    const tryable = this.getTryableList(later);
-    this.scheduleTryable(tryable);
+    return true;
+    // All the events are still queued, and will be retried with next trigger
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
