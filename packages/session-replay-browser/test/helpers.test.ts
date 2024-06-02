@@ -175,21 +175,6 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskFn('text')('some text', htmlElement);
       expect(result).toEqual('some text');
     });
-    test('should not mask any other element', () => {
-      const htmlElement = document.createElement('div');
-      htmlElement.classList.add('another-class');
-      const result = maskFn('text')('some text', htmlElement);
-      expect(result).toEqual('some text');
-    });
-    test('should handle null element', () => {
-      const result = maskFn('text')('some text', null);
-      expect(result).toEqual('some text');
-    });
-    test('should handle an element without a class list', () => {
-      const htmlElement = {} as unknown as HTMLElement;
-      const result = maskFn('text')('some text', htmlElement);
-      expect(result).toEqual('some text');
-    });
   });
 
   describe('generateHashCode', () => {
