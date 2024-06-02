@@ -32,9 +32,8 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
       return false;
     }
     case 'medium':
-      return elementType === 'input';
     case 'conservative':
-      return elementType === 'input' || elementType === 'text';
+      return true;
     default:
       return isMaskedForLevel(elementType, DEFAULT_MASK_LEVEL, element);
   }
