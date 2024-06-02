@@ -10,7 +10,6 @@ describe('SessionReplayPlugin helpers', () => {
       expect(result).toEqual('**** ****');
     });
 
-
     test('should not mask on null element', () => {
       const result = maskFn('input', { defaultMaskLevel: 'light' })('some text', null);
       expect(result).toEqual('some text');
