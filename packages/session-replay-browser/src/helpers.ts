@@ -68,7 +68,10 @@ const isMasked = (
     if (element.classList && element.classList.contains(UNMASK_TEXT_CLASS)) {
       return false;
     }
-    const shouldUnmask = (config.unmaskSelector ?? []).some((selector) => element.matches(selector));
+
+    // Here we are probably sent an element, but we want to match if they have a
+    // parent with an unmask selector.
+    const shouldUnmask = (config.unmaskSelector ?? []).some((selector) => element.closest(selector));
     if (shouldUnmask) {
       return false;
     }
