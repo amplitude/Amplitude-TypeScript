@@ -4,6 +4,13 @@ import { generateHashCode, isSessionInSample, maskFn } from '../src/helpers';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
+    test('should default to medium on unknown mask level', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      const result = maskFn('input', { defaultMaskLevel: 'lightxx' } as any)('some text', null);
+      expect(result).toEqual('**** ****');
+    });
+
+
     test('should not mask on null element', () => {
       const result = maskFn('input', { defaultMaskLevel: 'light' })('some text', null);
       expect(result).toEqual('some text');

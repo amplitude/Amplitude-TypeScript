@@ -3,12 +3,6 @@ import { MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig } from './config/types';
 import { getInputType } from '@amplitude/rrweb-snapshot';
 
-// compiler guard
-/* istanbul ignore next */ // TODO(lew): figure out a way to test this.
-const assertUnreachable = (_: never): never => {
-  throw new Error('did not expect to get here');
-};
-
 /**
  * Light: Subset of inputs
  * Medium: All inputs
@@ -41,10 +35,9 @@ const isMaskedForLevel = (elementType: 'input' | 'text', level: MaskLevel, eleme
       return elementType === 'input';
     case 'conservative':
       return elementType === 'input' || elementType === 'text';
+    default:
+      return isMaskedForLevel(elementType, DEFAULT_MASK_LEVEL, element);
   }
-
-  /* istanbul ignore next */ // TODO (lew): figure out a way to test this.
-  return assertUnreachable(level);
 };
 
 /**
