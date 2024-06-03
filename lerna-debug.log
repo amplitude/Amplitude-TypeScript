@@ -1,0 +1,16 @@
+0 silly argv {
+0 silly argv   _: [ 'version' ],
+0 silly argv   y: true,
+0 silly argv   yes: true,
+0 silly argv   'conventional-prerelease': true,
+0 silly argv   conventionalPrerelease: true,
+0 silly argv   lernaVersion: '6.1.0',
+0 silly argv   '$0': '/Users/lew.gordon/repos/Amplitude-TypeScript/node_modules/.bin/lerna'
+0 silly argv }
+1 notice cli v6.1.0
+2 verbose rootPath /Users/lew.gordon/repos/Amplitude-TypeScript
+3 silly createGitHubClient
+4 error Error: A GH_TOKEN environment variable is required.
+4 error     at createGitHubClient (/Users/lew.gordon/repos/Amplitude-TypeScript/node_modules/@lerna/github-client/lib/github-client.js:17:11)
+4 error     at createReleaseClient (/Users/lew.gordon/repos/Amplitude-TypeScript/node_modules/@lerna/version/lib/create-release.js:20:14)
+4 error     at VersionCommand.configureProperties (/Users/lew.gordon/repos/Amplitude-TypeScript/node_modules/@lerna/version/index.js:83:58)
