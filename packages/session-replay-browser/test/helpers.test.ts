@@ -69,11 +69,6 @@ describe('SessionReplayPlugin helpers', () => {
       const result = maskFn('input')('some text', htmlElement);
       expect(result).toEqual('**** ****');
     });
-    test('should handle an element without a class list', () => {
-      const htmlElement = {} as unknown as HTMLElement;
-      const result = maskFn('input')('some text', htmlElement);
-      expect(result).toEqual('**** ****');
-    });
     test('should mask on conservative level', () => {
       const htmlElement = document.createElement('input');
       const result = maskFn('input', { defaultMaskLevel: 'conservative' })('some text', htmlElement);

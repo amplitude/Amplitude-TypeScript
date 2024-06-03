@@ -52,8 +52,8 @@ const isMasked = (
   element: HTMLElement | null,
 ): boolean => {
   if (element) {
-    // Element is explicitly instrumented in code to mask
-    if (element.classList && element.classList.contains(MASK_TEXT_CLASS)) {
+    // Element or parent is explicitly instrumented in code to mask
+    if (element.closest('.' + MASK_TEXT_CLASS)) {
       return true;
     }
 
@@ -64,7 +64,7 @@ const isMasked = (
     }
 
     // Code or config has override to unmask
-    if (element.classList && element.classList.contains(UNMASK_TEXT_CLASS)) {
+    if (element.closest('.' + UNMASK_TEXT_CLASS)) {
       return false;
     }
 
