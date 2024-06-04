@@ -33,8 +33,16 @@ export interface SessionReplayDB extends DBSchema {
 
 export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
   const globalScope = getGlobalScope();
-  return new Promise((resolve) => {
-    if (globalScope) {
+  return new Promise((resolve, reject) => {
+    if (!globalScope) {
+      return reject(new Error('Global scope not found'));
+    }
+
+    if (!globalScope.indexedDB) {
+      return reject(new Error('IndexedDB is not available in the global scope'));
+    }
+
+    try {
       const request = globalScope.indexedDB.open('keyval-store');
       request.onupgradeneeded = function () {
         if (request.result.version === 1) {
@@ -47,6 +55,8 @@ export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
       request.onsuccess = function () {
         resolve(request.result);
       };
+    } catch (e) {
+      reject(e);
     }
   });
 };
