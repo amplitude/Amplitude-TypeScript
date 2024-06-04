@@ -58,7 +58,7 @@ const isMasked = (
     }
 
     // Config has override for mask
-    const shouldMask = (config.maskSelector ?? []).some((selector) => element.matches(selector));
+    const shouldMask = (config.maskSelector ?? []).some((selector) => element.closest(selector));
     if (shouldMask) {
       return true;
     }
