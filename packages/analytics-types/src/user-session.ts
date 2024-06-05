@@ -6,4 +6,5 @@ export interface UserSession {
   optOut: boolean;
   lastEventId?: number;
   pageCounter?: number;
+  debugLogsEnabled?: boolean;
 }

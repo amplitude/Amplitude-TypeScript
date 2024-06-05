@@ -1,6 +1,7 @@
 import { BrowserClient, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
 import { DEFAULT_FILE_DOWNLOAD_EVENT, FILE_EXTENSION, FILE_NAME, LINK_ID, LINK_TEXT, LINK_URL } from '../constants';
 import { BrowserConfig } from '../config';
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 
 interface EventListener {
   element: Element;
@@ -34,7 +35,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
     // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
     // only after the window is loaded
     // eslint-disable-next-line no-restricted-globals
-    window.addEventListener('load', function () {
+    getGlobalScope()?.addEventListener('load', function () {
       /* istanbul ignore if */
       if (!amplitude) {
         // TODO: Add required minimum version of @amplitude/analytics-browser
@@ -62,6 +63,8 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
         const fileExtension = result?.[1];
 
         if (fileExtension) {
+          config?.loggerProvider?.debug('Adding file download tracking listener for element', a);
+
           addEventListener(a, 'click', () => {
             if (fileExtension) {
               amplitude.track(DEFAULT_FILE_DOWNLOAD_EVENT, {

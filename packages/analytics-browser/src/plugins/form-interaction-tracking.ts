@@ -7,6 +7,7 @@ import {
   FORM_DESTINATION,
 } from '../constants';
 import { BrowserConfig } from '../config';
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 
 interface EventListener {
   element: Element;
@@ -42,7 +43,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
     // only after the window is loaded
     // eslint-disable-next-line no-restricted-globals
-    window.addEventListener('load', function () {
+    getGlobalScope()?.addEventListener('load', function () {
       /* istanbul ignore if */
       if (!amplitude) {
         // TODO: Add required minimum version of @amplitude/analytics-browser
@@ -58,6 +59,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       }
 
       const addFormInteractionListener = (form: HTMLFormElement) => {
+        config?.loggerProvider?.debug('adding form interaction listener for form: ', form);
         let hasFormChanged = false;
 
         addEventListener(form, 'change', () => {

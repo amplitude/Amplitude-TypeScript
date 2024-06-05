@@ -307,7 +307,7 @@ describe('browser-client', () => {
 
       expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
       expect(client.config.offline).toBe(false);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to online.');
 
       jest.advanceTimersByTime(client.config.flushIntervalMillis);
@@ -339,7 +339,7 @@ describe('browser-client', () => {
       window.dispatchEvent(new Event('offline'));
       expect(addEventListenerMock).toHaveBeenCalledWith('offline', expect.any(Function));
       expect(client.config.offline).toBe(true);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to offline.');
 
       jest.useRealTimers();
@@ -945,6 +945,32 @@ describe('browser-client', () => {
       expect(result.code).toEqual(200);
       expect(track).toHaveBeenCalledTimes(1);
       expect(convertProxyObjectToRealObject).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('debug logging', () => {
+    test('enable debug logging', async () => {
+      await client.init(apiKey, {
+        defaultTracking,
+      }).promise;
+
+      client.enableDebugLogs();
+      const cookieStorage = new CookieStorage<UserSession>();
+      const cookie = await cookieStorage.get(getCookieName(apiKey));
+      console.log(cookie);
+      expect(cookie?.debugLogsEnabled).toBe(true);
+    });
+
+    test('disable debug logging', async () => {
+      await client.init(apiKey, {
+        defaultTracking,
+      }).promise;
+
+      client.disableDebugLogs();
+      const cookieStorage = new CookieStorage<UserSession>();
+      const cookie = await cookieStorage.get(getCookieName(apiKey));
+      console.log(cookie);
+      expect(cookie?.debugLogsEnabled).toBe(undefined);
     });
   });
 

@@ -75,6 +75,7 @@ interface InternalBrowserConfig {
   lastEventTime?: number;
   lastEventId?: number;
   transportProvider: Transport;
+  debugLogsEnabled?: boolean;
 }
 
 export interface DefaultTrackingOptions {
