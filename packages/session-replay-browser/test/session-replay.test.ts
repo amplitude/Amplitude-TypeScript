@@ -910,4 +910,21 @@ describe('SessionReplay', () => {
       expect(sessionReplay.getSessionReplayDebugPropertyValue()).toBe('{"appHash":""}');
     });
   });
+
+  describe('removeInvalidSelectors', () => {
+    test('should handle string block selector correctly', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (sessionReplay.config) {
+        sessionReplay.config.privacyConfig = {
+          blockSelector: 'FASE<:F>!@<?#>!#<',
+        };
+      }
+      sessionReplay.removeInvalidSelectors();
+      expect(sessionReplay.config?.privacyConfig).toStrictEqual({
+        blockSelector: undefined,
+        maskSelector: undefined,
+        unmaskSelector: undefined,
+      });
+    });
+  });
 });

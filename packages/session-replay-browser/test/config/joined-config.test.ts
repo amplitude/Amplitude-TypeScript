@@ -13,8 +13,11 @@ const samplingConfig = {
   sample_rate: 0.4,
   capture_enabled: true,
 };
-const privacyConfig = {
-  blockSelector: '.anotherClassName',
+const privacyConfig: Required<PrivacyConfig> = {
+  defaultMaskLevel: 'medium',
+  blockSelector: ['.anotherClassName'],
+  maskSelector: [],
+  unmaskSelector: [],
 };
 
 const mockLoggerProvider: MockedLogger = {
@@ -37,9 +40,7 @@ const mockOptions: SessionReplayOptions = {
   sampleRate: 1,
   sessionId: 123,
   serverZone: ServerZone.EU,
-  privacyConfig: {
-    blockSelector: '.className',
-  },
+  privacyConfig: {},
 };
 
 const mockLocalConfig = new SessionReplayLocalConfig('static_key', mockOptions);
@@ -147,26 +148,63 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
     });
     describe('with successful privacy config fetch', () => {
-      const privacySelectorTest = async (privacyConfig?: PrivacyConfig) => {
-        getRemoteConfigMockImplementation({ privacyConfig });
+      const privacySelectorTest = async (
+        remotePrivacyConfig?: PrivacyConfig,
+        configGenerator: SessionReplayJoinedConfigGenerator = joinedConfigGenerator,
+      ) => {
+        getRemoteConfigMockImplementation({ privacyConfig: remotePrivacyConfig });
         getRemoteConfigMock = jest.fn().mockImplementation((_, key) => {
-          const result = key === 'sr_privacy_config' ? privacyConfig : undefined;
+          const result = key === 'sr_privacy_config' ? remotePrivacyConfig : undefined;
           return Promise.resolve(result);
         });
-        if (joinedConfigGenerator.remoteConfigFetch) {
+        if (configGenerator.remoteConfigFetch) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          joinedConfigGenerator.remoteConfigFetch.getRemoteConfig = getRemoteConfigMock;
+          configGenerator.remoteConfigFetch.getRemoteConfig = getRemoteConfigMock;
         }
-        return joinedConfigGenerator.generateJoinedConfig(123);
+        return configGenerator.generateJoinedConfig(123);
       };
 
-      test('should use block selector from API', async () => {
-        const config = await privacySelectorTest(privacyConfig);
+      test('should join string block selector from API', async () => {
+        const config = await privacySelectorTest(
+          privacyConfig,
+          await createSessionReplayJoinedConfigGenerator('static_key', {
+            ...mockOptions,
+            privacyConfig: {
+              blockSelector: '.className',
+            },
+          }),
+        );
         expect(config).toEqual({
           ...mockLocalConfig,
           captureEnabled: true,
           optOut: mockLocalConfig.optOut,
-          privacyConfig,
+          privacyConfig: {
+            ...privacyConfig,
+            blockSelector: ['.className', '.anotherClassName'],
+          },
+        });
+      });
+
+      test.each(['block', 'mask', 'unmask'])('should join %p selector from API', async (selectorType) => {
+        const config = await privacySelectorTest(
+          {
+            [`${selectorType}Selector`]: ['.remoteClassName'],
+          },
+          await createSessionReplayJoinedConfigGenerator('static_key', {
+            ...mockOptions,
+            privacyConfig: {
+              [`${selectorType}Selector`]: ['.localClassName'],
+            },
+          }),
+        );
+        expect(config).toEqual({
+          ...mockLocalConfig,
+          captureEnabled: true,
+          optOut: mockLocalConfig.optOut,
+          privacyConfig: {
+            ...{ defaultMaskLevel: 'medium', blockSelector: [], maskSelector: [], unmaskSelector: [] },
+            ...{ [`${selectorType}Selector`]: ['.localClassName', '.remoteClassName'] },
+          },
         });
       });
 
@@ -187,12 +225,25 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
 
       test('should use block selector from local if no API response', async () => {
-        const config = await privacySelectorTest({});
+        const config = await privacySelectorTest(
+          {},
+          await createSessionReplayJoinedConfigGenerator('static_key', {
+            ...mockOptions,
+            privacyConfig: {
+              blockSelector: '.className',
+            },
+          }),
+        );
         expect(config).toEqual({
           ...mockLocalConfig,
           captureEnabled: true,
           optOut: mockLocalConfig.optOut,
-          privacyConfig: mockLocalConfig.privacyConfig,
+          privacyConfig: {
+            defaultMaskLevel: 'medium',
+            blockSelector: ['.className'],
+            maskSelector: [],
+            unmaskSelector: [],
+          },
         });
       });
 
