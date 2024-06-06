@@ -7,6 +7,7 @@ import {
   FORM_DESTINATION,
 } from '../constants';
 import { BrowserConfig } from '../config';
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 
 interface EventListener {
   element: Element;
@@ -41,8 +42,8 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
     // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
     // only after the window is loaded
-    // eslint-disable-next-line no-restricted-globals
-    window.addEventListener('load', function () {
+    /* istanbul ignore next */
+    getGlobalScope()?.addEventListener('load', function () {
       /* istanbul ignore if */
       if (!amplitude) {
         // TODO: Add required minimum version of @amplitude/analytics-browser
