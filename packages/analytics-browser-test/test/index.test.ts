@@ -1944,7 +1944,7 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        expect(logger.debug).toHaveBeenCalledTimes(1);
+        expect(logger.debug).toHaveBeenCalledTimes(3);
         /* eslint-disable */
         const debugContext = JSON.parse(logger.debug.mock.calls[0]);
         expect(debugContext.type).toBeDefined();
@@ -1972,7 +1972,7 @@ describe('integration', () => {
         }).promise;
         client.setOptOut(true);
 
-        expect(logger.debug).toHaveBeenCalledTimes(1);
+        expect(logger.debug).toHaveBeenCalledTimes(3);
         /* eslint-disable */
         const debugContext = JSON.parse(logger.debug.mock.calls[0]);
         expect(debugContext.type).toBeDefined();
