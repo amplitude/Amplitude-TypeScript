@@ -2,6 +2,7 @@
 import { Logger } from '@amplitude/analytics-types';
 import { IDBPDatabase, openDB } from 'idb';
 import * as EventsIDBStore from '../src/events/events-idb-store';
+import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { SessionReplayDB, SessionReplayEventsIDBStore } from '../src/events/events-idb-store';
 
 type MockedLogger = jest.Mocked<Logger>;
@@ -368,6 +369,49 @@ describe('SessionReplayEventsIDBStore', () => {
 
       await eventsStorage.transitionFromKeyValStore();
       expect(global.indexedDB.deleteDatabase).not.toHaveBeenCalled();
+    });
+
+    test('should warn user if keyval database cannot be accessed', async () => {
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockImplementation(() => {
+            throw new Error('Test error');
+          }),
+        },
+      } as unknown as typeof globalThis;
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      await eventsStorage.initialize();
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      await eventsStorage.transitionFromKeyValStore();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
+    });
+
+    test('should reject when global scope is undefined', async () => {
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+
+      await expect(EventsIDBStore.keyValDatabaseExists()).rejects.toThrow('Global scope not found');
+    });
+
+    test('should reject when indexedDB does not exist', async () => {
+      const mockGlobalScope = {} as Omit<typeof globalThis, 'indexedDB'>;
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope as typeof globalThis);
+
+      await expect(EventsIDBStore.keyValDatabaseExists()).rejects.toThrow('Session Replay: cannot find indexedDB');
+    });
+
+    test('should reject when indexedDB.open throws an error', async () => {
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockImplementation(() => {
+            throw new Error('Test error');
+          }),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      await expect(EventsIDBStore.keyValDatabaseExists()).rejects.toThrow('Test error');
     });
 
     test('should add current session events to new idb sessionCurrentSequence', async () => {
