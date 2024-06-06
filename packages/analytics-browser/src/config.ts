@@ -187,10 +187,6 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     }
   }
 
-  get debugLogsEnabled() {
-    return this._debugLogsEnabled;
-  }
-
   set debugLogsEnabled(debugLogsEnabled: boolean | undefined) {
     if (this._debugLogsEnabled !== debugLogsEnabled) {
       this._debugLogsEnabled = debugLogsEnabled;
