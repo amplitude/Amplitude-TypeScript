@@ -9,7 +9,7 @@
   <script src="./amplitude.js"></script>
 	
   <script>
-    amplitude.init('API_KEY', 'playground.user@amplitude.com');
+    amplitude.init('0d5618fc6a47b0fb45c556a249634f47', 'playground.user@amplitude.com', {logLevel: 0});
   </script>
   <body>
     <h1>Amplitude SDK Playground</h1>
@@ -20,5 +20,15 @@
       <li>Go to Console tab</li>
       <li>Play with the SDK</li>
     </ul>
+    <!-- create a form with 2 properties -->
+    <form id="form">
+      <label for="property1">Property 1</label>
+      <input type="text" id="property1" name="property1" value="value1">
+      <label for="property2">Property 2</label>
+      <input type="text" id="property2" name="property2" value="value2">
+      <button type="submit">Send Event</button>
+    </form>
+    <!-- Create a download button to download a pdf file -->
+    <a href="./sample.pdf" download="sample.pdf">Download PDF</a>
   </body>
 </html>

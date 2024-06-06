@@ -137,6 +137,18 @@ export interface BrowserClient extends Client {
    * ```
    */
   add(plugin: Plugin<BrowserClient, BrowserConfig>): AmplitudeReturn<void>;
+
+  /**
+   * This is a helper function to be used in the browser to enable debug logs. For example, if you've deployed your website
+   * to production and want to enable debug logs on your browser for testing purposes, you can call this function from
+   * within the browser's console. Do not use this function in production code.
+   */
+  _enableDebugLogs(): void;
+
+  /**
+   * Disables debug logging
+   */
+  _disableDebugLogs(): void;
 }
 
 export interface ReactNativeClient extends Client {
