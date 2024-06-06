@@ -73,6 +73,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     // Step 2: Create browser config
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
     await super._init(browserOptions);
+    this.logBrowserOptions(options);
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
@@ -116,15 +117,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     detNotify(this.config);
 
     if (isFileDownloadTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding file download tracking plugin');
       await this.add(fileDownloadTracking()).promise;
     }
 
     if (isFormInteractionTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding form interaction plugin');
       await this.add(formInteractionTracking()).promise;
     }
 
     // Add page view plugin
     if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding page view tracking plugin');
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
     }
 
@@ -148,6 +152,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.q.push(this.setUserId.bind(this, userId));
       return;
     }
+    this.config.loggerProvider.debug('function setUserId: ', userId);
     if (userId !== this.config.userId || userId === undefined) {
       this.config.userId = userId;
       setConnectorUserId(userId, this.config.instanceName);
@@ -163,6 +168,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.q.push(this.setDeviceId.bind(this, deviceId));
       return;
     }
+    this.config.loggerProvider.debug('function setDeviceId: ', deviceId);
     this.config.deviceId = deviceId;
     setConnectorDeviceId(deviceId, this.config.instanceName);
   }
@@ -186,6 +192,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (sessionId === this.config.sessionId) {
       return returnWrapper(Promise.resolve());
     }
+
+    this.config.loggerProvider.debug('function setSessionId: ', sessionId);
 
     const previousSessionId = this.getSessionId();
     const lastEventTime = this.config.lastEventTime;
@@ -318,5 +326,19 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
 
     return super.process(event);
+  }
+
+  private logBrowserOptions(browserConfig: BrowserOptions) {
+    try {
+      const browserConfigCopy = {
+        ...browserConfig,
+        // get first 5 characters of api key and redact the rest
+        apiKey: 'REDACTED',
+      };
+      this.config.loggerProvider.debug('Initialized Amplitude with BrowserConfig:', JSON.stringify(browserConfigCopy));
+    } catch (e) {
+      /* istanbul ignore next */
+      this.config.loggerProvider.error('Error logging browser config', e);
+    }
   }
 }
