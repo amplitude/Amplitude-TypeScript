@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.2-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.5.1...@amplitude/session-replay-browser@1.5.2-beta.0) (2024-06-06)
+
+### Bug Fixes
+
+- **session replay:** add error handling for indexeddb
+  ([bffa884](https://github.com/amplitude/Amplitude-TypeScript/commit/bffa8848a6bcb2ed20c9dd4a64559546f918991b))
+- **session replay:** try catch for keyval errors
+  ([92b071c](https://github.com/amplitude/Amplitude-TypeScript/commit/92b071cf0b3b85df78aeef8a0276070474471c41))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.5.0...@amplitude/session-replay-browser@1.5.1) (2024-05-28)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
