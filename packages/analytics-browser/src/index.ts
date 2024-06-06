@@ -22,6 +22,8 @@ export const {
   setTransport,
   setUserId,
   track,
+  _enableDebugLogs,
+  _disableDebugLogs,
 } = client;
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';

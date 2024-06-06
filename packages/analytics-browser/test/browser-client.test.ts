@@ -954,23 +954,81 @@ describe('browser-client', () => {
         defaultTracking,
       }).promise;
 
-      client.enableDebugLogs();
+      client._enableDebugLogs();
       const cookieStorage = new CookieStorage<UserSession>();
       const cookie = await cookieStorage.get(getCookieName(apiKey));
-      console.log(cookie);
       expect(cookie?.debugLogsEnabled).toBe(true);
     });
 
     test('disable debug logging', async () => {
+      const cookieStorage = new CookieStorage<UserSession>();
       await client.init(apiKey, {
         defaultTracking,
       }).promise;
 
-      client.disableDebugLogs();
-      const cookieStorage = new CookieStorage<UserSession>();
+      client._disableDebugLogs();
       const cookie = await cookieStorage.get(getCookieName(apiKey));
-      console.log(cookie);
       expect(cookie?.debugLogsEnabled).toBe(undefined);
+    });
+
+    test('debug logs should be enabled on new page loads', async () => {
+      const cookieStorage = new CookieStorage<UserSession>();
+      const cookie: UserSession = {
+        deviceId: '123',
+        userId: '123',
+        sessionId: 123,
+        lastEventTime: Date.now(),
+        optOut: false,
+        debugLogsEnabled: true,
+      };
+      await cookieStorage.set(getCookieName(apiKey), cookie);
+
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      await client.init(apiKey, {
+        defaultTracking,
+        logLevel: LogLevel.Error,
+        loggerProvider: loggerProvider,
+      }).promise;
+
+      expect(loggerProvider.enable).toHaveBeenCalledWith(LogLevel.Debug);
+      expect(loggerProvider.enable).toHaveBeenCalledTimes(1);
+    });
+
+    test('debug logs should not be enabled by default', async () => {
+      const cookieStorage = new CookieStorage<UserSession>();
+      const cookie: UserSession = {
+        deviceId: '123',
+        userId: '123',
+        sessionId: 123,
+        lastEventTime: Date.now(),
+        optOut: false,
+      };
+      await cookieStorage.set(getCookieName(apiKey), cookie);
+
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      await client.init(apiKey, {
+        defaultTracking,
+        logLevel: LogLevel.Error,
+        loggerProvider: loggerProvider,
+      }).promise;
+
+      expect(loggerProvider.enable).toHaveBeenCalledWith(LogLevel.Error);
     });
   });
 

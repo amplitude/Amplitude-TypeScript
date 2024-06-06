@@ -75,6 +75,8 @@ const snippet = (name, integrity, version, globalVar) => `
       'setTransport',
       'reset',
       'extendSession',
+      '_enableDebugLogs',
+      '_disableDebugLogs'
     ];
     var funcsWithPromise = [
       'init',

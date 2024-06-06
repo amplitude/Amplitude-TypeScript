@@ -34,7 +34,8 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
     // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
     // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
     // only after the window is loaded
-    // eslint-disable-next-line no-restricted-globals
+
+    /* istanbul ignore next */
     getGlobalScope()?.addEventListener('load', function () {
       /* istanbul ignore if */
       if (!amplitude) {
@@ -63,7 +64,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
         const fileExtension = result?.[1];
 
         if (fileExtension) {
-          config?.loggerProvider?.debug('Adding file download tracking listener for element', a);
+          config.loggerProvider.debug('Adding file download tracking listener for element', a);
 
           addEventListener(a, 'click', () => {
             if (fileExtension) {

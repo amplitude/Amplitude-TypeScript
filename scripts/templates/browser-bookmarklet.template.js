@@ -103,6 +103,8 @@ const snippet = (
       'setTransport',
       'reset',
       'extendSession',
+      '_enableDebugLogs',
+      '_disableDebugLogs'
     ];
     var funcsWithPromise = [
       'init',

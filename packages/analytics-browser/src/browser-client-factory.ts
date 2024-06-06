@@ -125,6 +125,18 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    _enableDebugLogs: debugWrapper(
+      client._enableDebugLogs.bind(client),
+      'setTransport',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
+    _disableDebugLogs: debugWrapper(
+      client._disableDebugLogs.bind(client),
+      'setTransport',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
   };
 };
 

@@ -55,7 +55,7 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-eDok6/6H9kgHspp9YiBlZ5GpGB6hEhC7e5jjtQowkoiHJ3J84/ycC5289ba6CnS/';
+    as.integrity = 'sha384-Sus2Jt6IFZ7fSynN3OBjywGfkxkMuGc1Lsd/Ua3b6BBN/128faaGBT/V23p8OWXp';
     as.crossOrigin = 'anonymous';
     as.async = true;
     as.src = 'https://cdn.amplitude.com/libs/analytics-browser-gtm-2.8.1-min.js.gz';
@@ -84,7 +84,7 @@
       proxy(Revenue, revenueFuncs[j]);
     }
     amplitude.Revenue = Revenue;
-    var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset', 'extendSession'];
+    var funcs = ['getDeviceId', 'setDeviceId', 'getSessionId', 'setSessionId', 'getUserId', 'setUserId', 'setOptOut', 'setTransport', 'reset', 'extendSession', '_enableDebugLogs', '_disableDebugLogs'];
     var funcsWithPromise = ['init', 'add', 'remove', 'track', 'logEvent', 'identify', 'groupIdentify', 'setGroup', 'revenue', 'flush'];
     setUpProxy(amplitude);
     amplitude.createInstance = function (instanceName) {
