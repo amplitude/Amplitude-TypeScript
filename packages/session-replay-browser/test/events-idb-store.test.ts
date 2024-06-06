@@ -371,6 +371,22 @@ describe('SessionReplayEventsIDBStore', () => {
       expect(global.indexedDB.deleteDatabase).not.toHaveBeenCalled();
     });
 
+    test('should warn user if keyval database cannot be accessed', async () => {
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockImplementation(() => {
+            throw new Error('Test error');
+          }),
+        },
+      } as unknown as typeof globalThis;
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+      await eventsStorage.initialize();
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      await eventsStorage.transitionFromKeyValStore();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
+    });
+
     test('should reject when global scope is undefined', async () => {
       jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
 
@@ -381,9 +397,7 @@ describe('SessionReplayEventsIDBStore', () => {
       const mockGlobalScope = {} as Omit<typeof globalThis, 'indexedDB'>;
       jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope as typeof globalThis);
 
-      await expect(EventsIDBStore.keyValDatabaseExists()).rejects.toThrow(
-        'IndexedDB is not available in the global scope',
-      );
+      await expect(EventsIDBStore.keyValDatabaseExists()).rejects.toThrow('Session Replay: cannot find indexedDB');
     });
 
     test('should reject when indexedDB.open throws an error', async () => {

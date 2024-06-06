@@ -39,7 +39,7 @@ export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
     }
 
     if (!globalScope.indexedDB) {
-      return reject(new Error('IndexedDB is not available in the global scope'));
+      return reject(new Error('Session Replay: cannot find indexedDB'));
     }
 
     try {
@@ -244,73 +244,81 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
   };
 
   transitionFromKeyValStore = async (sessionId?: number) => {
-    const keyValDb = await keyValDatabaseExists();
-    if (!keyValDb) {
-      return;
-    }
-
-    const transitionCurrentSessionSequences = async (numericSessionId: number, sessionStore: IDBStoreSession) => {
-      const currentSessionSequences = sessionStore.sessionSequences;
-      const promisesToBatch: Promise<number | SendingSequencesIDBReturn | undefined>[] = [];
-
-      Object.keys(currentSessionSequences).forEach((sequenceId) => {
-        const numericSequenceId = parseInt(sequenceId, 10);
-        const sequence = currentSessionSequences[numericSequenceId];
-        if (numericSequenceId === sessionStore.currentSequenceId) {
-          const eventAddPromises: Promise<SendingSequencesIDBReturn | undefined>[] = sequence.events.map(
-            async (event) => this.addEventToCurrentSequence(numericSessionId, event),
-          );
-          promisesToBatch.concat(eventAddPromises);
-        } else if (sequence.status !== RecordingStatus.SENT) {
-          promisesToBatch.push(this.storeSendingEvents(numericSessionId, sequence.events));
-        }
-      });
-
-      await batchPromiseAll(promisesToBatch);
-    };
-
-    const storageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
     try {
-      const getAllRequest = keyValDb.transaction('keyval').objectStore('keyval').getAll(storageKey);
-      const transitionPromise = new Promise<void>((resolve) => {
-        getAllRequest.onsuccess = async (e) => {
-          const storedReplaySessionContextList = e && ((e.target as IDBRequest).result as IDBStore[]);
-          const storedReplaySessionContexts = storedReplaySessionContextList && storedReplaySessionContextList[0];
-          if (storedReplaySessionContexts) {
-            const promisesToBatch: Promise<any>[] = [];
+      const keyValDb = await keyValDatabaseExists();
+      if (!keyValDb) {
+        return;
+      }
 
-            Object.keys(storedReplaySessionContexts).forEach((storedSessionId) => {
-              const numericSessionId = parseInt(storedSessionId, 10);
-              const oldSessionStore = storedReplaySessionContexts[numericSessionId];
+      const transitionCurrentSessionSequences = async (numericSessionId: number, sessionStore: IDBStoreSession) => {
+        const currentSessionSequences = sessionStore.sessionSequences;
+        const promisesToBatch: Promise<number | SendingSequencesIDBReturn | undefined>[] = [];
 
-              if (sessionId === numericSessionId) {
-                promisesToBatch.push(transitionCurrentSessionSequences(numericSessionId, oldSessionStore));
-              } else {
-                const oldSessionSequences = oldSessionStore.sessionSequences;
-                Object.keys(oldSessionSequences).forEach((sequenceId) => {
-                  const numericSequenceId = parseInt(sequenceId, 10);
-                  if (oldSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
-                    promisesToBatch.push(
-                      this.storeSendingEvents(numericSessionId, oldSessionSequences[numericSequenceId].events),
-                    );
-                  }
-                });
-              }
-            });
-
-            await batchPromiseAll(promisesToBatch);
+        Object.keys(currentSessionSequences).forEach((sequenceId) => {
+          const numericSequenceId = parseInt(sequenceId, 10);
+          const sequence = currentSessionSequences[numericSequenceId];
+          if (numericSequenceId === sessionStore.currentSequenceId) {
+            const eventAddPromises: Promise<SendingSequencesIDBReturn | undefined>[] = sequence.events.map(
+              async (event) => this.addEventToCurrentSequence(numericSessionId, event),
+            );
+            promisesToBatch.concat(eventAddPromises);
+          } else if (sequence.status !== RecordingStatus.SENT) {
+            promisesToBatch.push(this.storeSendingEvents(numericSessionId, sequence.events));
           }
-          resolve();
-        };
-      });
+        });
 
-      await transitionPromise;
-      const globalScope = getGlobalScope();
-      if (globalScope) {
-        globalScope.indexedDB.deleteDatabase('keyval-store');
+        await batchPromiseAll(promisesToBatch);
+      };
+
+      const storageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
+      try {
+        const getAllRequest = keyValDb.transaction('keyval').objectStore('keyval').getAll(storageKey);
+        const transitionPromise = new Promise<void>((resolve) => {
+          getAllRequest.onsuccess = async (e) => {
+            const storedReplaySessionContextList = e && ((e.target as IDBRequest).result as IDBStore[]);
+            const storedReplaySessionContexts = storedReplaySessionContextList && storedReplaySessionContextList[0];
+            if (storedReplaySessionContexts) {
+              const promisesToBatch: Promise<any>[] = [];
+
+              Object.keys(storedReplaySessionContexts).forEach((storedSessionId) => {
+                const numericSessionId = parseInt(storedSessionId, 10);
+                const oldSessionStore = storedReplaySessionContexts[numericSessionId];
+
+                if (sessionId === numericSessionId) {
+                  promisesToBatch.push(transitionCurrentSessionSequences(numericSessionId, oldSessionStore));
+                } else {
+                  const oldSessionSequences = oldSessionStore.sessionSequences;
+                  Object.keys(oldSessionSequences).forEach((sequenceId) => {
+                    const numericSequenceId = parseInt(sequenceId, 10);
+                    if (oldSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
+                      promisesToBatch.push(
+                        this.storeSendingEvents(numericSessionId, oldSessionSequences[numericSequenceId].events),
+                      );
+                    }
+                  });
+                }
+              });
+
+              await batchPromiseAll(promisesToBatch);
+            }
+            resolve();
+          };
+        });
+
+        await transitionPromise;
+        const globalScope = getGlobalScope();
+        if (globalScope) {
+          globalScope.indexedDB.deleteDatabase('keyval-store');
+        }
+      } catch (e) {
+        this.loggerProvider.warn(`Failed to transition session replay events from keyval to new store: ${e as string}`);
       }
     } catch (e) {
-      this.loggerProvider.warn(`Failed to transition session replay events from keyval to new store: ${e as string}`);
+      this.loggerProvider.warn(
+        `Failed to access keyval store: ${
+          e as string
+        }. For more information, visit: https://www.docs.developers.amplitude.com/session-replay/sdks/standalone/#indexeddb-best-practices`,
+      );
     }
   };
 }
