@@ -465,9 +465,9 @@ describe('RemoteConfigFetch', () => {
     });
 
     test('should set fetchTime to 0 when initialization', async () => {
-      const remoteConfigFetch = await createRemoteConfigFetch({localConfig, configKeys: ['sessionReplay']});
+      const remoteConfigFetch = await createRemoteConfigFetch({ localConfig, configKeys: ['sessionReplay'] });
       expect(remoteConfigFetch.fetchTime).toEqual(0);
-    })
+    });
   });
 
   test('should calculate fetchTime', async () => {
