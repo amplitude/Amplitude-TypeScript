@@ -92,11 +92,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.pageCounter = pageCounter;
     this.userId = userId;
     this.debugLogsEnabled = debugLogsEnabled;
-    if (debugLogsEnabled) {
-      this.loggerProvider.enable(LogLevel.Debug);
-    } else {
-      this.loggerProvider.enable(this.logLevel);
-    }
+    this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
   }
 
   get cookieStorage() {
