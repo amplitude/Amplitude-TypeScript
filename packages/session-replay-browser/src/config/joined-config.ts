@@ -3,8 +3,8 @@ import { SessionReplayOptions } from '../typings/session-replay';
 import { SessionReplayLocalConfig } from './local-config';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
-  SessionReplayJoinedConfig,
   PrivacyConfig,
+  SessionReplayJoinedConfig,
   SessionReplayRemoteConfig,
 } from './types';
 
@@ -67,7 +67,7 @@ export class SessionReplayJoinedConfigGenerator {
       return config;
     }
 
-    const { sr_sampling_config: samplingConfig, sr_privacy_config: privacyConfig } = remoteConfig;
+    const { sr_sampling_config: samplingConfig, sr_privacy_config: remotePrivacyConfig } = remoteConfig;
     if (samplingConfig && Object.keys(samplingConfig).length > 0) {
       if (Object.prototype.hasOwnProperty.call(samplingConfig, 'capture_enabled')) {
         config.captureEnabled = samplingConfig.capture_enabled;
@@ -88,16 +88,64 @@ export class SessionReplayJoinedConfigGenerator {
       );
     }
 
-    // Override all keys in the local config with the remote privacy config.
-    if (privacyConfig && Object.keys(privacyConfig).length > 0) {
-      if (!config.privacyConfig) {
-        config.privacyConfig = {};
+    // Remote config join acts somewhat like a left join between the remote and the local
+    // config. That is, remote config has precedence over local values as with sampling.
+    // However, non conflicting values will be added to the lists.
+    // Here's an example to illustrate:
+    //
+    // Remote config:   {'.selector1': 'MASK',   '.selector2': 'UNMASK'}
+    // Local config:    {'.selector1': 'UNMASK',                         '.selector3': 'MASK'}
+    //
+    // Resolved config: {'.selector1': 'MASK',   '.selector2': 'UNMASK', '.selector3': 'MASK'}
+    // config.privacyConfig = {
+    //   ...(config.privacyConfig ?? {}),
+    //   ...remotePrivacyConfig,
+    // };
+
+    if (remotePrivacyConfig) {
+      const localPrivacyConfig: PrivacyConfig = config.privacyConfig ?? {};
+
+      const joinedPrivacyConfig: Required<PrivacyConfig> & { blockSelector: string[] } = {
+        defaultMaskLevel: remotePrivacyConfig.defaultMaskLevel ?? localPrivacyConfig.defaultMaskLevel ?? 'medium',
+        blockSelector: [],
+        maskSelector: [],
+        unmaskSelector: [],
+      };
+
+      const privacyConfigSelectorMap = (privacyConfig: PrivacyConfig): Record<string, 'mask' | 'unmask' | 'block'> => {
+        const selectorMap: Record<string, 'mask' | 'unmask' | 'block'> = {};
+        if (typeof privacyConfig.blockSelector === 'string') {
+          privacyConfig.blockSelector = [privacyConfig.blockSelector];
+        }
+
+        for (const selector of privacyConfig.blockSelector ?? []) {
+          selectorMap[selector] = 'block';
+        }
+        for (const selector of privacyConfig.maskSelector ?? []) {
+          selectorMap[selector] = 'mask';
+        }
+        for (const selector of privacyConfig.unmaskSelector ?? []) {
+          selectorMap[selector] = 'unmask';
+        }
+        return selectorMap;
+      };
+
+      const selectorMap: Record<string, 'mask' | 'unmask' | 'block'> = {
+        ...privacyConfigSelectorMap(localPrivacyConfig),
+        ...privacyConfigSelectorMap(remotePrivacyConfig),
+      };
+
+      for (const [selector, selectorType] of Object.entries(selectorMap)) {
+        if (selectorType === 'mask') {
+          joinedPrivacyConfig.maskSelector.push(selector);
+        } else if (selectorType === 'block') {
+          joinedPrivacyConfig.blockSelector.push(selector);
+        } else if (selectorType === 'unmask') {
+          joinedPrivacyConfig.unmaskSelector.push(selector);
+        }
       }
 
-      for (const key in privacyConfig) {
-        const k = key as keyof PrivacyConfig;
-        config.privacyConfig[k] = privacyConfig[k];
-      }
+      config.privacyConfig = joinedPrivacyConfig;
     }
 
     return config;

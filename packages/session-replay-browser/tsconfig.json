@@ -6,6 +6,6 @@
     "esModuleInterop": true,
     "lib": ["dom"],
     "noEmit": true,
-    "rootDir": ".",
+    "rootDir": "."
   }
 }

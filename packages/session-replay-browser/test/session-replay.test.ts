@@ -67,6 +67,7 @@ describe('SessionReplay', () => {
     serverZone: ServerZone.EU,
     privacyConfig: {
       blockSelector: '.className',
+      maskSelector: ['.className1', '.className2'],
     },
   };
   const mockEmptyOptions: SessionReplayOptions = {
@@ -105,6 +106,25 @@ describe('SessionReplay', () => {
     jest.useRealTimers();
   });
   describe('init', () => {
+    test('should do nothing if config is undefined for removeInvalidSelectors', async () => {
+      expect(sessionReplay.removeInvalidSelectors()).toBeUndefined();
+    });
+
+    test('should remove invalid selectors', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        privacyConfig: {
+          blockSelector: ['AF<S>FA$!@$'],
+          maskSelector: ['AF<S>FA$!@$!!'],
+          unmaskSelector: ['AF<S>FA$!@$@@'],
+        },
+      }).promise;
+      expect(sessionReplay.config?.privacyConfig?.blockSelector).toStrictEqual(undefined);
+      expect(sessionReplay.config?.privacyConfig?.maskSelector).toStrictEqual(undefined);
+      expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(undefined);
+    });
+
     test('should setup sdk', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5 }).promise;
       expect(sessionReplay.config?.transportProvider).toBeDefined();
@@ -838,6 +858,34 @@ describe('SessionReplay', () => {
     });
   });
 
+  describe('getMaskTextSelectors', () => {
+    test('null config', () => {
+      sessionReplay.config = undefined;
+      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+    });
+    test('null privacy config', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (sessionReplay.config) {
+        sessionReplay.config.privacyConfig = undefined;
+      }
+      expect(sessionReplay.getMaskTextSelectors()).not.toBeDefined();
+    });
+    test('returns mask text selectors', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual(['.className1', '.className2']);
+    });
+
+    test('should track all text elements when level is conservative', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        privacyConfig: {
+          defaultMaskLevel: 'conservative',
+        },
+      }).promise;
+      expect(sessionReplay.getMaskTextSelectors()).toEqual('*');
+    });
+  });
+
   describe('getBlockSelectors', () => {
     test('null config', () => {
       sessionReplay.config = undefined;
@@ -852,7 +900,7 @@ describe('SessionReplay', () => {
     });
     test('returns block selectors', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      expect(sessionReplay.getBlockSelectors()).toEqual('.className');
+      expect(sessionReplay.getBlockSelectors()).toStrictEqual(['.className']);
     });
   });
 
@@ -860,6 +908,23 @@ describe('SessionReplay', () => {
     test('null config', () => {
       sessionReplay.config = undefined;
       expect(sessionReplay.getSessionReplayDebugPropertyValue()).toBe('{"appHash":""}');
+    });
+  });
+
+  describe('removeInvalidSelectors', () => {
+    test('should handle string block selector correctly', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      if (sessionReplay.config) {
+        sessionReplay.config.privacyConfig = {
+          blockSelector: 'FASE<:F>!@<?#>!#<',
+        };
+      }
+      sessionReplay.removeInvalidSelectors();
+      expect(sessionReplay.config?.privacyConfig).toStrictEqual({
+        blockSelector: undefined,
+        maskSelector: undefined,
+        unmaskSelector: undefined,
+      });
     });
   });
 });

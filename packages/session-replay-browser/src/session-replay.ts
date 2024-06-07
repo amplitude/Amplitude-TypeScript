@@ -11,7 +11,7 @@ import {
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { createEventsManager } from './events/events-manager';
-import { generateHashCode, isSessionInSample, maskInputFn } from './helpers';
+import { generateHashCode, isSessionInSample, maskFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
@@ -37,11 +37,48 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return returnWrapper(this._init(apiKey, options));
   }
 
+  removeInvalidSelectors() {
+    if (!this.config?.privacyConfig) {
+      return;
+    }
+
+    // This allows us to not search the DOM.
+    const fragment = document.createDocumentFragment();
+
+    const dropInvalidSelectors = (selectors: string[] | string = []): string[] | undefined => {
+      if (typeof selectors === 'string') {
+        selectors = [selectors];
+      }
+      selectors = selectors.filter((selector: string) => {
+        try {
+          fragment.querySelector(selector);
+        } catch {
+          console.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`);
+          return false;
+        }
+        return true;
+      });
+      if (selectors.length === 0) {
+        return undefined;
+      }
+      return selectors;
+    };
+    this.config.privacyConfig.blockSelector = dropInvalidSelectors(this.config.privacyConfig.blockSelector);
+    this.config.privacyConfig.maskSelector = dropInvalidSelectors(this.config.privacyConfig.maskSelector);
+    this.config.privacyConfig.unmaskSelector = dropInvalidSelectors(this.config.privacyConfig.unmaskSelector);
+  }
+
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.loggerProvider = options.loggerProvider || new Logger();
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+
+    this.loggerProvider.debug(
+      JSON.stringify({ name: 'joined privacy config', privacyConfig: this.config.privacyConfig }, null, 2),
+    );
+
+    this.removeInvalidSelectors();
 
     this.eventsManager = await createEventsManager({
       config: this.config,
@@ -207,13 +244,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return this.config?.privacyConfig?.blockSelector;
   }
 
+  getMaskTextSelectors(): string | undefined {
+    if (this.config?.privacyConfig?.defaultMaskLevel === 'conservative') {
+      return '*';
+    }
+
+    const maskSelector = this.config?.privacyConfig?.maskSelector;
+    if (!maskSelector) {
+      return;
+    }
+
+    return maskSelector as unknown as string;
+  }
+
   recordEvents() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
-    if (!shouldRecord || !sessionId) {
+    if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
     this.stopRecordingEvents();
+    const privacyConfig = this.config.privacyConfig;
     this.recordCancelCallback = record({
       emit: (event) => {
         const globalScope = getGlobalScope();
@@ -229,9 +280,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
-      // rrweb only exposes array type through its types, but arrays are also be supported. #class, ['#class', 'id']
+      // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
       blockSelector: this.getBlockSelectors() as string,
-      maskInputFn,
+      maskInputFn: maskFn('input', privacyConfig),
+      maskTextFn: maskFn('text', privacyConfig),
+      // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
+      maskTextSelector: this.getMaskTextSelectors(),
       recordCanvas: false,
       errorHandler: (error) => {
         const typedError = error as Error;
