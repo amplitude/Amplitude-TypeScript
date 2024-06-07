@@ -244,13 +244,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // For some reason, this defaults to empty array ([]) if undefined in the compiled script.
     // Empty arrays cause errors when being evaluated in Safari.
     // Force the selector to be undefined if it's an empty array.
-    if (
-      Array.isArray(this.config?.privacyConfig?.blockSelector) &&
-      this.config?.privacyConfig?.blockSelector.length === 0
-    ) {
+    const blockSelector = this.config?.privacyConfig?.blockSelector ?? [];
+    if (blockSelector.length === 0) {
       return undefined;
     }
-    return this.config?.privacyConfig?.blockSelector;
+    return blockSelector;
   }
 
   getMaskTextSelectors(): string | undefined {
