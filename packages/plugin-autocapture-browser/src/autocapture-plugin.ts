@@ -34,7 +34,7 @@ interface EventListener {
   handler: (event: Event) => void;
 }
 
-export interface Options {
+export interface AutocaptureOptions {
   /**
    * List of CSS selectors to allow auto tracking on.
    * When provided, allow elements matching any selector to be tracked.
@@ -74,7 +74,7 @@ export interface Options {
   };
 }
 
-export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugin => {
+export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnrichmentPlugin => {
   const {
     cssSelectorAllowlist = DEFAULT_CSS_SELECTOR_ALLOWLIST,
     pageUrlAllowlist,
