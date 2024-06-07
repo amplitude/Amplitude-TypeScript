@@ -328,12 +328,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return super.process(event);
   }
 
-  private logBrowserOptions(browserConfig: BrowserOptions) {
+  private logBrowserOptions(browserConfig: BrowserOptions & { apiKey: string }) {
     try {
       const browserConfigCopy = {
         ...browserConfig,
-        // get first 5 characters of api key and redact the rest
-        apiKey: 'REDACTED',
+        apiKey: browserConfig.apiKey.substring(0, 10) + '********',
       };
       this.config.loggerProvider.debug('Initialized Amplitude with BrowserConfig:', JSON.stringify(browserConfigCopy));
     } catch (e) {
