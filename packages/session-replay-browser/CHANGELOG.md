@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.5.2...@amplitude/session-replay-browser@1.6.0) (2024-06-07)
+
+### Features
+
+- **session-replay-browser:** additional privacy configs
+  ([#756](https://github.com/amplitude/Amplitude-TypeScript/issues/756))
+  ([4812beb](https://github.com/amplitude/Amplitude-TypeScript/commit/4812bebeb5c31c1a37eef77687ed50051f170959))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.5.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.5.2-beta.0...@amplitude/session-replay-browser@1.5.2) (2024-06-06)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
