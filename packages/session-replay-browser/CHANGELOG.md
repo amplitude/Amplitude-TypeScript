@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.6.0...@amplitude/session-replay-browser@1.6.1) (2024-06-07)
+
+### Bug Fixes
+
+- **session replay:** add tests and address comments
+  ([e8cd8cf](https://github.com/amplitude/Amplitude-TypeScript/commit/e8cd8cfd598a3d43193505398b0639c8c11e0135))
+- **session replay:** rethrow external errors and fix block selectors
+  ([031afdb](https://github.com/amplitude/Amplitude-TypeScript/commit/031afdbbd46fd011fd32d7d2216e7df1a3a6c6ac))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.5.2...@amplitude/session-replay-browser@1.6.0) (2024-06-07)
 
 ### Features
