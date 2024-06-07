@@ -74,6 +74,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
 
+    this.loggerProvider.debug(
+      JSON.stringify({ name: 'joined privacy config', privacyConfig: this.config.privacyConfig }, null, 2),
+    );
+
     this.removeInvalidSelectors();
 
     this.eventsManager = await createEventsManager({
