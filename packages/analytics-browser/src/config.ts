@@ -37,6 +37,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   protected _sessionId?: number;
   protected _userId?: string;
   protected _pageCounter?: number;
+  protected _debugLogsEnabled?: boolean;
   constructor(
     public apiKey: string,
     public appVersion?: string,
@@ -79,6 +80,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     public useBatch: boolean = false,
     userId?: string,
     pageCounter?: number,
+    debugLogsEnabled?: boolean,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -89,7 +91,8 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.sessionId = sessionId;
     this.pageCounter = pageCounter;
     this.userId = userId;
-    this.loggerProvider.enable(this.logLevel);
+    this.debugLogsEnabled = debugLogsEnabled;
+    this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
   }
 
   get cookieStorage() {
@@ -180,6 +183,13 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     }
   }
 
+  set debugLogsEnabled(debugLogsEnabled: boolean | undefined) {
+    if (this._debugLogsEnabled !== debugLogsEnabled) {
+      this._debugLogsEnabled = debugLogsEnabled;
+      this.updateStorage();
+    }
+  }
+
   private updateStorage() {
     const cache = {
       deviceId: this._deviceId,
@@ -189,6 +199,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       lastEventTime: this._lastEventTime,
       lastEventId: this._lastEventId,
       pageCounter: this._pageCounter,
+      debugLogsEnabled: this._debugLogsEnabled,
     };
     void this.cookieStorage.set(getCookieName(this.apiKey), cache);
   }
@@ -239,6 +250,7 @@ export const useBrowserConfig = async (
     platform: options.trackingOptions?.platform ?? true,
   };
   const pageCounter = previousCookies?.pageCounter;
+  const debugLogsEnabled = previousCookies?.debugLogsEnabled;
 
   return new BrowserConfig(
     apiKey,
@@ -272,6 +284,7 @@ export const useBrowserConfig = async (
     options.useBatch,
     userId,
     pageCounter,
+    debugLogsEnabled,
   );
 };
 

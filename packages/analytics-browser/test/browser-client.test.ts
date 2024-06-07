@@ -307,7 +307,7 @@ describe('browser-client', () => {
 
       expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
       expect(client.config.offline).toBe(false);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to online.');
 
       jest.advanceTimersByTime(client.config.flushIntervalMillis);
@@ -339,7 +339,7 @@ describe('browser-client', () => {
       window.dispatchEvent(new Event('offline'));
       expect(addEventListenerMock).toHaveBeenCalledWith('offline', expect.any(Function));
       expect(client.config.offline).toBe(true);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to offline.');
 
       jest.useRealTimers();
@@ -1144,6 +1144,69 @@ describe('browser-client', () => {
       // and once on process
       expect(setSessionId).toHaveBeenCalledTimes(2);
       expect(result.code).toBe(0);
+    });
+  });
+
+  describe('debug logs through cookie', () => {
+    test('debug logs should be persisted across page loads', async () => {
+      const cookieStorage = new CookieStorage<UserSession>();
+      const cookie: UserSession = {
+        deviceId: '123',
+        userId: '123',
+        sessionId: 123,
+        lastEventTime: Date.now(),
+        optOut: false,
+        debugLogsEnabled: true,
+      };
+      await cookieStorage.set(getCookieName(apiKey), cookie);
+
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      await client.init(apiKey, {
+        defaultTracking,
+        logLevel: LogLevel.Error,
+        loggerProvider: loggerProvider,
+      }).promise;
+
+      expect(loggerProvider.enable).toHaveBeenCalledWith(LogLevel.Debug);
+      console.log(loggerProvider.enable.mock.calls);
+      expect(loggerProvider.enable).toHaveBeenCalledTimes(1);
+    });
+
+    test('debug logs should not be enabled by default', async () => {
+      const cookieStorage = new CookieStorage<UserSession>();
+      const cookie: UserSession = {
+        deviceId: '123',
+        userId: '123',
+        sessionId: 123,
+        lastEventTime: Date.now(),
+        optOut: false,
+      };
+      await cookieStorage.set(getCookieName(apiKey), cookie);
+
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      await client.init(apiKey, {
+        defaultTracking,
+        logLevel: LogLevel.Error,
+        loggerProvider: loggerProvider,
+      }).promise;
+
+      expect(loggerProvider.enable).toHaveBeenCalledWith(LogLevel.Error);
     });
   });
 });
