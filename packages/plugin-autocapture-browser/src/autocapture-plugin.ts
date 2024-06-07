@@ -34,7 +34,7 @@ interface EventListener {
   handler: (event: Event) => void;
 }
 
-interface Options {
+export interface Options {
   /**
    * List of CSS selectors to allow auto tracking on.
    * When provided, allow elements matching any selector to be tracked.
