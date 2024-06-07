@@ -29,14 +29,13 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   sessionTargetingMatch = false;
   configKeys: string[];
   // Timestamp when start to fetch remote config
-  fetchStartTime: number;
+  fetchStartTime = 0;
   // Time used to fetch remote config in milliseconds
   fetchTime = 0;
 
   constructor({ localConfig, configKeys }: { localConfig: Config; configKeys: string[] }) {
     this.localConfig = localConfig;
     this.configKeys = configKeys;
-    this.fetchStartTime = Date.now();
   }
 
   async initialize() {
@@ -52,6 +51,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     key: K,
     sessionId?: number,
   ): Promise<RemoteConfig[K] | undefined> => {
+    this.fetchStartTime = Date.now();
     // First check IndexedDB for session
     if (this.remoteConfigIDBStore) {
       const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
