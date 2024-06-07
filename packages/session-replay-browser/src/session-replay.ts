@@ -241,7 +241,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   getBlockSelectors(): string | string[] | undefined {
-    return this.config?.privacyConfig?.blockSelector;
+    // For some reason, this defaults to empty array ([]) if undefined in the compiled script.
+    // Empty arrays cause errors when being evaluated in Safari.
+    // Force the selector to be undefined if it's an empty array.
+    const blockSelector = this.config?.privacyConfig?.blockSelector ?? [];
+    if (blockSelector.length === 0) {
+      return undefined;
+    }
+    return blockSelector;
   }
 
   getMaskTextSelectors(): string | undefined {
@@ -281,19 +288,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
       // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
-      blockSelector: this.getBlockSelectors() as string,
+      blockSelector: this.getBlockSelectors() as string | undefined,
       maskInputFn: maskFn('input', privacyConfig),
       maskTextFn: maskFn('text', privacyConfig),
       // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
       maskTextSelector: this.getMaskTextSelectors(),
       recordCanvas: false,
       errorHandler: (error) => {
-        const typedError = error as Error;
+        const typedError = error as Error & { _external_?: boolean };
 
         // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
         if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
           throw typedError;
         }
+
+        // rrweb does monkey patching on certain window functions such as CSSStyleSheet.proptype.insertRule,
+        // and errors from external clients calling these functions can get suppressed. Styled components depend
+        // on these errors being re-thrown.
+        if (typedError._external_) {
+          throw typedError;
+        }
+
         this.loggerProvider.warn('Error while recording: ', typedError.toString());
         // Return true so that we don't clutter user's consoles with internal rrweb errors
         return true;

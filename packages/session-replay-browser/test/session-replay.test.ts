@@ -754,6 +754,18 @@ describe('SessionReplay', () => {
         recordArg?.errorHandler && recordArg?.errorHandler(new Error(stylesheetErrorMessage));
       }).toThrow(stylesheetErrorMessage);
     });
+
+    test('should rethrow external errors', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const error = new Error('test') as Error & { _external_?: boolean };
+      error._external_ = true;
+      expect(() => {
+        recordArg?.errorHandler && recordArg?.errorHandler(error);
+      }).toThrow(error);
+    });
   });
 
   describe('getDeviceId', () => {

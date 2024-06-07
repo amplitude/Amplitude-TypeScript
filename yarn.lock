@@ -87,7 +87,7 @@
   dependencies:
     "@amplitude/rrweb-snapshot" "^2.0.0-alpha.14"
 
-"@amplitude/rrweb@^2.0.0-alpha.12":
+"@amplitude/rrweb@^2.0.0-alpha.14":
   version "2.0.0-alpha.14"
   resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.14.tgz#03016a68d5fd2d80dc59716d9df8ae8b109a4db9"
   integrity sha512-+dC4F3aikGBpxd6LrdLc0duh+tNg2ejJ7TKA7NnpoFU8+mM1iGIwQf7T4Y0cLUCYhSArtFjFb0OhHaMnaAIgcQ==
