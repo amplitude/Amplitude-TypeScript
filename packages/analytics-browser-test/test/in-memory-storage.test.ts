@@ -1,20 +1,3 @@
-jest.mock('@amplitude/analytics-remote-config', () => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const originalModule = jest.requireActual('@amplitude/analytics-browser');
-
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return {
-    ...originalModule,
-    createRemoteConfigFetch: jest.fn().mockImplementation(() => ({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      getRemoteConfig: jest.fn().mockImplementation(() => {
-        return Promise.resolve({
-          defaultTracking: false,
-        });
-      }),
-    })),
-  };
-});
 import { createInstance } from '@amplitude/analytics-browser';
 import { MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { default as nock } from 'nock';

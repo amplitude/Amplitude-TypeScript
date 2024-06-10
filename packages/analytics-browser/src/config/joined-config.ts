@@ -27,7 +27,9 @@ export class BrowserJoinedConfigGenerator {
       this.remoteConfigFetch &&
       (await this.remoteConfigFetch.getRemoteConfig('analyticsSDK', 'browserSDK', this.config.sessionId));
     this.config.loggerProvider.debug('Remote configuration:', JSON.stringify(remoteConfig, null, 2));
-    this.config.defaultTracking = remoteConfig?.defaultTracking;
+    if (remoteConfig && remoteConfig.defaultTracking) {
+      this.config.defaultTracking = remoteConfig.defaultTracking;
+    }
     this.config.loggerProvider.debug('Joined configuration: ', JSON.stringify(remoteConfig, null, 2));
     return this.config;
   }
