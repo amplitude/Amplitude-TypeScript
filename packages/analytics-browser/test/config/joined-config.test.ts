@@ -20,7 +20,8 @@ describe('joined-config', () => {
       getRemoteConfig: jest.fn().mockResolvedValue({
         defaultTracking: true,
       }),
-      fetchTime: 23,
+      // TODO(xinyi): uncomment this line when fetchTime is used in the joined config
+      // fetchTime: 23,
     };
 
     // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
