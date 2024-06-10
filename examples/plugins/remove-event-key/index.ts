@@ -52,4 +52,4 @@ const instance = createInstance();
 instance.add(removeTimeEnrichment);
 
 // initialize sdk
-instance.init('API_KEY');
+// instance.init('API_KEY');

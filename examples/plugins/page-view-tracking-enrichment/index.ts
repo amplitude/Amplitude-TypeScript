@@ -35,4 +35,4 @@ const instance = createInstance();
 instance.add(pageViewTrackingEnrichment());
 
 // initialize sdk
-instance.init('API_KEY');
+// instance.init('API_KEY');
