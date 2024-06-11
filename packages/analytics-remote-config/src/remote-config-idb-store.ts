@@ -49,6 +49,7 @@ export const createRemoteConfigIDBStore = async <RemoteConfig extends { [key: st
   try {
     const lastFetchedSessionId = await metaDB.get('lastFetchedSessionId', 'sessionId');
     if (lastFetchedSessionId && Date.now() - lastFetchedSessionId >= MAX_IDB_STORAGE_TIME) {
+      remoteConfigDB.close();
       await deleteDB(remoteConfigDBName);
       remoteConfigDB = await openOrCreateRemoteConfigStore(apiKey, configKeys);
     }
