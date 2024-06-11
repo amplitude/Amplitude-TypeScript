@@ -49,6 +49,7 @@ describe('RemoteConfigFetch', () => {
   };
   let localConfig: IConfig;
   const mockConfigStore = {
+    fetchTime: 0,
     storeRemoteConfig: jest.fn(),
     getLastFetchedSessionId: jest.fn().mockResolvedValue(123),
     getRemoteConfig: jest.fn().mockResolvedValue(samplingConfig.sr_sampling_config),
@@ -462,5 +463,24 @@ describe('RemoteConfigFetch', () => {
       const remoteConfigFetch = createRemoteConfigFetch({ localConfig, configKeys: ['sessionReplay'] });
       expect(remoteConfigFetch).toBeDefined();
     });
+
+    test('should set fetchTime to 0 when initialization', async () => {
+      const remoteConfigFetch = await createRemoteConfigFetch({ localConfig, configKeys: ['sessionReplay'] });
+      expect(remoteConfigFetch.fetchTime).toEqual(0);
+    });
+  });
+
+  test('should calculate fetchTime', async () => {
+    const mockDateNow = jest.spyOn(global.Date, 'now');
+    const startTimestamp = 1000;
+    const endTimestamp = 2000;
+    mockDateNow.mockImplementationOnce(() => startTimestamp);
+    mockDateNow.mockImplementationOnce(() => endTimestamp);
+
+    await initialize();
+    await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 456);
+    expect(remoteConfigFetch.fetchTime).toEqual(endTimestamp - startTimestamp);
+
+    mockDateNow.mockRestore();
   });
 });
