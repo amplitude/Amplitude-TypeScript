@@ -28,8 +28,6 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   lastFetchedSessionId: number | undefined;
   sessionTargetingMatch = false;
   configKeys: string[];
-  // Timestamp when start to fetch remote config
-  fetchStartTime = 0;
   // Time used to fetch remote config in milliseconds
   fetchTime = 0;
 
@@ -51,14 +49,14 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     key: K,
     sessionId?: number,
   ): Promise<RemoteConfig[K] | undefined> => {
-    this.fetchStartTime = Date.now();
+    const fetchStartTime = Date.now();
     // First check IndexedDB for session
     if (this.remoteConfigIDBStore) {
       const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
       const lastFetchedSessionId = await this.remoteConfigIDBStore.getLastFetchedSessionId();
       // Another option is to empty the db if current session doesn't match lastFetchedSessionId
       if (idbRemoteConfig && lastFetchedSessionId === sessionId) {
-        this.fetchTime = Date.now() - this.fetchStartTime;
+        this.fetchTime = Date.now() - fetchStartTime;
         return idbRemoteConfig;
       }
     }
@@ -67,11 +65,11 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     if (configAPIResponse) {
       const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
       if (remoteConfig) {
-        this.fetchTime = Date.now() - this.fetchStartTime;
+        this.fetchTime = Date.now() - fetchStartTime;
         return remoteConfig[key];
       }
     }
-    this.fetchTime = Date.now() - this.fetchStartTime;
+    this.fetchTime = Date.now() - fetchStartTime;
     return undefined;
   };
 
