@@ -18,6 +18,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   privacyConfig?: PrivacyConfig;
   debugMode?: boolean;
   configEndpointUrl?: string;
+  shouldInlineStylesheet?: boolean;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -35,6 +36,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
     this.serverZone = options.serverZone || DEFAULT_SERVER_ZONE;
     this.configEndpointUrl = options.configEndpointUrl;
+    this.shouldInlineStylesheet = options.shouldInlineStylesheet;
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;

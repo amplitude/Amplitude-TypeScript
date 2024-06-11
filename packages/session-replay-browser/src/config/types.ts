@@ -40,6 +40,7 @@ export interface SessionReplayLocalConfig extends Config {
   privacyConfig?: PrivacyConfig;
   debugMode?: boolean;
   configEndpointUrl?: string;
+  shouldInlineStylesheet?: boolean;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
