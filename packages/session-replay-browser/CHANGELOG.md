@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.6.1...@amplitude/session-replay-browser@1.7.0) (2024-06-11)
+
+### Features
+
+- **analytics-remote-config:** add fetchTime ([#768](https://github.com/amplitude/Amplitude-TypeScript/issues/768))
+  ([a334676](https://github.com/amplitude/Amplitude-TypeScript/commit/a334676da68d58dc04d23723bc0252c53919beeb))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.6.0...@amplitude/session-replay-browser@1.6.1) (2024-06-07)
 
 ### Bug Fixes
