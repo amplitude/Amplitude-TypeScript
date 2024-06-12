@@ -115,17 +115,15 @@ export class RequestMetadata implements IRequestMetadata {
   sdk: {
     metrics: {
       histogram: {
-        remote_config_fetch_time: number;
+        remote_config_fetch_time?: number;
       };
     };
   };
 
-  constructor(remoteConfigFetchTime: number) {
+  constructor() {
     this.sdk = {
       metrics: {
-        histogram: {
-          remote_config_fetch_time: remoteConfigFetchTime,
-        },
+        histogram: {},
       },
     };
   }

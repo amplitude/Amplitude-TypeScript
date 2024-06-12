@@ -91,7 +91,7 @@ export interface RequestMetadata {
   sdk: {
     metrics: {
       histogram: {
-        remote_config_fetch_time: number;
+        remote_config_fetch_time?: number;
       };
     };
   };

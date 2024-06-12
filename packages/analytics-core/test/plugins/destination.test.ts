@@ -8,6 +8,7 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
 import { uuidPattern } from '../helpers/util';
+import { RequestMetadata } from '../../src';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -410,7 +411,8 @@ describe('destination', () => {
         requestMetadata: request_metadata,
       });
       await destination.send([context]);
-      expect(destination.config.requestMetadata).toBeUndefined();
+      // request metadata should be reset after sending
+      expect(destination.config.requestMetadata).toEqual(new RequestMetadata());
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,

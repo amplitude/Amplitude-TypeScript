@@ -130,14 +130,11 @@ describe('config', () => {
 
 describe('RequestMetadata', () => {
   test('constructor', () => {
-    const fetchTime = 100;
-    const requestMetadata = new RequestMetadata(fetchTime);
+    const requestMetadata = new RequestMetadata();
     expect(requestMetadata).toEqual({
       sdk: {
         metrics: {
-          histogram: {
-            remote_config_fetch_time: fetchTime,
-          },
+          histogram: {},
         },
       },
     });
