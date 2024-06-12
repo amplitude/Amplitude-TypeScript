@@ -28,6 +28,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+  sessionHasEvent = false;
 
   constructor() {
     this.loggerProvider = new Logger();
@@ -145,6 +146,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const ignoreFocus = !!this.config.debugMode;
     const shouldRecord = this.getShouldRecord(ignoreFocus);
 
+    console.log('this.identifiers', this.identifiers);
+    this.identifiers.sessionId &&
+      this.identifiers.deviceId &&
+      void this.eventsManager?.setAmpEventHasExecuted({
+        sessionId: this.identifiers.sessionId,
+        deviceId: this.identifiers.deviceId,
+        ampEventHasExecuted: true,
+      });
+
     if (shouldRecord) {
       const eventProperties: { [key: string]: string | null } = {
         [DEFAULT_SESSION_REPLAY_PROPERTY]: this.identifiers.sessionReplayId ? this.identifiers.sessionReplayId : null,
@@ -152,6 +162,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       if (this.config.debugMode) {
         eventProperties[SESSION_REPLAY_DEBUG_PROPERTY] = this.getSessionReplayDebugPropertyValue();
       }
+
       return eventProperties;
     }
 

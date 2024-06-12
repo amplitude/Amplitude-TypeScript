@@ -44,6 +44,7 @@ export const createEventsManager = async ({
   };
 
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
+    // Maybe dont need to do this if not sending events yet
     eventsIDBStore
       .storeCurrentSequence(sessionId)
       .then((currentSequence) => {
@@ -93,6 +94,19 @@ export const createEventsManager = async ({
       });
   };
 
+  const setAmpEventHasExecuted = async ({
+    sessionId,
+    deviceId,
+    ampEventHasExecuted = true,
+  }: {
+    sessionId: number;
+    deviceId: string;
+    ampEventHasExecuted: boolean;
+  }) => {
+    await eventsIDBStore.setAmpEventHasExecuted(sessionId, ampEventHasExecuted);
+    await sendStoredEvents({ deviceId });
+  };
+
   async function flush(useRetry = false) {
     if (trackDestination) {
       return trackDestination.flush(useRetry);
@@ -100,6 +114,7 @@ export const createEventsManager = async ({
   }
 
   return {
+    setAmpEventHasExecuted,
     sendCurrentSequenceEvents,
     addEvent,
     sendStoredEvents,

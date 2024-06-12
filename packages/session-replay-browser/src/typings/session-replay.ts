@@ -30,10 +30,11 @@ export type SendingSequencesIDBReturn = Required<SendingSequencesIDBInput>;
 
 export interface SessionReplayEventsIDBStore {
   initialize(): Promise<void>;
+  setAmpEventHasExecuted(sessionId: number, ampEventHasExecuted: boolean): Promise<void>;
   getSequencesToSend(): Promise<SendingSequencesIDBReturn[] | undefined>;
   storeCurrentSequence(sessionId: number): Promise<SendingSequencesIDBInput | undefined>;
   addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesIDBReturn | undefined>;
-  storeSendingEvents(sessionId: number, events: Events): Promise<number | undefined>;
+  storeSequencesToSend(sessionId: number, events: Events): Promise<number | undefined>;
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
 export interface SessionIdentifiers {
@@ -62,5 +63,14 @@ export interface SessionReplayEventsManager {
   sendStoredEvents({ deviceId }: { deviceId: string }): Promise<void>;
   addEvent({ sessionId, event, deviceId }: { sessionId: number; event: string; deviceId: string }): void;
   sendCurrentSequenceEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
+  setAmpEventHasExecuted({
+    sessionId,
+    deviceId,
+    ampEventHasExecuted,
+  }: {
+    sessionId: number;
+    deviceId: string;
+    ampEventHasExecuted: boolean;
+  }): Promise<void>;
   flush(useRetry?: boolean): Promise<void>;
 }
