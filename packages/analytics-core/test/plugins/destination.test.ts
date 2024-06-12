@@ -367,6 +367,58 @@ describe('destination', () => {
       });
     });
 
+    test('should include request metadata', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const request_metadata = {
+        sdk: {
+          metrics: {
+            histogram: {
+              remote_config_fetch_time: 0,
+            },
+          },
+        },
+      };
+
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
+          expect(payload.request_metadata).toBe(request_metadata);
+          return Promise.resolve({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: 1,
+              payloadSizeBytes: 1,
+              serverUploadTime: 1,
+            },
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        request_metadata: request_metadata,
+      });
+      await destination.send([context]);
+      expect(destination.config.request_metadata).toBeUndefined();
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 200,
+        message: SUCCESS_MESSAGE,
+      });
+    });
+
     test('should include min id length', async () => {
       const destination = new Destination();
       const callback = jest.fn();
