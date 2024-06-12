@@ -15,4 +15,5 @@ export interface SessionReplayOptions {
   debugMode?: boolean;
   forceSessionTracking?: boolean;
   configEndpointUrl?: string;
+  shouldInlineStylesheet?: boolean;
 }

@@ -53,7 +53,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         try {
           fragment.querySelector(selector);
         } catch {
-          console.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`);
+          this.loggerProvider.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`);
           return false;
         }
         return true;
@@ -73,9 +73,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
-
     this.loggerProvider.debug(
-      JSON.stringify({ name: 'joined privacy config', privacyConfig: this.config.privacyConfig }, null, 2),
+      JSON.stringify(
+        { name: 'session replay joined privacy config', privacyConfig: this.config.privacyConfig },
+        null,
+        2,
+      ),
     );
 
     this.removeInvalidSelectors();
@@ -272,6 +275,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     const privacyConfig = this.config.privacyConfig;
+
     this.recordCancelCallback = record({
       emit: (event) => {
         const globalScope = getGlobalScope();
@@ -284,6 +288,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         deviceId && this.eventsManager && this.eventsManager.addEvent({ event: eventString, sessionId, deviceId });
       },
       packFn: pack,
+      inlineStylesheet: this.config.shouldInlineStylesheet,
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
