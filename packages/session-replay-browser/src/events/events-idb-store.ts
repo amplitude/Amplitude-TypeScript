@@ -103,16 +103,33 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
   loggerProvider: ILogger;
   storageKey = '';
   maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
-  interval = MIN_INTERVAL;
+  interval: number;
   timeAtLastSplit: number | null = null;
 
-  constructor({ loggerProvider, apiKey }: { loggerProvider: ILogger; apiKey: string }) {
+  private readonly minInterval: number;
+  private readonly maxInterval: number;
+
+  constructor({
+    loggerProvider,
+    apiKey,
+    minInterval,
+    maxInterval,
+  }: {
+    loggerProvider: ILogger;
+    apiKey: string;
+    minInterval?: number;
+    maxInterval?: number;
+  }) {
     this.loggerProvider = loggerProvider;
     this.apiKey = apiKey;
+    this.maxInterval = maxInterval ?? MAX_INTERVAL;
+    this.minInterval = minInterval ?? MIN_INTERVAL;
+    this.interval = this.minInterval;
   }
 
   async initialize(type: EventType, sessionId?: number) {
-    const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events_${type}`;
+    const dbSuffix = type === 'rrweb' ? '' : `_${type}`;
+    const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
     this.db = await createStore(dbName);
     this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
     await this.transitionFromKeyValStore(sessionId);
@@ -131,7 +148,7 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
       return true;
     }
     if (this.timeAtLastSplit !== null && Date.now() - this.timeAtLastSplit > this.interval && events.length) {
-      this.interval = Math.min(MAX_INTERVAL, this.interval + MIN_INTERVAL);
+      this.interval = Math.min(this.maxInterval, this.interval + this.minInterval);
       this.timeAtLastSplit = Date.now();
       return true;
     }
@@ -329,13 +346,17 @@ export const createEventsIDBStore = async ({
   apiKey,
   sessionId,
   type,
+  minInterval,
+  maxInterval,
 }: {
   loggerProvider: ILogger;
   apiKey: string;
   type: EventType;
+  minInterval?: number;
+  maxInterval?: number;
   sessionId?: number;
 }) => {
-  const eventsIDBStore = new SessionReplayEventsIDBStore({ loggerProvider, apiKey });
+  const eventsIDBStore = new SessionReplayEventsIDBStore({ loggerProvider, apiKey, minInterval, maxInterval });
   await eventsIDBStore.initialize(type, sessionId);
   return eventsIDBStore;
 };

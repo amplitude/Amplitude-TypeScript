@@ -31,6 +31,11 @@ export type PrivacyConfig = {
   unmaskSelector?: string[];
 };
 
+export type InteractionConfig = {
+  trackEveryNms?: number;
+  enabled?: boolean; // defaults to true
+};
+
 export interface SessionReplayLocalConfig extends Config {
   apiKey: string;
   loggerProvider: Logger;
@@ -41,6 +46,7 @@ export interface SessionReplayLocalConfig extends Config {
   debugMode?: boolean;
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
+  interactionConfig?: InteractionConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

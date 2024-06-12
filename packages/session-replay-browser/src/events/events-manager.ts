@@ -10,11 +10,15 @@ import { createEventsIDBStore } from './events-idb-store';
 export const createEventsManager = async ({
   config,
   sessionId,
+  minInterval,
+  maxInterval,
   type,
   trackDestination,
 }: {
   config: SessionReplayJoinedConfig;
   type: EventType;
+  minInterval?: number;
+  maxInterval?: number;
   sessionId?: number;
   trackDestination: AmplitudeSessionReplayTrackDestination;
 }): Promise<AmplitudeSessionReplayEventsManager> => {
@@ -22,6 +26,8 @@ export const createEventsManager = async ({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
     sessionId,
+    minInterval,
+    maxInterval,
     type,
   });
 

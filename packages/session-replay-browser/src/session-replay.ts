@@ -7,7 +7,10 @@ import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from '.
 import {
   BLOCK_CLASS,
   DEFAULT_SESSION_REPLAY_PROPERTY,
+  INTERACTION_MAX_INTERVAL,
+  INTERACTION_MIN_INTERVAL,
   MASK_TEXT_CLASS,
+  MIN_INTERVAL,
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { createEventsManager } from './events/events-manager';
@@ -89,21 +92,28 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.removeInvalidSelectors();
 
-    this.eventManagers.rrweb = await createEventsManager({
-      config: this.config,
-      sessionId: this.identifiers.sessionId,
-      type: 'rrweb',
-      trackDestination: new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider }),
-    });
-    this.eventManagers.interaction = await createEventsManager({
-      config: this.config,
-      sessionId: this.identifiers.sessionId,
-      type: 'interaction',
-      trackDestination: new SessionReplayTrackDestination({
-        loggerProvider: this.loggerProvider,
-        payloadBatcher: clickBatcher,
+    this.eventManagers = {
+      rrweb: await createEventsManager({
+        config: this.config,
+        sessionId: this.identifiers.sessionId,
+        type: 'rrweb',
+        trackDestination: new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider }),
       }),
-    });
+      interaction:
+        this.config.interactionConfig?.enabled ?? true
+          ? await createEventsManager({
+              config: this.config,
+              sessionId: this.identifiers.sessionId,
+              type: 'interaction',
+              minInterval: this.config.interactionConfig?.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
+              maxInterval: INTERACTION_MAX_INTERVAL,
+              trackDestination: new SessionReplayTrackDestination({
+                loggerProvider: this.loggerProvider,
+                payloadBatcher: clickBatcher,
+              }),
+            })
+          : undefined,
+    };
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
