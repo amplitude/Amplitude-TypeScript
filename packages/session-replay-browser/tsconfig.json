@@ -3,6 +3,8 @@
   "include": ["src/**/*", "test/**/*"],
   "compilerOptions": {
     "baseUrl": ".",
+    "declaration": false,
+    "declarationMap": false,
     "esModuleInterop": true,
     "lib": ["dom"],
     "noEmit": true,

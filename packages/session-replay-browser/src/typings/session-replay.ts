@@ -3,9 +3,11 @@ import { SessionReplayLocalConfig } from '../config/types';
 
 export type Events = string[];
 
+export type EventType = 'rrweb' | 'interaction';
 export interface SessionReplayDestination {
   events: Events;
   sequenceId: number;
+  type: EventType;
   sessionId: number;
   flushMaxRetries?: number;
   apiKey?: string;
@@ -29,7 +31,7 @@ export interface SendingSequencesIDBInput {
 export type SendingSequencesIDBReturn = Required<SendingSequencesIDBInput>;
 
 export interface SessionReplayEventsIDBStore {
-  initialize(): Promise<void>;
+  initialize(type: EventType): Promise<void>;
   getSequencesToSend(): Promise<SendingSequencesIDBReturn[] | undefined>;
   storeCurrentSequence(sessionId: number): Promise<SendingSequencesIDBInput | undefined>;
   addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesIDBReturn | undefined>;

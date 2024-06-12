@@ -19,6 +19,8 @@ import {
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
+import { clickBatcher, clickHook } from './hooks/click';
+import { SessionReplayTrackDestination } from './track-destination';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -26,6 +28,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager | undefined;
+  interactionEventsManager: AmplitudeSessionReplayEventsManager | undefined;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -86,6 +89,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.eventsManager = await createEventsManager({
       config: this.config,
       sessionId: this.identifiers.sessionId,
+      type: 'rrweb',
+      trackDestination: new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider }),
+    });
+    this.interactionEventsManager = await createEventsManager({
+      config: this.config,
+      sessionId: this.identifiers.sessionId,
+      type: 'interaction',
+      trackDestination: new SessionReplayTrackDestination({
+        loggerProvider: this.loggerProvider,
+        payloadBatcher: clickBatcher,
+      }),
     });
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
@@ -289,6 +303,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
       },
       packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
+      hooks: {
+        mouseInteraction: clickHook({
+          getGlobalScopeFn: getGlobalScope,
+          eventsManager: this.interactionEventsManager!,
+          sessionId,
+          deviceId: this.getDeviceId()!,
+        }),
+      },
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,

@@ -6,6 +6,7 @@ import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../con
 import { STORAGE_FAILURE } from '../messages';
 import {
   SessionReplayEventsIDBStore as AmplitudeSessionReplayEventsIDBStore,
+  EventType,
   Events,
   SendingSequencesIDBInput,
   SendingSequencesIDBReturn,
@@ -110,8 +111,8 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     this.apiKey = apiKey;
   }
 
-  async initialize(sessionId?: number) {
-    const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events`;
+  async initialize(type: EventType, sessionId?: number) {
+    const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events_${type}`;
     this.db = await createStore(dbName);
     this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
     await this.transitionFromKeyValStore(sessionId);
@@ -327,12 +328,14 @@ export const createEventsIDBStore = async ({
   loggerProvider,
   apiKey,
   sessionId,
+  type,
 }: {
   loggerProvider: ILogger;
   apiKey: string;
+  type: EventType;
   sessionId?: number;
 }) => {
   const eventsIDBStore = new SessionReplayEventsIDBStore({ loggerProvider, apiKey });
-  await eventsIDBStore.initialize(sessionId);
+  await eventsIDBStore.initialize(type, sessionId);
   return eventsIDBStore;
 };

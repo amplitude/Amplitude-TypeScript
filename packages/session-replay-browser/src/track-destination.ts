@@ -1,10 +1,10 @@
 import { BaseTransport } from '@amplitude/analytics-core';
 import { Logger as ILogger, ServerZone, Status } from '@amplitude/analytics-types';
-import {
-  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
-  SESSION_REPLAY_SERVER_URL,
-  SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
-} from './constants';
+// import {
+//   SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
+//   SESSION_REPLAY_SERVER_URL,
+//   SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
+// } from './constants';
 import { getCurrentUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
@@ -16,20 +16,31 @@ import {
 } from './messages';
 import {
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
+  Events,
   SessionReplayDestination,
   SessionReplayDestinationContext,
 } from './typings/session-replay';
 import { VERSION } from './version';
+
+export type PayloadBatcher = ({
+  version,
+  events,
+}: {
+  version: number;
+  events: Events;
+}) => Record<string, unknown> | unknown[];
 
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
   retryTimeout = 1000;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
+  payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
 
-  constructor({ loggerProvider }: { loggerProvider: ILogger }) {
+  constructor({ loggerProvider, payloadBatcher }: { loggerProvider: ILogger; payloadBatcher?: PayloadBatcher }) {
     this.loggerProvider = loggerProvider;
+    this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
   }
 
   sendEventsList(destinationData: SessionReplayDestination) {
@@ -40,16 +51,17 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     });
   }
 
-  getServerUrl(serverZone?: keyof typeof ServerZone) {
-    if (serverZone === ServerZone.STAGING) {
-      return SESSION_REPLAY_STAGING_SERVER_URL;
-    }
+  getServerUrl(_serverZone?: keyof typeof ServerZone) {
+    return 'http://localhost:50007';
+    // if (serverZone === ServerZone.STAGING) {
+    //   return SESSION_REPLAY_STAGING_SERVER_URL;
+    // }
 
-    if (serverZone === ServerZone.EU) {
-      return SESSION_REPLAY_EU_SERVER_URL;
-    }
+    // if (serverZone === ServerZone.EU) {
+    //   return SESSION_REPLAY_EU_SERVER_URL;
+    // }
 
-    return SESSION_REPLAY_SERVER_URL;
+    // return SESSION_REPLAY_SERVER_URL;
   }
 
   addToQueue(...list: SessionReplayDestinationContext[]) {
@@ -119,12 +131,18 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       device_id: deviceId,
       session_id: `${context.sessionId}`,
       seq_number: `${context.sequenceId}`,
+      type: `${context.type}`,
     });
 
-    const payload = {
+    const payload = this.payloadBatcher({
       version: 1,
       events: context.events,
-    };
+    });
+
+    if (payload.length === 0) {
+      this.completeRequest({ context });
+      return;
+    }
 
     try {
       const options: RequestInit = {

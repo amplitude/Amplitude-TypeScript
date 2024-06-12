@@ -1,22 +1,28 @@
-import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
+import {
+  SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
+  EventType,
+} from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
-import { SessionReplayTrackDestination } from '../track-destination';
 import { createEventsIDBStore } from './events-idb-store';
 
 export const createEventsManager = async ({
   config,
   sessionId,
+  type,
+  trackDestination,
 }: {
   config: SessionReplayJoinedConfig;
+  type: EventType;
   sessionId?: number;
+  trackDestination: AmplitudeSessionReplayTrackDestination;
 }): Promise<AmplitudeSessionReplayEventsManager> => {
-  const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider });
-
   const eventsIDBStore = await createEventsIDBStore({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
     sessionId,
+    type,
   });
 
   const sendEventsList = ({
@@ -39,6 +45,7 @@ export const createEventsManager = async ({
       deviceId: deviceId,
       sampleRate: config.sampleRate,
       serverZone: config.serverZone,
+      type,
       onComplete: eventsIDBStore.cleanUpSessionEventsStore.bind(eventsIDBStore),
     });
   };
