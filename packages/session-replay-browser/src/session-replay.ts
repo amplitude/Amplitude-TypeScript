@@ -10,7 +10,6 @@ import {
   INTERACTION_MAX_INTERVAL,
   INTERACTION_MIN_INTERVAL,
   MASK_TEXT_CLASS,
-  MIN_INTERVAL,
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { createEventsManager } from './events/events-manager';

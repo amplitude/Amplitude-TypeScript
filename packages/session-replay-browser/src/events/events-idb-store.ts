@@ -124,7 +124,7 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     this.apiKey = apiKey;
     this.maxInterval = maxInterval ?? MAX_INTERVAL;
     this.minInterval = minInterval ?? MIN_INTERVAL;
-    this.interval = this.minInterval;
+    this.interval = 0;
   }
 
   async initialize(type: EventType, sessionId?: number) {
@@ -147,7 +147,12 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
       return true;
     }
-    if (this.timeAtLastSplit !== null && Date.now() - this.timeAtLastSplit > this.interval && events.length) {
+    if (
+      this.timeAtLastSplit !== null &&
+      this.interval &&
+      Date.now() - this.timeAtLastSplit > this.interval &&
+      events.length
+    ) {
       this.interval = Math.min(this.maxInterval, this.interval + this.minInterval);
       this.timeAtLastSplit = Date.now();
       return true;
@@ -227,6 +232,10 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
       if (!sequenceId) {
         return undefined;
+      }
+
+      if (this.interval === 0) {
+        this.interval = this.minInterval;
       }
 
       return {
