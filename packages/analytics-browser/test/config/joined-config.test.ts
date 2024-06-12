@@ -80,12 +80,16 @@ describe('joined-config', () => {
         expect(joinedConfig).toEqual(localConfig);
       });
 
-      test('should set requestMetadata', async () => {
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig.requestMetadata).not.toBeUndefined();
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time).toBe(fetchTime);
-      });
+      test.each([undefined, { sdk: { metrics: { histogram: { remote_config_fetch_time: 0 } } } }])(
+        'should set requestMetadata',
+        async (requestMetadata) => {
+          await generator.initialize();
+          generator.config.requestMetadata = requestMetadata;
+          const joinedConfig = await generator.generateJoinedConfig();
+          expect(joinedConfig.requestMetadata).not.toBeUndefined();
+          expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time).toBe(fetchTime);
+        },
+      );
     });
   });
 
