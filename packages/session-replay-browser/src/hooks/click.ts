@@ -19,7 +19,7 @@ type ClickEventWithCount = ClickEvent & { count: number };
 
 type Options = {
   sessionId: number;
-  deviceId: string;
+  deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager;
   // eslint-disable-next-line no-restricted-globals
   getGlobalScopeFn: () => typeof globalThis | undefined;
@@ -52,7 +52,7 @@ export const clickBatcher: PayloadBatcher = ({ events }) => {
 };
 
 export const clickHook: (options: Options) => mouseInteractionCallBack =
-  ({ getGlobalScopeFn, eventsManager, sessionId, deviceId }) =>
+  ({ getGlobalScopeFn, eventsManager, sessionId, deviceIdFn }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {
       return;
@@ -82,5 +82,8 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
       timestamp: Date.now(),
       type: 'click',
     };
-    eventsManager.addEvent({ sessionId, event: JSON.stringify(evt), deviceId });
+    const deviceId = deviceIdFn();
+    if (deviceId) {
+      eventsManager.addEvent({ sessionId, event: JSON.stringify(evt), deviceId });
+    }
   };

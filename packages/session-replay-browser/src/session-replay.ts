@@ -17,6 +17,7 @@ import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   SessionIdentifiers as ISessionIdentifiers,
+  SessionReplayEventsManager,
   SessionReplayOptions,
 } from './typings/session-replay';
 import { clickBatcher, clickHook } from './hooks/click';
@@ -27,8 +28,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
-  eventsManager: AmplitudeSessionReplayEventsManager | undefined;
-  interactionEventsManager: AmplitudeSessionReplayEventsManager | undefined;
+  eventManagers: {
+    rrweb?: AmplitudeSessionReplayEventsManager;
+    interaction?: AmplitudeSessionReplayEventsManager;
+  } = {};
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -86,13 +89,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.removeInvalidSelectors();
 
-    this.eventsManager = await createEventsManager({
+    this.eventManagers.rrweb = await createEventsManager({
       config: this.config,
       sessionId: this.identifiers.sessionId,
       type: 'rrweb',
       trackDestination: new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider }),
     });
-    this.interactionEventsManager = await createEventsManager({
+    this.eventManagers.interaction = await createEventsManager({
       config: this.config,
       sessionId: this.identifiers.sessionId,
       type: 'interaction',
@@ -188,10 +191,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
-    this.eventsManager &&
-      sessionIdToSend &&
-      deviceId &&
-      this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
+    this.getEventManagers().forEach((eventManager) => {
+      sessionIdToSend && deviceId && eventManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
+    });
   }
 
   initialize(shouldSendStoredEvents = false) {
@@ -206,11 +208,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
 
-    this.eventsManager &&
+    this.getEventManagers().forEach((eventManager) => {
       shouldSendStoredEvents &&
-      this.eventsManager.sendStoredEvents({
-        deviceId,
-      });
+        eventManager.sendStoredEvents({
+          deviceId,
+        });
+    });
 
     this.recordEvents();
   }
@@ -299,17 +302,23 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
         const eventString = JSON.stringify(event);
         const deviceId = this.getDeviceId();
-        deviceId && this.eventsManager && this.eventsManager.addEvent({ event: eventString, sessionId, deviceId });
+        deviceId &&
+          this.eventManagers.rrweb &&
+          this.eventManagers.rrweb.addEvent({ event: eventString, sessionId, deviceId });
       },
       packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {
-        mouseInteraction: clickHook({
-          getGlobalScopeFn: getGlobalScope,
-          eventsManager: this.interactionEventsManager!,
-          sessionId,
-          deviceId: this.getDeviceId()!,
-        }),
+        mouseInteraction:
+          this.eventManagers.interaction &&
+          clickHook({
+            getGlobalScopeFn: getGlobalScope,
+            eventsManager: this.eventManagers.interaction,
+            sessionId,
+            deviceIdFn: () => {
+              return this.getDeviceId();
+            },
+          }),
       },
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
@@ -368,9 +377,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async flush(useRetry = false) {
-    if (this.eventsManager) {
-      return this.eventsManager.flush(useRetry);
-    }
+    await Promise.all(
+      this.getEventManagers().map((eventManager) => {
+        return eventManager.flush(useRetry);
+      }),
+    );
+  }
+
+  getEventManagers(): SessionReplayEventsManager[] {
+    return Object.values(this.eventManagers).filter((eventManager) => eventManager !== undefined);
   }
 
   shutdown() {
