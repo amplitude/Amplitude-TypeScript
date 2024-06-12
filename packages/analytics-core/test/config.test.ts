@@ -5,7 +5,7 @@ import {
   EU_AMPLITUDE_BATCH_SERVER_URL,
   EU_AMPLITUDE_SERVER_URL,
 } from '../src/constants';
-import { Config, createServerConfig, getServerUrl } from '../src/config';
+import { Config, createServerConfig, getServerUrl, RequestMetadata } from '../src/config';
 import { Logger } from '../src/logger';
 import { API_KEY, useDefaultConfig } from './helpers/default';
 
@@ -36,6 +36,7 @@ describe('config', () => {
       storageProvider: defaultConfig.storageProvider,
       transportProvider: defaultConfig.transportProvider,
       useBatch: false,
+      requestMetadata: undefined,
     });
     expect(config.optOut).toBe(false);
   });
@@ -124,5 +125,21 @@ describe('config', () => {
       flushIntervalMillis: 0,
     });
     expect(config.flushIntervalMillis).toEqual(0);
+  });
+});
+
+describe('RequestMetadata', () => {
+  test('constructor', () => {
+    const fetchTime = 100;
+    const requestMetadata = new RequestMetadata(fetchTime);
+    expect(requestMetadata).toEqual({
+      sdk: {
+        metrics: {
+          histogram: {
+            remote_config_fetch_time: fetchTime,
+          },
+        },
+      },
+    });
   });
 });

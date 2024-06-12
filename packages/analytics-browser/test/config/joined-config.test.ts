@@ -12,6 +12,7 @@ describe('joined-config', () => {
   let localConfig: IBrowserConfig;
   let mockRemoteConfigFetch: RemoteConfigFetch<BrowserRemoteConfig>;
   let generator: BrowserJoinedConfigGenerator;
+  const fetchTime = 100;
 
   beforeEach(() => {
     localConfig = { ...createConfigurationMock(), defaultTracking: false };
@@ -20,8 +21,7 @@ describe('joined-config', () => {
       getRemoteConfig: jest.fn().mockResolvedValue({
         defaultTracking: true,
       }),
-      // TODO(xinyi): uncomment this line when fetchTime is used in the joined config
-      // fetchTime: 23,
+      fetchTime: fetchTime,
     };
 
     // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
@@ -78,6 +78,13 @@ describe('joined-config', () => {
         expect(generator.remoteConfigFetch).toBeUndefined();
         const joinedConfig = await generator.generateJoinedConfig();
         expect(joinedConfig).toEqual(localConfig);
+      });
+
+      test('should set requestMetadata', async () => {
+        await generator.initialize();
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig.requestMetadata).not.toBeUndefined();
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time).toBe(fetchTime);
       });
     });
   });

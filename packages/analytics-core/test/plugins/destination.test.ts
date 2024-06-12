@@ -407,10 +407,10 @@ describe('destination', () => {
         ...useDefaultConfig(),
         transportProvider,
         apiKey: API_KEY,
-        request_metadata: request_metadata,
+        requestMetadata: request_metadata,
       });
       await destination.send([context]);
-      expect(destination.config.request_metadata).toBeUndefined();
+      expect(destination.config.requestMetadata).toBeUndefined();
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,

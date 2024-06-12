@@ -10,7 +10,7 @@ import {
   Options,
   ServerZoneType,
   OfflineDisabled,
-  RequestMetadata,
+  RequestMetadata as IRequestMetadata,
 } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_SERVER_URL,
@@ -52,7 +52,7 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
-  request_metadata?: RequestMetadata;
+  requestMetadata?: RequestMetadata;
 
   protected _optOut = false;
   get optOut() {
@@ -110,3 +110,23 @@ export const createServerConfig = (
     serverUrl: getServerUrl(_serverZone, useBatch),
   };
 };
+
+export class RequestMetadata implements IRequestMetadata {
+  sdk: {
+    metrics: {
+      histogram: {
+        remote_config_fetch_time: number;
+      };
+    };
+  };
+
+  constructor(remoteConfigFetchTime: number) {
+    this.sdk = {
+      metrics: {
+        histogram: {
+          remote_config_fetch_time: remoteConfigFetchTime,
+        },
+      },
+    };
+  }
+}

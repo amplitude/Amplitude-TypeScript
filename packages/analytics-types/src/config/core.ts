@@ -84,7 +84,7 @@ export interface Config {
   /**
    * Metrics of the SDK.
    */
-  request_metadata?: RequestMetadata;
+  requestMetadata?: RequestMetadata;
 }
 
 export interface RequestMetadata {
