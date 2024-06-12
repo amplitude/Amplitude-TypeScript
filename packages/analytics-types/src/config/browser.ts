@@ -169,7 +169,7 @@ export interface CookieOptions {
   upgrade?: boolean;
 }
 
-type HiddenOptions = 'apiKey' | 'transportProvider';
+type HiddenOptions = 'apiKey' | 'transportProvider' | 'requestMetadata';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BrowserOptions extends Omit<Partial<ExternalBrowserConfig>, HiddenOptions> {}
