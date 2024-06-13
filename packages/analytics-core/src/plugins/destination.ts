@@ -161,8 +161,6 @@ export class Destination implements DestinationPlugin {
       return this.fulfillRequest(list, 400, MISSING_API_KEY_MESSAGE);
     }
 
-    const request_metadata = this.config.request_metadata;
-    delete this.config.request_metadata;
     const payload = {
       api_key: this.config.apiKey,
       events: list.map((context) => {
@@ -174,7 +172,6 @@ export class Destination implements DestinationPlugin {
         min_id_length: this.config.minIdLength,
       },
       client_upload_time: new Date().toISOString(),
-      request_metadata: request_metadata,
     };
 
     try {

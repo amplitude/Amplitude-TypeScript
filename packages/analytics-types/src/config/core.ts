@@ -81,20 +81,6 @@ export interface Config {
    * The flag of whether to upload events to Batch API instead of the default HTTP V2 API.
    */
   useBatch: boolean;
-  /**
-   * Metrics of the SDK.
-   */
-  request_metadata?: RequestMetadata;
-}
-
-export interface RequestMetadata {
-  sdk: {
-    metrics: {
-      histogram: {
-        remote_config_fetch_time: number;
-      };
-    };
-  };
 }
 
 export interface Options extends Partial<Config> {

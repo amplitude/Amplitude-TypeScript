@@ -16,11 +16,6 @@ import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
-jest.mock('../src/config/joined-config', () => ({
-  createBrowserJoinedConfigGenerator: jest.fn().mockImplementation((localConfig) => ({
-    generateJoinedConfig: jest.fn().mockResolvedValue(localConfig),
-  })),
-}));
 
 describe('browser-client', () => {
   let apiKey = '';
