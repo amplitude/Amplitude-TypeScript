@@ -68,9 +68,9 @@ export const iife = {
       outDir: 'lib/script',
       rootDir: 'src',
     }),
-    // resolve({
-    //   browser: true,
-    // }),
+    resolve({
+      browser: true,
+    }),
     commonjs(),
     terser({
       output: {

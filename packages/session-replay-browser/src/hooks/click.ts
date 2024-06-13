@@ -2,6 +2,7 @@ import { mouseInteractionCallBack, MouseInteractions } from '@amplitude/rrweb-ty
 import { record } from '@amplitude/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
+import { finder } from '@medv/finder';
 
 type ClickEvent = {
   timestamp: number;
@@ -76,11 +77,10 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     const node = record.mirror.getNode(e.id);
     let selector;
     if (node) {
-      // selector = finder(node as Element);
-      selector = '';
+      selector = finder(node as Element);
     }
 
-    const evt: ClickEvent = {
+    const event: ClickEvent = {
       x,
       y,
       selector,
@@ -93,6 +93,6 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     };
     const deviceId = deviceIdFn();
     if (deviceId) {
-      eventsManager.addEvent({ sessionId, event: { type: 'interaction', data: JSON.stringify(evt) }, deviceId });
+      eventsManager.addEvent({ sessionId, event: { type: 'interaction', data: JSON.stringify(event) }, deviceId });
     }
   };
