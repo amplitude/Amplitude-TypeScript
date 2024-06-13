@@ -1,4 +1,4 @@
-export { Config, Options } from './core';
+export { Config, Options, RequestMetadata } from './core';
 export { BrowserConfig, DefaultTrackingOptions, TrackingOptions, AttributionOptions, BrowserOptions } from './browser';
 export { NodeConfig, NodeOptions } from './node';
 export {

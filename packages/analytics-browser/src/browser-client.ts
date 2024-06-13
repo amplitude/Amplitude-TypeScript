@@ -36,6 +36,7 @@ import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
+import { createBrowserJoinedConfigGenerator } from './config/joined-config';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -72,8 +73,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // Step 2: Create browser config
     const browserOptions = await useBrowserConfig(options.apiKey, options, this);
-    await super._init(browserOptions);
-    this.logBrowserOptions(options);
+    const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
+    const joinedConfig = await joinedConfigGenerator.generateJoinedConfig();
+    await super._init(joinedConfig);
+    this.logBrowserOptions(joinedConfig);
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
