@@ -18,22 +18,21 @@ import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  EventType,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayEventsManager,
   SessionReplayOptions,
 } from './typings/session-replay';
 import { clickBatcher, clickHook } from './hooks/click';
 import { SessionReplayTrackDestination } from './track-destination';
+import { MultiEventManager } from './events/multi-manager';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
-  eventManagers: {
-    rrweb?: AmplitudeSessionReplayEventsManager;
-    interaction?: AmplitudeSessionReplayEventsManager;
-  } = {};
+  eventsManager?: AmplitudeSessionReplayEventsManager<'rrweb' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -91,28 +90,31 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.removeInvalidSelectors();
 
-    this.eventManagers = {
-      rrweb: await createEventsManager({
+    const managers: { name: EventType; manager: SessionReplayEventsManager<string, string> }[] = [];
+    const rrwebEventManager = await createEventsManager<'rrweb'>({
+      config: this.config,
+      sessionId: this.identifiers.sessionId,
+      type: 'rrweb',
+      trackDestination: new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider }),
+    });
+    managers.push({ name: 'rrweb', manager: rrwebEventManager });
+
+    if (this.config.interactionConfig?.enabled ?? true) {
+      const interactionEventManager = await createEventsManager<'interaction'>({
         config: this.config,
         sessionId: this.identifiers.sessionId,
-        type: 'rrweb',
-        trackDestination: new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider }),
-      }),
-      interaction:
-        this.config.interactionConfig?.enabled ?? true
-          ? await createEventsManager({
-              config: this.config,
-              sessionId: this.identifiers.sessionId,
-              type: 'interaction',
-              minInterval: this.config.interactionConfig?.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
-              maxInterval: INTERACTION_MAX_INTERVAL,
-              trackDestination: new SessionReplayTrackDestination({
-                loggerProvider: this.loggerProvider,
-                payloadBatcher: clickBatcher,
-              }),
-            })
-          : undefined,
-    };
+        type: 'interaction',
+        minInterval: this.config.interactionConfig?.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
+        maxInterval: INTERACTION_MAX_INTERVAL,
+        trackDestination: new SessionReplayTrackDestination({
+          loggerProvider: this.loggerProvider,
+          payloadBatcher: clickBatcher,
+        }),
+      });
+      managers.push({ name: 'interaction', manager: interactionEventManager });
+    }
+
+    this.eventsManager = new MultiEventManager<'rrweb' | 'interaction', string>(...managers);
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -200,9 +202,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
-    this.getEventManagers().forEach((eventManager) => {
-      sessionIdToSend && deviceId && eventManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
-    });
+    sessionIdToSend &&
+      deviceId &&
+      this.eventsManager?.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
   }
 
   initialize(shouldSendStoredEvents = false) {
@@ -216,13 +218,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.log(`Session is not being recorded due to lack of device id.`);
       return;
     }
-
-    this.getEventManagers().forEach((eventManager) => {
-      shouldSendStoredEvents &&
-        eventManager.sendStoredEvents({
-          deviceId,
-        });
-    });
+    shouldSendStoredEvents && this.eventsManager?.sendStoredEvents({ deviceId });
 
     this.recordEvents();
   }
@@ -311,18 +307,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
         const eventString = JSON.stringify(event);
         const deviceId = this.getDeviceId();
-        deviceId &&
-          this.eventManagers.rrweb &&
-          this.eventManagers.rrweb.addEvent({ event: eventString, sessionId, deviceId });
+        deviceId && this.eventsManager?.addEvent({ event: { type: 'rrweb', data: eventString }, sessionId, deviceId });
       },
       packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {
         mouseInteraction:
-          this.eventManagers.interaction &&
+          this.eventsManager &&
           clickHook({
             getGlobalScopeFn: getGlobalScope,
-            eventsManager: this.eventManagers.interaction,
+            eventsManager: this.eventsManager,
             sessionId,
             deviceIdFn: () => {
               return this.getDeviceId();
@@ -386,15 +380,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async flush(useRetry = false) {
-    await Promise.all(
-      this.getEventManagers().map((eventManager) => {
-        return eventManager.flush(useRetry);
-      }),
-    );
-  }
-
-  getEventManagers(): SessionReplayEventsManager[] {
-    return Object.values(this.eventManagers).filter((eventManager) => eventManager !== undefined);
+    return this.eventsManager?.flush(useRetry);
   }
 
   shutdown() {

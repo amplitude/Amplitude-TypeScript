@@ -7,7 +7,7 @@ import {
 import { SessionReplayJoinedConfig } from '../config/types';
 import { createEventsIDBStore } from './events-idb-store';
 
-export const createEventsManager = async ({
+export const createEventsManager = async <Type extends EventType>({
   config,
   sessionId,
   minInterval,
@@ -16,12 +16,12 @@ export const createEventsManager = async ({
   trackDestination,
 }: {
   config: SessionReplayJoinedConfig;
-  type: EventType;
+  type: Type;
   minInterval?: number;
   maxInterval?: number;
   sessionId?: number;
   trackDestination: AmplitudeSessionReplayTrackDestination;
-}): Promise<AmplitudeSessionReplayEventsManager> => {
+}): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
   const eventsIDBStore = await createEventsIDBStore({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
@@ -31,6 +31,9 @@ export const createEventsManager = async ({
     type,
   });
 
+  /**
+   * Immediately sends events to the track destination.
+   */
   const sendEventsList = ({
     events,
     sessionId,
@@ -87,9 +90,17 @@ export const createEventsManager = async ({
       });
   };
 
-  const addEvent = ({ event, sessionId, deviceId }: { event: string; sessionId: number; deviceId: string }) => {
+  const addEvent = ({
+    event,
+    sessionId,
+    deviceId,
+  }: {
+    event: { type: Type; data: string };
+    sessionId: number;
+    deviceId: string;
+  }) => {
     eventsIDBStore
-      .addEventToCurrentSequence(sessionId, event)
+      .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         return (
           sequenceToSend &&

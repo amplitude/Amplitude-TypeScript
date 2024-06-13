@@ -20,7 +20,7 @@ type ClickEventWithCount = ClickEvent & { count: number };
 type Options = {
   sessionId: number;
   deviceIdFn: () => string | undefined;
-  eventsManager: AmplitudeSessionReplayEventsManager;
+  eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
   // eslint-disable-next-line no-restricted-globals
   getGlobalScopeFn: () => typeof globalThis | undefined;
 };
@@ -93,6 +93,6 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     };
     const deviceId = deviceIdFn();
     if (deviceId) {
-      eventsManager.addEvent({ sessionId, event: JSON.stringify(evt), deviceId });
+      eventsManager.addEvent({ sessionId, event: { type: 'interaction', data: JSON.stringify(evt) }, deviceId });
     }
   };
