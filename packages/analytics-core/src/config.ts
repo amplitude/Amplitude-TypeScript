@@ -10,7 +10,6 @@ import {
   Options,
   ServerZoneType,
   OfflineDisabled,
-  RequestMetadata,
 } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_SERVER_URL,
@@ -52,7 +51,6 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
-  request_metadata?: RequestMetadata;
 
   protected _optOut = false;
   get optOut() {

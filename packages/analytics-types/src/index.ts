@@ -24,7 +24,6 @@ export {
   ReactNativeOptions,
   ReactNativeTrackingOptions,
   TrackingOptions,
-  RequestMetadata,
 } from './config';
 export { CoreClient } from './client/core-client';
 export { DestinationContext } from './destination-context';
