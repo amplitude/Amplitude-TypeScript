@@ -33,7 +33,7 @@ export class BrowserJoinedConfigGenerator {
     }
     this.config.loggerProvider.debug('Joined configuration: ', JSON.stringify(remoteConfig, null, 2));
     this.config.requestMetadata ??= new RequestMetadata();
-    this.config.requestMetadata.sdk.metrics.histogram.remote_config_fetch_time = this.remoteConfigFetch?.fetchTime;
+    this.config.requestMetadata.recordHistogram('remote_config_fetch_time', this.remoteConfigFetch?.fetchTime);
     return this.config;
   }
 }

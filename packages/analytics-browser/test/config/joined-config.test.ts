@@ -3,6 +3,7 @@ import { BrowserConfig as IBrowserConfig } from '@amplitude/analytics-types';
 import { BrowserJoinedConfigGenerator, createBrowserJoinedConfigGenerator } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
 import { BrowserRemoteConfig } from '../../lib/scripts/config/types';
+import { RequestMetadata } from '@amplitude/analytics-core';
 
 jest.mock('@amplitude/analytics-remote-config', () => ({
   createRemoteConfigFetch: jest.fn(),
@@ -80,16 +81,13 @@ describe('joined-config', () => {
         expect(joinedConfig).toEqual(localConfig);
       });
 
-      test.each([undefined, { sdk: { metrics: { histogram: { remote_config_fetch_time: 0 } } } }])(
-        'should set requestMetadata',
-        async (requestMetadata) => {
-          await generator.initialize();
-          generator.config.requestMetadata = requestMetadata;
-          const joinedConfig = await generator.generateJoinedConfig();
-          expect(joinedConfig.requestMetadata).not.toBeUndefined();
-          expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time).toBe(fetchTime);
-        },
-      );
+      test.each([undefined, new RequestMetadata()])('should set requestMetadata', async (requestMetadata) => {
+        await generator.initialize();
+        generator.config.requestMetadata = requestMetadata;
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig.requestMetadata).not.toBeUndefined();
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time).toBe(fetchTime);
+      });
     });
   });
 

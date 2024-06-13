@@ -95,7 +95,15 @@ export interface RequestMetadata {
       };
     };
   };
+
+  recordHistogram<T extends HistogramKey>(key: T, value: HistogramOptions[T]): void;
 }
+
+export interface HistogramOptions {
+  remote_config_fetch_time?: number;
+}
+
+export type HistogramKey = keyof HistogramOptions;
 
 export interface Options extends Partial<Config> {
   apiKey: string;
