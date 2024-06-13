@@ -202,9 +202,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
-    sessionIdToSend &&
+    this.eventsManager &&
+      sessionIdToSend &&
       deviceId &&
-      this.eventsManager?.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
+      this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
   }
 
   initialize(shouldSendStoredEvents = false) {
@@ -218,7 +219,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.log(`Session is not being recorded due to lack of device id.`);
       return;
     }
-    shouldSendStoredEvents && this.eventsManager?.sendStoredEvents({ deviceId });
+    this.eventsManager && shouldSendStoredEvents && this.eventsManager.sendStoredEvents({ deviceId });
 
     this.recordEvents();
   }
@@ -307,7 +308,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
         const eventString = JSON.stringify(event);
         const deviceId = this.getDeviceId();
-        deviceId && this.eventsManager?.addEvent({ event: { type: 'rrweb', data: eventString }, sessionId, deviceId });
+        this.eventsManager &&
+          deviceId &&
+          this.eventsManager.addEvent({ event: { type: 'rrweb', data: eventString }, sessionId, deviceId });
       },
       packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
@@ -318,9 +321,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
             getGlobalScopeFn: getGlobalScope,
             eventsManager: this.eventsManager,
             sessionId,
-            deviceIdFn: () => {
-              return this.getDeviceId();
-            },
+            deviceIdFn: this.getDeviceId.bind(this),
           }),
       },
       maskAllInputs: true,

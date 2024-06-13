@@ -238,6 +238,26 @@ describe('SessionReplayTrackDestination', () => {
   });
 
   describe('send', () => {
+    test('should not send anything if no events present', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.loggerProvider = mockLoggerProvider;
+      const context: SessionReplayDestinationContext = {
+        events: [],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 1,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'rrweb',
+        apiKey,
+        onComplete: mockOnComplete,
+      };
+      await trackDestination.send(context);
+      expect(fetch).not.toHaveBeenCalled();
+    });
     test('should not send anything if api key not set', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       trackDestination.loggerProvider = mockLoggerProvider;

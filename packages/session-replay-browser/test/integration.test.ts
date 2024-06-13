@@ -6,7 +6,7 @@ import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import { IDBFactory } from 'fake-indexeddb';
-import { SessionReplayOptions } from 'src/typings/session-replay';
+import { EventType, SessionReplayOptions } from 'src/typings/session-replay';
 import { SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import { UNEXPECTED_ERROR_MESSAGE } from '../src/messages';
@@ -109,6 +109,26 @@ describe('module level integration', () => {
     });
   });
   describe('tracking replay events', () => {
+    test('should handle unknown event type', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
+      (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
+      if (!sessionReplay.eventsManager) {
+        throw new Error('did not init');
+      }
+      sessionReplay.eventsManager.addEvent({
+        sessionId: 123,
+        event: { type: 'unknown' as EventType, data: mockEventString },
+        deviceId: '1a2b3c',
+      });
+      sessionReplay.stopRecordingAndSendEvents();
+      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+      await runScheduleTimers();
+      expect(fetch).not.toHaveBeenCalled();
+    });
     test('should handle unexpected error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
