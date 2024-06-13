@@ -202,6 +202,10 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
   };
 
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
+    if (this.interval === 0) {
+      this.interval = this.minInterval;
+    }
+
     try {
       const tx = this.db?.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
       if (!tx) {
@@ -232,10 +236,6 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
       if (!sequenceId) {
         return undefined;
-      }
-
-      if (this.interval === 0) {
-        this.interval = this.minInterval;
       }
 
       return {

@@ -1,6 +1,5 @@
 import { mouseInteractionCallBack, MouseInteractions } from '@amplitude/rrweb-types';
 import { record } from '@amplitude/rrweb';
-import { finder } from '@medv/finder';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
 
@@ -77,7 +76,8 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     const node = record.mirror.getNode(e.id);
     let selector;
     if (node) {
-      selector = finder(node as Element);
+      // selector = finder(node as Element);
+      selector = '';
     }
 
     const evt: ClickEvent = {
