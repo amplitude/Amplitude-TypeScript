@@ -1,10 +1,10 @@
 import { BaseTransport } from '@amplitude/analytics-core';
 import { Logger as ILogger, ServerZone, Status } from '@amplitude/analytics-types';
-// import {
-//   SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
-//   SESSION_REPLAY_SERVER_URL,
-//   SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
-// } from './constants';
+import {
+  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
+  SESSION_REPLAY_SERVER_URL,
+  SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
+} from './constants';
 import { getCurrentUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
@@ -47,17 +47,16 @@ export class SessionReplayTrackDestination<T> implements AmplitudeSessionReplayT
     });
   }
 
-  getServerUrl(_serverZone?: keyof typeof ServerZone) {
-    return 'http://localhost:50007';
-    // if (serverZone === ServerZone.STAGING) {
-    //   return SESSION_REPLAY_STAGING_SERVER_URL;
-    // }
+  getServerUrl(serverZone?: keyof typeof ServerZone) {
+    if (serverZone === ServerZone.STAGING) {
+      return SESSION_REPLAY_STAGING_SERVER_URL;
+    }
 
-    // if (serverZone === ServerZone.EU) {
-    //   return SESSION_REPLAY_EU_SERVER_URL;
-    // }
+    if (serverZone === ServerZone.EU) {
+      return SESSION_REPLAY_EU_SERVER_URL;
+    }
 
-    // return SESSION_REPLAY_SERVER_URL;
+    return SESSION_REPLAY_SERVER_URL;
   }
 
   addToQueue(...list: SessionReplayDestinationContext[]) {
