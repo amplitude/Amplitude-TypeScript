@@ -16,29 +16,25 @@ import {
 } from './messages';
 import {
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
-  Events,
   SessionReplayDestination,
   SessionReplayDestinationContext,
 } from './typings/session-replay';
 import { VERSION } from './version';
 
-export type PayloadBatcher = ({
-  version,
-  events,
-}: {
+export type PayloadBatcher<T> = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
-  events: Events;
-}) => Record<string, unknown> | unknown[];
+  events: string[] | T[];
+};
 
-export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
+export class SessionReplayTrackDestination<T> implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
   retryTimeout = 1000;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
-  payloadBatcher: PayloadBatcher;
+  payloadBatcher: PayloadBatcher<T>;
   queue: SessionReplayDestinationContext[] = [];
 
-  constructor({ loggerProvider, payloadBatcher }: { loggerProvider: ILogger; payloadBatcher?: PayloadBatcher }) {
+  constructor({ loggerProvider, payloadBatcher }: { loggerProvider: ILogger; payloadBatcher?: PayloadBatcher<T> }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
   }
@@ -139,7 +135,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       events: context.events,
     });
 
-    if (payload.length === 0) {
+    if (payload.events.length === 0) {
       this.completeRequest({ context });
       return;
     }

@@ -10,7 +10,7 @@ type ClickEvent = {
   y: number;
   viewportWidth: number;
   viewportHeight: number;
-  pageUrl?: string;
+  pageUrl: string;
   selector?: string;
   type: 'click';
 };
@@ -25,7 +25,9 @@ type Options = {
   getGlobalScopeFn: () => typeof globalThis | undefined;
 };
 
-export const clickBatcher: PayloadBatcher = ({ events }) => {
+const HOUR_IN_MILLISECONDS = 3_600_000;
+
+export const clickBatcher: PayloadBatcher<ClickEventWithCount> = ({ version, events }) => {
   const clickEvents: ClickEvent[] = [];
   events.forEach((evt) => {
     const record = JSON.parse(evt) as Record<string, unknown>;
@@ -37,7 +39,8 @@ export const clickBatcher: PayloadBatcher = ({ events }) => {
   const reduced = clickEvents.reduce<Record<string, ClickEventWithCount>>((prev, curr) => {
     const { x, y, selector, timestamp } = curr;
 
-    const hour = timestamp - (timestamp % 3_600_000);
+    // round down to nearest hour.
+    const hour = timestamp - (timestamp % HOUR_IN_MILLISECONDS);
 
     const k = `${x}:${y}:${selector ?? ''}:${hour}`;
     if (!prev[k]) {
@@ -48,7 +51,7 @@ export const clickBatcher: PayloadBatcher = ({ events }) => {
     return prev;
   }, {});
 
-  return Object.values(reduced);
+  return { version, events: Object.values(reduced) };
 };
 
 export const clickHook: (options: Options) => mouseInteractionCallBack =
@@ -60,6 +63,12 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
 
     const globalScope = getGlobalScopeFn();
     if (!globalScope) {
+      return;
+    }
+
+    const { location, innerHeight, innerWidth } = globalScope;
+    // it only makes sense to send events if a pageUrl exists
+    if (!location) {
       return;
     }
 
@@ -76,9 +85,9 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
       y,
       selector,
 
-      viewportHeight: globalScope.innerHeight,
-      viewportWidth: globalScope.innerWidth,
-      pageUrl: globalScope.location.href,
+      viewportHeight: innerHeight,
+      viewportWidth: innerWidth,
+      pageUrl: location.href,
       timestamp: Date.now(),
       type: 'click',
     };
