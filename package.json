@@ -15,7 +15,7 @@
     "lint:staged": "lint-staged",
     "postinstall": "husky install",
     "test": "lerna run test --stream",
-    "test:examples": "jest --env=jsdom --coverage=false examples",
+    "test:examples": "jest --env=jsdom --coverage=false examples --setupFiles ./jest.setup.examples.js",
     "test:unit": "lerna run test --stream --ignore @amplitude/analytics-*-test",
     "test:e2e": "lerna run test --stream --scope @amplitude/analytics-*-test",
     "version": "git add -A"
@@ -32,6 +32,7 @@
     "eslint": "^8.29.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-jest": "^27.1.6",
+    "fake-indexeddb": "4.0.2",
     "husky": "^8.0.2",
     "jest": "^29.3.1",
     "jest-environment-jsdom": "^29.3.1",
