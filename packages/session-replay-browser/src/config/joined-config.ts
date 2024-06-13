@@ -115,7 +115,7 @@ export class SessionReplayJoinedConfigGenerator {
 
     const {
       sr_sampling_config: samplingConfig,
-      sr_privacy_config: privacyConfig,
+      sr_privacy_config: remotePrivacyConfig,
       sr_targeting_config: targetingConfig,
     } = remoteConfig;
     if (samplingConfig && Object.keys(samplingConfig).length > 0) {
