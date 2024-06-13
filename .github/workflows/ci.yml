@@ -5,11 +5,13 @@ on:
     branches:
       - main
       - v1.x
+      - alpha-release
   pull_request:
     types: [opened, synchronize]
     branches:
       - main
       - v1.x
+      - alpha-release
 
 jobs:
   build:
