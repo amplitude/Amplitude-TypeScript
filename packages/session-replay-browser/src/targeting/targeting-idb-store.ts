@@ -1,6 +1,5 @@
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
-import { STORAGE_FAILURE } from './messages';
 
 export interface SessionReplayTargetingDB extends DBSchema {
   sessionTargetingMatch: {
@@ -38,13 +37,13 @@ export const getTargetingMatchForSession = async ({
   apiKey: string;
   sessionId: number;
 }) => {
-  const db = await openOrCreateDB(apiKey);
   try {
-    const targetingMatchForSession = await db?.get<'sessionTargetingMatch'>('sessionTargetingMatch', sessionId);
+    const db = await openOrCreateDB(apiKey);
+    const targetingMatchForSession = await db.get<'sessionTargetingMatch'>('sessionTargetingMatch', sessionId);
 
     return targetingMatchForSession?.targetingMatch;
   } catch (e) {
-    loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    loggerProvider.warn(`Failed to get targeting match for session id ${sessionId}: ${e as string}`);
   }
   return undefined;
 };
@@ -60,16 +59,16 @@ export const storeTargetingMatchForSession = async ({
   sessionId: number;
   targetingMatch: boolean;
 }) => {
-  const db = await openOrCreateDB(apiKey);
   try {
-    const targetingMatchForSession = await db?.put<'sessionTargetingMatch'>('sessionTargetingMatch', {
+    const db = await openOrCreateDB(apiKey);
+    const targetingMatchForSession = await db.put<'sessionTargetingMatch'>('sessionTargetingMatch', {
       targetingMatch,
       sessionId,
     });
 
     return targetingMatchForSession;
   } catch (e) {
-    loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    loggerProvider.warn(`Failed to store targeting match for session id ${sessionId}: ${e as string}`);
   }
   return undefined;
 };
