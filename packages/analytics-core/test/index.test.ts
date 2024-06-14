@@ -14,6 +14,7 @@ import {
   UUID,
   MemoryStorage,
   createIdentifyEvent,
+  RequestMetadata,
 } from '../src/index';
 
 describe('index', () => {
@@ -32,6 +33,7 @@ describe('index', () => {
     expect(typeof BaseTransport).toBe('function');
     expect(typeof Destination).toBe('function');
     expect(typeof Config).toBe('function');
+    expect(typeof RequestMetadata).toEqual('function');
     expect(typeof Logger).toBe('function');
     expect(typeof returnWrapper).toBe('function');
     expect(typeof debugWrapper).toBe('function');

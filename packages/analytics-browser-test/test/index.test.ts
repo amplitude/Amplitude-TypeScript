@@ -7,7 +7,7 @@ import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, url, SUCCESS_MESSAGE, uuidPattern } from './constants';
 import { LogLevel } from '@amplitude/analytics-types';
-import { UUID } from '@amplitude/analytics-core';
+import { RequestMetadata, UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -26,6 +26,7 @@ describe('integration', () => {
   let client = amplitude.createInstance();
 
   const event_upload_time = '2023-01-01T12:00:00:000Z';
+  const request_metadata = new RequestMetadata();
   Date.prototype.toISOString = jest.fn(() => event_upload_time);
 
   beforeAll(() => {
@@ -250,6 +251,7 @@ describe('integration', () => {
           },
         ],
         options: {},
+        request_metadata: request_metadata,
       });
       scope1.done();
     });
@@ -1066,6 +1068,7 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
+            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1274,6 +1277,7 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
+            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1369,6 +1373,7 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
+            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1574,6 +1579,7 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
+            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1722,6 +1728,7 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
+            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1778,6 +1785,7 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
+            request_metadata: request_metadata,
           });
           scope.done();
           resolve();

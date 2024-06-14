@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as amplitude from '@amplitude/analytics-browser';
-import { UUID } from '@amplitude/analytics-core';
+import { RequestMetadata, UUID } from '@amplitude/analytics-core';
 import { default as nock } from 'nock';
 import { path, url as httpEndPoint } from './constants';
 import { success } from './responses';
@@ -29,6 +29,7 @@ describe('Web attribution', () => {
   let client = amplitude.createInstance();
 
   const event_upload_time = '2023-01-01T12:00:00:000Z';
+  const request_metadata = new RequestMetadata();
   Date.prototype.toISOString = jest.fn(() => event_upload_time);
 
   beforeEach(() => {
@@ -80,6 +81,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -119,6 +121,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -161,6 +164,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -223,6 +227,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -275,6 +280,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -349,6 +355,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -413,6 +420,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -470,6 +478,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -528,6 +537,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
@@ -580,6 +590,7 @@ describe('Web attribution', () => {
               options: {
                 min_id_length: undefined,
               },
+              request_metadata: request_metadata,
             });
             scope.done();
             resolve();
