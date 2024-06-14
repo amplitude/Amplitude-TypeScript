@@ -1,6 +1,6 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
-import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
+import { Event, Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
@@ -242,7 +242,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   };
 
-  evaluateTargetingAndRecord = async () => {
+  evaluateTargetingAndRecord = async (options?: { event?: Event }) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
       return;
@@ -253,13 +253,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
       userProperties = identityStore.getIdentity().userProperties;
     }
-    const sessionTargetingMatch = await evaluateTargetingAndStore({
+    this.sessionTargetingMatch = await evaluateTargetingAndStore({
       sessionId: this.identifiers.sessionId,
       config: this.config,
-      targetingParams: { userProperties },
+      targetingParams: { userProperties, event: options?.event },
     });
 
-    if (sessionTargetingMatch) {
+    if (this.sessionTargetingMatch) {
       this.recordEvents();
     }
   };
@@ -301,7 +301,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return identityStoreOptOut !== undefined ? identityStoreOptOut : this.config?.optOut;
   }
 
-  getShouldRecord(ignoreFocus = false) {
+  getShouldRecord = (ignoreFocus = false) => {
     if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
@@ -309,6 +309,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!this.config.captureEnabled) {
       this.loggerProvider.log(
         `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project.`,
+      );
+      return false;
+    }
+
+    if (!this.sessionTargetingMatch) {
+      this.loggerProvider.log(
+        `Session ${this.identifiers.sessionId} not recording due to not matching targeting conditions.`,
       );
       return false;
     }
@@ -329,9 +336,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
     if (!isInSample) {
       this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`);
+      return false;
     }
-    return isInSample;
-  }
+
+    return true;
+  };
 
   getBlockSelectors(): string | string[] | undefined {
     // For some reason, this defaults to empty array ([]) if undefined in the compiled script.
