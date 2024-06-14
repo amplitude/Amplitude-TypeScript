@@ -34,6 +34,7 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
     // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
     // event is not of the current session (offline/late events). In that case, don't tag the events
     if (this.config.sessionId && this.config.sessionId === event.session_id) {
+      await sessionReplay.evaluateTargetingAndRecord({ event: event });
       const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
       event.event_properties = {
         ...event.event_properties,
