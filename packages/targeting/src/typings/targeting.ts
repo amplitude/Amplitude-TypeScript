@@ -1,4 +1,4 @@
-import { Event } from '@amplitude/analytics-types';
+import { Event, Logger } from '@amplitude/analytics-types';
 import { EvaluationFlag, EvaluationVariant } from '@amplitude/experiment-core';
 
 export type TargetingFlag = EvaluationFlag;
@@ -8,8 +8,10 @@ export interface TargetingParameters {
   deviceId?: string;
   flag: EvaluationFlag;
   sessionId: number;
+  apiKey: string;
+  loggerProvider: Logger;
 }
 
 export interface Targeting {
-  evaluateTargeting: (args: TargetingParameters) => Record<string, EvaluationVariant>;
+  evaluateTargeting: (args: TargetingParameters) => Promise<Record<string, EvaluationVariant>>;
 }
