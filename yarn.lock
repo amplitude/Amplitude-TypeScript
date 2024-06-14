@@ -3624,9 +3624,10 @@
     npmlog "^6.0.2"
     write-file-atomic "^4.0.1"
 
-"@medv/finder@file:../finder/medv-finder-3.2.0.tgz":
+"@medv/finder@^3.2.0":
   version "3.2.0"
-  resolved "file:../finder/medv-finder-3.2.0.tgz#4e4ca8808e3be8158855dea2a1dcaa324eca1558"
+  resolved "https://registry.yarnpkg.com/@medv/finder/-/finder-3.2.0.tgz#dffeb5b04d754ca4e575bbbee89b24935277908e"
+  integrity sha512-JmU7JIBwyL8RAzefvzALT4sP2M0biGk8i2invAgpQmma/QgfsaqoHIvJ7S0YC8n9hUVG8X3Leul2nGa06PvhbQ==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
