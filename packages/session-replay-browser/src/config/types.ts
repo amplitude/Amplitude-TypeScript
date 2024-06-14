@@ -33,7 +33,7 @@ export type PrivacyConfig = {
 
 export type InteractionConfig = {
   trackEveryNms?: number;
-  enabled?: boolean; // defaults to false
+  enabled: boolean; // defaults to false
 };
 
 export interface SessionReplayLocalConfig extends Config {

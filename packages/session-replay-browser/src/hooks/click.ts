@@ -3,6 +3,7 @@ import { record } from '@amplitude/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '@medv/finder';
+import { getGlobalScope } from '@amplitude/analytics-client-common';
 
 // exported for testing
 export type ClickEvent = {
@@ -23,15 +24,13 @@ type Options = {
   sessionId: number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
-  // eslint-disable-next-line no-restricted-globals
-  getGlobalScopeFn: () => typeof globalThis | undefined;
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
 
-export const clickBatcher: PayloadBatcher<ClickEventWithCount> = ({ version, events }) => {
+export const clickBatcher: PayloadBatcher = ({ version, events }) => {
   const clickEvents: ClickEvent[] = [];
-  events.forEach((evt) => {
+  events.forEach((evt: string) => {
     const record = JSON.parse(evt) as Record<string, unknown>;
     if (record.type === 'click') {
       clickEvents.push(record as ClickEvent);
@@ -57,13 +56,13 @@ export const clickBatcher: PayloadBatcher<ClickEventWithCount> = ({ version, eve
 };
 
 export const clickHook: (options: Options) => mouseInteractionCallBack =
-  ({ getGlobalScopeFn, eventsManager, sessionId, deviceIdFn }) =>
+  ({ eventsManager, sessionId, deviceIdFn }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {
       return;
     }
 
-    const globalScope = getGlobalScopeFn();
+    const globalScope = getGlobalScope();
     if (!globalScope) {
       return;
     }

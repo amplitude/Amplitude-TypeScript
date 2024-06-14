@@ -5,7 +5,7 @@ import { Logger } from '@amplitude/analytics-types';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import { createEventsManager } from '../src/events/events-manager';
-import { SessionReplayTrackDestination } from '../src/typings/session-replay';
+import { SessionReplayTrackDestination } from '../src/track-destination';
 
 jest.mock('idb-keyval');
 jest.mock('../src/track-destination');
@@ -33,10 +33,6 @@ describe('createEventsManager', () => {
     loggerProvider: mockLoggerProvider,
     sampleRate: 1,
   });
-  const mockTrackDestination: jest.Mocked<SessionReplayTrackDestination> = {
-    sendEventsList: jest.fn(),
-    flush: jest.fn(),
-  };
   const mockIDBStore = {
     storeCurrentSequence: jest.fn(),
     getSequencesToSend: jest.fn(),
@@ -69,11 +65,11 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
-      const mockSendEventsList = mockTrackDestination.sendEventsList;
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
       expect(mockSendEventsList).toHaveBeenCalledTimes(1);
       expect(mockSendEventsList).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -95,11 +91,11 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
-      const mockSendEventsList = mockTrackDestination.sendEventsList;
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
       expect(mockSendEventsList).not.toHaveBeenCalled();
     });
   });
@@ -112,7 +108,6 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       eventsManager.addEvent({ event: { type: 'rrweb', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -122,7 +117,8 @@ describe('createEventsManager', () => {
         })
         .finally(() => {
           expect(mockIDBStore.addEventToCurrentSequence).toHaveBeenCalledWith(123, mockEventString);
-          const mockSendEventsList = mockTrackDestination.sendEventsList;
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          const mockSendEventsList = trackDestinationInstance.sendEventsList;
           expect(mockSendEventsList).toHaveBeenCalledTimes(1);
           expect(mockSendEventsList).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -146,7 +142,6 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       eventsManager.addEvent({ event: { type: 'rrweb', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -156,7 +151,8 @@ describe('createEventsManager', () => {
         })
         .finally(() => {
           expect(mockIDBStore.addEventToCurrentSequence).toHaveBeenCalledWith(123, mockEventString);
-          const mockSendEventsList = mockTrackDestination.sendEventsList;
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          const mockSendEventsList = trackDestinationInstance.sendEventsList;
           expect(mockSendEventsList).not.toHaveBeenCalled();
         });
     });
@@ -166,7 +162,6 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       eventsManager.addEvent({ event: { type: 'rrweb', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
 
@@ -187,7 +182,6 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -197,7 +191,8 @@ describe('createEventsManager', () => {
         })
         .finally(() => {
           expect(mockIDBStore.storeCurrentSequence).toHaveBeenCalledWith(123);
-          const mockSendEventsList = mockTrackDestination.sendEventsList;
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          const mockSendEventsList = trackDestinationInstance.sendEventsList;
           expect(mockSendEventsList).toHaveBeenCalledTimes(1);
           expect(mockSendEventsList).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -220,7 +215,6 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
@@ -229,7 +223,8 @@ describe('createEventsManager', () => {
           // ignore
         })
         .finally(() => {
-          const mockOnComplete = mockTrackDestination.sendEventsList.mock.calls[0][0].onComplete;
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          const mockOnComplete = trackDestinationInstance.sendEventsList.mock.calls[0][0].onComplete;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           void mockOnComplete(123);
           expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
@@ -241,7 +236,6 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
@@ -260,9 +254,9 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'rrweb'>({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
-      const flushMock = mockTrackDestination.flush;
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const flushMock = trackDestinationInstance.flush;
 
       await eventsManager.flush(true);
       expect(flushMock).toHaveBeenCalled();
@@ -272,9 +266,9 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager({
         config,
         type: 'rrweb',
-        trackDestination: mockTrackDestination,
       });
-      const flushMock = mockTrackDestination.flush;
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const flushMock = trackDestinationInstance.flush;
 
       await eventsManager.flush();
       expect(flushMock).toHaveBeenCalled();

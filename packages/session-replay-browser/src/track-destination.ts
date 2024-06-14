@@ -21,20 +21,20 @@ import {
 } from './typings/session-replay';
 import { VERSION } from './version';
 
-export type PayloadBatcher<T> = ({ version, events }: { version: number; events: string[] }) => {
+export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
-  events: string[] | T[];
+  events: unknown[];
 };
 
-export class SessionReplayTrackDestination<T> implements AmplitudeSessionReplayTrackDestination {
+export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
   retryTimeout = 1000;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
-  payloadBatcher: PayloadBatcher<T>;
+  payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
 
-  constructor({ loggerProvider, payloadBatcher }: { loggerProvider: ILogger; payloadBatcher?: PayloadBatcher<T> }) {
+  constructor({ loggerProvider, payloadBatcher }: { loggerProvider: ILogger; payloadBatcher?: PayloadBatcher }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
   }

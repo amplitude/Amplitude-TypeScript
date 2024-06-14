@@ -1,4 +1,7 @@
-import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
+import {
+  SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  EventsManagerWithType,
+} from '../typings/session-replay';
 
 /**
  * "Registers" events managers internally. When an event is added this class routes the event to the correct
@@ -9,12 +12,7 @@ export class MultiEventManager<EventType, EventDataType>
 {
   private managers: Map<EventType, AmplitudeSessionReplayEventsManager<EventType, EventDataType>>;
 
-  constructor(
-    ...managers: {
-      name: EventType;
-      manager: AmplitudeSessionReplayEventsManager<EventType, EventDataType>;
-    }[]
-  ) {
+  constructor(...managers: EventsManagerWithType<EventType, EventDataType>[]) {
     const managersMap = new Map<EventType, AmplitudeSessionReplayEventsManager<EventType, EventDataType>>();
     managers.forEach((t) => {
       managersMap.set(t.name, t.manager);

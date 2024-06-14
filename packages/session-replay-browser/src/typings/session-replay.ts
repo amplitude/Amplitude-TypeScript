@@ -73,6 +73,11 @@ export interface SessionReplayTrackDestination {
   flush: (useRetry: boolean) => Promise<void>;
 }
 
+export type EventsManagerWithType<EventType, EventDataType> = {
+  name: EventType;
+  manager: SessionReplayEventsManager<EventType, EventDataType>;
+};
+
 export interface SessionReplayEventsManager<Type, Event> {
   /**
    * For each sequence stored in the long term indexed DB send immediately to the track destination.

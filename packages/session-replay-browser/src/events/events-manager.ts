@@ -1,11 +1,11 @@
 import {
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
-  SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
   EventType,
 } from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
 import { createEventsIDBStore } from './events-idb-store';
+import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
@@ -13,15 +13,17 @@ export const createEventsManager = async <Type extends EventType>({
   minInterval,
   maxInterval,
   type,
-  trackDestination,
+  payloadBatcher,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
   minInterval?: number;
   maxInterval?: number;
   sessionId?: number;
-  trackDestination: AmplitudeSessionReplayTrackDestination;
+  payloadBatcher?: PayloadBatcher;
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
+  const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider, payloadBatcher });
+
   const eventsIDBStore = await createEventsIDBStore({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
@@ -118,9 +120,7 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   async function flush(useRetry = false) {
-    if (trackDestination) {
-      return trackDestination.flush(useRetry);
-    }
+    return trackDestination.flush(useRetry);
   }
 
   return {

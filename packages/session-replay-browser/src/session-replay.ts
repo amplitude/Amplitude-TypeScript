@@ -19,12 +19,11 @@ import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   EventType,
+  EventsManagerWithType,
   SessionIdentifiers as ISessionIdentifiers,
-  SessionReplayEventsManager,
   SessionReplayOptions,
 } from './typings/session-replay';
 import { clickBatcher, clickHook } from './hooks/click';
-import { SessionReplayTrackDestination } from './track-destination';
 import { MultiEventManager } from './events/multi-manager';
 
 export class SessionReplay implements AmplitudeSessionReplay {
@@ -90,12 +89,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.removeInvalidSelectors();
 
-    const managers: { name: EventType; manager: SessionReplayEventsManager<string, string> }[] = [];
+    const managers: EventsManagerWithType<EventType, string>[] = [];
     const rrwebEventManager = await createEventsManager<'rrweb'>({
       config: this.config,
       sessionId: this.identifiers.sessionId,
       type: 'rrweb',
-      trackDestination: new SessionReplayTrackDestination({ loggerProvider: this.loggerProvider }),
     });
     managers.push({ name: 'rrweb', manager: rrwebEventManager });
 
@@ -106,10 +104,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         type: 'interaction',
         minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
         maxInterval: INTERACTION_MAX_INTERVAL,
-        trackDestination: new SessionReplayTrackDestination({
-          loggerProvider: this.loggerProvider,
-          payloadBatcher: clickBatcher,
-        }),
+        payloadBatcher: clickBatcher,
       });
       managers.push({ name: 'interaction', manager: interactionEventManager });
     }
@@ -318,7 +313,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
         mouseInteraction:
           this.eventsManager &&
           clickHook({
-            getGlobalScopeFn: getGlobalScope,
             eventsManager: this.eventsManager,
             sessionId,
             deviceIdFn: this.getDeviceId.bind(this),

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplayEventsManager } from '../../src/typings/session-replay';
 import { UUID } from '@amplitude/analytics-core';
@@ -16,7 +17,12 @@ describe('click', () => {
       flush: jest.fn(),
     };
 
+    const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
+    };
+
     afterEach(() => {
+      jest.restoreAllMocks();
       jest.resetAllMocks();
     });
 
@@ -25,7 +31,6 @@ describe('click', () => {
 
     const hook = clickHook({
       deviceIdFn: () => deviceId,
-      getGlobalScopeFn: () => window,
       eventsManager: mockEventsManager,
       sessionId: sessionId,
     });
@@ -40,9 +45,9 @@ describe('click', () => {
       expect(jest.spyOn(mockEventsManager, 'addEvent')).not.toHaveBeenCalled();
     });
     test('do nothing if no window given', () => {
+      mockGlobalScope(undefined);
       const hook = clickHook({
         deviceIdFn: () => deviceId,
-        getGlobalScopeFn: () => undefined,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
       });
@@ -55,12 +60,11 @@ describe('click', () => {
       expect(jest.spyOn(mockEventsManager, 'addEvent')).not.toHaveBeenCalled();
     });
     test('do nothing if no location', () => {
-      const mockWindow = jest.fn().mockImplementation(() => ({
+      mockGlobalScope({
         location: undefined,
-      })) as unknown as typeof globalThis;
+      });
       const hook = clickHook({
         deviceIdFn: () => deviceId,
-        getGlobalScopeFn: () => mockWindow,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
       });
@@ -79,6 +83,7 @@ describe('click', () => {
         x: 3,
         y: 3,
       });
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
       expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
         x: 3,
         y: 3,
@@ -88,7 +93,6 @@ describe('click', () => {
         timestamp: expect.any(Number),
         type: 'click',
       });
-      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
     });
     test('add event on click event with selector', () => {
       (record.mirror.getNode as jest.Mock).mockImplementation(() => {
@@ -102,6 +106,7 @@ describe('click', () => {
         x: 3,
         y: 3,
       });
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
       expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
         x: 3,
         y: 3,
@@ -112,7 +117,6 @@ describe('click', () => {
         type: 'click',
         selector: 'div',
       });
-      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
     });
   });
 
