@@ -25,6 +25,8 @@ export {
   ReactNativeTrackingOptions,
   TrackingOptions,
   RequestMetadata,
+  HistogramOptions,
+  HistogramKey,
 } from './config';
 export { CoreClient } from './client/core-client';
 export { DestinationContext } from './destination-context';

@@ -8,6 +8,7 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
 import { uuidPattern } from '../helpers/util';
+import { RequestMetadata } from '../../src';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -379,15 +380,8 @@ describe('destination', () => {
         event,
         timeout: 0,
       };
-      const request_metadata = {
-        sdk: {
-          metrics: {
-            histogram: {
-              remote_config_fetch_time: 0,
-            },
-          },
-        },
-      };
+      const request_metadata = new RequestMetadata();
+      request_metadata.recordHistogram('remote_config_fetch_time', 100);
 
       const transportProvider = {
         send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
@@ -407,10 +401,11 @@ describe('destination', () => {
         ...useDefaultConfig(),
         transportProvider,
         apiKey: API_KEY,
-        request_metadata: request_metadata,
+        requestMetadata: request_metadata,
       });
       await destination.send([context]);
-      expect(destination.config.request_metadata).toBeUndefined();
+      // request metadata should be reset after sending
+      expect(destination.config.requestMetadata).toEqual(new RequestMetadata());
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,
