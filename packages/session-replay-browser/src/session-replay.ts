@@ -99,12 +99,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
     managers.push({ name: 'rrweb', manager: rrwebEventManager });
 
-    if (this.config.interactionConfig?.enabled ?? true) {
+    if (this.config.interactionConfig?.enabled) {
       const interactionEventManager = await createEventsManager<'interaction'>({
         config: this.config,
         sessionId: this.identifiers.sessionId,
         type: 'interaction',
-        minInterval: this.config.interactionConfig?.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
+        minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
         maxInterval: INTERACTION_MAX_INTERVAL,
         trackDestination: new SessionReplayTrackDestination({
           loggerProvider: this.loggerProvider,

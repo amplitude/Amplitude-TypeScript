@@ -170,6 +170,15 @@ describe('SessionReplay', () => {
       ],
       [
         {
+          enabled: true,
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.interactionConfig?.enabled).toBe(true);
+          expect(config.interactionConfig?.trackEveryNms).toBeUndefined();
+        },
+      ],
+      [
+        {
           enabled: false,
           trackEveryNms: 1_000,
         },
