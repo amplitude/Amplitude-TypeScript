@@ -147,7 +147,7 @@ describe('module level integration', () => {
 
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=rrweb`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
           expect.anything(),
         );
         expect(mockLoggerProvider.log).toHaveBeenCalledWith(getSuccessMessage(SESSION_ID_IN_20_SAMPLE));
@@ -182,7 +182,7 @@ describe('module level integration', () => {
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=rrweb`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -233,7 +233,7 @@ describe('module level integration', () => {
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=rrweb`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method

@@ -141,14 +141,14 @@ describe('module level integration', () => {
       }
       sessionReplay.eventsManager.addEvent({
         sessionId: 123,
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
       sessionReplay.stopRecordingAndSendEvents();
-      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+      await(createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=rrweb`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
         expect.anything(),
       );
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith('API Failure');
@@ -177,14 +177,14 @@ describe('module level integration', () => {
       }
       sessionReplay.eventsManager.addEvent({
         sessionId: 123,
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
       sessionReplay.stopRecordingAndSendEvents();
-      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+      await(createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=rrweb`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -213,14 +213,14 @@ describe('module level integration', () => {
       }
       sessionReplay.eventsManager.addEvent({
         sessionId: 123,
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
       sessionReplay.stopRecordingAndSendEvents();
-      await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+      await(createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=rrweb`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -250,7 +250,7 @@ describe('module level integration', () => {
       }
       sessionReplay.eventsManager.addEvent({
         sessionId: 123,
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
       sessionReplay.stopRecordingAndSendEvents();
@@ -283,7 +283,7 @@ describe('module level integration', () => {
       }
       sessionReplay.eventsManager.addEvent({
         sessionId: 123,
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
       sessionReplay.stopRecordingAndSendEvents();
@@ -315,7 +315,7 @@ describe('module level integration', () => {
       }
       sessionReplay.eventsManager.addEvent({
         sessionId: 123,
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
       sessionReplay.stopRecordingAndSendEvents();
@@ -338,14 +338,14 @@ describe('module level integration', () => {
       }
       sessionReplay.eventsManager.addEvent({
         sessionId: 123,
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
       sessionReplay.stopRecordingAndSendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=rrweb`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method

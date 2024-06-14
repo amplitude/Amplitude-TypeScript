@@ -62,9 +62,9 @@ describe('createEventsManager', () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
         { events: [mockEventString], sequenceId: 1, sessionId: 123 },
       ]);
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -88,9 +88,9 @@ describe('createEventsManager', () => {
 
     test('should not send if no events', async () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue(undefined);
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -105,11 +105,11 @@ describe('createEventsManager', () => {
       const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
 
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
-      eventsManager.addEvent({ event: { type: 'rrweb', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
       return mockAddEventPromise
         .catch(() => {
@@ -139,11 +139,11 @@ describe('createEventsManager', () => {
       const mockAddEventPromise = Promise.resolve();
 
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
-      eventsManager.addEvent({ event: { type: 'rrweb', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
       return mockAddEventPromise
         .catch(() => {
@@ -159,11 +159,11 @@ describe('createEventsManager', () => {
     test('should catch errors', async () => {
       const mockAddEventPromise = Promise.reject('error');
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockImplementation(() => Promise.reject('error'));
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
-      eventsManager.addEvent({ event: { type: 'rrweb', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
 
       return mockAddEventPromise
         .catch(() => {
@@ -179,9 +179,9 @@ describe('createEventsManager', () => {
     test('should store events in IDB and send any returned', async () => {
       const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -212,9 +212,9 @@ describe('createEventsManager', () => {
     test('should update IDB store upon success', async () => {
       const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
@@ -233,9 +233,9 @@ describe('createEventsManager', () => {
     test('should catch errors', async () => {
       const mockStoreEventPromise = Promise.reject('error');
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockImplementation(() => Promise.reject('error'));
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
@@ -251,9 +251,9 @@ describe('createEventsManager', () => {
 
   describe('flush', () => {
     test('should call track destination flush with useRetry as true', async () => {
-      const eventsManager = await createEventsManager<'rrweb'>({
+      const eventsManager = await createEventsManager<'replay'>({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const flushMock = trackDestinationInstance.flush;
@@ -265,7 +265,7 @@ describe('createEventsManager', () => {
     test('should call track destination flush without useRetry', async () => {
       const eventsManager = await createEventsManager({
         config,
-        type: 'rrweb',
+        type: 'replay',
       });
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const flushMock = trackDestinationInstance.flush;

@@ -31,7 +31,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
-  eventsManager?: AmplitudeSessionReplayEventsManager<'rrweb' | 'interaction', string>;
+  eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -90,12 +90,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.removeInvalidSelectors();
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
-    const rrwebEventManager = await createEventsManager<'rrweb'>({
+    const rrwebEventManager = await createEventsManager<'replay'>({
       config: this.config,
       sessionId: this.identifiers.sessionId,
-      type: 'rrweb',
+      type: 'replay',
     });
-    managers.push({ name: 'rrweb', manager: rrwebEventManager });
+    managers.push({ name: 'replay', manager: rrwebEventManager });
 
     if (this.config.interactionConfig?.enabled) {
       const interactionEventManager = await createEventsManager<'interaction'>({
@@ -109,7 +109,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       managers.push({ name: 'interaction', manager: interactionEventManager });
     }
 
-    this.eventsManager = new MultiEventManager<'rrweb' | 'interaction', string>(...managers);
+    this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -305,7 +305,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         const deviceId = this.getDeviceId();
         this.eventsManager &&
           deviceId &&
-          this.eventsManager.addEvent({ event: { type: 'rrweb', data: eventString }, sessionId, deviceId });
+          this.eventsManager.addEvent({ event: { type: 'replay', data: eventString }, sessionId, deviceId });
       },
       packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,

@@ -65,7 +65,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
         flushMaxRetries: 1,
       };
@@ -88,7 +88,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       trackDestination.addToQueue(context);
@@ -112,7 +112,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
         flushMaxRetries: 1,
       };
@@ -141,7 +141,7 @@ describe('SessionReplayTrackDestination', () => {
           deviceId: '1a2b3c',
           sampleRate: 1,
           serverZone: ServerZone.US,
-          type: 'rrweb',
+          type: 'replay',
           onComplete: mockOnComplete,
         },
       ];
@@ -183,7 +183,7 @@ describe('SessionReplayTrackDestination', () => {
           deviceId: '1a2b3c',
           sampleRate: 1,
           serverZone: ServerZone.US,
-          type: 'rrweb',
+          type: 'replay',
           onComplete: mockOnComplete,
         },
       ];
@@ -207,7 +207,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       trackDestination.queue = [context];
@@ -251,7 +251,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         apiKey,
         onComplete: mockOnComplete,
       };
@@ -271,7 +271,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       await trackDestination.send(context);
@@ -292,7 +292,7 @@ describe('SessionReplayTrackDestination', () => {
         flushMaxRetries: 1,
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       await trackDestination.send(context);
@@ -313,14 +313,14 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
 
       await trackDestination.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
-        'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=rrweb',
+        'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=replay',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
           headers: {
@@ -349,14 +349,14 @@ describe('SessionReplayTrackDestination', () => {
         flushMaxRetries: 1,
         deviceId: '1a2b3c',
         sampleRate: 1,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
 
       await trackDestination.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
-        'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=rrweb',
+        'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=replay',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
           headers: {
@@ -385,7 +385,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       (global.fetch as jest.Mock)
@@ -423,7 +423,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
-        type: 'rrweb',
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       (global.fetch as jest.Mock).mockImplementationOnce(() =>

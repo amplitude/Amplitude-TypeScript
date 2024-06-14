@@ -716,7 +716,7 @@ describe('SessionReplay', () => {
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(addEventSpy).toHaveBeenCalledTimes(1);
       expect(addEventSpy).toHaveBeenCalledWith({
-        event: { type: 'rrweb', data: mockEventString },
+        event: { type: 'replay', data: mockEventString },
         sessionId: mockOptions.sessionId,
         deviceId: mockOptions.deviceId,
       });

@@ -50,7 +50,7 @@ describe('SessionReplayEventsIDBStore', () => {
     test('should create a store with a custom key', async () => {
       jest.spyOn(EventsIDBStore, 'createStore');
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       expect(EventsIDBStore.createStore).toHaveBeenCalledWith('static_key_amp_session_replay_events');
     });
   });
@@ -58,7 +58,7 @@ describe('SessionReplayEventsIDBStore', () => {
   describe('getSequencesToSend', () => {
     test('should fetch all sequences that have not yet been sent to the backend', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       await eventsStorage.db?.put('sequencesToSend', {
         sessionId: 123,
         events: [mockEventString],
@@ -101,7 +101,7 @@ describe('SessionReplayEventsIDBStore', () => {
     test('should catch errors', async () => {
       mockStoreForError();
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       const unsentSequences = await eventsStorage.getSequencesToSend();
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe('SessionReplayEventsIDBStore', () => {
   describe('storeCurrentSequence', () => {
     test('should get the current sequence, store it in sequences to send, and return current sequence with an id', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       // Put data in for two different sessions to represent a more realistic scenario
       await eventsStorage.db?.put('sessionCurrentSequence', {
         sessionId: 123,
@@ -133,7 +133,7 @@ describe('SessionReplayEventsIDBStore', () => {
     });
     test('should return undefined if there is no current sequence data', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       const sequenceData = await eventsStorage.storeCurrentSequence(123);
 
@@ -142,7 +142,7 @@ describe('SessionReplayEventsIDBStore', () => {
     test('should catch errors', async () => {
       mockStoreForError();
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       const sequenceData = await eventsStorage.storeCurrentSequence(123);
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -160,7 +160,7 @@ describe('SessionReplayEventsIDBStore', () => {
   describe('addEventToCurrentSequence', () => {
     test('should create a new list if there are no existing sequence events', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       const eventsToSend = await eventsStorage.addEventToCurrentSequence(123, mockEventString);
       expect(eventsToSend).toBeUndefined();
@@ -169,7 +169,7 @@ describe('SessionReplayEventsIDBStore', () => {
     });
     test('should add event to list if there is an existing list', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       await eventsStorage.db?.put('sessionCurrentSequence', { sessionId: 123, events: [mockEventString] });
       await eventsStorage.db?.put('sessionCurrentSequence', { sessionId: 456, events: [mockEventString] });
@@ -187,7 +187,7 @@ describe('SessionReplayEventsIDBStore', () => {
 
     test('should split the events list at an increasing interval and send', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       eventsStorage.timeAtLastSplit = new Date('2023-07-31 08:30:00').getTime();
       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:31:00').getTime());
 
@@ -201,7 +201,7 @@ describe('SessionReplayEventsIDBStore', () => {
 
     test('should split the events list at max size and send', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       eventsStorage.maxPersistedEventsSize = 20;
       // Simulate as if many events have already been built up
       const events = ['#'.repeat(20)];
@@ -215,7 +215,7 @@ describe('SessionReplayEventsIDBStore', () => {
 
     test('should return undefined if storeSendingEvents fails', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       eventsStorage.storeSendingEvents = jest.fn().mockResolvedValue(undefined);
       // Fake as if there are events to send
       eventsStorage.timeAtLastSplit = new Date('2023-07-31 08:30:00').getTime();
@@ -229,7 +229,7 @@ describe('SessionReplayEventsIDBStore', () => {
     test('should catch errors', async () => {
       mockStoreForError();
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       const eventsToSend = await eventsStorage.addEventToCurrentSequence(123, mockEventString2);
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -247,7 +247,7 @@ describe('SessionReplayEventsIDBStore', () => {
   describe('storeSendingEvents', () => {
     test('should store events and return a sequence id', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       const sequenceId = await eventsStorage.storeSendingEvents(123, [mockEventString]);
 
@@ -258,7 +258,7 @@ describe('SessionReplayEventsIDBStore', () => {
     test('should catch errors', async () => {
       mockStoreForError();
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       const sequenceId = await eventsStorage.storeSendingEvents(123, [mockEventString]);
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -279,7 +279,7 @@ describe('SessionReplayEventsIDBStore', () => {
       const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
       const nextSessionId = new Date('2023-07-31 08:30:00').getTime();
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       await eventsStorage.db?.put('sequencesToSend', {
         sessionId: currentSessionId,
         events: [mockEventString],
@@ -297,7 +297,7 @@ describe('SessionReplayEventsIDBStore', () => {
     test('should catch errors', async () => {
       mockStoreForError();
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       await eventsStorage.cleanUpSessionEventsStore(1);
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -359,7 +359,7 @@ describe('SessionReplayEventsIDBStore', () => {
     }
     test('should return early if no keyval database exists', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       jest.spyOn(EventsIDBStore, 'keyValDatabaseExists').mockResolvedValueOnce(undefined);
       jest.spyOn(global.indexedDB, 'deleteDatabase');
@@ -377,7 +377,7 @@ describe('SessionReplayEventsIDBStore', () => {
         },
       } as unknown as typeof globalThis;
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
 
       await eventsStorage.transitionFromKeyValStore();
@@ -415,7 +415,7 @@ describe('SessionReplayEventsIDBStore', () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const db = await createKeyValDB();
       await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
-      await eventsStorage.initialize('rrweb', 123);
+      await eventsStorage.initialize('replay', 123);
       const sessionCurrentSequence = await eventsStorage.db?.get('sessionCurrentSequence', 123);
       expect(sessionCurrentSequence).toEqual({ events: [mockEventString, mockEventString2], sessionId: 123 });
     });
@@ -424,7 +424,7 @@ describe('SessionReplayEventsIDBStore', () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
       const db = await createKeyValDB();
       await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
-      await eventsStorage.initialize('rrweb', 123);
+      await eventsStorage.initialize('replay', 123);
       const sequencesToSend = await eventsStorage.getSequencesToSend();
       expect(sequencesToSend).toEqual([
         {
@@ -465,7 +465,7 @@ describe('SessionReplayEventsIDBStore', () => {
         },
         'AMP_unsent_other_api_key',
       );
-      await eventsStorage.initialize('rrweb', 123);
+      await eventsStorage.initialize('replay', 123);
       const sequencesToSend = await eventsStorage.getSequencesToSend();
       expect(sequencesToSend).toEqual([
         {
@@ -494,14 +494,14 @@ describe('SessionReplayEventsIDBStore', () => {
         }),
       } as unknown as IDBDatabase);
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
 
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
 
     test('should delete keyval database', async () => {
       const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
-      await eventsStorage.initialize('rrweb');
+      await eventsStorage.initialize('replay');
       await createKeyValDB();
       jest.spyOn(global.indexedDB, 'deleteDatabase');
       await eventsStorage.transitionFromKeyValStore();
@@ -514,7 +514,7 @@ describe('SessionReplayEventsIDBStore', () => {
       const eventsIDBStore = await EventsIDBStore.createEventsIDBStore({
         apiKey,
         loggerProvider: mockLoggerProvider,
-        type: 'rrweb',
+        type: 'replay',
       });
       expect(eventsIDBStore.db).toBeDefined();
     });
