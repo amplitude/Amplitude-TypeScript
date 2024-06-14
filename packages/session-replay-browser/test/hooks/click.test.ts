@@ -2,34 +2,34 @@
 import { MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplayEventsManager } from '../../src/typings/session-replay';
 import { UUID } from '@amplitude/analytics-core';
-import { clickHook } from '../../src/hooks/click';
+import { ClickEvent, ClickEventWithCount, clickBatcher, clickHook } from '../../src/hooks/click';
 import { record } from '@amplitude/rrweb';
 
 jest.mock('@amplitude/rrweb');
 
 describe('click', () => {
-  const mockEventsManager: jest.Mocked<SessionReplayEventsManager<'interaction', string>> = {
-    sendStoredEvents: jest.fn(),
-    addEvent: jest.fn(),
-    sendCurrentSequenceEvents: jest.fn(),
-    flush: jest.fn(),
-  };
-
-  const deviceId = UUID();
-  const sessionId = Math.round(Math.random() * 1_000_000);
-
-  const hook = clickHook({
-    deviceIdFn: () => deviceId,
-    getGlobalScopeFn: () => window,
-    eventsManager: mockEventsManager,
-    sessionId: sessionId,
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
-  });
-
   describe('clickHook', () => {
+    const mockEventsManager: jest.Mocked<SessionReplayEventsManager<'interaction', string>> = {
+      sendStoredEvents: jest.fn(),
+      addEvent: jest.fn(),
+      sendCurrentSequenceEvents: jest.fn(),
+      flush: jest.fn(),
+    };
+
+    afterEach(() => {
+      jest.resetAllMocks();
+    });
+
+    const deviceId = UUID();
+    const sessionId = Math.round(Math.random() * 1_000_000);
+
+    const hook = clickHook({
+      deviceIdFn: () => deviceId,
+      getGlobalScopeFn: () => window,
+      eventsManager: mockEventsManager,
+      sessionId: sessionId,
+    });
+
     test('do nothing on non click event', () => {
       hook({
         id: 1234,
@@ -117,8 +117,127 @@ describe('click', () => {
   });
 
   describe('clickBatcher', () => {
-    test('it should do the thing', () => {
-      expect(true).toBe(true);
+    const clickEventFixture = (event: Partial<ClickEvent>): ClickEvent => {
+      return {
+        pageUrl: 'http://localhost/',
+        timestamp: Date.now(),
+        type: 'click',
+        viewportHeight: 963,
+        viewportWidth: 1920,
+        x: 3,
+        y: 3,
+        ...event,
+      };
+    };
+
+    test('batches events', () => {
+      const clickEvents: ClickEvent[] = [
+        clickEventFixture({
+          x: 3,
+          y: 3,
+          timestamp: 1718327016000,
+        }),
+        clickEventFixture({
+          x: 3,
+          y: 3,
+          timestamp: 1718327012000,
+        }),
+        clickEventFixture({
+          x: 4,
+          y: 3,
+          timestamp: 1718267012000,
+        }),
+      ];
+      const { version, events } = clickBatcher({
+        version: 1,
+        events: clickEvents.map((clickEvent) => JSON.stringify(clickEvent)),
+      });
+      expect(version).toBe(1);
+      const expectedEvents: ClickEventWithCount[] = [
+        {
+          ...clickEventFixture({
+            timestamp: 1718326800000,
+            x: 3,
+            y: 3,
+          }),
+          count: 2,
+        },
+        {
+          ...clickEventFixture({
+            timestamp: 1718265600000,
+            x: 4,
+            y: 3,
+          }),
+          count: 1,
+        },
+      ];
+      expect(events).toStrictEqual(expectedEvents);
+    });
+    test('batches events with selectors', () => {
+      const clickEvents: ClickEvent[] = [
+        clickEventFixture({
+          x: 3,
+          y: 3,
+          selector: '.foo',
+          timestamp: 1718227016000,
+        }),
+        clickEventFixture({
+          x: 3,
+          y: 3,
+          timestamp: 1718217012000,
+        }),
+        clickEventFixture({
+          x: 4,
+          y: 3,
+          selector: '.bar',
+          timestamp: 1717327012000,
+        }),
+        clickEventFixture({
+          x: 4,
+          y: 3,
+          selector: '.bar',
+          timestamp: 1717327012000,
+        }),
+      ];
+      const { version, events } = clickBatcher({
+        version: 1,
+        events: clickEvents.map((clickEvent) => JSON.stringify(clickEvent)),
+      });
+      expect(version).toBe(1);
+      const expectedEvents: ClickEventWithCount[] = [
+        {
+          count: 1,
+          ...clickEventFixture({
+            timestamp: 1718226000000,
+            x: 3,
+            y: 3,
+            selector: '.foo',
+          }),
+        },
+        {
+          count: 1,
+          ...clickEventFixture({
+            timestamp: 1718215200000,
+            x: 3,
+            y: 3,
+          }),
+        },
+        {
+          count: 2,
+          ...clickEventFixture({
+            timestamp: 1717326000000,
+            x: 4,
+            y: 3,
+            selector: '.bar',
+          }),
+        },
+      ];
+      expect(events).toStrictEqual(expectedEvents);
+    });
+    test('no events in, no events out', () => {
+      const { version, events } = clickBatcher({ version: 1, events: [] });
+      expect(version).toBe(1);
+      expect(events).toStrictEqual([]);
     });
   });
 });

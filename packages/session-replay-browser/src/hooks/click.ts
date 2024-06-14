@@ -4,7 +4,8 @@ import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } fro
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '@medv/finder';
 
-type ClickEvent = {
+// exported for testing
+export type ClickEvent = {
   timestamp: number;
   x: number;
   y: number;
@@ -15,7 +16,8 @@ type ClickEvent = {
   type: 'click';
 };
 
-type ClickEventWithCount = ClickEvent & { count: number };
+// exported for testing
+export type ClickEventWithCount = ClickEvent & { count: number };
 
 type Options = {
   sessionId: number;
