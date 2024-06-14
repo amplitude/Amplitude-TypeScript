@@ -2,7 +2,6 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
-import { TargetingParameters, evaluateTargeting } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
@@ -14,7 +13,7 @@ import {
 import { createEventsManager } from './events/events-manager';
 import { generateHashCode, isSessionInSample, maskFn } from './helpers';
 import { SessionIdentifiers } from './identifiers';
-import * as TargetingIDBStore from './targeting-idb-store';
+import { evaluateTargetingAndStore } from './targeting/targeting-manager';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
@@ -127,7 +126,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.joinedConfigGenerator && previousSessionId) {
       this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
     }
-    this.recordEvents();
+    await this.evaluateTargetingAndRecord();
   }
 
   getSessionReplayDebugPropertyValue() {
@@ -172,47 +171,25 @@ export class SessionReplay implements AmplitudeSessionReplay {
     void this.initialize();
   };
 
-  evaluateTargeting = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
+  evaluateTargetingAndRecord = async () => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
       return;
     }
 
-    const idbTargetingMatch = await TargetingIDBStore.getTargetingMatchForSession({
-      loggerProvider: this.config.loggerProvider,
-      apiKey: this.config.apiKey,
-      sessionId: this.identifiers.sessionId,
-    });
-    if (idbTargetingMatch === true) {
-      this.sessionTargetingMatch = true;
-      return;
+    let userProperties;
+    if (this.config.instanceName) {
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      userProperties = identityStore.getIdentity().userProperties;
     }
+    const sessionTargetingMatch = await evaluateTargetingAndStore({
+      sessionId: this.identifiers.sessionId,
+      config: this.config,
+      targetingParams: { userProperties },
+    });
 
-    // Finally evaluate targeting if previous two checks were false or undefined
-    try {
-      if (this.config.targetingConfig) {
-        const targetingResult = evaluateTargeting({
-          ...targetingParams,
-          flag: this.config.targetingConfig,
-          sessionId: this.identifiers.sessionId,
-        });
-        this.sessionTargetingMatch =
-          this.sessionTargetingMatch === false && targetingResult.sr_targeting_config.key === 'on';
-      } else {
-        // If the targeting config is undefined or an empty object,
-        // assume the response was valid but no conditions were set,
-        // so all users match targeting
-        this.sessionTargetingMatch = true;
-      }
-      void TargetingIDBStore.storeTargetingMatchForSession({
-        loggerProvider: this.config.loggerProvider,
-        apiKey: this.config.apiKey,
-        sessionId: this.identifiers.sessionId,
-        targetingMatch: this.sessionTargetingMatch,
-      });
-    } catch (err: unknown) {
-      const knownError = err as Error;
-      this.config.loggerProvider.warn(knownError.message);
+    if (sessionTargetingMatch) {
+      this.recordEvents();
     }
   };
 
@@ -245,14 +222,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         deviceId,
       });
 
-    let userProperties;
-    if (this.config?.instanceName) {
-      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
-      userProperties = identityStore.getIdentity().userProperties;
-    }
-    await this.evaluateTargeting({ userProperties });
-
-    this.recordEvents();
+    await this.evaluateTargetingAndRecord();
   }
 
   shouldOptOut() {
