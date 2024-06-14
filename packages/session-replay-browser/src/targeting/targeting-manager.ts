@@ -11,6 +11,12 @@ export const evaluateTargetingAndStore = async ({
   config: SessionReplayJoinedConfig;
   targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
 }) => {
+  await TargetingIDBStore.clearStoreOfOldSessions({
+    loggerProvider: config.loggerProvider,
+    apiKey: config.apiKey,
+    currentSessionId: sessionId,
+  });
+
   const idbTargetingMatch = await TargetingIDBStore.getTargetingMatchForSession({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
@@ -26,10 +32,12 @@ export const evaluateTargetingAndStore = async ({
   let sessionTargetingMatch = true;
   try {
     if (config.targetingConfig && Object.keys(config.targetingConfig).length) {
-      const targetingResult = evaluateTargetingPackage({
+      const targetingResult = await evaluateTargetingPackage({
         ...targetingParams,
         flag: config.targetingConfig,
         sessionId: sessionId,
+        apiKey: config.apiKey,
+        loggerProvider: config.loggerProvider,
       });
       sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
     }
