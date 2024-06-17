@@ -39,12 +39,12 @@ export class CookieStorage<T> implements Storage<T> {
       try {
         value = decodeURIComponent(atob(value));
       } catch {
-        // value not encoded
+        console.error(`Amplitude Logger [Error]: Failed to decode cookie value for key: ${key}, value: ${value}`);
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return JSON.parse(value);
     } catch {
-      /* istanbul ignore next */
+      console.error(`Amplitude Logger [Error]: Failed to parse cookie value for key: ${key}, value: ${value}`);
       return undefined;
     }
   }
@@ -87,8 +87,9 @@ export class CookieStorage<T> implements Storage<T> {
       if (globalScope) {
         globalScope.document.cookie = str;
       }
-    } catch {
-      //
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Amplitude Logger [Error]: Failed to set cookie for key: ${key}. Error: ${errorMessage}`);
     }
   }
 
