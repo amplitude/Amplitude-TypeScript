@@ -447,6 +447,7 @@ describe('SessionReplay', () => {
         },
       } as typeof globalThis);
       await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const result = sessionReplay.getSessionReplayProperties();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(result).toEqual({
@@ -680,6 +681,7 @@ describe('SessionReplay', () => {
       // Mock as if remote config call fails
       getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
       await sessionReplay.init(apiKey, mockEmptyOptions).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
       const shouldRecord = sessionReplay.getShouldRecord();
@@ -692,6 +694,7 @@ describe('SessionReplay', () => {
       });
 
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
@@ -701,6 +704,7 @@ describe('SessionReplay', () => {
       jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => false);
 
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(0.2);
       const shouldRecord = sessionReplay.getShouldRecord();
@@ -708,23 +712,33 @@ describe('SessionReplay', () => {
     });
     test('should set record as true if session is included in sample rate', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => true);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
     });
+    test('should set record as false if sessionTargetingMatch is false', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      sessionReplay.sessionTargetingMatch = false;
+      const shouldRecord = sessionReplay.getShouldRecord();
+      expect(shouldRecord).toBe(false);
+    });
     test('should set record as false if opt out in config', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
     test('should set record as false if no session id', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
     test('opt out in config should override the sample rate', async () => {
       jest.spyOn(Math, 'random').mockImplementationOnce(() => 0.7);
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8, optOut: true }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
@@ -960,6 +974,24 @@ describe('SessionReplay', () => {
       return evaluateTargetingAndStorePromise.then(() => {
         expect(record).toHaveBeenCalled();
       });
+    });
+
+    test('should pass event to evaluateTargetingAndStore', async () => {
+      await sessionReplay.evaluateTargetingAndRecord({ event: { event_type: 'Purchase' } });
+      expect(TargetingManager.evaluateTargetingAndStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: { event: { event_type: 'Purchase' }, userProperties: {} },
+        }),
+      );
+    });
+
+    test('should not pass event to evaluateTargetingAndStore if it is one of the SpecialEvents', async () => {
+      await sessionReplay.evaluateTargetingAndRecord({ event: { event_type: '$identify' } });
+      expect(TargetingManager.evaluateTargetingAndStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: { event: undefined, userProperties: {} },
+        }),
+      );
     });
   });
 
