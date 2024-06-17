@@ -5,7 +5,7 @@ import {
   AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL,
   AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
 } from '../constants';
-import { asyncLoadScript, getEventTagProps } from '../helpers';
+import { asyncLoadScript, generateUniqueId, getEventTagProps } from '../helpers';
 import { Logger } from '@amplitude/analytics-types';
 import { ActionType } from '../typings/autocapture';
 
@@ -64,17 +64,76 @@ export interface Message<A extends Action> {
   data?: ActionData[A];
 }
 
+type MessageRequest = {
+  id: string;
+  action: string;
+  args: Record<string, any>;
+};
+
+type MessageResponse = {
+  id: string;
+  action: string;
+  responseData: any;
+};
+
+// TODO: use MessageChannel instead of window.postMessage
 export class WindowMessenger implements Messenger {
   endpoint = AMPLITUDE_ORIGIN;
   logger?: Logger;
+  requestCallbacks: {
+    [id: string]: {
+      resolve: (data: any) => void;
+      reject: (data: any) => void;
+    };
+  } = {};
 
   constructor({ origin = AMPLITUDE_ORIGIN }: { origin?: string } = {}) {
     this.endpoint = origin;
   }
 
-  private notify(message: Message<Action>) {
+  private notify(message: Message<Action> | MessageRequest) {
     this.logger?.debug?.('Message sent: ', JSON.stringify(message));
     (window.opener as WindowProxy)?.postMessage?.(message, this.endpoint);
+  }
+
+  // Send an async request to the parent window
+  public sendRequest(action, args, options = { timeout: 15_000 }): Promise<any> {
+    // Create Request ID
+    const id = generateUniqueId();
+    const request = {
+      id,
+      action,
+      args,
+    };
+
+    // Create a Promise that will be resolved when the response is received
+    const promise = new Promise((resolve, reject) => {
+      this.requestCallbacks[id] = { resolve, reject };
+
+      // Send the request
+      this.notify(request);
+
+      // Handle request timeouts
+      if (options?.timeout > 0) {
+        setTimeout(() => {
+          reject(new Error(`${action} timed out (id: ${id})`));
+          delete this.requestCallbacks[id];
+        }, options.timeout);
+      }
+    });
+
+    return promise;
+  }
+
+  // Handle messages from the parent window
+  private handleResponse(response: MessageResponse) {
+    if (!this.requestCallbacks[response.id]) {
+      this.logger?.warn(`No callback found for request id: ${response.id}`);
+      return;
+    }
+
+    this.requestCallbacks[response.id].resolve(response.responseData);
+    delete this.requestCallbacks[response.id];
   }
 
   setup({
@@ -92,16 +151,24 @@ export class WindowMessenger implements Messenger {
       this.endpoint = endpoint;
     }
     let amplitudeVisualTaggingSelectorInstance: any = null;
+
+    // Attach Event Listener to listen for messages from the parent window
     window.addEventListener('message', (event) => {
       this.logger?.debug?.('Message received: ', JSON.stringify(event));
+
+      // Only accept messages from the specified origin
       if (this.endpoint !== event.origin) {
         return;
       }
-      const eventData = event?.data as Message<Action>;
+
+      const eventData = event?.data as Message<Action> | MessageRequest;
       const action = eventData?.action;
+
+      // Ignore messages without action
       if (!action) {
         return;
       }
+
       if (action === 'ping') {
         this.notify({ action: 'pong' });
       } else if (action === 'initialize-visual-tagging-selector') {
@@ -117,9 +184,9 @@ export class WindowMessenger implements Messenger {
                 }
                 return true;
               },
-              onSelect: this.onSelect,
               onTrack: this.onTrack,
               visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+              messenger: this,
             });
             this.notify({ action: 'selector-loaded' });
           })
@@ -129,14 +196,17 @@ export class WindowMessenger implements Messenger {
       } else if (action === 'close-visual-tagging-selector') {
         // eslint-disable-next-line
         amplitudeVisualTaggingSelectorInstance?.close?.();
+
+        // if response id is present, handle response
+      } else if ('id' in eventData && eventData.id) {
+        this.logger?.debug?.('Received Response to previous request: ', JSON.stringify(event));
+        this.handleResponse(eventData);
       }
     });
+
+    // Notify the parent window that the page has loaded
     this.notify({ action: 'page-loaded' });
   }
-
-  private onSelect = (data: ElementSelectedData) => {
-    this.notify({ action: 'element-selected', data });
-  };
 
   private onTrack = (type: string, properties: { [key: string]: string | null }) => {
     if (type === 'selector-mode-changed') {
