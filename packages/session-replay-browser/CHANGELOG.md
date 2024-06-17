@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.9.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.0...@amplitude/session-replay-browser@1.9.1) (2024-06-17)
+
+### Bug Fixes
+
+- **session-replay-browser:** move rimraf from postinstall to build
+  ([#777](https://github.com/amplitude/Amplitude-TypeScript/issues/777))
+  ([9df2a6c](https://github.com/amplitude/Amplitude-TypeScript/commit/9df2a6c97b860b6b964b9178b5dbea9a8c514cd1))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.8.0...@amplitude/session-replay-browser@1.9.0) (2024-06-17)
 
 ### Features
