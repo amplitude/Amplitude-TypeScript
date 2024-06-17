@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.2.1...@amplitude/analytics-client-common@2.2.2) (2024-06-17)
+
+### Bug Fixes
+
+- add cookie storage logs ([#778](https://github.com/amplitude/Amplitude-TypeScript/issues/778))
+  ([743b9c0](https://github.com/amplitude/Amplitude-TypeScript/commit/743b9c053ec4db4fc754da812534c329de4d1fff))
+- response with non-json format ([#758](https://github.com/amplitude/Amplitude-TypeScript/issues/758))
+  ([3d234ca](https://github.com/amplitude/Amplitude-TypeScript/commit/3d234ca5a71bacf9ab7f82a115cb2010e94a3a33))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.2.0...@amplitude/analytics-client-common@2.2.1) (2024-05-24)
 
 ### Bug Fixes

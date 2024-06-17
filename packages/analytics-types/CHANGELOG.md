@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.5.1...@amplitude/analytics-types@2.6.0) (2024-06-17)
+
+### Bug Fixes
+
+- adding ability to enable debug logs using cookies
+  ([bc36f08](https://github.com/amplitude/Amplitude-TypeScript/commit/bc36f0893b27d96a676120dadd50dd756921de46))
+
+### Features
+
+- **analytics-browser:** consume remote config ([#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769))
+  ([9c4e03c](https://github.com/amplitude/Amplitude-TypeScript/commit/9c4e03c3b3989213ac04410c8b9bf5e78ed393cf))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.5.0...@amplitude/analytics-types@2.5.1) (2024-05-21)
 
 **Note:** Version bump only for package @amplitude/analytics-types

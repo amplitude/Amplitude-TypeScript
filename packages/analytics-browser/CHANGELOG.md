@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.8.1...@amplitude/analytics-browser@2.9.0) (2024-06-17)
+
+### Bug Fixes
+
+- adding ability to enable debug logs using cookies
+  ([bc36f08](https://github.com/amplitude/Amplitude-TypeScript/commit/bc36f0893b27d96a676120dadd50dd756921de46))
+- don't use global window directly
+  ([7a88927](https://github.com/amplitude/Amplitude-TypeScript/commit/7a88927efe30b15b91d33b2fd05ce76d985c7a9a))
+- response with non-json format ([#758](https://github.com/amplitude/Amplitude-TypeScript/issues/758))
+  ([3d234ca](https://github.com/amplitude/Amplitude-TypeScript/commit/3d234ca5a71bacf9ab7f82a115cb2010e94a3a33))
+
+### Features
+
+- **analytics-browser:** consume remote config ([#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769))
+  ([9c4e03c](https://github.com/amplitude/Amplitude-TypeScript/commit/9c4e03c3b3989213ac04410c8b9bf5e78ed393cf))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.8.0...@amplitude/analytics-browser@2.8.1) (2024-05-24)
 
 ### Bug Fixes
