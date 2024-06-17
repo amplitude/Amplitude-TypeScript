@@ -161,7 +161,7 @@ export class WindowMessenger implements Messenger {
         return;
       }
 
-      const eventData = event?.data as Message<Action> | MessageRequest;
+      const eventData = event?.data as Message<Action> | MessageResponse;
       const action = eventData?.action;
 
       // Ignore messages without action
@@ -169,38 +169,41 @@ export class WindowMessenger implements Messenger {
         return;
       }
 
-      if (action === 'ping') {
-        this.notify({ action: 'pong' });
-      } else if (action === 'initialize-visual-tagging-selector') {
-        const actionData = eventData?.data as InitializeVisualTaggingSelectorData;
-        asyncLoadScript(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
-          .then(() => {
-            // eslint-disable-next-line
-            amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
-              getEventTagProps,
-              isElementSelectable: (element: Element) => {
-                if (isElementSelectable) {
-                  return isElementSelectable(actionData?.actionType || 'click', element);
-                }
-                return true;
-              },
-              onTrack: this.onTrack,
-              visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
-              messenger: this,
-            });
-            this.notify({ action: 'selector-loaded' });
-          })
-          .catch(() => {
-            this.logger?.warn('Failed to initialize visual tagging selector');
-          });
-      } else if (action === 'close-visual-tagging-selector') {
-        // eslint-disable-next-line
-        amplitudeVisualTaggingSelectorInstance?.close?.();
-
-        // if response id is present, handle response
-      } else if ('id' in eventData && eventData.id) {
+      // If id exists, andle responses to previous requests
+      if ('id' in eventData) {
         this.logger?.debug?.('Received Response to previous request: ', JSON.stringify(event));
         this.handleResponse(eventData);
+
+        // If action exists, handle the action using existing handlers
+      } else {
+        if (action === 'ping') {
+          this.notify({ action: 'pong' });
+        } else if (action === 'initialize-visual-tagging-selector') {
+          const actionData = eventData?.data as InitializeVisualTaggingSelectorData;
+          asyncLoadScript(AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL)
+            .then(() => {
+              // eslint-disable-next-line
+              amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
+                getEventTagProps,
+                isElementSelectable: (element: Element) => {
+                  if (isElementSelectable) {
+                    return isElementSelectable(actionData?.actionType || 'click', element);
+                  }
+                  return true;
+                },
+                onTrack: this.onTrack,
+                visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+                messenger: this,
+              });
+              this.notify({ action: 'selector-loaded' });
+            })
+            .catch(() => {
+              this.logger?.warn('Failed to initialize visual tagging selector');
+            });
+        } else if (action === 'close-visual-tagging-selector') {
+          // eslint-disable-next-line
+          amplitudeVisualTaggingSelectorInstance?.close?.();
+        }
       }
     });
 
