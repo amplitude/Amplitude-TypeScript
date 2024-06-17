@@ -47,9 +47,13 @@ sessionReplay.init(API_KEY, {
 });
 ```
 
-### 3. Get session replay event properties
-Any event that occurs within the span of a session replay must be tagged with properties that signal to Amplitude to include it in the scope of the replay. The following shows an example of how to use the properties
+### 3. Evaluate targeting and get session replay event properties
+Any event that occurs within the span of a session replay must be passed to the SDK to evaluate against targeting conditions. It must also be tagged with properties that signal to Amplitude to include it in the scope of the replay. The following shows an example of how to use the properties
 ```typescript
+const sessionTargetingMatch = sessionReplay.evaluateTargetingAndRecord({ event: {
+  event_type: EVENT_NAME,
+  event_properties: eventProperties
+} });
 const sessionReplayProperties = sessionReplay.getSessionReplayProperties();
 track(EVENT_NAME, {
   ...eventProperties,
