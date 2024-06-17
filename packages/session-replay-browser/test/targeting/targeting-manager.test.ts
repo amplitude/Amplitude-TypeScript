@@ -60,7 +60,7 @@ describe('Targeting Manager', () => {
 
     test('should use remote config to determine targeting match', async () => {
       jest.spyOn(TargetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
-      evaluateTargeting.mockReturnValueOnce({
+      evaluateTargeting.mockResolvedValueOnce({
         sr_targeting_config: {
           key: 'on',
         },
@@ -77,6 +77,8 @@ describe('Targeting Manager', () => {
         },
       });
       expect(evaluateTargeting).toHaveBeenCalledWith({
+        apiKey: 'static_key',
+        loggerProvider: mockLoggerProvider,
         flag: flagConfig,
         sessionId: 123,
         userProperties: mockUserProperties,
@@ -102,7 +104,7 @@ describe('Targeting Manager', () => {
       expect(sessionTargetingMatch).toBe(true);
     });
     test('should store sessionTargetingMatch', async () => {
-      evaluateTargeting.mockReturnValueOnce({
+      evaluateTargeting.mockResolvedValueOnce({
         sr_targeting_config: {
           key: 'on',
         },
