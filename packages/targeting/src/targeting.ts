@@ -26,10 +26,13 @@ export class Targeting implements AmplitudeTargeting {
         sessionId,
         eventType: event.event_type,
       }));
+
+    const eventStrings = eventTypes && new Set(eventTypes.map((eventTypeObj) => eventTypeObj.event_type));
+
     const context = {
       session_id: sessionId,
       event,
-      event_types: eventTypes && Array.from(eventTypes),
+      event_types: eventStrings && Array.from(eventStrings),
       user: {
         device_id: deviceId,
         user_properties: userProperties,

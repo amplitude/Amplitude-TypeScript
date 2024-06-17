@@ -49,7 +49,7 @@ export interface AmplitudeSessionReplay {
   setSessionId: (sessionId: number, deviceId?: string) => AmplitudeReturn<void>;
   getSessionId: () => number | undefined;
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
-  evaluateTargetingAndRecord: (options?: { event?: Event }) => Promise<void>;
+  evaluateTargetingAndRecord: (options?: { event?: Event }) => Promise<boolean>;
   flush: (useRetry: boolean) => Promise<void>;
   shutdown: () => void;
 }

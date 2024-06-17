@@ -1,4 +1,4 @@
-import { Logger as ILogger, SpecialEventType } from '@amplitude/analytics-types';
+import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, IDBPTransaction, openDB } from 'idb';
 
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 2; // 2 days
@@ -8,7 +8,7 @@ export interface TargetingDB extends DBSchema {
     key: number;
     value: {
       sessionId: number;
-      eventTypes: Set<string>;
+      eventTypes: Array<{ event_type: string }>;
     };
   };
 }
@@ -43,10 +43,10 @@ export const updateEventListForSession = async ({
 }) => {
   try {
     const eventTypesForSessionStorage = await tx.store.get(sessionId);
-    const eventTypesForSession = eventTypesForSessionStorage ? eventTypesForSessionStorage.eventTypes : new Set([]);
+    const eventTypesForSession = eventTypesForSessionStorage ? eventTypesForSessionStorage.eventTypes : [];
 
-    const updatedEventTypes = eventTypesForSession.add(eventType);
-    updatedEventTypes && (await tx.store.put({ sessionId, eventTypes: updatedEventTypes }));
+    const updatedEventTypes = eventTypesForSession.concat({ event_type: eventType });
+    await tx.store.put({ sessionId, eventTypes: updatedEventTypes });
     return updatedEventTypes;
   } catch (e) {
     loggerProvider.warn(`Failed to store events for targeting ${sessionId}: ${e as string}`);
@@ -88,14 +88,6 @@ export const storeEventTypeForSession = async ({
   eventType: string;
   sessionId: number;
 }) => {
-  if (
-    [SpecialEventType.GROUP_IDENTIFY, SpecialEventType.IDENTIFY, SpecialEventType.REVENUE].includes(
-      eventType as SpecialEventType,
-    )
-  ) {
-    return;
-  }
-
   try {
     const db = await openOrCreateDB(apiKey);
 
