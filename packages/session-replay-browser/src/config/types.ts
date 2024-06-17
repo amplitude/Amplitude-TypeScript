@@ -5,9 +5,15 @@ export interface SamplingConfig {
   capture_enabled: boolean;
 }
 
+export interface InteractionConfig {
+  trackEveryNms?: number;
+  enabled: boolean; // defaults to false
+}
+
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
+  sr_interaction_config?: InteractionConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
@@ -31,11 +37,6 @@ export type PrivacyConfig = {
   unmaskSelector?: string[];
 };
 
-export type InteractionConfig = {
-  trackEveryNms?: number;
-  enabled: boolean; // defaults to false
-};
-
 export interface SessionReplayLocalConfig extends Config {
   apiKey: string;
   loggerProvider: Logger;
@@ -46,11 +47,11 @@ export interface SessionReplayLocalConfig extends Config {
   debugMode?: boolean;
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
-  interactionConfig?: InteractionConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   captureEnabled?: boolean;
+  interactionConfig?: InteractionConfig;
 }
 
 export interface SessionReplayRemoteConfigFetch {

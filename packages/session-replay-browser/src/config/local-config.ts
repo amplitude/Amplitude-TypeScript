@@ -45,8 +45,5 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     if (options.debugMode) {
       this.debugMode = options.debugMode;
     }
-    if (options.interactionConfig) {
-      this.interactionConfig = options.interactionConfig;
-    }
   }
 }
