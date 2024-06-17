@@ -208,7 +208,6 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         sampleRate: 0.5,
-        // interactionConfig,
       }).promise;
       expect(sessionReplay.config?.transportProvider).toBeDefined();
       expect(sessionReplay.config?.flushMaxRetries).toBe(1);
