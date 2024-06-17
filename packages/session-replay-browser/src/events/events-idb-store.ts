@@ -6,6 +6,7 @@ import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../con
 import { STORAGE_FAILURE } from '../messages';
 import {
   SessionReplayEventsIDBStore as AmplitudeSessionReplayEventsIDBStore,
+  EventType,
   Events,
   SendingSequencesIDBInput,
   SendingSequencesIDBReturn,
@@ -102,16 +103,33 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
   loggerProvider: ILogger;
   storageKey = '';
   maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
-  interval = MIN_INTERVAL;
+  interval: number;
   timeAtLastSplit: number | null = null;
 
-  constructor({ loggerProvider, apiKey }: { loggerProvider: ILogger; apiKey: string }) {
+  private readonly minInterval: number;
+  private readonly maxInterval: number;
+
+  constructor({
+    loggerProvider,
+    apiKey,
+    minInterval,
+    maxInterval,
+  }: {
+    loggerProvider: ILogger;
+    apiKey: string;
+    minInterval?: number;
+    maxInterval?: number;
+  }) {
     this.loggerProvider = loggerProvider;
     this.apiKey = apiKey;
+    this.maxInterval = maxInterval ?? MAX_INTERVAL;
+    this.minInterval = minInterval ?? MIN_INTERVAL;
+    this.interval = 0;
   }
 
-  async initialize(sessionId?: number) {
-    const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events`;
+  async initialize(type: EventType, sessionId?: number) {
+    const dbSuffix = type === 'replay' ? '' : `_${type}`;
+    const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
     this.db = await createStore(dbName);
     this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
     await this.transitionFromKeyValStore(sessionId);
@@ -129,8 +147,13 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
       return true;
     }
-    if (this.timeAtLastSplit !== null && Date.now() - this.timeAtLastSplit > this.interval && events.length) {
-      this.interval = Math.min(MAX_INTERVAL, this.interval + MIN_INTERVAL);
+    if (
+      this.timeAtLastSplit !== null &&
+      this.interval &&
+      Date.now() - this.timeAtLastSplit > this.interval &&
+      events.length
+    ) {
+      this.interval = Math.min(this.maxInterval, this.interval + this.minInterval);
       this.timeAtLastSplit = Date.now();
       return true;
     }
@@ -179,6 +202,10 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
   };
 
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
+    if (this.interval === 0) {
+      this.interval = this.minInterval;
+    }
+
     try {
       const tx = this.db?.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
       if (!tx) {
@@ -327,12 +354,18 @@ export const createEventsIDBStore = async ({
   loggerProvider,
   apiKey,
   sessionId,
+  type,
+  minInterval,
+  maxInterval,
 }: {
   loggerProvider: ILogger;
   apiKey: string;
+  type: EventType;
+  minInterval?: number;
+  maxInterval?: number;
   sessionId?: number;
 }) => {
-  const eventsIDBStore = new SessionReplayEventsIDBStore({ loggerProvider, apiKey });
-  await eventsIDBStore.initialize(sessionId);
+  const eventsIDBStore = new SessionReplayEventsIDBStore({ loggerProvider, apiKey, minInterval, maxInterval });
+  await eventsIDBStore.initialize(type, sessionId);
   return eventsIDBStore;
 };

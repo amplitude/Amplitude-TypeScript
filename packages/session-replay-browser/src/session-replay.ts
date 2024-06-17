@@ -7,6 +7,8 @@ import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from '.
 import {
   BLOCK_CLASS,
   DEFAULT_SESSION_REPLAY_PROPERTY,
+  INTERACTION_MAX_INTERVAL,
+  INTERACTION_MIN_INTERVAL,
   MASK_TEXT_CLASS,
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
@@ -16,16 +18,20 @@ import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  EventType,
+  EventsManagerWithType,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
+import { clickBatcher, clickHook } from './hooks/click';
+import { MultiEventManager } from './events/multi-manager';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
-  eventsManager: AmplitudeSessionReplayEventsManager | undefined;
+  eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -83,10 +89,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.removeInvalidSelectors();
 
-    this.eventsManager = await createEventsManager({
+    const managers: EventsManagerWithType<EventType, string>[] = [];
+    const rrwebEventManager = await createEventsManager<'replay'>({
       config: this.config,
       sessionId: this.identifiers.sessionId,
+      type: 'replay',
     });
+    managers.push({ name: 'replay', manager: rrwebEventManager });
+
+    if (this.config.interactionConfig?.enabled) {
+      const interactionEventManager = await createEventsManager<'interaction'>({
+        config: this.config,
+        sessionId: this.identifiers.sessionId,
+        type: 'interaction',
+        minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
+        maxInterval: INTERACTION_MAX_INTERVAL,
+        payloadBatcher: clickBatcher,
+      });
+      managers.push({ name: 'interaction', manager: interactionEventManager });
+    }
+
+    this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -191,12 +214,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.log(`Session is not being recorded due to lack of device id.`);
       return;
     }
-
-    this.eventsManager &&
-      shouldSendStoredEvents &&
-      this.eventsManager.sendStoredEvents({
-        deviceId,
-      });
+    this.eventsManager && shouldSendStoredEvents && this.eventsManager.sendStoredEvents({ deviceId });
 
     this.recordEvents();
   }
@@ -285,10 +303,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
         const eventString = JSON.stringify(event);
         const deviceId = this.getDeviceId();
-        deviceId && this.eventsManager && this.eventsManager.addEvent({ event: eventString, sessionId, deviceId });
+        this.eventsManager &&
+          deviceId &&
+          this.eventsManager.addEvent({ event: { type: 'replay', data: eventString }, sessionId, deviceId });
       },
       packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
+      hooks: {
+        mouseInteraction:
+          this.eventsManager &&
+          clickHook({
+            eventsManager: this.eventsManager,
+            sessionId,
+            deviceIdFn: this.getDeviceId.bind(this),
+          }),
+      },
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
@@ -346,9 +375,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async flush(useRetry = false) {
-    if (this.eventsManager) {
-      return this.eventsManager.flush(useRetry);
-    }
+    return this.eventsManager?.flush(useRetry);
   }
 
   shutdown() {

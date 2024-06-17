@@ -62,7 +62,10 @@ describe('createEventsManager', () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
         { events: [mockEventString], sequenceId: 1, sessionId: 123 },
       ]);
-      const eventsManager = await createEventsManager({ config });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
@@ -85,7 +88,10 @@ describe('createEventsManager', () => {
 
     test('should not send if no events', async () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue(undefined);
-      const eventsManager = await createEventsManager({ config });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
@@ -99,8 +105,11 @@ describe('createEventsManager', () => {
       const mockAddEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
 
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
-      const eventsManager = await createEventsManager({ config });
-      eventsManager.addEvent({ event: mockEventString, sessionId: 123, deviceId: '1a2b3c' });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
       return mockAddEventPromise
         .catch(() => {
@@ -130,8 +139,11 @@ describe('createEventsManager', () => {
       const mockAddEventPromise = Promise.resolve();
 
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockReturnValue(mockAddEventPromise);
-      const eventsManager = await createEventsManager({ config });
-      eventsManager.addEvent({ event: mockEventString, sessionId: 123, deviceId: '1a2b3c' });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
       return mockAddEventPromise
         .catch(() => {
@@ -147,8 +159,11 @@ describe('createEventsManager', () => {
     test('should catch errors', async () => {
       const mockAddEventPromise = Promise.reject('error');
       (mockIDBStore.addEventToCurrentSequence as jest.Mock).mockImplementation(() => Promise.reject('error'));
-      const eventsManager = await createEventsManager({ config });
-      eventsManager.addEvent({ event: mockEventString, sessionId: 123, deviceId: '1a2b3c' });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
+      eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
 
       return mockAddEventPromise
         .catch(() => {
@@ -164,7 +179,10 @@ describe('createEventsManager', () => {
     test('should store events in IDB and send any returned', async () => {
       const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
-      const eventsManager = await createEventsManager({ config });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
       return mockStoreEventPromise
@@ -194,7 +212,10 @@ describe('createEventsManager', () => {
     test('should update IDB store upon success', async () => {
       const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
-      const eventsManager = await createEventsManager({ config });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
       return mockStoreEventPromise
@@ -203,17 +224,19 @@ describe('createEventsManager', () => {
         })
         .finally(() => {
           const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
-          const mockSendEventsList = trackDestinationInstance.sendEventsList;
-          const mockOnComplete = mockSendEventsList.mock.calls[0][0].onComplete;
+          const mockOnComplete = trackDestinationInstance.sendEventsList.mock.calls[0][0].onComplete;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-          mockOnComplete();
+          void mockOnComplete(123);
           expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
         });
     });
     test('should catch errors', async () => {
       const mockStoreEventPromise = Promise.reject('error');
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockImplementation(() => Promise.reject('error'));
-      const eventsManager = await createEventsManager({ config });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
       return mockStoreEventPromise
@@ -228,7 +251,10 @@ describe('createEventsManager', () => {
 
   describe('flush', () => {
     test('should call track destination flush with useRetry as true', async () => {
-      const eventsManager = await createEventsManager({ config });
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+      });
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const flushMock = trackDestinationInstance.flush;
 
@@ -237,7 +263,10 @@ describe('createEventsManager', () => {
       expect(flushMock).toHaveBeenCalledWith(true);
     });
     test('should call track destination flush without useRetry', async () => {
-      const eventsManager = await createEventsManager({ config });
+      const eventsManager = await createEventsManager({
+        config,
+        type: 'replay',
+      });
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const flushMock = trackDestinationInstance.flush;
 

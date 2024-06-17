@@ -222,6 +222,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             ...privacyConfig,
             defaultMaskLevel: 'light',
           },
+          interactionConfig: undefined,
         });
       });
 

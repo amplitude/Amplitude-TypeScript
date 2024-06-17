@@ -48,6 +48,13 @@ export class SessionReplayJoinedConfigGenerator {
         sessionId,
       );
 
+      // This is intentionally forced to only be set through the remote config.
+      config.interactionConfig = await this.remoteConfigFetch.getRemoteConfig(
+        'sessionReplay',
+        'sr_interaction_config',
+        sessionId,
+      );
+
       if (samplingConfig || privacyConfig) {
         remoteConfig = {};
         if (samplingConfig) {

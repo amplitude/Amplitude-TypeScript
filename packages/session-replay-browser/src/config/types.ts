@@ -5,9 +5,15 @@ export interface SamplingConfig {
   capture_enabled: boolean;
 }
 
+export interface InteractionConfig {
+  trackEveryNms?: number;
+  enabled: boolean; // defaults to false
+}
+
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
+  sr_interaction_config?: InteractionConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
@@ -45,6 +51,7 @@ export interface SessionReplayLocalConfig extends Config {
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   captureEnabled?: boolean;
+  interactionConfig?: InteractionConfig;
 }
 
 export interface SessionReplayRemoteConfigFetch {

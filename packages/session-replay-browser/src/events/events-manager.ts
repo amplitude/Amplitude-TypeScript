@@ -1,24 +1,41 @@
-import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
+import {
+  SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  EventType,
+} from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
-import { SessionReplayTrackDestination } from '../track-destination';
 import { createEventsIDBStore } from './events-idb-store';
+import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 
-export const createEventsManager = async ({
+export const createEventsManager = async <Type extends EventType>({
   config,
   sessionId,
+  minInterval,
+  maxInterval,
+  type,
+  payloadBatcher,
 }: {
   config: SessionReplayJoinedConfig;
+  type: Type;
+  minInterval?: number;
+  maxInterval?: number;
   sessionId?: number;
-}): Promise<AmplitudeSessionReplayEventsManager> => {
-  const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider });
+  payloadBatcher?: PayloadBatcher;
+}): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
+  const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider, payloadBatcher });
 
   const eventsIDBStore = await createEventsIDBStore({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
     sessionId,
+    minInterval,
+    maxInterval,
+    type,
   });
 
+  /**
+   * Immediately sends events to the track destination.
+   */
   const sendEventsList = ({
     events,
     sessionId,
@@ -39,6 +56,7 @@ export const createEventsManager = async ({
       deviceId: deviceId,
       sampleRate: config.sampleRate,
       serverZone: config.serverZone,
+      type,
       onComplete: eventsIDBStore.cleanUpSessionEventsStore.bind(eventsIDBStore),
     });
   };
@@ -74,9 +92,17 @@ export const createEventsManager = async ({
       });
   };
 
-  const addEvent = ({ event, sessionId, deviceId }: { event: string; sessionId: number; deviceId: string }) => {
+  const addEvent = ({
+    event,
+    sessionId,
+    deviceId,
+  }: {
+    event: { type: Type; data: string };
+    sessionId: number;
+    deviceId: string;
+  }) => {
     eventsIDBStore
-      .addEventToCurrentSequence(sessionId, event)
+      .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         return (
           sequenceToSend &&
@@ -94,9 +120,7 @@ export const createEventsManager = async ({
   };
 
   async function flush(useRetry = false) {
-    if (trackDestination) {
-      return trackDestination.flush(useRetry);
-    }
+    return trackDestination.flush(useRetry);
   }
 
   return {

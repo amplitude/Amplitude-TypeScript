@@ -3,6 +3,7 @@ import { Logger, ServerZone } from '@amplitude/analytics-types';
 import { SESSION_REPLAY_EU_URL, SESSION_REPLAY_SERVER_URL, SESSION_REPLAY_STAGING_URL } from '../src/constants';
 import { SessionReplayTrackDestination } from '../src/track-destination';
 import { VERSION } from '../src/version';
+import { SessionReplayDestinationContext } from 'src/typings/session-replay';
 
 type MockedLogger = jest.Mocked<Logger>;
 const mockEvent = {
@@ -54,7 +55,7 @@ describe('SessionReplayTrackDestination', () => {
     test('should add to queue and schedule a flush', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const schedule = jest.spyOn(trackDestination, 'schedule').mockReturnValueOnce(undefined);
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -64,6 +65,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
         flushMaxRetries: 1,
       };
@@ -76,7 +78,7 @@ describe('SessionReplayTrackDestination', () => {
     test('should not add to queue if attemps are greater than allowed retries', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValueOnce(undefined);
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -86,6 +88,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       trackDestination.addToQueue(context);
@@ -99,7 +102,7 @@ describe('SessionReplayTrackDestination', () => {
     test('should not add a duplicate sequence to the queue', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const schedule = jest.spyOn(trackDestination, 'schedule').mockReturnValueOnce(undefined);
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -109,6 +112,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
         flushMaxRetries: 1,
       };
@@ -137,6 +141,7 @@ describe('SessionReplayTrackDestination', () => {
           deviceId: '1a2b3c',
           sampleRate: 1,
           serverZone: ServerZone.US,
+          type: 'replay',
           onComplete: mockOnComplete,
         },
       ];
@@ -178,6 +183,7 @@ describe('SessionReplayTrackDestination', () => {
           deviceId: '1a2b3c',
           sampleRate: 1,
           serverZone: ServerZone.US,
+          type: 'replay',
           onComplete: mockOnComplete,
         },
       ];
@@ -190,7 +196,7 @@ describe('SessionReplayTrackDestination', () => {
 
     test('should send later', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -201,6 +207,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       trackDestination.queue = [context];
@@ -231,10 +238,30 @@ describe('SessionReplayTrackDestination', () => {
   });
 
   describe('send', () => {
+    test('should not send anything if no events present', async () => {
+      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
+      trackDestination.loggerProvider = mockLoggerProvider;
+      const context: SessionReplayDestinationContext = {
+        events: [],
+        sequenceId: 1,
+        sessionId: 123,
+        attempts: 0,
+        timeout: 0,
+        flushMaxRetries: 1,
+        deviceId: '1a2b3c',
+        sampleRate: 1,
+        serverZone: ServerZone.US,
+        type: 'replay',
+        apiKey,
+        onComplete: mockOnComplete,
+      };
+      await trackDestination.send(context);
+      expect(fetch).not.toHaveBeenCalled();
+    });
     test('should not send anything if api key not set', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       trackDestination.loggerProvider = mockLoggerProvider;
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -244,6 +271,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       await trackDestination.send(context);
@@ -253,7 +281,7 @@ describe('SessionReplayTrackDestination', () => {
     });
     test('should not send anything if device id not set', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -264,6 +292,7 @@ describe('SessionReplayTrackDestination', () => {
         flushMaxRetries: 1,
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       await trackDestination.send(context);
@@ -273,7 +302,7 @@ describe('SessionReplayTrackDestination', () => {
     });
     test('should make a request correctly', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -284,13 +313,14 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
 
       await trackDestination.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
-        'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
+        'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=replay',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
           headers: {
@@ -308,7 +338,7 @@ describe('SessionReplayTrackDestination', () => {
     test('should make a request to eu', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
 
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -319,13 +349,14 @@ describe('SessionReplayTrackDestination', () => {
         flushMaxRetries: 1,
         deviceId: '1a2b3c',
         sampleRate: 1,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
 
       await trackDestination.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
-        'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1',
+        'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=replay',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
           headers: {
@@ -343,7 +374,7 @@ describe('SessionReplayTrackDestination', () => {
 
     test('should retry if retry param is true', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -354,6 +385,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       (global.fetch as jest.Mock)
@@ -380,7 +412,7 @@ describe('SessionReplayTrackDestination', () => {
 
     test('should not retry if retry param is false', async () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      const context = {
+      const context: SessionReplayDestinationContext = {
         events: [mockEventString],
         sequenceId: 1,
         sessionId: 123,
@@ -391,6 +423,7 @@ describe('SessionReplayTrackDestination', () => {
         deviceId: '1a2b3c',
         sampleRate: 1,
         serverZone: ServerZone.US,
+        type: 'replay',
         onComplete: mockOnComplete,
       };
       (global.fetch as jest.Mock).mockImplementationOnce(() =>

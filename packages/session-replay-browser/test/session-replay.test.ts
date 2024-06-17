@@ -13,6 +13,7 @@ import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
+import { SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
 
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -154,6 +155,69 @@ describe('SessionReplay', () => {
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toEqual(['.class', '#id']);
       expect(sessionReplay.loggerProvider).toBeDefined();
+    });
+
+    test.each([
+      [
+        {
+          enabled: true,
+          trackEveryNms: 500,
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.interactionConfig?.enabled).toBe(true);
+          expect(config.interactionConfig?.trackEveryNms).toBe(500);
+        },
+      ],
+      [
+        {
+          enabled: true,
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.interactionConfig?.enabled).toBe(true);
+          expect(config.interactionConfig?.trackEveryNms).toBeUndefined();
+        },
+      ],
+      [
+        {
+          enabled: false,
+          trackEveryNms: 1_000,
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.interactionConfig?.enabled).toBe(false);
+          expect(config.interactionConfig?.trackEveryNms).toBe(1_000);
+        },
+      ],
+      [
+        undefined,
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.interactionConfig?.enabled).toBeUndefined();
+          expect(config.interactionConfig?.trackEveryNms).toBeUndefined();
+        },
+      ],
+    ])('should setup sdk with interaction config', async (interactionConfig, expectationFn) => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+          return interactionConfig;
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        fetchTime: 0,
+      });
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+      }).promise;
+      expect(sessionReplay.config?.transportProvider).toBeDefined();
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.optOut).toBe(false);
+      expect(sessionReplay.identifiers?.deviceId).toBe('1a2b3c');
+      expect(sessionReplay.identifiers?.sessionId).toBe(123);
+      expect(sessionReplay.config?.logLevel).toBe(0);
+      expect(sessionReplay.loggerProvider).toBeDefined();
+
+      sessionReplay.config && expectationFn(sessionReplay.config);
     });
 
     test('should call initialize with shouldSendStoredEvents=true', async () => {
@@ -660,7 +724,7 @@ describe('SessionReplay', () => {
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(addEventSpy).toHaveBeenCalledTimes(1);
       expect(addEventSpy).toHaveBeenCalledWith({
-        event: mockEventString,
+        event: { type: 'replay', data: mockEventString },
         sessionId: mockOptions.sessionId,
         deviceId: mockOptions.deviceId,
       });
@@ -794,6 +858,10 @@ describe('SessionReplay', () => {
   });
 
   describe('flush', () => {
+    test('should do nothing on flush if init not called', async () => {
+      await sessionReplay.flush(true);
+      expect(sessionReplay.eventsManager).toBeUndefined();
+    });
     test('should call track destination flush with useRetry as true', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       if (!sessionReplay.eventsManager) {

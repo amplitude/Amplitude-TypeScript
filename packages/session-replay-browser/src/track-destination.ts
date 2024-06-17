@@ -21,15 +21,22 @@ import {
 } from './typings/session-replay';
 import { VERSION } from './version';
 
+export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
+  version: number;
+  events: unknown[];
+};
+
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
   retryTimeout = 1000;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
+  payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
 
-  constructor({ loggerProvider }: { loggerProvider: ILogger }) {
+  constructor({ loggerProvider, payloadBatcher }: { loggerProvider: ILogger; payloadBatcher?: PayloadBatcher }) {
     this.loggerProvider = loggerProvider;
+    this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
   }
 
   sendEventsList(destinationData: SessionReplayDestination) {
@@ -119,12 +126,18 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       device_id: deviceId,
       session_id: `${context.sessionId}`,
       seq_number: `${context.sequenceId}`,
+      type: `${context.type}`,
     });
 
-    const payload = {
+    const payload = this.payloadBatcher({
       version: 1,
       events: context.events,
-    };
+    });
+
+    if (payload.events.length === 0) {
+      this.completeRequest({ context });
+      return;
+    }
 
     try {
       const options: RequestInit = {
