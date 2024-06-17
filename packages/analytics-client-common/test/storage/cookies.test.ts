@@ -84,6 +84,27 @@ describe('cookies', () => {
       expect(await cookies.get('hello')).toBe(undefined);
       await cookies.remove('hello');
     });
+
+    test.each([new Error('Simulated error'), 'Simulated error'])(
+      'logs an error message when setting a cookie fails',
+      async (error) => {
+        console.error = jest.fn();
+        jest.spyOn(global, 'btoa').mockImplementation(() => {
+          throw error;
+        });
+
+        const cookies = new CookieStorage();
+        await cookies.set('hello', 'world');
+
+        expect(console.error).toHaveBeenCalledWith(
+          expect.stringContaining(
+            `Amplitude Logger [Error]: Failed to set cookie for key: hello. Error: Simulated error`,
+          ),
+        );
+
+        jest.restoreAllMocks();
+      },
+    );
   });
 
   describe('remove', () => {
