@@ -4,6 +4,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "lib": ["dom", "es6"],
   }
 }
