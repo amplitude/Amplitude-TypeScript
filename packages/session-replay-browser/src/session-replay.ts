@@ -1,6 +1,6 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
-import { Event, Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
+import { Event, Logger as ILogger, LogLevel, SpecialEventType } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
@@ -219,7 +219,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
   evaluateTargetingAndRecord = async (options?: { event?: Event }) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
-      return;
+      return false;
+    }
+    let eventForTargeting = options?.event;
+
+    if (
+      [SpecialEventType.GROUP_IDENTIFY, SpecialEventType.IDENTIFY, SpecialEventType.REVENUE].includes(
+        eventForTargeting?.event_type as SpecialEventType,
+      )
+    ) {
+      eventForTargeting = undefined;
     }
 
     let userProperties;
@@ -230,12 +239,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.sessionTargetingMatch = await evaluateTargetingAndStore({
       sessionId: this.identifiers.sessionId,
       config: this.config,
-      targetingParams: { userProperties, event: options?.event },
+      targetingParams: { userProperties, event: eventForTargeting },
     });
 
     if (this.sessionTargetingMatch) {
       this.recordEvents();
     }
+
+    return this.sessionTargetingMatch;
   };
 
   sendEvents(sessionId?: number) {
