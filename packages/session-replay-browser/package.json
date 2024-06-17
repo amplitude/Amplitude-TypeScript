@@ -17,10 +17,11 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
+    "build": "yarn build:fix-finder && yarn bundle && yarn build:es5 && yarn build:esm",
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "build:fix-finder": "rimraf ../../node_modules/@medv/finder/finder.ts # This is required until the package is fixed upstream",
     "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
@@ -28,7 +29,6 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "postinstall": "rimraf ../../node_modules/@medv/finder/finder.ts # This is required until the package is fixed upstream",
     "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
