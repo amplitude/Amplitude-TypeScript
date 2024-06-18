@@ -97,7 +97,7 @@ export class WindowMessenger implements Messenger {
   }
 
   // Send an async request to the parent window
-  public sendRequest(action, args, options = { timeout: 15_000 }): Promise<any> {
+  public sendRequest(action: string, args: Record<string, any>, options = { timeout: 15_000 }): Promise<any> {
     // Create Request ID
     const id = generateUniqueId();
     const request = {
