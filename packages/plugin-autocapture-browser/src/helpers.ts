@@ -223,6 +223,7 @@ export const asyncLoadScript = (url: string) => {
   });
 };
 
-export function generateUniqueId() {
-  return Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+export function generateUniqueId(): string {
+  //write below with template literal
+  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
