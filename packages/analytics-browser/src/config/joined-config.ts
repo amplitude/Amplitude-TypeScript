@@ -42,7 +42,7 @@ export class BrowserJoinedConfigGenerator {
     } catch (e) {
       this.config.loggerProvider.error('Failed to fetch remote configuration because of error: ', e);
     }
-    
+
     return this.config;
   }
 }
