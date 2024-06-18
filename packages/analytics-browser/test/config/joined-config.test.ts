@@ -2,7 +2,7 @@ import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics
 import { BrowserConfig as IBrowserConfig } from '@amplitude/analytics-types';
 import { BrowserJoinedConfigGenerator, createBrowserJoinedConfigGenerator } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
-import { BrowserRemoteConfig } from '../../lib/scripts/config/types';
+import { BrowserRemoteConfig } from '../../src/config/types';
 import { RequestMetadata } from '@amplitude/analytics-core';
 
 jest.mock('@amplitude/analytics-remote-config', () => ({
@@ -60,6 +60,18 @@ describe('joined-config', () => {
     });
 
     describe('generateJoinedConfig', () => {
+      test('should handle getRemoteConfig error', async () => {
+        const error = new Error('Mocked completeRequest error');
+        (mockRemoteConfigFetch.getRemoteConfig as jest.Mock).mockRejectedValue(error);
+
+        const logError = jest.spyOn(localConfig.loggerProvider, 'error');
+
+        await generator.initialize();
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig).toEqual(localConfig);
+        expect(logError).toHaveBeenCalledWith('Failed to fetch remote configuration because of error: ', error);
+      });
+
       test('should merge local and remote config', async () => {
         await generator.initialize();
         expect(generator.config.defaultTracking).toBe(false);
