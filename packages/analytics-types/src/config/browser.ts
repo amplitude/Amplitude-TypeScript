@@ -3,6 +3,7 @@ import { IdentityStorageType, Storage } from '../storage';
 import { Transport } from '../transport';
 import { Config } from './core';
 import { PageTrackingOptions } from '../page-view-tracking';
+import { AutocaptureOptions } from '../autocapture';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -18,6 +19,12 @@ export interface ExternalBrowserConfig extends Config {
    * @defaultValue `true`
    */
   defaultTracking?: boolean | DefaultTrackingOptions;
+  /**
+   * The configurations for autocapture plugin.
+   * See {@link https://www.docs.developers.amplitude.com/data/sdks/browser-2/autocapture/}.
+   * @defaultValue `true`
+   */
+  autocapture?: boolean | AutocaptureOptions;
   /**
    * The identifier for the device running your application.
    * @defaultValue `UUID()`

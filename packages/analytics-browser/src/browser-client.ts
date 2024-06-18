@@ -26,10 +26,11 @@ import {
   TransportType,
   OfflineDisabled,
   Result,
+  AutocaptureOptions,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport } from './config';
+import { useBrowserConfig, createTransport, isAutocaptureEnabled } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
@@ -37,6 +38,7 @@ import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './consta
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
+import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -133,6 +135,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
       this.config.loggerProvider.debug('Adding page view tracking plugin');
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+    }
+
+    if (isAutocaptureEnabled(this.config.autocapture)) {
+      const autocaptureOptions: undefined | AutocaptureOptions =
+        typeof this.config.autocapture === 'boolean' ? undefined : this.config.autocapture;
+      await this.add(autocapturePlugin(autocaptureOptions)).promise;
     }
 
     this.initializing = false;

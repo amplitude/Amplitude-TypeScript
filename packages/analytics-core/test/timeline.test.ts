@@ -1,11 +1,12 @@
 import { Timeline } from '../src/timeline';
-import { DestinationPlugin, Event, Plugin } from '@amplitude/analytics-types';
+import { DestinationPlugin, EnrichmentPlugin, Event, Plugin } from '@amplitude/analytics-types';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
 import { AmplitudeCore } from '../src/core-client';
 
 describe('timeline', () => {
   let timeline = new Timeline(new AmplitudeCore());
+  const config = useDefaultConfig();
 
   beforeEach(() => {
     timeline = new Timeline(new AmplitudeCore());
@@ -13,10 +14,70 @@ describe('timeline', () => {
 
   describe('register', () => {
     test('should accept empty plugin', async () => {
-      const config = useDefaultConfig();
       await timeline.register({}, config);
       expect(timeline.plugins[0].name).toBeDefined();
       expect(timeline.plugins[0].type).toBe('enrichment');
+    });
+
+    test('should not register a plugin with the same name twice', async () => {
+      const pluginName = 'TestPlugin';
+      const plugin: EnrichmentPlugin = {
+        name: pluginName,
+        type: 'enrichment',
+        setup: jest.fn(),
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+      const logWarn = jest.spyOn(config.loggerProvider, 'warn');
+
+      await timeline.register(plugin, config);
+      await timeline.register(plugin, config);
+
+      expect(timeline.plugins).toHaveLength(1);
+      expect(timeline.plugins[0].name).toBe('TestPlugin');
+      expect(logWarn).toHaveBeenCalledTimes(1);
+      expect(logWarn).toHaveBeenCalledWith(`Plugin with name ${pluginName} already exists, skipping registration`);
+    });
+
+    test('should register plugins with different names', async () => {
+      const plugin1: EnrichmentPlugin = {
+        name: 'Plugin1',
+        type: 'enrichment',
+        setup: jest.fn(),
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+      const plugin2: EnrichmentPlugin = {
+        name: 'Plugin2',
+        type: 'enrichment',
+        setup: jest.fn(),
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      await timeline.register(plugin1, config);
+      await timeline.register(plugin2, config);
+
+      expect(timeline.plugins).toHaveLength(2);
+      expect(timeline.plugins[0].name).toBe('Plugin1');
+      expect(timeline.plugins[1].name).toBe('Plugin2');
+    });
+
+    test('should log when a plugin name is not set', async () => {
+      const plugin: EnrichmentPlugin = {
+        type: 'enrichment',
+        setup: jest.fn(),
+        teardown: jest.fn(),
+        execute: jest.fn(),
+      };
+      const logWarn = jest.spyOn(config.loggerProvider, 'warn');
+
+      await timeline.register(plugin, config);
+
+      expect(timeline.plugins).toHaveLength(1);
+      expect(timeline.plugins[0].name).not.toBeUndefined();
+      expect(logWarn).toHaveBeenCalledTimes(1);
+      expect(logWarn).toHaveBeenCalledWith(expect.stringContaining('Plugin name is undefined'));
     });
   });
 
@@ -109,7 +170,6 @@ describe('timeline', () => {
       setup: destinationSetup,
       execute: destinationExecute,
     };
-    const config = useDefaultConfig();
     // register
     await timeline.register(before, config);
     await timeline.register(enrichment, config);
@@ -171,7 +231,6 @@ describe('timeline', () => {
         setup: beforeSetup,
         execute: beforeExecute,
       };
-      const config = useDefaultConfig();
       await timeline.register(before, config);
       await timeline.apply(undefined);
       await timeline.deregister('plugin:before');
@@ -212,7 +271,6 @@ describe('timeline', () => {
         execute: destinationExecute,
       };
 
-      const config = useDefaultConfig();
       await timeline.register(before, config);
       await timeline.register(enrichment, config);
       await timeline.register(destination, config);
@@ -283,7 +341,6 @@ describe('timeline', () => {
         execute: destinationExecute,
       };
 
-      const config = useDefaultConfig();
       await timeline.register(before1, config);
       await timeline.register(before2, config);
       await timeline.register(before3, config);
@@ -359,7 +416,6 @@ describe('timeline', () => {
         execute: destinationExecute,
       };
 
-      const config = useDefaultConfig();
       await timeline.register(before, config);
       await timeline.register(enrichment1, config);
       await timeline.register(enrichment2, config);
@@ -399,7 +455,6 @@ describe('timeline', () => {
         execute,
         flush,
       };
-      const config = useDefaultConfig();
       await timeline.register(plugin, config);
       void timeline.push(createTrackEvent('a'));
       void timeline.push(createTrackEvent('b'));

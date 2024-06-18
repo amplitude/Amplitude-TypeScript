@@ -9,6 +9,7 @@ import { WebAttribution } from '@amplitude/analytics-client-common/src';
 import * as core from '@amplitude/analytics-core';
 import { LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
+import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
 import * as CookieMigration from '../src/cookie-migration';
@@ -289,6 +290,25 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test.each([
+      undefined, // default
+      true, // enabled
+    ])('should add autocapture plugin', async (option) => {
+      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: option,
+      }).promise;
+      expect(autocapturePlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT add autocapture plugin when autocapture is disabled', async () => {
+      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: false,
+      }).promise;
+      expect(autocapturePlugin).toHaveBeenCalledTimes(0);
     });
 
     test('should listen for network change to online', async () => {

@@ -1,9 +1,8 @@
-import { DefaultTrackingOptions } from '@amplitude/analytics-types';
-import { AutocaptureOptions } from '@amplitude/plugin-autocapture-browser';
+import { DefaultTrackingOptions, AutocaptureOptions } from '@amplitude/analytics-types';
 
 export type BrowserRemoteConfig = {
   browserSDK: {
-    autoCapture?: AutocaptureOptions;
-    defaultTracking?: DefaultTrackingOptions;
+    autocapture?: AutocaptureOptions | boolean;
+    defaultTracking?: DefaultTrackingOptions | boolean;
   };
 };

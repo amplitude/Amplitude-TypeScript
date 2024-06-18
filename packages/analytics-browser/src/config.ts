@@ -14,6 +14,7 @@ import {
   IdentityStorageType,
   ServerZoneType,
   OfflineDisabled,
+  AutocaptureOptions,
 } from '@amplitude/analytics-types';
 import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
@@ -50,6 +51,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       upgrade: true,
     },
     public defaultTracking?: boolean | DefaultTrackingOptions,
+    public autocapture?: boolean | AutocaptureOptions,
     deviceId?: string,
     public flushIntervalMillis: number = 1000,
     public flushMaxRetries: number = 5,
@@ -258,6 +260,7 @@ export const useBrowserConfig = async (
     cookieStorage,
     cookieOptions,
     options.defaultTracking,
+    options.autocapture,
     deviceId,
     options.flushIntervalMillis,
     options.flushMaxRetries,
@@ -347,4 +350,9 @@ export const getTopLevelDomain = async (url?: string) => {
   }
 
   return '';
+};
+
+export const isAutocaptureEnabled = (autocapture?: AutocaptureOptions | boolean): boolean => {
+  // Disable autocapture plugin only when false
+  return autocapture !== false;
 };
