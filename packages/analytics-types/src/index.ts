@@ -63,4 +63,10 @@ export { UserSession } from './user-session';
 export { UTMData } from './utm';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './page-view-tracking';
 export { OfflineDisabled } from './offline';
-export { Messenger, AutocaptureOptions, ActionType } from './autocapture';
+export {
+  Messenger,
+  AutocaptureOptions,
+  ActionType,
+  DEFAULT_CSS_SELECTOR_ALLOWLIST,
+  DEFAULT_DATA_ATTRIBUTE_PREFIX,
+} from './autocapture';

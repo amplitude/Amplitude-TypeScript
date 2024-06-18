@@ -2,6 +2,31 @@ import { Logger } from './logger';
 
 export type ActionType = 'click' | 'change';
 
+/**
+ * Default CSS selectors to define which elements on the page to track.
+ * Extend this list to include additional elements to track. For example:
+ * ```
+ * autocapturePlugin({
+ *    cssSelectorAllowlist: [...DEFAULT_CSS_SELECTOR_ALLOWLIST, ".my-class"],
+ * })
+ * ```
+ */
+export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
+  'a',
+  'button',
+  'input',
+  'select',
+  'textarea',
+  'label',
+  '[data-amp-default-track]',
+  '.amp-default-track',
+];
+
+/**
+ * Default prefix to allo the plugin to capture data attributes as an event property.
+ */
+export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
+
 export interface AutocaptureOptions {
   /**
    * List of CSS selectors to allow auto tracking on.
