@@ -16,11 +16,12 @@ describe('joined-config', () => {
   const fetchTime = 100;
 
   beforeEach(() => {
-    localConfig = { ...createConfigurationMock(), defaultTracking: false };
+    localConfig = { ...createConfigurationMock(), defaultTracking: false, autocapture: false };
 
     mockRemoteConfigFetch = {
       getRemoteConfig: jest.fn().mockResolvedValue({
         defaultTracking: true,
+        autocapture: true,
       }),
       fetchTime: fetchTime,
     };

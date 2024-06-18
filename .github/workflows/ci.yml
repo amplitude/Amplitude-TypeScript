@@ -7,9 +7,6 @@ on:
       - v1.x
   pull_request:
     types: [opened, synchronize]
-    branches:
-      - main
-      - v1.x
 
 jobs:
   build:
