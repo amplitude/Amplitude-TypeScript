@@ -1,5 +1,5 @@
 import { EvaluationEngine } from '@amplitude/experiment-core';
-import { storeEventTypeForSession } from './targeting-idb-store';
+import { targetingIDBStore } from './targeting-idb-store';
 import { Targeting as AmplitudeTargeting, TargetingParameters } from './typings/targeting';
 
 export class Targeting implements AmplitudeTargeting {
@@ -19,15 +19,17 @@ export class Targeting implements AmplitudeTargeting {
     flag,
   }: TargetingParameters) => {
     const eventTypes =
-      event &&
-      (await storeEventTypeForSession({
-        loggerProvider: loggerProvider,
-        apiKey: apiKey,
-        sessionId,
-        eventType: event.event_type,
-      }));
+      event && event.time
+        ? await targetingIDBStore.storeEventTypeForSession({
+            loggerProvider: loggerProvider,
+            apiKey: apiKey,
+            sessionId,
+            eventType: event.event_type,
+            eventTime: event.time,
+          })
+        : undefined;
 
-    const eventStrings = eventTypes && new Set(eventTypes.map((eventTypeObj) => eventTypeObj.event_type));
+    const eventStrings = eventTypes && new Set(Object.keys(eventTypes));
 
     const context = {
       session_id: sessionId,

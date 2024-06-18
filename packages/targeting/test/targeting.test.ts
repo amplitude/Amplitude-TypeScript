@@ -1,11 +1,12 @@
 import { Logger } from '@amplitude/analytics-types';
 import { Targeting } from '../src/targeting';
-import * as TargetingIDBStore from '../src/targeting-idb-store';
+import { targetingIDBStore } from '../src/targeting-idb-store';
 import { flagConfig } from './flag-config-data';
 
 type MockedLogger = jest.Mocked<Logger>;
 const mockEvent = {
   event_type: 'sign_in',
+  time: 123,
 };
 const mockUserProperties = {};
 
@@ -44,9 +45,10 @@ describe('targeting', () => {
       );
     });
     test('should pass a list of event types to the evaluation engine evaluate', async () => {
-      jest
-        .spyOn(TargetingIDBStore, 'storeEventTypeForSession')
-        .mockResolvedValueOnce([{ event_type: 'Add to Cart' }, { event_type: 'Purchase' }]);
+      jest.spyOn(targetingIDBStore, 'storeEventTypeForSession').mockResolvedValueOnce({
+        'Add to Cart': { 123: { event_type: 'Add to Cart' } },
+        Purchase: { 123: { event_type: 'Purchase' } },
+      });
       const targeting = new Targeting();
       const mockEngineEvaluate = jest.fn();
       targeting.evaluationEngine.evaluate = mockEngineEvaluate;
