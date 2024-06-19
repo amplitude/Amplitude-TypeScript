@@ -169,7 +169,7 @@ export class WindowMessenger implements Messenger {
         return;
       }
 
-      // If id exists, andle responses to previous requests
+      // If id exists, handle responses to previous requests
       if ('id' in eventData) {
         this.logger?.debug?.('Received Response to previous request: ', JSON.stringify(event));
         this.handleResponse(eventData);
