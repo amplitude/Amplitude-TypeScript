@@ -2,6 +2,9 @@
 /* Only file allowed to access to globalThis, window, self */
 
 export const getGlobalScope = (): typeof globalThis | undefined => {
+  if (typeof ampIntegrationContext !== 'undefined') {
+    return ampIntegrationContext;
+  }
   if (typeof globalThis !== 'undefined') {
     return globalThis;
   }
