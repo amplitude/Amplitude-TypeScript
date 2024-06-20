@@ -1,23 +1,22 @@
-type HierarchyNode = {
-  tag: string;
-  id?: string;
-  class?: string[];
-  attributes?: { [key: string]: string };
-  index: number;
-  indexOfType: number;
-  previousSiblingTag?: string;
-};
-type Hierarchy = HierarchyNode[];
+import { Hierarchy, HierarchyNode } from './typings/autocapture';
 
 const SKIP_ATTRIBUTES = ['style', 'class', 'id'];
 
-function getElementProperties(element: Element): HierarchyNode {
-  const siblings = Array.from(element.parentElement?.children ?? []);
+// TODO: make sure we filter null later
+export function getElementProperties(element: Element | null): HierarchyNode | null {
+  if (element === null) {
+    return null;
+  }
+
   const properties: HierarchyNode = {
-    tag: element?.tagName?.toLowerCase(),
-    index: siblings.indexOf(element),
-    indexOfType: siblings.filter((el) => el.tagName === element.tagName).indexOf(element),
+    tag: element.tagName.toLowerCase(),
   };
+
+  const siblings = Array.from(element.parentElement?.children ?? []);
+  if (siblings.length) {
+    properties.index = siblings.indexOf(element);
+    properties.indexOfType = siblings.filter((el) => el.tagName === element.tagName).indexOf(element);
+  }
 
   const id = element.id;
   if (id) {
@@ -29,13 +28,13 @@ function getElementProperties(element: Element): HierarchyNode {
     properties.class = classes;
   }
 
-  const attributesArray = Array.from(element.attributes); // Convert to array
+  const attributesArray = Array.from(element.attributes);
   const attributes: Record<string, string> = {};
   for (const attr of attributesArray) {
     if (SKIP_ATTRIBUTES.includes(attr.name)) {
       continue;
     }
-    // TODO: do more filtering on the attributes for sesitive data
+    // TODO: do more filtering on the attributes for sensitive data
     attributes[attr.name] = String(attr.value);
   }
   if (Object.keys(attributes).length) {
@@ -49,12 +48,15 @@ function getElementProperties(element: Element): HierarchyNode {
   return properties;
 }
 
-function getAncestors(targetEl: Element, addSelf: boolean): Element[] {
-  const ancestors = [];
-  // Add self to the list of ancestors
-  if (addSelf) {
-    ancestors.push(targetEl);
+export function getAncestors(targetEl: Element | null): Element[] {
+  const ancestors: Element[] = [];
+
+  if (!targetEl) {
+    return ancestors;
   }
+
+  // Add self to the list of ancestors
+  ancestors.push(targetEl);
   let current = targetEl.parentElement;
   while (current && current.tagName !== 'HTML') {
     ancestors.push(current);
@@ -64,10 +66,14 @@ function getAncestors(targetEl: Element, addSelf: boolean): Element[] {
 }
 
 // Get the DOM hierarchy of the element, starting from the target element to the root element.
-export const getHierarchy = (element: Element): Hierarchy => {
+export const getHierarchy = (element: Element | null): Hierarchy => {
   const hierarchy: Hierarchy = [];
+  if (!element) {
+    return hierarchy;
+  }
+
   // Get list of ancestors including itself
-  const ancestors = getAncestors(element, true);
+  const ancestors = getAncestors(element);
   ancestors.forEach((ancestor) => {
     hierarchy.unshift(getElementProperties(ancestor));
   });

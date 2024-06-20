@@ -10,7 +10,6 @@ import {
   querySelectUniqueElements,
   getClosestElement,
   getSelector,
-  JSONValue,
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
@@ -183,7 +182,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     const nearestLabel = getNearestLabel(element);
     const selector = getSelector(element, logger);
     /* istanbul ignore next */
-    const properties: Record<string, JSONValue | null> = {
+    const properties: Record<string, any> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.id,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.className,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
