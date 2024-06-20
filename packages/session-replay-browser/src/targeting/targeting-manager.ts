@@ -1,6 +1,6 @@
 import { TargetingParameters, evaluateTargeting as evaluateTargetingPackage } from '@amplitude/targeting';
 import { SessionReplayJoinedConfig } from 'src/config/types';
-import * as TargetingIDBStore from './targeting-idb-store';
+import { targetingIDBStore } from './targeting-idb-store';
 
 export const evaluateTargetingAndStore = async ({
   sessionId,
@@ -11,13 +11,13 @@ export const evaluateTargetingAndStore = async ({
   config: SessionReplayJoinedConfig;
   targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
 }) => {
-  await TargetingIDBStore.clearStoreOfOldSessions({
+  await targetingIDBStore.clearStoreOfOldSessions({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
     currentSessionId: sessionId,
   });
 
-  const idbTargetingMatch = await TargetingIDBStore.getTargetingMatchForSession({
+  const idbTargetingMatch = await targetingIDBStore.getTargetingMatchForSession({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
     sessionId: sessionId,
@@ -41,7 +41,7 @@ export const evaluateTargetingAndStore = async ({
       });
       sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
     }
-    void TargetingIDBStore.storeTargetingMatchForSession({
+    void targetingIDBStore.storeTargetingMatchForSession({
       loggerProvider: config.loggerProvider,
       apiKey: config.apiKey,
       sessionId: sessionId,

@@ -1,7 +1,8 @@
 import { Logger } from '@amplitude/analytics-types';
 import * as Targeting from '@amplitude/targeting';
+import { IDBPDatabase } from 'idb';
 import { SessionReplayJoinedConfig } from '../../src/config/types';
-import * as TargetingIDBStore from '../../src/targeting/targeting-idb-store';
+import { SessionReplayTargetingDB, targetingIDBStore } from '../../src/targeting/targeting-idb-store';
 import { evaluateTargetingAndStore } from '../../src/targeting/targeting-manager';
 import { flagConfig } from '../flag-config-data';
 
@@ -27,7 +28,10 @@ describe('Targeting Manager', () => {
     sampleRate: 1,
     targetingConfig: flagConfig,
   } as unknown as SessionReplayJoinedConfig;
-  beforeEach(() => {
+  let db: IDBPDatabase<SessionReplayTargetingDB>;
+  beforeEach(async () => {
+    db = await targetingIDBStore.openOrCreateDB('static_key');
+    await db.clear('sessionTargetingMatch');
     jest.useFakeTimers();
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -47,11 +51,11 @@ describe('Targeting Manager', () => {
     let storeTargetingMatchForSessionMock: jest.SpyInstance;
     let getTargetingMatchForSessionMock: jest.SpyInstance;
     beforeEach(() => {
-      storeTargetingMatchForSessionMock = jest.spyOn(TargetingIDBStore, 'storeTargetingMatchForSession');
-      getTargetingMatchForSessionMock = jest.spyOn(TargetingIDBStore, 'getTargetingMatchForSession');
+      storeTargetingMatchForSessionMock = jest.spyOn(targetingIDBStore, 'storeTargetingMatchForSession');
+      getTargetingMatchForSessionMock = jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession');
     });
     test('should return a true match from IndexedDB', async () => {
-      jest.spyOn(TargetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(true);
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(true);
       const sessionTargetingMatch = await evaluateTargetingAndStore({ sessionId: 123, config: config });
       expect(getTargetingMatchForSessionMock).toHaveBeenCalled();
       expect(evaluateTargeting).not.toHaveBeenCalled();
@@ -59,7 +63,7 @@ describe('Targeting Manager', () => {
     });
 
     test('should use remote config to determine targeting match', async () => {
-      jest.spyOn(TargetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
+      jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(false);
       evaluateTargeting.mockResolvedValueOnce({
         sr_targeting_config: {
           key: 'on',
@@ -122,7 +126,7 @@ describe('Targeting Manager', () => {
       expect(sessionTargetingMatch).toBe(true);
     });
     test('should handle error', async () => {
-      jest.spyOn(TargetingIDBStore, 'storeTargetingMatchForSession').mockImplementationOnce(() => {
+      jest.spyOn(targetingIDBStore, 'storeTargetingMatchForSession').mockImplementationOnce(() => {
         throw new Error('storage error');
       });
       const sessionTargetingMatch = await evaluateTargetingAndStore({
