@@ -13,6 +13,7 @@ import {
   getClosestElement,
   getEventTagProps,
   asyncLoadScript,
+  generateUniqueId,
 } from '../src/helpers';
 import { mockWindowLocationFromURL } from './utils';
 import { Logger } from '@amplitude/analytics-types';
@@ -559,6 +560,19 @@ describe('autocapture-plugin helpers', () => {
       expect(document.getElementsByTagName('script')[0].src).toEqual('https://test-url.amplitude/');
 
       script.dispatchEvent(new Event('error'));
+    });
+  });
+
+  describe('generateUniqueId', () => {
+    test('should return a unique id', () => {
+      const id1 = generateUniqueId();
+      const id2 = generateUniqueId();
+      expect(id1).not.toEqual(id2);
+
+      // Test random characters in second part of the id
+      const randomChar1 = id1.split('-')[1];
+      const randomChar2 = id2.split('-')[1];
+      expect(randomChar1).not.toEqual(randomChar2);
     });
   });
 });
