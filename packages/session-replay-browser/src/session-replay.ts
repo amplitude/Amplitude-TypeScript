@@ -90,6 +90,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
       sessionId: this.identifiers.sessionId,
     });
 
+    this.identifiers.deviceId &&
+      void this.eventsManager.sendStoredEvents({
+        deviceId: this.identifiers.deviceId,
+      });
+
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
     const globalScope = getGlobalScope();
@@ -101,7 +106,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     if (globalScope && globalScope.document && globalScope.document.hasFocus()) {
-      await this.initialize(true);
+      await this.evaluateTargetingAndRecord();
     }
   }
 
@@ -168,7 +173,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   focusListener = () => {
-    void this.initialize();
+    if (this.sessionTargetingMatch) {
+      this.recordEvents();
+    }
   };
 
   evaluateTargetingAndRecord = async (options?: { event?: Event }) => {
@@ -176,12 +183,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
       return false;
     }
-    let eventForTargeting = options?.event;
+    // Return early if a targeting match has already been made
+    if (this.sessionTargetingMatch) {
+      if (!this.recordCancelCallback) {
+        this.recordEvents();
+      }
+      return this.sessionTargetingMatch;
+    }
 
+    let eventForTargeting = options?.event;
     if (
-      [SpecialEventType.GROUP_IDENTIFY, SpecialEventType.IDENTIFY, SpecialEventType.REVENUE].includes(
-        eventForTargeting?.event_type as SpecialEventType,
-      )
+      eventForTargeting &&
+      Object.values(SpecialEventType).includes(eventForTargeting.event_type as SpecialEventType)
     ) {
       eventForTargeting = undefined;
     }
@@ -213,27 +226,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       sessionIdToSend &&
       deviceId &&
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
-  }
-
-  async initialize(shouldSendStoredEvents = false) {
-    if (!this.identifiers?.sessionId) {
-      this.loggerProvider.log(`Session is not being recorded due to lack of session id.`);
-      return;
-    }
-
-    const deviceId = this.getDeviceId();
-    if (!deviceId) {
-      this.loggerProvider.log(`Session is not being recorded due to lack of device id.`);
-      return;
-    }
-
-    this.eventsManager &&
-      shouldSendStoredEvents &&
-      this.eventsManager.sendStoredEvents({
-        deviceId,
-      });
-
-    await this.evaluateTargetingAndRecord();
   }
 
   shouldOptOut() {
