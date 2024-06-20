@@ -3,7 +3,7 @@ import { SessionReplayLocalConfig } from '../config/types';
 
 export type Events = string[];
 
-export type EventType = 'replay' | 'interaction';
+export type EventType = 'replay' | 'interactive';
 export interface SessionReplayDestination {
   events: Events;
   sequenceId: number;

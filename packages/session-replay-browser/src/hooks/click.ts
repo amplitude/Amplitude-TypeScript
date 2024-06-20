@@ -23,7 +23,7 @@ export type ClickEventWithCount = ClickEvent & { count: number };
 type Options = {
   sessionId: number;
   deviceIdFn: () => string | undefined;
-  eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
+  eventsManager: AmplitudeSessionReplayEventsManager<'interactive', string>;
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
@@ -94,6 +94,6 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     };
     const deviceId = deviceIdFn();
     if (deviceId) {
-      eventsManager.addEvent({ sessionId, event: { type: 'interaction', data: JSON.stringify(event) }, deviceId });
+      eventsManager.addEvent({ sessionId, event: { type: 'interactive', data: JSON.stringify(event) }, deviceId });
     }
   };

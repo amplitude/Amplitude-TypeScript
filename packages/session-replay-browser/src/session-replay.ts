@@ -31,7 +31,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
-  eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
+  eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interactive', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
@@ -98,18 +98,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     managers.push({ name: 'replay', manager: rrwebEventManager });
 
     if (this.config.interactionConfig?.enabled) {
-      const interactionEventManager = await createEventsManager<'interaction'>({
+      const interactionEventManager = await createEventsManager<'interactive'>({
         config: this.config,
         sessionId: this.identifiers.sessionId,
-        type: 'interaction',
+        type: 'interactive',
         minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
         maxInterval: INTERACTION_MAX_INTERVAL,
         payloadBatcher: clickBatcher,
       });
-      managers.push({ name: 'interaction', manager: interactionEventManager });
+      managers.push({ name: 'interactive', manager: interactionEventManager });
     }
 
-    this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
+    this.eventsManager = new MultiEventManager<'replay' | 'interactive', string>(...managers);
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
