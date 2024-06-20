@@ -1,6 +1,8 @@
 /* eslint-disable no-restricted-globals */
 /* Only file allowed to access to globalThis, window, self */
 
+import { ampIntegrationContext } from './types/global';
+
 export const getGlobalScope = (): typeof globalThis | undefined => {
   if (typeof ampIntegrationContext !== 'undefined') {
     return ampIntegrationContext;
