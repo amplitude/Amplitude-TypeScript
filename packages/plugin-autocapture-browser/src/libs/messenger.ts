@@ -192,6 +192,7 @@ export class WindowMessenger implements Messenger {
                   return true;
                 },
                 onTrack: this.onTrack,
+                onSelect: this.onSelect,
                 visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
                 messenger: this,
               });
@@ -210,6 +211,10 @@ export class WindowMessenger implements Messenger {
     // Notify the parent window that the page has loaded
     this.notify({ action: 'page-loaded' });
   }
+
+  private onSelect = (data: ElementSelectedData) => {
+    this.notify({ action: 'element-selected', data });
+  };
 
   private onTrack = (type: string, properties: { [key: string]: string | null }) => {
     if (type === 'selector-mode-changed') {
