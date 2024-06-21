@@ -5,7 +5,7 @@ import { Logger } from '@amplitude/analytics-types';
 
 export type JSONValue = string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
 
-const SENTITIVE_TAGS = ['input', 'select', 'textarea'];
+const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export const isNonSensitiveString = (text: string | null) => {
   if (text == null) {
@@ -32,7 +32,8 @@ export const isTextNode = (node: Node) => {
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  return !SENTITIVE_TAGS.includes(tag);
+  const isContentEditable = element.getAttribute('contenteditable') === 'true';
+  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 
 // Maybe this can be simplified with element.innerText, keep and manual concatenating for now, more research needed.

@@ -98,6 +98,72 @@ describe('autocapture-plugin hierarchy', () => {
       tag: 'div',
     });
   });
+
+  describe('should filter out attributes', () => {
+    test('should filter out blocked attributes', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+      <div id="target" style="background-color:#fff;" ok-attribute="hi"></div>
+    `;
+
+      const target = document.getElementById('target');
+      expect(getElementProperties(target)).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attributes: {
+          'ok-attribute': 'hi',
+        },
+      });
+    });
+
+    test('should filter out all non whitelisted attributes from sensitive elements', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+      <input id="target" type="checkbox" style="background-color:#fff;" ok-attribute="hi"></input>
+    `;
+
+      const target = document.getElementById('target');
+      expect(getElementProperties(target)).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'input',
+        attributes: {
+          type: 'checkbox',
+        },
+      });
+    });
+
+    test('should filter out all attributes from highly sensitive elements', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+      <input id="target" class="test" type="password" ok-attribute="hi"></input>
+    `;
+
+      const target = document.getElementById('target');
+      expect(getElementProperties(target)).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'input',
+        class: ['test'],
+      });
+    });
+
+    test('should discard attributes for svg-related elements', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+      <svg id="target" class="test" ok-attribute="hi"></svg>
+    `;
+
+      const target = document.getElementById('target');
+      expect(getElementProperties(target)).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'svg',
+        class: ['test'],
+      });
+    });
+  });
 });
 
 describe('getAncestors', () => {
@@ -176,5 +242,57 @@ describe('getHierarchy', () => {
   test('should not fail when element is null', () => {
     const nullElement = null;
     expect(getHierarchy(nullElement)).toEqual([]);
+  });
+
+  test('should cut off hierarchy output nodes to stay less than or equal to 1024 chars', () => {
+    document.getElementsByTagName('body')[0].innerHTML = `
+      <div id="parent2">
+        <div id="parent1"
+          long-attribute="${'a'.repeat(2000)}end"
+          long-attribute2="${'a'.repeat(128)}"
+          long-attribute3="${'a'.repeat(128)}"
+          long-attribute4="${'a'.repeat(128)}"
+          long-attribute5="${'a'.repeat(128)}"
+          attribute6="${'a'.repeat(80)}"
+        >
+          <div id="inner12345">
+            xxx
+          </div>
+        </div>
+      </div>
+    `;
+
+    const inner12345 = document.getElementById('inner12345');
+    const innerHierarchy = getHierarchy(inner12345);
+    expect(innerHierarchy).toEqual([
+      {
+        id: 'parent2',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+      },
+      {
+        id: 'parent1',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attributes: {
+          'long-attribute': 'a'.repeat(128),
+          'long-attribute2': 'a'.repeat(128),
+          'long-attribute3': 'a'.repeat(128),
+          'long-attribute4': 'a'.repeat(128),
+          'long-attribute5': 'a'.repeat(128),
+          attribute6: 'a'.repeat(80),
+        },
+      },
+      {
+        id: 'inner12345',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+      },
+    ]);
+
+    expect(JSON.stringify(innerHierarchy).length).toEqual(1024);
   });
 });
