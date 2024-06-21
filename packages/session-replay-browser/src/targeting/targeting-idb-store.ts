@@ -13,7 +13,7 @@ export interface SessionReplayTargetingDB extends DBSchema {
 }
 
 export class TargetingIDBStore {
-  dbs: { [apiKey: string]: IDBPDatabase<SessionReplayTargetingDB> } | undefined;
+  dbs: { [apiKey: string]: IDBPDatabase<SessionReplayTargetingDB> } = {};
 
   createStore = async (dbName: string) => {
     return await openDB<SessionReplayTargetingDB>(dbName, 1, {
@@ -33,10 +33,7 @@ export class TargetingIDBStore {
     }
     const dbName = `${apiKey.substring(0, 10)}_amp_session_replay_targeting`;
     const db = await this.createStore(dbName);
-    this.dbs = {
-      ...this.dbs,
-      [apiKey]: db,
-    };
+    this.dbs[apiKey] = db;
     return db;
   };
 
