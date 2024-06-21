@@ -13,7 +13,9 @@ import {
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
 import { createEventsManager } from './events/events-manager';
+import { MultiEventManager } from './events/multi-manager';
 import { generateHashCode, isSessionInSample, maskFn } from './helpers';
+import { clickBatcher, clickHook } from './hooks/click';
 import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
@@ -23,8 +25,6 @@ import {
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
-import { clickBatcher, clickHook } from './hooks/click';
-import { MultiEventManager } from './events/multi-manager';
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -76,6 +76,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.loggerProvider = options.loggerProvider || new Logger();
+    options.logLevel && this.loggerProvider.enable(options.logLevel);
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
