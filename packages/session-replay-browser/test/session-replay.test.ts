@@ -8,12 +8,12 @@ import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 
 import { IDBFactory } from 'fake-indexeddb';
+import { SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
-import { SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
 
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -153,6 +153,8 @@ describe('SessionReplay', () => {
       expect(sessionReplay.identifiers?.deviceId).toBe('1a2b3c');
       expect(sessionReplay.identifiers?.sessionId).toBe(123);
       expect(sessionReplay.config?.logLevel).toBe(0);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.enable).toHaveBeenCalledWith(0);
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toEqual(['.class', '#id']);
       expect(sessionReplay.loggerProvider).toBeDefined();
     });

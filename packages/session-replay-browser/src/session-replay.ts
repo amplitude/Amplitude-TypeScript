@@ -1,6 +1,6 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
-import { Logger as ILogger } from '@amplitude/analytics-types';
+import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
@@ -76,7 +76,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.loggerProvider = options.loggerProvider || new Logger();
-    options.logLevel && this.loggerProvider.enable(options.logLevel);
+    Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
+      this.loggerProvider.enable(options.logLevel as LogLevel);
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
