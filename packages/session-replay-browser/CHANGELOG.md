@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.9.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.2...@amplitude/session-replay-browser@1.9.3) (2024-06-24)
+
+### Bug Fixes
+
+- **session replay:** ensure enable is called with logLevel=0
+  ([cf37c04](https://github.com/amplitude/Amplitude-TypeScript/commit/cf37c042520dbd64e20f77ef6c345ad20ac0a7b5))
+- **session replay:** fix logger for standalone
+  ([cc9cbef](https://github.com/amplitude/Amplitude-TypeScript/commit/cc9cbefa19a9305a85743015e2fc21fdfe457716))
+- **session-replay-browser:** remove @medv/finder as a dependency
+  ([#791](https://github.com/amplitude/Amplitude-TypeScript/issues/791))
+  ([7617929](https://github.com/amplitude/Amplitude-TypeScript/commit/761792925fa0abb7b879fc3deb0c23d2ff23fca0))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.9.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.1...@amplitude/session-replay-browser@1.9.2) (2024-06-24)
 
 ### Bug Fixes
