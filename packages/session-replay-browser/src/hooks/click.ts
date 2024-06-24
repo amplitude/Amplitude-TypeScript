@@ -1,5 +1,5 @@
 import { mouseInteractionCallBack, MouseInteractions } from '@amplitude/rrweb-types';
-import { record } from '@amplitude/rrweb';
+import { record, utils } from '@amplitude/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '@medv/finder';
@@ -81,9 +81,11 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
       selector = finder(node as Element);
     }
 
+    const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
+
     const event: ClickEvent = {
-      x,
-      y,
+      x: x + scrollX,
+      y: y + scrollY,
       selector,
 
       viewportHeight: innerHeight,
