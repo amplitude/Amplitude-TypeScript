@@ -4,7 +4,7 @@ import { MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplayEventsManager } from '../../src/typings/session-replay';
 import { UUID } from '@amplitude/analytics-core';
 import { ClickEvent, ClickEventWithCount, clickBatcher, clickHook } from '../../src/hooks/click';
-import { record } from '@amplitude/rrweb';
+import { record, utils } from '@amplitude/rrweb';
 
 jest.mock('@amplitude/rrweb');
 
@@ -20,6 +20,16 @@ describe('click', () => {
     const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
       jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
     };
+
+    const mockWindowScroll = (left = 0, top = 0) => {
+      (utils.getWindowScroll as jest.Mock).mockImplementation(() => {
+        return { left, top };
+      }) as any;
+    };
+
+    beforeEach(() => {
+      mockWindowScroll();
+    });
 
     afterEach(() => {
       jest.restoreAllMocks();
@@ -87,6 +97,25 @@ describe('click', () => {
       expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
         x: 3,
         y: 3,
+        viewportHeight: 768,
+        viewportWidth: 1024,
+        pageUrl: 'http://localhost/',
+        timestamp: expect.any(Number),
+        type: 'click',
+      });
+    });
+    test('add event on click event with scroll', () => {
+      mockWindowScroll(4, 5);
+      hook({
+        id: 1234,
+        type: MouseInteractions.Click,
+        x: 3,
+        y: 3,
+      });
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
+        x: 3 + 4,
+        y: 3 + 5,
         viewportHeight: 768,
         viewportWidth: 1024,
         pageUrl: 'http://localhost/',
