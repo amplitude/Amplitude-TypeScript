@@ -2,7 +2,7 @@ import { mouseInteractionCallBack, MouseInteractions } from '@amplitude/rrweb-ty
 import { record, utils } from '@amplitude/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
-import { finder } from '@medv/finder';
+import { finder } from '../libs/finder';
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 
 // exported for testing
