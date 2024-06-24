@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.2.3...@amplitude/analytics-client-common@2.2.4) (2024-06-24)
+
+### Bug Fixes
+
+- **analytics-browser:** handle double URL encoded cookie values
+  ([#790](https://github.com/amplitude/Amplitude-TypeScript/issues/790))
+  ([577c1a9](https://github.com/amplitude/Amplitude-TypeScript/commit/577c1a940cfe2d3b64590b09bf2cdb03cb961c3f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.2.2...@amplitude/analytics-client-common@2.2.3) (2024-06-24)
 
 ### Bug Fixes
