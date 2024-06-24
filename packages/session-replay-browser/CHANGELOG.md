@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.9.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.1...@amplitude/session-replay-browser@1.9.2) (2024-06-24)
+
+### Bug Fixes
+
+- **session-replay-browser:** add scroll to click event
+  ([#789](https://github.com/amplitude/Amplitude-TypeScript/issues/789))
+  ([74a720a](https://github.com/amplitude/Amplitude-TypeScript/commit/74a720a9c4787374c0fdcc85e85cd389269d5b4f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.9.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.0...@amplitude/session-replay-browser@1.9.1) (2024-06-17)
 
 ### Bug Fixes

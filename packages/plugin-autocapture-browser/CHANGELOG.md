@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@0.9.2...@amplitude/plugin-autocapture-browser@0.10.0) (2024-06-24)
+
+### Features
+
+- **autocapture-browser:** Adding async request/response pattern to Autocapture messenger
+  ([#781](https://github.com/amplitude/Amplitude-TypeScript/issues/781))
+  ([f7e26fc](https://github.com/amplitude/Amplitude-TypeScript/commit/f7e26fc1ffed3589934935cede4432ff915c424c))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.9.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@0.9.1...@amplitude/plugin-autocapture-browser@0.9.2) (2024-06-07)
 
 ### Bug Fixes
