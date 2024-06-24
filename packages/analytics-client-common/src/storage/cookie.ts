@@ -31,18 +31,18 @@ export class CookieStorage<T> implements Storage<T> {
   }
 
   async get(key: string): Promise<T | undefined> {
-    let value = await this.getRaw(key);
+    const value = await this.getRaw(key);
     if (!value) {
       return undefined;
     }
     try {
-      try {
-        value = decodeURIComponent(atob(value));
-      } catch {
+      const decodedValue = decodeCookiesAsDefault(value) ?? decodeCookiesForRuby(value);
+      if (decodedValue === undefined) {
         console.error(`Amplitude Logger [Error]: Failed to decode cookie value for key: ${key}, value: ${value}`);
+        return undefined;
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return JSON.parse(value);
+      return JSON.parse(decodedValue);
     } catch {
       console.error(`Amplitude Logger [Error]: Failed to parse cookie value for key: ${key}, value: ${value}`);
       return undefined;
@@ -101,3 +101,21 @@ export class CookieStorage<T> implements Storage<T> {
     return;
   }
 }
+
+const decodeCookiesAsDefault = (value: string): string | undefined => {
+  try {
+    return decodeURIComponent(atob(value));
+  } catch {
+    return undefined;
+  }
+};
+
+const decodeCookiesForRuby = (value: string): string | undefined => {
+  // Modern Ruby (v7+) automatically encodes cookies with URL encoding by
+  // https://api.rubyonrails.org/classes/ActionDispatch/Cookies.html
+  try {
+    return decodeURIComponent(atob(decodeURIComponent(value)));
+  } catch {
+    return undefined;
+  }
+};

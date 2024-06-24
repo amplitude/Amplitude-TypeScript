@@ -22,11 +22,28 @@ describe('cookies', () => {
       await cookies.remove('world');
     });
 
+    test('should handle double url encoded value for Ruby Rails', async () => {
+      const cookies = new CookieStorage();
+      const value = { a: 1 };
+      const cookieValue = encodeURIComponent(btoa(encodeURIComponent(JSON.stringify(value))));
+      document.cookie = `hello=${cookieValue}`;
+      expect(await cookies.get('hello')).toEqual(value);
+      await cookies.remove('world');
+    });
+
     test('should return cookie object value', async () => {
       const cookies = new CookieStorage<Record<string, number>>();
       await cookies.set('hello', { a: 1 });
       expect(await cookies.get('hello')).toEqual({ a: 1 });
       await cookies.remove('hello');
+    });
+
+    test('should catch non-json format value', async () => {
+      const cookies = new CookieStorage();
+      const value = '{"a":1';
+      const encodedValue = btoa(encodeURIComponent(value));
+      document.cookie = `hello=${encodedValue}`;
+      expect(await cookies.get('hello')).toBe(undefined);
     });
 
     test('should return cookie array value', async () => {
