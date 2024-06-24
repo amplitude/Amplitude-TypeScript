@@ -36,7 +36,7 @@ export class CookieStorage<T> implements Storage<T> {
       return undefined;
     }
     try {
-      const decodedValue = decodeCookiesAsDefault(value) ?? decodeCookiesForRuby(value);
+      const decodedValue = decodeCookiesAsDefault(value) ?? decodeCookiesWithDoubleUrlEncoding(value);
       if (decodedValue === undefined) {
         console.error(`Amplitude Logger [Error]: Failed to decode cookie value for key: ${key}, value: ${value}`);
         return undefined;
@@ -110,7 +110,7 @@ const decodeCookiesAsDefault = (value: string): string | undefined => {
   }
 };
 
-const decodeCookiesForRuby = (value: string): string | undefined => {
+const decodeCookiesWithDoubleUrlEncoding = (value: string): string | undefined => {
   // Modern Ruby (v7+) automatically encodes cookies with URL encoding by
   // https://api.rubyonrails.org/classes/ActionDispatch/Cookies.html
   try {
