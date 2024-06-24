@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.2.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.2.2...@amplitude/analytics-client-common@2.2.3) (2024-06-24)
+
+### Bug Fixes
+
+- adding ampIntegrationsContext to getGlobalScope
+  ([bd6f08c](https://github.com/amplitude/Amplitude-TypeScript/commit/bd6f08c10c9814e4f098c37810332c6881b4f424))
+- checking for undefined and added tests
+  ([4176f5f](https://github.com/amplitude/Amplitude-TypeScript/commit/4176f5f0571dbd535761f92c997fb825253807a5))
+- fix reference error
+  ([1af86fa](https://github.com/amplitude/Amplitude-TypeScript/commit/1af86fa8900d8755848d0dece9658cb1f136ed48))
+- fixed minifing the global variable name
+  ([09b733b](https://github.com/amplitude/Amplitude-TypeScript/commit/09b733bcb0dfcb4da2969c5332fdb9b24b060633))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.2.1...@amplitude/analytics-client-common@2.2.2) (2024-06-17)
 
 ### Bug Fixes
