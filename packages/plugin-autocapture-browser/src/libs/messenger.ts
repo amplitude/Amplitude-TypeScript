@@ -30,6 +30,7 @@ interface InitializeVisualTaggingSelectorData {
 }
 
 interface ElementSelectedData {
+  '[Amplitude] Element Hierarchy'?: string;
   '[Amplitude] Element Tag'?: string;
   '[Amplitude] Element Text'?: string;
   '[Amplitude] Element Selector'?: string;
