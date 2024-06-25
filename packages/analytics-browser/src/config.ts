@@ -252,7 +252,7 @@ export const useBrowserConfig = async (
   const pageCounter = previousCookies?.pageCounter;
   const debugLogsEnabled = previousCookies?.debugLogsEnabled;
 
-  return new BrowserConfig(
+  const browserConfig = new BrowserConfig(
     apiKey,
     options.appVersion,
     cookieStorage,
@@ -286,6 +286,15 @@ export const useBrowserConfig = async (
     pageCounter,
     debugLogsEnabled,
   );
+
+  if (!(await browserConfig.storageProvider.isEnabled())) {
+    browserConfig.loggerProvider.warn(
+      `Storage provider ${browserConfig.storageProvider.constructor.name} is not enabled. Falling back to MemoryStorage.`,
+    );
+    browserConfig.storageProvider = new MemoryStorage();
+  }
+
+  return browserConfig;
 };
 
 export const createCookieStorage = <T>(
