@@ -1,10 +1,7 @@
 {
-  "packages": [
-    "packages/*"
-  ],
+  "packages": ["packages/*"],
   "version": "independent",
   "npmClient": "yarn",
-  "useWorkspaces": true,
   "command": {
     "version": {
       "allowBranch": "main",
@@ -12,5 +9,6 @@
       "message": "chore(release): publish",
       "preid": "beta"
     }
-  }
+  },
+  "$schema": "node_modules/lerna/schemas/lerna-schema.json"
 }
