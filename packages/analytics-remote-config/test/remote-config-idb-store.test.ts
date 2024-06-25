@@ -115,6 +115,51 @@ describe('RemoteConfigIDBStore', () => {
     });
   });
 
+  describe('remoteConfigHasValues', () => {
+    test('should return true if remote config is in idb store', async () => {
+      await remoteConfigStore.put('sessionReplay', samplingConfig.sr_sampling_config, 'sr_sampling_config');
+      const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        configKeys: ['sessionReplay'],
+      });
+      const remoteConfigHasValues = await store.remoteConfigHasValues('sessionReplay');
+      expect(remoteConfigHasValues).toEqual(true);
+    });
+    test('should return false if remote config is not in idb store', async () => {
+      const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        configKeys: ['sessionReplay'],
+      });
+      const remoteConfigHasValues = await store.remoteConfigHasValues('sessionReplay');
+      expect(remoteConfigHasValues).toEqual(false);
+    });
+    test('should handle an undefined store', async () => {
+      const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        configKeys: ['sessionReplay'],
+      });
+      const remoteConfigHasValues = await store.remoteConfigHasValues('sessionReplay');
+      expect(remoteConfigHasValues).toEqual(false);
+    });
+    test('should catch errors', async () => {
+      const mockDB: IDBPDatabase<unknown> = {
+        getAll: jest.fn().mockImplementation(() => Promise.reject('get error')),
+      } as unknown as IDBPDatabase<unknown>;
+      jest.spyOn(RemoteConfigAPIStore, 'openOrCreateRemoteConfigStore').mockResolvedValue(mockDB);
+      const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        configKeys: ['sessionReplay'],
+      });
+      await store.remoteConfigHasValues('sessionReplay');
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn.mock.calls[0][0]).toEqual('Failed to fetch remote config: get error');
+    });
+  });
+
   describe('getLastFetchedSessionId', () => {
     const sessionIdTimestamp = new Date('2023-07-31 08:30:00').getTime();
     beforeEach(() => {

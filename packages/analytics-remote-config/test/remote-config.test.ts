@@ -8,17 +8,26 @@ import {
   createRemoteConfigFetch,
 } from '../src/remote-config';
 import * as RemoteConfigAPIStore from '../src/remote-config-idb-store';
-import { RemoteConfigAPIResponse } from '../src/types';
+import { RemoteConfigAPIResponse, RemoteConfigIDBStore } from '../src/types';
 
 type MockedLogger = jest.Mocked<Logger>;
 
-const samplingConfig = {
+type MockConfig = {
+  sr_sampling_config?: {
+    sample_rate: number;
+    capture_enabled: boolean;
+  };
+  sr_interaction_config?: { [key: string]: number };
+};
+
+const samplingConfig: MockConfig = {
   sr_sampling_config: {
     sample_rate: 1,
     capture_enabled: true,
   },
 };
-const mockRemoteConfig: RemoteConfigAPIResponse<typeof samplingConfig> = {
+
+const mockRemoteConfig: RemoteConfigAPIResponse<MockConfig> = {
   configs: {
     sessionReplay: samplingConfig,
   },
@@ -48,12 +57,7 @@ describe('RemoteConfigFetch', () => {
     debug: jest.fn(),
   };
   let localConfig: IConfig;
-  const mockConfigStore = {
-    fetchTime: 0,
-    storeRemoteConfig: jest.fn(),
-    getLastFetchedSessionId: jest.fn().mockResolvedValue(123),
-    getRemoteConfig: jest.fn().mockResolvedValue(samplingConfig.sr_sampling_config),
-  };
+  let mockConfigStore: RemoteConfigIDBStore<{ [key: string]: object }>;
 
   let remoteConfigFetch: RemoteConfigFetch<typeof samplingConfig>;
   let fetchMock: jest.Mock;
@@ -70,6 +74,12 @@ describe('RemoteConfigFetch', () => {
     });
   }
   beforeEach(() => {
+    mockConfigStore = {
+      storeRemoteConfig: jest.fn(),
+      getLastFetchedSessionId: jest.fn().mockResolvedValue(123),
+      getRemoteConfig: jest.fn().mockResolvedValue(samplingConfig.sr_sampling_config),
+      remoteConfigHasValues: jest.fn().mockResolvedValue(true),
+    };
     jest.spyOn(RemoteConfigAPIStore, 'createRemoteConfigIDBStore').mockResolvedValue(mockConfigStore);
     localConfig = new Config({
       loggerProvider: mockLoggerProvider,
@@ -112,6 +122,14 @@ describe('RemoteConfigFetch', () => {
     test('should return undefined if remote config is undefined', async () => {
       const remoteConfig = await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 42); // 42 returns undefined
       expect(remoteConfig).toBeUndefined();
+      expect(fetchMock).toHaveBeenCalled();
+    });
+    test('should return undefined and not call fetchWithTimeout if remote config in indexedDB, but key in remote config is not', async () => {
+      mockConfigStore.getRemoteConfig = jest.fn().mockResolvedValue(undefined);
+      jest.spyOn(RemoteConfigAPIStore, 'createRemoteConfigIDBStore').mockResolvedValue(mockConfigStore);
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_interaction_config', 123);
+      expect(remoteConfig).toBeUndefined();
+      expect(fetchMock).not.toHaveBeenCalled();
     });
     test('should call fetchWithTimeout if lastFetchedSessionId does not match session id', async () => {
       const remoteConfig = await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 456);
@@ -139,6 +157,7 @@ describe('RemoteConfigFetch', () => {
     });
     test('should call fetchWithTimeout if no config exists in memory or indexeddb', async () => {
       mockConfigStore.getRemoteConfig = jest.fn().mockResolvedValue(undefined);
+      mockConfigStore.remoteConfigHasValues = jest.fn().mockResolvedValue(false);
       jest.spyOn(RemoteConfigAPIStore, 'createRemoteConfigIDBStore').mockResolvedValue(mockConfigStore);
       await initialize();
 
@@ -182,6 +201,20 @@ describe('RemoteConfigFetch', () => {
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(mockConfigStore.storeRemoteConfig).toHaveBeenCalledWith(mockRemoteConfig, 123);
+      });
+    });
+    test('should fetch and not set config in indexedDB if IDB not setup', async () => {
+      (fetch as jest.Mock).mockImplementationOnce(() =>
+        Promise.resolve({
+          status: 200,
+          json: () => mockRemoteConfig,
+        }),
+      );
+      remoteConfigFetch.remoteConfigIDBStore = undefined;
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
+      await runScheduleTimers();
+      return fetchPromise.then(() => {
+        expect(mockConfigStore.storeRemoteConfig).not.toHaveBeenCalledWith(mockRemoteConfig, 123);
       });
     });
     test('should handle unexpected error', async () => {

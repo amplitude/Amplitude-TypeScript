@@ -22,6 +22,7 @@ export interface RemoteConfigIDBStore<RemoteConfig extends { [key: string]: obje
   extends BaseRemoteConfigFetch<RemoteConfig> {
   storeRemoteConfig: (remoteConfig: RemoteConfigAPIResponse<RemoteConfig>, sessionId?: number) => Promise<void>;
   getLastFetchedSessionId: () => Promise<number | void>;
+  remoteConfigHasValues: (configNamespace: string) => Promise<boolean>;
 }
 
 export type CreateRemoteConfigFetch = <RemoteConfig extends { [key: string]: object }>({
