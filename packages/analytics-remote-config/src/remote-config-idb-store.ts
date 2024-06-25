@@ -95,9 +95,20 @@ export const createRemoteConfigIDBStore = async <RemoteConfig extends { [key: st
     return undefined;
   };
 
+  const remoteConfigHasValues = async <K extends keyof RemoteConfig>(configNamespace: string): Promise<boolean> => {
+    try {
+      const config = (await remoteConfigDB.getAll(configNamespace)) as RemoteConfig[K][];
+      return !!config.length;
+    } catch (e) {
+      loggerProvider.warn(`Failed to fetch remote config: ${e as string}`);
+    }
+    return false;
+  };
+
   return {
     storeRemoteConfig,
     getRemoteConfig,
     getLastFetchedSessionId,
+    remoteConfigHasValues,
   };
 };

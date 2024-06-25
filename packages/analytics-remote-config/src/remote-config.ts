@@ -52,10 +52,12 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     const fetchStartTime = Date.now();
     // First check IndexedDB for session
     if (this.remoteConfigIDBStore) {
-      const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
+      const remoteConfigHasValues = await this.remoteConfigIDBStore.remoteConfigHasValues(configNamespace);
       const lastFetchedSessionId = await this.remoteConfigIDBStore.getLastFetchedSessionId();
+
       // Another option is to empty the db if current session doesn't match lastFetchedSessionId
-      if (idbRemoteConfig && lastFetchedSessionId === sessionId) {
+      if (remoteConfigHasValues && lastFetchedSessionId === sessionId) {
+        const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
         this.fetchTime = Date.now() - fetchStartTime;
         return idbRemoteConfig;
       }
@@ -153,8 +155,8 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   parseAndStoreConfig = async (res: Response, sessionId?: number): Promise<RemoteConfigAPIResponse<RemoteConfig>> => {
     const remoteConfig: RemoteConfigAPIResponse<RemoteConfig> =
       (await res.json()) as RemoteConfigAPIResponse<RemoteConfig>;
+    this.remoteConfigIDBStore && (await this.remoteConfigIDBStore.storeRemoteConfig(remoteConfig, sessionId));
     this.completeRequest({ success: SUCCESS_REMOTE_CONFIG });
-    this.remoteConfigIDBStore && void this.remoteConfigIDBStore.storeRemoteConfig(remoteConfig, sessionId);
     return remoteConfig;
   };
 
