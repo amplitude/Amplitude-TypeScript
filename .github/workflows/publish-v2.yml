@@ -34,7 +34,7 @@ jobs:
       RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [18.15.x]
 
     steps:
       - name: Check out git repository
