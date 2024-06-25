@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.0...@amplitude/analytics-remote-config@0.3.1) (2024-06-25)
+
+### Bug Fixes
+
+- **remote config:** prevent extra fetches of remote config when keys not defined in response
+  ([dfb04ab](https://github.com/amplitude/Amplitude-TypeScript/commit/dfb04abdf051e9ed88ad2eac133be284e1f7376e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.2.1...@amplitude/analytics-remote-config@0.3.0) (2024-06-11)
 
 ### Bug Fixes

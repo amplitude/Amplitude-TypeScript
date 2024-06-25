@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.9.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.3...@amplitude/session-replay-browser@1.9.4) (2024-06-25)
+
+### Bug Fixes
+
+- **session replay:** export options type and change log to warn
+  ([156d6b1](https://github.com/amplitude/Amplitude-TypeScript/commit/156d6b14975e03e68effb967fcb6899f1b7448a9))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.9.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.2...@amplitude/session-replay-browser@1.9.3) (2024-06-24)
 
 ### Bug Fixes
