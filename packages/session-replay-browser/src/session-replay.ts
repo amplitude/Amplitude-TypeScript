@@ -233,7 +233,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   getShouldRecord(ignoreFocus = false) {
     if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
-      this.loggerProvider.error(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
     }
     if (!this.config.captureEnabled) {
