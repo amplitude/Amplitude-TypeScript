@@ -1,5 +1,21 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [2.9.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.9.2...@amplitude/analytics-browser@2.9.3) (2024-06-26)
+
+
+### Bug Fixes
+
+* **analytics-browser:** fall back to MemoryStorage when localStorage is disabled ([#793](https://github.com/amplitude/Amplitude-TypeScript/issues/793)) ([bb7664e](https://github.com/amplitude/Amplitude-TypeScript/commit/bb7664ea082eba9fe9f584302bb9a0402365aa2a))
+
+
+
+
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
