@@ -180,15 +180,15 @@ describe('autoTrackingPlugin', () => {
           {
             index: 1,
             indexOfType: 0,
-            previousSiblingTag: 'head',
+            prevSib: 'head',
             tag: 'body',
           },
           {
-            attributes: {
+            attrs: {
               'aria-label': 'my-link',
               href: 'https://www.amplitude.com/click-link',
             },
-            class: ['my-link-class'],
+            classes: ['my-link-class'],
             id: 'my-link-id',
             index: 0,
             indexOfType: 0,
@@ -249,18 +249,18 @@ describe('autoTrackingPlugin', () => {
           {
             index: 1,
             indexOfType: 0,
-            previousSiblingTag: 'head',
+            prevSib: 'head',
             tag: 'body',
           },
           {
-            attributes: {
+            attrs: {
               'aria-label': 'my-button',
             },
-            class: ['my-button-class'],
+            classes: ['my-button-class'],
             id: 'my-button-id',
             index: 2,
             indexOfType: 0,
-            previousSiblingTag: 'h2',
+            prevSib: 'h2',
             tag: 'button',
           },
         ],
@@ -326,18 +326,18 @@ describe('autoTrackingPlugin', () => {
           {
             index: 1,
             indexOfType: 0,
-            previousSiblingTag: 'head',
+            prevSib: 'head',
             tag: 'body',
           },
           {
-            attributes: {
+            attrs: {
               'aria-label': 'my-button',
             },
-            class: ['my-button-class'],
+            classes: ['my-button-class'],
             id: 'my-button-id',
             index: 2,
             indexOfType: 0,
-            previousSiblingTag: 'h2',
+            prevSib: 'h2',
             tag: 'button',
           },
         ],
@@ -590,20 +590,20 @@ describe('autoTrackingPlugin', () => {
           {
             index: 1,
             indexOfType: 0,
-            previousSiblingTag: 'head',
+            prevSib: 'head',
             tag: 'body',
           },
           {
-            attributes: {
+            attrs: {
               'data-amp-test-hello': 'world',
               'data-amp-test-test': '',
               'data-amp-test-time': 'machine',
             },
-            class: ['my-button-class'],
+            classes: ['my-button-class'],
             id: 'my-button-id',
             index: 2,
             indexOfType: 0,
-            previousSiblingTag: 'h2',
+            prevSib: 'h2',
             tag: 'button',
           },
         ],

@@ -53,7 +53,7 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
   const prevSiblingTag = element.previousElementSibling?.tagName?.toLowerCase();
   if (prevSiblingTag) {
-    properties.previousSiblingTag = prevSiblingTag;
+    properties.prevSib = prevSiblingTag;
   }
 
   const id = element.id;
@@ -63,7 +63,7 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
   const classes = Array.from(element.classList);
   if (classes.length) {
-    properties.class = classes;
+    properties.classes = classes;
   }
 
   const attributes: Record<string, string> = {};
@@ -85,7 +85,7 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   }
 
   if (Object.keys(attributes).length) {
-    properties.attributes = attributes;
+    properties.attrs = attributes;
   }
 
   return properties;

@@ -45,12 +45,12 @@ describe('autocapture-plugin hierarchy', () => {
         id: 'inner4',
         index: 3,
         indexOfType: 1,
-        previousSiblingTag: 'a',
+        prevSib: 'a',
         tag: 'a',
       });
     });
 
-    test('should not return previousSiblingTag if it has no previous siblings', () => {
+    test('should not return prevSib if it has no previous siblings', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
         <div id="container">
           <div id="inner">
@@ -86,7 +86,7 @@ describe('autocapture-plugin hierarchy', () => {
         index: 0,
         indexOfType: 0,
         tag: 'div',
-        class: ['class1', 'class2'],
+        classes: ['class1', 'class2'],
       });
     });
   });
@@ -111,7 +111,7 @@ describe('autocapture-plugin hierarchy', () => {
         index: 0,
         indexOfType: 0,
         tag: 'div',
-        attributes: {
+        attrs: {
           'ok-attribute': 'hi',
         },
       });
@@ -128,7 +128,7 @@ describe('autocapture-plugin hierarchy', () => {
         index: 0,
         indexOfType: 0,
         tag: 'input',
-        attributes: {
+        attrs: {
           type: 'checkbox',
         },
       });
@@ -145,7 +145,7 @@ describe('autocapture-plugin hierarchy', () => {
         index: 0,
         indexOfType: 0,
         tag: 'input',
-        class: ['test'],
+        classes: ['test'],
       });
     });
 
@@ -160,7 +160,7 @@ describe('autocapture-plugin hierarchy', () => {
         index: 0,
         indexOfType: 0,
         tag: 'svg',
-        class: ['test'],
+        classes: ['test'],
       });
     });
   });
@@ -214,7 +214,7 @@ describe('getHierarchy', () => {
       {
         index: 1,
         indexOfType: 0,
-        previousSiblingTag: 'head',
+        prevSib: 'head',
         tag: 'body',
       },
       {
@@ -233,7 +233,7 @@ describe('getHierarchy', () => {
         id: 'inner2',
         index: 1,
         indexOfType: 1,
-        previousSiblingTag: 'div',
+        prevSib: 'div',
         tag: 'div',
       },
     ]);
@@ -253,7 +253,7 @@ describe('getHierarchy', () => {
           long-attribute3="${'a'.repeat(128)}"
           long-attribute4="${'a'.repeat(128)}"
           long-attribute5="${'a'.repeat(128)}"
-          attribute6="${'a'.repeat(80)}"
+          attribute6="${'a'.repeat(85)}"
         >
           <div id="inner12345">
             xxx
@@ -276,13 +276,13 @@ describe('getHierarchy', () => {
         index: 0,
         indexOfType: 0,
         tag: 'div',
-        attributes: {
+        attrs: {
           'long-attribute': 'a'.repeat(128),
           'long-attribute2': 'a'.repeat(128),
           'long-attribute3': 'a'.repeat(128),
           'long-attribute4': 'a'.repeat(128),
           'long-attribute5': 'a'.repeat(128),
-          attribute6: 'a'.repeat(80),
+          attribute6: 'a'.repeat(85),
         },
       },
       {
