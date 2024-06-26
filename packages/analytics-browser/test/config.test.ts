@@ -11,6 +11,7 @@ import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
 import { AmplitudeBrowser } from '../src/browser-client';
+import { MemoryStorage } from '@amplitude/analytics-core';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -132,6 +133,19 @@ describe('config', () => {
         useBatch: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
+    });
+
+    test('should fall back to memoryStorage when storageProvider is not enabled', async () => {
+      const localStorageIsEnabledSpy = jest
+        .spyOn(LocalStorageModule.LocalStorage.prototype, 'isEnabled')
+        .mockResolvedValueOnce(false);
+      const loggerProviderSpy = jest.spyOn(core.Logger.prototype, 'warn');
+      const config = await Config.useBrowserConfig(apiKey, undefined, new AmplitudeBrowser());
+      expect(localStorageIsEnabledSpy).toHaveBeenCalledTimes(1);
+      expect(loggerProviderSpy).toHaveBeenCalledWith(
+        'Storage provider LocalStorage is not enabled. Falling back to MemoryStorage.',
+      );
+      expect(config.storageProvider).toEqual(expect.any(MemoryStorage));
     });
 
     test('should create using cookies/overwrite', async () => {
