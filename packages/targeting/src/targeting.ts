@@ -40,6 +40,7 @@ export class Targeting implements AmplitudeTargeting {
         user_properties: userProperties,
       },
     };
-    return this.evaluationEngine.evaluate(context, [flag]);
+    const targetingBucket = this.evaluationEngine.evaluate(context, [flag]);
+    return targetingBucket;
   };
 }

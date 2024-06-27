@@ -1,5 +1,5 @@
-export const flagConfig = {
-  key: 'session-replay-targeting',
+export const flagCatchAll = {
+  key: 'sr_targeting_config',
   variants: {
     on: { key: 'on' },
     off: { key: 'off' },
