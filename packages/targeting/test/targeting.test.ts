@@ -152,7 +152,7 @@ describe('targeting', () => {
         userProperties: {
           name: 'Banana',
         },
-        flag: flagConfigMultipleConditions as TargetingFlag,
+        flag: flagConfigMultipleConditions,
         sessionId: 123,
         apiKey: 'static_key',
         loggerProvider: mockLoggerProvider,
@@ -166,7 +166,7 @@ describe('targeting', () => {
           event_type: 'Sign In',
           time: 123,
         },
-        flag: flagConfigMultipleConditions as TargetingFlag,
+        flag: flagConfigMultipleConditions,
         sessionId: 123,
         apiKey: 'static_key',
         loggerProvider: mockLoggerProvider,
