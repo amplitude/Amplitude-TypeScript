@@ -13,6 +13,7 @@ import {
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
+import { getHierarchy } from './hierarchy';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -169,6 +170,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     }
   };
 
+  // Returns the Amplitude event properties for the given element.
   const getEventProperties = (actionType: ActionType, element: Element) => {
     /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
@@ -183,6 +185,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     const properties: Record<string, any> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.id,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.className,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),

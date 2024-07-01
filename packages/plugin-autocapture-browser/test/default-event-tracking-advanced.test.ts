@@ -176,6 +176,25 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
         '[Amplitude] Element Class': 'my-link-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+          {
+            attrs: {
+              'aria-label': 'my-link',
+              href: 'https://www.amplitude.com/click-link',
+            },
+            classes: ['my-link-class'],
+            id: 'my-link-id',
+            index: 0,
+            indexOfType: 0,
+            tag: 'a',
+          },
+        ],
         '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
         '[Amplitude] Element ID': 'my-link-id',
         '[Amplitude] Element Position Left': 0,
@@ -226,6 +245,26 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
         '[Amplitude] Element Class': 'my-button-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+          {
+            attrs: {
+              'aria-label': 'my-button',
+            },
+            classes: ['my-button-class'],
+            id: 'my-button-id',
+            index: 2,
+            indexOfType: 0,
+            prevSib: 'h2',
+            tag: 'button',
+          },
+        ],
+
         '[Amplitude] Element ID': 'my-button-id',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
@@ -283,6 +322,25 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
         '[Amplitude] Element Class': 'my-button-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+          {
+            attrs: {
+              'aria-label': 'my-button',
+            },
+            classes: ['my-button-class'],
+            id: 'my-button-id',
+            index: 2,
+            indexOfType: 0,
+            prevSib: 'h2',
+            tag: 'button',
+          },
+        ],
         '[Amplitude] Element ID': 'my-button-id',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
@@ -528,6 +586,27 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
         '[Amplitude] Element Class': 'my-button-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+          {
+            attrs: {
+              'data-amp-test-hello': 'world',
+              'data-amp-test-test': '',
+              'data-amp-test-time': 'machine',
+            },
+            classes: ['my-button-class'],
+            id: 'my-button-id',
+            index: 2,
+            indexOfType: 0,
+            prevSib: 'h2',
+            tag: 'button',
+          },
+        ],
         '[Amplitude] Element ID': 'my-button-id',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
