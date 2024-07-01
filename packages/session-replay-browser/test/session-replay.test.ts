@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -8,11 +9,17 @@ import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 
 import { IDBFactory } from 'fake-indexeddb';
+<<<<<<< HEAD
 import { SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
+=======
+import { IDBPDatabase } from 'idb';
+>>>>>>> 0ae58d04 (fix(session replay): pr feedback)
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
+import { SessionReplayTargetingDB, targetingIDBStore } from '../src/targeting/targeting-idb-store';
+import * as TargetingManager from '../src/targeting/targeting-manager';
 import { SessionReplayOptions } from '../src/typings/session-replay';
 
 jest.mock('@amplitude/rrweb');
@@ -82,16 +89,16 @@ describe('SessionReplay', () => {
   };
   let sessionReplay: SessionReplay;
   let getRemoteConfigMock: jest.Mock;
-  let initialize: jest.SpyInstance;
+  const evaluateTargetingAndStorePromise = Promise.resolve(true);
   beforeEach(() => {
     getRemoteConfigMock = jest.fn().mockResolvedValue(samplingConfig);
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
       fetchTime: 0,
     });
+    jest.spyOn(TargetingManager, 'evaluateTargetingAndStore').mockReturnValue(evaluateTargetingAndStorePromise);
     jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
     sessionReplay = new SessionReplay();
-    initialize = jest.spyOn(sessionReplay, 'initialize');
     jest.useFakeTimers();
     originalFetch = global.fetch;
     (global.fetch as jest.Mock) = jest.fn(() => {
@@ -232,9 +239,9 @@ describe('SessionReplay', () => {
     test('should set up blur and focus event listeners', async () => {
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
-      const initialize = jest.spyOn(sessionReplay, 'initialize');
+      const evaluateTargetingAndRecord = jest.spyOn(sessionReplay, 'evaluateTargetingAndRecord');
+      sessionReplay.sessionTargetingMatch = true;
       await sessionReplay.init(apiKey, mockOptions).promise;
-      initialize.mockReset();
       expect(addEventListenerMock).toHaveBeenCalledTimes(2);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(addEventListenerMock.mock.calls[0][0]).toEqual('blur');
@@ -251,18 +258,16 @@ describe('SessionReplay', () => {
       const focusCallback = addEventListenerMock.mock.calls[1][1];
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       focusCallback();
-      expect(initialize).toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(initialize.mock.calls[0]).toEqual([]);
+      expect(evaluateTargetingAndRecord).toHaveBeenCalled();
     });
-    test('it should not call initialize if the document does not have focus', () => {
-      const initialize = jest.spyOn(sessionReplay, 'initialize');
+    test('it should not call recordEvents if the document does not have focus', () => {
+      const recordEvents = jest.spyOn(sessionReplay, 'recordEvents');
       jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
         document: {
           hasFocus: () => false,
         },
       } as typeof globalThis);
-      expect(initialize).not.toHaveBeenCalled();
+      expect(recordEvents).not.toHaveBeenCalled();
     });
 
     describe('flushMaxRetries config', () => {
@@ -301,6 +306,7 @@ describe('SessionReplay', () => {
 
     test('should update the session id and start recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
+      console.log('resetting mock');
       record.mockReset();
       expect(sessionReplay.identifiers?.sessionId).toEqual(123);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/123');
@@ -316,7 +322,7 @@ describe('SessionReplay', () => {
       sessionReplay.setSessionId(456);
       expect(sessionReplay.identifiers?.sessionId).toEqual(456);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/456');
-      return generateJoinedConfigPromise.then(() => {
+      return Promise.all([generateJoinedConfigPromise, evaluateTargetingAndStorePromise]).then(() => {
         expect(record).toHaveBeenCalledTimes(1);
         expect(sessionReplay.config).toEqual(updatedConfig);
       });
@@ -413,6 +419,7 @@ describe('SessionReplay', () => {
         },
       } as typeof globalThis);
       await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const result = sessionReplay.getSessionReplayProperties();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(result).toEqual({
@@ -443,65 +450,6 @@ describe('SessionReplay', () => {
         '[Amplitude] Session Replay ID': '1a2b3c/123',
         '[Amplitude] Session Replay Debug': '{"appHash":"-109988594"}',
       });
-    });
-  });
-
-  describe('initialize', () => {
-    test('should return early if session id not set', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (!sessionReplay.eventsManager || !sessionReplay.identifiers) {
-        throw new Error('Did not call init');
-      }
-      sessionReplay.identifiers.sessionId = undefined;
-      const sendStoredEventsSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-      sessionReplay.initialize();
-      expect(sendStoredEventsSpy).not.toHaveBeenCalled();
-    });
-    test('should return early if no identifiers', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.identifiers = undefined;
-      if (!sessionReplay.eventsManager) {
-        throw new Error('Did not call init');
-      }
-      const sendStoredEventsSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-      sessionReplay.initialize();
-      expect(sendStoredEventsSpy).not.toHaveBeenCalled();
-    });
-    test('should return early if no device id', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.getDeviceId = jest.fn().mockReturnValue(undefined);
-      if (!sessionReplay.eventsManager) {
-        throw new Error('Did not call init');
-      }
-      const sendStoredEventsSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-      sessionReplay.initialize();
-      expect(sendStoredEventsSpy).not.toHaveBeenCalled();
-    });
-    test('should send stored events and record events', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
-      if (!sessionReplay.eventsManager) {
-        throw new Error('Did not call init');
-      }
-      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-
-      sessionReplay.initialize(true);
-      expect(eventsManagerInitSpy).toHaveBeenCalledWith({
-        deviceId: mockOptions.deviceId,
-      });
-      expect(record).toHaveBeenCalledTimes(1);
-    });
-    test('should not send stored events if shouldSendStoredEvents is false', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
-      if (!sessionReplay.eventsManager) {
-        throw new Error('Did not call init');
-      }
-      const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-
-      sessionReplay.initialize(false);
-      expect(eventsManagerInitSpy).not.toHaveBeenCalled();
-      expect(record).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -553,6 +501,7 @@ describe('SessionReplay', () => {
       // Mock as if remote config call fails
       getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
       await sessionReplay.init(apiKey, mockEmptyOptions).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
       const shouldRecord = sessionReplay.getShouldRecord();
@@ -565,6 +514,7 @@ describe('SessionReplay', () => {
       });
 
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
@@ -574,6 +524,7 @@ describe('SessionReplay', () => {
       jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => false);
 
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const sampleRate = sessionReplay.config?.sampleRate;
       expect(sampleRate).toBe(0.2);
       const shouldRecord = sessionReplay.getShouldRecord();
@@ -581,23 +532,33 @@ describe('SessionReplay', () => {
     });
     test('should set record as true if session is included in sample rate', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.2 }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       jest.spyOn(Helpers, 'isSessionInSample').mockImplementationOnce(() => true);
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(true);
     });
+    test('should set record as false if sessionTargetingMatch is false', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      sessionReplay.sessionTargetingMatch = false;
+      const shouldRecord = sessionReplay.getShouldRecord();
+      expect(shouldRecord).toBe(false);
+    });
     test('should set record as false if opt out in config', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, optOut: true }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
     test('should set record as false if no session id', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, sessionId: undefined }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
     test('opt out in config should override the sample rate', async () => {
       jest.spyOn(Math, 'random').mockImplementationOnce(() => 0.7);
       await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8, optOut: true }).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
@@ -609,6 +570,7 @@ describe('SessionReplay', () => {
         },
       } as typeof globalThis);
       await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = true;
       const shouldRecord = sessionReplay.getShouldRecord();
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.log).toHaveBeenCalled();
@@ -832,6 +794,67 @@ describe('SessionReplay', () => {
       expect(() => {
         recordArg?.errorHandler && recordArg?.errorHandler(error);
       }).toThrow(error);
+    });
+  });
+
+  describe('evaluateTargetingAndRecord', () => {
+    let sessionReplay: SessionReplay;
+    let evaluateTargetingMock: jest.SpyInstance;
+    let db: IDBPDatabase<SessionReplayTargetingDB>;
+    beforeEach(async () => {
+      db = await targetingIDBStore.openOrCreateDB('static_key');
+      await db.clear('sessionTargetingMatch');
+      sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      // Reset this to false, it is set in init
+      sessionReplay.sessionTargetingMatch = false;
+      record.mockClear();
+      evaluateTargetingMock.mockClear();
+      evaluateTargetingMock = jest.spyOn(TargetingManager, 'evaluateTargetingAndStore').mockResolvedValue(true);
+    });
+    test('should return undefined if no identifiers set', async () => {
+      sessionReplay.identifiers = undefined;
+      await sessionReplay.evaluateTargetingAndRecord();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.error).toHaveBeenCalledWith(
+        'Session replay init has not been called, cannot evaluate targeting.',
+      );
+      expect(evaluateTargetingMock).not.toHaveBeenCalled();
+    });
+
+    test('should not record if evaluateTargetingAndStore returns false', async () => {
+      jest.spyOn(TargetingManager, 'evaluateTargetingAndStore').mockResolvedValue(false);
+      await sessionReplay.evaluateTargetingAndRecord();
+      return evaluateTargetingAndStorePromise.then(() => {
+        expect(record).not.toHaveBeenCalled();
+      });
+    });
+
+    test('should record if evaluateTargetingAndStore returns true', async () => {
+      await sessionReplay.evaluateTargetingAndRecord();
+      return evaluateTargetingAndStorePromise.then(() => {
+        expect(record).toHaveBeenCalled();
+      });
+    });
+
+    test('should pass event to evaluateTargetingAndStore', async () => {
+      await sessionReplay.evaluateTargetingAndRecord({ event: { event_type: 'Purchase' } });
+      return evaluateTargetingAndStorePromise.then(() => {
+        expect(TargetingManager.evaluateTargetingAndStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            targetingParams: { event: { event_type: 'Purchase' }, userProperties: {} },
+          }),
+        );
+      });
+    });
+
+    test('should not pass event to evaluateTargetingAndStore if it is one of the SpecialEvents', async () => {
+      await sessionReplay.evaluateTargetingAndRecord({ event: { event_type: '$identify' } });
+      expect(TargetingManager.evaluateTargetingAndStore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetingParams: { event: undefined, userProperties: {} },
+        }),
+      );
     });
   });
 
