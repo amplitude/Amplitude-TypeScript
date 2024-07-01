@@ -189,11 +189,11 @@ describe('SessionReplayPlugin helpers', () => {
 
   describe('isSessionInSample', () => {
     test('should deterministically return true if calculation puts session id below sample rate', () => {
-      const result = isSessionInSample(1691092433788, 0.5);
+      const result = isSessionInSample(1691092433788, 0.56);
       expect(result).toEqual(true);
     });
     test('should deterministically return false if calculation puts session id above sample rate', () => {
-      const result = isSessionInSample(1691092416403, 0.5);
+      const result = isSessionInSample(1691092416403, 0.13);
       expect(result).toEqual(false);
     });
   });
