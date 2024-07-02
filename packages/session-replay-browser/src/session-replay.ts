@@ -143,7 +143,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       globalScope.addEventListener('focus', this.focusListener);
       // prefer pagehide to unload events, this is the standard going forward. it is not
       // 100% reliable, but is bfcache-compatible.
-      if ('onpagehide' in globalScope.self) {
+      if (globalScope.self && 'onpagehide' in globalScope.self) {
         globalScope.removeEventListener('pagehide', this.pageLeaveListener);
         globalScope.addEventListener('pagehide', this.pageLeaveListener);
       } else {
@@ -152,9 +152,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
         globalScope.removeEventListener('beforeunload', this.pageLeaveListener, { capture: true });
         globalScope.addEventListener('beforeunload', this.pageLeaveListener, { capture: true });
       }
-
-      globalScope.removeEventListener('visibilitychange', this.pageLeaveListener);
-      globalScope.addEventListener('visibilitychange', this.pageLeaveListener);
     }
 
     if (globalScope && globalScope.document && globalScope.document.hasFocus()) {

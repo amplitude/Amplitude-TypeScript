@@ -235,7 +235,7 @@ describe('SessionReplay', () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
       await sessionReplay.init(apiKey, mockOptions).promise;
       initialize.mockReset();
-      expect(addEventListenerMock).toHaveBeenCalledTimes(2);
+      expect(addEventListenerMock).toHaveBeenCalledTimes(3);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(addEventListenerMock.mock.calls[0][0]).toEqual('blur');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment

@@ -120,10 +120,6 @@ export const generateSessionReplayId = (sessionId: number, deviceId: string): st
 };
 
 export const getServerUrl = (serverZone?: keyof typeof ServerZone): string => {
-  if (serverZone) {
-    return 'http://localhost:3000/test';
-  }
-
   if (serverZone === ServerZone.STAGING) {
     return SESSION_REPLAY_STAGING_SERVER_URL;
   }
