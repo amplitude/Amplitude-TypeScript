@@ -4,18 +4,22 @@ import { SessionReplayLocalConfig } from '../config/types';
 export type Events = string[];
 
 export type EventType = 'replay' | 'interaction';
-export interface SessionReplayDestination {
-  events: Events;
-  sequenceId: number;
+
+export interface SessionReplayDestinationSessionMetadata {
   type: EventType;
   sessionId: number;
+  deviceId?: string;
+}
+
+export type SessionReplayDestination = {
+  events: Events;
+  sequenceId: number;
   flushMaxRetries?: number;
   apiKey?: string;
-  deviceId?: string;
   sampleRate: number;
   serverZone?: keyof typeof ServerZone;
   onComplete: (sequenceId: number) => Promise<void>;
-}
+} & SessionReplayDestinationSessionMetadata;
 
 export interface SessionReplayDestinationContext extends SessionReplayDestination {
   attempts: number;

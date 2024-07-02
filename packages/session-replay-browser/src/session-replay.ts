@@ -16,6 +16,7 @@ import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { generateHashCode, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook } from './hooks/click';
+import { ScrollEvent, ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
@@ -25,6 +26,9 @@ import {
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
+import { BeaconTransport } from './hooks/beacon';
+
+type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
 export class SessionReplay implements AmplitudeSessionReplay {
   name = '@amplitude/session-replay-browser';
@@ -34,6 +38,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+
+  private pageLeaveFns: PageLeaveFn[] = [];
+  private scrollWatcher?: ScrollWatcher;
 
   constructor() {
     this.loggerProvider = new Logger();
@@ -89,6 +96,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ),
     );
 
+    if (options.sessionId) {
+      const transport = new BeaconTransport<ScrollEvent>(
+        {
+          deviceId: options.deviceId,
+          sessionId: options.sessionId,
+          type: 'interaction',
+        },
+        this.config,
+      );
+      this.scrollWatcher = new ScrollWatcher(transport);
+      this.pageLeaveFns = [this.scrollWatcher.send];
+    }
+
     this.removeInvalidSelectors();
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
@@ -121,6 +141,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       globalScope.removeEventListener('focus', this.focusListener);
       globalScope.addEventListener('blur', this.blurListener);
       globalScope.addEventListener('focus', this.focusListener);
+      // prefer pagehide to unload events, this is the standard going forward. it is not
+      // 100% reliable, but is bfcache-compatible.
+      if ('onpagehide' in globalScope.self) {
+        globalScope.removeEventListener('pagehide', this.pageLeaveListener);
+        globalScope.addEventListener('pagehide', this.pageLeaveListener);
+      } else {
+        // this has performance implications, but is the only way we can reliably send events
+        // in browser that don't support pagehide.
+        globalScope.removeEventListener('beforeunload', this.pageLeaveListener, { capture: true });
+        globalScope.addEventListener('beforeunload', this.pageLeaveListener, { capture: true });
+      }
+
+      globalScope.removeEventListener('visibilitychange', this.pageLeaveListener);
+      globalScope.addEventListener('visibilitychange', this.pageLeaveListener);
     }
 
     if (globalScope && globalScope.document && globalScope.document.hasFocus()) {
@@ -192,6 +226,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   focusListener = () => {
     this.initialize();
+  };
+  /**
+   * This is an instance member so that if init is called multiple times
+   * it doesn't add another listener to the page leave event. This is to
+   * prevent duplicate listener actions from firing.
+   */
+  private pageLeaveListener = (e: PageTransitionEvent | Event) => {
+    this.pageLeaveFns.forEach((fn) => {
+      fn(e);
+    });
   };
 
   stopRecordingAndSendEvents(sessionId?: number) {
@@ -319,6 +363,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
             sessionId,
             deviceIdFn: this.getDeviceId.bind(this),
           }),
+        scroll: this.scrollWatcher && this.scrollWatcher.hook,
+      },
+      sampling: {
+        scroll: 100,
       },
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
