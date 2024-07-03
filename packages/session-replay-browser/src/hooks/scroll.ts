@@ -17,7 +17,15 @@ export type ScrollEvent = {
   type: 'scroll';
 };
 
+/**
+ * This is intended to watch and update max scroll activity when loaded for a particular page.
+ * A new instance should be created if the page URL changes, since by default it does not reset
+ * it's max scroll state. It is intended to send very few and very small events utilizing the
+ * Beacon API.
+ * @see {@link BeaconTransport} for more details on Beacon API usage.
+ */
 export class ScrollWatcher {
+  private timestamp = Date.now();
   private _maxScrollX: number;
   private _maxScrollY: number;
   private _maxScrollWidth: number;
@@ -50,6 +58,7 @@ export class ScrollWatcher {
   }
 
   update(e: scrollPosition) {
+    const now = Date.now();
     if (e.x > this._maxScrollX) {
       const width = getWindowWidth();
       this._maxScrollX = e.x;
@@ -57,6 +66,7 @@ export class ScrollWatcher {
       if (maxScrollWidth > this._maxScrollWidth) {
         this._maxScrollWidth = maxScrollWidth;
       }
+      this.timestamp = now;
     }
 
     if (e.y > this._maxScrollY) {
@@ -66,6 +76,7 @@ export class ScrollWatcher {
       if (maxScrollHeight > this._maxScrollHeight) {
         this._maxScrollHeight = maxScrollHeight;
       }
+      this.timestamp = now;
     }
   }
 
@@ -85,8 +96,8 @@ export class ScrollWatcher {
 
         viewportHeight: getWindowHeight(),
         viewportWidth: getWindowWidth(),
-        pageUrl: location.href,
-        timestamp: Date.now(),
+        pageUrl: globalScope.location.href,
+        timestamp: this.timestamp,
         type: 'scroll',
       });
     }

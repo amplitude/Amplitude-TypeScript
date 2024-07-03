@@ -5,6 +5,12 @@ import { getServerUrl } from '../helpers';
 
 type BeaconSendFn<T> = (pageUrl: string, payload: T, contentType: 'application/json') => boolean;
 
+/**
+ * For very small payloads it's preferable to use the [Beacon API](https://developer.mozilla.org/en-US/docs/Web/API/Beacon_API).
+ * While it doesn't provide 100% guarantees on sends, it greatly helps with overall reliability and page load performance. As
+ * the Beacon API has a potential to fail due to size constraints we want to fall back to XHR if need be. This is mostly to
+ * be used with 'pagehide' or 'beforeunload' events.
+ */
 export class BeaconTransport<T> {
   private sendBeacon: BeaconSendFn<T>;
   private sendXhr: BeaconSendFn<T>;

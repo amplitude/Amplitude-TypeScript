@@ -91,7 +91,7 @@ describe('scroll', () => {
 
           viewportHeight: 0,
           viewportWidth: 0,
-          pageUrl: 'http://localhost/',
+          pageUrl: 'http://localhost',
           timestamp: expect.any(Number),
           type: 'scroll',
         });
