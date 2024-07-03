@@ -39,7 +39,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
 
-  private pageLeaveFns: PageLeaveFn[] = [];
+  // Visible for testing
+  pageLeaveFns: PageLeaveFn[] = [];
   private scrollWatcher?: ScrollWatcher;
 
   constructor() {
@@ -80,6 +81,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.config.privacyConfig.maskSelector = dropInvalidSelectors(this.config.privacyConfig.maskSelector);
     this.config.privacyConfig.unmaskSelector = dropInvalidSelectors(this.config.privacyConfig.unmaskSelector);
   }
+
+  private setupEventListeners = (teardown: boolean) => {
+    const globalScope = getGlobalScope();
+    if (globalScope) {
+      globalScope.removeEventListener('blur', this.blurListener);
+      globalScope.removeEventListener('focus', this.focusListener);
+      !teardown && globalScope.addEventListener('blur', this.blurListener);
+      !teardown && globalScope.addEventListener('focus', this.focusListener);
+      // prefer pagehide to unload events, this is the standard going forward. it is not
+      // 100% reliable, but is bfcache-compatible.
+      if (globalScope.self && 'onpagehide' in globalScope.self) {
+        globalScope.removeEventListener('pagehide', this.pageLeaveListener);
+        !teardown && globalScope.addEventListener('pagehide', this.pageLeaveListener);
+      } else {
+        // this has performance implications, but is the only way we can reliably send events
+        // in browser that don't support pagehide.
+        globalScope.removeEventListener('beforeunload', this.pageLeaveListener);
+        !teardown && globalScope.addEventListener('beforeunload', this.pageLeaveListener);
+      }
+    }
+  };
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
     this.loggerProvider = options.loggerProvider || new Logger();
@@ -135,25 +157,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
-    const globalScope = getGlobalScope();
-    if (globalScope) {
-      globalScope.removeEventListener('blur', this.blurListener);
-      globalScope.removeEventListener('focus', this.focusListener);
-      globalScope.addEventListener('blur', this.blurListener);
-      globalScope.addEventListener('focus', this.focusListener);
-      // prefer pagehide to unload events, this is the standard going forward. it is not
-      // 100% reliable, but is bfcache-compatible.
-      if (globalScope.self && 'onpagehide' in globalScope.self) {
-        globalScope.removeEventListener('pagehide', this.pageLeaveListener);
-        globalScope.addEventListener('pagehide', this.pageLeaveListener);
-      } else {
-        // this has performance implications, but is the only way we can reliably send events
-        // in browser that don't support pagehide.
-        globalScope.removeEventListener('beforeunload', this.pageLeaveListener, { capture: true });
-        globalScope.addEventListener('beforeunload', this.pageLeaveListener, { capture: true });
-      }
-    }
+    this.setupEventListeners(false);
 
+    const globalScope = getGlobalScope();
     if (globalScope && globalScope.document && globalScope.document.hasFocus()) {
       this.initialize(true);
     }
@@ -426,12 +432,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   shutdown() {
-    const globalScope = getGlobalScope();
-    if (globalScope) {
-      globalScope.removeEventListener('blur', this.blurListener);
-      globalScope.removeEventListener('focus', this.focusListener);
-    }
-
+    this.setupEventListeners(true);
     this.stopRecordingAndSendEvents();
   }
 }

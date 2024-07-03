@@ -52,6 +52,9 @@ describe('SessionReplay', () => {
     document: {
       hasFocus: () => true,
     },
+    location: {
+      href: 'http://localhost',
+    },
     indexedDB: new IDBFactory(),
   } as unknown as typeof globalThis;
   const apiKey = 'static_key';
@@ -138,6 +141,27 @@ describe('SessionReplay', () => {
       expect(sessionReplay.identifiers?.sessionId).toBe(123);
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.loggerProvider).toBeDefined();
+    });
+
+    test('should invoke page leave listeners', async () => {
+      const invokeEventMap = new Map<string, any>();
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+        document: {
+          hasFocus: () => false,
+        },
+        location: {
+          href: 'http://localhost',
+        },
+        addEventListener: jest.fn((eventName, listenerFn): any => {
+          invokeEventMap.set(eventName as string, listenerFn);
+        }) as jest.Mock<typeof window.addEventListener<'blur' | 'focus' | 'pagehide' | 'beforeunload'>>,
+        removeEventListener: removeEventListenerMock,
+      } as unknown as typeof globalThis);
+      await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.5 }).promise;
+      const mockFn = jest.fn();
+      sessionReplay.pageLeaveFns = [mockFn];
+      invokeEventMap.get('beforeunload')({});
+      expect(mockFn).toHaveBeenCalled();
     });
 
     test('should setup sdk with privacy config', async () => {
@@ -893,11 +917,29 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(2);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
+      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
+    });
+
+    test('should remove event listeners with pagehide', async () => {
+      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        self: {
+          onpagehide: (() => {
+            /* do nothing */
+          }) as any,
+        },
+      } as typeof globalThis);
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      removeEventListenerMock.mockReset();
+      sessionReplay.shutdown();
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
+      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
+      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pagehide');
     });
 
     test('should stop recording and send any events in queue', async () => {
