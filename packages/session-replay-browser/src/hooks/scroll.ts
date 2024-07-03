@@ -1,6 +1,6 @@
 import { utils } from '@amplitude/rrweb';
 import { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
-import { BeaconTransport } from './beacon';
+import { BeaconTransport } from '../beacon-transport';
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { SessionReplayDestinationSessionMetadata } from '../typings/session-replay';

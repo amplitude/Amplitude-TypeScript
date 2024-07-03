@@ -1,7 +1,7 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { SessionReplayJoinedConfig } from '../config/types';
-import { SessionReplayDestinationSessionMetadata } from '../typings/session-replay';
-import { getServerUrl } from '../helpers';
+import { SessionReplayJoinedConfig } from './config/types';
+import { SessionReplayDestinationSessionMetadata } from './typings/session-replay';
+import { getServerUrl } from './helpers';
 
 type BeaconSendFn<T> = (pageUrl: string, payload: T) => boolean;
 

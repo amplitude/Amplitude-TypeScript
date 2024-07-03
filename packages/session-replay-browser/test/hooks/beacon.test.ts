@@ -1,6 +1,6 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { SessionReplayJoinedConfig } from 'src/config/types';
-import { BeaconTransport } from '../../src/hooks/beacon';
+import { BeaconTransport } from '../../src/beacon-transport';
 import { randomUUID } from 'crypto';
 
 type TestEvent = {

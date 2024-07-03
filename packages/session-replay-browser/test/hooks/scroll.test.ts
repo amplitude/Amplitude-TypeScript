@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "expectMaxScrolls"] }] */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
-import { BeaconTransport } from '../../src/hooks/beacon';
+import { BeaconTransport } from '../../src/beacon-transport';
 import { ScrollEvent, ScrollWatcher } from '../../src/hooks/scroll';
 import { utils } from '@amplitude/rrweb';
 import { randomUUID } from 'crypto';
 
 jest.mock('@amplitude/rrweb');
-jest.mock('../../src/hooks/beacon');
+jest.mock('../../src/beacon-transport');
 
 describe('scroll', () => {
   const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
