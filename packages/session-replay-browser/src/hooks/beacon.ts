@@ -11,7 +11,7 @@ export class BeaconTransport<T> {
   private readonly pageUrl: string;
   private static readonly contentType = 'application/json';
 
-  constructor(context: SessionReplayDestinationSessionMetadata, config: SessionReplayJoinedConfig) {
+  constructor(context: Required<SessionReplayDestinationSessionMetadata>, config: SessionReplayJoinedConfig) {
     const globalScope = getGlobalScope();
     if (
       globalScope &&
@@ -25,7 +25,9 @@ export class BeaconTransport<T> {
         });
 
         try {
-          return globalScope.navigator.sendBeacon(pageUrl, blobData);
+          if (globalScope.navigator.sendBeacon(pageUrl, blobData)) {
+            return true;
+          }
         } catch (e) {
           // not logging error, since it would be hard to view and just adds overhead.
         }
@@ -35,35 +37,27 @@ export class BeaconTransport<T> {
       this.sendBeacon = () => false;
     }
 
-    if (typeof XMLHttpRequest === 'undefined') {
-      this.sendXhr = () => false;
-    } else {
-      this.sendXhr = (pageUrl, payload, contentType) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', pageUrl, true);
-        xhr.setRequestHeader('Content-Type', contentType);
-        xhr.setRequestHeader('Accept', '*/*');
-        xhr.send(JSON.stringify(payload));
-        return true;
-      };
-    }
+    this.sendXhr = (pageUrl, payload, contentType) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', pageUrl, true);
+      xhr.setRequestHeader('Content-Type', contentType);
+      xhr.setRequestHeader('Accept', '*/*');
+      xhr.send(JSON.stringify(payload));
+      return true;
+    };
 
     const pageUrl = getServerUrl(config.serverZone);
     const { deviceId, sessionId, type } = context;
-    if (deviceId) {
-      const urlParams = new URLSearchParams({
-        device_id: deviceId,
-        session_id: String(sessionId),
-        type: String(type),
-      });
+    const urlParams = new URLSearchParams({
+      device_id: deviceId,
+      session_id: String(sessionId),
+      type: String(type),
+    });
 
-      void urlParams;
+    void urlParams;
 
-      this.pageUrl = `${pageUrl}?${urlParams.toString()}`;
-      // this.pageUrl = pageUrl;
-    } else {
-      this.pageUrl = pageUrl;
-    }
+    this.pageUrl = `${pageUrl}?${urlParams.toString()}`;
+    // this.pageUrl = pageUrl;
   }
 
   send(payload: T) {

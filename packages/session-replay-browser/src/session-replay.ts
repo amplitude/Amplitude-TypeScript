@@ -118,7 +118,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ),
     );
 
-    if (options.sessionId) {
+    if (options.sessionId && options.deviceId) {
       const transport = new BeaconTransport<ScrollEvent>(
         {
           deviceId: options.deviceId,
