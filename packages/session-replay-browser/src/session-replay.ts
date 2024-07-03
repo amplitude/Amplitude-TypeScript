@@ -119,7 +119,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ),
     );
 
-    if (options.sessionId) {
+    if (options.sessionId && this.config.interactionConfig?.enabled) {
       const transport = new BeaconTransport<ScrollEvent>(
         {
           sessionId: options.sessionId,
@@ -129,10 +129,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       );
       const scrollWatcher = new ScrollWatcher(transport);
       this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this))];
-      const { interactionConfig } = this.config;
-      if (interactionConfig?.enabled) {
-        this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
-      }
+      this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
     }
 
     this.removeInvalidSelectors();

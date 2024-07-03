@@ -8,7 +8,7 @@ import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 
 import { IDBFactory } from 'fake-indexeddb';
-import { SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
+import { InteractionConfig, SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
 import { DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
@@ -526,6 +526,31 @@ describe('SessionReplay', () => {
       sessionReplay.initialize(false);
       expect(eventsManagerInitSpy).not.toHaveBeenCalled();
       expect(record).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      { enabled: true, expectedLength: 1 },
+      { enabled: false, expectedLength: 0 },
+      { enabled: undefined, expectedLength: 0 },
+    ])('should not register scroll if interaction config not enabled', async ({ enabled, expectedLength }) => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+          return {
+            enabled,
+          } as InteractionConfig;
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        fetchTime: 0,
+      });
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+      }).promise;
+      await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      expect(sessionReplay.pageLeaveFns).toHaveLength(expectedLength);
     });
   });
 
