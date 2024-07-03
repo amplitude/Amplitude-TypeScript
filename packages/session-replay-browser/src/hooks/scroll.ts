@@ -2,6 +2,8 @@ import { utils } from '@amplitude/rrweb';
 import { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
 import { BeaconTransport } from './beacon';
 import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { SessionReplayJoinedConfig } from '../config/types';
+import { SessionReplayDestinationSessionMetadata } from '../typings/session-replay';
 
 const { getWindowHeight, getWindowWidth } = utils;
 
@@ -31,6 +33,13 @@ export class ScrollWatcher {
   private _maxScrollWidth: number;
   private _maxScrollHeight: number;
   private readonly transport: BeaconTransport<ScrollEvent>;
+
+  static default(
+    context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>,
+    config: SessionReplayJoinedConfig,
+  ): ScrollWatcher {
+    return new ScrollWatcher(new BeaconTransport<ScrollEvent>(context, config));
+  }
 
   constructor(transport: BeaconTransport<ScrollEvent>) {
     this._maxScrollX = 0;

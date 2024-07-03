@@ -17,7 +17,7 @@ import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { generateHashCode, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook } from './hooks/click';
-import { ScrollEvent, ScrollWatcher } from './hooks/scroll';
+import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
@@ -27,7 +27,6 @@ import {
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
-import { BeaconTransport } from './hooks/beacon';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -83,7 +82,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.config.privacyConfig.unmaskSelector = dropInvalidSelectors(this.config.privacyConfig.unmaskSelector);
   }
 
-  private setupEventListeners = (teardown: boolean) => {
+  private teardownEventListeners = (teardown: boolean) => {
     const globalScope = getGlobalScope();
     if (globalScope) {
       globalScope.removeEventListener('blur', this.blurListener);
@@ -120,14 +119,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     );
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
-      const transport = new BeaconTransport<ScrollEvent>(
+      const scrollWatcher = ScrollWatcher.default(
         {
           sessionId: options.sessionId,
           type: 'interaction',
         },
         this.config,
       );
-      const scrollWatcher = new ScrollWatcher(transport);
       this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this))];
       this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
     }
@@ -158,7 +156,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
-    this.setupEventListeners(false);
+    this.teardownEventListeners(false);
 
     const globalScope = getGlobalScope();
     if (globalScope && globalScope.document && globalScope.document.hasFocus()) {
@@ -430,7 +428,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   shutdown() {
-    this.setupEventListeners(true);
+    this.teardownEventListeners(true);
     this.stopRecordingAndSendEvents();
   }
 }
