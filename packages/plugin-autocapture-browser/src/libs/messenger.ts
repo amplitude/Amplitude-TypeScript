@@ -30,6 +30,7 @@ interface InitializeVisualTaggingSelectorData {
 }
 
 interface ElementSelectedData {
+  '[Amplitude] Element Hierarchy'?: string;
   '[Amplitude] Element Tag'?: string;
   '[Amplitude] Element Text'?: string;
   '[Amplitude] Element Selector'?: string;
@@ -191,8 +192,8 @@ export class WindowMessenger implements Messenger {
                   }
                   return true;
                 },
-                onSelect: this.onSelect,
                 onTrack: this.onTrack,
+                onSelect: this.onSelect,
                 visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
                 messenger: this,
               });

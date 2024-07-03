@@ -7,12 +7,15 @@ export const AMPLITUDE_EVENT_PROP_ELEMENT_ID = '[Amplitude] Element ID';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_CLASS = '[Amplitude] Element Class';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_TAG = '[Amplitude] Element Tag';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_TEXT = '[Amplitude] Element Text';
+export const AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY = '[Amplitude] Element Hierarchy';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_HREF = '[Amplitude] Element Href';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT = '[Amplitude] Element Position Left';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP = '[Amplitude] Element Position Top';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL = '[Amplitude] Element Aria Label';
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES = '[Amplitude] Element Attributes';
+// Deprecated in favor of AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY. Keeping for backwards compatibility.
 export const AMPLITUDE_EVENT_PROP_ELEMENT_SELECTOR = '[Amplitude] Element Selector';
+
 export const AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL = '[Amplitude] Element Parent Label';
 export const AMPLITUDE_EVENT_PROP_PAGE_URL = '[Amplitude] Page URL';
 export const AMPLITUDE_EVENT_PROP_PAGE_TITLE = '[Amplitude] Page Title';

@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.4...@amplitude/session-replay-browser@1.10.0) (2024-07-01)
+
+### Features
+
+- **session-replay-browser:** support higher granularity sample rate
+  ([#797](https://github.com/amplitude/Amplitude-TypeScript/issues/797))
+  ([9dead38](https://github.com/amplitude/Amplitude-TypeScript/commit/9dead38a017a74f20608fa1a7c23ed3a4857f29f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.9.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.9.3...@amplitude/session-replay-browser@1.9.4) (2024-06-25)
 
 ### Bug Fixes

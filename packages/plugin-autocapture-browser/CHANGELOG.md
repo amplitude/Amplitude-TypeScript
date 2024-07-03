@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@0.10.0...@amplitude/plugin-autocapture-browser@0.11.0) (2024-07-01)
+
+### Features
+
+- **autocapture:** Add element hierarchy tracking and improve attribute filtering
+  ([#786](https://github.com/amplitude/Amplitude-TypeScript/issues/786))
+  ([03e3f9d](https://github.com/amplitude/Amplitude-TypeScript/commit/03e3f9d8e56355d3af1e1335d9a099b58d16e1a6))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@0.9.2...@amplitude/plugin-autocapture-browser@0.10.0) (2024-06-24)
 
 ### Features

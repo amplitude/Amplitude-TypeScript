@@ -3,7 +3,9 @@ import { finder } from './libs/finder';
 import * as constants from './constants';
 import { Logger } from '@amplitude/analytics-types';
 
-const SENTITIVE_TAGS = ['input', 'select', 'textarea'];
+export type JSONValue = string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
+
+const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export const isNonSensitiveString = (text: string | null) => {
   if (text == null) {
@@ -30,7 +32,8 @@ export const isTextNode = (node: Node) => {
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  return !SENTITIVE_TAGS.includes(tag);
+  const isContentEditable = element.getAttribute('contenteditable') === 'true';
+  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 
 // Maybe this can be simplified with element.innerText, keep and manual concatenating for now, more research needed.
@@ -178,6 +181,7 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
   return getClosestElement(element?.parentElement, selectors);
 };
 
+// Returns the element properties for the given element in Visual Labeling.
 export const getEventTagProps = (element: Element, logger?: Logger) => {
   if (!element) {
     return {};
@@ -185,7 +189,8 @@ export const getEventTagProps = (element: Element, logger?: Logger) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
   const selector = getSelector(element, logger);
-  const properties: Record<string, string> = {
+
+  const properties: Record<string, JSONValue> = {
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_SELECTOR]: selector,
