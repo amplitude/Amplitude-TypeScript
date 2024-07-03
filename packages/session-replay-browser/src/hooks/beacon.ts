@@ -8,10 +8,11 @@ type BeaconSendFn<T> = (pageUrl: string, payload: T, contentType: 'application/j
 export class BeaconTransport<T> {
   private sendBeacon: BeaconSendFn<T>;
   private sendXhr: BeaconSendFn<T>;
-  private readonly pageUrl: string;
+  private readonly basePageUrl: string;
+  private readonly context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>;
   private static readonly contentType = 'application/json';
 
-  constructor(context: Required<SessionReplayDestinationSessionMetadata>, config: SessionReplayJoinedConfig) {
+  constructor(context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>, config: SessionReplayJoinedConfig) {
     const globalScope = getGlobalScope();
     if (
       globalScope &&
@@ -46,21 +47,23 @@ export class BeaconTransport<T> {
       return true;
     };
 
-    const pageUrl = getServerUrl(config.serverZone);
-    const { deviceId, sessionId, type } = context;
+    this.basePageUrl = getServerUrl(config.serverZone);
+    this.context = context;
+  }
+
+  send(deviceId: string, payload: T) {
+    const { sessionId, type } = this.context;
     const urlParams = new URLSearchParams({
       device_id: deviceId,
       session_id: String(sessionId),
       type: String(type),
     });
 
-    this.pageUrl = `${pageUrl}?${urlParams.toString()}`;
-  }
+    const pageUrl = `${this.basePageUrl}?${urlParams.toString()}`;
 
-  send(payload: T) {
     // ideally send using the beacon API, but there is a chance it may fail, possibly due to a payload
     // size limit. in this case, try best effort to send using xhr.
-    this.sendBeacon(this.pageUrl, payload, BeaconTransport.contentType) ||
-      this.sendXhr(this.pageUrl, payload, BeaconTransport.contentType);
+    this.sendBeacon(pageUrl, payload, BeaconTransport.contentType) ||
+      this.sendXhr(pageUrl, payload, BeaconTransport.contentType);
   }
 }

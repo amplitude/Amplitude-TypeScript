@@ -4,6 +4,7 @@ import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { BeaconTransport } from '../../src/hooks/beacon';
 import { ScrollEvent, ScrollWatcher } from '../../src/hooks/scroll';
 import { utils } from '@amplitude/rrweb';
+import { randomUUID } from 'crypto';
 
 jest.mock('@amplitude/rrweb');
 jest.mock('../../src/hooks/beacon');
@@ -78,9 +79,11 @@ describe('scroll', () => {
     describe('#send', () => {
       test('sends scroll event', () => {
         scrollWatcher.hook({ id: 1, x: 3, y: 5 });
-        scrollWatcher.send({} as Event);
+        const deviceId = randomUUID().toString();
+        scrollWatcher.send(() => deviceId)({} as Event);
 
-        expect(mockTransport.prototype.send.mock.calls[0][0]).toStrictEqual({
+        expect(mockTransport.prototype.send.mock.calls[0][0]).toStrictEqual(deviceId);
+        expect(mockTransport.prototype.send.mock.calls[0][1]).toStrictEqual({
           maxScrollX: 3,
           maxScrollY: 5,
           maxScrollWidth: 3,
@@ -88,7 +91,7 @@ describe('scroll', () => {
 
           viewportHeight: 0,
           viewportWidth: 0,
-          pageUrl: 'http://localhost',
+          pageUrl: 'http://localhost/',
           timestamp: expect.any(Number),
           type: 'scroll',
         });

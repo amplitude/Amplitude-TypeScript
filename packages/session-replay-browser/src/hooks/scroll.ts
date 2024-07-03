@@ -1,7 +1,7 @@
+import { utils } from '@amplitude/rrweb';
 import { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
 import { BeaconTransport } from './beacon';
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { utils } from '@amplitude/rrweb';
 
 const { getWindowHeight, getWindowWidth } = utils;
 
@@ -73,10 +73,11 @@ export class ScrollWatcher {
     this.update(e);
   };
 
-  send: (_: PageTransitionEvent | Event) => void = (_) => {
+  send: (deviceIdFn: () => string | undefined) => (_: PageTransitionEvent | Event) => void = (deviceIdFn) => (_) => {
+    const deviceId = deviceIdFn();
     const globalScope = getGlobalScope();
-    globalScope &&
-      this.transport.send({
+    if (globalScope && deviceId) {
+      this.transport.send(deviceId, {
         maxScrollX: this._maxScrollX,
         maxScrollY: this._maxScrollY,
         maxScrollWidth: this._maxScrollWidth,
@@ -84,9 +85,10 @@ export class ScrollWatcher {
 
         viewportHeight: getWindowHeight(),
         viewportWidth: getWindowWidth(),
-        pageUrl: globalScope.location.href,
+        pageUrl: location.href,
         timestamp: Date.now(),
         type: 'scroll',
       });
+    }
   };
 }

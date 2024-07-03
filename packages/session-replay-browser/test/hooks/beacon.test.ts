@@ -38,7 +38,6 @@ describe('beacon', () => {
       transport = new BeaconTransport<TestEvent>(
         {
           sessionId,
-          deviceId,
           type: 'interaction',
         },
         {} as SessionReplayJoinedConfig,
@@ -62,12 +61,11 @@ describe('beacon', () => {
         transport = new BeaconTransport<TestEvent>(
           {
             sessionId,
-            deviceId,
             type: 'interaction',
           },
           {} as SessionReplayJoinedConfig,
         );
-        transport.send({
+        transport.send(deviceId, {
           Field1: 'foo',
           Field2: 1234,
         });
@@ -85,12 +83,11 @@ describe('beacon', () => {
         transport = new BeaconTransport<TestEvent>(
           {
             sessionId,
-            deviceId,
             type: 'interaction',
           },
           {} as SessionReplayJoinedConfig,
         );
-        transport.send({
+        transport.send(deviceId, {
           Field1: 'foo',
           Field2: 1234,
         });
@@ -101,7 +98,7 @@ describe('beacon', () => {
         );
       });
       test('sends with xhr', () => {
-        transport.send({
+        transport.send(deviceId, {
           Field1: 'foo',
           Field2: 1234,
         });
