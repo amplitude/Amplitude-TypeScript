@@ -18,37 +18,53 @@ export type ScrollEvent = {
 };
 
 export class ScrollWatcher {
-  private maxScrollX: number;
-  private maxScrollY: number;
-  private maxScrollWidth: number;
-  private maxScrollHeight: number;
+  private _maxScrollX: number;
+  private _maxScrollY: number;
+  private _maxScrollWidth: number;
+  private _maxScrollHeight: number;
   private readonly transport: BeaconTransport<ScrollEvent>;
 
   constructor(transport: BeaconTransport<ScrollEvent>) {
-    this.maxScrollX = 0;
-    this.maxScrollY = 0;
-    this.maxScrollWidth = getWindowWidth();
-    this.maxScrollHeight = getWindowHeight();
+    this._maxScrollX = 0;
+    this._maxScrollY = 0;
+    this._maxScrollWidth = getWindowWidth();
+    this._maxScrollHeight = getWindowHeight();
 
     this.transport = transport;
   }
 
+  public get maxScrollX(): number {
+    return this._maxScrollX;
+  }
+
+  public get maxScrollY(): number {
+    return this._maxScrollY;
+  }
+
+  public get maxScrollWidth(): number {
+    return this._maxScrollWidth;
+  }
+
+  public get maxScrollHeight(): number {
+    return this._maxScrollHeight;
+  }
+
   update(e: scrollPosition) {
-    if (e.x > this.maxScrollX) {
+    if (e.x > this._maxScrollX) {
       const width = getWindowWidth();
-      this.maxScrollX = e.x;
+      this._maxScrollX = e.x;
       const maxScrollWidth = e.x + width;
-      if (maxScrollWidth > this.maxScrollWidth) {
-        this.maxScrollWidth = maxScrollWidth;
+      if (maxScrollWidth > this._maxScrollWidth) {
+        this._maxScrollWidth = maxScrollWidth;
       }
     }
 
-    if (e.y > this.maxScrollY) {
+    if (e.y > this._maxScrollY) {
       const height = getWindowHeight();
-      this.maxScrollY = e.y;
+      this._maxScrollY = e.y;
       const maxScrollHeight = e.y + height;
-      if (maxScrollHeight > this.maxScrollHeight) {
-        this.maxScrollHeight = maxScrollHeight;
+      if (maxScrollHeight > this._maxScrollHeight) {
+        this._maxScrollHeight = maxScrollHeight;
       }
     }
   }
@@ -61,10 +77,10 @@ export class ScrollWatcher {
     const globalScope = getGlobalScope();
     globalScope &&
       this.transport.send({
-        maxScrollX: this.maxScrollX,
-        maxScrollY: this.maxScrollY,
-        maxScrollWidth: this.maxScrollWidth,
-        maxScrollHeight: this.maxScrollHeight,
+        maxScrollX: this._maxScrollX,
+        maxScrollY: this._maxScrollY,
+        maxScrollWidth: this._maxScrollWidth,
+        maxScrollHeight: this._maxScrollHeight,
 
         viewportHeight: getWindowHeight(),
         viewportWidth: getWindowWidth(),

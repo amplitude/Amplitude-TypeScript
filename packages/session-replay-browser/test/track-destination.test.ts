@@ -13,7 +13,7 @@ const mockEvent = {
 const mockEventString = JSON.stringify(mockEvent);
 
 async function runScheduleTimers() {
-  // exhause first setTimeout∏
+  // exhause first setTimeout
   jest.runAllTimers();
   // wait for next tick to call nested setTimeout
   await Promise.resolve();
