@@ -2,6 +2,7 @@ import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-clie
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
+import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
@@ -41,7 +42,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
-  private scrollWatcher?: ScrollWatcher;
+  private scrollHook?: scrollCallback;
 
   constructor() {
     this.loggerProvider = new Logger();
@@ -118,7 +119,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ),
     );
 
-    if (options.sessionId && options.deviceId) {
+    if (options.sessionId) {
       const transport = new BeaconTransport<ScrollEvent>(
         {
           sessionId: options.sessionId,
@@ -126,8 +127,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
         },
         this.config,
       );
-      this.scrollWatcher = new ScrollWatcher(transport);
-      this.pageLeaveFns = [this.scrollWatcher.send(this.getDeviceId.bind(this))];
+      const scrollWatcher = new ScrollWatcher(transport);
+      this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this))];
+      const { interactionConfig } = this.config;
+      if (interactionConfig?.enabled) {
+        this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
+      }
     }
 
     this.removeInvalidSelectors();
@@ -365,10 +370,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
             sessionId,
             deviceIdFn: this.getDeviceId.bind(this),
           }),
-        scroll: this.scrollWatcher && this.scrollWatcher.hook,
-      },
-      sampling: {
-        scroll: 100,
+        scroll: this.scrollHook,
       },
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,

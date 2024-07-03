@@ -20,19 +20,11 @@ export class BeaconTransport<T> {
 
   constructor(context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>, config: SessionReplayJoinedConfig) {
     const globalScope = getGlobalScope();
-    if (
-      globalScope &&
-      globalScope.navigator &&
-      typeof globalScope.navigator.sendBeacon === 'function' &&
-      typeof globalScope.Blob === 'function'
-    ) {
-      this.sendBeacon = (pageUrl, payload, contentType) => {
-        const blobData = new globalScope.Blob([JSON.stringify(payload)], {
-          type: contentType,
-        });
-
+    if (globalScope && globalScope.navigator && typeof globalScope.navigator.sendBeacon === 'function') {
+      this.sendBeacon = (pageUrl, payload, _) => {
         try {
-          if (globalScope.navigator.sendBeacon(pageUrl, blobData)) {
+          // something seems to be broken if we try to send the content type header in chrome
+          if (globalScope.navigator.sendBeacon(pageUrl, JSON.stringify(payload))) {
             return true;
           }
         } catch (e) {
