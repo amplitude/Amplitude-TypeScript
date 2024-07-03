@@ -54,10 +54,7 @@ export class BeaconTransport<T> {
       type: String(type),
     });
 
-    void urlParams;
-
     this.pageUrl = `${pageUrl}?${urlParams.toString()}`;
-    // this.pageUrl = pageUrl;
   }
 
   send(payload: T) {
