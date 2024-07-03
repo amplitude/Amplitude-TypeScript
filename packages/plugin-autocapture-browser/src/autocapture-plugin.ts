@@ -14,6 +14,7 @@ import {
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
 import { getHierarchy } from './hierarchy';
+import { VERSION } from './version';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -198,6 +199,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
+      [constants.AMPLITUDE_EVENT_PROP_AUTOCAPTURE_VERSION]: VERSION,
     };
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
