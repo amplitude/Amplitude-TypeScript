@@ -1,6 +1,13 @@
 import { PrivacyConfig } from '../src/config/types';
-import { MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from '../src/constants';
-import { generateHashCode, isSessionInSample, maskFn } from '../src/helpers';
+import {
+  MASK_TEXT_CLASS,
+  SESSION_REPLAY_EU_URL,
+  SESSION_REPLAY_SERVER_URL,
+  SESSION_REPLAY_STAGING_URL,
+  UNMASK_TEXT_CLASS,
+} from '../src/constants';
+import { ServerZone } from '@amplitude/analytics-types';
+import { generateHashCode, getServerUrl, isSessionInSample, maskFn } from '../src/helpers';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
@@ -195,6 +202,20 @@ describe('SessionReplayPlugin helpers', () => {
     test('should deterministically return false if calculation puts session id above sample rate', () => {
       const result = isSessionInSample(1691092416403, 0.13);
       expect(result).toEqual(false);
+    });
+  });
+
+  describe('getServerUrl', () => {
+    test('should return us server url if no config set', () => {
+      expect(getServerUrl()).toEqual(SESSION_REPLAY_SERVER_URL);
+    });
+
+    test('should return staging server url if staging config set', async () => {
+      expect(getServerUrl(ServerZone.STAGING)).toEqual(SESSION_REPLAY_STAGING_URL);
+    });
+
+    test('should return eu server url if eu config set', async () => {
+      expect(getServerUrl(ServerZone.EU)).toEqual(SESSION_REPLAY_EU_URL);
     });
   });
 });

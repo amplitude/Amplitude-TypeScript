@@ -1,11 +1,6 @@
 import { BaseTransport } from '@amplitude/analytics-core';
-import { Logger as ILogger, ServerZone, Status } from '@amplitude/analytics-types';
-import {
-  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
-  SESSION_REPLAY_SERVER_URL,
-  SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
-} from './constants';
-import { getCurrentUrl } from './helpers';
+import { Logger as ILogger, Status } from '@amplitude/analytics-types';
+import { getCurrentUrl, getServerUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
@@ -45,18 +40,6 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       attempts: 0,
       timeout: 0,
     });
-  }
-
-  getServerUrl(serverZone?: keyof typeof ServerZone) {
-    if (serverZone === ServerZone.STAGING) {
-      return SESSION_REPLAY_STAGING_SERVER_URL;
-    }
-
-    if (serverZone === ServerZone.EU) {
-      return SESSION_REPLAY_EU_SERVER_URL;
-    }
-
-    return SESSION_REPLAY_SERVER_URL;
   }
 
   addToQueue(...list: SessionReplayDestinationContext[]) {
@@ -152,7 +135,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         body: JSON.stringify(payload),
         method: 'POST',
       };
-      const server_url = `${this.getServerUrl(context.serverZone)}?${urlParams.toString()}`;
+      const server_url = `${getServerUrl(context.serverZone)}?${urlParams.toString()}`;
       const res = await fetch(server_url, options);
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });

@@ -1,9 +1,8 @@
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { Logger, ServerZone } from '@amplitude/analytics-types';
-import { SESSION_REPLAY_EU_URL, SESSION_REPLAY_SERVER_URL, SESSION_REPLAY_STAGING_URL } from '../src/constants';
+import { SessionReplayDestinationContext } from 'src/typings/session-replay';
 import { SessionReplayTrackDestination } from '../src/track-destination';
 import { VERSION } from '../src/version';
-import { SessionReplayDestinationContext } from 'src/typings/session-replay';
 
 type MockedLogger = jest.Mocked<Logger>;
 const mockEvent = {
@@ -216,24 +215,6 @@ describe('SessionReplayTrackDestination', () => {
       expect(trackDestination.queue).toEqual([context]);
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  describe('getServerUrl', () => {
-    test('should return us server url if no config set', () => {
-      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      expect(trackDestination.getServerUrl()).toEqual(SESSION_REPLAY_SERVER_URL);
-    });
-
-    test('should return staging server url if staging config set', async () => {
-      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-      expect(trackDestination.getServerUrl(ServerZone.STAGING)).toEqual(SESSION_REPLAY_STAGING_URL);
-    });
-
-    test('should return eu server url if eu config set', async () => {
-      const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
-
-      expect(trackDestination.getServerUrl(ServerZone.EU)).toEqual(SESSION_REPLAY_EU_URL);
     });
   });
 
