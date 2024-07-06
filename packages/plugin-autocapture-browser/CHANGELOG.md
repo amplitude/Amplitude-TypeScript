@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.0...@amplitude/plugin-autocapture-browser@1.0.0-beta.1) (2024-07-06)
+
+### Features
+
+- **plugin-autocapture-browser:** update visual labeling to latest 1.0.0 alpha
+  ([#803](https://github.com/amplitude/Amplitude-TypeScript/issues/803))
+  ([7ac6b0e](https://github.com/amplitude/Amplitude-TypeScript/commit/7ac6b0e2a97d78fde3bb1ec26701ba63831d99ef))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.0.0-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@0.11.0...@amplitude/plugin-autocapture-browser@1.0.0-beta.0) (2024-07-06)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
