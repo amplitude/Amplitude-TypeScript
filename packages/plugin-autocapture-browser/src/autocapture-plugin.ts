@@ -203,6 +203,7 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    console.log('autocapture init!');
     if (!amplitude) {
       /* istanbul ignore next */
       config?.loggerProvider?.warn(
@@ -287,6 +288,9 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
         isElementSelectable: shouldTrackEvent,
       });
     }
+    window.addEventListener('click', (event) => {
+      console.log('click event', event);
+    });
   };
 
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
