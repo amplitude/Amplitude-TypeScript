@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.3.3...@amplitude/plugin-ga-events-forwarder-browser@0.3.4) (2024-07-08)
+
+### Bug Fixes
+
+- ga plugin not intercepting fetch events
+  ([8947f7a](https://github.com/amplitude/Amplitude-TypeScript/commit/8947f7a2a582a5c61d33a20c763e1a990631fb34))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.3.2...@amplitude/plugin-ga-events-forwarder-browser@0.3.3) (2024-05-28)
 
 **Note:** Version bump only for package @amplitude/plugin-ga-events-forwarder-browser

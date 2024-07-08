@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-ga-events-forwarder-browser",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
