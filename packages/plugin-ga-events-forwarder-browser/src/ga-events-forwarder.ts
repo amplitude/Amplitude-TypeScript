@@ -24,6 +24,8 @@ interface Options {
 }
 
 type SendBeaconFn = typeof navigator.sendBeacon;
+type FetchFn = typeof fetch;
+type FetchInterceptor = (...args: Parameters<FetchFn>) => void;
 
 /**
  * Returns an instance of `gaEventsForwarderPlugin`. Add this plugin to listen for events sent to Google Analytics,
@@ -59,6 +61,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
   let logger: Logger | undefined = undefined;
   let preSetupEventQueue: BaseEvent[] = [];
   let sendBeacon: undefined | SendBeaconFn;
+  let fetch: undefined | FetchFn;
   let trackFileDownloads = false;
   let trackFormInteractions = false;
   let trackPageViews = false;
@@ -72,17 +75,53 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
   if (globalScope && isMeasurementIdListValid) {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     sendBeacon = globalScope.navigator.sendBeacon;
+    fetch = globalScope.fetch;
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     globalScope.navigator.sendBeacon = new Proxy(globalScope.navigator.sendBeacon, {
       apply: (target: SendBeaconFn, thisArg: any, argArray: Parameters<SendBeaconFn>) => {
         // Intercepts request and attempt to send to Amplitude
-        intercept.apply(thisArg, argArray);
+        interceptBeacon.apply(thisArg, argArray);
         // Execute sendBeacon
         return target.apply(thisArg, argArray);
       },
     });
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    globalScope.fetch = new Proxy(globalScope.fetch, {
+      apply: (target: FetchFn, thisArg: any, argArray: Parameters<FetchFn>) => {
+        // Intercepts request and attempt to send to Amplitude
+        interceptFetch.apply(thisArg, argArray);
+        // Execute fetch
+        return target.apply(thisArg, argArray);
+      },
+    });
   }
+
+  const interceptBeacon: SendBeaconFn = (requestUrl, data) => {
+    return intercept(requestUrl, data);
+  };
+
+  const interceptFetch: FetchInterceptor = (resource, _options) => {
+    let requestUrl: string | URL = '';
+
+    // Fetch accepts strings, objects with stringifiers, or request objects
+    try {
+      /* istanbul ignore next */
+      if (globalScope?.Request && resource instanceof globalScope.Request) {
+        requestUrl = resource.url;
+      } else if (typeof resource === 'string') {
+        requestUrl = resource;
+      } else if ('toString' in resource && typeof resource.toString === 'function') {
+        requestUrl = resource.toString();
+      }
+    } catch (e) {
+      /* istanbul ignore next */
+      logger?.error(e);
+    }
+
+    intercept(requestUrl, null);
+  };
 
   /**
    * 1. Parses the event payload of requests to GA4
@@ -90,7 +129,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
    * 3a: Pushes to preSetupEventQueue while waiting for Amplitude SDK to initialize
    * 3b. Sends events to Amplitude after Amplitude SDK is initialized
    */
-  const intercept: SendBeaconFn = (requestUrl, data) => {
+  const intercept = (requestUrl: string | URL, data: BodyInit | null | undefined): boolean => {
     try {
       const url = new URL(requestUrl);
       if (
@@ -206,9 +245,15 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
   const teardown = async () => {
     if (globalScope && sendBeacon) {
       globalScope.navigator.sendBeacon = sendBeacon;
-      /* istanbul ignore next */
-      logger?.log(`${name} is removed.`);
     }
+
+    if (globalScope && fetch) {
+      globalScope.fetch = fetch;
+    }
+
+    /* istanbul ignore next */
+    logger?.log(`${name} is removed.`);
+
     preSetupEventQueue = [];
   };
 
