@@ -7,7 +7,7 @@ import debounce from 'lodash.debounce';
 
 import * as constants from './constants';
 
-type QueuedEvent = {
+export type QueuedEvent = {
   timestamp: number,
   type: "click",
   element: Element,
@@ -15,7 +15,7 @@ type QueuedEvent = {
   shouldTrackEvent: boolean,
 }
 
-const debouncedProcess = debounce((amplitude:BrowserClient) => processQueue(amplitude), 2000);
+const debouncedProcess = debounce((amplitude:BrowserClient) => processQueue(amplitude), 1000);
 let eventQueue: QueuedEvent[] = [];
 export const addToQueue = (event: QueuedEvent, amplitude:BrowserClient) => {
     // if new event is not the same as the ones in queue
@@ -50,12 +50,11 @@ export const processQueue = (amplitude:BrowserClient) => {
     // If length is greater than the rageThreshold, send rage click
     if (eventQueue.length >= rageThreshold) {
         /* istanbul ignore next */
-        amplitude?.track(constants.AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, {...eventQueue[0].event, numberOfClicks: eventQueue.length}, {time: eventQueue[0].timestamp});
+        amplitude?.track(constants.AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, {...eventQueue[0].event, '[Amplitude] Number of clicks': eventQueue.length}, {time: eventQueue[0].timestamp});
 
     } else{
 
         for(const ev of eventQueue) {
-            // TODO: override timestamp
             if (ev.shouldTrackEvent) {
                 amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, ev.event,  {time: ev.timestamp});
             }
