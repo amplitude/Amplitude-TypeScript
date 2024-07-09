@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.3.0-featureremoteconfig.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.8...@amplitude/analytics-core@2.3.0-featureremoteconfig.0) (2024-07-09)
+
+### Bug Fixes
+
+- **analytics-browser:** add remote config fetch time
+  ([#772](https://github.com/amplitude/Amplitude-TypeScript/issues/772))
+  ([8d9ed33](https://github.com/amplitude/Amplitude-TypeScript/commit/8d9ed33eb35a8c26659dc39502debae86f584abf))
+
+### Features
+
+- **analytics-browser:** consume remote config ([#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769))
+  ([adaf6ed](https://github.com/amplitude/Amplitude-TypeScript/commit/adaf6edb082d99d1250aeef44fa582832838ac7b))
+- **analytics-browser:** consume remote config ([#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769))
+  ([9c4e03c](https://github.com/amplitude/Amplitude-TypeScript/commit/9c4e03c3b3989213ac04410c8b9bf5e78ed393cf))
+- **analytics-browser:** integrate autocapture plugin
+  ([#780](https://github.com/amplitude/Amplitude-TypeScript/issues/780))
+  ([29cc8c1](https://github.com/amplitude/Amplitude-TypeScript/commit/29cc8c12f8bea886a855081e1751a1417b87ba85))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [2.2.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.2.7...@amplitude/analytics-core@2.2.8) (2024-05-21)
 
 **Note:** Version bump only for package @amplitude/analytics-core

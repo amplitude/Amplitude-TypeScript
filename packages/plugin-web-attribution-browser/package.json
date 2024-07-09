@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-web-attribution-browser",
-  "version": "2.1.14",
+  "version": "2.1.15-featureremoteconfig.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -36,13 +36,13 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.2.1",
-    "@amplitude/analytics-core": "^2.2.8",
-    "@amplitude/analytics-types": "^2.5.1",
+    "@amplitude/analytics-client-common": "^2.2.2-featureremoteconfig.0",
+    "@amplitude/analytics-core": "^2.3.0-featureremoteconfig.0",
+    "@amplitude/analytics-types": "^2.6.0-featureremoteconfig.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.8.1",
+    "@amplitude/analytics-browser": "^2.9.0-featureremoteconfig.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

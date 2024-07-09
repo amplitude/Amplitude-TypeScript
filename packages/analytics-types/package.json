@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-types",
-  "version": "2.5.1",
+  "version": "2.6.0-featureremoteconfig.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
