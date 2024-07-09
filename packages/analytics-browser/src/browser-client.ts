@@ -36,6 +36,7 @@ import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
+import { errorTrackingPlugin } from './plugins/error-tracking';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -131,6 +132,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       this.config.loggerProvider.debug('Adding page view tracking plugin');
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
     }
+
+    // Add error tracking plugin
+    await this.add(errorTrackingPlugin()).promise;
 
     this.initializing = false;
 

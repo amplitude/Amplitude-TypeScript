@@ -8,6 +8,7 @@ export const DEFAULT_FORM_SUBMIT_EVENT = `${DEFAULT_EVENT_PREFIX} Form Submitted
 export const DEFAULT_FILE_DOWNLOAD_EVENT = `${DEFAULT_EVENT_PREFIX} File Downloaded`;
 export const DEFAULT_SESSION_START_EVENT = 'session_start';
 export const DEFAULT_SESSION_END_EVENT = 'session_end';
+export const DEFAULT_ERROR_LOGGED_EVENT = `${DEFAULT_EVENT_PREFIX} Error Logged`;
 
 export const FILE_EXTENSION = `${DEFAULT_EVENT_PREFIX} File Extension`;
 export const FILE_NAME = `${DEFAULT_EVENT_PREFIX} File Name`;
