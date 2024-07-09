@@ -23,10 +23,13 @@ export const addToQueue = (event: QueuedEvent, amplitude:BrowserClient) => {
     if (eventQueue.length && event.element !== eventQueue[0].element) {
         console.log(event.element !== eventQueue[0].element, event.element ,eventQueue[0].element);
         console.log('process immediate');
-
+        // Cancel the debounce and process everything that we have
         debouncedProcess.cancel()
         processQueue(amplitude)
+
+        // Add the current event to the queue and start the debounce again
         eventQueue.push(event)
+        debouncedProcess(amplitude);
     } else {
         console.log('debounce process');
         eventQueue.push(event)
