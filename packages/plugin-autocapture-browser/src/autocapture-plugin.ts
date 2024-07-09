@@ -13,6 +13,7 @@ import {
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
+import { addToQueue } from './frustration-analytics';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -87,7 +88,6 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
   } = options;
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
-
   let observer: MutationObserver | undefined;
   let eventListeners: EventListener[] = [];
   let logger: Logger | undefined = undefined;
@@ -218,20 +218,29 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
       return;
     }
     const addListener = (el: Element) => {
-      if (shouldTrackEvent('click', el)) {
-        addEventListener(el, 'click', (event: Event) => {
+      // if (shouldTrackEvent('click', el)) {
+        addEventListener(el, 'click', () => {
           // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
           /* istanbul ignore next */
+          console.log('running Event Listener')
           if (
             event?.target != event?.currentTarget &&
             getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
           ) {
             return;
           }
+          addToQueue({
+            timestamp: Date.now(),
+            type: 'click',
+            element: el,
+            event: getEventProperties('click', el),
+            shouldTrackEvent: shouldTrackEvent('click', el)
+          }, amplitude)
+
           /* istanbul ignore next */
-          amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
+          // amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
         });
-      }
+      // }
       if (shouldTrackEvent('change', el)) {
         addEventListener(el, 'change', (event: Event) => {
           // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
@@ -288,9 +297,9 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
         isElementSelectable: shouldTrackEvent,
       });
     }
-    window.addEventListener('click', (event) => {
-      console.log('click event', event);
-    });
+    // setInterval(() => {
+    //   processQueue(amplitude);
+    // }, 1000);
   };
 
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
