@@ -338,7 +338,7 @@ describe('getHierarchy', () => {
     });
 
     test('handles object with value of string with single quote', () => {
-      expect(HierarchyUtil.ensureUnicodePythonCompatible({ key: `ab'c` }, true)).toBe(`{\\'key\\': "ab\\d\\'c"}`);
+      expect(HierarchyUtil.ensureUnicodePythonCompatible({ key: `ab'c` }, true)).toBe(`{\\'key\\': "ab\\\\'c"}`);
     });
 
     // Test edge cases
