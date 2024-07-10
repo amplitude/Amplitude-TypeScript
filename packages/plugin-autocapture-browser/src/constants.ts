@@ -21,6 +21,7 @@ export const AMPLITUDE_EVENT_PROP_PAGE_URL = '[Amplitude] Page URL';
 export const AMPLITUDE_EVENT_PROP_PAGE_TITLE = '[Amplitude] Page Title';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT = '[Amplitude] Viewport Height';
 export const AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH = '[Amplitude] Viewport Width';
+export const AMPLITUDE_EVENT_PROP_AUTOCAPTURE_VERSION = '[Amplitude] Autocapture Version';
 
 // Visual Tagging related constants
 export const AMPLITUDE_ORIGIN = 'https://app.amplitude.com';
