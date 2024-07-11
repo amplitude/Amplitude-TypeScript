@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
+
 import * as constants from './constants';
 import {
   getText,
@@ -14,6 +15,8 @@ import {
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
 import { addToQueue } from './frustration-analytics';
+import { fromEvent } from 'rxjs';
+import { trackErrors } from './tracking/errorTracking';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -217,29 +220,40 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
     if (typeof document === 'undefined') {
       return;
     }
+
+    // Create Observables from window events
+    const clickObservable = fromEvent<MouseEvent>(window, 'click');
+    const keypressObservable = fromEvent<KeyboardEvent>(window, 'keypress');
+    const errorObservable = fromEvent<ErrorEvent>(window, 'error');
+
+    trackErrors({ clickObservable, keypressObservable, errorObservable });
+
     const addListener = (el: Element) => {
       // if (shouldTrackEvent('click', el)) {
-        addEventListener(el, 'click', () => {
-          // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
-          /* istanbul ignore next */
-          console.log('running Event Listener')
-          if (
-            event?.target != event?.currentTarget &&
-            getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
-          ) {
-            return;
-          }
-          addToQueue({
+      addEventListener(el, 'click', () => {
+        // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
+        /* istanbul ignore next */
+        console.log('running Event Listener');
+        if (
+          event?.target != event?.currentTarget &&
+          getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
+        ) {
+          return;
+        }
+        addToQueue(
+          {
             timestamp: Date.now(),
             type: 'click',
             element: el,
             event: getEventProperties('click', el),
-            shouldTrackEvent: shouldTrackEvent('click', el)
-          }, amplitude)
+            shouldTrackEvent: shouldTrackEvent('click', el),
+          },
+          amplitude,
+        );
 
-          /* istanbul ignore next */
-          // amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
-        });
+        /* istanbul ignore next */
+        // amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
+      });
       // }
       if (shouldTrackEvent('change', el)) {
         addEventListener(el, 'change', (event: Event) => {
