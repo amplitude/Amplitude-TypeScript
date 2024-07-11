@@ -51,6 +51,7 @@ export interface SessionReplayLocalConfig extends Config {
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
+  userProperties?: { [key: string]: any };
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
