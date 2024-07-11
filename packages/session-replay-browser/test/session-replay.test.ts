@@ -249,6 +249,7 @@ describe('SessionReplay', () => {
 
       sessionReplay.config && expectationFn(sessionReplay.config);
     });
+
     test('should set up blur and focus event listeners', async () => {
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
@@ -846,8 +847,8 @@ describe('SessionReplay', () => {
       // Reset this to false, it is set in init
       sessionReplay.sessionTargetingMatch = false;
       record.mockClear();
-      evaluateTargetingMock.mockClear();
       evaluateTargetingMock = jest.spyOn(TargetingManager, 'evaluateTargetingAndStore').mockResolvedValue(true);
+      evaluateTargetingMock.mockClear();
     });
     test('should return undefined if no identifiers set', async () => {
       sessionReplay.identifiers = undefined;
