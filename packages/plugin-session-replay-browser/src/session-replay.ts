@@ -1,3 +1,4 @@
+import { getAnalyticsConnector } from '@amplitude/analytics-client-common';
 import {
   BrowserClient,
   BrowserConfig,
@@ -5,8 +6,10 @@ import {
   EnrichmentPlugin,
   Event,
   Result,
+  SpecialEventType,
 } from '@amplitude/analytics-types';
 import * as sessionReplay from '@amplitude/session-replay-browser';
+import { parseUserProperties } from './helpers';
 import { SessionReplayOptions } from './typings/session-replay';
 const ENRICHMENT_PLUGIN_NAME = '@amplitude/plugin-session-replay-enrichment-browser';
 
@@ -27,13 +30,22 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
     // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
     // in SR.
     if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
-      await sessionReplay.setSessionId(this.config.sessionId).promise;
+      let userProperties;
+      if (this.config.instanceName) {
+        const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+        userProperties = identityStore.getIdentity().userProperties;
+      }
+      await sessionReplay.setSessionId(this.config.sessionId, this.config.deviceId, { userProperties }).promise;
     }
 
     // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
     // event is not of the current session (offline/late events). In that case, don't tag the events
     if (this.config.sessionId && this.config.sessionId === event.session_id) {
-      await sessionReplay.evaluateTargetingAndRecord({ event: event });
+      let userProperties;
+      if (event.event_type === SpecialEventType.IDENTIFY) {
+        userProperties = parseUserProperties(event);
+      }
+      await sessionReplay.evaluateTargetingAndRecord({ event, userProperties });
       const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
       event.event_properties = {
         ...event.event_properties,
@@ -94,6 +106,12 @@ export class SessionReplayPlugin implements DestinationPlugin {
       }
     }
 
+    let userProperties;
+    if (this.config.instanceName) {
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      userProperties = identityStore.getIdentity().userProperties;
+    }
+
     await sessionReplay.init(config.apiKey, {
       instanceName: this.config.instanceName,
       deviceId: this.config.deviceId,
@@ -113,6 +131,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
       debugMode: this.options.debugMode,
       configEndpointUrl: this.options.configEndpointUrl,
       shouldInlineStylesheet: this.options.shouldInlineStylesheet,
+      userProperties: userProperties,
     }).promise;
 
     // add enrichment plugin to add session replay properties to events

@@ -1,6 +1,15 @@
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
+import {
+  BrowserClient,
+  BrowserConfig,
+  EnrichmentPlugin,
+  LogLevel,
+  Logger,
+  Plugin,
+  SpecialEventType,
+} from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
+import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 
 jest.mock('@amplitude/session-replay-browser');
 type MockedSessionReplayBrowser = jest.Mocked<typeof import('@amplitude/session-replay-browser')>;
@@ -10,7 +19,7 @@ type MockedLogger = jest.Mocked<Logger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionReplayProperties, flush, shutdown, getSessionId } =
+  const { init, setSessionId, getSessionReplayProperties, evaluateTargetingAndRecord, flush, shutdown, getSessionId } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -101,6 +110,30 @@ describe('SessionReplayPlugin', () => {
       expect(sessionReplay.config.flushMaxRetries).toBe(1);
       expect(sessionReplay.config.flushQueueSize).toBe(0);
       expect(sessionReplay.config.flushIntervalMillis).toBe(0);
+    });
+
+    test('should pass user properties to plugin', async () => {
+      const updatedConfig: BrowserConfig = { ...mockConfig, sessionId: 456, instanceName: 'browser-sdk' };
+
+      const mockUserProperties = {
+        plan_id: 'free',
+      };
+      jest.spyOn(AnalyticsClientCommon, 'getAnalyticsConnector').mockReturnValue({
+        identityStore: {
+          getIdentity: () => {
+            return {
+              userProperties: mockUserProperties,
+            };
+          },
+        },
+      } as unknown as ReturnType<typeof AnalyticsClientCommon.getAnalyticsConnector>);
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup(updatedConfig, mockAmplitude);
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init).toHaveBeenCalledWith(
+        mockConfig.apiKey,
+        expect.objectContaining({ userProperties: mockUserProperties }),
+      );
     });
 
     test('should add "@amplitude/plugin-session-replay-enrichment-browser" plugin', async () => {
@@ -277,6 +310,59 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
+    test('should evaluate targeting, passing the event', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      getSessionReplayProperties.mockReturnValueOnce({
+        '[Amplitude] Session Replay ID': '123',
+      });
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+          property_b: 123,
+        },
+        session_id: 123,
+      };
+
+      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
+      await sessionReplayEnrichmentPlugin.setup(mockConfig);
+      await sessionReplayEnrichmentPlugin.execute(event);
+
+      expect(evaluateTargetingAndRecord).toHaveBeenCalledWith({
+        event: event,
+        userProperties: undefined,
+      });
+    });
+
+    test('should parse user properties for identify event', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      getSessionReplayProperties.mockReturnValueOnce({
+        '[Amplitude] Session Replay ID': '123',
+      });
+      const event = {
+        event_type: SpecialEventType.IDENTIFY,
+        user_properties: {
+          $set: {
+            plan_id: 'free',
+          },
+        },
+        session_id: 123,
+      };
+
+      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
+      await sessionReplayEnrichmentPlugin.setup(mockConfig);
+      await sessionReplayEnrichmentPlugin.execute(event);
+
+      expect(evaluateTargetingAndRecord).toHaveBeenCalledWith({
+        event: event,
+        userProperties: {
+          plan_id: 'free',
+        },
+      });
+    });
+
     test('should not add event property for for event with mismatching session id.', async () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig, mockAmplitude);
@@ -318,7 +404,35 @@ describe('SessionReplayPlugin', () => {
       };
       await sessionReplayEnrichmentPlugin.execute(event);
       expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenCalledWith(456);
+      expect(setSessionId).toHaveBeenCalledWith(456, '1a2b3c', { userProperties: undefined });
+    });
+
+    test('should update the session id on any event and pass along user properties', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      await sessionReplay.setup(mockConfig, mockAmplitude);
+      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
+      const updatedConfig: BrowserConfig = { ...mockConfig, sessionId: 456, instanceName: 'browser-sdk' };
+      await sessionReplayEnrichmentPlugin.setup(updatedConfig, mockAmplitude);
+
+      const event = {
+        event_type: 'session_start',
+        session_id: 456,
+      };
+      const mockUserProperties = {
+        plan_id: 'free',
+      };
+      jest.spyOn(AnalyticsClientCommon, 'getAnalyticsConnector').mockReturnValue({
+        identityStore: {
+          getIdentity: () => {
+            return {
+              userProperties: mockUserProperties,
+            };
+          },
+        },
+      } as unknown as ReturnType<typeof AnalyticsClientCommon.getAnalyticsConnector>);
+      await sessionReplayEnrichmentPlugin.execute(event);
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(setSessionId).toHaveBeenCalledWith(456, '1a2b3c', { userProperties: mockUserProperties });
     });
 
     test('should not update if session id unchanged', async () => {
