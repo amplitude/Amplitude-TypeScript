@@ -1,4 +1,5 @@
-import { AmplitudeReturn, Event, ServerZone } from '@amplitude/analytics-types';
+import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
+import { TargetingParameters } from '@amplitude/targeting';
 import { SessionReplayLocalConfig } from '../config/types';
 
 export type Events = string[];
@@ -59,10 +60,16 @@ export type SessionReplayOptions = Omit<Partial<SessionReplayLocalConfig & Sessi
 
 export interface AmplitudeSessionReplay {
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
-  setSessionId: (sessionId: number, deviceId?: string) => AmplitudeReturn<void>;
+  setSessionId: (
+    sessionId: number,
+    deviceId?: string,
+    options?: { userProperties?: { [key: string]: any } },
+  ) => AmplitudeReturn<void>;
   getSessionId: () => number | undefined;
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
-  evaluateTargetingAndRecord: (options?: { event?: Event }) => Promise<boolean>;
+  evaluateTargetingAndRecord: (
+    targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>,
+  ) => Promise<boolean>;
   flush: (useRetry: boolean) => Promise<void>;
   shutdown: () => void;
 }

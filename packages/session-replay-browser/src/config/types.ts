@@ -50,6 +50,7 @@ export interface SessionReplayLocalConfig extends Config {
   debugMode?: boolean;
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
+  userProperties?: { [key: string]: any };
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

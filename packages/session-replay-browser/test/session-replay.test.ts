@@ -374,6 +374,16 @@ describe('SessionReplay', () => {
       expect(sessionReplay.identifiers?.deviceId).toEqual('9l8m7n');
       expect(sessionReplay.getDeviceId()).toEqual('9l8m7n');
     });
+
+    test('should pass userProperties to evaluateTargetingAndRecord', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.loggerProvider = mockLoggerProvider;
+      const evaluateMock = jest.fn();
+      sessionReplay.evaluateTargetingAndRecord = evaluateMock;
+      return sessionReplay.setSessionId(456, '9l8m7n', { userProperties: { plan_id: 'free' } }).promise.then(() => {
+        expect(evaluateMock).toHaveBeenCalledWith({ userProperties: { plan_id: 'free' } });
+      });
+    });
   });
 
   describe('getSessionId', () => {
@@ -842,7 +852,21 @@ describe('SessionReplay', () => {
       return evaluateTargetingAndStorePromise.then(() => {
         expect(TargetingManager.evaluateTargetingAndStore).toHaveBeenCalledWith(
           expect.objectContaining({
-            targetingParams: { event: { event_type: 'Purchase' }, userProperties: {} },
+            targetingParams: { event: { event_type: 'Purchase' }, userProperties: undefined },
+          }),
+        );
+      });
+    });
+
+    test('should pass user properties to evaluateTargetingAndStore', async () => {
+      await sessionReplay.evaluateTargetingAndRecord({
+        event: { event_type: 'Purchase' },
+        userProperties: { plan_id: 'free' },
+      });
+      return evaluateTargetingAndStorePromise.then(() => {
+        expect(TargetingManager.evaluateTargetingAndStore).toHaveBeenCalledWith(
+          expect.objectContaining({
+            targetingParams: { event: { event_type: 'Purchase' }, userProperties: { plan_id: 'free' } },
           }),
         );
       });
@@ -852,7 +876,7 @@ describe('SessionReplay', () => {
       await sessionReplay.evaluateTargetingAndRecord({ event: { event_type: '$identify' } });
       expect(TargetingManager.evaluateTargetingAndStore).toHaveBeenCalledWith(
         expect.objectContaining({
-          targetingParams: { event: undefined, userProperties: {} },
+          targetingParams: { event: undefined, userProperties: undefined },
         }),
       );
     });
