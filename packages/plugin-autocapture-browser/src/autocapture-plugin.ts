@@ -222,11 +222,11 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
     }
 
     // Create Observables from window events
-    const clickObservable = fromEvent<MouseEvent>(window, 'click');
-    const keypressObservable = fromEvent<KeyboardEvent>(window, 'keypress');
+    const clickObservable = fromEvent<MouseEvent>(window, 'mousedown');
+    const keydownObservable = fromEvent<KeyboardEvent>(window, 'keydown');
     const errorObservable = fromEvent<ErrorEvent>(window, 'error');
 
-    trackErrors({ clickObservable, keypressObservable, errorObservable });
+    trackErrors({ clickObservable, keydownObservable, errorObservable }, amplitude, getEventProperties);
 
     const addListener = (el: Element) => {
       // if (shouldTrackEvent('click', el)) {
