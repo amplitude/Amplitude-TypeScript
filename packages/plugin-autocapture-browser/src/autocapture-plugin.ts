@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
-
+import { Observable } from 'rxjs';
 import * as constants from './constants';
 import {
   getText,
@@ -17,6 +17,7 @@ import { ActionType } from './typings/autocapture';
 import { addToQueue } from './frustration-analytics';
 import { fromEvent } from 'rxjs';
 import { trackErrors } from './tracking/errorTracking';
+import { trackDeadClicks } from './tracking/deadClickTracking';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -226,7 +227,22 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
     const keydownObservable = fromEvent<KeyboardEvent>(window, 'keydown');
     const errorObservable = fromEvent<ErrorEvent>(window, 'error');
 
+    // Create an Observable for MutationObserver events
+    const mutationObservable = new Observable<MutationRecord[]>((observer) => {
+      const mutationObserver = new MutationObserver((mutations) => {
+        observer.next(mutations);
+      });
+      mutationObserver.observe(document.body, {
+        childList: true,
+        attributes: true,
+        characterData: true,
+        subtree: true,
+      });
+      return () => mutationObserver.disconnect();
+    });
+
     trackErrors({ clickObservable, keydownObservable, errorObservable }, amplitude, getEventProperties);
+    trackDeadClicks({ clickObservable, mutationObservable }, amplitude, getEventProperties);
 
     const addListener = (el: Element) => {
       // if (shouldTrackEvent('click', el)) {
