@@ -1,8 +1,9 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
-import { Event, Logger as ILogger, LogLevel, SpecialEventType } from '@amplitude/analytics-types';
+import { Logger as ILogger, LogLevel, SpecialEventType } from '@amplitude/analytics-types';
 import { pack, record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
+import { TargetingParameters } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
@@ -127,14 +128,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    await this.evaluateTargetingAndRecord();
+    await this.evaluateTargetingAndRecord({ userProperties: options.userProperties });
   }
 
-  setSessionId(sessionId: number, deviceId?: string) {
-    return returnWrapper(this.asyncSetSessionId(sessionId, deviceId));
+  setSessionId(sessionId: number, deviceId?: string, options?: { userProperties?: { [key: string]: any } }) {
+    return returnWrapper(this.asyncSetSessionId(sessionId, deviceId, options));
   }
 
-  async asyncSetSessionId(sessionId: number, deviceId?: string) {
+  async asyncSetSessionId(sessionId: number, deviceId?: string, options?: { userProperties?: { [key: string]: any } }) {
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
@@ -151,7 +152,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.joinedConfigGenerator && previousSessionId) {
       this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
     }
-    await this.evaluateTargetingAndRecord();
+    await this.evaluateTargetingAndRecord({ userProperties: options?.userProperties });
   }
 
   getSessionReplayDebugPropertyValue() {
@@ -208,7 +209,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   };
 
-  evaluateTargetingAndRecord = async (options?: { event?: Event }) => {
+  evaluateTargetingAndRecord = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
       return false;
@@ -216,12 +217,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Return early if a targeting match has already been made
     if (this.sessionTargetingMatch) {
       if (!this.recordCancelCallback) {
+        this.loggerProvider.log('Session replay capture beginning due to targeting match.');
         this.recordEvents();
       }
       return this.sessionTargetingMatch;
     }
 
-    let eventForTargeting = options?.event;
+    let eventForTargeting = targetingParams?.event;
     if (
       eventForTargeting &&
       Object.values(SpecialEventType).includes(eventForTargeting.event_type as SpecialEventType)
@@ -229,18 +231,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
       eventForTargeting = undefined;
     }
 
-    let userProperties;
-    if (this.config.instanceName) {
-      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
-      userProperties = identityStore.getIdentity().userProperties;
-    }
     this.sessionTargetingMatch = await evaluateTargetingAndStore({
       sessionId: this.identifiers.sessionId,
       config: this.config,
-      targetingParams: { userProperties, event: eventForTargeting },
+      targetingParams: { userProperties: targetingParams?.userProperties, event: eventForTargeting },
     });
 
     if (this.sessionTargetingMatch) {
+      this.loggerProvider.log('Session replay capture beginning due to targeting match.');
       this.recordEvents();
     }
 
