@@ -39,6 +39,7 @@ export const evaluateTargetingAndStore = async ({
         apiKey: config.apiKey,
         loggerProvider: config.loggerProvider,
       });
+
       sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
     }
     void targetingIDBStore.storeTargetingMatchForSession({
