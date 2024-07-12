@@ -23,7 +23,6 @@
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
     "clean": "rimraf node_modules lib coverage",
-    "dev": "nodemon",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
@@ -42,7 +41,6 @@
   "dependencies": {
     "@amplitude/analytics-client-common": ">=1 <3",
     "@amplitude/analytics-types": ">=1 <3",
-    "lodash.debounce": "^4.0.8",
     "rxjs": "^7.8.1",
     "tslib": "^2.4.1"
   },
@@ -51,9 +49,7 @@
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
-    "@types/lodash.debounce": "^4.0.9",
     "css.escape": "^1.5.1",
-    "nodemon": "^3.1.4",
     "rollup": "^2.79.1",
     "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.1.0",

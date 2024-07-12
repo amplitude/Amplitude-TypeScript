@@ -3,7 +3,7 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient } from '@amplitude/analytics-types';
 
-import debounce from 'lodash.debounce';
+// import debounce from 'lodash.debounce';
 
 import * as constants from './constants';
 
@@ -15,7 +15,8 @@ export type QueuedEvent = {
   shouldTrackEvent: boolean;
 };
 
-const debouncedProcess = debounce((amplitude: BrowserClient) => processQueue(amplitude), 1000);
+// const debouncedProcess = debounce((amplitude: BrowserClient) => processQueue(amplitude), 1000);
+const debouncedProcess = (amplitude: BrowserClient) => processQueue(amplitude);
 let eventQueue: QueuedEvent[] = [];
 export const addToQueue = (event: QueuedEvent, amplitude: BrowserClient) => {
   // if new event is not the same as the ones in queue
@@ -23,7 +24,7 @@ export const addToQueue = (event: QueuedEvent, amplitude: BrowserClient) => {
     console.log(event.element !== eventQueue[0].element, event.element, eventQueue[0].element);
     console.log('process immediate');
     // Cancel the debounce and process everything that we have
-    debouncedProcess.cancel();
+    // debouncedProcess?.cancel();
     processQueue(amplitude);
 
     // Add the current event to the queue and start the debounce again

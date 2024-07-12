@@ -14,7 +14,6 @@ import {
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
-import { addToQueue } from './frustration-analytics';
 import { fromEvent } from 'rxjs';
 import { trackErrors } from './tracking/errorTracking';
 import { trackDeadClicks } from './tracking/deadClickTracking';
@@ -76,6 +75,12 @@ interface Options {
   visualTaggingOptions?: {
     enabled?: boolean;
     messenger?: Messenger;
+  };
+  /**
+   * Options for integrating frustration analytics.
+   */
+  frustrationAnalyticsOptions?: {
+    enabled?: boolean;
   };
 }
 
@@ -207,7 +212,6 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
-    console.log('autocapture init!');
     if (!amplitude) {
       /* istanbul ignore next */
       config?.loggerProvider?.warn(
@@ -221,11 +225,6 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
     if (typeof document === 'undefined') {
       return;
     }
-
-    // Create Observables from window events
-    const clickObservable = fromEvent<MouseEvent>(window, 'mousedown');
-    const keydownObservable = fromEvent<KeyboardEvent>(window, 'keydown');
-    const errorObservable = fromEvent<ErrorEvent>(window, 'error');
 
     // Create an Observable for MutationObserver events
     const mutationObservable = new Observable<MutationRecord[]>((observer) => {
@@ -241,36 +240,31 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
       return () => mutationObserver.disconnect();
     });
 
-    trackErrors({ clickObservable, keydownObservable, errorObservable }, amplitude, getEventProperties);
-    trackDeadClicks({ clickObservable, mutationObservable }, amplitude, getEventProperties);
+    if (options.frustrationAnalyticsOptions?.enabled) {
+      // Create Observables from window events
+      const clickObservable = fromEvent<MouseEvent>(window, 'mousedown');
+      const keydownObservable = fromEvent<KeyboardEvent>(window, 'keydown');
+      const errorObservable = fromEvent<ErrorEvent>(window, 'error');
+
+      trackErrors({ clickObservable, keydownObservable, errorObservable }, amplitude, getEventProperties);
+      trackDeadClicks({ clickObservable, mutationObservable }, amplitude, getEventProperties);
+    }
 
     const addListener = (el: Element) => {
-      // if (shouldTrackEvent('click', el)) {
-      addEventListener(el, 'click', () => {
-        // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
-        /* istanbul ignore next */
-        console.log('running Event Listener');
-        if (
-          event?.target != event?.currentTarget &&
-          getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
-        ) {
-          return;
-        }
-        addToQueue(
-          {
-            timestamp: Date.now(),
-            type: 'click',
-            element: el,
-            event: getEventProperties('click', el),
-            shouldTrackEvent: shouldTrackEvent('click', el),
-          },
-          amplitude,
-        );
-
-        /* istanbul ignore next */
-        // amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
-      });
-      // }
+      if (shouldTrackEvent('click', el)) {
+        addEventListener(el, 'click', () => {
+          // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
+          /* istanbul ignore next */
+          if (
+            event?.target != event?.currentTarget &&
+            getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
+          ) {
+            return;
+          }
+          /* istanbul ignore next */
+          amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
+        });
+      }
       if (shouldTrackEvent('change', el)) {
         addEventListener(el, 'change', (event: Event) => {
           // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
@@ -327,9 +321,6 @@ export const autocapturePlugin = (options: Options = {}): BrowserEnrichmentPlugi
         isElementSelectable: shouldTrackEvent,
       });
     }
-    // setInterval(() => {
-    //   processQueue(amplitude);
-    // }, 1000);
   };
 
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {

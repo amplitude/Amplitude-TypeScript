@@ -2,6 +2,7 @@ import { merge, timer, Observable } from 'rxjs';
 import { buffer, filter, map, switchMap } from 'rxjs/operators';
 import * as constants from '../constants';
 import { ActionType } from 'src/typings/autocapture';
+import { BrowserClient } from '@amplitude/analytics-types';
 export function trackErrors(
   {
     clickObservable,
@@ -39,19 +40,14 @@ export function trackErrors(
 
   // Subscribe to the buffered events and log them
   bufferedEvents.subscribe({
-    next({ events, bufferStartTime, bufferEndTime }) {
-      console.log(`Events in buffer from ${new Date(bufferStartTime)} to ${new Date(bufferEndTime)}:`);
-      events.forEach((event, index) => {
-        console.log(`Event ${index + 1}:`);
-        console.log(event);
-        console.log(`  Time: ${new Date(event.timeStamp)}`);
-
-        console.log('---');
-      });
+    next({ events }) {
       const triggeringEvent = events[events.length - 1];
-
-      amplitude?.track(
-        constants.AMPLITUDE_ELEMENT_ERROR_CLICKED_EVENT,
+      if (!amplitude) {
+        return;
+      }
+      /* istanbul ignore next */
+      (amplitude as BrowserClient).track(
+        constants.AMPLITUDE_ELEMENT_ERROR_CLICKED_EVENT as string,
         getEventProperties(
           triggeringEvent.type === 'mousedown' ? 'click' : 'keydown',
           triggeringEvent.target as Element,
