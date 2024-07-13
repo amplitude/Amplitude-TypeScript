@@ -25,13 +25,9 @@ export function trackDeadClicks(
 
   clicksWithoutMutations.subscribe({
     next(click) {
-      console.log(
-        `No mutation detected within ${1500}ms after click at (${click.clientX}, ${click.clientY}) at ${new Date(
-          click.timeStamp,
-        ).toISOString()}`,
-      );
       const target = click.target as Element;
-      console.log(click, amplitude, getEventProperties);
+      console.log(`No mutation detected within ${1500}ms after click at (${click}) }`);
+
       if (['A', 'BUTTON'].includes(String(target?.tagName))) {
         amplitude?.track(constants.AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT, getEventProperties('click', target));
       }
