@@ -3,7 +3,7 @@ import { IdentityStorageType, Storage } from '../storage';
 import { Transport } from '../transport';
 import { Config } from './core';
 import { PageTrackingOptions } from '../page-view-tracking';
-import { AutocaptureOptions } from '../autocapture';
+import { UserInteractionsOptions } from '../userInteractions';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -14,15 +14,15 @@ export interface ExternalBrowserConfig extends Config {
    */
   appVersion?: string;
   /**
+   * @deprecated This property is deprecated and will be removed in future versions. Please migrate to using `autocapture` instead.
    * The default event tracking configuration.
    * See {@link https://www.docs.developers.amplitude.com/data/sdks/browser-2/#tracking-default-events}.
    * @defaultValue `true`
    */
   defaultTracking?: boolean | DefaultTrackingOptions;
   /**
-   * The configurations for autocapture plugin.
+   * The configurations for auto-captured events.
    * See {@link https://www.docs.developers.amplitude.com/data/sdks/browser-2/autocapture/}.
-   * @defaultValue `true`
    */
   autocapture?: boolean | AutocaptureOptions;
   /**
@@ -75,6 +75,11 @@ export interface ExternalBrowserConfig extends Config {
    * Used for landing page analysis.
    */
   pageCounter?: number;
+  /**
+   * Whether to fetch remote configuration.
+   * @defaultValue `false`
+   */
+  fetchRemoteConfig?: boolean;
 }
 
 interface InternalBrowserConfig {
@@ -84,6 +89,9 @@ interface InternalBrowserConfig {
   transportProvider: Transport;
 }
 
+/**
+ * @deprecated This interface is deprecated and will be removed in future versions. Please migrate to using `AutocaptureOptions` instead.
+ */
 export interface DefaultTrackingOptions {
   /**
    * Enables/disables marketing attribution tracking or config with detailed attribution options.
@@ -110,6 +118,39 @@ export interface DefaultTrackingOptions {
    * @defaultValue `true`
    */
   sessions?: boolean;
+}
+
+export interface AutocaptureOptions {
+  /**
+   * Enables/disables marketing attribution tracking or config with detailed attribution options.
+   * @defaultValue `true`
+   */
+  attribution?: boolean | AttributionOptions;
+  /**
+   * Enables/disables form downloads tracking.
+   * @defaultValue `true`
+   */
+  fileDownloads?: boolean;
+  /**
+   * Enables/disables form interaction tracking.
+   * @defaultValue `true`
+   */
+  formInteractions?: boolean;
+  /**
+   * Enables/disables default page view tracking.
+   * @defaultValue `true`
+   */
+  pageViews?: boolean | PageTrackingOptions;
+  /**
+   * Enables/disables session tracking.
+   * @defaultValue `true`
+   */
+  sessions?: boolean;
+  /**
+   * Enables/disables user interactions tracking.
+   * @defaultValue `false`
+   */
+  userInteractions?: boolean | UserInteractionsOptions;
 }
 
 export interface TrackingOptions {

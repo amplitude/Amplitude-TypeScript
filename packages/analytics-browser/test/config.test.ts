@@ -74,6 +74,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        fetchRemoteConfig: false,
       });
     });
 
@@ -130,6 +131,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        fetchRemoteConfig: false,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -217,6 +219,7 @@ describe('config', () => {
         transport: 'fetch',
         transportProvider: new FetchTransport(),
         useBatch: false,
+        fetchRemoteConfig: false,
       });
     });
 

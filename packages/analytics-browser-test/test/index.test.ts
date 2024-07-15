@@ -251,13 +251,59 @@ describe('integration', () => {
           },
         ],
         options: {},
-        request_metadata: request_metadata,
       });
       scope1.done();
     });
   });
 
   describe('track', () => {
+    test('should track event with request metadata when fetchRemoteConfig is enabled', async () => {
+      let requestBody: Record<string, any> = {};
+      const scope = nock(url)
+        .post(path, (body: Record<string, any>) => {
+          requestBody = body;
+          return true;
+        })
+        .reply(200, success);
+
+      await client.init(apiKey, {
+        defaultTracking,
+        fetchRemoteConfig: true,
+      }).promise;
+
+      await client.track('test event', {
+        mode: 'test',
+      }).promise;
+
+      expect(requestBody).toEqual({
+        api_key: apiKey,
+        client_upload_time: event_upload_time,
+        events: [
+          {
+            user_id: undefined,
+            device_id: uuid,
+            session_id: number,
+            time: number,
+            platform: 'Web',
+            language: 'en-US',
+            ip: '$remote',
+            insert_id: uuid,
+            partner_id: undefined,
+            event_type: 'test event',
+            event_id: 0,
+            event_properties: {
+              mode: 'test',
+            },
+            library: library,
+            user_agent: userAgent,
+          },
+        ],
+        options: {},
+        request_metadata: request_metadata,
+      });
+      scope.done();
+    });
+
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
@@ -1068,7 +1114,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1277,7 +1322,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1373,7 +1417,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1579,7 +1622,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1728,7 +1770,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1785,7 +1826,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1930,6 +1970,7 @@ describe('integration', () => {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
+          fetchRemoteConfig: true,
         }).promise;
 
         const response = await client.track('test event').promise;
@@ -1978,6 +2019,7 @@ describe('integration', () => {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
+          fetchRemoteConfig: true,
         }).promise;
         client.setOptOut(true);
 
