@@ -13,4 +13,8 @@ module.exports = {
   testEnvironment: 'jsdom',
   coveragePathIgnorePatterns: ['index.ts'],
   setupFilesAfterEnv: ['./test/jest-setup.js'],
+  testEnvironment: '<rootDir>/test/jsdom-extended.js',
+  testEnvironmentOptions: {
+    customExportConditions: [''],
+  },
 };
