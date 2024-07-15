@@ -2,7 +2,7 @@ import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as SessionStorageModule from '../src/storage/session-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, UserSession } from '@amplitude/analytics-types';
+import { AutocaptureOptions, LogLevel, Storage, UserSession } from '@amplitude/analytics-types';
 import * as BrowserUtils from '@amplitude/analytics-client-common';
 import { getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
 import { XHRTransport } from '../src/transports/xhr';
@@ -392,6 +392,25 @@ describe('config', () => {
         value: originalLocation,
         configurable: true,
       });
+    });
+  });
+
+  describe('isAutocaptureEnabled', () => {
+    test('should return false if undefined (default)', () => {
+      expect(Config.isAutocaptureEnabled(undefined)).toBe(false);
+    });
+
+    test('should return false if false', () => {
+      expect(Config.isAutocaptureEnabled(false)).toBe(false);
+    });
+
+    test('should return true if true', () => {
+      expect(Config.isAutocaptureEnabled(false)).toBe(false);
+    });
+
+    test('should return true if AutocaptureOptions', () => {
+      const autocaptureOptions: AutocaptureOptions = {};
+      expect(Config.isAutocaptureEnabled(autocaptureOptions)).toBe(true);
     });
   });
 });

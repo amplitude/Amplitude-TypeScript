@@ -60,6 +60,26 @@ describe('joined-config', () => {
     });
 
     describe('generateJoinedConfig', () => {
+      test('should disable autocapture if remote config sets it to false', async () => {
+        localConfig = createConfigurationMock();
+        mockRemoteConfigFetch = {
+          getRemoteConfig: jest.fn().mockResolvedValue({
+            defaultTracking: false,
+            autocapture: false,
+          }),
+          fetchTime: fetchTime,
+        };
+        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
+        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+          mockRemoteConfigFetch,
+        );
+
+        await generator.initialize();
+        expect(generator.config.autocapture).toBe(false);
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig.autocapture).toBe(false);
+      });
+
       test('should handle getRemoteConfig error', async () => {
         const error = new Error('Mocked completeRequest error');
         (mockRemoteConfigFetch.getRemoteConfig as jest.Mock).mockRejectedValue(error);

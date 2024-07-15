@@ -353,6 +353,5 @@ export const getTopLevelDomain = async (url?: string) => {
 };
 
 export const isAutocaptureEnabled = (autocapture?: AutocaptureOptions | boolean): boolean => {
-  // Disable autocapture plugin only when false
-  return autocapture !== false;
+  return autocapture === true || typeof autocapture === 'object';
 };

@@ -7,7 +7,7 @@ import {
 } from '@amplitude/analytics-client-common';
 import { WebAttribution } from '@amplitude/analytics-client-common/src';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
+import { AutocaptureOptions, LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
@@ -292,10 +292,7 @@ describe('browser-client', () => {
       expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
     });
 
-    test.each([
-      undefined, // default
-      true, // enabled
-    ])('should add autocapture plugin', async (option) => {
+    test.each([true, {}])('should add autocapture plugin', async (option: boolean | AutocaptureOptions) => {
       const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
       await client.init(apiKey, userId, {
         autocapture: option,
@@ -303,10 +300,13 @@ describe('browser-client', () => {
       expect(autocapturePlugin).toHaveBeenCalledTimes(1);
     });
 
-    test('should NOT add autocapture plugin when autocapture is disabled', async () => {
+    test.each([
+      undefined, // default
+      false, // disabled
+    ])('should NOT add autocapture plugin', async (option: undefined | boolean) => {
       const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
       await client.init(apiKey, userId, {
-        autocapture: false,
+        autocapture: option,
       }).promise;
       expect(autocapturePlugin).toHaveBeenCalledTimes(0);
     });
