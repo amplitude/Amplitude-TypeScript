@@ -60,16 +60,16 @@ describe('action clicks:', () => {
       track = jest.spyOn(instance, 'track');
 
       const content = `
-        <div id="main" className="class1 class2" data-test-attr="test-attr">
-          <div id="inner-left" className="column">
-            <div id="addDivButton">Add div</div>
+        <div id="main" class="class1 class2" data-test-attr="test-attr">
+          <div id="inner-left" class="column">
+            <div id="addDivButton"><span id="inner-div-button-text">Add div</span></div>
             <div id="go-back-button">Go Back</div>
-            <button id="real-button">Click me</button>
+            <button id="real-button"><span id="button-text">Click me</span></button>
             <div class="red" id="no-action-div">No action div</div>
           </div>
-          <div id="inner-right" className="column">
-            <div className="card">
-              <h1>Card Title</h1>
+          <div id="inner-right" class="column">
+            <div class="card">
+              <h1 id="card-title">Card Title</h1>
               <a href="https://google.com">Go to Google</a>
               <a href="#">Dead Link</a>
             </div>
@@ -91,6 +91,9 @@ describe('action clicks:', () => {
         document.body.appendChild(newDiv);
       };
       addDivButton?.addEventListener('click', addDiv);
+
+      // Add event listener to card
+      document.querySelector('.card')?.addEventListener('click', addDiv);
 
       const goBackButton = document.getElementById('go-back-button');
       const goBack = () => {
@@ -147,19 +150,17 @@ describe('action clicks:', () => {
           },
           {
             attrs: {
-              classname: 'class1 class2',
               'data-test-attr': 'test-attr',
             },
             id: 'main',
+            classes: ['class1', 'class2'],
             index: 0,
             indexOfType: 0,
             tag: 'div',
           },
           {
-            attrs: {
-              classname: 'column',
-            },
             id: 'inner-left',
+            classes: ['column'],
             index: 0,
             indexOfType: 0,
             tag: 'div',
@@ -180,6 +181,80 @@ describe('action clicks:', () => {
         '[Amplitude] Element Text': 'Add div',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
+      });
+    });
+
+    test('should not trigger duplicate events if the immediate click target is in the action click allowlist', async () => {
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      // trigger click event on span in a button
+      document.getElementById('button-text')?.dispatchEvent(new Event('click', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+      // should only track one event, the click on the button
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element ID': 'real-button',
+          '[Amplitude] Element Selector': '#real-button',
+          '[Amplitude] Element Tag': 'button',
+          '[Amplitude] Element Text': 'Click me',
+        }),
+        { time: expect.any(Number) as number },
+      );
+    });
+
+    test('should trigger action click on innermost element', async () => {
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      // trigger click event on span in a button
+      document.getElementById('inner-div-button-text')?.dispatchEvent(new Event('click', { bubbles: true }));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+      // should only track one event, the click on the button
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element ID': 'inner-div-button-text',
+          '[Amplitude] Element Parent Label': 'Add div',
+          '[Amplitude] Element Tag': 'span',
+        }),
+      );
+    });
+
+    describe('actionClickAllowlist configuration', () => {
+      test('should be able to track non-default tags by overwriting default actionClickAllowlist', async () => {
+        // Use only div in allowlist
+        plugin = autocapturePlugin({ actionClickAllowlist: ['h1'], debounceTime: TESTING_DEBOUNCE_TIME });
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        // trigger click on card which should result in no event since div is not in the allowlist
+        document.querySelector('.card')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+        expect(track).toHaveBeenCalledTimes(0);
+        expect(document.querySelectorAll('.new-div').length).toBe(1);
+
+        // trigger click on h1 in card which should result in an action click since h1 is in the allowlist and a child
+        // of the card which has the click event listener
+        document.getElementById('card-title')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(track).toHaveBeenNthCalledWith(
+          1,
+          '[Amplitude] Element Clicked',
+          expect.objectContaining({
+            '[Amplitude] Element ID': 'card-title',
+            '[Amplitude] Element Parent Label': 'Card Title',
+            '[Amplitude] Element Tag': 'h1',
+          }),
+        );
+        expect(document.querySelectorAll('.new-div').length).toBe(2);
       });
     });
 
