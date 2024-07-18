@@ -81,8 +81,6 @@ export function trackActionClick({
   );
 
   return actionClicks.subscribe((actionClick) => {
-    console.log('actionClick', actionClick);
-
     amplitude?.track(
       AMPLITUDE_ELEMENT_CLICKED_EVENT,
       getEventProperties('click', (actionClick as ElementBasedTimestampedEvent<MouseEvent>).closestTrackedAncestor),

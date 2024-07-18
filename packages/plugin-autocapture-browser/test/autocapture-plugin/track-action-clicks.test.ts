@@ -94,8 +94,6 @@ describe('action clicks:', () => {
 
       const goBackButton = document.getElementById('go-back-button');
       const goBack = () => {
-        console.log('gooooo', global.window.location, history);
-
         history.pushState(null, '', '#new-hash');
       };
       goBackButton?.addEventListener('click', goBack);
