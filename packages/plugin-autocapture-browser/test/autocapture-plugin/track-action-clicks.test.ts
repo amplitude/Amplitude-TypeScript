@@ -2,9 +2,9 @@ import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { createInstance } from '@amplitude/analytics-browser';
 
-const TESTING_DEBOUNCE_TIME = 9;
+const TESTING_DEBOUNCE_TIME = 4;
 
-describe('autoTrackingPlugin', () => {
+describe('action clicks:', () => {
   let plugin: EnrichmentPlugin | undefined;
 
   beforeAll(() => {
@@ -37,7 +37,7 @@ describe('autoTrackingPlugin', () => {
 
   // ********** START TESTS **********
 
-  describe('auto-tracked events', () => {
+  describe('autotrack clicks that cause a change:', () => {
     const API_KEY = 'API_KEY';
     const USER_ID = 'USER_ID';
 
@@ -104,7 +104,7 @@ describe('autoTrackingPlugin', () => {
       const realButton = document.getElementById('real-button');
       realButton?.dispatchEvent(new Event('click'));
       realButton?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 1));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
       expect(track).toHaveBeenCalledTimes(2);
     });
@@ -114,7 +114,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click event on div which is acting as a button
       document.getElementById('addDivButton')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 1));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {

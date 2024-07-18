@@ -9,6 +9,7 @@ import {
   getNearestLabel,
   getSelector,
   createShouldTrackEvent,
+  getClosestElement,
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
@@ -89,25 +90,36 @@ enum ObservablesEnum {
   MutationObservable = 'mutationObservable',
 }
 
-type TimestampedEvent<T> = {
+// Base TimestampedEvent type
+type BaseTimestampedEvent<T> = {
   event: T;
   timestamp: number;
   type: 'rage' | 'click' | 'change' | 'error' | 'popstate' | 'mutation';
 };
 
+// Specific types for events with targetElementProperties
+type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
+  event: MouseEvent | Event;
+  type: 'click' | 'change';
+  closestTrackedAncestor: Element;
+  targetElementProperties: Record<string, any>;
+};
+
+// Union type for all possible TimestampedEvents
+type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
+
 export interface AllWindowObservables {
-  [ObservablesEnum.ClickObservable]: Observable<TimestampedEvent<MouseEvent>>;
-  [ObservablesEnum.ChangeObservable]: Observable<TimestampedEvent<Event>>;
+  [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
   [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.PopstateObservable]: Observable<TimestampedEvent<PopStateEvent>>;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
 }
 
-const addTimestamp = <T>(event: T, type: TimestampedEvent<any>['type']): TimestampedEvent<T> => ({
-  event,
-  timestamp: Date.now(),
-  type,
-});
+// Type predicate
+export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
+  return event.type === 'click' || event.type === 'change';
+}
 
 export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnrichmentPlugin => {
   const {
@@ -131,18 +143,20 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
     const clickObservable = fromEvent<MouseEvent>(document, 'click', { capture: true }).pipe(
-      map((click) => addTimestamp(click, 'click')),
+      map((click) => addAdditionalEventProperties(click, 'click')),
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
-      map((change) => addTimestamp(change, 'change')),
+      map((change) => addAdditionalEventProperties(change, 'change')),
     );
 
     // Create Observable from unhandled errors
-    const errorObservable = fromEvent<ErrorEvent>(window, 'error').pipe(map((error) => addTimestamp(error, 'error')));
+    const errorObservable = fromEvent<ErrorEvent>(window, 'error').pipe(
+      map((error) => addAdditionalEventProperties(error, 'error')),
+    );
 
     // add observable for URL changes
     const popstateObservable = fromEvent<PopStateEvent>(window, 'popstate').pipe(
-      map((popstate) => addTimestamp(popstate, 'popstate')),
+      map((popstate) => addAdditionalEventProperties(popstate, 'popstate')),
     );
 
     // Track DOM Mutations
@@ -157,11 +171,11 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
         subtree: true,
       });
       return () => mutationObserver.disconnect();
-    }).pipe(map((mutation) => addTimestamp(mutation, 'mutation')));
+    }).pipe(map((mutation) => addAdditionalEventProperties(mutation, 'mutation')));
 
     return {
-      [ObservablesEnum.ClickObservable]: clickObservable,
-      [ObservablesEnum.ChangeObservable]: changeObservable,
+      [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
+      [ObservablesEnum.ChangeObservable]: changeObservable as Observable<ElementBasedTimestampedEvent<Event>>,
       [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.PopstateObservable]: popstateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
@@ -203,6 +217,32 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     return removeEmptyProperties(properties);
   };
 
+  const addAdditionalEventProperties = <T>(
+    event: T,
+    type: TimestampedEvent<T>['type'],
+  ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
+    const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
+      event,
+      timestamp: Date.now(),
+      type,
+    };
+
+    if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+      // Retrieve additional event properties from the target element
+      const closestTrackedAncestor = getClosestElement(
+        baseEvent.event.target as HTMLElement,
+        (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      );
+      if (closestTrackedAncestor) {
+        baseEvent.closestTrackedAncestor = closestTrackedAncestor;
+        baseEvent.targetElementProperties = getEventProperties(baseEvent.type, closestTrackedAncestor);
+      }
+      return baseEvent;
+    }
+
+    return baseEvent;
+  };
+
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     if (!amplitude) {
       /* istanbul ignore next */
@@ -224,7 +264,6 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     const clickTrackingSubscription = trackClicks({
       allObservables,
       options: options as AutoCaptureOptionsWithDefaults,
-      getEventProperties,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
     });
