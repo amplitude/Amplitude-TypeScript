@@ -2,10 +2,74 @@
 import { finder } from './libs/finder';
 import * as constants from './constants';
 import { Logger } from '@amplitude/analytics-types';
+import { AutocaptureOptions } from './autocapture-plugin';
+import { ActionType } from './typings/autocapture';
 
 export type JSONValue = string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
 
 const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
+
+export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
+
+export const createShouldTrackEvent = (autocaptureOptions: AutocaptureOptions): shouldTrackEvent => {
+  return (actionType: ActionType, element: Element) => {
+    const { cssSelectorAllowlist, pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
+    /* istanbul ignore if */
+    if (!element) {
+      return false;
+    }
+
+    /* istanbul ignore next */
+    const tag = element?.tagName?.toLowerCase?.();
+    // Text nodes have no tag
+    if (!tag) {
+      return false;
+    }
+
+    if (shouldTrackEventResolver) {
+      return shouldTrackEventResolver(actionType, element);
+    }
+
+    if (!isPageUrlAllowed(window.location.href, pageUrlAllowlist)) {
+      return false;
+    }
+
+    /* istanbul ignore next */
+    const elementType = (element as HTMLInputElement)?.type || '';
+    if (typeof elementType === 'string') {
+      switch (elementType.toLowerCase()) {
+        case 'hidden':
+          return false;
+        case 'password':
+          return false;
+      }
+    }
+
+    /* istanbul ignore if */
+    if (cssSelectorAllowlist) {
+      const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => !!element?.matches?.(selector));
+      if (!hasMatchAnyAllowedSelector) {
+        return false;
+      }
+    }
+
+    switch (tag) {
+      case 'input':
+      case 'select':
+      case 'textarea':
+        return actionType === 'change' || actionType === 'click';
+      default: {
+        /* istanbul ignore next */
+        const computedStyle = window?.getComputedStyle?.(element);
+        /* istanbul ignore next */
+        if (computedStyle && computedStyle.getPropertyValue('cursor') === 'pointer' && actionType === 'click') {
+          return true;
+        }
+        return actionType === 'click';
+      }
+    }
+  };
+};
 
 export const isNonSensitiveString = (text: string | null) => {
   if (text == null) {

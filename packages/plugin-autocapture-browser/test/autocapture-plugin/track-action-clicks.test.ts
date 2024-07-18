@@ -2,6 +2,8 @@ import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import { createInstance } from '@amplitude/analytics-browser';
 
+const TESTING_DEBOUNCE_TIME = 9;
+
 describe('autoTrackingPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
 
@@ -24,7 +26,7 @@ describe('autoTrackingPlugin', () => {
       pathname: '',
       search: '',
     };
-    plugin = autocapturePlugin();
+    plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
   });
 
   afterEach(() => {
@@ -42,8 +44,17 @@ describe('autoTrackingPlugin', () => {
     let instance = createInstance();
     let track: jest.SpyInstance;
 
+    const loggerProvider: Partial<Logger> = {
+      log: jest.fn(),
+      warn: jest.fn(),
+    };
+    const config: Partial<BrowserConfig> = {
+      defaultTracking: false,
+      loggerProvider: loggerProvider as Logger,
+    };
+
     beforeEach(async () => {
-      plugin = autocapturePlugin();
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
       instance = createInstance();
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track');
@@ -87,37 +98,23 @@ describe('autoTrackingPlugin', () => {
     });
 
     test('should track button click even if there is no DOM change', async () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
-      };
       await plugin?.setup(config as BrowserConfig, instance);
 
       // trigger 2 click events on button
       const realButton = document.getElementById('real-button');
       realButton?.dispatchEvent(new Event('click'));
       realButton?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 1));
 
       expect(track).toHaveBeenCalledTimes(2);
     });
 
     test('should track div click if it causes a DOM change', async () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
-      };
       await plugin?.setup(config as BrowserConfig, instance);
 
-      // trigger click event
+      // trigger click event on div which is acting as a button
       document.getElementById('addDivButton')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 1));
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
