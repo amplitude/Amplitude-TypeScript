@@ -16,6 +16,39 @@ import { ActionType } from './typings/autocapture';
 import { getHierarchy } from './hierarchy';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
+import { trackActionClick } from './autocapture/track-action-click';
+import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+
+declare global {
+  interface Window {
+    navigation: HasEventTargetAddRemove<Event>;
+  }
+}
+
+interface NavigateEvent extends Event {
+  readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
+  readonly destination: {
+    readonly url: string;
+    readonly key: string | null;
+    readonly id: string | null;
+    readonly index: number;
+    readonly sameDocument: boolean;
+
+    getState(): any;
+  };
+  readonly canIntercept: boolean;
+  readonly userInitiated: boolean;
+  readonly hashChange: boolean;
+  readonly signal: AbortSignal;
+  readonly formData: FormData | null;
+  readonly downloadRequest: string | null;
+  readonly info: any;
+  readonly hasUAVisualTransition: boolean;
+  /** @see https://github.com/WICG/navigation-api/pull/264 */
+  readonly sourceElement: Element | null;
+
+  scroll(): void;
+}
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -29,6 +62,7 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
   '[data-amp-default-track]',
   '.amp-default-track',
 ];
+export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
 
 export interface AutocaptureOptions {
@@ -75,18 +109,23 @@ export interface AutocaptureOptions {
    * This is used to detect rage clicks.
    */
   debounceTime?: number;
+
+  /**
+   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
+   */
+  actionClickAllowlist?: string[];
 }
 
 export type AutoCaptureOptionsWithDefaults = Required<
-  Pick<AutocaptureOptions, 'debounceTime' | 'cssSelectorAllowlist'>
+  Pick<AutocaptureOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
 > &
   AutocaptureOptions;
 
-enum ObservablesEnum {
+export enum ObservablesEnum {
   ClickObservable = 'clickObservable',
   ChangeObservable = 'changeObservable',
   ErrorObservable = 'errorObservable',
-  PopstateObservable = 'popstateObservable',
+  NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
 }
 
@@ -94,11 +133,11 @@ enum ObservablesEnum {
 type BaseTimestampedEvent<T> = {
   event: T;
   timestamp: number;
-  type: 'rage' | 'click' | 'change' | 'error' | 'popstate' | 'mutation';
+  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
 };
 
 // Specific types for events with targetElementProperties
-type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
+export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
   event: MouseEvent | Event;
   type: 'click' | 'change';
   closestTrackedAncestor: Element;
@@ -106,13 +145,13 @@ type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
 };
 
 // Union type for all possible TimestampedEvents
-type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
+export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
   [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
-  [ObservablesEnum.PopstateObservable]: Observable<TimestampedEvent<PopStateEvent>>;
+  [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
 }
 
@@ -131,6 +170,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
   } = options;
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
+  options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 1000;
 
   const name = constants.PLUGIN_NAME;
@@ -155,9 +195,13 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     );
 
     // add observable for URL changes
-    const popstateObservable = fromEvent<PopStateEvent>(window, 'popstate').pipe(
-      map((popstate) => addAdditionalEventProperties(popstate, 'popstate')),
-    );
+
+    let navigateObservable;
+    if (window.navigation) {
+      navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
+        map((navigate) => addAdditionalEventProperties(navigate, 'navigate')),
+      );
+    }
 
     // Track DOM Mutations
     const mutationObservable = new Observable<MutationRecord[]>((observer) => {
@@ -177,7 +221,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.ChangeObservable]: changeObservable as Observable<ElementBasedTimestampedEvent<Event>>,
       [ObservablesEnum.ErrorObservable]: errorObservable,
-      [ObservablesEnum.PopstateObservable]: popstateObservable,
+      [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
     };
   };
@@ -258,7 +302,14 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
       return;
     }
 
-    const shouldTrackEvent = createShouldTrackEvent(options);
+    const shouldTrackEvent = createShouldTrackEvent(
+      options,
+      (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+    );
+    const shouldTrackActionClick = createShouldTrackEvent(
+      options,
+      (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist,
+    );
 
     const allObservables = createObservables();
     const clickTrackingSubscription = trackClicks({
@@ -271,12 +322,21 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
 
     const changeSubscription = trackChange({
       allObservables,
-      options: options as AutoCaptureOptionsWithDefaults,
       getEventProperties,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
     });
     subscriptions.push(changeSubscription);
+
+    const actionClickSubscription = trackActionClick({
+      allObservables,
+      options: options as AutoCaptureOptionsWithDefaults,
+      getEventProperties,
+      amplitude,
+      shouldTrackEvent,
+      shouldTrackActionClick: shouldTrackActionClick,
+    });
+    subscriptions.push(actionClickSubscription);
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
@@ -287,7 +347,10 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
       visualTaggingOptions.messenger?.setup({
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
-        isElementSelectable: createShouldTrackEvent(options),
+        isElementSelectable: createShouldTrackEvent(
+          options,
+          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+        ),
       });
     }
   };

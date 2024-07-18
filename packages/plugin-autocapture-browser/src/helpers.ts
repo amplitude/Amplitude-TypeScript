@@ -11,9 +11,12 @@ const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
 
-export const createShouldTrackEvent = (autocaptureOptions: AutocaptureOptions): shouldTrackEvent => {
+export const createShouldTrackEvent = (
+  autocaptureOptions: AutocaptureOptions,
+  allowlist: string[], // this can be any type of css selector allow list
+): shouldTrackEvent => {
   return (actionType: ActionType, element: Element) => {
-    const { cssSelectorAllowlist, pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
+    const { pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
     /* istanbul ignore if */
     if (!element) {
       return false;
@@ -46,8 +49,8 @@ export const createShouldTrackEvent = (autocaptureOptions: AutocaptureOptions): 
     }
 
     /* istanbul ignore if */
-    if (cssSelectorAllowlist) {
-      const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => !!element?.matches?.(selector));
+    if (allowlist) {
+      const hasMatchAnyAllowedSelector = allowlist.some((selector) => !!element?.matches?.(selector));
       if (!hasMatchAnyAllowedSelector) {
         return false;
       }
@@ -96,7 +99,7 @@ export const isTextNode = (node: Node) => {
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable = element.getAttribute('contenteditable') === 'true';
+  const isContentEditable = element?.getAttribute?.('contenteditable') === 'true';
   return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 

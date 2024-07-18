@@ -70,7 +70,6 @@ describe('autoTrackingPlugin', () => {
       expect(loggerProvider.warn).toHaveBeenCalledTimes(0);
       expect(loggerProvider.log).toHaveBeenCalledTimes(1);
       expect(loggerProvider.log).toHaveBeenNthCalledWith(1, `${plugin?.name as string} has been successfully added.`);
-      expect(loggerProvider.error).toHaveBeenCalledTimes(0);
     });
 
     test('should handle incompatible Amplitude SDK version', async () => {

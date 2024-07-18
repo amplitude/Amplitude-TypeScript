@@ -63,7 +63,9 @@ describe('action clicks:', () => {
         <div id="main" className="class1 class2" data-test-attr="test-attr">
           <div id="inner-left" className="column">
             <div id="addDivButton">Add div</div>
+            <div id="go-back-button">Go Back</div>
             <button id="real-button">Click me</button>
+            <div class="red" id="no-action-div">No action div</div>
           </div>
           <div id="inner-right" className="column">
             <div className="card">
@@ -90,6 +92,14 @@ describe('action clicks:', () => {
       };
       addDivButton?.addEventListener('click', addDiv);
 
+      const goBackButton = document.getElementById('go-back-button');
+      const goBack = () => {
+        console.log('gooooo', global.window.location, history);
+
+        history.pushState(null, '', '#new-hash');
+      };
+      goBackButton?.addEventListener('click', goBack);
+
       // mockWindowLocationFromURL(new URL('https://www.amplitude.com/unit-test?query=param'));
     });
 
@@ -109,16 +119,27 @@ describe('action clicks:', () => {
       expect(track).toHaveBeenCalledTimes(2);
     });
 
+    test('should not track div click if it does not change the DOM or navigate', async () => {
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      // trigger click event on div which is acting as a button
+      document.getElementById('no-action-div')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+      expect(track).toHaveBeenCalledTimes(0);
+    });
+
     test('should track div click if it causes a DOM change', async () => {
       await plugin?.setup(config as BrowserConfig, instance);
 
       // trigger click event on div which is acting as a button
       document.getElementById('addDivButton')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+      document.getElementById('addDivButton')?.dispatchEvent(new Event('click'));
+      document.getElementById('addDivButton')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
 
       expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
-        '[Amplitude] Element Class': 'my-link-class',
         '[Amplitude] Element Hierarchy': [
           {
             index: 1,
@@ -128,29 +149,55 @@ describe('action clicks:', () => {
           },
           {
             attrs: {
-              'aria-label': 'my-link',
-              href: 'https://www.amplitude.com/click-link',
+              classname: 'class1 class2',
+              'data-test-attr': 'test-attr',
             },
-            classes: ['my-link-class'],
-            id: 'my-link-id',
+            id: 'main',
             index: 0,
             indexOfType: 0,
-            tag: 'a',
+            tag: 'div',
+          },
+          {
+            attrs: {
+              classname: 'column',
+            },
+            id: 'inner-left',
+            index: 0,
+            indexOfType: 0,
+            tag: 'div',
+          },
+          {
+            id: 'addDivButton',
+            index: 0,
+            indexOfType: 0,
+            tag: 'div',
           },
         ],
-        '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
-        '[Amplitude] Element ID': 'my-link-id',
+        '[Amplitude] Element ID': 'addDivButton',
+        '[Amplitude] Element Parent Label': 'Card Title',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
-        '[Amplitude] Element Tag': 'a',
-        '[Amplitude] Element Text': 'my-link-text',
-        '[Amplitude] Element Aria Label': 'my-link',
-        '[Amplitude] Element Selector': '#my-link-id',
-        '[Amplitude] Element Parent Label': 'my-h2-text',
-        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+        '[Amplitude] Element Selector': '#addDivButton',
+        '[Amplitude] Element Tag': 'div',
+        '[Amplitude] Element Text': 'Add div',
         '[Amplitude] Viewport Height': 768,
         '[Amplitude] Viewport Width': 1024,
       });
     });
+
+    // Readd when jsdom has support for navigate events
+    // test('should track div click if it causes a navigation (popstate) change', async () => {
+    //   await plugin?.setup(config as BrowserConfig, instance);
+
+    //   // Set initial window location
+    //   window.location.href = 'https://www.test.com/query';
+
+    //   // trigger click event on div which is acting as a button
+    //   document.getElementById('go-back-button')?.dispatchEvent(new Event('click'));
+    //   await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+
+    //   expect(track).toHaveBeenCalledTimes(1);
+    //   expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {});
+    // });
   });
 });
