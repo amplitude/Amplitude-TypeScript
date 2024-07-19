@@ -15,16 +15,12 @@ export const createShouldTrackEvent = (
   autocaptureOptions: AutocaptureOptions,
   allowlist: string[], // this can be any type of css selector allow list
 ): shouldTrackEvent => {
-  return (actionType: ActionType, element: Element | null | undefined) => {
+  return (actionType: ActionType, element: Element) => {
     const { pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
-    /* istanbul ignore if */
-    if (!element) {
-      return false;
-    }
 
     /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
-    // Text nodes have no tag
+    // window, document, and Text nodes have no tag
     if (!tag) {
       return false;
     }
@@ -99,7 +95,7 @@ export const isTextNode = (node: Node) => {
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable = element?.getAttribute?.('contenteditable') === 'true';
+  const isContentEditable = element instanceof HTMLElement ? element.isContentEditable : false;
   return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 

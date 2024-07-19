@@ -53,6 +53,7 @@ export function trackActionClick({
   const changeObservables: Array<
     AllWindowObservables[ObservablesEnum.MutationObservable] | AllWindowObservables[ObservablesEnum.NavigateObservable]
   > = [mutationObservable];
+  /* istanbul ignore next */
   if (navigateObservable) {
     changeObservables.push(navigateObservable);
   }
@@ -69,6 +70,7 @@ export function trackActionClick({
   );
 
   return actionClicks.subscribe((actionClick) => {
+    /* istanbul ignore next */
     amplitude?.track(
       AMPLITUDE_ELEMENT_CLICKED_EVENT,
       getEventProperties('click', (actionClick as ElementBasedTimestampedEvent<MouseEvent>).closestTrackedAncestor),

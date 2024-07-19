@@ -1118,6 +1118,64 @@ describe('autoTrackingPlugin', () => {
         );
       });
     });
+
+    test('should not track click for an event fired without a target', async () => {
+      const event = new Event('click', {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      window.dispatchEvent(event);
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(0);
+    });
+
+    describe('rage click detection:', () => {
+      test('clicking on the same element 4 times should track 4 clicks separately', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        const button = document.createElement('button');
+        document.body.appendChild(button);
+
+        // trigger click event
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        expect(track).toHaveBeenCalledTimes(4);
+      });
+
+      // TODO: this will change in the future
+      test('clicking on the same element 5 times should track 6 clicks separately', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        const button = document.createElement('button');
+        document.body.appendChild(button);
+
+        // trigger click event
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        expect(track).toHaveBeenCalledTimes(6);
+      });
+    });
   });
 
   describe('teardown', () => {

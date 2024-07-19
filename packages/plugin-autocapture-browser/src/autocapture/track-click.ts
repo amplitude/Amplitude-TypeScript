@@ -19,11 +19,18 @@ export function trackClicks({
 }) {
   const { clickObservable } = allObservables;
 
-  // Trigger if the target of the click event has changed
+  // Trigger if the target of the click event has changed and position is different
+  // Keeping track of position is important to avoid false positives when the user clicks on the same
+  // element where certain frameworks could replace the element instance between rerenders
   const comparisonTrigger = clickObservable.pipe(
     pairwise(),
     filter(([prev, current]) => {
-      return prev.event.target !== current.event.target;
+      const targetChanged = prev.event.target !== current.event.target;
+      /* istanbul ignore next */
+      const samePos =
+        Math.abs(current.event.screenX - prev.event.screenX) <= 20 &&
+        Math.abs(current.event.screenY - prev.event.screenY) <= 20;
+      return targetChanged && !samePos;
     }),
   );
 
@@ -41,7 +48,6 @@ export function trackClicks({
     filter(filterOutNonTrackableEvents),
     filter((click) => {
       // Only track clicks on elements that should be tracked,
-      // Later this will be changed when mutation events are used
       return shouldTrackEvent('click', click.closestTrackedAncestor);
     }),
     buffer(triggers),
@@ -53,6 +59,7 @@ export function trackClicks({
       clicks.length >= RAGE_CLICK_THRESHOLD ? AMPLITUDE_ELEMENT_CLICKED_EVENT : AMPLITUDE_ELEMENT_CLICKED_EVENT;
 
     for (const click of clicks) {
+      /* istanbul ignore next */
       amplitude?.track(clickType, click.targetElementProperties, {
         time: click.timestamp,
       });

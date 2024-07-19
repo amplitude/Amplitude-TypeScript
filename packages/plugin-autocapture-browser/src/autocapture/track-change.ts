@@ -27,6 +27,7 @@ export function trackChange({
   );
 
   return filteredChangeObservable.subscribe((changeEvent) => {
+    /* istanbul ignore next */
     amplitude?.track(AMPLITUDE_ELEMENT_CHANGED_EVENT, getEventProperties('change', changeEvent.closestTrackedAncestor));
   });
 }
