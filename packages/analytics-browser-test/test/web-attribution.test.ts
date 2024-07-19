@@ -586,6 +586,58 @@ describe('Web attribution', () => {
           }, 4000);
         });
       });
+
+      test('should not drop campaign without reinitializing the SDK after unsetting the referrer', async () => {
+        const url = 'https://www.example.com?utm_source=test_utm_source';
+        const initReferrer = 'https://www.test.com/';
+        navigateTo(url, initReferrer);
+        expect(document.referrer).toEqual(initReferrer);
+
+        let payload: any = undefined;
+        const scope = nock(httpEndPoint)
+          .post(path, (body: Record<string, any>) => {
+            payload = body;
+            return true;
+          })
+          .reply(200, success);
+
+        await client.init(apiKey, 'user1@amplitude.com', {
+          deviceId: UUID(),
+          defaultTracking,
+          sessionTimeout: 500,
+          flushIntervalMillis: 3000,
+        }).promise;
+
+        // Unset the referrer after first hit
+        Object.defineProperty(document, 'referrer', { value: '', configurable: true });
+        expect(document.referrer).toEqual('');
+
+        // Update the url to drop all UTM to mock SPA redirect during the same session without refreshing the page
+        // Fire page view event in current session
+        const newURL = 'https://www.example.com';
+        navigateTo(newURL);
+        window.history.pushState(undefined, newURL);
+
+        return new Promise<void>((resolve) => {
+          setTimeout(() => {
+            expect(payload).toEqual({
+              api_key: apiKey,
+              client_upload_time: event_upload_time,
+              events: [
+                generateAttributionEvent(++eventId, url, initReferrer),
+                generateSessionStartEvent(++eventId),
+                generatePageViewEvent(++eventId, 1, url, initReferrer),
+                generatePageViewEvent(++eventId, 2, newURL),
+              ],
+              options: {
+                min_id_length: undefined,
+              },
+            });
+            scope.done();
+            resolve();
+          }, 4000);
+        });
+      });
     });
   });
 
