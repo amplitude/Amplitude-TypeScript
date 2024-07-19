@@ -7,7 +7,7 @@ import {
 import { filter, map, switchMap, takeUntil, timer, take, merge } from 'rxjs';
 import { ActionType } from 'src/typings/autocapture';
 import { BrowserClient } from '@amplitude/analytics-types';
-import { getClosestElement, shouldTrackEvent } from '../helpers';
+import { filterOutNonTrackableEvents, getClosestElement, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
 export function trackActionClick({
@@ -49,12 +49,8 @@ export function trackActionClick({
       }
       return click;
     }),
+    filter(filterOutNonTrackableEvents),
     filter((clickEvent) => {
-      // Filter out clicks with no closestTrackedAncestor according to actionClickAllowlist
-      if (!clickEvent.closestTrackedAncestor) {
-        return false;
-      }
-
       // Only track change on elements that should be tracked,
       return shouldTrackActionClick('click', clickEvent.closestTrackedAncestor);
     }),

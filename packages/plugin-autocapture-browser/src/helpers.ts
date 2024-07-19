@@ -2,7 +2,7 @@
 import { finder } from './libs/finder';
 import * as constants from './constants';
 import { Logger } from '@amplitude/analytics-types';
-import { AutocaptureOptions } from './autocapture-plugin';
+import { AutocaptureOptions, ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
 import { ActionType } from './typings/autocapture';
 
 export type JSONValue = string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -298,3 +298,13 @@ export const asyncLoadScript = (url: string) => {
 export function generateUniqueId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
+
+export const filterOutNonTrackableEvents = (event: ElementBasedTimestampedEvent<ElementBasedEvent>): boolean => {
+  // Filter out changeEvent events with no target
+  // This could happen when change events are triggered programmatically
+  if (event.event.target === null || !event.closestTrackedAncestor) {
+    return false;
+  }
+
+  return true;
+};

@@ -1,7 +1,7 @@
 import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from 'src/autocapture-plugin';
 import { buffer, filter, map, debounceTime, merge, pairwise, delay } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-types';
-import { shouldTrackEvent } from '../helpers';
+import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
 const RAGE_CLICK_THRESHOLD = 5;
@@ -38,17 +38,8 @@ export function trackClicks({
   // Get buffers of clicks, if the buffer length is over 5, it is rage click
   const bufferedClicks = clickObservable.pipe(
     delay(0),
+    filter(filterOutNonTrackableEvents),
     filter((click) => {
-      // Filter out click events with no target
-      // This could happen when click events are triggered programmatically
-      if (click.event.target === null) {
-        return false;
-      }
-
-      if (!click.closestTrackedAncestor) {
-        return false;
-      }
-
       // Only track clicks on elements that should be tracked,
       // Later this will be changed when mutation events are used
       return shouldTrackEvent('click', click.closestTrackedAncestor);

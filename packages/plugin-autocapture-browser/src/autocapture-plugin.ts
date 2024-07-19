@@ -137,6 +137,7 @@ type BaseTimestampedEvent<T> = {
 };
 
 // Specific types for events with targetElementProperties
+export type ElementBasedEvent = MouseEvent | Event;
 export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
   event: MouseEvent | Event;
   type: 'click' | 'change';
@@ -301,6 +302,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
       return;
     }
 
+    // Create should track event functions the different allowlists
     const shouldTrackEvent = createShouldTrackEvent(
       options,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -310,7 +312,10 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
       (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist,
     );
 
+    // Create observables for events on the window
     const allObservables = createObservables();
+
+    // Create subscriptions
     const clickTrackingSubscription = trackClicks({
       allObservables,
       options: options as AutoCaptureOptionsWithDefaults,
