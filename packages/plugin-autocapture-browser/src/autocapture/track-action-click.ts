@@ -25,7 +25,6 @@ export function trackActionClick({
   shouldTrackActionClick: shouldTrackEvent;
   shouldTrackEvent: shouldTrackEvent;
 }) {
-  options;
   const { clickObservable, mutationObservable, navigateObservable } = allObservables;
 
   const filteredClickObservable = clickObservable.pipe(

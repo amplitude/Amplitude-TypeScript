@@ -194,8 +194,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
       map((error) => addAdditionalEventProperties(error, 'error')),
     );
 
-    // add observable for URL changes
-
+    // Create observable for URL changes
     let navigateObservable;
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(

@@ -258,6 +258,27 @@ describe('action clicks:', () => {
       });
     });
 
+    test('should not track when element type is hidden', async () => {
+      // Use only div in allowlist
+      plugin = autocapturePlugin({ actionClickAllowlist: ['input'], debounceTime: TESTING_DEBOUNCE_TIME });
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      const input = document.createElement('input');
+      input.setAttribute('id', 'my-input-id');
+      input.setAttribute('class', 'my-input-class');
+      input.type = 'hidden';
+      document.body.appendChild(input);
+
+      // trigger click input
+      document.getElementById('my-input-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
+      expect(track).toHaveBeenCalledTimes(0);
+
+      // trigger change input
+      document.getElementById('my-input-id')?.dispatchEvent(new Event('change'));
+      expect(track).toHaveBeenCalledTimes(0);
+    });
+
     // Readd when jsdom has support for navigate events
     // test('should track div click if it causes a navigation (popstate) change', async () => {
     //   await plugin?.setup(config as BrowserConfig, instance);
