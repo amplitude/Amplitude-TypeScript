@@ -124,7 +124,7 @@ export type AutoCaptureOptionsWithDefaults = Required<
 export enum ObservablesEnum {
   ClickObservable = 'clickObservable',
   ChangeObservable = 'changeObservable',
-  ErrorObservable = 'errorObservable',
+  // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
 }
@@ -151,7 +151,7 @@ export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestam
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
-  [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
+  // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
 }
@@ -191,12 +191,13 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     );
 
     // Create Observable from unhandled errors
-    const errorObservable = fromEvent<ErrorEvent>(window, 'error').pipe(
-      map((error) => addAdditionalEventProperties(error, 'error')),
-    );
+    // const errorObservable = fromEvent<ErrorEvent>(window, 'error').pipe(
+    //   map((error) => addAdditionalEventProperties(error, 'error')),
+    // );
 
     // Create observable for URL changes
     let navigateObservable;
+    /* istanbul ignore next */
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
         map((navigate) => addAdditionalEventProperties(navigate, 'navigate')),
@@ -220,7 +221,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.ChangeObservable]: changeObservable as Observable<ElementBasedTimestampedEvent<Event>>,
-      [ObservablesEnum.ErrorObservable]: errorObservable,
+      // [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
     };

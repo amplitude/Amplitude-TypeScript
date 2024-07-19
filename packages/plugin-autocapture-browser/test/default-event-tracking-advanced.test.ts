@@ -372,7 +372,6 @@ describe('autoTrackingPlugin', () => {
       // assert no additional event was tracked
       expect(track).toHaveBeenCalledTimes(1);
     });
-
     test('should track clicks to elements added after initial load', async () => {
       const body = document.body;
       const bodyParent = body?.parentNode;
@@ -444,7 +443,6 @@ describe('autoTrackingPlugin', () => {
       // stop observer and listeners
       await plugin?.teardown?.();
     });
-
     test('should not track disallowed tag', async () => {
       const div = document.createElement('div');
       div.setAttribute('id', 'my-div-id');
@@ -480,7 +478,10 @@ describe('autoTrackingPlugin', () => {
         button.appendChild(buttonText);
         document.body.appendChild(button);
 
-        plugin = autocapturePlugin({ cssSelectorAllowlist: ['.my-button-class'], debounceTime: TESTING_DEBOUNCE_TIME });
+        plugin = autocapturePlugin({
+          cssSelectorAllowlist: ['.my-button-class'],
+          debounceTime: TESTING_DEBOUNCE_TIME,
+        });
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
@@ -732,8 +733,16 @@ describe('autoTrackingPlugin', () => {
         { time: expect.any(Number) as number },
       );
     });
-
     test('should follow default debounceTime configuration', async () => {
+      const oldFetch = global.fetch;
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              code: 200,
+            }),
+        }),
+      ) as jest.Mock;
       const button = document.createElement('button');
       const buttonText = document.createTextNode('submit');
       button.setAttribute('id', 'my-button-id');
@@ -756,6 +765,8 @@ describe('autoTrackingPlugin', () => {
 
       await new Promise((r) => setTimeout(r, 500));
       expect(track).toHaveBeenCalledTimes(1);
+
+      global.fetch = oldFetch;
     });
 
     test('should track change event', async () => {
@@ -913,7 +924,7 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3000));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(

@@ -15,7 +15,7 @@ export const createShouldTrackEvent = (
   autocaptureOptions: AutocaptureOptions,
   allowlist: string[], // this can be any type of css selector allow list
 ): shouldTrackEvent => {
-  return (actionType: ActionType, element: Element) => {
+  return (actionType: ActionType, element: Element | null | undefined) => {
     const { pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
     /* istanbul ignore if */
     if (!element) {

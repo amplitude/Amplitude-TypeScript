@@ -4,7 +4,7 @@ import {
   ElementBasedTimestampedEvent,
   ObservablesEnum,
 } from 'src/autocapture-plugin';
-import { filter, map, switchMap, takeUntil, timer, take, merge } from 'rxjs';
+import { filter, map, switchMap, merge, timeout, EMPTY } from 'rxjs';
 import { ActionType } from 'src/typings/autocapture';
 import { BrowserClient } from '@amplitude/analytics-types';
 import { filterOutNonTrackableEvents, getClosestElement, shouldTrackEvent } from '../helpers';
@@ -29,14 +29,8 @@ export function trackActionClick({
 
   const filteredClickObservable = clickObservable.pipe(
     filter((click) => {
-      // Filter out clickEvent events with no target
-      // no event target could happen when change events are triggered programmatically
-      if (!click.event.target) {
-        return false;
-      }
-
       // Filter out regularly tracked click events that are already handled in trackClicks
-      return !shouldTrackEvent('click', click.event.target as Element);
+      return !shouldTrackEvent('click', click.closestTrackedAncestor);
     }),
     map((click) => {
       // overwrite the closestTrackedAncestor with the closest element that is on the actionClickAllowlist
@@ -51,7 +45,7 @@ export function trackActionClick({
     }),
     filter(filterOutNonTrackableEvents),
     filter((clickEvent) => {
-      // Only track change on elements that should be tracked,
+      // Only track change on elements that should be tracked
       return shouldTrackActionClick('click', clickEvent.closestTrackedAncestor);
     }),
   );
@@ -65,12 +59,11 @@ export function trackActionClick({
   const mutationOrNavigate = merge(...changeObservables);
 
   const actionClicks = filteredClickObservable.pipe(
-    // If a mutation occurs within 1 second (takeUntil(timer(1000))), it emits the original first click event.
+    // If a mutation occurs within 0.5 seconds of a click event (timeout({ first: 500 })), it emits the original first click event.
     switchMap((click) =>
       mutationOrNavigate.pipe(
-        takeUntil(timer(500)),
+        timeout({ first: 500, with: () => EMPTY }),
         map(() => click),
-        take(1),
       ),
     ),
   );
