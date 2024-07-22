@@ -178,12 +178,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Class': 'my-link-class',
         '[Amplitude] Element Hierarchy': [
           {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-          {
             attrs: {
               'aria-label': 'my-link',
               href: 'https://www.amplitude.com/click-link',
@@ -193,6 +187,12 @@ describe('autoTrackingPlugin', () => {
             index: 0,
             indexOfType: 0,
             tag: 'a',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
           },
         ],
         '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
@@ -247,12 +247,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Class': 'my-button-class',
         '[Amplitude] Element Hierarchy': [
           {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-          {
             attrs: {
               'aria-label': 'my-button',
             },
@@ -262,6 +256,12 @@ describe('autoTrackingPlugin', () => {
             indexOfType: 0,
             prevSib: 'h2',
             tag: 'button',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
           },
         ],
 
@@ -324,12 +324,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Class': 'my-button-class',
         '[Amplitude] Element Hierarchy': [
           {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-          {
             attrs: {
               'aria-label': 'my-button',
             },
@@ -339,6 +333,12 @@ describe('autoTrackingPlugin', () => {
             indexOfType: 0,
             prevSib: 'h2',
             tag: 'button',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
           },
         ],
         '[Amplitude] Element ID': 'my-button-id',
@@ -588,12 +588,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Class': 'my-button-class',
         '[Amplitude] Element Hierarchy': [
           {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-          {
             attrs: {
               'data-amp-test-hello': 'world',
               'data-amp-test-test': '',
@@ -605,6 +599,12 @@ describe('autoTrackingPlugin', () => {
             indexOfType: 0,
             prevSib: 'h2',
             tag: 'button',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
           },
         ],
         '[Amplitude] Element ID': 'my-button-id',
