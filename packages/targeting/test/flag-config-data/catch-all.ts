@@ -33,6 +33,33 @@ export const flagCatchAll = {
       ],
     },
     {
+      metadata: { segmentName: 'multiple event trigger' },
+      bucket: {
+        selector: ['context', 'session_id'],
+        salt: 'xdfrewd', // Different salt for each bucket to allow for fallthrough
+        allocations: [
+          {
+            range: [0, 19], // Selects 20% of users that match these conditions
+            distributions: [
+              {
+                variant: 'on',
+                range: [0, 42949673],
+              },
+            ],
+          },
+        ],
+      },
+      conditions: [
+        [
+          {
+            selector: ['context', 'event_types'],
+            op: 'set contains',
+            values: ['Add to Cart', 'Purchase'],
+          },
+        ],
+      ],
+    },
+    {
       metadata: { segmentName: 'user property' },
       bucket: {
         selector: ['context', 'session_id'],
