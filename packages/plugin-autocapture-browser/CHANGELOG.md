@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.1...@amplitude/plugin-autocapture-browser@1.0.0-beta.2) (2024-07-23)
+
+### Bug Fixes
+
+- **autocapture:** reverse hierarchy order and use more accurate property size calculation
+  ([#807](https://github.com/amplitude/Amplitude-TypeScript/issues/807))
+  ([24afd6a](https://github.com/amplitude/Amplitude-TypeScript/commit/24afd6a6a87cc12d8766df92156ee8e2ef785d9b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.0.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.0...@amplitude/plugin-autocapture-browser@1.0.0-beta.1) (2024-07-06)
 
 ### Features
