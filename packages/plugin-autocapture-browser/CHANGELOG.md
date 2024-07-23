@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.2...@amplitude/plugin-autocapture-browser@1.0.0-beta.3) (2024-07-23)
+
+### Features
+
+- **autocapture:** track DOM mutations and navigation events to capture action clicks
+  ([#813](https://github.com/amplitude/Amplitude-TypeScript/issues/813))
+  ([52947a3](https://github.com/amplitude/Amplitude-TypeScript/commit/52947a30b452f51a5bcf74009bacd0beb3a6fdaa))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.0.0-beta.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.1...@amplitude/plugin-autocapture-browser@1.0.0-beta.2) (2024-07-23)
 
 ### Bug Fixes
