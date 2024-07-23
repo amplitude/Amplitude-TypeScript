@@ -129,6 +129,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       const parsedStatus = new BaseTransport().buildStatus(res.status);
       switch (parsedStatus) {
         case Status.Success:
+          this.attempts = 0;
           return this.parseAndStoreConfig(res, sessionId);
         case Status.Failed:
           return this.retryFetch(signal, sessionId);
