@@ -52,11 +52,10 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     const fetchStartTime = Date.now();
     // First check IndexedDB for session
     if (this.remoteConfigIDBStore) {
-      const remoteConfigHasValues = await this.remoteConfigIDBStore.remoteConfigHasValues(configNamespace);
       const lastFetchedSessionId = await this.remoteConfigIDBStore.getLastFetchedSessionId();
 
       // Another option is to empty the db if current session doesn't match lastFetchedSessionId
-      if (remoteConfigHasValues && lastFetchedSessionId === sessionId) {
+      if (!!lastFetchedSessionId && !!sessionId && lastFetchedSessionId === sessionId) {
         const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
         this.fetchTime = Date.now() - fetchStartTime;
         return idbRemoteConfig;

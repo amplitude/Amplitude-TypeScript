@@ -155,8 +155,16 @@ describe('RemoteConfigFetch', () => {
       expect(remoteConfig).toEqual(samplingConfig.sr_sampling_config);
       expect(fetchMock).toHaveBeenCalled();
     });
+    test('should return from indexeddb if lastSessionId is set in indexeddb', async () => {
+      mockConfigStore.getLastFetchedSessionId = jest.fn().mockResolvedValue(123);
+      jest.spyOn(RemoteConfigAPIStore, 'createRemoteConfigIDBStore').mockResolvedValue(mockConfigStore);
+      const remoteConfig = await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 123);
+      expect(remoteConfig).toEqual(samplingConfig.sr_sampling_config);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
     test('should call fetchWithTimeout if no config exists in memory or indexeddb', async () => {
       mockConfigStore.getRemoteConfig = jest.fn().mockResolvedValue(undefined);
+      mockConfigStore.getLastFetchedSessionId = jest.fn().mockResolvedValue(undefined);
       mockConfigStore.remoteConfigHasValues = jest.fn().mockResolvedValue(false);
       jest.spyOn(RemoteConfigAPIStore, 'createRemoteConfigIDBStore').mockResolvedValue(mockConfigStore);
       await initialize();
