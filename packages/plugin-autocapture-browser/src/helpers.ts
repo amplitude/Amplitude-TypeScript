@@ -5,7 +5,7 @@ import { Logger } from '@amplitude/analytics-types';
 import { AutocaptureOptions, ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
 import { ActionType } from './typings/autocapture';
 
-export type JSONValue = string | number | boolean | { [x: string]: JSONValue } | Array<JSONValue>;
+export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
 const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 

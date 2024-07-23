@@ -143,17 +143,7 @@ describe('action clicks:', () => {
       expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
         '[Amplitude] Element Hierarchy': [
           {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-          {
-            attrs: {
-              'data-test-attr': 'test-attr',
-            },
-            id: 'main',
-            classes: ['class1', 'class2'],
+            id: 'addDivButton',
             index: 0,
             indexOfType: 0,
             tag: 'div',
@@ -166,10 +156,20 @@ describe('action clicks:', () => {
             tag: 'div',
           },
           {
-            id: 'addDivButton',
+            attrs: {
+              'data-test-attr': 'test-attr',
+            },
+            id: 'main',
+            classes: ['class1', 'class2'],
             index: 0,
             indexOfType: 0,
             tag: 'div',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
           },
         ],
         '[Amplitude] Element ID': 'addDivButton',
