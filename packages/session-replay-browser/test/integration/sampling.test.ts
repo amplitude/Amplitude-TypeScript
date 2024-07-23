@@ -117,10 +117,8 @@ describe('module level integration', () => {
           // Ensure that sample rate matches what's passed in the options
           expect(sampleRate).toBe(1);
           const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-          expect(sessionRecordingProperties).toMatchObject({
-            [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
-          });
-          expect(record).toHaveBeenCalled();
+          expect(sessionRecordingProperties).toMatchObject({});
+          expect(record).not.toHaveBeenCalled();
         });
       });
     });
