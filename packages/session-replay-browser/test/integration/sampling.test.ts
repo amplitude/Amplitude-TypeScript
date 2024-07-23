@@ -106,7 +106,7 @@ describe('module level integration', () => {
       beforeEach(() => {
         getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
       });
-      test('should capture replays and use options sampleRate', async () => {
+      test('should not capture replays and use options sampleRate', async () => {
         const sessionReplay = new SessionReplay();
         const initPromise = sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 0 }).promise;
         // eslint-disable-next-line @typescript-eslint/unbound-method
