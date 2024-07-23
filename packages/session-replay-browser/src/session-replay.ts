@@ -284,7 +284,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     if (!this.config.captureEnabled) {
       this.loggerProvider.log(
-        `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project.`,
+        `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project or because the remote config could not be fetched.`,
       );
       return false;
     }

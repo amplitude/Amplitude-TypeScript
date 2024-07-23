@@ -33,6 +33,7 @@ export class SessionReplayJoinedConfigGenerator {
     let remoteConfig: SessionReplayRemoteConfig | undefined;
     try {
       if (!this.remoteConfigFetch) {
+        config.captureEnabled = false;
         return config;
       }
 
@@ -67,7 +68,7 @@ export class SessionReplayJoinedConfigGenerator {
     } catch (err: unknown) {
       const knownError = err as Error;
       this.localConfig.loggerProvider.warn(knownError.message);
-      config.captureEnabled = true;
+      config.captureEnabled = false;
     }
 
     if (!remoteConfig) {

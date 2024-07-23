@@ -106,7 +106,7 @@ describe('module level integration', () => {
       beforeEach(() => {
         getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
       });
-      test('should capture replays and use options sampleRate', async () => {
+      test('should not capture replays and use options sampleRate', async () => {
         const sessionReplay = new SessionReplay();
         const initPromise = sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 0 }).promise;
         // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -117,10 +117,8 @@ describe('module level integration', () => {
           // Ensure that sample rate matches what's passed in the options
           expect(sampleRate).toBe(1);
           const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-          expect(sessionRecordingProperties).toMatchObject({
-            [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
-          });
-          expect(record).toHaveBeenCalled();
+          expect(sessionRecordingProperties).toMatchObject({});
+          expect(record).not.toHaveBeenCalled();
         });
       });
     });

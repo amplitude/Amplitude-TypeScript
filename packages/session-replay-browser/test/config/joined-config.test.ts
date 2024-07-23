@@ -133,7 +133,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
-          captureEnabled: true,
+          captureEnabled: false,
         });
       });
     });
@@ -144,7 +144,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
-          captureEnabled: true,
+          captureEnabled: false,
         });
       });
     });
