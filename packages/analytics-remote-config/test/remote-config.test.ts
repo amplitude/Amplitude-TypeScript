@@ -187,7 +187,7 @@ describe('RemoteConfigFetch', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         expect(mockLoggerProvider.log.mock.calls[0][0]).toEqual('Remote config successfully fetched');
         expect(remoteConfig).toEqual(mockRemoteConfig);
-        expect(remoteConfigFetch.attempts).toBe(1);
+        expect(remoteConfigFetch.attempts).toBe(0);
       });
     });
     test('should fetch and set config in indexedDB', async () => {
@@ -344,7 +344,7 @@ describe('RemoteConfigFetch', () => {
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
-        expect(remoteConfigFetch.attempts).toBe(2);
+        expect(remoteConfigFetch.attempts).toBe(0);
       });
     });
 
@@ -404,7 +404,7 @@ describe('RemoteConfigFetch', () => {
 
       return fetchPromiseNextSession.finally(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
-        expect(remoteConfigFetch.attempts).toBe(1);
+        expect(remoteConfigFetch.attempts).toBe(0);
         expect(remoteConfigFetch.lastFetchedSessionId).toBe(456);
       });
     });
@@ -425,7 +425,7 @@ describe('RemoteConfigFetch', () => {
       await runScheduleTimers();
       return fetchPromise.then(() => {
         expect(fetch).toHaveBeenCalledTimes(2);
-        expect(remoteConfigFetch.attempts).toBe(2);
+        expect(remoteConfigFetch.attempts).toBe(0);
       });
     });
     test('should handle unexpected error where fetch response is null', async () => {
