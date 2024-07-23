@@ -141,10 +141,14 @@ export class WindowMessenger implements Messenger {
     logger,
     endpoint,
     isElementSelectable,
+    cssSelectorAllowlist,
+    actionClickAllowlist,
   }: {
     logger?: Logger;
     endpoint?: string;
     isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
+    cssSelectorAllowlist?: string[];
+    actionClickAllowlist?: string[];
   } = {}) {
     this.logger = logger;
     // If endpoint is customized, don't override it.
@@ -196,6 +200,8 @@ export class WindowMessenger implements Messenger {
                 onSelect: this.onSelect,
                 visualHighlightClass: AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
                 messenger: this,
+                cssSelectorAllowlist,
+                actionClickAllowlist,
               });
               this.notify({ action: 'selector-loaded' });
             })

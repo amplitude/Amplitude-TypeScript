@@ -2,10 +2,73 @@
 import { finder } from './libs/finder';
 import * as constants from './constants';
 import { Logger } from '@amplitude/analytics-types';
+import { AutocaptureOptions, ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
+import { ActionType } from './typings/autocapture';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
 const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
+
+export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
+
+export const createShouldTrackEvent = (
+  autocaptureOptions: AutocaptureOptions,
+  allowlist: string[], // this can be any type of css selector allow list
+): shouldTrackEvent => {
+  return (actionType: ActionType, element: Element) => {
+    const { pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
+
+    /* istanbul ignore next */
+    const tag = element?.tagName?.toLowerCase?.();
+    // window, document, and Text nodes have no tag
+    if (!tag) {
+      return false;
+    }
+
+    if (shouldTrackEventResolver) {
+      return shouldTrackEventResolver(actionType, element);
+    }
+
+    if (!isPageUrlAllowed(window.location.href, pageUrlAllowlist)) {
+      return false;
+    }
+
+    /* istanbul ignore next */
+    const elementType = (element as HTMLInputElement)?.type || '';
+    if (typeof elementType === 'string') {
+      switch (elementType.toLowerCase()) {
+        case 'hidden':
+          return false;
+        case 'password':
+          return false;
+      }
+    }
+
+    /* istanbul ignore if */
+    if (allowlist) {
+      const hasMatchAnyAllowedSelector = allowlist.some((selector) => !!element?.matches?.(selector));
+      if (!hasMatchAnyAllowedSelector) {
+        return false;
+      }
+    }
+
+    switch (tag) {
+      case 'input':
+      case 'select':
+      case 'textarea':
+        return actionType === 'change' || actionType === 'click';
+      default: {
+        /* istanbul ignore next */
+        const computedStyle = window?.getComputedStyle?.(element);
+        /* istanbul ignore next */
+        if (computedStyle && computedStyle.getPropertyValue('cursor') === 'pointer' && actionType === 'click') {
+          return true;
+        }
+        return actionType === 'click';
+      }
+    }
+  };
+};
 
 export const isNonSensitiveString = (text: string | null) => {
   if (text == null) {
@@ -32,7 +95,9 @@ export const isTextNode = (node: Node) => {
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable = element.getAttribute('contenteditable') === 'true';
+  const isContentEditable =
+    element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
+
   return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 
@@ -231,3 +296,13 @@ export const asyncLoadScript = (url: string) => {
 export function generateUniqueId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
+
+export const filterOutNonTrackableEvents = (event: ElementBasedTimestampedEvent<ElementBasedEvent>): boolean => {
+  // Filter out changeEvent events with no target
+  // This could happen when change events are triggered programmatically
+  if (event.event.target === null || !event.closestTrackedAncestor) {
+    return false;
+  }
+
+  return true;
+};

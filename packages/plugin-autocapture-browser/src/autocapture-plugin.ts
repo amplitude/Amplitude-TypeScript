@@ -1,19 +1,54 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
 import * as constants from './constants';
+import { fromEvent, map, Observable, Subscription } from 'rxjs';
 import {
   getText,
-  isPageUrlAllowed,
   getAttributesWithPrefix,
   removeEmptyProperties,
   getNearestLabel,
-  querySelectUniqueElements,
-  getClosestElement,
   getSelector,
+  createShouldTrackEvent,
+  getClosestElement,
 } from './helpers';
 import { Messenger, WindowMessenger } from './libs/messenger';
 import { ActionType } from './typings/autocapture';
 import { getHierarchy } from './hierarchy';
+import { trackClicks } from './autocapture/track-click';
+import { trackChange } from './autocapture/track-change';
+import { trackActionClick } from './autocapture/track-action-click';
+import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+
+declare global {
+  interface Window {
+    navigation: HasEventTargetAddRemove<Event>;
+  }
+}
+
+interface NavigateEvent extends Event {
+  readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
+  readonly destination: {
+    readonly url: string;
+    readonly key: string | null;
+    readonly id: string | null;
+    readonly index: number;
+    readonly sameDocument: boolean;
+
+    getState(): any;
+  };
+  readonly canIntercept: boolean;
+  readonly userInitiated: boolean;
+  readonly hashChange: boolean;
+  readonly signal: AbortSignal;
+  readonly formData: FormData | null;
+  readonly downloadRequest: string | null;
+  readonly info: any;
+  readonly hasUAVisualTransition: boolean;
+  /** @see https://github.com/WICG/navigation-api/pull/264 */
+  readonly sourceElement: Element | null;
+
+  scroll(): void;
+}
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -27,13 +62,8 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
   '[data-amp-default-track]',
   '.amp-default-track',
 ];
+export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
-
-interface EventListener {
-  element: Element;
-  type: ActionType;
-  handler: (event: Event) => void;
-}
 
 export interface AutocaptureOptions {
   /**
@@ -73,101 +103,128 @@ export interface AutocaptureOptions {
     enabled?: boolean;
     messenger?: Messenger;
   };
+
+  /**
+   * Debounce time in milliseconds for tracking events.
+   * This is used to detect rage clicks.
+   */
+  debounceTime?: number;
+
+  /**
+   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
+   */
+  actionClickAllowlist?: string[];
+}
+
+export type AutoCaptureOptionsWithDefaults = Required<
+  Pick<AutocaptureOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
+> &
+  AutocaptureOptions;
+
+export enum ObservablesEnum {
+  ClickObservable = 'clickObservable',
+  ChangeObservable = 'changeObservable',
+  // ErrorObservable = 'errorObservable',
+  NavigateObservable = 'navigateObservable',
+  MutationObservable = 'mutationObservable',
+}
+
+// Base TimestampedEvent type
+type BaseTimestampedEvent<T> = {
+  event: T;
+  timestamp: number;
+  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
+};
+
+// Specific types for events with targetElementProperties
+export type ElementBasedEvent = MouseEvent | Event;
+export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
+  event: MouseEvent | Event;
+  type: 'click' | 'change';
+  closestTrackedAncestor: Element;
+  targetElementProperties: Record<string, any>;
+};
+
+// Union type for all possible TimestampedEvents
+export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
+
+export interface AllWindowObservables {
+  [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
+  [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
+  // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
+  [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
+  [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
+}
+
+// Type predicate
+export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
+  return event.type === 'click' || event.type === 'change';
 }
 
 export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnrichmentPlugin => {
   const {
-    cssSelectorAllowlist = DEFAULT_CSS_SELECTOR_ALLOWLIST,
-    pageUrlAllowlist,
-    shouldTrackEventResolver,
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {
       enabled: true,
       messenger: new WindowMessenger(),
     },
   } = options;
+
+  options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
+  options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
+  options.debounceTime = options.debounceTime ?? 1000;
+
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
 
-  let observer: MutationObserver | undefined;
-  let eventListeners: EventListener[] = [];
+  const subscriptions: Subscription[] = [];
   let logger: Logger | undefined = undefined;
 
-  const addEventListener = (element: Element, type: ActionType, handler: (event: Event) => void) => {
-    element.addEventListener(type, handler);
-    eventListeners.push({
-      element: element,
-      type: type,
-      handler: handler,
-    });
-  };
+  // Create observables on events on the window
+  const createObservables = (): AllWindowObservables => {
+    // Create Observables from direct user events
+    const clickObservable = fromEvent<MouseEvent>(document, 'click', { capture: true }).pipe(
+      map((click) => addAdditionalEventProperties(click, 'click')),
+    );
+    const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
+      map((change) => addAdditionalEventProperties(change, 'change')),
+    );
 
-  const removeEventListeners = () => {
-    eventListeners.forEach((_ref) => {
-      const element = _ref.element,
-        type = _ref.type,
-        handler = _ref.handler;
-      /* istanbul ignore next */
-      element?.removeEventListener(type, handler);
-    });
-    eventListeners = [];
-  };
+    // Create Observable from unhandled errors
+    // const errorObservable = fromEvent<ErrorEvent>(window, 'error').pipe(
+    //   map((error) => addAdditionalEventProperties(error, 'error')),
+    // );
 
-  const shouldTrackEvent = (actionType: ActionType, element: Element) => {
-    /* istanbul ignore if */
-    if (!element) {
-      return false;
-    }
-
+    // Create observable for URL changes
+    let navigateObservable;
     /* istanbul ignore next */
-    const tag = element?.tagName?.toLowerCase?.();
-    // Text nodes have no tag
-    if (!tag) {
-      return false;
+    if (window.navigation) {
+      navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
+        map((navigate) => addAdditionalEventProperties(navigate, 'navigate')),
+      );
     }
 
-    if (shouldTrackEventResolver) {
-      return shouldTrackEventResolver(actionType, element);
-    }
+    // Track DOM Mutations
+    const mutationObservable = new Observable<MutationRecord[]>((observer) => {
+      const mutationObserver = new MutationObserver((mutations) => {
+        observer.next(mutations);
+      });
+      mutationObserver.observe(document.body, {
+        childList: true,
+        attributes: true,
+        characterData: true,
+        subtree: true,
+      });
+      return () => mutationObserver.disconnect();
+    }).pipe(map((mutation) => addAdditionalEventProperties(mutation, 'mutation')));
 
-    if (!isPageUrlAllowed(window.location.href, pageUrlAllowlist)) {
-      return false;
-    }
-
-    /* istanbul ignore next */
-    const elementType = (element as HTMLInputElement)?.type || '';
-    if (typeof elementType === 'string') {
-      switch (elementType.toLowerCase()) {
-        case 'hidden':
-          return false;
-        case 'password':
-          return false;
-      }
-    }
-
-    /* istanbul ignore if */
-    if (cssSelectorAllowlist) {
-      const hasMatchAnyAllowedSelector = cssSelectorAllowlist.some((selector) => !!element?.matches?.(selector));
-      if (!hasMatchAnyAllowedSelector) {
-        return false;
-      }
-    }
-
-    switch (tag) {
-      case 'input':
-      case 'select':
-      case 'textarea':
-        return actionType === 'change' || actionType === 'click';
-      default: {
-        /* istanbul ignore next */
-        const computedStyle = window?.getComputedStyle?.(element);
-        /* istanbul ignore next */
-        if (computedStyle && computedStyle.getPropertyValue('cursor') === 'pointer' && actionType === 'click') {
-          return true;
-        }
-        return actionType === 'click';
-      }
-    }
+    return {
+      [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
+      [ObservablesEnum.ChangeObservable]: changeObservable as Observable<ElementBasedTimestampedEvent<Event>>,
+      // [ObservablesEnum.ErrorObservable]: errorObservable,
+      [ObservablesEnum.NavigateObservable]: navigateObservable,
+      [ObservablesEnum.MutationObservable]: mutationObservable,
+    };
   };
 
   // Returns the Amplitude event properties for the given element.
@@ -205,6 +262,32 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     return removeEmptyProperties(properties);
   };
 
+  const addAdditionalEventProperties = <T>(
+    event: T,
+    type: TimestampedEvent<T>['type'],
+  ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
+    const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
+      event,
+      timestamp: Date.now(),
+      type,
+    };
+
+    if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+      // Retrieve additional event properties from the target element
+      const closestTrackedAncestor = getClosestElement(
+        baseEvent.event.target as HTMLElement,
+        (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+      );
+      if (closestTrackedAncestor) {
+        baseEvent.closestTrackedAncestor = closestTrackedAncestor;
+        baseEvent.targetElementProperties = getEventProperties(baseEvent.type, closestTrackedAncestor);
+      }
+      return baseEvent;
+    }
+
+    return baseEvent;
+  };
+
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     if (!amplitude) {
       /* istanbul ignore next */
@@ -219,75 +302,62 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     if (typeof document === 'undefined') {
       return;
     }
-    const addListener = (el: Element) => {
-      if (shouldTrackEvent('click', el)) {
-        addEventListener(el, 'click', (event: Event) => {
-          // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
-          /* istanbul ignore next */
-          if (
-            event?.target != event?.currentTarget &&
-            getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
-          ) {
-            return;
-          }
-          /* istanbul ignore next */
-          amplitude?.track(constants.AMPLITUDE_ELEMENT_CLICKED_EVENT, getEventProperties('click', el));
-        });
-      }
-      if (shouldTrackEvent('change', el)) {
-        addEventListener(el, 'change', (event: Event) => {
-          // Limit to only the innermost element that matches the selectors, avoiding all propagated event after matching.
-          /* istanbul ignore next */
-          if (
-            event?.target != event?.currentTarget &&
-            getClosestElement(event?.target as HTMLElement, cssSelectorAllowlist) != event?.currentTarget
-          ) {
-            return;
-          }
-          /* istanbul ignore next */
-          amplitude?.track(constants.AMPLITUDE_ELEMENT_CHANGED_EVENT, getEventProperties('change', el));
-        });
-      }
-    };
 
-    if (typeof MutationObserver !== 'undefined') {
-      observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          mutation.addedNodes.forEach((node: Node) => {
-            addListener(node as Element);
-            if ('querySelectorAll' in node && typeof node.querySelectorAll === 'function') {
-              querySelectUniqueElements(node as Element, cssSelectorAllowlist).map(addListener);
-            }
-          });
-        });
-      });
-    }
-    const attachListeners = () => {
-      const allElements = querySelectUniqueElements(document.body, cssSelectorAllowlist);
-      allElements.forEach(addListener);
-      /* istanbul ignore next */
-      observer?.observe(document.body, {
-        subtree: true,
-        childList: true,
-      });
-    };
-    if (document.body) {
-      attachListeners();
-    } else {
-      // This is to handle the case where the plugin is loaded before the body is available.
-      // E.g., for non-reactive frameworks.
-      window.addEventListener('load', attachListeners);
-    }
+    // Create should track event functions the different allowlists
+    const shouldTrackEvent = createShouldTrackEvent(
+      options,
+      (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+    );
+    const shouldTrackActionClick = createShouldTrackEvent(
+      options,
+      (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist,
+    );
+
+    // Create observables for events on the window
+    const allObservables = createObservables();
+
+    // Create subscriptions
+    const clickTrackingSubscription = trackClicks({
+      allObservables,
+      options: options as AutoCaptureOptionsWithDefaults,
+      amplitude,
+      shouldTrackEvent: shouldTrackEvent,
+    });
+    subscriptions.push(clickTrackingSubscription);
+
+    const changeSubscription = trackChange({
+      allObservables,
+      getEventProperties,
+      amplitude,
+      shouldTrackEvent: shouldTrackEvent,
+    });
+    subscriptions.push(changeSubscription);
+
+    const actionClickSubscription = trackActionClick({
+      allObservables,
+      options: options as AutoCaptureOptionsWithDefaults,
+      getEventProperties,
+      amplitude,
+      shouldTrackEvent,
+      shouldTrackActionClick: shouldTrackActionClick,
+    });
+    subscriptions.push(actionClickSubscription);
+
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
 
     // Setup visual tagging selector
     if (window.opener && visualTaggingOptions.enabled) {
+      const allowlist = (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist;
+      const actionClickAllowlist = (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist;
+
       /* istanbul ignore next */
       visualTaggingOptions.messenger?.setup({
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
-        isElementSelectable: shouldTrackEvent,
+        isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
+        cssSelectorAllowlist: allowlist,
+        actionClickAllowlist: actionClickAllowlist,
       });
     }
   };
@@ -297,10 +367,9 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
   };
 
   const teardown = async () => {
-    if (observer) {
-      observer.disconnect();
+    for (const subscription of subscriptions) {
+      subscription.unsubscribe();
     }
-    removeEventListeners();
   };
 
   return {

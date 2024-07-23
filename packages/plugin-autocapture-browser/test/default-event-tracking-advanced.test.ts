@@ -4,6 +4,8 @@ import { createInstance } from '@amplitude/analytics-browser';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
 
+const TESTING_DEBOUNCE_TIME = 4;
+
 describe('autoTrackingPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
 
@@ -26,7 +28,7 @@ describe('autoTrackingPlugin', () => {
       pathname: '',
       search: '',
     };
-    plugin = autocapturePlugin();
+    plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
   });
 
   afterEach(() => {
@@ -131,12 +133,19 @@ describe('autoTrackingPlugin', () => {
 
     let instance = createInstance();
     let track: jest.SpyInstance;
+    let loggerProvider: Logger;
 
     beforeEach(async () => {
-      plugin = autocapturePlugin();
+      loggerProvider = {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+      } as unknown as Logger;
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
       instance = createInstance();
       await instance.init(API_KEY, USER_ID).promise;
-      track = jest.spyOn(instance, 'track');
+      track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
 
       const link = document.createElement('a');
       link.setAttribute('id', 'my-link-id');
@@ -160,54 +169,57 @@ describe('autoTrackingPlugin', () => {
     });
 
     test('should monitor element clicked event', async () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
-        '[Amplitude] Element Class': 'my-link-class',
-        '[Amplitude] Element Hierarchy': [
-          {
-            attrs: {
-              'aria-label': 'my-link',
-              href: 'https://www.amplitude.com/click-link',
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        {
+          '[Amplitude] Element Class': 'my-link-class',
+          '[Amplitude] Element Hierarchy': [
+            {
+              attrs: {
+                'aria-label': 'my-link',
+                href: 'https://www.amplitude.com/click-link',
+              },
+              classes: ['my-link-class'],
+              id: 'my-link-id',
+              index: 0,
+              indexOfType: 0,
+              tag: 'a',
             },
-            classes: ['my-link-class'],
-            id: 'my-link-id',
-            index: 0,
-            indexOfType: 0,
-            tag: 'a',
-          },
-          {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-        ],
-        '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
-        '[Amplitude] Element ID': 'my-link-id',
-        '[Amplitude] Element Position Left': 0,
-        '[Amplitude] Element Position Top': 0,
-        '[Amplitude] Element Tag': 'a',
-        '[Amplitude] Element Text': 'my-link-text',
-        '[Amplitude] Element Aria Label': 'my-link',
-        '[Amplitude] Element Selector': '#my-link-id',
-        '[Amplitude] Element Parent Label': 'my-h2-text',
-        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-        '[Amplitude] Viewport Height': 768,
-        '[Amplitude] Viewport Width': 1024,
-      });
+            {
+              index: 1,
+              indexOfType: 0,
+              prevSib: 'head',
+              tag: 'body',
+            },
+          ],
+          '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
+          '[Amplitude] Element ID': 'my-link-id',
+          '[Amplitude] Element Position Left': 0,
+          '[Amplitude] Element Position Top': 0,
+          '[Amplitude] Element Tag': 'a',
+          '[Amplitude] Element Text': 'my-link-text',
+          '[Amplitude] Element Aria Label': 'my-link',
+          '[Amplitude] Element Selector': '#my-link-id',
+          '[Amplitude] Element Parent Label': 'my-h2-text',
+          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+          '[Amplitude] Viewport Height': 768,
+          '[Amplitude] Viewport Width': 1024,
+        },
+        { time: expect.any(Number) as number },
+      );
 
       // stop observer and listeners
       await plugin?.teardown?.();
@@ -215,18 +227,85 @@ describe('autoTrackingPlugin', () => {
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      // assert no additional event was tracked
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should track click event properties immediately', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      // trigger click event
+      const linkEl = document.getElementById('my-link-id') as HTMLAnchorElement;
+      linkEl?.dispatchEvent(new Event('click'));
+
+      // Change the link text immediately after click
+      linkEl.textContent = 'updated-link-text';
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        {
+          '[Amplitude] Element Class': 'my-link-class',
+          '[Amplitude] Element Hierarchy': [
+            {
+              attrs: {
+                'aria-label': 'my-link',
+                href: 'https://www.amplitude.com/click-link',
+              },
+              classes: ['my-link-class'],
+              id: 'my-link-id',
+              index: 0,
+              indexOfType: 0,
+              tag: 'a',
+            },
+            {
+              index: 1,
+              indexOfType: 0,
+              prevSib: 'head',
+              tag: 'body',
+            },
+          ],
+          '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
+          '[Amplitude] Element ID': 'my-link-id',
+          '[Amplitude] Element Position Left': 0,
+          '[Amplitude] Element Position Top': 0,
+          '[Amplitude] Element Tag': 'a',
+          '[Amplitude] Element Text': 'my-link-text',
+          '[Amplitude] Element Aria Label': 'my-link',
+          '[Amplitude] Element Selector': '#my-link-id',
+          '[Amplitude] Element Parent Label': 'my-h2-text',
+          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+          '[Amplitude] Viewport Height': 768,
+          '[Amplitude] Viewport Width': 1024,
+        },
+        { time: expect.any(Number) as number },
+      );
+
+      // stop observer and listeners
+      await plugin?.teardown?.();
+
+      // trigger click event
+      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       // assert no additional event was tracked
       expect(track).toHaveBeenCalledTimes(1);
     });
 
     test('should monitor element clicked event when dynamically rendered', async () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
@@ -238,45 +317,49 @@ describe('autoTrackingPlugin', () => {
       button.setAttribute('aria-label', 'my-button');
       button.appendChild(buttonText);
       document.body.appendChild(button);
-      // allow mutation observer to execute and event listener to be attached
-      await new Promise((r) => r(undefined)); // basically, await next clock tick
+
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
 
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
-        '[Amplitude] Element Class': 'my-button-class',
-        '[Amplitude] Element Hierarchy': [
-          {
-            attrs: {
-              'aria-label': 'my-button',
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        {
+          '[Amplitude] Element Class': 'my-button-class',
+          '[Amplitude] Element Hierarchy': [
+            {
+              attrs: {
+                'aria-label': 'my-button',
+              },
+              classes: ['my-button-class'],
+              id: 'my-button-id',
+              index: 2,
+              indexOfType: 0,
+              prevSib: 'h2',
+              tag: 'button',
             },
-            classes: ['my-button-class'],
-            id: 'my-button-id',
-            index: 2,
-            indexOfType: 0,
-            prevSib: 'h2',
-            tag: 'button',
-          },
-          {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-        ],
-
-        '[Amplitude] Element ID': 'my-button-id',
-        '[Amplitude] Element Position Left': 0,
-        '[Amplitude] Element Position Top': 0,
-        '[Amplitude] Element Tag': 'button',
-        '[Amplitude] Element Text': 'submit',
-        '[Amplitude] Element Aria Label': 'my-button',
-        '[Amplitude] Element Selector': '#my-button-id',
-        '[Amplitude] Element Parent Label': 'my-h2-text',
-        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-        '[Amplitude] Viewport Height': 768,
-        '[Amplitude] Viewport Width': 1024,
-      });
+            {
+              index: 1,
+              indexOfType: 0,
+              prevSib: 'head',
+              tag: 'body',
+            },
+          ],
+          '[Amplitude] Element ID': 'my-button-id',
+          '[Amplitude] Element Position Left': 0,
+          '[Amplitude] Element Position Top': 0,
+          '[Amplitude] Element Tag': 'button',
+          '[Amplitude] Element Text': 'submit',
+          '[Amplitude] Element Aria Label': 'my-button',
+          '[Amplitude] Element Selector': '#my-button-id',
+          '[Amplitude] Element Parent Label': 'my-h2-text',
+          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+          '[Amplitude] Viewport Height': 768,
+          '[Amplitude] Viewport Width': 1024,
+        },
+        { time: expect.any(Number) as number },
+      );
 
       // stop observer and listeners
       await plugin?.teardown?.();
@@ -287,19 +370,14 @@ describe('autoTrackingPlugin', () => {
       // assert no additional event was tracked
       expect(track).toHaveBeenCalledTimes(1);
     });
-
-    test('should mount mutation observer after document.body is available', async () => {
+    test('should track clicks to elements added after initial load', async () => {
       const body = document.body;
       const bodyParent = body?.parentNode;
       bodyParent?.removeChild(body);
 
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
@@ -307,7 +385,7 @@ describe('autoTrackingPlugin', () => {
       // fire the load event, so that the mutation observer can be mounted
       window.dispatchEvent(new Event('load'));
 
-      // trigger click event
+      // Create new button after DOM load
       const button = document.createElement('button');
       const buttonText = document.createTextNode('submit');
       button.setAttribute('id', 'my-button-id');
@@ -315,71 +393,77 @@ describe('autoTrackingPlugin', () => {
       button.setAttribute('aria-label', 'my-button');
       button.appendChild(buttonText);
       document.body.appendChild(button);
-      // allow mutation observer to execute and event listener to be attached
-      await new Promise((r) => r(undefined)); // basically, await next clock tick
+
+      // trigger click event
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
-        '[Amplitude] Element Class': 'my-button-class',
-        '[Amplitude] Element Hierarchy': [
-          {
-            attrs: {
-              'aria-label': 'my-button',
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        {
+          '[Amplitude] Element Class': 'my-button-class',
+          '[Amplitude] Element Hierarchy': [
+            {
+              attrs: {
+                'aria-label': 'my-button',
+              },
+              classes: ['my-button-class'],
+              id: 'my-button-id',
+              index: 2,
+              indexOfType: 0,
+              prevSib: 'h2',
+              tag: 'button',
             },
-            classes: ['my-button-class'],
-            id: 'my-button-id',
-            index: 2,
-            indexOfType: 0,
-            prevSib: 'h2',
-            tag: 'button',
-          },
-          {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-        ],
-        '[Amplitude] Element ID': 'my-button-id',
-        '[Amplitude] Element Position Left': 0,
-        '[Amplitude] Element Position Top': 0,
-        '[Amplitude] Element Tag': 'button',
-        '[Amplitude] Element Text': 'submit',
-        '[Amplitude] Element Aria Label': 'my-button',
-        '[Amplitude] Element Selector': '#my-button-id',
-        '[Amplitude] Element Parent Label': 'my-h2-text',
-        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-        '[Amplitude] Viewport Height': 768,
-        '[Amplitude] Viewport Width': 1024,
-      });
+            {
+              index: 1,
+              indexOfType: 0,
+              prevSib: 'head',
+              tag: 'body',
+            },
+          ],
+          '[Amplitude] Element ID': 'my-button-id',
+          '[Amplitude] Element Position Left': 0,
+          '[Amplitude] Element Position Top': 0,
+          '[Amplitude] Element Tag': 'button',
+          '[Amplitude] Element Text': 'submit',
+          '[Amplitude] Element Aria Label': 'my-button',
+          '[Amplitude] Element Selector': '#my-button-id',
+          '[Amplitude] Element Parent Label': 'my-h2-text',
+          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+          '[Amplitude] Viewport Height': 768,
+          '[Amplitude] Viewport Width': 1024,
+        },
+        { time: expect.any(Number) as number },
+      );
 
       // stop observer and listeners
       await plugin?.teardown?.();
     });
-
     test('should not track disallowed tag', async () => {
       const div = document.createElement('div');
       div.setAttribute('id', 'my-div-id');
       document.body.appendChild(div);
 
-      plugin = autocapturePlugin();
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
+      plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
+
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
-      // trigger click div
+      // trigger click div which should not be tracked
       document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(0);
 
       // trigger click link
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(1);
     });
 
@@ -392,23 +476,26 @@ describe('autoTrackingPlugin', () => {
         button.appendChild(buttonText);
         document.body.appendChild(button);
 
-        plugin = autocapturePlugin({ cssSelectorAllowlist: ['.my-button-class'] });
-        const loggerProvider: Partial<Logger> = {
-          log: jest.fn(),
-          warn: jest.fn(),
-        };
+        plugin = autocapturePlugin({
+          cssSelectorAllowlist: ['.my-button-class'],
+          debounceTime: TESTING_DEBOUNCE_TIME,
+        });
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider,
         };
         await plugin?.setup(config as BrowserConfig, instance);
 
         // trigger click link
         document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(0);
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(1);
       });
 
@@ -423,7 +510,8 @@ describe('autoTrackingPlugin', () => {
         button.setAttribute('id', 'my-button-id');
         document.body.appendChild(button);
 
-        plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'] });
+        // Use only div in allowlist
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'], debounceTime: TESTING_DEBOUNCE_TIME });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -436,10 +524,14 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(0);
 
         // trigger click div
         document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(1);
       });
 
@@ -461,7 +553,7 @@ describe('autoTrackingPlugin', () => {
         button.setAttribute('id', 'my-button-id');
         document.body.appendChild(button);
 
-        plugin = autocapturePlugin();
+        plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
         const loggerProvider: Partial<Logger> = {
           log: jest.fn(),
           warn: jest.fn(),
@@ -474,32 +566,40 @@ describe('autoTrackingPlugin', () => {
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(1);
 
         // trigger click div1
         document.getElementById('my-div-id1')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(2);
 
         // trigger click div2
         document.getElementById('my-div-id2')?.dispatchEvent(new Event('click'));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(3);
       });
     });
 
     test('should follow pageUrlAllowlist configuration', async () => {
-      plugin = autocapturePlugin({ pageUrlAllowlist: [new RegExp('https://www.test.com')] });
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
+      plugin = autocapturePlugin({
+        pageUrlAllowlist: [new RegExp('https://www.test.com')],
+        debounceTime: TESTING_DEBOUNCE_TIME,
+      });
+
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
       // trigger click link
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(0);
 
       // update current page url to match allowlist
@@ -511,11 +611,11 @@ describe('autoTrackingPlugin', () => {
       link.href = 'https://www.amplitude.com/test';
       link.text = 'my-link-text';
       document.body.appendChild(link);
-      // allow mutation observer to execute and event listener to be attached
-      await new Promise((r) => r(undefined)); // basically, await next clock tick
 
       // trigger click link
       document.getElementById('my-link-id-new-url')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(1);
     });
 
@@ -537,23 +637,25 @@ describe('autoTrackingPlugin', () => {
       plugin = autocapturePlugin({
         shouldTrackEventResolver: (actionType, element) =>
           actionType === 'click' && element.id === 'my-button-id-1' && element.tagName === 'BUTTON',
+        debounceTime: TESTING_DEBOUNCE_TIME,
       });
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
+
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
       // trigger click button2
       document.getElementById('my-button-id-2')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(0);
 
       // trigger click button1
       document.getElementById('my-button-id-1')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(1);
     });
 
@@ -570,59 +672,100 @@ describe('autoTrackingPlugin', () => {
 
       plugin = autocapturePlugin({
         dataAttributePrefix: 'data-amp-test-',
+        debounceTime: TESTING_DEBOUNCE_TIME,
       });
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
+
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
       // trigger click button
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
-        '[Amplitude] Element Class': 'my-button-class',
-        '[Amplitude] Element Hierarchy': [
-          {
-            attrs: {
-              'data-amp-test-hello': 'world',
-              'data-amp-test-test': '',
-              'data-amp-test-time': 'machine',
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        {
+          '[Amplitude] Element Class': 'my-button-class',
+          '[Amplitude] Element Hierarchy': [
+            {
+              attrs: {
+                'data-amp-test-hello': 'world',
+                'data-amp-test-test': '',
+                'data-amp-test-time': 'machine',
+              },
+              classes: ['my-button-class'],
+              id: 'my-button-id',
+              index: 2,
+              indexOfType: 0,
+              prevSib: 'h2',
+              tag: 'button',
             },
-            classes: ['my-button-class'],
-            id: 'my-button-id',
-            index: 2,
-            indexOfType: 0,
-            prevSib: 'h2',
-            tag: 'button',
+
+            {
+              index: 1,
+              indexOfType: 0,
+              prevSib: 'head',
+              tag: 'body',
+            },
+          ],
+          '[Amplitude] Element ID': 'my-button-id',
+          '[Amplitude] Element Position Left': 0,
+          '[Amplitude] Element Position Top': 0,
+          '[Amplitude] Element Tag': 'button',
+          '[Amplitude] Element Text': 'submit',
+          '[Amplitude] Element Selector': '#my-button-id',
+          '[Amplitude] Element Parent Label': 'my-h2-text',
+          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+          '[Amplitude] Viewport Height': 768,
+          '[Amplitude] Viewport Width': 1024,
+          '[Amplitude] Element Attributes': {
+            hello: 'world',
+            time: 'machine',
+            test: '',
           },
-          {
-            index: 1,
-            indexOfType: 0,
-            prevSib: 'head',
-            tag: 'body',
-          },
-        ],
-        '[Amplitude] Element ID': 'my-button-id',
-        '[Amplitude] Element Position Left': 0,
-        '[Amplitude] Element Position Top': 0,
-        '[Amplitude] Element Tag': 'button',
-        '[Amplitude] Element Text': 'submit',
-        '[Amplitude] Element Selector': '#my-button-id',
-        '[Amplitude] Element Parent Label': 'my-h2-text',
-        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-        '[Amplitude] Viewport Height': 768,
-        '[Amplitude] Viewport Width': 1024,
-        '[Amplitude] Element Attributes': {
-          hello: 'world',
-          time: 'machine',
-          test: '',
         },
-      });
+        { time: expect.any(Number) as number },
+      );
+    });
+    test('should follow default debounceTime configuration', async () => {
+      const oldFetch = global.fetch;
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              code: 200,
+            }),
+        }),
+      ) as jest.Mock;
+      const button = document.createElement('button');
+      const buttonText = document.createTextNode('submit');
+      button.setAttribute('id', 'my-button-id');
+      button.appendChild(buttonText);
+      document.body.appendChild(button);
+
+      plugin = autocapturePlugin();
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      // trigger click button
+      document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, 500));
+
+      expect(track).toHaveBeenCalledTimes(0);
+
+      await new Promise((r) => setTimeout(r, 500));
+      expect(track).toHaveBeenCalledTimes(1);
+
+      global.fetch = oldFetch;
     });
 
     test('should track change event', async () => {
@@ -631,18 +774,16 @@ describe('autoTrackingPlugin', () => {
       input.setAttribute('class', 'my-input-class');
       document.body.appendChild(input);
 
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
       // trigger click input
       document.getElementById('my-input-id')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
       expect(track).toHaveBeenCalledTimes(1);
 
       // trigger change input
@@ -657,13 +798,9 @@ describe('autoTrackingPlugin', () => {
       input.type = 'hidden';
       document.body.appendChild(input);
 
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider,
       };
       await plugin?.setup(config as BrowserConfig, instance);
 
@@ -777,19 +914,17 @@ describe('autoTrackingPlugin', () => {
           </div>
         `;
 
-        plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'] });
-        const loggerProvider: Partial<Logger> = {
-          log: jest.fn(),
-          warn: jest.fn(),
-        };
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'], debounceTime: TESTING_DEBOUNCE_TIME });
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider,
         };
         await plugin?.setup(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
           1,
@@ -797,10 +932,13 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'inner',
           }),
+          { time: expect.any(Number) as number },
         );
 
         // trigger click container
         document.getElementById('container1')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
           2,
@@ -808,6 +946,7 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container1',
           }),
+          { time: expect.any(Number) as number },
         );
       });
 
@@ -833,19 +972,17 @@ describe('autoTrackingPlugin', () => {
           </div>
         `;
 
-        plugin = autocapturePlugin({ cssSelectorAllowlist: ['.match-me'] });
-        const loggerProvider: Partial<Logger> = {
-          log: jest.fn(),
-          warn: jest.fn(),
-        };
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['.match-me'], debounceTime: TESTING_DEBOUNCE_TIME });
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider,
         };
         await plugin?.setup(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
           1,
@@ -853,10 +990,13 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container1',
           }),
+          { time: expect.any(Number) as number },
         );
 
         // trigger click container
         document.getElementById('container1')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
           2,
@@ -864,6 +1004,7 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container1',
           }),
+          { time: expect.any(Number) as number },
         );
       });
 
@@ -885,19 +1026,17 @@ describe('autoTrackingPlugin', () => {
           </button>
         `;
 
-        plugin = autocapturePlugin({ cssSelectorAllowlist: ['button'] });
-        const loggerProvider: Partial<Logger> = {
-          log: jest.fn(),
-          warn: jest.fn(),
-        };
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['button'], debounceTime: TESTING_DEBOUNCE_TIME });
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider,
         };
         await plugin?.setup(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
           1,
@@ -905,10 +1044,13 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container',
           }),
+          { time: expect.any(Number) as number },
         );
 
         // trigger click container
         document.getElementById('container')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
           2,
@@ -916,6 +1058,7 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container',
           }),
+          { time: expect.any(Number) as number },
         );
       });
 
@@ -938,19 +1081,17 @@ describe('autoTrackingPlugin', () => {
           </button>
         `;
 
-        plugin = autocapturePlugin({ cssSelectorAllowlist: ['[data-track]'] });
-        const loggerProvider: Partial<Logger> = {
-          log: jest.fn(),
-          warn: jest.fn(),
-        };
+        plugin = autocapturePlugin({ cssSelectorAllowlist: ['[data-track]'], debounceTime: TESTING_DEBOUNCE_TIME });
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider,
         };
         await plugin?.setup(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(1);
         expect(track).toHaveBeenNthCalledWith(
           1,
@@ -958,10 +1099,13 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'inner',
           }),
+          { time: expect.any(Number) as number },
         );
 
         // trigger click container
         document.getElementById('container')?.dispatchEvent(new Event('click', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
         expect(track).toHaveBeenCalledTimes(2);
         expect(track).toHaveBeenNthCalledWith(
           2,
@@ -969,7 +1113,66 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container',
           }),
+          { time: expect.any(Number) as number },
         );
+      });
+    });
+
+    test('should not track click for an event fired without a target', async () => {
+      const event = new Event('click', {
+        bubbles: true,
+        cancelable: true,
+      });
+
+      window.dispatchEvent(event);
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(0);
+    });
+
+    describe('rage click detection:', () => {
+      test('clicking on the same element 4 times should track 4 clicks separately', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        const button = document.createElement('button');
+        document.body.appendChild(button);
+
+        // trigger click event
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        expect(track).toHaveBeenCalledTimes(4);
+      });
+
+      // TODO: this will change in the future
+      test('clicking on the same element 5 times should track 6 clicks separately', async () => {
+        const config: Partial<BrowserConfig> = {
+          defaultTracking: false,
+          loggerProvider: loggerProvider,
+        };
+        await plugin?.setup(config as BrowserConfig, instance);
+
+        const button = document.createElement('button');
+        document.body.appendChild(button);
+
+        // trigger click event
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+        button.dispatchEvent(new Event('click'));
+
+        await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+        expect(track).toHaveBeenCalledTimes(6);
       });
     });
   });

@@ -14,6 +14,7 @@ import {
   getEventTagProps,
   asyncLoadScript,
   generateUniqueId,
+  createShouldTrackEvent,
 } from '../src/helpers';
 import { mockWindowLocationFromURL } from './utils';
 import { Logger } from '@amplitude/analytics-types';
@@ -77,16 +78,31 @@ describe('autocapture-plugin helpers', () => {
   });
 
   describe('isNonSensitiveElement', () => {
-    test('should return false when element is not a sensitive tag', () => {
+    test('should return false when element is a sensitive tag', () => {
       const element = document.createElement('textarea');
       const result = isNonSensitiveElement(element);
       expect(result).toEqual(false);
     });
 
-    test('should return false when element is a sensitive tag', () => {
+    test('should return true when element is a non-sensitive tag', () => {
       const element = document.createElement('a');
       const result = isNonSensitiveElement(element);
       expect(result).toEqual(true);
+    });
+
+    test('should detect contenteditable as a sensitive tag', () => {
+      // Create the SVG element
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', '200');
+      svg.setAttribute('height', '200');
+      svg.setAttribute('viewBox', '0 0 200 200');
+
+      expect(isNonSensitiveElement(svg)).toEqual(true);
+      const element = document.createElement('div');
+      expect(isNonSensitiveElement(element)).toEqual(true);
+
+      element.setAttribute('contenteditable', 'True');
+      expect(isNonSensitiveElement(element)).toEqual(false);
     });
   });
 
@@ -573,6 +589,15 @@ describe('autocapture-plugin helpers', () => {
       const randomChar1 = id1.split('-')[1];
       const randomChar2 = id2.split('-')[1];
       expect(randomChar1).not.toEqual(randomChar2);
+    });
+  });
+
+  describe('createShouldTrackEvent', () => {
+    test('should not fail when given window as element', () => {
+      const shouldTrackEvent = createShouldTrackEvent({}, ['div']);
+
+      expect(shouldTrackEvent('click', window as unknown as Element)).toEqual(false);
+      expect(shouldTrackEvent('click', document as unknown as Element)).toEqual(false);
     });
   });
 });
