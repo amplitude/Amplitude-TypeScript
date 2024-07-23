@@ -95,7 +95,9 @@ export const isTextNode = (node: Node) => {
 export const isNonSensitiveElement = (element: Element) => {
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable = element instanceof HTMLElement ? element.isContentEditable : false;
+  const isContentEditable =
+    element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
+
   return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 

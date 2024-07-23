@@ -78,13 +78,13 @@ describe('autocapture-plugin helpers', () => {
   });
 
   describe('isNonSensitiveElement', () => {
-    test('should return false when element is not a sensitive tag', () => {
+    test('should return false when element is a sensitive tag', () => {
       const element = document.createElement('textarea');
       const result = isNonSensitiveElement(element);
       expect(result).toEqual(false);
     });
 
-    test('should return true when element is a sensitive tag', () => {
+    test('should return true when element is a non-sensitive tag', () => {
       const element = document.createElement('a');
       const result = isNonSensitiveElement(element);
       expect(result).toEqual(true);
@@ -101,8 +101,8 @@ describe('autocapture-plugin helpers', () => {
       const element = document.createElement('div');
       expect(isNonSensitiveElement(element)).toEqual(true);
 
-      element.setAttribute('contenteditable', 'true');
-      expect(isNonSensitiveElement(element)).toEqual(true);
+      element.setAttribute('contenteditable', 'True');
+      expect(isNonSensitiveElement(element)).toEqual(false);
     });
   });
 
