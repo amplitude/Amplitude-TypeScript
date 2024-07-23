@@ -249,7 +249,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   evaluateTargetingAndRecord = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
-      this.loggerProvider.error('Session replay init has not been called, cannot evaluate targeting.');
+      if (!this.identifiers?.sessionId) {
+        this.loggerProvider.warn('Session ID has not been set, cannot evaluate targeting for Session Replay.');
+      } else {
+        this.loggerProvider.warn('Session replay init has not been called, cannot evaluate targeting.');
+      }
       return false;
     }
     // Return early if a targeting match has already been made

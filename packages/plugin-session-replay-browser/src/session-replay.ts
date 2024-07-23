@@ -35,7 +35,9 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
         const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
         userProperties = identityStore.getIdentity().userProperties;
       }
-      await sessionReplay.setSessionId(this.config.sessionId, this.config.deviceId, { userProperties }).promise;
+      await sessionReplay.setSessionId(this.config.sessionId, this.config.deviceId, {
+        userProperties: userProperties || {},
+      }).promise;
     }
 
     // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
