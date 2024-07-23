@@ -348,14 +348,16 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
 
     // Setup visual tagging selector
     if (window.opener && visualTaggingOptions.enabled) {
+      const allowlist = (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist;
+      const actionClickAllowlist = (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist;
+
       /* istanbul ignore next */
       visualTaggingOptions.messenger?.setup({
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
-        isElementSelectable: createShouldTrackEvent(
-          options,
-          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-        ),
+        isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
+        cssSelectorAllowlist: allowlist,
+        actionClickAllowlist: actionClickAllowlist,
       });
     }
   };
