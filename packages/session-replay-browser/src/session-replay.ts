@@ -110,7 +110,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
-    this.loggerProvider.debug(JSON.stringify({ name: 'session replay joined config', config: this.config }, null, 2));
+    this.loggerProvider.debug(
+      JSON.stringify(
+        { name: 'session replay joined privacy config', privacyConfig: this.config.privacyConfig },
+        null,
+        2,
+      ),
+    );
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -178,7 +184,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // and config was just fetched in initialization, so no need to fetch it a second time
     if (this.joinedConfigGenerator && previousSessionId) {
       this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
-      this.loggerProvider.debug(JSON.stringify({ name: 'session replay joined config', config: this.config }, null, 2));
     }
     this.recordEvents();
   }
