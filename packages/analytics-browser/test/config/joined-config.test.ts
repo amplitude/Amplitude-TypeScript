@@ -60,13 +60,20 @@ describe('joined-config', () => {
     });
 
     describe('generateJoinedConfig', () => {
-      test('should disable autocapture if remote config sets it to false', async () => {
-        localConfig = createConfigurationMock();
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue({
-            defaultTracking: false,
-            autocapture: false,
+      test('should disable userInteractions if remote config sets it to false', async () => {
+        localConfig = createConfigurationMock(
+          createConfigurationMock({
+            autocapture: true,
           }),
+        );
+        generator = new BrowserJoinedConfigGenerator(localConfig);
+        const remoteConfig = {
+          autocapture: {
+            userInteractions: false,
+          },
+        };
+        mockRemoteConfigFetch = {
+          getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
           fetchTime: fetchTime,
         };
         // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
@@ -75,9 +82,40 @@ describe('joined-config', () => {
         );
 
         await generator.initialize();
-        expect(generator.config.autocapture).toBe(false);
+        expect(generator.config.autocapture).toBe(true);
         const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig.autocapture).toBe(false);
+        expect(joinedConfig.autocapture).toBe(remoteConfig.autocapture);
+      });
+
+      test('should not disable defaultTracking if remote config sets it to false', async () => {
+        localConfig = createConfigurationMock(
+          createConfigurationMock({
+            defaultTracking: true,
+          }),
+        );
+        generator = new BrowserJoinedConfigGenerator(localConfig);
+        const remoteConfig = {
+          autocapture: {
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            attribution: false,
+            sessions: false,
+          },
+        };
+        mockRemoteConfigFetch = {
+          getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
+          fetchTime: fetchTime,
+        };
+        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
+        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+          mockRemoteConfigFetch,
+        );
+
+        await generator.initialize();
+        expect(generator.config.defaultTracking).toBe(true);
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig.defaultTracking).toBe(remoteConfig.autocapture);
       });
 
       test('should handle getRemoteConfig error', async () => {

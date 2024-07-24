@@ -292,18 +292,38 @@ describe('browser-client', () => {
       expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
     });
 
-    test.each([true, {}])('should add autocapture plugin', async (option: boolean | AutocaptureOptions) => {
-      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+    test('should NOT add default tracking plugins when autocapture is disabled', async () => {
+      const pageViewTrackingPlugin = jest.spyOn(pageViewTracking, 'pageViewTrackingPlugin');
+      const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
+      const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
       await client.init(apiKey, userId, {
-        autocapture: option,
+        autocapture: {
+          pageViews: false,
+          fileDownloads: false,
+          formInteractions: false,
+        },
       }).promise;
-      expect(autocapturePlugin).toHaveBeenCalledTimes(1);
+      expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
+      expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(0);
+      expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
     });
+
+    test.each([true, { userInteractions: true }])(
+      'should add autocapture plugin',
+      async (option: boolean | AutocaptureOptions) => {
+        const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+        await client.init(apiKey, userId, {
+          autocapture: option,
+        }).promise;
+        expect(autocapturePlugin).toHaveBeenCalledTimes(1);
+      },
+    );
 
     test.each([
       undefined, // default
       false, // disabled
-    ])('should NOT add autocapture plugin', async (option: undefined | boolean) => {
+      { userInteractions: false }, // disabled
+    ])('should NOT add autocapture plugin', async (option: undefined | boolean | AutocaptureOptions) => {
       const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
       await client.init(apiKey, userId, {
         autocapture: option,

@@ -254,6 +254,11 @@ export const useBrowserConfig = async (
   const pageCounter = previousCookies?.pageCounter;
   const debugLogsEnabled = previousCookies?.debugLogsEnabled;
 
+  // Override default tracking options if autocapture is set
+  if (options.autocapture !== undefined) {
+    options.defaultTracking = options.autocapture;
+  }
+
   return new BrowserConfig(
     apiKey,
     options.appVersion,
@@ -350,8 +355,4 @@ export const getTopLevelDomain = async (url?: string) => {
   }
 
   return '';
-};
-
-export const isAutocaptureEnabled = (autocapture?: AutocaptureOptions | boolean): boolean => {
-  return autocapture === true || typeof autocapture === 'object';
 };
