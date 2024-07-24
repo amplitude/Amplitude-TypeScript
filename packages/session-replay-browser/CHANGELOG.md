@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.11.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.11.2...@amplitude/session-replay-browser@1.11.3) (2024-07-24)
+
+### Bug Fixes
+
+- **session replay:** ignore focus should allow recording to continue as well
+  ([0dd3480](https://github.com/amplitude/Amplitude-TypeScript/commit/0dd34805d12c00c93a5e3d26e054f50bdbe1f96d))
+- **session replay:** set sample rate if it is 0 as well
+  ([37cb163](https://github.com/amplitude/Amplitude-TypeScript/commit/37cb163c98fb7c692eb8e00556f21c2402044f61))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.11.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.11.1...@amplitude/session-replay-browser@1.11.2) (2024-07-23)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
