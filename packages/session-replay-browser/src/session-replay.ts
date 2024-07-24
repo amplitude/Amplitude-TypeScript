@@ -159,7 +159,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.teardownEventListeners(false);
 
     const globalScope = getGlobalScope();
-    if (globalScope && globalScope.document && globalScope.document.hasFocus()) {
+    // If the user is in debug mode, ignore the focus handler when tagging events.
+    // this is a common mishap when someone is developing locally and not seeing events getting tagged.
+    const ignoreFocus = !!this.config.debugMode;
+    if (!ignoreFocus && globalScope && globalScope.document && globalScope.document.hasFocus()) {
       this.initialize(true);
     }
   }
@@ -204,10 +207,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return {};
     }
 
-    // If the user is in debug mode, ignore the focus handler when tagging events.
-    // this is a common mishap when someone is developing locally and not seeing events getting tagged.
-    const ignoreFocus = !!this.config.debugMode;
-    const shouldRecord = this.getShouldRecord(ignoreFocus);
+    const shouldRecord = this.getShouldRecord();
 
     if (shouldRecord) {
       const eventProperties: { [key: string]: string | null } = {
@@ -277,7 +277,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return identityStoreOptOut !== undefined ? identityStoreOptOut : this.config?.optOut;
   }
 
-  getShouldRecord(ignoreFocus = false) {
+  getShouldRecord() {
     if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
       this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
       return false;
@@ -290,6 +290,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const globalScope = getGlobalScope();
+    // If the user is in debug mode, ignore the focus handler when tagging events.
+    // this is a common mishap when someone is developing locally and not seeing events getting tagged.
+    const ignoreFocus = !!this.config.debugMode;
     if (!ignoreFocus && globalScope && globalScope.document && !globalScope.document.hasFocus()) {
       this.loggerProvider.log(
         `Session ${this.identifiers.sessionId} temporarily not recording due to lack of browser focus.`,
