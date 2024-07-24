@@ -140,7 +140,7 @@ describe('module level integration', () => {
         expect(record).toHaveBeenCalled();
         const recordArg = record.mock.calls[0][0];
         recordArg?.emit && recordArg?.emit(mockEvent);
-        sessionReplay.stopRecordingAndSendEvents();
+        sessionReplay.sendEvents();
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
 
         await runScheduleTimers();
@@ -176,7 +176,7 @@ describe('module level integration', () => {
         expect(record).toHaveBeenCalled();
         const recordArg = record.mock.calls[0][0];
         recordArg?.emit && recordArg?.emit(mockEvent);
-        sessionReplay.stopRecordingAndSendEvents();
+        sessionReplay.sendEvents();
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
@@ -227,7 +227,7 @@ describe('module level integration', () => {
         expect(record).toHaveBeenCalled();
         const recordArg = record.mock.calls[0][0];
         recordArg?.emit && recordArg?.emit(mockEvent);
-        sessionReplay.stopRecordingAndSendEvents();
+        sessionReplay.sendEvents();
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(

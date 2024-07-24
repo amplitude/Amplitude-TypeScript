@@ -86,9 +86,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const globalScope = getGlobalScope();
     if (globalScope) {
       globalScope.removeEventListener('blur', this.blurListener);
-      globalScope.removeEventListener('focus', this.focusListener);
       !teardown && globalScope.addEventListener('blur', this.blurListener);
-      !teardown && globalScope.addEventListener('focus', this.focusListener);
       // prefer pagehide to unload events, this is the standard going forward. it is not
       // 100% reliable, but is bfcache-compatible.
       if (globalScope.self && 'onpagehide' in globalScope.self) {
@@ -158,13 +156,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    const globalScope = getGlobalScope();
-    // If the user is in debug mode, ignore the focus handler when tagging events.
-    // this is a common mishap when someone is developing locally and not seeing events getting tagged.
-    const ignoreFocus = !!this.config.debugMode;
-    if (!ignoreFocus && globalScope && globalScope.document && globalScope.document.hasFocus()) {
-      this.initialize(true);
-    }
+    this.initialize(true);
   }
 
   setSessionId(sessionId: number, deviceId?: string) {
@@ -174,7 +166,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   async asyncSetSessionId(sessionId: number, deviceId?: string) {
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
-      this.stopRecordingAndSendEvents(previousSessionId);
+      this.sendEvents(previousSessionId);
     }
 
     const deviceIdForReplayId = deviceId || this.getDeviceId();
@@ -223,12 +215,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   blurListener = () => {
-    this.stopRecordingAndSendEvents();
+    this.sendEvents();
   };
 
-  focusListener = () => {
-    this.initialize();
-  };
   /**
    * This is an instance member so that if init is called multiple times
    * it doesn't add another listener to the page leave event. This is to
@@ -240,9 +229,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   };
 
-  stopRecordingAndSendEvents(sessionId?: number) {
-    this.stopRecordingEvents();
-
+  sendEvents(sessionId?: number) {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
     this.eventsManager &&
@@ -285,17 +272,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!this.config.captureEnabled) {
       this.loggerProvider.log(
         `Session ${this.identifiers.sessionId} not being captured due to capture being disabled for project or because the remote config could not be fetched.`,
-      );
-      return false;
-    }
-
-    const globalScope = getGlobalScope();
-    // If the user is in debug mode, ignore the focus handler when tagging events.
-    // this is a common mishap when someone is developing locally and not seeing events getting tagged.
-    const ignoreFocus = !!this.config.debugMode;
-    if (!ignoreFocus && globalScope && globalScope.document && !globalScope.document.hasFocus()) {
-      this.loggerProvider.log(
-        `Session ${this.identifiers.sessionId} temporarily not recording due to lack of browser focus.`,
       );
       return false;
     }
@@ -347,9 +323,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.recordCancelCallback = record({
       emit: (event) => {
-        const globalScope = getGlobalScope();
-        if ((globalScope && globalScope.document && !globalScope.document.hasFocus()) || !this.getShouldRecord()) {
-          this.stopRecordingAndSendEvents();
+        if (this.shouldOptOut()) {
+          this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
+          this.stopRecordingEvents();
+          this.sendEvents();
           return;
         }
         const eventString = JSON.stringify(event);
@@ -432,6 +409,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   shutdown() {
     this.teardownEventListeners(true);
-    this.stopRecordingAndSendEvents();
+    this.stopRecordingEvents();
+    this.sendEvents();
   }
 }
