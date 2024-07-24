@@ -83,7 +83,7 @@ export class SessionReplayJoinedConfigGenerator {
         config.captureEnabled = false;
       }
 
-      if (samplingConfig.sample_rate) {
+      if (Object.prototype.hasOwnProperty.call(samplingConfig, 'sample_rate')) {
         config.sampleRate = samplingConfig.sample_rate;
       }
     } else {
