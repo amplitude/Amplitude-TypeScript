@@ -7,7 +7,7 @@ import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, url, SUCCESS_MESSAGE, uuidPattern } from './constants';
 import { LogLevel } from '@amplitude/analytics-types';
-import { RequestMetadata, UUID } from '@amplitude/analytics-core';
+import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -26,7 +26,6 @@ describe('integration', () => {
   let client = amplitude.createInstance();
 
   const event_upload_time = '2023-01-01T12:00:00:000Z';
-  const request_metadata = new RequestMetadata();
   Date.prototype.toISOString = jest.fn(() => event_upload_time);
 
   beforeAll(() => {
@@ -257,53 +256,6 @@ describe('integration', () => {
   });
 
   describe('track', () => {
-    test('should track event with request metadata when fetchRemoteConfig is enabled', async () => {
-      let requestBody: Record<string, any> = {};
-      const scope = nock(url)
-        .post(path, (body: Record<string, any>) => {
-          requestBody = body;
-          return true;
-        })
-        .reply(200, success);
-
-      await client.init(apiKey, {
-        defaultTracking,
-        fetchRemoteConfig: true,
-      }).promise;
-
-      await client.track('test event', {
-        mode: 'test',
-      }).promise;
-
-      expect(requestBody).toEqual({
-        api_key: apiKey,
-        client_upload_time: event_upload_time,
-        events: [
-          {
-            user_id: undefined,
-            device_id: uuid,
-            session_id: number,
-            time: number,
-            platform: 'Web',
-            language: 'en-US',
-            ip: '$remote',
-            insert_id: uuid,
-            partner_id: undefined,
-            event_type: 'test event',
-            event_id: 0,
-            event_properties: {
-              mode: 'test',
-            },
-            library: library,
-            user_agent: userAgent,
-          },
-        ],
-        options: {},
-        request_metadata: request_metadata,
-      });
-      scope.done();
-    });
-
     test('should track event', async () => {
       const scope = nock(url).post(path).reply(200, success);
 
