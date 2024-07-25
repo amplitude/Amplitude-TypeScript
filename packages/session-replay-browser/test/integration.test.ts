@@ -124,7 +124,7 @@ describe('module level integration', () => {
         event: { type: 'unknown' as EventType, data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).not.toHaveBeenCalled();
@@ -144,7 +144,7 @@ describe('module level integration', () => {
         event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
@@ -180,7 +180,7 @@ describe('module level integration', () => {
         event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
@@ -216,7 +216,7 @@ describe('module level integration', () => {
         event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
@@ -253,7 +253,7 @@ describe('module level integration', () => {
         event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
@@ -286,7 +286,7 @@ describe('module level integration', () => {
         event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
@@ -318,7 +318,7 @@ describe('module level integration', () => {
         event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenCalledTimes(2);
@@ -341,7 +341,7 @@ describe('module level integration', () => {
         event: { type: 'replay', data: mockEventString },
         deviceId: '1a2b3c',
       });
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(

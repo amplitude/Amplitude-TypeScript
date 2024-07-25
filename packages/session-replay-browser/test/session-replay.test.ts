@@ -253,31 +253,20 @@ describe('SessionReplay', () => {
 
       expect(initialize.mock.calls[0]).toEqual([true]);
     });
-    test('should set up blur and focus event listeners', async () => {
-      const stopRecordingMock = jest.fn();
-      sessionReplay.recordCancelCallback = stopRecordingMock;
+    test('should set up blur  event listener', async () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
       await sessionReplay.init(apiKey, mockOptions).promise;
+      const sendEventsMock = jest.fn();
+      sessionReplay.sendEvents = sendEventsMock;
       initialize.mockReset();
-      expect(addEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(addEventListenerMock).toHaveBeenCalledTimes(2);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(addEventListenerMock.mock.calls[0][0]).toEqual('blur');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const blurCallback = addEventListenerMock.mock.calls[0][1];
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       blurCallback();
-      expect(stopRecordingMock).toHaveBeenCalled();
-      expect(sessionReplay.recordCancelCallback).toEqual(null);
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(addEventListenerMock.mock.calls[1][0]).toEqual('focus');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
-      const focusCallback = addEventListenerMock.mock.calls[1][1];
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      focusCallback();
-      expect(initialize).toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(initialize.mock.calls[0]).toEqual([]);
+      expect(sendEventsMock).toHaveBeenCalled();
     });
     test('it should not call initialize if the document does not have focus', () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
@@ -317,9 +306,9 @@ describe('SessionReplay', () => {
       const stopRecordingMock = jest.fn();
 
       // Mock class as if it has already been recording events
-      sessionReplay.stopRecordingAndSendEvents = stopRecordingMock;
+      sessionReplay.stopRecordingEvents = stopRecordingMock;
 
-      sessionReplay.setSessionId(456);
+      await sessionReplay.setSessionId(456).promise;
       expect(stopRecordingMock).toHaveBeenCalled();
     });
 
@@ -389,9 +378,9 @@ describe('SessionReplay', () => {
       expect(sessionReplay.getSessionId()).toEqual(mockOptions.sessionId);
 
       // Mock class as if it has already been recording events
-      sessionReplay.stopRecordingAndSendEvents = stopRecordingMock;
+      sessionReplay.stopRecordingEvents = stopRecordingMock;
 
-      sessionReplay.setSessionId(456);
+      await sessionReplay.setSessionId(456).promise;
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.getSessionId()).toEqual(456);
     });
@@ -650,19 +639,6 @@ describe('SessionReplay', () => {
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
     });
-    test('should return false if document does not have focus and log', async () => {
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
-        ...mockGlobalScope,
-        document: {
-          hasFocus: () => false,
-        },
-      } as typeof globalThis);
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const shouldRecord = sessionReplay.getShouldRecord();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.log).toHaveBeenCalled();
-      expect(shouldRecord).toBe(false);
-    });
     test('should return false if  no config', async () => {
       const shouldRecord = sessionReplay.getShouldRecord();
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -671,17 +647,7 @@ describe('SessionReplay', () => {
     });
   });
 
-  describe('stopRecordingAndSendEvents', () => {
-    test('it should catch errors as warnings', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const mockStopRecordingEvents = jest.fn().mockImplementation(() => {
-        throw new Error('test error');
-      });
-      sessionReplay.recordCancelCallback = mockStopRecordingEvents;
-      sessionReplay.stopRecordingAndSendEvents();
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.warn).toHaveBeenCalled();
-    });
+  describe('sendEvents', () => {
     test('it should send events for passed session', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const sendEventsMock = jest.fn();
@@ -689,7 +655,7 @@ describe('SessionReplay', () => {
         throw new Error('Did not call init');
       }
       sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
-      sessionReplay.stopRecordingAndSendEvents(123);
+      sessionReplay.sendEvents(123);
       expect(sendEventsMock).toHaveBeenCalledWith({
         sessionId: 123,
         deviceId: '1a2b3c',
@@ -702,7 +668,7 @@ describe('SessionReplay', () => {
         throw new Error('Did not call init');
       }
       sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       expect(sendEventsMock).toHaveBeenCalledWith({
         sessionId: 123,
         deviceId: '1a2b3c',
@@ -716,8 +682,29 @@ describe('SessionReplay', () => {
         throw new Error('Did not call init');
       }
       sessionReplay.eventsManager.sendCurrentSequenceEvents = sendEventsMock;
-      sessionReplay.stopRecordingAndSendEvents();
+      sessionReplay.sendEvents();
       expect(sendEventsMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('stopRecordingEvents', () => {
+    test('it should catch errors as warnings', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockStopRecordingEvents = jest.fn().mockImplementation(() => {
+        throw new Error('test error');
+      });
+      sessionReplay.recordCancelCallback = mockStopRecordingEvents;
+      sessionReplay.stopRecordingEvents();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
+    });
+    test('it should call recordCancelCallback and set it to null', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockStopRecordingEvents = jest.fn();
+      sessionReplay.recordCancelCallback = mockStopRecordingEvents;
+      sessionReplay.stopRecordingEvents();
+      expect(mockStopRecordingEvents).toHaveBeenCalled();
+      expect(sessionReplay.recordCancelCallback).toEqual(null);
     });
   });
 
@@ -787,38 +774,6 @@ describe('SessionReplay', () => {
       sessionReplay.recordCancelCallback = stopRecordingMock;
       sessionReplay.recordEvents();
       expect(stopRecordingMock).toHaveBeenCalled();
-    });
-
-    test('should stop recording and send events if document is not in focus', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
-      sessionReplay.recordEvents();
-      const stopRecordingMock = jest.fn();
-      sessionReplay.recordCancelCallback = stopRecordingMock;
-      if (!sessionReplay.eventsManager) {
-        throw new Error('Did not call init');
-      }
-      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
-      expect(currentSequenceEvents).toEqual(undefined);
-      await createEventsIDBStoreInstance.addEventToCurrentSequence(123, mockEventString); // Add one event to list to trigger sending in stopRecordingAndSendEvents
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
-        document: {
-          hasFocus: () => false,
-        },
-      } as typeof globalThis);
-      const sendEventsMock = jest.spyOn(sessionReplay.eventsManager, 'sendCurrentSequenceEvents');
-      const recordArg = record.mock.calls[0][0];
-      recordArg?.emit && recordArg?.emit(mockEvent);
-      expect(sendEventsMock).toHaveBeenCalledTimes(1);
-      expect(sendEventsMock).toHaveBeenCalledWith({
-        sessionId: 123,
-        deviceId: '1a2b3c',
-      });
-      expect(stopRecordingMock).toHaveBeenCalled();
-      expect(sessionReplay.recordCancelCallback).toEqual(null);
-      const updatedCurrentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
-      expect(updatedCurrentSequenceEvents).toEqual({ events: [mockEventString], sessionId: 123 }); // events should not change, emmitted event should be ignored
     });
 
     test('should stop recording and send events if user opts out during recording', async () => {
@@ -942,10 +897,9 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(2);
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
-      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
-      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
+      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('beforeunload');
     });
 
     test('should remove event listeners with pagehide', async () => {
@@ -961,10 +915,9 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(2);
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
-      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
-      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pagehide');
+      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('pagehide');
     });
 
     test('should stop recording and send any events in queue', async () => {
