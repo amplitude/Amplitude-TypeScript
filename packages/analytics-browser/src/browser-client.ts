@@ -74,12 +74,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
     this.initializing = true;
 
+    let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
-    const browserOptions = await useBrowserConfig(options.apiKey, options, this);
-    const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
-    const joinedConfig = await joinedConfigGenerator.generateJoinedConfig();
-    await super._init(joinedConfig);
-    this.logBrowserOptions(joinedConfig);
+    if (options.fetchRemoteConfig) {
+      const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
+      browserOptions = await joinedConfigGenerator.generateJoinedConfig();
+    }
+    await super._init(browserOptions);
+    this.logBrowserOptions(browserOptions);
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {

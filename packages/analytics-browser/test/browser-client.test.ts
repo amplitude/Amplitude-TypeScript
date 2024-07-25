@@ -12,11 +12,13 @@ import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser'
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
+import * as RemoteConfig from '../src/config/joined-config';
 import * as CookieMigration from '../src/cookie-migration';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
+
 jest.mock('../src/config/joined-config', () => ({
   createBrowserJoinedConfigGenerator: jest.fn().mockImplementation((localConfig) => ({
     generateJoinedConfig: jest.fn().mockResolvedValue(localConfig),
@@ -52,6 +54,18 @@ describe('browser-client', () => {
   });
 
   describe('init', () => {
+    test('should NOT use remote config by default', async () => {
+      await client.init(apiKey).promise;
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
+    });
+
+    test('should use remote config when fetchRemoteConfig is true', async () => {
+      await client.init(apiKey, {
+        fetchRemoteConfig: true,
+      }).promise;
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
+    });
+
     test('should initialize client', async () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,

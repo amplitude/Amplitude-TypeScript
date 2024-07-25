@@ -75,6 +75,11 @@ export interface ExternalBrowserConfig extends Config {
    * Used for landing page analysis.
    */
   pageCounter?: number;
+  /**
+   * Whether to fetch remote configuration.
+   * @defaultValue `false`
+   */
+  fetchRemoteConfig?: boolean;
 }
 
 interface InternalBrowserConfig {
