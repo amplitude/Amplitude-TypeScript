@@ -1,45 +1,76 @@
 import {
   AttributionOptions,
+  AutocaptureOptions,
   BrowserOptions,
-  DefaultTrackingOptions,
   PageTrackingHistoryChanges,
   PageTrackingOptions,
   PageTrackingTrackOn,
+  UserInteractionsOptions,
 } from '@amplitude/analytics-types';
 
 /**
- * Returns false if defaultTracking === false or if defaultTracking[event],
+ * Returns false if autocapture === false or if autocapture[event],
  * otherwise returns true
  */
-const isTrackingEnabled = (
-  defaultTracking: DefaultTrackingOptions | boolean | undefined,
-  event: keyof DefaultTrackingOptions,
-) => {
-  if (typeof defaultTracking === 'boolean') {
-    return defaultTracking;
+const isTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined, event: keyof AutocaptureOptions) => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
   }
 
-  if (defaultTracking?.[event] === false) {
+  if (autocapture?.[event] === false) {
     return false;
   }
 
   return true;
 };
 
-export const isAttributionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
-  isTrackingEnabled(defaultTracking, 'attribution');
+export const isAttributionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'attribution');
 
-export const isFileDownloadTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
-  isTrackingEnabled(defaultTracking, 'fileDownloads');
+export const isFileDownloadTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'fileDownloads');
 
-export const isFormInteractionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
-  isTrackingEnabled(defaultTracking, 'formInteractions');
+export const isFormInteractionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'formInteractions');
 
-export const isPageViewTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
-  isTrackingEnabled(defaultTracking, 'pageViews');
+export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'pageViews');
 
-export const isSessionTrackingEnabled = (defaultTracking: DefaultTrackingOptions | boolean | undefined) =>
-  isTrackingEnabled(defaultTracking, 'sessions');
+export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'sessions');
+
+/**
+ * Returns true if
+ * 1. autocapture === true
+ * 2. if autocapture.userInteractions === true
+ * 3. if autocapture.userInteractions === object
+ * otherwise returns false
+ */
+export const isUserInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.userInteractions === true || typeof autocapture.userInteractions === 'object')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
+export const getUserInteractionsConfig = (config: BrowserOptions): UserInteractionsOptions | undefined => {
+  if (
+    isUserInteractionsEnabled(config.autocapture) &&
+    typeof config.autocapture === 'object' &&
+    typeof config.autocapture.userInteractions === 'object'
+  ) {
+    return config.autocapture.userInteractions;
+  }
+  return undefined;
+};
 
 export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingOptions => {
   let trackOn: PageTrackingTrackOn | undefined = () => false;

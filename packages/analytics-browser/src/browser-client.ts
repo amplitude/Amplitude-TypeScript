@@ -3,11 +3,13 @@ import {
   getAnalyticsConnector,
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
+  getUserInteractionsConfig,
   IdentityEventSender,
   isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
+  isUserInteractionsEnabled,
   setConnectorDeviceId,
   setConnectorUserId,
   isNewSession,
@@ -26,11 +28,10 @@ import {
   TransportType,
   OfflineDisabled,
   Result,
-  AutocaptureOptions,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
-import { useBrowserConfig, createTransport, isAutocaptureEnabled } from './config';
+import { useBrowserConfig, createTransport } from './config';
 import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
 import { formInteractionTracking } from './plugins/form-interaction-tracking';
 import { fileDownloadTracking } from './plugins/file-download-tracking';
@@ -73,12 +74,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
     this.initializing = true;
 
+    let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
-    const browserOptions = await useBrowserConfig(options.apiKey, options, this);
-    const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
-    const joinedConfig = await joinedConfigGenerator.generateJoinedConfig();
-    await super._init(joinedConfig);
-    this.logBrowserOptions(joinedConfig);
+    if (options.fetchRemoteConfig) {
+      const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
+      browserOptions = await joinedConfigGenerator.generateJoinedConfig();
+    }
+    await super._init(browserOptions);
+    this.logBrowserOptions(browserOptions);
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
@@ -137,10 +140,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
     }
 
-    if (isAutocaptureEnabled(this.config.autocapture)) {
-      const autocaptureOptions: undefined | AutocaptureOptions =
-        typeof this.config.autocapture === 'boolean' ? undefined : this.config.autocapture;
-      await this.add(autocapturePlugin(autocaptureOptions)).promise;
+    if (isUserInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
+      await this.add(autocapturePlugin(getUserInteractionsConfig(this.config))).promise;
     }
 
     this.initializing = false;
