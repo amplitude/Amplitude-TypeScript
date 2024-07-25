@@ -6,6 +6,7 @@ export {
   AttributionOptions,
   BrowserOptions,
   AutocaptureOptions,
+  BrowserRemoteConfig,
 } from './browser';
 export { NodeConfig, NodeOptions } from './node';
 export {

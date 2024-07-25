@@ -221,3 +221,9 @@ type HiddenOptions = 'apiKey' | 'transportProvider' | 'requestMetadata';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BrowserOptions extends Omit<Partial<ExternalBrowserConfig>, HiddenOptions> {}
+
+export type BrowserRemoteConfig = {
+  browserSDK: {
+    autocapture?: AutocaptureOptions | boolean;
+  };
+};
