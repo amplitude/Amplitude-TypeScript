@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.11.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.11.3...@amplitude/session-replay-browser@1.11.4) (2024-07-25)
+
+### Bug Fixes
+
+- **session replay:** remove focus/blur handling
+  ([b759a96](https://github.com/amplitude/Amplitude-TypeScript/commit/b759a96c9dda9bef5780978b36f98196e331a69f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.11.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.11.2...@amplitude/session-replay-browser@1.11.3) (2024-07-24)
 
 ### Bug Fixes
