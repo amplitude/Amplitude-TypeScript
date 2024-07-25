@@ -253,20 +253,27 @@ describe('SessionReplay', () => {
 
       expect(initialize.mock.calls[0]).toEqual([true]);
     });
-    test('should set up blur  event listener', async () => {
+    test('should set up blur and focus event listeners', async () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const sendEventsMock = jest.fn();
-      sessionReplay.sendEvents = sendEventsMock;
+      const recordMock = jest.fn();
+      sessionReplay.recordEvents = recordMock;
       initialize.mockReset();
-      expect(addEventListenerMock).toHaveBeenCalledTimes(2);
+      expect(addEventListenerMock).toHaveBeenCalledTimes(3);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(addEventListenerMock.mock.calls[0][0]).toEqual('blur');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
       const blurCallback = addEventListenerMock.mock.calls[0][1];
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       blurCallback();
-      expect(sendEventsMock).toHaveBeenCalled();
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(addEventListenerMock.mock.calls[1][0]).toEqual('focus');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      const focusCallback = addEventListenerMock.mock.calls[1][1];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      focusCallback();
+      expect(recordMock).toHaveBeenCalled();
     });
     test('it should not call initialize if the document does not have focus', () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
@@ -306,9 +313,9 @@ describe('SessionReplay', () => {
       const stopRecordingMock = jest.fn();
 
       // Mock class as if it has already been recording events
-      sessionReplay.stopRecordingEvents = stopRecordingMock;
+      sessionReplay.sendEvents = stopRecordingMock;
 
-      await sessionReplay.setSessionId(456).promise;
+      sessionReplay.setSessionId(456);
       expect(stopRecordingMock).toHaveBeenCalled();
     });
 
@@ -378,9 +385,9 @@ describe('SessionReplay', () => {
       expect(sessionReplay.getSessionId()).toEqual(mockOptions.sessionId);
 
       // Mock class as if it has already been recording events
-      sessionReplay.stopRecordingEvents = stopRecordingMock;
+      sessionReplay.sendEvents = stopRecordingMock;
 
-      await sessionReplay.setSessionId(456).promise;
+      sessionReplay.setSessionId(456);
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.getSessionId()).toEqual(456);
     });
@@ -686,7 +693,6 @@ describe('SessionReplay', () => {
       expect(sendEventsMock).not.toHaveBeenCalled();
     });
   });
-
   describe('stopRecordingEvents', () => {
     test('it should catch errors as warnings', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -788,7 +794,7 @@ describe('SessionReplay', () => {
       }
       const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
       expect(currentSequenceEvents).toEqual(undefined);
-      await createEventsIDBStoreInstance.addEventToCurrentSequence(123, mockEventString); // Add one event to list to trigger sending in stopRecordingAndSendEvents
+      await createEventsIDBStoreInstance.addEventToCurrentSequence(123, mockEventString); // Add one event to list to trigger sending in sendEvents
       const sendEventsMock = jest.spyOn(sessionReplay.eventsManager, 'sendCurrentSequenceEvents');
       sessionReplay.shouldOptOut = () => true;
       const recordArg = record.mock.calls[0][0];
@@ -897,9 +903,10 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(2);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
-      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('beforeunload');
+      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
+      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
     });
 
     test('should remove event listeners with pagehide', async () => {
@@ -915,9 +922,10 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(2);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
-      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('pagehide');
+      expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
+      expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pagehide');
     });
 
     test('should stop recording and send any events in queue', async () => {

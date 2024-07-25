@@ -86,7 +86,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const globalScope = getGlobalScope();
     if (globalScope) {
       globalScope.removeEventListener('blur', this.blurListener);
+      globalScope.removeEventListener('focus', this.focusListener);
       !teardown && globalScope.addEventListener('blur', this.blurListener);
+      !teardown && globalScope.addEventListener('focus', this.focusListener);
       // prefer pagehide to unload events, this is the standard going forward. it is not
       // 100% reliable, but is bfcache-compatible.
       if (globalScope.self && 'onpagehide' in globalScope.self) {
@@ -216,6 +218,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   blurListener = () => {
     this.sendEvents();
+  };
+
+  focusListener = () => {
+    // Restart recording on focus to ensure that when user
+    // switches tabs, we take a full snapshot
+    this.recordEvents();
   };
 
   /**
