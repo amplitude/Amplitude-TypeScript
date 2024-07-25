@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.11.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.11.4...@amplitude/session-replay-browser@1.11.5) (2024-07-25)
+
+### Bug Fixes
+
+- **session replay:** restart recording on focus
+  ([deec404](https://github.com/amplitude/Amplitude-TypeScript/commit/deec4043f22086ab7f71c9585549d18fc36cb9a9))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.11.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.11.3...@amplitude/session-replay-browser@1.11.4) (2024-07-25)
 
 ### Bug Fixes
