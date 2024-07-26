@@ -22,9 +22,11 @@ export { getGlobalScope } from './global-scope';
 export {
   getPageViewTrackingConfig,
   getAttributionTrackingConfig,
+  getUserInteractionsConfig,
   isAttributionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
+  isUserInteractionsEnabled,
 } from './default-tracking';
