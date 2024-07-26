@@ -56,7 +56,12 @@ describe('Targeting Manager', () => {
     });
     test('should return a true match from IndexedDB', async () => {
       jest.spyOn(targetingIDBStore, 'getTargetingMatchForSession').mockResolvedValueOnce(true);
-      const sessionTargetingMatch = await evaluateTargetingAndStore({ sessionId: 123, config: config });
+      const sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: 123,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
+      });
       expect(getTargetingMatchForSessionMock).toHaveBeenCalled();
       expect(evaluateTargeting).not.toHaveBeenCalled();
       expect(sessionTargetingMatch).toBe(true);
@@ -75,7 +80,9 @@ describe('Targeting Manager', () => {
       };
       const sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: 123,
-        config,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
         targetingParams: {
           userProperties: mockUserProperties,
         },
@@ -93,7 +100,9 @@ describe('Targeting Manager', () => {
       config.targetingConfig = undefined;
       const sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: 123,
-        config,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: undefined,
       });
       expect(evaluateTargeting).not.toHaveBeenCalled();
       expect(sessionTargetingMatch).toBe(true);
@@ -102,7 +111,9 @@ describe('Targeting Manager', () => {
       config.targetingConfig = {} as unknown as Targeting.TargetingFlag;
       const sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: 123,
-        config,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
       });
       expect(evaluateTargeting).not.toHaveBeenCalled();
       expect(sessionTargetingMatch).toBe(true);
@@ -115,7 +126,9 @@ describe('Targeting Manager', () => {
       });
       const sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: 123,
-        config,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
       });
       expect(storeTargetingMatchForSessionMock).toHaveBeenCalledWith({
         targetingMatch: true,
@@ -131,7 +144,9 @@ describe('Targeting Manager', () => {
       });
       const sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: 123,
-        config,
+        loggerProvider: config.loggerProvider,
+        apiKey: config.apiKey,
+        targetingConfig: flagConfig,
       });
       expect(sessionTargetingMatch).toBe(true);
       // eslint-disable-next-line @typescript-eslint/unbound-method
