@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.6.0-featureremoteconfig.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.6.0-featureremoteconfig.0...@amplitude/analytics-types@2.6.0-featureremoteconfig.1) (2024-07-26)
+
+### Bug Fixes
+
+- should disable userInteractions (autocapture plugin) by default
+  ([#811](https://github.com/amplitude/Amplitude-TypeScript/issues/811))
+  ([f613e1e](https://github.com/amplitude/Amplitude-TypeScript/commit/f613e1e43616cb39c8bd76e5c20835c59bb613b3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [2.6.0-featureremoteconfig.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.5.1...@amplitude/analytics-types@2.6.0-featureremoteconfig.0) (2024-07-09)
 
 ### Bug Fixes

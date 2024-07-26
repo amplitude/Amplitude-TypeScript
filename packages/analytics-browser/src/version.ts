@@ -1,1 +1,1 @@
-export const VERSION = '2.9.0-featureremoteconfig.0';
+export const VERSION = '2.9.0-featureremoteconfig.1';

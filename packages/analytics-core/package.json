@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-core",
-  "version": "2.3.0-featureremoteconfig.0",
+  "version": "2.3.0-featureremoteconfig.1",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -35,7 +35,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-types": "^2.6.0-featureremoteconfig.0",
+    "@amplitude/analytics-types": "^2.6.0-featureremoteconfig.1",
     "tslib": "^2.4.1"
   },
   "files": [
