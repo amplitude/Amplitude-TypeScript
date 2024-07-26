@@ -80,6 +80,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     },
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
+    public fetchRemoteConfig: boolean = false,
     userId?: string,
     pageCounter?: number,
     debugLogsEnabled?: boolean,
@@ -254,6 +255,11 @@ export const useBrowserConfig = async (
   const pageCounter = previousCookies?.pageCounter;
   const debugLogsEnabled = previousCookies?.debugLogsEnabled;
 
+  // Override default tracking options if autocapture is set
+  if (options.autocapture !== undefined) {
+    options.defaultTracking = options.autocapture;
+  }
+  
   const browserConfig = new BrowserConfig(
     apiKey,
     options.appVersion,
@@ -285,6 +291,7 @@ export const useBrowserConfig = async (
     trackingOptions,
     options.transport,
     options.useBatch,
+    options.fetchRemoteConfig,
     userId,
     pageCounter,
     debugLogsEnabled,
@@ -359,9 +366,4 @@ export const getTopLevelDomain = async (url?: string) => {
   }
 
   return '';
-};
-
-export const isAutocaptureEnabled = (autocapture?: AutocaptureOptions | boolean): boolean => {
-  // Disable autocapture plugin only when false
-  return autocapture !== false;
 };
