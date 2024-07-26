@@ -140,6 +140,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   async asyncSetSessionId(sessionId: number, deviceId?: string, options?: { userProperties?: { [key: string]: any } }) {
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
+      this.stopRecordingEvents();
       this.sendEvents(previousSessionId);
     }
 
@@ -208,9 +209,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   focusListener = () => {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
-    if (this.sessionTargetingMatch) {
-      this.recordEvents();
-    }
+    this.stopRecordingEvents();
+    this.recordEventsIfShould();
   };
 
   /**
@@ -226,42 +226,40 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   evaluateTargetingAndRecord = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
-      if (!this.identifiers?.sessionId) {
-        this.loggerProvider.warn('Session ID has not been set, cannot evaluate targeting for Session Replay.');
+      if (this.identifiers && !this.identifiers.sessionId) {
+        this.loggerProvider.log('Session ID has not been set, cannot evaluate targeting for Session Replay.');
       } else {
         this.loggerProvider.warn('Session replay init has not been called, cannot evaluate targeting.');
       }
-      return false;
+      return;
     }
-    // Return early if a targeting match has already been made
-    if (this.sessionTargetingMatch) {
-      if (!this.recordCancelCallback) {
-        this.loggerProvider.log('Session replay capture beginning due to targeting match.');
-        this.recordEvents();
+
+    if (this.recordCancelCallback) {
+      this.loggerProvider.log(
+        'Session replay evaluateTargetingAndRecord called, however a recording is already in process, so not evaluating targeting.',
+      );
+      return;
+    }
+
+    if (this.config.targetingConfig && !this.sessionTargetingMatch) {
+      let eventForTargeting = targetingParams?.event;
+      if (
+        eventForTargeting &&
+        Object.values(SpecialEventType).includes(eventForTargeting.event_type as SpecialEventType)
+      ) {
+        eventForTargeting = undefined;
       }
-      return this.sessionTargetingMatch;
+
+      this.sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: this.identifiers.sessionId,
+        targetingConfig: this.config.targetingConfig,
+        loggerProvider: this.loggerProvider,
+        apiKey: this.config.apiKey,
+        targetingParams: { userProperties: targetingParams?.userProperties, event: eventForTargeting },
+      });
     }
 
-    let eventForTargeting = targetingParams?.event;
-    if (
-      eventForTargeting &&
-      Object.values(SpecialEventType).includes(eventForTargeting.event_type as SpecialEventType)
-    ) {
-      eventForTargeting = undefined;
-    }
-
-    this.sessionTargetingMatch = await evaluateTargetingAndStore({
-      sessionId: this.identifiers.sessionId,
-      config: this.config,
-      targetingParams: { userProperties: targetingParams?.userProperties, event: eventForTargeting },
-    });
-
-    if (this.sessionTargetingMatch) {
-      this.loggerProvider.log('Session replay capture beginning due to targeting match.');
-      this.recordEvents();
-    }
-
-    return this.sessionTargetingMatch;
+    this.recordEventsIfShould();
   };
 
   sendEvents(sessionId?: number) {
@@ -300,10 +298,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return false;
     }
 
-    const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
-    if (!isInSample) {
-      this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`);
-      return false;
+    // If targetingConfig exists, we'll use the sessionTargetingMatch to determine whether to record
+    // Otherwise, we'll evaluate the session against the overall sample rate
+    if (this.config.targetingConfig) {
+      if (!this.sessionTargetingMatch) {
+        this.loggerProvider.log(
+          `Session ${this.identifiers.sessionId} not recording due to not matching targeting conditions.`,
+        );
+        return false;
+      } else {
+        // TODO: is this log too noisy?
+        this.loggerProvider.log(
+          `Session ${this.identifiers.sessionId} is recording due to matching targeting conditions.`,
+        );
+        return true;
+      }
+    } else {
+      const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
+      if (!isInSample) {
+        this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`);
+        return false;
+      }
     }
 
     return true;
@@ -333,13 +348,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
-  recordEvents() {
+  recordEventsIfShould() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
-    this.stopRecordingEvents();
+
     const privacyConfig = this.config.privacyConfig;
 
     this.loggerProvider.log('Session Replay capture beginning.');

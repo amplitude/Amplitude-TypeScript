@@ -1,25 +1,30 @@
 import { TargetingParameters, evaluateTargeting as evaluateTargetingPackage } from '@amplitude/targeting';
-import { SessionReplayJoinedConfig } from 'src/config/types';
+import { TargetingConfig } from '../config/types';
+import { Logger } from '@amplitude/analytics-types';
 import { targetingIDBStore } from './targeting-idb-store';
 
 export const evaluateTargetingAndStore = async ({
   sessionId,
-  config,
+  targetingConfig,
+  loggerProvider,
+  apiKey,
   targetingParams,
 }: {
   sessionId: number;
-  config: SessionReplayJoinedConfig;
+  targetingConfig: TargetingConfig;
+  loggerProvider: Logger;
+  apiKey: string;
   targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
 }) => {
   await targetingIDBStore.clearStoreOfOldSessions({
-    loggerProvider: config.loggerProvider,
-    apiKey: config.apiKey,
+    loggerProvider: loggerProvider,
+    apiKey: apiKey,
     currentSessionId: sessionId,
   });
 
   const idbTargetingMatch = await targetingIDBStore.getTargetingMatchForSession({
-    loggerProvider: config.loggerProvider,
-    apiKey: config.apiKey,
+    loggerProvider: loggerProvider,
+    apiKey: apiKey,
     sessionId: sessionId,
   });
   if (idbTargetingMatch === true) {
@@ -31,26 +36,25 @@ export const evaluateTargetingAndStore = async ({
   // so all users match targeting
   let sessionTargetingMatch = true;
   try {
-    if (config.targetingConfig && Object.keys(config.targetingConfig).length) {
-      const targetingResult = await evaluateTargetingPackage({
-        ...targetingParams,
-        flag: config.targetingConfig,
-        sessionId: sessionId,
-        apiKey: config.apiKey,
-        loggerProvider: config.loggerProvider,
-      });
+    const targetingResult = await evaluateTargetingPackage({
+      ...targetingParams,
+      flag: targetingConfig,
+      sessionId: sessionId,
+      apiKey: apiKey,
+      loggerProvider: loggerProvider,
+    });
 
-      sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
-    }
+    sessionTargetingMatch = targetingResult.sr_targeting_config.key === 'on';
+
     void targetingIDBStore.storeTargetingMatchForSession({
-      loggerProvider: config.loggerProvider,
-      apiKey: config.apiKey,
+      loggerProvider: loggerProvider,
+      apiKey: apiKey,
       sessionId: sessionId,
       targetingMatch: sessionTargetingMatch,
     });
   } catch (err: unknown) {
     const knownError = err as Error;
-    config.loggerProvider.warn(knownError.message);
+    loggerProvider.warn(knownError.message);
   }
   return sessionTargetingMatch;
 };
