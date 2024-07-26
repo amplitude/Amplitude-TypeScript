@@ -7,7 +7,7 @@ import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, url, SUCCESS_MESSAGE, uuidPattern } from './constants';
 import { LogLevel } from '@amplitude/analytics-types';
-import { RequestMetadata, UUID } from '@amplitude/analytics-core';
+import { UUID } from '@amplitude/analytics-core';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
@@ -26,7 +26,6 @@ describe('integration', () => {
   let client = amplitude.createInstance();
 
   const event_upload_time = '2023-01-01T12:00:00:000Z';
-  const request_metadata = new RequestMetadata();
   Date.prototype.toISOString = jest.fn(() => event_upload_time);
 
   beforeAll(() => {
@@ -251,7 +250,6 @@ describe('integration', () => {
           },
         ],
         options: {},
-        request_metadata: request_metadata,
       });
       scope1.done();
     });
@@ -1068,7 +1066,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1277,7 +1274,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1373,7 +1369,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1579,7 +1574,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1728,7 +1722,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1785,7 +1778,6 @@ describe('integration', () => {
             options: {
               min_id_length: undefined,
             },
-            request_metadata: request_metadata,
           });
           scope.done();
           resolve();
@@ -1952,10 +1944,9 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        expect(logger.debug).toHaveBeenCalledTimes(6);
-        // 3 debug calls for getting and merging remote config in joined-config.ts
+        expect(logger.debug).toHaveBeenCalledTimes(3);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[5]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[2]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('track');
         expect(debugContext.args).toBeDefined();
@@ -1981,10 +1972,9 @@ describe('integration', () => {
         }).promise;
         client.setOptOut(true);
 
-        expect(logger.debug).toHaveBeenCalledTimes(6);
-        // 3 debug calls for getting and merging remote config in joined-config.ts
+        expect(logger.debug).toHaveBeenCalledTimes(3);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[5]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[2]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('setOptOut');
         expect(debugContext.args).toBeDefined();
