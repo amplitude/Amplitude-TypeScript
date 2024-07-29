@@ -1038,4 +1038,19 @@ describe('SessionReplay', () => {
       });
     });
   });
+
+  describe('getDebugInfo', () => {
+    test('null config', () => {
+      sessionReplay.config = undefined;
+      expect(sessionReplay.getDebugInfo()).toBeUndefined();
+    });
+
+    test('get config', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const debugInfo = sessionReplay.getDebugInfo();
+      expect(debugInfo).toBeDefined();
+      expect(debugInfo?.config.apiKey).toStrictEqual('****_key');
+      expect(debugInfo?.version).toMatch(/\d+.\d+.\d+/);
+    });
+  });
 });
