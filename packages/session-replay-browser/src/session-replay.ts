@@ -396,7 +396,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
    * Used to send a debug RRWeb event. Typing is included for ease of debugging later on, but probably not
    * used at compile/run time.
    */
-  private getDebugInfo = (): DebugInfo | undefined => {
+  getDebugInfo = (): DebugInfo | undefined => {
     if (!this.config) {
       return;
     }
