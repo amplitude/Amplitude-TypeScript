@@ -22,11 +22,13 @@ import { SessionIdentifiers } from './identifiers';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  DebugInfo,
   EventType,
   EventsManagerWithType,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
+import { VERSION } from './version';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -385,7 +387,30 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return true;
       },
     });
+
+    const debugInfo = this.getDebugInfo();
+    debugInfo && record.addCustomEvent('debug-info', debugInfo);
   }
+
+  /**
+   * Used to send a debug RRWeb event. Typing is included for ease of debugging later on, but probably not
+   * used at compile/run time.
+   */
+  private getDebugInfo = (): DebugInfo | undefined => {
+    if (!this.config) {
+      return;
+    }
+    const config = {
+      ...this.config,
+    };
+    const { apiKey } = config;
+    config.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
+
+    return {
+      config,
+      version: VERSION,
+    };
+  };
 
   stopRecordingEvents = () => {
     try {

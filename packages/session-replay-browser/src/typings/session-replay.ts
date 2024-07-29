@@ -1,5 +1,10 @@
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
-import { SessionReplayLocalConfig } from '../config/types';
+import { SessionReplayJoinedConfig, SessionReplayLocalConfig } from '../config/types';
+
+export type DebugInfo = {
+  config: SessionReplayJoinedConfig;
+  version: string;
+};
 
 export type Events = string[];
 
