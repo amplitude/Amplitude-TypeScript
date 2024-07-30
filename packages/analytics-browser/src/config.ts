@@ -259,7 +259,7 @@ export const useBrowserConfig = async (
   if (options.autocapture !== undefined) {
     options.defaultTracking = options.autocapture;
   }
-  
+
   const browserConfig = new BrowserConfig(
     apiKey,
     options.appVersion,
