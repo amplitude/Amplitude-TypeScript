@@ -27,7 +27,7 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
  */
 export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
 
-export interface UserInteractionsOptions {
+export interface ElementInteractionsOptions {
   /**
    * List of CSS selectors to allow auto tracking on.
    * When provided, allow elements matching any selector to be tracked.

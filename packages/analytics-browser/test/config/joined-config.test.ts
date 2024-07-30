@@ -59,7 +59,7 @@ describe('joined-config', () => {
     });
 
     describe('generateJoinedConfig', () => {
-      test('should disable userInteractions if remote config sets it to false', async () => {
+      test('should disable elementInteractions if remote config sets it to false', async () => {
         localConfig = createConfigurationMock(
           createConfigurationMock({
             autocapture: true,
@@ -68,7 +68,7 @@ describe('joined-config', () => {
         generator = new BrowserJoinedConfigGenerator(localConfig);
         const remoteConfig = {
           autocapture: {
-            userInteractions: false,
+            elementInteractions: false,
           },
         };
         mockRemoteConfigFetch = {

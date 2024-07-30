@@ -322,7 +322,7 @@ describe('browser-client', () => {
       expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
     });
 
-    test.each([true, { userInteractions: true }])(
+    test.each([true, { elementInteractions: true }])(
       'should add autocapture plugin',
       async (option: boolean | AutocaptureOptions) => {
         const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
@@ -336,7 +336,7 @@ describe('browser-client', () => {
     test.each([
       undefined, // default
       false, // disabled
-      { userInteractions: false }, // disabled
+      { elementInteractions: false }, // disabled
     ])('should NOT add autocapture plugin', async (option: undefined | boolean | AutocaptureOptions) => {
       const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
       await client.init(apiKey, userId, {
