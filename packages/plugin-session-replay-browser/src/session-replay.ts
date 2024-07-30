@@ -8,6 +8,7 @@ import {
 } from '@amplitude/analytics-types';
 import * as sessionReplay from '@amplitude/session-replay-browser';
 import { SessionReplayOptions } from './typings/session-replay';
+import { VERSION } from './version';
 const ENRICHMENT_PLUGIN_NAME = '@amplitude/plugin-session-replay-enrichment-browser';
 
 class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
@@ -70,7 +71,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
       return;
     }
 
-    config.loggerProvider.log('Installing @amplitude/plugin-session-replay.');
+    config.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
 
     this.clientRemove = client.remove.bind(client);
     this.config = config;
