@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.0.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.3...@amplitude/plugin-autocapture-browser@1.0.0-beta.4) (2024-07-30)
+
+### Bug Fixes
+
+- **autocapture:** Remove click tracking buffer and duplicate action clicks
+  ([#830](https://github.com/amplitude/Amplitude-TypeScript/issues/830))
+  ([e1fefd4](https://github.com/amplitude/Amplitude-TypeScript/commit/e1fefd4a529dcec92a929a6003f384f05b6084c3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.0.0-beta.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.2...@amplitude/plugin-autocapture-browser@1.0.0-beta.3) (2024-07-23)
 
 ### Features
