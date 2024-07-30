@@ -1,5 +1,29 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [2.7.0-featureremoteconfig.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.6.0...@amplitude/analytics-types@2.7.0-featureremoteconfig.0) (2024-07-30)
+
+
+### Bug Fixes
+
+* **analytics-browser:** add remote config fetch time ([#772](https://github.com/amplitude/Amplitude-TypeScript/issues/772)) ([a094eb8](https://github.com/amplitude/Amplitude-TypeScript/commit/a094eb86c32f97e532b13a7f1f5259286ef8d6bf))
+* rename userInteractions to elementInteractions ([#828](https://github.com/amplitude/Amplitude-TypeScript/issues/828)) ([5a2695a](https://github.com/amplitude/Amplitude-TypeScript/commit/5a2695ae725dc217fa8cd3f797a62445a3cb92f7))
+* should disable userInteractions (autocapture plugin) by default ([#811](https://github.com/amplitude/Amplitude-TypeScript/issues/811)) ([fb5bf95](https://github.com/amplitude/Amplitude-TypeScript/commit/fb5bf9526fdba0046ce69540bf54c390542e2c0a))
+
+
+### Features
+
+* **analytics-browser:** consume remote config ([#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769)) ([f806782](https://github.com/amplitude/Amplitude-TypeScript/commit/f806782264140a296c0f12631660cad2eea1db9f))
+* **analytics-browser:** integrate autocapture plugin ([#780](https://github.com/amplitude/Amplitude-TypeScript/issues/780)) ([280f9e2](https://github.com/amplitude/Amplitude-TypeScript/commit/280f9e2b03c4c93d6095fa47dc6bd00dea0c7c98))
+
+
+
+
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 

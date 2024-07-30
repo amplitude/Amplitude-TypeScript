@@ -1,5 +1,22 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [2.2.5-featureremoteconfig.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.2.4...@amplitude/analytics-client-common@2.2.5-featureremoteconfig.0) (2024-07-30)
+
+
+### Bug Fixes
+
+* rename userInteractions to elementInteractions ([#828](https://github.com/amplitude/Amplitude-TypeScript/issues/828)) ([5a2695a](https://github.com/amplitude/Amplitude-TypeScript/commit/5a2695ae725dc217fa8cd3f797a62445a3cb92f7))
+* should disable userInteractions (autocapture plugin) by default ([#811](https://github.com/amplitude/Amplitude-TypeScript/issues/811)) ([fb5bf95](https://github.com/amplitude/Amplitude-TypeScript/commit/fb5bf9526fdba0046ce69540bf54c390542e2c0a))
+
+
+
+
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
