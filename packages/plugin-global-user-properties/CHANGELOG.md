@@ -43,15 +43,6 @@ All notable changes to this project will be documented in this file. See
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [1.2.22-featureremoteconfig.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.22-featureremoteconfig.0...@amplitude/plugin-global-user-properties@1.2.22-featureremoteconfig.1) (2024-07-26)
-
-**Note:** Version bump only for package @amplitude/plugin-global-user-properties
-
-# Change Log
-
-All notable changes to this project will be documented in this file. See
-[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
 ## [1.2.22-featureremoteconfig.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.21...@amplitude/plugin-global-user-properties@1.2.22-featureremoteconfig.0) (2024-07-09)
 
 **Note:** Version bump only for package @amplitude/plugin-global-user-properties
