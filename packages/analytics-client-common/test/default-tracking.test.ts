@@ -1,13 +1,13 @@
 import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
-  getUserInteractionsConfig,
+  getElementInteractionsConfig,
   isAttributionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
-  isUserInteractionsEnabled,
+  isElementInteractionsEnabled,
 } from '../src/default-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
@@ -168,39 +168,39 @@ describe('isAttributionTrackingEnabled', () => {
   });
 });
 
-describe('isUserInteractionsEnabled', () => {
+describe('isElementInteractionsEnabled', () => {
   test('should return true with true parameter', () => {
-    expect(isUserInteractionsEnabled(true)).toBe(true);
+    expect(isElementInteractionsEnabled(true)).toBe(true);
   });
 
   test('should return false with undefined parameter', () => {
-    expect(isUserInteractionsEnabled(undefined)).toBe(false);
+    expect(isElementInteractionsEnabled(undefined)).toBe(false);
   });
 
   test('should return false with false parameter', () => {
-    expect(isUserInteractionsEnabled(false)).toBe(false);
+    expect(isElementInteractionsEnabled(false)).toBe(false);
   });
 
   test('should return true with object parameter', () => {
     expect(
-      isUserInteractionsEnabled({
-        userInteractions: true,
+      isElementInteractionsEnabled({
+        elementInteractions: true,
       }),
     ).toBe(true);
   });
 
   test('should return false with object parameter', () => {
     expect(
-      isUserInteractionsEnabled({
-        userInteractions: false,
+      isElementInteractionsEnabled({
+        elementInteractions: false,
       }),
     ).toBe(false);
   });
 
   test('should return false with object parameter undefined', () => {
     expect(
-      isUserInteractionsEnabled({
-        userInteractions: undefined,
+      isElementInteractionsEnabled({
+        elementInteractions: undefined,
       }),
     ).toBe(false);
   });
@@ -293,9 +293,9 @@ describe('getAttributionTrackingConfig', () => {
   });
 });
 
-describe('getUserInteractionsConfig', () => {
+describe('getElementInteractionsConfig', () => {
   test('should return an empty object when autocapture is true', () => {
-    const config = getUserInteractionsConfig({
+    const config = getElementInteractionsConfig({
       autocapture: true,
     });
 
@@ -303,9 +303,9 @@ describe('getUserInteractionsConfig', () => {
   });
 
   test('should return an empty object when userInteraction is true', () => {
-    const config = getUserInteractionsConfig({
+    const config = getElementInteractionsConfig({
       autocapture: {
-        userInteractions: true,
+        elementInteractions: true,
       },
     });
 
@@ -317,9 +317,9 @@ describe('getUserInteractionsConfig', () => {
     const testPageUrlAllowlist = ['example.com'];
     const mockedShouldTrackEventResolver = jest.fn(() => true);
     const testDataAttributePrefix = 'data-amp-track';
-    const config = getUserInteractionsConfig({
+    const config = getElementInteractionsConfig({
       autocapture: {
-        userInteractions: {
+        elementInteractions: {
           cssSelectorAllowlist: testCssSelectorAllowlist,
           pageUrlAllowlist: testPageUrlAllowlist,
           shouldTrackEventResolver: mockedShouldTrackEventResolver,

@@ -3,13 +3,13 @@ import {
   getAnalyticsConnector,
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
-  getUserInteractionsConfig,
+  getElementInteractionsConfig,
   IdentityEventSender,
   isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
-  isUserInteractionsEnabled,
+  isElementInteractionsEnabled,
   setConnectorDeviceId,
   setConnectorUserId,
   isNewSession,
@@ -140,9 +140,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
     }
 
-    if (isUserInteractionsEnabled(this.config.autocapture)) {
+    if (isElementInteractionsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
-      await this.add(autocapturePlugin(getUserInteractionsConfig(this.config))).promise;
+      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
     }
 
     this.initializing = false;
