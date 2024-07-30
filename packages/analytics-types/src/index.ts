@@ -67,8 +67,8 @@ export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } 
 export { OfflineDisabled } from './offline';
 export {
   Messenger,
-  UserInteractionsOptions,
+  ElementInteractionsOptions,
   ActionType,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
-} from './userInteractions';
+} from './element-interactions';

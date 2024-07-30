@@ -3,7 +3,7 @@ import { IdentityStorageType, Storage } from '../storage';
 import { Transport } from '../transport';
 import { Config } from './core';
 import { PageTrackingOptions } from '../page-view-tracking';
-import { UserInteractionsOptions } from '../userInteractions';
+import { ElementInteractionsOptions } from '../element-interactions';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -150,7 +150,7 @@ export interface AutocaptureOptions {
    * Enables/disables user interactions tracking.
    * @defaultValue `false`
    */
-  userInteractions?: boolean | UserInteractionsOptions;
+  elementInteractions?: boolean | ElementInteractionsOptions;
 }
 
 export interface TrackingOptions {

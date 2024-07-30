@@ -5,7 +5,7 @@ import {
   PageTrackingHistoryChanges,
   PageTrackingOptions,
   PageTrackingTrackOn,
-  UserInteractionsOptions,
+  ElementInteractionsOptions,
 } from '@amplitude/analytics-types';
 
 /**
@@ -42,18 +42,18 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
 /**
  * Returns true if
  * 1. autocapture === true
- * 2. if autocapture.userInteractions === true
- * 3. if autocapture.userInteractions === object
+ * 2. if autocapture.elementInteractions === true
+ * 3. if autocapture.elementInteractions === object
  * otherwise returns false
  */
-export const isUserInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
 
   if (
     typeof autocapture === 'object' &&
-    (autocapture.userInteractions === true || typeof autocapture.userInteractions === 'object')
+    (autocapture.elementInteractions === true || typeof autocapture.elementInteractions === 'object')
   ) {
     return true;
   }
@@ -61,13 +61,13 @@ export const isUserInteractionsEnabled = (autocapture: AutocaptureOptions | bool
   return false;
 };
 
-export const getUserInteractionsConfig = (config: BrowserOptions): UserInteractionsOptions | undefined => {
+export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
   if (
-    isUserInteractionsEnabled(config.autocapture) &&
+    isElementInteractionsEnabled(config.autocapture) &&
     typeof config.autocapture === 'object' &&
-    typeof config.autocapture.userInteractions === 'object'
+    typeof config.autocapture.elementInteractions === 'object'
   ) {
-    return config.autocapture.userInteractions;
+    return config.autocapture.elementInteractions;
   }
   return undefined;
 };
