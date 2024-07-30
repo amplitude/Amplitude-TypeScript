@@ -4,7 +4,7 @@ import {
   ElementBasedTimestampedEvent,
   ObservablesEnum,
 } from 'src/autocapture-plugin';
-import { filter, map, switchMap, merge, timeout, EMPTY } from 'rxjs';
+import { filter, map, merge, switchMap, take, timeout, EMPTY } from 'rxjs';
 import { ActionType } from 'src/typings/autocapture';
 import { BrowserClient } from '@amplitude/analytics-types';
 import { filterOutNonTrackableEvents, getClosestElement, shouldTrackEvent } from '../helpers';
@@ -61,9 +61,11 @@ export function trackActionClick({
 
   const actionClicks = filteredClickObservable.pipe(
     // If a mutation occurs within 0.5 seconds of a click event (timeout({ first: 500 })), it emits the original first click event.
+    // take 1 to only limit the action events in case there are multiple
     switchMap((click) =>
       mutationOrNavigate.pipe(
-        timeout({ first: 500, with: () => EMPTY }),
+        take(1),
+        timeout({ first: 500, with: () => EMPTY }), // in case of timeout, map to empty to prevent any click from being emitted
         map(() => click),
       ),
     ),
@@ -74,6 +76,9 @@ export function trackActionClick({
     amplitude?.track(
       AMPLITUDE_ELEMENT_CLICKED_EVENT,
       getEventProperties('click', (actionClick as ElementBasedTimestampedEvent<MouseEvent>).closestTrackedAncestor),
+      {
+        time: actionClick.timestamp,
+      },
     );
   });
 }
