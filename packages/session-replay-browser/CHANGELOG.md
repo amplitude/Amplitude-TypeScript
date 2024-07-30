@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.12.0...@amplitude/session-replay-browser@1.12.1) (2024-07-30)
+
+### Bug Fixes
+
+- **session-replay-browser:** we need to rerun build for the plugin or the version changes won't update
+  ([#826](https://github.com/amplitude/Amplitude-TypeScript/issues/826))
+  ([61deb3b](https://github.com/amplitude/Amplitude-TypeScript/commit/61deb3bd5e2e72353066bc4c16ab4139984a3f7d))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.11.5...@amplitude/session-replay-browser@1.12.0) (2024-07-29)
 
 ### Features
