@@ -73,7 +73,8 @@ describe('RemoteConfigIDBStore', () => {
         configKeys: ['sessionReplay'],
       });
       expect(IDB.deleteDB).toHaveBeenCalledWith('static_key_amp_config');
-      expect(RemoteConfigAPIStore.openOrCreateRemoteConfigStore).toHaveBeenCalledWith('static_key_amp_config', [
+      expect(RemoteConfigAPIStore.openOrCreateRemoteConfigStore).toHaveBeenCalledTimes(2);
+      expect(RemoteConfigAPIStore.openOrCreateRemoteConfigStore).toHaveBeenLastCalledWith('static_key_amp_config', [
         'sessionReplay',
       ]);
     });
