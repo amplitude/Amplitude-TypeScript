@@ -172,7 +172,7 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
-  options.debounceTime = options.debounceTime ?? 1000;
+  options.debounceTime = options.debounceTime ?? 0;
 
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';

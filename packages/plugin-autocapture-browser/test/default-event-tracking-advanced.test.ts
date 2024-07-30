@@ -758,11 +758,7 @@ describe('autoTrackingPlugin', () => {
 
       // trigger click button
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
-      await new Promise((r) => setTimeout(r, 500));
-
-      expect(track).toHaveBeenCalledTimes(0);
-
-      await new Promise((r) => setTimeout(r, 500));
+      await new Promise((r) => setTimeout(r, 0));
       expect(track).toHaveBeenCalledTimes(1);
 
       global.fetch = oldFetch;
