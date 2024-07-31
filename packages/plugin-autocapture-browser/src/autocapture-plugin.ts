@@ -61,7 +61,7 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
   'label',
   'video',
   'audio',
-  '[contenteditable="true"]',
+  '[contenteditable="true" i]',
   '[data-amp-default-track]',
   '.amp-default-track',
 ];
