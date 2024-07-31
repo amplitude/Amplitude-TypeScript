@@ -59,6 +59,9 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
   'select',
   'textarea',
   'label',
+  'video',
+  'audio',
+  '[contenteditable="true" i]',
   '[data-amp-default-track]',
   '.amp-default-track',
 ];
