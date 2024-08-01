@@ -51,7 +51,7 @@ export const createRemoteConfigIDBStore = async <RemoteConfig extends { [key: st
     if (lastFetchedSessionId && Date.now() - lastFetchedSessionId >= MAX_IDB_STORAGE_TIME) {
       remoteConfigDB.close();
       await deleteDB(remoteConfigDBName);
-      remoteConfigDB = await openOrCreateRemoteConfigStore(apiKey, configKeys);
+      remoteConfigDB = await openOrCreateRemoteConfigStore(remoteConfigDBName, configKeys);
     }
   } catch (e) {
     loggerProvider.warn(`Failed to reset store: ${e as string}`);
