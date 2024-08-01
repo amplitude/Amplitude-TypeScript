@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.3...@amplitude/analytics-remote-config@0.3.4) (2024-08-01)
+
+### Bug Fixes
+
+- **remote config:** recreate remote config store with correct name
+  ([584b144](https://github.com/amplitude/Amplitude-TypeScript/commit/584b1445ffe2b2ddbf3fb7bdac8c800595086271))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.2...@amplitude/analytics-remote-config@0.3.3) (2024-07-24)
 
 ### Bug Fixes
