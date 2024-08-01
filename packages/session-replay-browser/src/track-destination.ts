@@ -122,13 +122,18 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       return;
     }
 
+    const sessionReplayType = context.version?.type || '';
+    const sessionReplayVersion = context.version?.version || '';
+
     try {
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
           Accept: '*/*',
           Authorization: `Bearer ${apiKey}`,
-          'X-Client-Version': version,
+          'X-Client-SR-Browser-SDK-Version': version,
+          'X-Client-SR-Type': sessionReplayType,
+          'X-Client-SR-Version': sessionReplayVersion,
           'X-Client-Url': url,
           'X-Client-Sample-Rate': `${sampleRate}`,
         },

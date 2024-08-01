@@ -1,5 +1,5 @@
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
-import { SessionReplayJoinedConfig, SessionReplayLocalConfig } from '../config/types';
+import { SessionReplayJoinedConfig, SessionReplayLocalConfig, SessionReplayVersion } from '../config/types';
 
 export type DebugInfo = {
   config: SessionReplayJoinedConfig;
@@ -14,6 +14,7 @@ export interface SessionReplayDestinationSessionMetadata {
   type: EventType;
   sessionId: number;
   deviceId?: string;
+  version?: SessionReplayVersion;
 }
 
 export type SessionReplayDestination = {

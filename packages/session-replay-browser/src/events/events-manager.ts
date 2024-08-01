@@ -56,6 +56,7 @@ export const createEventsManager = async <Type extends EventType>({
       deviceId: deviceId,
       sampleRate: config.sampleRate,
       serverZone: config.serverZone,
+      version: config.version,
       type,
       onComplete: eventsIDBStore.cleanUpSessionEventsStore.bind(eventsIDBStore),
     });
