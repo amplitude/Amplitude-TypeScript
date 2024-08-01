@@ -56,6 +56,19 @@ describe('SessionReplay', () => {
       href: 'http://localhost',
     },
     indexedDB: new IDBFactory(),
+    navigator: {
+      storage: {
+        estimate: () => {
+          return {
+            usage: 1000,
+            quota: 100000,
+            usageDetails: {
+              indexedDB: 10,
+            },
+          };
+        },
+      },
+    },
   } as unknown as typeof globalThis;
   const apiKey = 'static_key';
   const mockOptions: SessionReplayOptions = {
@@ -1040,17 +1053,24 @@ describe('SessionReplay', () => {
   });
 
   describe('getDebugInfo', () => {
-    test('null config', () => {
+    test('null config', async () => {
       sessionReplay.config = undefined;
-      expect(sessionReplay.getDebugInfo()).toBeUndefined();
+      expect(await sessionReplay.getDebugInfo()).toBeUndefined();
     });
 
     test('get config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const debugInfo = sessionReplay.getDebugInfo();
+      const debugInfo = await sessionReplay.getDebugInfo();
       expect(debugInfo).toBeDefined();
       expect(debugInfo?.config.apiKey).toStrictEqual('****_key');
       expect(debugInfo?.version).toMatch(/\d+.\d+.\d+/);
+      expect(debugInfo?.percentOfQuota).toEqual(0.01);
+      expect(debugInfo?.totalStorageSize).toEqual(1);
+      expect(debugInfo?.usageDetails).toEqual(
+        JSON.stringify({
+          indexedDB: 10,
+        }),
+      );
     });
   });
 });

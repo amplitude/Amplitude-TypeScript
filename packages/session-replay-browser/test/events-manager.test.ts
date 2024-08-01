@@ -6,6 +6,7 @@ import { SessionReplayLocalConfig } from '../src/config/local-config';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayTrackDestination } from '../src/track-destination';
+import * as helpers from '../src/helpers';
 
 jest.mock('idb-keyval');
 jest.mock('../src/track-destination');
@@ -97,6 +98,62 @@ describe('createEventsManager', () => {
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const mockSendEventsList = trackDestinationInstance.sendEventsList;
       expect(mockSendEventsList).not.toHaveBeenCalled();
+    });
+
+    test('should log the current storage size', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString], sequenceId: 1, sessionId: 123 },
+      ]);
+      const getStoragePromise = Promise.resolve({
+        percentOfQuota: 10,
+        totalStorageSize: 100000,
+        usageDetails: JSON.stringify({
+          indexedDB: 10,
+        }),
+      });
+      jest.spyOn(helpers, 'getStorageSize').mockImplementation(() => getStoragePromise);
+      const eventsManager = await createEventsManager<'replay'>({
+        config: {
+          ...config,
+          optOut: false,
+          debugMode: true,
+        },
+        type: 'replay',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      await getStoragePromise;
+      expect(mockLoggerProvider.debug).toHaveBeenCalled();
+    });
+
+    test('should handle an error in logging the current storage size', async () => {
+      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+        { events: [mockEventString], sequenceId: 1, sessionId: 123 },
+      ]);
+      const getStoragePromise = Promise.resolve({
+        percentOfQuota: 10,
+        totalStorageSize: 100000,
+        usageDetails: JSON.stringify({
+          indexedDB: 10,
+        }),
+      });
+      jest.spyOn(helpers, 'getStorageSize').mockImplementation(() => getStoragePromise);
+      jest.spyOn(mockLoggerProvider, 'debug').mockImplementation(() => {
+        throw new Error();
+      });
+      const eventsManager = await createEventsManager<'replay'>({
+        config: {
+          ...config,
+          optOut: false,
+          debugMode: true,
+        },
+        type: 'replay',
+      });
+      await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
+      await getStoragePromise;
+      expect(mockLoggerProvider.debug).toHaveBeenCalled();
+      const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+      const mockSendEventsList = trackDestinationInstance.sendEventsList;
+      expect(mockSendEventsList).toHaveBeenCalledTimes(1);
     });
   });
 

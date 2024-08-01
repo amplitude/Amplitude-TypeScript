@@ -15,7 +15,7 @@ import {
 } from './constants';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, isSessionInSample, maskFn } from './helpers';
+import { generateHashCode, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -382,15 +382,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       },
     });
 
-    const debugInfo = this.getDebugInfo();
-    debugInfo && record.addCustomEvent('debug-info', debugInfo);
+    this.getDebugInfo()
+      .then((debugInfo) => {
+        debugInfo && record.addCustomEvent('debug-info', debugInfo);
+      })
+      .catch(() => {
+        // swallow error
+      });
   }
 
   /**
    * Used to send a debug RRWeb event. Typing is included for ease of debugging later on, but probably not
    * used at compile/run time.
    */
-  getDebugInfo = (): DebugInfo | undefined => {
+  getDebugInfo = async (): Promise<DebugInfo | undefined> => {
     if (!this.config) {
       return;
     }
@@ -400,9 +405,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const { apiKey } = config;
     config.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
 
+    const storageSizeData = await getStorageSize();
+
     return {
       config,
       version: VERSION,
+      ...storageSizeData,
     };
   };
 

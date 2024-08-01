@@ -6,14 +6,7 @@ import {
 import { SessionReplayJoinedConfig } from '../config/types';
 import { createEventsIDBStore } from './events-idb-store';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
-import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { KB_SIZE } from '../constants';
-
-type ChromeStorageEstimate = {
-  quota?: number;
-  usage?: number;
-  usageDetails?: { [key: string]: number };
-};
+import { getStorageSize } from '../helpers';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
@@ -41,23 +34,6 @@ export const createEventsManager = async <Type extends EventType>({
     type,
   });
 
-  const logStoreSize = async () => {
-    const globalScope = getGlobalScope();
-    if (globalScope) {
-      const storeEstimate: ChromeStorageEstimate = await globalScope.navigator.storage.estimate();
-      const totalStorageSize = storeEstimate.usage ? Math.round(storeEstimate.usage / KB_SIZE) : 0;
-      const percentOfQuota =
-        storeEstimate.usage && storeEstimate.quota
-          ? Math.round((storeEstimate.usage / storeEstimate.quota + Number.EPSILON) * 1000) / 1000
-          : 0;
-      config.loggerProvider.debug(
-        `Total storage size: ${totalStorageSize} KB, percentage of quota: ${percentOfQuota}%, usage details: ${JSON.stringify(
-          storeEstimate.usageDetails,
-        )}`,
-      );
-    }
-  };
-
   /**
    * Immediately sends events to the track destination.
    */
@@ -73,7 +49,15 @@ export const createEventsManager = async <Type extends EventType>({
     sequenceId: number;
   }) => {
     if (config.debugMode) {
-      void logStoreSize();
+      getStorageSize()
+        .then(({ totalStorageSize, percentOfQuota, usageDetails }) => {
+          config.loggerProvider.debug(
+            `Total storage size: ${totalStorageSize} KB, percentage of quota: ${percentOfQuota}%, usage details: ${usageDetails}`,
+          );
+        })
+        .catch(() => {
+          // swallow error
+        });
     }
 
     trackDestination.sendEventsList({

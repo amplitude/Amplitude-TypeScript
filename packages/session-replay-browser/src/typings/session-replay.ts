@@ -1,10 +1,16 @@
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
 import { SessionReplayJoinedConfig, SessionReplayLocalConfig } from '../config/types';
 
-export type DebugInfo = {
+export type StorageData = {
+  totalStorageSize: number;
+  percentOfQuota: number;
+  usageDetails: string;
+};
+
+export interface DebugInfo extends StorageData {
   config: SessionReplayJoinedConfig;
   version: string;
-};
+}
 
 export type Events = string[];
 
