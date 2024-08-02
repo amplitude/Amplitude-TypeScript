@@ -53,37 +53,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return returnWrapper(this._init(apiKey, options));
   }
 
-  removeInvalidSelectors() {
-    if (!this.config?.privacyConfig) {
-      return;
-    }
-
-    // This allows us to not search the DOM.
-    const fragment = document.createDocumentFragment();
-
-    const dropInvalidSelectors = (selectors: string[] | string = []): string[] | undefined => {
-      if (typeof selectors === 'string') {
-        selectors = [selectors];
-      }
-      selectors = selectors.filter((selector: string) => {
-        try {
-          fragment.querySelector(selector);
-        } catch {
-          this.loggerProvider.warn(`[session-replay-browser] omitting selector "${selector}" because it is invalid`);
-          return false;
-        }
-        return true;
-      });
-      if (selectors.length === 0) {
-        return undefined;
-      }
-      return selectors;
-    };
-    this.config.privacyConfig.blockSelector = dropInvalidSelectors(this.config.privacyConfig.blockSelector);
-    this.config.privacyConfig.maskSelector = dropInvalidSelectors(this.config.privacyConfig.maskSelector);
-    this.config.privacyConfig.unmaskSelector = dropInvalidSelectors(this.config.privacyConfig.unmaskSelector);
-  }
-
   private teardownEventListeners = (teardown: boolean) => {
     const globalScope = getGlobalScope();
     if (globalScope) {
@@ -124,8 +93,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this))];
       this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
     }
-
-    this.removeInvalidSelectors();
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
     const rrwebEventManager = await createEventsManager<'replay'>({

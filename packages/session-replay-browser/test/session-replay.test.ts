@@ -124,10 +124,6 @@ describe('SessionReplay', () => {
     jest.useRealTimers();
   });
   describe('init', () => {
-    test('should do nothing if config is undefined for removeInvalidSelectors', async () => {
-      expect(sessionReplay.removeInvalidSelectors()).toBeUndefined();
-    });
-
     test('should remove invalid selectors', async () => {
       await sessionReplay.init(apiKey, {
         ...mockOptions,
@@ -1032,23 +1028,6 @@ describe('SessionReplay', () => {
     test('null config', () => {
       sessionReplay.config = undefined;
       expect(sessionReplay.getSessionReplayDebugPropertyValue()).toBe('{"appHash":""}');
-    });
-  });
-
-  describe('removeInvalidSelectors', () => {
-    test('should handle string block selector correctly', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      if (sessionReplay.config) {
-        sessionReplay.config.privacyConfig = {
-          blockSelector: 'FASE<:F>!@<?#>!#<',
-        };
-      }
-      sessionReplay.removeInvalidSelectors();
-      expect(sessionReplay.config?.privacyConfig).toStrictEqual({
-        blockSelector: undefined,
-        maskSelector: undefined,
-        unmaskSelector: undefined,
-      });
     });
   });
 
