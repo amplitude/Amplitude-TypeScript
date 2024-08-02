@@ -139,12 +139,16 @@ export const getServerUrl = (serverZone?: keyof typeof ServerZone): string => {
 };
 
 export const getStorageSize = async (): Promise<StorageData> => {
-  const globalScope = getGlobalScope();
-  if (globalScope) {
-    const { usage, quota, usageDetails }: ChromeStorageEstimate = await globalScope.navigator.storage.estimate();
-    const totalStorageSize = usage ? Math.round(usage / KB_SIZE) : 0;
-    const percentOfQuota = usage && quota ? Math.round((usage / quota + Number.EPSILON) * 1000) / 1000 : 0;
-    return { totalStorageSize, percentOfQuota, usageDetails: JSON.stringify(usageDetails) };
+  try {
+    const globalScope = getGlobalScope();
+    if (globalScope) {
+      const { usage, quota, usageDetails }: ChromeStorageEstimate = await globalScope.navigator.storage.estimate();
+      const totalStorageSize = usage ? Math.round(usage / KB_SIZE) : 0;
+      const percentOfQuota = usage && quota ? Math.round((usage / quota + Number.EPSILON) * 1000) / 1000 : 0;
+      return { totalStorageSize, percentOfQuota, usageDetails: JSON.stringify(usageDetails) };
+    }
+  } catch (e) {
+    // swallow
   }
   return { totalStorageSize: 0, percentOfQuota: 0, usageDetails: '' };
 };
