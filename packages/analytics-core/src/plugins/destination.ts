@@ -21,7 +21,7 @@ import {
 import { STORAGE_PREFIX } from '../constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
-import { createServerConfig } from '../config';
+import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
 
 function getErrorMessage(error: unknown) {
@@ -172,7 +172,9 @@ export class Destination implements DestinationPlugin {
         min_id_length: this.config.minIdLength,
       },
       client_upload_time: new Date().toISOString(),
+      request_metadata: this.config.requestMetadata,
     };
+    this.config.requestMetadata = new RequestMetadata();
 
     try {
       const { serverUrl } = createServerConfig(this.config.serverUrl, this.config.serverZone, this.config.useBatch);

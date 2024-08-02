@@ -8,6 +8,7 @@ import {
   UNEXPECTED_ERROR_MESSAGE,
 } from '../../src/messages';
 import { uuidPattern } from '../helpers/util';
+import { RequestMetadata } from '../../src';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -359,6 +360,52 @@ describe('destination', () => {
         minIdLength: 10,
       });
       await destination.send([context]);
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback).toHaveBeenCalledWith({
+        event,
+        code: 200,
+        message: SUCCESS_MESSAGE,
+      });
+    });
+
+    test('should include request metadata', async () => {
+      const destination = new Destination();
+      const callback = jest.fn();
+      const event = {
+        event_type: 'event_type',
+      };
+      const context = {
+        attempts: 0,
+        callback,
+        event,
+        timeout: 0,
+      };
+      const request_metadata = new RequestMetadata();
+      request_metadata.recordHistogram('remote_config_fetch_time', 100);
+
+      const transportProvider = {
+        send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {
+          expect(payload.request_metadata).toBe(request_metadata);
+          return Promise.resolve({
+            status: Status.Success,
+            statusCode: 200,
+            body: {
+              eventsIngested: 1,
+              payloadSizeBytes: 1,
+              serverUploadTime: 1,
+            },
+          });
+        }),
+      };
+      await destination.setup({
+        ...useDefaultConfig(),
+        transportProvider,
+        apiKey: API_KEY,
+        requestMetadata: request_metadata,
+      });
+      await destination.send([context]);
+      // request metadata should be reset after sending
+      expect(destination.config.requestMetadata).toEqual(new RequestMetadata());
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith({
         event,

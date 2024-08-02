@@ -81,7 +81,29 @@ export interface Config {
    * The flag of whether to upload events to Batch API instead of the default HTTP V2 API.
    */
   useBatch: boolean;
+  /**
+   * Metrics of the SDK.
+   */
+  requestMetadata?: RequestMetadata;
 }
+
+export interface RequestMetadata {
+  sdk: {
+    metrics: {
+      histogram: {
+        remote_config_fetch_time?: number;
+      };
+    };
+  };
+
+  recordHistogram<T extends HistogramKey>(key: T, value: HistogramOptions[T]): void;
+}
+
+export interface HistogramOptions {
+  remote_config_fetch_time?: number;
+}
+
+export type HistogramKey = keyof HistogramOptions;
 
 export interface Options extends Partial<Config> {
   apiKey: string;

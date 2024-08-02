@@ -13,6 +13,7 @@ export {
 export { BrowserClient, ReactNativeClient, NodeClient } from './client';
 export {
   AttributionOptions,
+  AutocaptureOptions,
   BrowserConfig,
   BrowserOptions,
   Config,
@@ -24,6 +25,10 @@ export {
   ReactNativeOptions,
   ReactNativeTrackingOptions,
   TrackingOptions,
+  RequestMetadata,
+  HistogramOptions,
+  HistogramKey,
+  BrowserRemoteConfig,
 } from './config';
 export { CoreClient } from './client/core-client';
 export { DestinationContext } from './destination-context';
@@ -60,3 +65,10 @@ export { UserSession } from './user-session';
 export { UTMData } from './utm';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './page-view-tracking';
 export { OfflineDisabled } from './offline';
+export {
+  Messenger,
+  ElementInteractionsOptions,
+  ActionType,
+  DEFAULT_CSS_SELECTOR_ALLOWLIST,
+  DEFAULT_DATA_ATTRIBUTE_PREFIX,
+} from './element-interactions';

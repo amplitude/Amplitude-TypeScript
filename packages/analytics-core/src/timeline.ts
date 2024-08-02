@@ -23,7 +23,19 @@ export class Timeline {
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: Config) {
-    plugin.name = plugin.name ?? UUID();
+    if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      config.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
+      return;
+    }
+
+    if (plugin.name === undefined) {
+      plugin.name = UUID();
+      config.loggerProvider.warn(`Plugin name is undefined. 
+      Generating a random UUID for plugin name: ${plugin.name}. 
+      Set a name for the plugin to prevent it from being added multiple times.`);
+    }
+
     plugin.type = plugin.type ?? 'enrichment';
     await plugin.setup?.(config, this.client);
     this.plugins.push(plugin);

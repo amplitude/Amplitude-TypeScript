@@ -10,6 +10,9 @@ import {
   Options,
   ServerZoneType,
   OfflineDisabled,
+  RequestMetadata as IRequestMetadata,
+  HistogramOptions as IHistogramOptions,
+  HistogramKey,
 } from '@amplitude/analytics-types';
 import {
   AMPLITUDE_SERVER_URL,
@@ -51,6 +54,7 @@ export class Config implements IConfig {
   transportProvider: Transport;
   storageProvider?: Storage<Event[]>;
   useBatch: boolean;
+  requestMetadata?: RequestMetadata;
 
   protected _optOut = false;
   get optOut() {
@@ -108,3 +112,27 @@ export const createServerConfig = (
     serverUrl: getServerUrl(_serverZone, useBatch),
   };
 };
+
+export class RequestMetadata implements IRequestMetadata {
+  sdk: {
+    metrics: {
+      histogram: HistogramOptions;
+    };
+  };
+
+  constructor() {
+    this.sdk = {
+      metrics: {
+        histogram: new HistogramOptions(),
+      },
+    };
+  }
+
+  recordHistogram<T extends HistogramKey>(key: T, value: HistogramOptions[T]) {
+    this.sdk.metrics.histogram[key] = value;
+  }
+}
+
+class HistogramOptions implements IHistogramOptions {
+  remote_config_fetch_time?: number;
+}

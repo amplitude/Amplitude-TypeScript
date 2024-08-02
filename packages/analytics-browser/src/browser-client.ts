@@ -3,11 +3,13 @@ import {
   getAnalyticsConnector,
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
+  getElementInteractionsConfig,
   IdentityEventSender,
   isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
+  isElementInteractionsEnabled,
   setConnectorDeviceId,
   setConnectorUserId,
   isNewSession,
@@ -36,6 +38,8 @@ import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
+import { createBrowserJoinedConfigGenerator } from './config/joined-config';
+import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -70,10 +74,14 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
     this.initializing = true;
 
+    let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
-    const browserOptions = await useBrowserConfig(options.apiKey, options, this);
+    if (options.fetchRemoteConfig) {
+      const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
+      browserOptions = await joinedConfigGenerator.generateJoinedConfig();
+    }
     await super._init(browserOptions);
-    this.logBrowserOptions(options);
+    this.logBrowserOptions(browserOptions);
 
     // Add web attribution plugin
     if (isAttributionTrackingEnabled(this.config.defaultTracking)) {
@@ -130,6 +138,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isPageViewTrackingEnabled(this.config.defaultTracking)) {
       this.config.loggerProvider.debug('Adding page view tracking plugin');
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
+    }
+
+    if (isElementInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
+      await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
     }
 
     this.initializing = false;

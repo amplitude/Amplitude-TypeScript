@@ -14,6 +14,7 @@ import {
   IdentityStorageType,
   ServerZoneType,
   OfflineDisabled,
+  AutocaptureOptions,
 } from '@amplitude/analytics-types';
 import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
@@ -50,6 +51,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
       upgrade: true,
     },
     public defaultTracking?: boolean | DefaultTrackingOptions,
+    public autocapture?: boolean | AutocaptureOptions,
     deviceId?: string,
     public flushIntervalMillis: number = 1000,
     public flushMaxRetries: number = 5,
@@ -78,6 +80,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     },
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
+    public fetchRemoteConfig: boolean = false,
     userId?: string,
     pageCounter?: number,
     debugLogsEnabled?: boolean,
@@ -252,12 +255,18 @@ export const useBrowserConfig = async (
   const pageCounter = previousCookies?.pageCounter;
   const debugLogsEnabled = previousCookies?.debugLogsEnabled;
 
+  // Override default tracking options if autocapture is set
+  if (options.autocapture !== undefined) {
+    options.defaultTracking = options.autocapture;
+  }
+
   const browserConfig = new BrowserConfig(
     apiKey,
     options.appVersion,
     cookieStorage,
     cookieOptions,
     options.defaultTracking,
+    options.autocapture,
     deviceId,
     options.flushIntervalMillis,
     options.flushMaxRetries,
@@ -282,6 +291,7 @@ export const useBrowserConfig = async (
     trackingOptions,
     options.transport,
     options.useBatch,
+    options.fetchRemoteConfig,
     userId,
     pageCounter,
     debugLogsEnabled,

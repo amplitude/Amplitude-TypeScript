@@ -7,15 +7,23 @@ import {
 } from '@amplitude/analytics-client-common';
 import { WebAttribution } from '@amplitude/analytics-client-common/src';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
+import { AutocaptureOptions, LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
+import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
+import * as RemoteConfig from '../src/config/joined-config';
 import * as CookieMigration from '../src/cookie-migration';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
+
+jest.mock('../src/config/joined-config', () => ({
+  createBrowserJoinedConfigGenerator: jest.fn().mockImplementation((localConfig) => ({
+    generateJoinedConfig: jest.fn().mockResolvedValue(localConfig),
+  })),
+}));
 
 describe('browser-client', () => {
   let apiKey = '';
@@ -46,6 +54,18 @@ describe('browser-client', () => {
   });
 
   describe('init', () => {
+    test('should NOT use remote config by default', async () => {
+      await client.init(apiKey).promise;
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
+    });
+
+    test('should use remote config when fetchRemoteConfig is true', async () => {
+      await client.init(apiKey, {
+        fetchRemoteConfig: true,
+      }).promise;
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
+    });
+
     test('should initialize client', async () => {
       const parseLegacyCookies = jest.spyOn(CookieMigration, 'parseLegacyCookies').mockResolvedValueOnce({
         optOut: false,
@@ -284,6 +304,45 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should NOT add default tracking plugins when autocapture is disabled', async () => {
+      const pageViewTrackingPlugin = jest.spyOn(pageViewTracking, 'pageViewTrackingPlugin');
+      const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
+      const formInteractionTrackingPlugin = jest.spyOn(formInteractionTracking, 'formInteractionTracking');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          pageViews: false,
+          fileDownloads: false,
+          formInteractions: false,
+        },
+      }).promise;
+      expect(pageViewTrackingPlugin).toHaveBeenCalledTimes(0);
+      expect(fileDownloadTrackingPlugin).toHaveBeenCalledTimes(0);
+      expect(formInteractionTrackingPlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test.each([true, { elementInteractions: true }])(
+      'should add autocapture plugin',
+      async (option: boolean | AutocaptureOptions) => {
+        const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+        await client.init(apiKey, userId, {
+          autocapture: option,
+        }).promise;
+        expect(autocapturePlugin).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test.each([
+      undefined, // default
+      false, // disabled
+      { elementInteractions: false }, // disabled
+    ])('should NOT add autocapture plugin', async (option: undefined | boolean | AutocaptureOptions) => {
+      const autocapturePlugin = jest.spyOn(autocapture, 'autocapturePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: option,
+      }).promise;
+      expect(autocapturePlugin).toHaveBeenCalledTimes(0);
     });
 
     test('should listen for network change to online', async () => {
