@@ -1,6 +1,6 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { KB_SIZE, MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
-import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig } from './config/types';
+import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
 import { getInputType } from '@amplitude/rrweb-snapshot';
 import { ServerZone } from '@amplitude/analytics-types';
 import {
@@ -147,4 +147,13 @@ export const getStorageSize = async (): Promise<StorageData> => {
     return { totalStorageSize, percentOfQuota, usageDetails: JSON.stringify(usageDetails) };
   }
   return { totalStorageSize: 0, percentOfQuota: 0, usageDetails: '' };
+};
+
+export const getDebugConfig = (config: SessionReplayJoinedConfig) => {
+  const debugConfig = {
+    ...config,
+  };
+  const { apiKey } = debugConfig;
+  debugConfig.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
+  return debugConfig;
 };

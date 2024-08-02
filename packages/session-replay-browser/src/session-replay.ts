@@ -15,7 +15,7 @@ import {
 } from './constants';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, getStorageSize, isSessionInSample, maskFn } from './helpers';
+import { generateHashCode, getDebugConfig, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -399,17 +399,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!this.config) {
       return;
     }
-    const config = {
-      ...this.config,
-    };
-    const { apiKey } = config;
-    config.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
-
     const storageSizeData = await getStorageSize();
 
     return {
       ...storageSizeData,
-      config,
+      config: getDebugConfig(this.config),
       version: VERSION,
     };
   };
