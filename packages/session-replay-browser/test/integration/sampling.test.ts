@@ -11,7 +11,6 @@ import * as SessionReplayIDB from '../../src/events/events-idb-store';
 
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SERVER_URL } from '../../src/constants';
 import * as Helpers from '../../src/helpers';
-import { getSuccessMessage } from '../../src/messages';
 import { SessionReplay } from '../../src/session-replay';
 import { SESSION_ID_IN_20_SAMPLE } from '../test-data';
 
@@ -148,7 +147,9 @@ describe('module level integration', () => {
           `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
           expect.anything(),
         );
-        expect(mockLoggerProvider.log).toHaveBeenCalledWith(getSuccessMessage(SESSION_ID_IN_20_SAMPLE));
+        expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
+          'Session replay event batch with seq id 1 tracked successfully for session id 1719847315000, size of events: 0 KB',
+        );
       });
 
       test('should use sampleRate from sdk options', async () => {
@@ -184,7 +185,9 @@ describe('module level integration', () => {
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.log).toHaveBeenCalledWith(getSuccessMessage(SESSION_ID_IN_20_SAMPLE));
+        expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
+          'Session replay event batch with seq id 1 tracked successfully for session id 1719847315000, size of events: 0 KB',
+        );
       });
 
       test('should use sampleRate from remote config', async () => {
@@ -235,7 +238,9 @@ describe('module level integration', () => {
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(mockLoggerProvider.log).toHaveBeenCalledWith(getSuccessMessage(SESSION_ID_IN_20_SAMPLE));
+        expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
+          'Session replay event batch with seq id 1 tracked successfully for session id 1719847315000, size of events: 0 KB',
+        );
       });
     });
     describe('without a sample rate', () => {

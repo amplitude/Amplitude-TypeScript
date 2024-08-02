@@ -24,3 +24,4 @@ export const INTERACTION_MAX_INTERVAL = 60_000; // 1 minute
 export const MIN_INTERVAL = 500; // 500 ms
 export const MAX_INTERVAL = 10 * 1000; // 10 seconds
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 3; // 3 days
+export const KB_SIZE = 1024;

@@ -15,7 +15,7 @@ import {
 } from './constants';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, isSessionInSample, maskFn } from './helpers';
+import { generateHashCode, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -112,13 +112,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
-    this.loggerProvider.debug(
-      JSON.stringify(
-        { name: 'session replay joined privacy config', privacyConfig: this.config.privacyConfig },
-        null,
-        2,
-      ),
-    );
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -199,7 +192,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   getSessionReplayProperties() {
     if (!this.config || !this.identifiers) {
-      this.loggerProvider.error('Session replay init has not been called, cannot get session recording properties.');
+      this.loggerProvider.error('Session replay init has not been called, cannot get session replay properties.');
       return {};
     }
 
@@ -331,6 +324,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.stopRecordingEvents();
     const privacyConfig = this.config.privacyConfig;
 
+    this.loggerProvider.log('Session Replay capture beginning.');
     this.recordCancelCallback = record({
       emit: (event) => {
         if (this.shouldOptOut()) {
@@ -382,21 +376,26 @@ export class SessionReplay implements AmplitudeSessionReplay {
           throw typedError;
         }
 
-        this.loggerProvider.warn('Error while recording: ', typedError.toString());
+        this.loggerProvider.warn('Error while capturing replay: ', typedError.toString());
         // Return true so that we don't clutter user's consoles with internal rrweb errors
         return true;
       },
     });
 
-    const debugInfo = this.getDebugInfo();
-    debugInfo && record.addCustomEvent('debug-info', debugInfo);
+    this.getDebugInfo()
+      .then((debugInfo) => {
+        debugInfo && record.addCustomEvent('debug-info', debugInfo);
+      })
+      .catch(() => {
+        // swallow error
+      });
   }
 
   /**
    * Used to send a debug RRWeb event. Typing is included for ease of debugging later on, but probably not
    * used at compile/run time.
    */
-  getDebugInfo = (): DebugInfo | undefined => {
+  getDebugInfo = async (): Promise<DebugInfo | undefined> => {
     if (!this.config) {
       return;
     }
@@ -406,7 +405,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const { apiKey } = config;
     config.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
 
+    const storageSizeData = await getStorageSize();
+
     return {
+      ...storageSizeData,
       config,
       version: VERSION,
     };
@@ -414,11 +416,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   stopRecordingEvents = () => {
     try {
+      this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
     } catch (error) {
       const typedError = error as Error;
-      this.loggerProvider.warn(`Error occurred while stopping recording: ${typedError.toString()}`);
+      this.loggerProvider.warn(`Error occurred while stopping replay capture: ${typedError.toString()}`);
     }
   };
 

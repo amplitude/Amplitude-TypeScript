@@ -156,6 +156,10 @@ export class SessionReplayJoinedConfigGenerator {
       config.privacyConfig = joinedPrivacyConfig;
     }
 
+    this.localConfig.loggerProvider.debug(
+      JSON.stringify({ name: 'session replay joined config', config: config }, null, 2),
+    );
+
     return config;
   }
 }

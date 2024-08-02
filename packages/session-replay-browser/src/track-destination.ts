@@ -7,7 +7,6 @@ import {
   MISSING_DEVICE_ID_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
   UNEXPECTED_NETWORK_ERROR_MESSAGE,
-  getSuccessMessage,
 } from './messages';
 import {
   SessionReplayTrackDestination as AmplitudeSessionReplayTrackDestination,
@@ -15,6 +14,7 @@ import {
   SessionReplayDestinationContext,
 } from './typings/session-replay';
 import { VERSION } from './version';
+import { KB_SIZE } from './constants';
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
@@ -172,7 +172,11 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
   }
 
   handleSuccessResponse(context: SessionReplayDestinationContext) {
-    this.completeRequest({ context, success: getSuccessMessage(context.sessionId) });
+    const sizeOfEventsList = Math.round(new Blob(context.events).size / KB_SIZE);
+    this.completeRequest({
+      context,
+      success: `Session replay event batch with seq id ${context.sequenceId} tracked successfully for session id ${context.sessionId}, size of events: ${sizeOfEventsList} KB`,
+    });
   }
 
   handleOtherResponse(context: SessionReplayDestinationContext) {

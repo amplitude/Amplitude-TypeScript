@@ -7,7 +7,8 @@ import {
   UNMASK_TEXT_CLASS,
 } from '../src/constants';
 import { ServerZone } from '@amplitude/analytics-types';
-import { generateHashCode, getServerUrl, isSessionInSample, maskFn } from '../src/helpers';
+import { generateHashCode, getServerUrl, getStorageSize, isSessionInSample, maskFn } from '../src/helpers';
+import * as clientCommon from '@amplitude/analytics-client-common';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
@@ -216,6 +217,50 @@ describe('SessionReplayPlugin helpers', () => {
 
     test('should return eu server url if eu config set', async () => {
       expect(getServerUrl(ServerZone.EU)).toEqual(SESSION_REPLAY_EU_URL);
+    });
+  });
+
+  describe('getStorageSize', () => {
+    test('should return a default set of data if global scope is not defined', async () => {
+      jest.spyOn(clientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      const storageSize = await getStorageSize();
+      expect(storageSize).toEqual({ totalStorageSize: 0, percentOfQuota: 0, usageDetails: '' });
+    });
+    test('should return formatted storage size data', async () => {
+      jest.spyOn(clientCommon, 'getGlobalScope').mockReturnValue({
+        navigator: {
+          storage: {
+            estimate: async () => {
+              return {
+                usage: 214333,
+                quota: 45673324,
+                usageDetails: {
+                  indexedDB: 10,
+                },
+              };
+            },
+          } as unknown as StorageManager,
+        } as unknown as Navigator,
+      } as unknown as typeof globalThis);
+      const storageSize = await getStorageSize();
+      expect(storageSize).toEqual({ totalStorageSize: 209, percentOfQuota: 0.005, usageDetails: '{"indexedDB":10}' });
+    });
+    test('should return a default set of data if values within navigator are not defined', async () => {
+      jest.spyOn(clientCommon, 'getGlobalScope').mockReturnValue({
+        navigator: {
+          storage: {
+            estimate: async () => {
+              return {
+                usageDetails: {
+                  indexedDB: 10,
+                },
+              };
+            },
+          } as unknown as StorageManager,
+        } as unknown as Navigator,
+      } as unknown as typeof globalThis);
+      const storageSize = await getStorageSize();
+      expect(storageSize).toEqual({ totalStorageSize: 0, percentOfQuota: 0, usageDetails: '{"indexedDB":10}' });
     });
   });
 });

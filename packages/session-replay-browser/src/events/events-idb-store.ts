@@ -96,7 +96,6 @@ export const createStore = async (dbName: string) => {
     upgrade: defineObjectStores,
   });
 };
-
 export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEventsIDBStore {
   apiKey: string;
   db: IDBPDatabase<SessionReplayDB> | undefined;

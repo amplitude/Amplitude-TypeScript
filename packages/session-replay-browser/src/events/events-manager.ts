@@ -6,6 +6,7 @@ import {
 import { SessionReplayJoinedConfig } from '../config/types';
 import { createEventsIDBStore } from './events-idb-store';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
+import { getStorageSize } from '../helpers';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
@@ -47,6 +48,18 @@ export const createEventsManager = async <Type extends EventType>({
     deviceId: string;
     sequenceId: number;
   }) => {
+    if (config.debugMode) {
+      getStorageSize()
+        .then(({ totalStorageSize, percentOfQuota, usageDetails }) => {
+          config.loggerProvider.debug(
+            `Total storage size: ${totalStorageSize} KB, percentage of quota: ${percentOfQuota}%, usage details: ${usageDetails}`,
+          );
+        })
+        .catch(() => {
+          // swallow error
+        });
+    }
+
     trackDestination.sendEventsList({
       events: events,
       sequenceId: sequenceId,
