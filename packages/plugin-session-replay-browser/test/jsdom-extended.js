@@ -9,14 +9,6 @@ class JSDOMEnvironmentExtended extends JSDOMEnvironment {
     this.global.TextEncoder = TextEncoder;
 
     this.global.Blob = Blob;
-    this.global.File = File;
-    this.global.Headers = Headers;
-    this.global.FormData = FormData;
-    this.global.Request = Request;
-    this.global.Response = Response;
-    this.global.Request = Request;
-    this.global.Response = Response;
-    this.global.fetch = fetch;
     this.global.structuredClone = structuredClone;
   }
 }

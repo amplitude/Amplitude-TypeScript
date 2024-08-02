@@ -17,7 +17,6 @@ function waitForEventRequest(method: string, url: string, eventType: string) {
         .clone()
         .json()
         .then((body) => {
-          console.log('body', body, body.events[0].event_properties);
           const matchesAnyEvent = (body.events as Event[]).some((event) => event.event_type === eventType);
 
           if (matchesMethod && matchesUrl && matchesAnyEvent) {
@@ -39,7 +38,7 @@ const setupPluginAndInit = async (args?: { browserSDKOptions?: amplitude.Types.B
   await amplitude.add(sr).promise;
   await amplitude.init(apiKey, undefined, {
     flushMaxRetries: 1,
-    logLevel: 2,
+    logLevel: 0, // Change this to 4 to debug the lifecycle
     ...args?.browserSDKOptions,
   }).promise;
 };

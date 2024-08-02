@@ -11,12 +11,12 @@ export const handlers = [
       server_upload_time: 1714522639863,
     });
   }),
-  http.get('https://sr-client-cfg.amplitude.com/config?api_key=static_key&config_keys=sessionReplay', () => {
+  http.get('https://sr-client-cfg.amplitude.com/config', () => {
     return HttpResponse.json({
       configs: {
         sessionReplay: {
           sr_sampling_config: {
-            sample_rate: 0.4,
+            sample_rate: 1,
             capture_enabled: true,
           },
         },
