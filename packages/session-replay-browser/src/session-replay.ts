@@ -408,9 +408,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const storageSizeData = await getStorageSize();
 
     return {
+      ...storageSizeData,
       config,
       version: VERSION,
-      ...storageSizeData,
     };
   };
 
