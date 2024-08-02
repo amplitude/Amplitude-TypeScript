@@ -1,4 +1,4 @@
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
 import { VERSION } from '../src/version';
@@ -11,7 +11,7 @@ type MockedLogger = jest.Mocked<Logger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionReplayProperties, flush, shutdown, getSessionId } =
+  const { init, setSessionId, getSessionReplayProperties, shutdown, getSessionId } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -84,66 +84,31 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('setup', () => {
-    test('should log error if not BrowserClient is not provided', async () => {
-      const sessionReplay = new SessionReplayPlugin();
-      await sessionReplay.setup(mockConfig);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalledWith(
-        'SessionReplayPlugin requires v1.9.1+ of the Amplitude SDK.',
-      );
-    });
-
     test('should setup plugin', async () => {
       const sessionReplay = new SessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
+      await sessionReplay.setup(mockConfig);
       expect(sessionReplay.config.serverUrl).toBe('url');
       expect(sessionReplay.config.flushMaxRetries).toBe(1);
       expect(sessionReplay.config.flushQueueSize).toBe(0);
       expect(sessionReplay.config.flushIntervalMillis).toBe(0);
     });
 
-    test('should add "@amplitude/plugin-session-replay-enrichment-browser" plugin', async () => {
-      const sessionReplay = new SessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
-      // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockAmplitude.add).toHaveBeenCalledTimes(1);
-    });
-
-    // setup does nothing, only testing this for coverage
-    test('should exist on "@amplitude/plugin-session-replay-enrichment-browser" plugin', async () => {
-      const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
-
-      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
-      const result = await sessionReplayEnrichmentPlugin.setup(mockConfig, mockAmplitude);
-
-      expect(result).toBe(undefined);
-    });
-
     describe('defaultTracking', () => {
       test('should not change defaultTracking if its set to true', async () => {
         const sessionReplay = new SessionReplayPlugin();
-        await sessionReplay.setup(
-          {
-            ...mockConfig,
-            defaultTracking: true,
-          },
-          mockAmplitude,
-        );
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: true,
+        });
         expect(sessionReplay.config.defaultTracking).toBe(true);
       });
 
       test('should modify defaultTracking to enable sessions if its set to false', async () => {
         const sessionReplay = new SessionReplayPlugin();
-        await sessionReplay.setup(
-          {
-            ...mockConfig,
-            defaultTracking: false,
-          },
-          mockAmplitude,
-        );
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: false,
+        });
         expect(sessionReplay.config.defaultTracking).toEqual({
           pageViews: false,
           formInteractions: false,
@@ -154,15 +119,12 @@ describe('SessionReplayPlugin', () => {
 
       test('should modify defaultTracking to enable sessions if it is an object', async () => {
         const sessionReplay = new SessionReplayPlugin();
-        await sessionReplay.setup(
-          {
-            ...mockConfig,
-            defaultTracking: {
-              pageViews: false,
-            },
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: {
+            pageViews: false,
           },
-          mockAmplitude,
-        );
+        });
         expect(sessionReplay.config.defaultTracking).toEqual({
           pageViews: false,
           sessions: true,
@@ -171,27 +133,21 @@ describe('SessionReplayPlugin', () => {
 
       test('should not modify defaultTracking to enable sessions if session tracking is disbled', async () => {
         const sessionReplay = new SessionReplayPlugin({ forceSessionTracking: false });
-        await sessionReplay.setup(
-          {
-            ...mockConfig,
-            defaultTracking: false,
-          },
-          mockAmplitude,
-        );
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: false,
+        });
         expect(sessionReplay.config.defaultTracking).toEqual(false);
       });
 
       test('should not modify defaultTracking object to enable sessions if session tracking is disbled', async () => {
         const sessionReplay = new SessionReplayPlugin({ forceSessionTracking: false });
-        await sessionReplay.setup(
-          {
-            ...mockConfig,
-            defaultTracking: {
-              pageViews: false,
-            },
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: {
+            pageViews: false,
           },
-          mockAmplitude,
-        );
+        });
         expect(sessionReplay.config.defaultTracking).toEqual({
           pageViews: false,
         });
@@ -205,7 +161,7 @@ describe('SessionReplayPlugin', () => {
           blockSelector: ['#id'],
         },
       });
-      await sessionReplay.setup(mockConfig, mockAmplitude);
+      await sessionReplay.setup(mockConfig);
 
       expect(init).toHaveBeenCalledTimes(1);
 
@@ -231,31 +187,9 @@ describe('SessionReplayPlugin', () => {
   });
 
   describe('execute', () => {
-    test('should not modify event and return success from DestinationPlugin', async () => {
-      const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
-      getSessionReplayProperties.mockReturnValueOnce({
-        '[Amplitude] Session Recorded': true,
-      });
-      const event = {
-        event_type: 'event_type',
-        event_properties: {
-          property_a: true,
-          property_b: 123,
-        },
-      };
-
-      const result = await sessionReplay.execute(event);
-      expect(result).toEqual({
-        code: 200,
-        message: 'success',
-        event,
-      });
-    });
-
     test('should add event property for [Amplitude] Session Replay ID', async () => {
       const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
+      await sessionReplay.setup({ ...mockConfig });
       getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Replay ID': '123',
       });
@@ -268,13 +202,7 @@ describe('SessionReplayPlugin', () => {
         session_id: 123,
       };
 
-      expect(plugins.length).toBe(1);
-      expect(plugins[0].name).toBe('@amplitude/plugin-session-replay-enrichment-browser');
-
-      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
-      await sessionReplayEnrichmentPlugin.setup(mockConfig);
-      const enrichedEvent = await sessionReplayEnrichmentPlugin.execute(event);
-
+      const enrichedEvent = await sessionReplay.execute(event);
       expect(enrichedEvent?.event_properties).toEqual({
         property_a: true,
         property_b: 123,
@@ -284,7 +212,7 @@ describe('SessionReplayPlugin', () => {
 
     test('should not add event property for for event with mismatching session id.', async () => {
       const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
+      await sessionReplay.setup({ ...mockConfig });
       getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Replay ID': '123',
       });
@@ -296,13 +224,7 @@ describe('SessionReplayPlugin', () => {
         },
         session_id: 124,
       };
-
-      expect(plugins.length).toBe(1);
-      expect(plugins[0].name).toBe('@amplitude/plugin-session-replay-enrichment-browser');
-
-      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
-      await sessionReplayEnrichmentPlugin.setup(mockConfig);
-      const enrichedEvent = await sessionReplayEnrichmentPlugin.execute(event);
+      const enrichedEvent = await sessionReplay.execute(event);
 
       expect(enrichedEvent?.event_properties).toEqual({
         property_a: true,
@@ -312,60 +234,36 @@ describe('SessionReplayPlugin', () => {
 
     test('should update the session id on any event', async () => {
       const sessionReplay = new SessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
-      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
-      const updatedConfig: BrowserConfig = { ...mockConfig, sessionId: 456 };
-      await sessionReplayEnrichmentPlugin.setup(updatedConfig, mockAmplitude);
+      await sessionReplay.setup({ ...mockConfig, sessionId: 123 });
 
-      const event = {
+      const newEvent = {
         event_type: 'session_start',
-        session_id: 456,
       };
-      await sessionReplayEnrichmentPlugin.execute(event);
+      sessionReplay.config.sessionId = 456;
+      await sessionReplay.execute(newEvent);
       expect(setSessionId).toHaveBeenCalledTimes(1);
       expect(setSessionId).toHaveBeenCalledWith(456);
     });
 
     test('should not update if session id unchanged', async () => {
       const sessionReplay = new SessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
-      const sessionReplayEnrichmentPlugin = plugins[0] as EnrichmentPlugin;
-      const updatedConfig: BrowserConfig = { ...mockConfig, sessionId: 123 };
-      await sessionReplayEnrichmentPlugin.setup(updatedConfig, mockAmplitude);
+      await sessionReplay.setup({ ...mockConfig, sessionId: 123 });
       getSessionId.mockReturnValueOnce(123);
 
       const event = {
         event_type: 'page view',
         session_id: 123,
       };
-      await sessionReplayEnrichmentPlugin.execute(event);
+      await sessionReplay.execute(event);
       expect(setSessionId).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('flush', () => {
-    test('should call session replay flush', async () => {
-      const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
-      await sessionReplay.flush?.();
-      expect(flush).toHaveBeenCalled();
     });
   });
 
   describe('teardown', () => {
     test('should call session replay teardown', async () => {
       const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
+      await sessionReplay.setup(mockConfig);
       await sessionReplay.teardown?.();
-      expect(shutdown).toHaveBeenCalled();
-    });
-    test('should remove session replay enrichment plugin', async () => {
-      const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig, mockAmplitude);
-      expect(plugins.length).toBe(1);
-      expect(plugins[0].name).toBe('@amplitude/plugin-session-replay-enrichment-browser');
-      await sessionReplay.teardown?.();
-      expect(plugins.length).toBe(0);
       expect(shutdown).toHaveBeenCalled();
     });
   });
@@ -373,7 +271,7 @@ describe('SessionReplayPlugin', () => {
   describe('getSessionReplayProperties', () => {
     test('should return session replay properties', async () => {
       const sessionReplay = sessionReplayPlugin() as SessionReplayPlugin;
-      await sessionReplay.setup(mockConfig, mockAmplitude);
+      await sessionReplay.setup(mockConfig);
       getSessionReplayProperties.mockReturnValueOnce({
         '[Amplitude] Session Recorded': true,
         '[Amplitude] Session Replay ID': '123/456',

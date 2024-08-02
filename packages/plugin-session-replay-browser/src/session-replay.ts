@@ -1,56 +1,11 @@
-import {
-  BrowserClient,
-  BrowserConfig,
-  DestinationPlugin,
-  EnrichmentPlugin,
-  Event,
-  Result,
-} from '@amplitude/analytics-types';
+import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-types';
 import * as sessionReplay from '@amplitude/session-replay-browser';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
-const ENRICHMENT_PLUGIN_NAME = '@amplitude/plugin-session-replay-enrichment-browser';
 
-class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
-  name = ENRICHMENT_PLUGIN_NAME;
-  type = 'enrichment' as const;
-  // this.config is defined in setup() which will always be called first
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  config: BrowserConfig;
-
-  async setup(_config: BrowserConfig, _client: BrowserClient) {
-    this.config = _config;
-  }
-
-  async execute(event: Event) {
-    // On event, synchronize the session id to the what's on the browserConfig (source of truth)
-    // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
-    // in SR.
-    if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
-      await sessionReplay.setSessionId(this.config.sessionId).promise;
-    }
-
-    // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
-    // event is not of the current session (offline/late events). In that case, don't tag the events
-    if (this.config.sessionId && this.config.sessionId === event.session_id) {
-      const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-      event.event_properties = {
-        ...event.event_properties,
-        ...sessionRecordingProperties,
-      };
-    }
-    return Promise.resolve(event);
-  }
-}
-
-export class SessionReplayPlugin implements DestinationPlugin {
+export class SessionReplayPlugin implements EnrichmentPlugin {
   name = '@amplitude/plugin-session-replay-browser';
-  type = 'destination' as const;
-  // this.client is defined in setup() which will always be called first
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  clientRemove: BrowserClient['remove'];
+  type = 'enrichment' as const;
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -65,15 +20,9 @@ export class SessionReplayPlugin implements DestinationPlugin {
     }
   }
 
-  async setup(config: BrowserConfig, client?: BrowserClient) {
-    if (!client) {
-      config.loggerProvider.error('SessionReplayPlugin requires v1.9.1+ of the Amplitude SDK.');
-      return;
-    }
-
+  async setup(config: BrowserConfig) {
     config.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
 
-    this.clientRemove = client.remove.bind(client);
     this.config = config;
 
     if (this.options.forceSessionTracking) {
@@ -115,34 +64,34 @@ export class SessionReplayPlugin implements DestinationPlugin {
       shouldInlineStylesheet: this.options.shouldInlineStylesheet,
       version: { type: 'plugin', version: VERSION },
     }).promise;
-
-    // add enrichment plugin to add session replay properties to events
-    await client.add(new SessionReplayEnrichmentPlugin()).promise;
   }
 
-  async execute(event: Event): Promise<Result> {
-    return Promise.resolve({
-      event,
-      code: 200,
-      message: 'success',
-    });
-  }
-
-  async flush(): Promise<void> {
-    await sessionReplay.flush(false);
+  async execute(event: Event) {
+    // On event, synchronize the session id to the what's on the browserConfig (source of truth)
+    // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
+    // in SR.
+    if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
+      await sessionReplay.setSessionId(this.config.sessionId).promise;
+    }
+    // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
+    // event is not of the current session (offline/late events). In that case, don't tag the events
+    if (this.config.sessionId && this.config.sessionId === event.session_id) {
+      const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+      event.event_properties = {
+        ...event.event_properties,
+        ...sessionRecordingProperties,
+      };
+    }
+    return Promise.resolve(event);
   }
 
   async teardown(): Promise<void> {
-    await this.clientRemove(ENRICHMENT_PLUGIN_NAME).promise;
     sessionReplay.shutdown();
     // the following are initialized in setup() which will always be called first
     // here we reset them to null to prevent memory leaks
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.config = null;
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    this.clientRemove = null;
   }
 
   getSessionReplayProperties() {
@@ -150,7 +99,7 @@ export class SessionReplayPlugin implements DestinationPlugin {
   }
 }
 
-export const sessionReplayPlugin: (options?: SessionReplayOptions) => DestinationPlugin = (
+export const sessionReplayPlugin: (options?: SessionReplayOptions) => EnrichmentPlugin = (
   options?: SessionReplayOptions,
 ) => {
   return new SessionReplayPlugin(options);
