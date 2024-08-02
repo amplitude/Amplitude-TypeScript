@@ -7,6 +7,7 @@ import {
   SessionReplayJoinedConfig,
   SessionReplayRemoteConfig,
 } from './types';
+import { getDebugConfig } from '../helpers';
 
 export class SessionReplayJoinedConfigGenerator {
   localConfig: ISessionReplayLocalConfig;
@@ -157,7 +158,7 @@ export class SessionReplayJoinedConfigGenerator {
     }
 
     this.localConfig.loggerProvider.debug(
-      JSON.stringify({ name: 'session replay joined config', config: config }, null, 2),
+      JSON.stringify({ name: 'session replay joined config', config: getDebugConfig(config) }, null, 2),
     );
 
     return config;
