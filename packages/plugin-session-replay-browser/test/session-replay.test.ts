@@ -1,6 +1,7 @@
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
+import { VERSION } from '../src/version';
 
 jest.mock('@amplitude/session-replay-browser');
 type MockedSessionReplayBrowser = jest.Mocked<typeof import('@amplitude/session-replay-browser')>;
@@ -220,6 +221,10 @@ describe('SessionReplayPlugin', () => {
         sessionId: mockConfig.sessionId,
         privacyConfig: {
           blockSelector: ['#id'],
+        },
+        version: {
+          type: 'plugin',
+          version: VERSION,
         },
       });
     });

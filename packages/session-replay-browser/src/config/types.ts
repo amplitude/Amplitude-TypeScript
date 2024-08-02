@@ -71,4 +71,4 @@ export interface SessionReplayVersion {
   type: SessionReplayType;
 }
 
-export type SessionReplayType = 'plugin' | 'segment';
+export type SessionReplayType = 'standalone' | 'plugin' | 'segment';

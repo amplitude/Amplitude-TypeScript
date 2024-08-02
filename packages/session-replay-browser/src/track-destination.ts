@@ -111,7 +111,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       seq_number: `${context.sequenceId}`,
       type: `${context.type}`,
     });
-
+    const sessionReplayLibrary = `${context.version?.type || 'standalone'}/${context.version?.version || version}`;
     const payload = this.payloadBatcher({
       version: 1,
       events: context.events,
@@ -122,18 +122,14 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       return;
     }
 
-    const sessionReplayType = context.version?.type || '';
-    const sessionReplayVersion = context.version?.version || '';
-
     try {
       const options: RequestInit = {
         headers: {
           'Content-Type': 'application/json',
           Accept: '*/*',
           Authorization: `Bearer ${apiKey}`,
-          'X-Client-SR-Browser-SDK-Version': version,
-          'X-Client-SR-Type': sessionReplayType,
-          'X-Client-SR-Version': sessionReplayVersion,
+          'X-Client-Version': version,
+          'X-Client-Library': sessionReplayLibrary,
           'X-Client-Url': url,
           'X-Client-Sample-Rate': `${sampleRate}`,
         },
