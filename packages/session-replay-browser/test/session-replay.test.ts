@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -9,7 +10,7 @@ import { SessionReplayLocalConfig } from '../src/config/local-config';
 
 import { IDBFactory } from 'fake-indexeddb';
 import { InteractionConfig, SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
-import { DEFAULT_SAMPLE_RATE } from '../src/constants';
+import { CustomRRwebEvent, DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
@@ -1031,25 +1032,56 @@ describe('SessionReplay', () => {
     });
   });
 
-  describe('getDebugInfo', () => {
-    test('null config', async () => {
+  describe('addCustomRRWebEvent', () => {
+    test('should add custom event if null config', async () => {
       sessionReplay.config = undefined;
-      expect(await sessionReplay.getDebugInfo()).toBeUndefined();
+      sessionReplay.recordCancelCallback = () => {
+        return;
+      };
+      record.addCustomEvent = jest.fn();
+      await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
+      expect(record.addCustomEvent).toHaveBeenCalledWith(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
     });
 
-    test('get config', async () => {
+    test('should add custom event with config and storage data', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const debugInfo = await sessionReplay.getDebugInfo();
-      expect(debugInfo).toBeDefined();
-      expect(debugInfo?.config.apiKey).toStrictEqual('****_key');
-      expect(debugInfo?.version).toMatch(/\d+.\d+.\d+/);
-      expect(debugInfo?.percentOfQuota).toEqual(0.01);
-      expect(debugInfo?.totalStorageSize).toEqual(1);
-      expect(debugInfo?.usageDetails).toEqual(
-        JSON.stringify({
-          indexedDB: 10,
+      sessionReplay.recordCancelCallback = () => {
+        return;
+      };
+      record.addCustomEvent = jest.fn();
+      await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
+      expect(record.addCustomEvent).toHaveBeenCalledWith(
+        CustomRRwebEvent.GET_SR_PROPS,
+        expect.objectContaining({
+          myKey: 'data',
+          config: expect.objectContaining({
+            apiKey: '****_key',
+          }),
+          version: expect.stringMatching(/\d+.\d+.\d+/),
+          percentOfQuota: 0.01,
+          totalStorageSize: 1,
+          usageDetails: JSON.stringify({
+            indexedDB: 10,
+          }),
         }),
       );
+    });
+    test('should not add custom event if not recording', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordCancelCallback = undefined;
+      record.addCustomEvent = jest.fn();
+      await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
+      expect(record.addCustomEvent).not.toHaveBeenCalled();
+    });
+    test('should handle an error', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      jest.spyOn(Helpers, 'getStorageSize').mockImplementation(() => {
+        throw new Error();
+      });
+      record.addCustomEvent = jest.fn();
+      await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
+      expect(record.addCustomEvent).not.toHaveBeenCalled();
+      expect(mockLoggerProvider.debug).toHaveBeenCalled();
     });
   });
 });
