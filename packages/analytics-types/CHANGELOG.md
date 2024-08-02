@@ -1,5 +1,21 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [2.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.6.0...@amplitude/analytics-types@2.7.0) (2024-08-02)
+
+
+### Features
+
+* remote config ([#832](https://github.com/amplitude/Amplitude-TypeScript/issues/832)) ([c415f79](https://github.com/amplitude/Amplitude-TypeScript/commit/c415f792a98253ac60885eb1dc7e53b78ca47dcb)), closes [#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769) [#772](https://github.com/amplitude/Amplitude-TypeScript/issues/772) [#780](https://github.com/amplitude/Amplitude-TypeScript/issues/780) [#782](https://github.com/amplitude/Amplitude-TypeScript/issues/782) [#811](https://github.com/amplitude/Amplitude-TypeScript/issues/811) [#828](https://github.com/amplitude/Amplitude-TypeScript/issues/828)
+
+
+
+
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
