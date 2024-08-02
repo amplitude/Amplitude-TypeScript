@@ -47,6 +47,7 @@ export interface SessionReplayLocalConfig extends Config {
   debugMode?: boolean;
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
+  version?: SessionReplayVersion;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
@@ -64,3 +65,10 @@ export interface SessionReplayRemoteConfigFetch {
 export interface SessionReplayJoinedConfigGenerator {
   generateJoinedConfig: (sessionId?: number) => Promise<SessionReplayJoinedConfig>;
 }
+
+export interface SessionReplayVersion {
+  version: string;
+  type: SessionReplayType;
+}
+
+export type SessionReplayType = 'standalone' | 'plugin' | 'segment';

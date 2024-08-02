@@ -296,6 +296,10 @@ describe('SessionReplayTrackDestination', () => {
         serverZone: ServerZone.US,
         type: 'replay',
         onComplete: mockOnComplete,
+        version: {
+          type: 'plugin',
+          version: VERSION,
+        },
       };
 
       await trackDestination.send(context);
@@ -308,6 +312,7 @@ describe('SessionReplayTrackDestination', () => {
             Accept: '*/*',
             'Content-Type': 'application/json',
             Authorization: 'Bearer static_key',
+            'X-Client-Library': `plugin/${VERSION}`,
             'X-Client-Sample-Rate': '1',
             'X-Client-Url': '',
             'X-Client-Version': VERSION,
@@ -344,6 +349,7 @@ describe('SessionReplayTrackDestination', () => {
             Accept: '*/*',
             'Content-Type': 'application/json',
             Authorization: 'Bearer static_key',
+            'X-Client-Library': `standalone/${VERSION}`,
             'X-Client-Sample-Rate': '1',
             'X-Client-Url': '',
             'X-Client-Version': VERSION,

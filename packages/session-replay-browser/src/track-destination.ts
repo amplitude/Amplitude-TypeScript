@@ -111,7 +111,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       seq_number: `${context.sequenceId}`,
       type: `${context.type}`,
     });
-
+    const sessionReplayLibrary = `${context.version?.type || 'standalone'}/${context.version?.version || version}`;
     const payload = this.payloadBatcher({
       version: 1,
       events: context.events,
@@ -129,6 +129,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           Accept: '*/*',
           Authorization: `Bearer ${apiKey}`,
           'X-Client-Version': version,
+          'X-Client-Library': sessionReplayLibrary,
           'X-Client-Url': url,
           'X-Client-Sample-Rate': `${sampleRate}`,
         },
