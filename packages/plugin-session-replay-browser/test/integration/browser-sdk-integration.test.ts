@@ -7,8 +7,11 @@ import { server } from './mockAPIHandlers';
 import { matchRequestUrl } from 'msw';
 
 const apiKey = 'static_key';
+server.events.on('request:start', ({ request }) => {
+  console.log('request', request.url);
+});
 
-function waitForEventRequest(method: string, url: string, eventType: string) {
+function waitForRequest(method: string, url: string, bodyMatchingFn: (body: any) => boolean = () => true) {
   return new Promise<Request>((resolve) => {
     server.events.on('request:start', ({ request }) => {
       const matchesMethod = request.method.toLowerCase() === method.toLowerCase();
@@ -17,9 +20,9 @@ function waitForEventRequest(method: string, url: string, eventType: string) {
         .clone()
         .json()
         .then((body) => {
-          const matchesAnyEvent = (body.events as Event[]).some((event) => event.event_type === eventType);
+          const matchesBody = bodyMatchingFn(body);
 
-          if (matchesMethod && matchesUrl && matchesAnyEvent) {
+          if (matchesMethod && matchesUrl && matchesBody) {
             resolve(request);
           }
         })
@@ -28,6 +31,10 @@ function waitForEventRequest(method: string, url: string, eventType: string) {
         });
     });
   });
+}
+
+function eventRequestBodyMatchingFn(eventType: string, body: any) {
+  return (body.events as Event[]).some((event) => event.event_type === eventType);
 }
 
 const setupPluginAndInit = async (args?: { browserSDKOptions?: amplitude.Types.BrowserOptions }) => {
@@ -60,10 +67,10 @@ describe('SessionReplayPlugin Integration with Browser SDK', () => {
    * Using .only on these tests will result in individual test failures
    */
   describe('tagging events', () => {
-    const pendingSessionStartRequest = waitForEventRequest(
+    const pendingSessionStartRequest = waitForRequest(
       'POST',
       'https://api2.amplitude.com/2/httpapi',
-      'session_start',
+      eventRequestBodyMatchingFn.bind(undefined, 'session_start'),
     );
     beforeAll(async () => {
       await setupPluginAndInit({
@@ -93,10 +100,10 @@ describe('SessionReplayPlugin Integration with Browser SDK', () => {
       );
     });
     test('should tag updated start session event with session replay id', async () => {
-      const pendingUpdatedSessionStartRequest = waitForEventRequest(
+      const pendingUpdatedSessionStartRequest = waitForRequest(
         'POST',
         'https://api2.amplitude.com/2/httpapi',
-        'session_start',
+        eventRequestBodyMatchingFn.bind(undefined, 'session_start'),
       );
       const newSessionId = 456;
       amplitude.setSessionId(newSessionId);
@@ -118,7 +125,11 @@ describe('SessionReplayPlugin Integration with Browser SDK', () => {
     });
     test('should tag an event with session replay id', async () => {
       const eventType = 'My Event';
-      const pendingPageViewRequest = waitForEventRequest('POST', 'https://api2.amplitude.com/2/httpapi', eventType);
+      const pendingPageViewRequest = waitForRequest(
+        'POST',
+        'https://api2.amplitude.com/2/httpapi',
+        eventRequestBodyMatchingFn.bind(undefined, eventType),
+      );
       amplitude.track(eventType);
 
       const request = await pendingPageViewRequest;
