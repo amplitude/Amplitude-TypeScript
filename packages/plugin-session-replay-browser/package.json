@@ -46,9 +46,13 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
+    "@amplitude/analytics-browser": ">=2 <3",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
+    "fake-indexeddb": "4.0.2",
+    "msw": "^2.3.1",
+    "node-fetch": "^3.3.2",
     "rollup": "^2.79.1",
     "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.1.0",
