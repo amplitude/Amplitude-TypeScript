@@ -79,7 +79,7 @@ export interface AmplitudeSessionReplay {
   ) => AmplitudeReturn<void>;
   getSessionId: () => number | undefined;
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
-  evaluateTargetingAndRecord: (
+  evaluateTargetingAndCapture: (
     targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>,
   ) => Promise<void>;
   flush: (useRetry: boolean) => Promise<void>;

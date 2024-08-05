@@ -130,7 +130,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    await this.evaluateTargetingAndRecord({ userProperties: options.userProperties });
+    this.stopRecordingEvents();
+    await this.evaluateTargetingAndCapture({ userProperties: options.userProperties });
   }
 
   setSessionId(sessionId: number, deviceId?: string, options?: { userProperties?: { [key: string]: any } }) {
@@ -138,9 +139,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   async asyncSetSessionId(sessionId: number, deviceId?: string, options?: { userProperties?: { [key: string]: any } }) {
+    this.stopRecordingEvents();
+
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
-      this.stopRecordingEvents();
       this.sendEvents(previousSessionId);
     }
 
@@ -155,7 +157,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.joinedConfigGenerator && previousSessionId) {
       this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
     }
-    await this.evaluateTargetingAndRecord({ userProperties: options?.userProperties });
+    await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties });
   }
 
   getSessionReplayDebugPropertyValue() {
@@ -210,7 +212,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
     this.stopRecordingEvents();
-    this.recordEventsIfShould();
+    this.captureEventsIfShould();
   };
 
   /**
@@ -224,20 +226,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   };
 
-  evaluateTargetingAndRecord = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
+  evaluateTargetingAndCapture = async (targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
       if (this.identifiers && !this.identifiers.sessionId) {
-        this.loggerProvider.log('Session ID has not been set, cannot evaluate targeting for Session Replay.');
+        this.loggerProvider.log('Session ID has not been set yet, cannot evaluate targeting for Session Replay.');
       } else {
         this.loggerProvider.warn('Session replay init has not been called, cannot evaluate targeting.');
       }
-      return;
-    }
-
-    if (this.recordCancelCallback) {
-      this.loggerProvider.log(
-        'Session replay evaluateTargetingAndRecord called, however a recording is already in process, so not evaluating targeting.',
-      );
       return;
     }
 
@@ -259,7 +254,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       });
     }
 
-    this.recordEventsIfShould();
+    this.captureEventsIfShould();
   };
 
   sendEvents(sessionId?: number) {
@@ -303,22 +298,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.config.targetingConfig) {
       if (!this.sessionTargetingMatch) {
         this.loggerProvider.log(
-          `Session ${this.identifiers.sessionId} not recording due to not matching targeting conditions.`,
+          `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`,
         );
         return false;
       } else {
         // TODO: is this log too noisy?
         this.loggerProvider.log(
-          `Session ${this.identifiers.sessionId} is recording due to matching targeting conditions.`,
+          `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`,
         );
         return true;
       }
     } else {
       const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
       if (!isInSample) {
-        this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`);
+        this.loggerProvider.log(
+          `Opting session ${this.identifiers.sessionId} out of replay capture due to sample rate.`,
+        );
         return false;
       }
+      this.loggerProvider.log(
+        `Capturing replays for session  ${this.identifiers.sessionId} due to inclusion in sample rate.`,
+      );
     }
 
     return true;
@@ -348,10 +348,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
-  recordEventsIfShould() {
+  captureEventsIfShould() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !this.config) {
+      return;
+    }
+
+    if (this.recordCancelCallback) {
+      this.loggerProvider.debug('captureEvents method fired - Session Replay capture already in progress.');
       return;
     }
 
@@ -361,7 +366,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordCancelCallback = record({
       emit: (event) => {
         if (this.shouldOptOut()) {
-          this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
+          this.loggerProvider.log(`Opting session ${sessionId} out of replay capture due to optOut config.`);
           this.stopRecordingEvents();
           this.sendEvents();
           return;
