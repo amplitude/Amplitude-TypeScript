@@ -43,4 +43,17 @@ describe('networkConnectivityCheckerPlugin', () => {
     expect(removeEventListenerSpy).toHaveBeenCalledWith('online', expect.any(Function));
     expect(removeEventListenerSpy).toHaveBeenCalledWith('offline', expect.any(Function));
   });
+
+  test('should do nothing when not on a browser', async () => {
+    const plugin = networkConnectivityCheckerPlugin();
+    // @ts-expect-error we are mocking a node.js environment
+    jest.spyOn(window, 'navigator', 'get').mockReturnValue(undefined);
+    const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
+
+    await plugin.setup?.(config, amplitude);
+
+    expect(config.offline).toEqual(false);
+    expect(addEventListenerSpy).not.toHaveBeenCalled();
+    addEventListenerSpy.mockRestore();
+  });
 });
