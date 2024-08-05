@@ -4,6 +4,7 @@ import { SessionReplayOptions } from 'src/typings/session-replay';
 import {
   SessionReplayJoinedConfigGenerator,
   createSessionReplayJoinedConfigGenerator,
+  removeInvalidSelectorsFromPrivacyConfig,
 } from '../../src/config/joined-config';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
 import { PrivacyConfig, SessionReplayRemoteConfig } from '../../src/config/types';
@@ -83,6 +84,9 @@ describe('SessionReplayJoinedConfigGenerator', () => {
   describe('generateJoinedConfig', () => {
     let joinedConfigGenerator: SessionReplayJoinedConfigGenerator;
     beforeEach(async () => {
+      jest.spyOn(document, 'createDocumentFragment').mockReturnValue({
+        querySelector: () => true,
+      } as unknown as DocumentFragment);
       joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator('static_key', mockOptions);
     });
 
@@ -181,6 +185,8 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           optOut: mockLocalConfig.optOut,
           privacyConfig: {
             ...privacyConfig,
+            maskSelector: undefined,
+            unmaskSelector: undefined,
             blockSelector: ['.className', '.anotherClassName'],
           },
         });
@@ -203,7 +209,12 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           captureEnabled: true,
           optOut: mockLocalConfig.optOut,
           privacyConfig: {
-            ...{ defaultMaskLevel: 'medium', blockSelector: [], maskSelector: [], unmaskSelector: [] },
+            ...{
+              defaultMaskLevel: 'medium',
+              blockSelector: undefined,
+              maskSelector: undefined,
+              unmaskSelector: undefined,
+            },
             ...{ [`${selectorType}Selector`]: ['.localClassName', '.remoteClassName'] },
           },
         });
@@ -221,6 +232,8 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           privacyConfig: {
             ...privacyConfig,
             defaultMaskLevel: 'light',
+            maskSelector: undefined,
+            unmaskSelector: undefined,
           },
           interactionConfig: undefined,
         });
@@ -243,8 +256,8 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           privacyConfig: {
             defaultMaskLevel: 'medium',
             blockSelector: ['.className'],
-            maskSelector: [],
-            unmaskSelector: [],
+            maskSelector: undefined,
+            unmaskSelector: undefined,
           },
         });
       });
@@ -264,8 +277,26 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           ...mockLocalConfig,
           captureEnabled: true,
           optOut: mockLocalConfig.optOut,
-          privacyConfig,
+          privacyConfig: {
+            ...privacyConfig,
+            maskSelector: undefined,
+            unmaskSelector: undefined,
+          },
         });
+      });
+    });
+  });
+
+  describe('removeInvalidSelectorsFromPrivacyConfig', () => {
+    test('should handle string block selector correctly', async () => {
+      const privacyConfig = {
+        blockSelector: 'FASE<:F>!@<?#>!#<',
+      };
+      const updatedPrivacyConfig = removeInvalidSelectorsFromPrivacyConfig(privacyConfig, mockLoggerProvider);
+      expect(updatedPrivacyConfig).toStrictEqual({
+        blockSelector: undefined,
+        maskSelector: undefined,
+        unmaskSelector: undefined,
       });
     });
   });
