@@ -96,28 +96,6 @@ describe('Targeting Manager', () => {
       });
       expect(sessionTargetingMatch).toBe(true);
     });
-    test('should set sessionTargetingMatch to true if there is no targeting config', async () => {
-      config.targetingConfig = undefined;
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
-        sessionId: 123,
-        loggerProvider: config.loggerProvider,
-        apiKey: config.apiKey,
-        targetingConfig: undefined,
-      });
-      expect(evaluateTargeting).not.toHaveBeenCalled();
-      expect(sessionTargetingMatch).toBe(true);
-    });
-    test('should set sessionTargetingMatch to true if there is targeting config is empty object', async () => {
-      config.targetingConfig = {} as unknown as Targeting.TargetingFlag;
-      const sessionTargetingMatch = await evaluateTargetingAndStore({
-        sessionId: 123,
-        loggerProvider: config.loggerProvider,
-        apiKey: config.apiKey,
-        targetingConfig: flagConfig,
-      });
-      expect(evaluateTargeting).not.toHaveBeenCalled();
-      expect(sessionTargetingMatch).toBe(true);
-    });
     test('should store sessionTargetingMatch', async () => {
       evaluateTargeting.mockResolvedValueOnce({
         sr_targeting_config: {

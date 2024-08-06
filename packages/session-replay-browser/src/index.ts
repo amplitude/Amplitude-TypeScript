@@ -3,7 +3,7 @@ export const {
   init,
   setSessionId,
   getSessionId,
-  evaluateTargetingAndRecord,
+  evaluateTargetingAndCapture,
   getSessionReplayProperties,
   flush,
   shutdown,
