@@ -7,6 +7,7 @@ import { createSessionReplayJoinedConfigGenerator } from './config/joined-config
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
   BLOCK_CLASS,
+  CustomRRwebEvent,
   DEFAULT_SESSION_REPLAY_PROPERTY,
   INTERACTION_MAX_INTERVAL,
   INTERACTION_MIN_INTERVAL,
@@ -40,6 +41,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+  eventCount = 0;
 
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
@@ -164,18 +166,31 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const shouldRecord = this.getShouldRecord();
+    let eventProperties: { [key: string]: string | null } = {};
 
     if (shouldRecord) {
-      const eventProperties: { [key: string]: string | null } = {
+      eventProperties = {
         [DEFAULT_SESSION_REPLAY_PROPERTY]: this.identifiers.sessionReplayId ? this.identifiers.sessionReplayId : null,
       };
       if (this.config.debugMode) {
         eventProperties[SESSION_REPLAY_DEBUG_PROPERTY] = this.getSessionReplayDebugPropertyValue();
       }
-      return eventProperties;
     }
 
-    return {};
+    void this.addCustomRRWebEvent(
+      CustomRRwebEvent.GET_SR_PROPS,
+      {
+        shouldRecord,
+        eventProperties: eventProperties,
+      },
+      this.eventCount === 10,
+    );
+    if (this.eventCount === 10) {
+      this.eventCount = 0;
+    }
+    this.eventCount++;
+
+    return eventProperties;
   }
 
   blurListener = () => {
@@ -349,30 +364,43 @@ export class SessionReplay implements AmplitudeSessionReplay {
       },
     });
 
-    this.getDebugInfo()
-      .then((debugInfo) => {
-        debugInfo && record.addCustomEvent('debug-info', debugInfo);
-      })
-      .catch(() => {
-        // swallow error
-      });
+    void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
   }
 
-  /**
-   * Used to send a debug RRWeb event. Typing is included for ease of debugging later on, but probably not
-   * used at compile/run time.
-   */
-  getDebugInfo = async (): Promise<DebugInfo | undefined> => {
-    if (!this.config) {
-      return;
+  addCustomRRWebEvent = async (
+    eventName: CustomRRwebEvent,
+    eventData: { [key: string]: any } = {},
+    addStorageInfo = true,
+  ) => {
+    try {
+      let debugInfo: DebugInfo | undefined = undefined;
+      if (this.config) {
+        debugInfo = {
+          config: getDebugConfig(this.config),
+          version: VERSION,
+        };
+        if (addStorageInfo) {
+          const storageSizeData = await getStorageSize();
+          debugInfo = {
+            ...storageSizeData,
+            ...debugInfo,
+          };
+        }
+      }
+      // Check first to ensure we are recording
+      if (this.recordCancelCallback) {
+        record.addCustomEvent(eventName, {
+          ...eventData,
+          ...debugInfo,
+        });
+      } else {
+        this.loggerProvider.debug(
+          `Not able to add custom replay capture event ${eventName} due to no ongoing recording.`,
+        );
+      }
+    } catch (e) {
+      this.loggerProvider.debug('Error while adding custom replay capture event: ', e);
     }
-    const storageSizeData = await getStorageSize();
-
-    return {
-      ...storageSizeData,
-      config: getDebugConfig(this.config),
-      version: VERSION,
-    };
   };
 
   stopRecordingEvents = () => {
