@@ -48,7 +48,7 @@ class SessionReplayEnrichmentPlugin implements EnrichmentPlugin {
       if (event.event_type === SpecialEventType.IDENTIFY) {
         userProperties = parseUserProperties(event);
       }
-      await sessionReplay.evaluateTargetingAndRecord({ event, userProperties });
+      await sessionReplay.evaluateTargetingAndCapture({ event, userProperties });
       const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
       event.event_properties = {
         ...event.event_properties,

@@ -13,6 +13,8 @@ import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SE
 import * as Helpers from '../../src/helpers';
 import { SessionReplay } from '../../src/session-replay';
 import { SESSION_ID_IN_20_SAMPLE } from '../test-data';
+import { SessionReplayRemoteConfig } from '../../src/config/types';
+import { flagConfig } from '../flag-config-data';
 
 type MockedLogger = jest.Mocked<Logger>;
 jest.mock('@amplitude/rrweb');
@@ -159,9 +161,14 @@ describe('module level integration', () => {
         expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.8);
       });
     });
-    describe('with remote config set', () => {
+    describe('with sampling config in remote config', () => {
       beforeEach(() => {
-        getRemoteConfigMock.mockResolvedValue(samplingConfig);
+        getRemoteConfigMock.mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+          if (namespace === 'sessionReplay' && key === 'sr_sampling_config') {
+            return samplingConfig;
+          }
+          return;
+        });
       });
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
@@ -195,6 +202,66 @@ describe('module level integration', () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
         expect(inSampleSpy).toHaveBeenCalledWith(sessionReplay.identifiers?.sessionId, 0.5);
+      });
+    });
+    describe('with sampling config and targeting config in remote config', () => {
+      beforeEach(() => {
+        getRemoteConfigMock.mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+          if (namespace === 'sessionReplay' && key === 'sr_sampling_config') {
+            return samplingConfig;
+          }
+          if (namespace === 'sessionReplay' && key === 'sr_targeting_config') {
+            return flagConfig;
+          }
+          return;
+        });
+      });
+      test('should not capture if no targeting match', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+          .value;
+
+        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
+        expect(sessionRecordingProperties).not.toMatchObject({
+          [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
+        });
+        expect(record).not.toHaveBeenCalled();
+      });
+      test('should capture if targeting match', async () => {
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        await sessionReplay.evaluateTargetingAndCapture({ event: { event_type: 'Sign In' } });
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+          .value;
+
+        jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
+        expect(sessionRecordingProperties).toMatchObject({
+          [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
+        });
+        expect(record).toHaveBeenCalled();
+        const recordArg = record.mock.calls[0][0];
+        recordArg?.emit && recordArg?.emit(mockEvent);
+        sessionReplay.sendEvents();
+        await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
+        await runScheduleTimers();
+        expect(fetch).toHaveBeenLastCalledWith(
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
+          expect.anything(),
+        );
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
+          'Session replay event batch with seq id 1 tracked successfully for session id 1719847315000, size of events: 0 KB',
+        );
+      });
+
+      test('should not use sampleRate', async () => {
+        const inSampleSpy = jest.spyOn(Helpers, 'isSessionInSample');
+        const sessionReplay = new SessionReplay();
+        await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
+        expect(inSampleSpy).not.toHaveBeenCalled();
       });
     });
   });

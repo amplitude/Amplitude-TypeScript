@@ -17,8 +17,8 @@ const createInstance: () => AmplitudeSessionReplay = () => {
   const sessionReplay = new SessionReplay();
   return {
     init: debugWrapper(sessionReplay.init.bind(sessionReplay), 'init', getLogConfig(sessionReplay)),
-    evaluateTargetingAndRecord: debugWrapper(
-      sessionReplay.evaluateTargetingAndRecord.bind(sessionReplay),
+    evaluateTargetingAndCapture: debugWrapper(
+      sessionReplay.evaluateTargetingAndCapture.bind(sessionReplay),
       'evaluateTargetingAndRecord',
       getLogConfig(sessionReplay),
     ),

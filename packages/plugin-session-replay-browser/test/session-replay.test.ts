@@ -20,7 +20,7 @@ type MockedLogger = jest.Mocked<Logger>;
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
-  const { init, setSessionId, getSessionReplayProperties, evaluateTargetingAndRecord, flush, shutdown, getSessionId } =
+  const { init, setSessionId, getSessionReplayProperties, evaluateTargetingAndCapture, flush, shutdown, getSessionId } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -334,7 +334,7 @@ describe('SessionReplayPlugin', () => {
       await sessionReplayEnrichmentPlugin.setup(mockConfig);
       await sessionReplayEnrichmentPlugin.execute(event);
 
-      expect(evaluateTargetingAndRecord).toHaveBeenCalledWith({
+      expect(evaluateTargetingAndCapture).toHaveBeenCalledWith({
         event: event,
         userProperties: undefined,
       });
@@ -360,7 +360,7 @@ describe('SessionReplayPlugin', () => {
       await sessionReplayEnrichmentPlugin.setup(mockConfig);
       await sessionReplayEnrichmentPlugin.execute(event);
 
-      expect(evaluateTargetingAndRecord).toHaveBeenCalledWith({
+      expect(evaluateTargetingAndCapture).toHaveBeenCalledWith({
         event: event,
         userProperties: {
           plan_id: 'free',
