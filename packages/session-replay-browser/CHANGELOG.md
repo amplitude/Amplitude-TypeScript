@@ -3,6 +3,35 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.12.3...@amplitude/session-replay-browser@1.13.0) (2024-08-06)
+
+### Bug Fixes
+
+- **session replay:** add version and sdk type
+  ([803c8f9](https://github.com/amplitude/Amplitude-TypeScript/commit/803c8f9e99a418939c1793d0106d9c7404c0e22d))
+- **session replay:** allow config for session replay sdk type
+  ([08036c9](https://github.com/amplitude/Amplitude-TypeScript/commit/08036c9e841ceb784473782566254db3bef5c76f))
+- **session replay:** ensure api key is obfuscated in local logs
+  ([e79948c](https://github.com/amplitude/Amplitude-TypeScript/commit/e79948c0301afee45186ecdafa42fcc25bdee065))
+- **session replay:** move removeInvalidSelectorsFromPrivacyConfig to joined config class
+  ([5eb5f4f](https://github.com/amplitude/Amplitude-TypeScript/commit/5eb5f4f9a7445399b799cae705bb0cd36aefbacd))
+- **session replay:** pr feedback
+  ([48c2ffb](https://github.com/amplitude/Amplitude-TypeScript/commit/48c2ffb50bf01393a4512cb4a59200577d6df019))
+- **session replay:** send library header for version and type of sdk
+  ([b2fedfc](https://github.com/amplitude/Amplitude-TypeScript/commit/b2fedfce3284cc436e9c87d829dc127b88d047b5))
+
+### Features
+
+- **session replay:** add more logging to record and event lifecycle
+  ([20ddaa6](https://github.com/amplitude/Amplitude-TypeScript/commit/20ddaa6a0426c1fa9755b9cde4b1f6110d39d130))
+- **session replay:** adding storage size to rrweb custom event
+  ([c53ab46](https://github.com/amplitude/Amplitude-TypeScript/commit/c53ab46892b109aae7c96cf7cd14e13c47e14b53))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.12.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.12.2...@amplitude/session-replay-browser@1.12.3) (2024-08-02)
 
 ### Bug Fixes
