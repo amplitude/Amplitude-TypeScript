@@ -50,7 +50,7 @@ sessionReplay.init(API_KEY, {
 ### 3. Evaluate targeting (optional)
 Any event that occurs within the span of a session replay must be passed to the SDK to evaluate against targeting conditions. This should be done *before* step 4, getting the event properties. If you are not using the targeting condition logic provided via the Amplitude UI, this step is not required.
 ```typescript
-const sessionTargetingMatch = sessionReplay.evaluateTargetingAndRecord({ event: {
+const sessionTargetingMatch = sessionReplay.evaluateTargetingAndCapture({ event: {
   event_type: EVENT_NAME,
   time: EVENT_TIMESTAMP,
   event_properties: eventProperties

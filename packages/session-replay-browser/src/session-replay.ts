@@ -174,7 +174,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return {};
     }
 
-    const shouldRecord = this.getShouldRecord();
+    const shouldRecord = this.getShouldCapture();
 
     if (shouldRecord) {
       const eventProperties: { [key: string]: string | null } = {
@@ -261,9 +261,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return identityStoreOptOut !== undefined ? identityStoreOptOut : this.config?.optOut;
   }
 
-  getShouldRecord() {
+  getShouldCapture() {
     if (!this.identifiers || !this.config || !this.identifiers.sessionId) {
-      this.loggerProvider.warn(`Session is not being recorded due to lack of config, please call sessionReplay.init.`);
+      this.loggerProvider.warn(`Session is not being captured due to lack of config, please call sessionReplay.init.`);
       return false;
     }
     if (!this.config.captureEnabled) {
@@ -274,7 +274,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     if (this.shouldOptOut()) {
-      this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to optOut config.`);
+      this.loggerProvider.log(
+        `Opting session ${this.identifiers.sessionId} out of replay capture due to optOut config.`,
+      );
       return false;
     }
 
@@ -287,7 +289,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
         );
         return false;
       } else {
-        // TODO: is this log too noisy?
         this.loggerProvider.log(
           `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`,
         );
@@ -334,12 +335,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   captureEventsIfShould() {
-    const shouldRecord = this.getShouldRecord();
+    const shouldRecord = this.getShouldCapture();
     const sessionId = this.identifiers?.sessionId;
     if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
-
     if (this.recordCancelCallback) {
       this.loggerProvider.debug('captureEvents method fired - Session Replay capture already in progress.');
       return;

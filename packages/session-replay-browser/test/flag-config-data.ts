@@ -9,10 +9,10 @@ export const flagConfig = {
       metadata: { segmentName: 'sign in trigger' },
       bucket: {
         selector: ['context', 'session_id'],
-        salt: 'xdfrewd', // Different salt for each bucket to allow for fallthrough
+        salt: 'xdfrewd',
         allocations: [
           {
-            range: [0, 19], // Selects 20% of users that match these conditions
+            range: [0, 99],
             distributions: [
               {
                 variant: 'on',
@@ -36,10 +36,10 @@ export const flagConfig = {
       metadata: { segmentName: 'user property' },
       bucket: {
         selector: ['context', 'session_id'],
-        salt: 'Rpr5h4vy', // Different salt for each bucket to allow for fallthrough
+        salt: 'Rpr5h4vy',
         allocations: [
           {
-            range: [0, 14], // Selects 15% of users that match these conditions
+            range: [0, 99],
             distributions: [
               {
                 variant: 'on',
@@ -63,7 +63,7 @@ export const flagConfig = {
       metadata: { segmentName: 'leftover allocation' },
       bucket: {
         selector: ['context', 'session_id'],
-        salt: 'T5lhyRo', // Different salt for each bucket to allow for fallthrough
+        salt: 'T5lhyRo',
         allocations: [
           {
             range: [0, 9], // Selects 10% of users that match these conditions
