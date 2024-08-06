@@ -7,7 +7,7 @@ export type StorageData = {
   usageDetails: string;
 };
 
-export interface DebugInfo extends StorageData {
+export interface DebugInfo extends Partial<StorageData> {
   config: SessionReplayJoinedConfig;
   version: string;
 }

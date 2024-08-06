@@ -41,6 +41,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
+  eventCount = 0;
 
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
@@ -165,26 +166,30 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const shouldRecord = this.getShouldRecord();
+    let eventProperties: { [key: string]: string | null } = {};
 
     if (shouldRecord) {
-      const eventProperties: { [key: string]: string | null } = {
+      eventProperties = {
         [DEFAULT_SESSION_REPLAY_PROPERTY]: this.identifiers.sessionReplayId ? this.identifiers.sessionReplayId : null,
       };
       if (this.config.debugMode) {
         eventProperties[SESSION_REPLAY_DEBUG_PROPERTY] = this.getSessionReplayDebugPropertyValue();
       }
-      void this.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, {
-        shouldRecord,
-        eventProperties: eventProperties,
-      });
-      return eventProperties;
     }
 
-    void this.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, {
-      shouldRecord,
-      eventProperties: {},
-    });
-    return {};
+    void this.addCustomRRWebEvent(
+      CustomRRwebEvent.GET_SR_PROPS,
+      {
+        shouldRecord,
+        eventProperties: eventProperties,
+      },
+      this.eventCount === 10,
+    );
+    if (this.eventCount === 10) {
+      this.eventCount = 0;
+    }
+
+    return eventProperties;
   }
 
   blurListener = () => {
@@ -358,20 +363,28 @@ export class SessionReplay implements AmplitudeSessionReplay {
       },
     });
 
-    void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO, {});
+    void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
   }
 
-  addCustomRRWebEvent = async (eventName: CustomRRwebEvent, eventData: { [key: string]: any }) => {
+  addCustomRRWebEvent = async (
+    eventName: CustomRRwebEvent,
+    eventData: { [key: string]: any } = {},
+    addStorageInfo = true,
+  ) => {
     try {
       let debugInfo: DebugInfo | undefined = undefined;
       if (this.config) {
-        const storageSizeData = await getStorageSize();
-
         debugInfo = {
-          ...storageSizeData,
           config: getDebugConfig(this.config),
           version: VERSION,
         };
+        if (addStorageInfo) {
+          const storageSizeData = await getStorageSize();
+          debugInfo = {
+            ...storageSizeData,
+            ...debugInfo,
+          };
+        }
       }
       // Check first to ensure we are recording
       if (this.recordCancelCallback) {

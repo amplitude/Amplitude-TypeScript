@@ -474,6 +474,39 @@ describe('SessionReplay', () => {
         '[Amplitude] Session Replay Debug': '{"appHash":"-109988594"}',
       });
     });
+
+    test('should add a custom rrweb event', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
+      sessionReplay.addCustomRRWebEvent = jest.fn();
+      sessionReplay.getShouldRecord = () => true;
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(sessionReplay.addCustomRRWebEvent).toHaveBeenCalledWith(
+        CustomRRwebEvent.GET_SR_PROPS,
+        {
+          shouldRecord: true,
+          eventProperties: result,
+        },
+        false,
+      );
+    });
+    test('should add a custom rrweb event with storage info if event count is 10, then reset event count', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
+      sessionReplay.addCustomRRWebEvent = jest.fn();
+      sessionReplay.getShouldRecord = () => true;
+      sessionReplay.eventCount = 10;
+
+      const result = sessionReplay.getSessionReplayProperties();
+      expect(sessionReplay.addCustomRRWebEvent).toHaveBeenCalledWith(
+        CustomRRwebEvent.GET_SR_PROPS,
+        {
+          shouldRecord: true,
+          eventProperties: result,
+        },
+        true,
+      );
+      expect(sessionReplay.eventCount).toEqual(0);
+    });
   });
 
   describe('initialize', () => {
@@ -1072,6 +1105,42 @@ describe('SessionReplay', () => {
       record.addCustomEvent = jest.fn();
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
       expect(record.addCustomEvent).not.toHaveBeenCalled();
+    });
+    test('should add storage info if addStorageInfo is true', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordCancelCallback = () => {
+        return;
+      };
+      record.addCustomEvent = jest.fn();
+      await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' }, true);
+      expect(record.addCustomEvent).toHaveBeenCalledWith(
+        CustomRRwebEvent.GET_SR_PROPS,
+        expect.objectContaining({
+          percentOfQuota: 0.01,
+          totalStorageSize: 1,
+          usageDetails: JSON.stringify({
+            indexedDB: 10,
+          }),
+        }),
+      );
+    });
+    test('should not add storage info if addStorageInfo is false', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordCancelCallback = () => {
+        return;
+      };
+      record.addCustomEvent = jest.fn();
+      await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' }, false);
+      expect(record.addCustomEvent).toHaveBeenCalledWith(
+        CustomRRwebEvent.GET_SR_PROPS,
+        expect.not.objectContaining({
+          percentOfQuota: 0.01,
+          totalStorageSize: 1,
+          usageDetails: JSON.stringify({
+            indexedDB: 10,
+          }),
+        }),
+      );
     });
     test('should handle an error', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
