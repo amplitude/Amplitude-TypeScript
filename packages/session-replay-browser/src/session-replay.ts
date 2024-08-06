@@ -197,7 +197,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
     this.stopRecordingEvents();
-    this.captureEventsIfShould();
+    this.captureEvents();
   };
 
   /**
@@ -239,7 +239,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       });
     }
 
-    this.captureEventsIfShould();
+    this.captureEvents();
   };
 
   sendEvents(sessionId?: number) {
@@ -288,12 +288,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
           `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`,
         );
         return false;
-      } else {
-        this.loggerProvider.log(
-          `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`,
-        );
-        return true;
       }
+      this.loggerProvider.log(
+        `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`,
+      );
     } else {
       const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
       if (!isInSample) {
@@ -334,14 +332,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
-  captureEventsIfShould() {
-    const shouldRecord = this.getShouldCapture();
-    const sessionId = this.identifiers?.sessionId;
-    if (!shouldRecord || !sessionId || !this.config) {
-      return;
-    }
+  captureEvents() {
     if (this.recordCancelCallback) {
       this.loggerProvider.debug('captureEvents method fired - Session Replay capture already in progress.');
+      return;
+    }
+
+    const shouldRecord = this.getShouldCapture();
+    const sessionId = this.identifiers && this.identifiers.sessionId;
+    if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
 

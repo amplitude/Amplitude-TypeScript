@@ -698,7 +698,7 @@ describe('SessionReplay', () => {
     });
   });
 
-  describe('captureEventsIfShould', () => {
+  describe('captureEvents', () => {
     test('should return early if no config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
@@ -706,7 +706,7 @@ describe('SessionReplay', () => {
 
       record.mockReset();
       sessionReplay.config = undefined;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       expect(record).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
@@ -718,7 +718,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       record.mockReset();
       sessionReplay.identifiers = undefined;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       expect(record).not.toHaveBeenCalled();
     });
 
@@ -727,7 +727,7 @@ describe('SessionReplay', () => {
         .promise;
       const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
         .value;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       expect(record).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
@@ -740,7 +740,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
         .value;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
@@ -762,7 +762,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
         .value;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
@@ -788,7 +788,7 @@ describe('SessionReplay', () => {
 
     test('should add an error handler', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       const recordArg = record.mock.calls[0][0];
       const errorHandlerReturn = recordArg?.errorHandler && recordArg?.errorHandler(new Error('test error'));
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -799,7 +799,7 @@ describe('SessionReplay', () => {
     test('should rethrow CSSStylesheet errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       const recordArg = record.mock.calls[0][0];
       const stylesheetErrorMessage =
         "Failed to execute 'insertRule' on 'CSSStyleSheet': Failed to parse the rule 'body::-ms-expand{display: none}";
@@ -811,7 +811,7 @@ describe('SessionReplay', () => {
     test('should rethrow external errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.captureEventsIfShould();
+      sessionReplay.captureEvents();
       const recordArg = record.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
