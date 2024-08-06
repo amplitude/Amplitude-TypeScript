@@ -188,6 +188,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.eventCount === 10) {
       this.eventCount = 0;
     }
+    this.eventCount++;
 
     return eventProperties;
   }

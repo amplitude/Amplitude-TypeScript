@@ -490,6 +490,13 @@ describe('SessionReplay', () => {
         false,
       );
     });
+    test('should increment the event count', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
+      expect(sessionReplay.eventCount).toBe(0);
+
+      sessionReplay.getSessionReplayProperties();
+      expect(sessionReplay.eventCount).toBe(1);
+    });
     test('should add a custom rrweb event with storage info if event count is 10, then reset event count', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
       sessionReplay.addCustomRRWebEvent = jest.fn();
@@ -505,7 +512,7 @@ describe('SessionReplay', () => {
         },
         true,
       );
-      expect(sessionReplay.eventCount).toEqual(0);
+      expect(sessionReplay.eventCount).toEqual(1);
     });
   });
 
