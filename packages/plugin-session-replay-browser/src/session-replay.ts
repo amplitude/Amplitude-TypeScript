@@ -109,11 +109,8 @@ export class SessionReplayPlugin implements DestinationPlugin {
       }
     }
 
-    let userProperties;
-    if (this.config.instanceName) {
-      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
-      userProperties = identityStore.getIdentity().userProperties;
-    }
+    const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+    const userProperties = identityStore.getIdentity().userProperties;
 
     await sessionReplay.init(config.apiKey, {
       instanceName: this.config.instanceName,

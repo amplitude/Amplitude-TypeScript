@@ -259,6 +259,7 @@ describe('SessionReplayPlugin', () => {
           type: 'plugin',
           version: VERSION,
         },
+        userProperties: {},
       });
     });
   });
@@ -409,7 +410,7 @@ describe('SessionReplayPlugin', () => {
       };
       await sessionReplayEnrichmentPlugin.execute(event);
       expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenCalledWith(456, '1a2b3c', { userProperties: undefined });
+      expect(setSessionId).toHaveBeenCalledWith(456, '1a2b3c', { userProperties: {} });
     });
 
     test('should update the session id on any event and pass along user properties', async () => {
