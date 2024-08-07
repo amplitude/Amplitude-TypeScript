@@ -20,6 +20,7 @@ import { SessionReplayOptions } from '../src/typings/session-replay';
 import * as JoinedConfigGenerator from '../src/config/joined-config';
 import { SessionReplayJoinedConfigGenerator } from '../src/config/joined-config';
 import { flagConfig } from './flag-config-data';
+import { IDBPDatabase } from 'idb';
 
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
@@ -336,6 +337,13 @@ describe('SessionReplay', () => {
       sessionReplay.setSessionId(456);
       expect(recordCancelCallbackMock).toHaveBeenCalled();
     });
+    test('should set sessionTargetingMatch to false', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.sessionTargetingMatch = true;
+
+      sessionReplay.setSessionId(456);
+      expect(sessionReplay.sessionTargetingMatch).toBe(false);
+    });
 
     test('should update the session id and start recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
@@ -498,7 +506,7 @@ describe('SessionReplay', () => {
     test('should add a custom rrweb event', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
       sessionReplay.addCustomRRWebEvent = jest.fn();
-      sessionReplay.getShouldRecord = () => true;
+      sessionReplay.getShouldCapture = () => true;
 
       const result = sessionReplay.getSessionReplayProperties();
       expect(sessionReplay.addCustomRRWebEvent).toHaveBeenCalledWith(
@@ -520,7 +528,7 @@ describe('SessionReplay', () => {
     test('should add a custom rrweb event with storage info if event count is 10, then reset event count', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, debugMode: true }).promise;
       sessionReplay.addCustomRRWebEvent = jest.fn();
-      sessionReplay.getShouldRecord = () => true;
+      sessionReplay.getShouldCapture = () => true;
       sessionReplay.eventCount = 10;
 
       const result = sessionReplay.getSessionReplayProperties();
