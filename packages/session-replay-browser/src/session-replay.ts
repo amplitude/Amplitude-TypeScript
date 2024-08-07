@@ -140,6 +140,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   async asyncSetSessionId(sessionId: number, deviceId?: string, options?: { userProperties?: { [key: string]: any } }) {
     this.stopRecordingEvents();
+    this.sessionTargetingMatch = false;
 
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
@@ -245,6 +246,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         eventForTargeting = undefined;
       }
 
+      // We're setting this on this class because fetching the value from idb
+      // is async, we need to access this value synchronously (for record
+      // and for getSessionReplayProperties - both synchronous fns)
       this.sessionTargetingMatch = await evaluateTargetingAndStore({
         sessionId: this.identifiers.sessionId,
         targetingConfig: this.config.targetingConfig,
@@ -316,7 +320,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return false;
       }
       this.loggerProvider.log(
-        `Capturing replays for session  ${this.identifiers.sessionId} due to inclusion in sample rate.`,
+        `Capturing replays for session ${this.identifiers.sessionId} due to inclusion in sample rate.`,
       );
     }
 
@@ -460,7 +464,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   stopRecordingEvents = () => {
     try {
-      this.loggerProvider.log('Session Replay capture stopping.');
+      if (this.recordCancelCallback) {
+        this.loggerProvider.log('Session Replay capture stopping.');
+      }
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
     } catch (error) {
