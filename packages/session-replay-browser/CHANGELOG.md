@@ -3,6 +3,51 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.14.0-srtargeting.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.0...@amplitude/session-replay-browser@1.14.0-srtargeting.0) (2024-08-08)
+
+### Bug Fixes
+
+- **session replay:** cleanup from rebase
+  ([7102474](https://github.com/amplitude/Amplitude-TypeScript/commit/710247443974ce031afd88b695bc26b882577f2b))
+- **session replay:** increment event count
+  ([6cce459](https://github.com/amplitude/Amplitude-TypeScript/commit/6cce459beefd5b6425dfa89bfed55cdaa30dcf94))
+- **session replay:** pr feedback
+  ([2ac1847](https://github.com/amplitude/Amplitude-TypeScript/commit/2ac18474d7b67a016c9f0b03c3e9e7017cf2f6c2))
+- **session replay:** provide default for db
+  ([1a37559](https://github.com/amplitude/Amplitude-TypeScript/commit/1a37559775dc13927e05f6edb396993fdcdfc5ca))
+- **session replay:** rebase fixes
+  ([8386ede](https://github.com/amplitude/Amplitude-TypeScript/commit/8386ede0f8f61b71ed0b73d78967d465ed3567e9))
+- **session replay:** set targeting match to false when session id is changed
+  ([86d22da](https://github.com/amplitude/Amplitude-TypeScript/commit/86d22da226bd06ceb461df11a5747306b6fb8ef0))
+
+### Features
+
+- **session replay:** add ability to target by single event trigger
+  ([dab74f7](https://github.com/amplitude/Amplitude-TypeScript/commit/dab74f73dd5946ac99e517c57d97819acf3677f4))
+- **session replay:** add ability to target on multiple events
+  ([b70037e](https://github.com/amplitude/Amplitude-TypeScript/commit/b70037e3d9766144615c7c4d9b052775ce658e66))
+- **session replay:** configuring correct timing of replay capture
+  ([8b41f72](https://github.com/amplitude/Amplitude-TypeScript/commit/8b41f72c82e56263c0dd484f32c103e4c893bf38))
+- **session replay:** evaluate targeting with user properties in initialization
+  ([c009b01](https://github.com/amplitude/Amplitude-TypeScript/commit/c009b01f3c21e76391bb01a2da5d477d447552ac))
+- **session replay:** introduce remote config fetch class
+  ([bc1b696](https://github.com/amplitude/Amplitude-TypeScript/commit/bc1b69691cb1dd79080f42dd811b6b39e44c894a))
+- **session replay:** store targeting match in remote config fetch class
+  ([aa5211f](https://github.com/amplitude/Amplitude-TypeScript/commit/aa5211fd26f8ca7d4a40493645cf48a6124a0e5f))
+- **session replay:** support targeting via passed in user properties
+  ([d169126](https://github.com/amplitude/Amplitude-TypeScript/commit/d1691266c4ddc47bfe6fc55e4e7edff439f1aa87))
+- **session replay:** update method names, and ensure targeting is independent from sampling
+  ([6d3a7be](https://github.com/amplitude/Amplitude-TypeScript/commit/6d3a7be4169e6e0e3bd8c7103895374daea107bd))
+- **session replay:** update targeting logic to be compatible with new idb store format
+  ([4c51132](https://github.com/amplitude/Amplitude-TypeScript/commit/4c51132697d5697bbfba1c206d35daa08acba915))
+- **sesssion replay:** pr feedback
+  ([71a37fe](https://github.com/amplitude/Amplitude-TypeScript/commit/71a37fe2ebcda5fb97e08ff98a3fe6b0acbd5036))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.12.3...@amplitude/session-replay-browser@1.13.0) (2024-08-06)
 
 ### Bug Fixes
