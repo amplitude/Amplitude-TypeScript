@@ -47,8 +47,18 @@ sessionReplay.init(API_KEY, {
 });
 ```
 
-### 3. Get session replay event properties
-Any event that occurs within the span of a session replay must be tagged with properties that signal to Amplitude to include it in the scope of the replay. The following shows an example of how to use the properties
+### 3. Evaluate targeting (optional)
+Any event that occurs within the span of a session replay must be passed to the SDK to evaluate against targeting conditions. This should be done *before* step 4, getting the event properties. If you are not using the targeting condition logic provided via the Amplitude UI, this step is not required.
+```typescript
+const sessionTargetingMatch = sessionReplay.evaluateTargetingAndCapture({ event: {
+  event_type: EVENT_NAME,
+  time: EVENT_TIMESTAMP,
+  event_properties: eventProperties
+} });
+```
+
+### 4. Get session replay event properties
+Any event must be tagged with properties that signal to Amplitude to include it in the scope of the replay. The following shows an example of how to use the properties.
 ```typescript
 const sessionReplayProperties = sessionReplay.getSessionReplayProperties();
 track(EVENT_NAME, {
@@ -57,7 +67,7 @@ track(EVENT_NAME, {
 })
 ```
 
-### 4. Update session id
+### 5. Update session id
 Any time that the session id for the user changes, the session replay SDK must be notified of that change. Update the session id via the following method:
 ```typescript
 sessionReplay.setSessionId(UNIX_TIMESTAMP)
@@ -67,7 +77,7 @@ You can optionally pass a new device id as a second argument as well:
 sessionReplay.setSessionId(UNIX_TIMESTAMP, deviceId)
 ```
 
-### 5. Shutdown (optional)
+### 6. Shutdown (optional)
 If at any point you would like to discontinue collection of session replays, for example in a part of your application where you would not like sessions to be collected, you can use the following method to stop collection and remove collection event listeners.
 ```typescript
 sessionReplay.shutdown()
