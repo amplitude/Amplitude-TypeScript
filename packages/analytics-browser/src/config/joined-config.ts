@@ -30,9 +30,42 @@ export class BrowserJoinedConfigGenerator {
         (await this.remoteConfigFetch.getRemoteConfig('analyticsSDK', 'browserSDK', this.config.sessionId));
       this.config.loggerProvider.debug('Remote configuration:', JSON.stringify(remoteConfig, null, 2));
       if (remoteConfig && 'autocapture' in remoteConfig) {
-        this.config.autocapture = remoteConfig.autocapture;
+        // merge remoteConfig.autocapture and this.config.autocapture
+        // if a field is in remoteConfig.autocapture, use that value
+        // if a field is not in remoteConfig.autocapture, use the value from this.config.autocapture
+        if (typeof remoteConfig.autocapture === 'boolean') {
+          this.config.autocapture = remoteConfig.autocapture;
+        }
+
+        if (typeof remoteConfig.autocapture === 'object') {
+          if (this.config.autocapture === undefined) {
+            this.config.autocapture = remoteConfig.autocapture;
+          }
+
+          if (typeof this.config.autocapture === 'boolean') {
+            this.config.autocapture = {
+              attribution: this.config.autocapture,
+              fileDownloads: this.config.autocapture,
+              formInteractions: this.config.autocapture,
+              pageViews: this.config.autocapture,
+              sessions: this.config.autocapture,
+              elementInteractions: this.config.autocapture,
+              ...remoteConfig.autocapture,
+            };
+          }
+
+          if (typeof this.config.autocapture === 'object') {
+            this.config.autocapture = {
+              ...this.config.autocapture,
+              ...remoteConfig.autocapture,
+            };
+          }
+        }
+
+        // Override default tracking options if autocapture is updated by remote config
         this.config.defaultTracking = this.config.autocapture;
       }
+
       this.config.loggerProvider.debug('Joined configuration: ', JSON.stringify(this.config, null, 2));
       this.config.requestMetadata ??= new RequestMetadata();
       this.config.requestMetadata.recordHistogram('remote_config_fetch_time', this.remoteConfigFetch?.fetchTime);
