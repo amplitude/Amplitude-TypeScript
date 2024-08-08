@@ -82,18 +82,15 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
           npm whoami
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
-          aws-region: us-west-2
-
       # Converted to all lowercase and stripped of non-letter characters
       - name: Transform feature branch name
         run: |
           echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
 
       # Use --no-push to prevent pushing to remote
+      # Example:
+      #   - feature-branch-name -> featurebranchname
+      #   - minor: 1.0.0 -> 1.1.0-featurebranchname.0
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
@@ -108,6 +105,4 @@ jobs:
       - name: Publish Release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y
-        env:
-          S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}
