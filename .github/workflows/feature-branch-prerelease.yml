@@ -10,7 +10,6 @@ on:
         options:
           - dry-run
           - prerelease
-        
 
 jobs:
   authorize:
@@ -33,7 +32,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [16.x]
+        node-version: [18.15.x]
 
     steps:
       - name: Get branch name
