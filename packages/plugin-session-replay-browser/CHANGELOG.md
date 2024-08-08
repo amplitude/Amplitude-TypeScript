@@ -3,18 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [1.6.18](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.6.17...@amplitude/plugin-session-replay-browser@1.6.18) (2024-08-13)
+# [1.7.0-srtargeting.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.6.16...@amplitude/plugin-session-replay-browser@1.7.0-srtargeting.0) (2024-08-08)
 
-**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+### Bug Fixes
 
-# Change Log
+- **session replay plugin:** remove unused if check
+  ([fc63646](https://github.com/amplitude/Amplitude-TypeScript/commit/fc6364683c416778b0609f20370454ee45437230))
+- **session replay:** rebase fixes
+  ([8386ede](https://github.com/amplitude/Amplitude-TypeScript/commit/8386ede0f8f61b71ed0b73d78967d465ed3567e9))
 
-All notable changes to this project will be documented in this file. See
-[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+### Features
 
-## [1.6.17](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.6.16...@amplitude/plugin-session-replay-browser@1.6.17) (2024-08-12)
-
-**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+- **session replay plugin:** support targeting by user properties
+  ([ba8e27d](https://github.com/amplitude/Amplitude-TypeScript/commit/ba8e27d070b2015afc846f7ef02b745cff485d76))
+- **session replay:** add ability to target by single event trigger
+  ([dab74f7](https://github.com/amplitude/Amplitude-TypeScript/commit/dab74f73dd5946ac99e517c57d97819acf3677f4))
+- **session replay:** update method names, and ensure targeting is independent from sampling
+  ([6d3a7be](https://github.com/amplitude/Amplitude-TypeScript/commit/6d3a7be4169e6e0e3bd8c7103895374daea107bd))
 
 # Change Log
 

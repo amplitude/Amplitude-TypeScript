@@ -1,4 +1,5 @@
 import { Config, LogLevel, Logger } from '@amplitude/analytics-types';
+import { TargetingFlag } from '@amplitude/targeting';
 
 export interface SamplingConfig {
   sample_rate: number;
@@ -9,11 +10,13 @@ export interface InteractionConfig {
   trackEveryNms?: number;
   enabled: boolean; // defaults to false
 }
+export type TargetingConfig = TargetingFlag;
 
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
   sr_interaction_config?: InteractionConfig;
+  sr_targeting_config?: TargetingConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
@@ -48,11 +51,13 @@ export interface SessionReplayLocalConfig extends Config {
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
+  userProperties?: { [key: string]: any };
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   captureEnabled?: boolean;
   interactionConfig?: InteractionConfig;
+  targetingConfig?: TargetingConfig;
 }
 
 export interface SessionReplayRemoteConfigFetch {
