@@ -15,7 +15,7 @@ export interface BaseRemoteConfigFetch<T> {
 }
 
 export interface RemoteConfigFetch<T> extends BaseRemoteConfigFetch<T> {
-  fetchTime: number;
+  metrics: Map<string, string | number>;
 }
 
 export interface RemoteConfigIDBStore<RemoteConfig extends { [key: string]: object }>

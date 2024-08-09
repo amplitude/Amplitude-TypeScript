@@ -104,7 +104,7 @@ describe('SessionReplay', () => {
     getRemoteConfigMock = jest.fn().mockResolvedValue(samplingConfig);
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
-      fetchTime: 0,
+      metrics: new Map(),
     });
     jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
     sessionReplay = new SessionReplay();
@@ -239,7 +239,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
-        fetchTime: 0,
+        metrics: new Map(),
       });
       await sessionReplay.init(apiKey, {
         ...mockOptions,
@@ -589,7 +589,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
-        fetchTime: 0,
+        metrics: new Map(),
       });
       await sessionReplay.init(apiKey, {
         ...mockOptions,

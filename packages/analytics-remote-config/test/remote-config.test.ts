@@ -505,13 +505,13 @@ describe('RemoteConfigFetch', () => {
       expect(remoteConfigFetch).toBeDefined();
     });
 
-    test('should set fetchTime to 0 when initialization', async () => {
+    test('should set metrics to an empty map when initialization', async () => {
       const remoteConfigFetch = await createRemoteConfigFetch({ localConfig, configKeys: ['sessionReplay'] });
-      expect(remoteConfigFetch.fetchTime).toEqual(0);
+      expect(remoteConfigFetch.metrics).toEqual(new Map());
     });
   });
 
-  test('should calculate fetchTime', async () => {
+  test('should calculate API fetch time', async () => {
     const mockDateNow = jest.spyOn(global.Date, 'now');
     const startTimestamp = 1000;
     const endTimestamp = 2000;
@@ -520,7 +520,25 @@ describe('RemoteConfigFetch', () => {
 
     await initialize();
     await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 456);
-    expect(remoteConfigFetch.fetchTime).toEqual(endTimestamp - startTimestamp);
+    expect(remoteConfigFetch.metrics).toEqual(
+      new Map([['remote_config_fetch_time_API', endTimestamp - startTimestamp]]),
+    );
+
+    mockDateNow.mockRestore();
+  });
+
+  test('should calculate IDB fetch time', async () => {
+    const mockDateNow = jest.spyOn(global.Date, 'now');
+    const startTimestamp = 1000;
+    const endTimestamp = 2000;
+    mockDateNow.mockImplementationOnce(() => startTimestamp);
+    mockDateNow.mockImplementationOnce(() => endTimestamp);
+
+    await initialize();
+    await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 123);
+    expect(remoteConfigFetch.metrics).toEqual(
+      new Map([['remote_config_fetch_time_IDB', endTimestamp - startTimestamp]]),
+    );
 
     mockDateNow.mockRestore();
   });
