@@ -7,9 +7,6 @@ import { server } from './mockAPIHandlers';
 import { matchRequestUrl } from 'msw';
 
 const apiKey = 'static_key';
-server.events.on('request:start', ({ request }) => {
-  console.log('request', request.url);
-});
 
 function waitForRequest(method: string, url: string, bodyMatchingFn: (body: any) => boolean = () => true) {
   return new Promise<Request>((resolve) => {
