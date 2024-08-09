@@ -29,10 +29,11 @@ export class BrowserJoinedConfigGenerator {
         this.remoteConfigFetch &&
         (await this.remoteConfigFetch.getRemoteConfig('analyticsSDK', 'browserSDK', this.config.sessionId));
       this.config.loggerProvider.debug('Remote configuration:', JSON.stringify(remoteConfig, null, 2));
+
+      // merge remoteConfig.autocapture and this.config.autocapture
+      // if a field is in remoteConfig.autocapture, use that value
+      // if a field is not in remoteConfig.autocapture, use the value from this.config.autocapture
       if (remoteConfig && 'autocapture' in remoteConfig) {
-        // merge remoteConfig.autocapture and this.config.autocapture
-        // if a field is in remoteConfig.autocapture, use that value
-        // if a field is not in remoteConfig.autocapture, use the value from this.config.autocapture
         if (typeof remoteConfig.autocapture === 'boolean') {
           this.config.autocapture = remoteConfig.autocapture;
         }
