@@ -381,7 +381,7 @@ describe('destination', () => {
         timeout: 0,
       };
       const request_metadata = new RequestMetadata();
-      request_metadata.recordHistogram('remote_config_fetch_time', 100);
+      request_metadata.recordHistogram('remote_config_fetch_time_API_success', 100);
 
       const transportProvider = {
         send: jest.fn().mockImplementationOnce((_url: string, payload: Payload) => {

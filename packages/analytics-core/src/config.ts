@@ -123,7 +123,7 @@ export class RequestMetadata implements IRequestMetadata {
   constructor() {
     this.sdk = {
       metrics: {
-        histogram: new HistogramOptions(),
+        histogram: {},
       },
     };
   }
@@ -134,5 +134,7 @@ export class RequestMetadata implements IRequestMetadata {
 }
 
 class HistogramOptions implements IHistogramOptions {
-  remote_config_fetch_time?: number;
+  remote_config_fetch_time_IDB?: number;
+  remote_config_fetch_time_API_success?: number;
+  remote_config_fetch_time_API_fail?: number;
 }

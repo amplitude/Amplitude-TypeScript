@@ -12,7 +12,9 @@ describe('joined-config', () => {
   let localConfig: IBrowserConfig;
   let mockRemoteConfigFetch: RemoteConfigFetch<BrowserRemoteConfig>;
   let generator: BrowserJoinedConfigGenerator;
-  const fetchTime = 100;
+  const metrics = {
+    fetchTimeAPISuccess: 100,
+  };
 
   beforeEach(() => {
     localConfig = { ...createConfigurationMock(), defaultTracking: false, autocapture: false };
@@ -22,7 +24,7 @@ describe('joined-config', () => {
         defaultTracking: true,
         autocapture: true,
       }),
-      fetchTime: fetchTime,
+      metrics: metrics,
     };
 
     // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
@@ -73,7 +75,7 @@ describe('joined-config', () => {
         };
         mockRemoteConfigFetch = {
           getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          fetchTime: fetchTime,
+          metrics: metrics,
         };
         // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
         (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
@@ -115,7 +117,7 @@ describe('joined-config', () => {
         };
         mockRemoteConfigFetch = {
           getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          fetchTime: fetchTime,
+          metrics: metrics,
         };
         // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
         (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
@@ -162,7 +164,7 @@ describe('joined-config', () => {
         };
         mockRemoteConfigFetch = {
           getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          fetchTime: fetchTime,
+          metrics: metrics,
         };
         // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
         (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
@@ -195,7 +197,7 @@ describe('joined-config', () => {
         };
         mockRemoteConfigFetch = {
           getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          fetchTime: fetchTime,
+          metrics: metrics,
         };
         // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
         (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
@@ -248,7 +250,79 @@ describe('joined-config', () => {
         generator.config.requestMetadata = requestMetadata;
         const joinedConfig = await generator.generateJoinedConfig();
         expect(joinedConfig.requestMetadata).not.toBeUndefined();
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time).toBe(fetchTime);
+      });
+
+      test('should set remote config fetch time API success', async () => {
+        mockRemoteConfigFetch = {
+          getRemoteConfig: jest.fn().mockResolvedValue({
+            defaultTracking: true,
+            autocapture: true,
+          }),
+          metrics: {
+            fetchTimeAPISuccess: 100,
+          },
+        };
+
+        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
+        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+          mockRemoteConfigFetch,
+        );
+
+        await generator.initialize();
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_success).toBe(100);
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(undefined);
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(undefined);
+      });
+
+      test('should set remote config fetch time API fail', async () => {
+        mockRemoteConfigFetch = {
+          getRemoteConfig: jest.fn().mockResolvedValue({
+            defaultTracking: true,
+            autocapture: true,
+          }),
+          metrics: {
+            fetchTimeAPIFail: 100,
+          },
+        };
+
+        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
+        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+          mockRemoteConfigFetch,
+        );
+
+        await generator.initialize();
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_success).toBe(
+          undefined,
+        );
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(100);
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(undefined);
+      });
+
+      test('should set remote config fetch time IDB', async () => {
+        mockRemoteConfigFetch = {
+          getRemoteConfig: jest.fn().mockResolvedValue({
+            defaultTracking: true,
+            autocapture: true,
+          }),
+          metrics: {
+            fetchTimeIDB: 100,
+          },
+        };
+
+        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
+        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+          mockRemoteConfigFetch,
+        );
+
+        await generator.initialize();
+        const joinedConfig = await generator.generateJoinedConfig();
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_success).toBe(
+          undefined,
+        );
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(undefined);
+        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(100);
       });
     });
   });

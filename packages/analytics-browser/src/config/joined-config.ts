@@ -69,7 +69,24 @@ export class BrowserJoinedConfigGenerator {
 
       this.config.loggerProvider.debug('Joined configuration: ', JSON.stringify(this.config, null, 2));
       this.config.requestMetadata ??= new RequestMetadata();
-      this.config.requestMetadata.recordHistogram('remote_config_fetch_time', this.remoteConfigFetch?.fetchTime);
+      if (this.remoteConfigFetch?.metrics.fetchTimeIDB) {
+        this.config.requestMetadata.recordHistogram(
+          'remote_config_fetch_time_IDB',
+          this.remoteConfigFetch.metrics.fetchTimeIDB,
+        );
+      }
+      if (this.remoteConfigFetch?.metrics.fetchTimeAPISuccess) {
+        this.config.requestMetadata.recordHistogram(
+          'remote_config_fetch_time_API_success',
+          this.remoteConfigFetch.metrics.fetchTimeAPISuccess,
+        );
+      }
+      if (this.remoteConfigFetch?.metrics.fetchTimeAPIFail) {
+        this.config.requestMetadata.recordHistogram(
+          'remote_config_fetch_time_API_fail',
+          this.remoteConfigFetch.metrics.fetchTimeAPIFail,
+        );
+      }
     } catch (e) {
       this.config.loggerProvider.error('Failed to fetch remote configuration because of error: ', e);
     }

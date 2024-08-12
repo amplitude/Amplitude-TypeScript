@@ -90,9 +90,7 @@ export interface Config {
 export interface RequestMetadata {
   sdk: {
     metrics: {
-      histogram: {
-        remote_config_fetch_time?: number;
-      };
+      histogram: HistogramOptions;
     };
   };
 
@@ -100,7 +98,9 @@ export interface RequestMetadata {
 }
 
 export interface HistogramOptions {
-  remote_config_fetch_time?: number;
+  remote_config_fetch_time_IDB?: number;
+  remote_config_fetch_time_API_success?: number;
+  remote_config_fetch_time_API_fail?: number;
 }
 
 export type HistogramKey = keyof HistogramOptions;
