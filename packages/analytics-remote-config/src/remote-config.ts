@@ -6,6 +6,7 @@ import {
   RemoteConfigFetch as IRemoteConfigFetch,
   RemoteConfigAPIResponse,
   RemoteConfigIDBStore,
+  RemoteConfigMetric,
 } from './types';
 
 const UNEXPECTED_NETWORK_ERROR_MESSAGE = 'Network error occurred, remote config fetch failed';
@@ -28,8 +29,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   lastFetchedSessionId: number | undefined;
   sessionTargetingMatch = false;
   configKeys: string[];
-  // Time used to fetch remote config in milliseconds
-  fetchTime = 0;
+  metrics: RemoteConfigMetric = {};
 
   constructor({ localConfig, configKeys }: { localConfig: Config; configKeys: string[] }) {
     this.localConfig = localConfig;
@@ -57,7 +57,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       // Another option is to empty the db if current session doesn't match lastFetchedSessionId
       if (!!lastFetchedSessionId && !!sessionId && lastFetchedSessionId === sessionId) {
         const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
-        this.fetchTime = Date.now() - fetchStartTime;
+        this.metrics.fetchTimeIDB = Date.now() - fetchStartTime;
         return idbRemoteConfig;
       }
     }
@@ -66,11 +66,11 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     if (configAPIResponse) {
       const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
       if (remoteConfig) {
-        this.fetchTime = Date.now() - fetchStartTime;
+        this.metrics.fetchTimeAPISuccess = Date.now() - fetchStartTime;
         return remoteConfig[key];
       }
     }
-    this.fetchTime = Date.now() - fetchStartTime;
+    this.metrics.fetchTimeAPIFail = Date.now() - fetchStartTime;
     return undefined;
   };
 
