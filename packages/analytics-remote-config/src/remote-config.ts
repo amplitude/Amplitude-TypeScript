@@ -29,7 +29,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   lastFetchedSessionId: number | undefined;
   sessionTargetingMatch = false;
   configKeys: string[];
-  metrics: Map<RemoteConfigMetric, string | number> = new Map<RemoteConfigMetric, string | number>();
+  metrics: Map<RemoteConfigMetric, number> = new Map<RemoteConfigMetric, number>();
 
   constructor({ localConfig, configKeys }: { localConfig: Config; configKeys: string[] }) {
     this.localConfig = localConfig;

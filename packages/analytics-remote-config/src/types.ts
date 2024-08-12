@@ -15,7 +15,8 @@ export interface BaseRemoteConfigFetch<T> {
 }
 
 export interface RemoteConfigFetch<T> extends BaseRemoteConfigFetch<T> {
-  metrics: Map<string, string | number>;
+  // Each metric is independent. See RemoteConfigMetric for more information.
+  metrics: Map<RemoteConfigMetric, number>;
 }
 
 export enum RemoteConfigMetric {
