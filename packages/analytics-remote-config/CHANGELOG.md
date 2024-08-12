@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.4...@amplitude/analytics-remote-config@0.3.5) (2024-08-12)
+
+### Bug Fixes
+
+- add metrics field to remote config fetcher ([#847](https://github.com/amplitude/Amplitude-TypeScript/issues/847))
+  ([2098ca1](https://github.com/amplitude/Amplitude-TypeScript/commit/2098ca1c67b315f322ee3bf6e9720a765e1825d6))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.3...@amplitude/analytics-remote-config@0.3.4) (2024-08-01)
 
 ### Bug Fixes

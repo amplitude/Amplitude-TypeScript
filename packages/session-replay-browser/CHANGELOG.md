@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.0...@amplitude/session-replay-browser@1.13.1) (2024-08-12)
+
+### Bug Fixes
+
+- add metrics field to remote config fetcher ([#847](https://github.com/amplitude/Amplitude-TypeScript/issues/847))
+  ([2098ca1](https://github.com/amplitude/Amplitude-TypeScript/commit/2098ca1c67b315f322ee3bf6e9720a765e1825d6))
+- **session replay:** increment event count
+  ([6cce459](https://github.com/amplitude/Amplitude-TypeScript/commit/6cce459beefd5b6425dfa89bfed55cdaa30dcf94))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.12.3...@amplitude/session-replay-browser@1.13.0) (2024-08-06)
 
 ### Bug Fixes
