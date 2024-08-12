@@ -71,7 +71,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     getRemoteConfigMock = jest.fn();
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
-      metrics: new Map(),
+      metrics: {},
     });
     jest.useFakeTimers();
   });

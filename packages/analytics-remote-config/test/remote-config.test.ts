@@ -8,7 +8,7 @@ import {
   createRemoteConfigFetch,
 } from '../src/remote-config';
 import * as RemoteConfigAPIStore from '../src/remote-config-idb-store';
-import { RemoteConfigAPIResponse, RemoteConfigIDBStore, RemoteConfigMetric } from '../src/types';
+import { RemoteConfigAPIResponse, RemoteConfigIDBStore } from '../src/types';
 
 type MockedLogger = jest.Mocked<Logger>;
 
@@ -505,13 +505,13 @@ describe('RemoteConfigFetch', () => {
       expect(remoteConfigFetch).toBeDefined();
     });
 
-    test('should set metrics to an empty map when initialization', async () => {
+    test('should set metrics to an empty object when initialization', async () => {
       const remoteConfigFetch = await createRemoteConfigFetch({ localConfig, configKeys: ['sessionReplay'] });
-      expect(remoteConfigFetch.metrics).toEqual(new Map());
+      expect(remoteConfigFetch.metrics).toEqual({});
     });
   });
 
-  test('should calculate API fetch time', async () => {
+  test('should calculate API fetch time when success', async () => {
     const mockDateNow = jest.spyOn(global.Date, 'now');
     const startTimestamp = 1000;
     const endTimestamp = 2000;
@@ -520,9 +520,21 @@ describe('RemoteConfigFetch', () => {
 
     await initialize();
     await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 456);
-    expect(remoteConfigFetch.metrics).toEqual(
-      new Map([[RemoteConfigMetric.FetchTimeAPI, endTimestamp - startTimestamp]]),
-    );
+    expect(remoteConfigFetch.metrics.fetchTimeAPISuccess).toEqual(endTimestamp - startTimestamp);
+
+    mockDateNow.mockRestore();
+  });
+
+  test('should calculate API fetch time when fail', async () => {
+    const mockDateNow = jest.spyOn(global.Date, 'now');
+    const startTimestamp = 1000;
+    const endTimestamp = 2000;
+    mockDateNow.mockImplementationOnce(() => startTimestamp);
+    mockDateNow.mockImplementationOnce(() => endTimestamp);
+
+    await initialize();
+    await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 42);
+    expect(remoteConfigFetch.metrics.fetchTimeAPIFail).toEqual(endTimestamp - startTimestamp);
 
     mockDateNow.mockRestore();
   });
@@ -536,9 +548,7 @@ describe('RemoteConfigFetch', () => {
 
     await initialize();
     await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 123);
-    expect(remoteConfigFetch.metrics).toEqual(
-      new Map([[RemoteConfigMetric.FetchTimeIDB, endTimestamp - startTimestamp]]),
-    );
+    expect(remoteConfigFetch.metrics.fetchTimeIDB).toEqual(endTimestamp - startTimestamp);
 
     mockDateNow.mockRestore();
   });

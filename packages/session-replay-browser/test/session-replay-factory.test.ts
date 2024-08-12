@@ -8,7 +8,7 @@ describe('session replay factory', () => {
     getRemoteConfigMock = jest.fn();
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
-      metrics: new Map(),
+      metrics: {},
     });
   });
   describe('getLogConfig', () => {

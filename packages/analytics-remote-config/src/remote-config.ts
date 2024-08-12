@@ -29,7 +29,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   lastFetchedSessionId: number | undefined;
   sessionTargetingMatch = false;
   configKeys: string[];
-  metrics: Map<RemoteConfigMetric, number> = new Map<RemoteConfigMetric, number>();
+  metrics: RemoteConfigMetric = {};
 
   constructor({ localConfig, configKeys }: { localConfig: Config; configKeys: string[] }) {
     this.localConfig = localConfig;
@@ -57,7 +57,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       // Another option is to empty the db if current session doesn't match lastFetchedSessionId
       if (!!lastFetchedSessionId && !!sessionId && lastFetchedSessionId === sessionId) {
         const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
-        this.metrics.set(RemoteConfigMetric.FetchTimeIDB, Date.now() - fetchStartTime);
+        this.metrics.fetchTimeIDB = Date.now() - fetchStartTime;
         return idbRemoteConfig;
       }
     }
@@ -66,11 +66,11 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     if (configAPIResponse) {
       const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
       if (remoteConfig) {
-        this.metrics.set(RemoteConfigMetric.FetchTimeAPI, Date.now() - fetchStartTime);
+        this.metrics.fetchTimeAPISuccess = Date.now() - fetchStartTime;
         return remoteConfig[key];
       }
     }
-    this.metrics.set(RemoteConfigMetric.FetchTimeAPI, Date.now() - fetchStartTime);
+    this.metrics.fetchTimeAPIFail = Date.now() - fetchStartTime;
     return undefined;
   };
 

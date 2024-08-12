@@ -82,7 +82,7 @@ describe('module level integration', () => {
     getRemoteConfigMock = jest.fn();
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
-      metrics: new Map(),
+      metrics: {},
     });
     jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
