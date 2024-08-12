@@ -8,7 +8,7 @@ import {
   createRemoteConfigFetch,
 } from '../src/remote-config';
 import * as RemoteConfigAPIStore from '../src/remote-config-idb-store';
-import { RemoteConfigAPIResponse, RemoteConfigIDBStore } from '../src/types';
+import { RemoteConfigAPIResponse, RemoteConfigIDBStore, RemoteConfigMetric } from '../src/types';
 
 type MockedLogger = jest.Mocked<Logger>;
 
@@ -521,7 +521,7 @@ describe('RemoteConfigFetch', () => {
     await initialize();
     await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 456);
     expect(remoteConfigFetch.metrics).toEqual(
-      new Map([['remote_config_fetch_time_API', endTimestamp - startTimestamp]]),
+      new Map([[RemoteConfigMetric.FetchTimeAPI, endTimestamp - startTimestamp]]),
     );
 
     mockDateNow.mockRestore();
@@ -537,7 +537,7 @@ describe('RemoteConfigFetch', () => {
     await initialize();
     await remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config', 123);
     expect(remoteConfigFetch.metrics).toEqual(
-      new Map([['remote_config_fetch_time_IDB', endTimestamp - startTimestamp]]),
+      new Map([[RemoteConfigMetric.FetchTimeIDB, endTimestamp - startTimestamp]]),
     );
 
     mockDateNow.mockRestore();

@@ -18,6 +18,15 @@ export interface RemoteConfigFetch<T> extends BaseRemoteConfigFetch<T> {
   metrics: Map<string, string | number>;
 }
 
+export enum RemoteConfigMetric {
+  // The time, in milliseconds, taken to fetch the last remote config via getRemoteConfig() from IndexedDB.
+  // If multiple remote config fetches occur, this value will be updated to reflect the time of the most recent fetch.
+  FetchTimeIDB = 'remote_config_fetch_time_IDB',
+  // The time, in milliseconds, taken to fetch the last remote config via getRemoteConfig() from API.
+  // If multiple remote config fetches occur, this value will be updated to reflect the time of the most recent fetch.
+  FetchTimeAPI = 'remote_config_fetch_time_API',
+}
+
 export interface RemoteConfigIDBStore<RemoteConfig extends { [key: string]: object }>
   extends BaseRemoteConfigFetch<RemoteConfig> {
   storeRemoteConfig: (remoteConfig: RemoteConfigAPIResponse<RemoteConfig>, sessionId?: number) => Promise<void>;
