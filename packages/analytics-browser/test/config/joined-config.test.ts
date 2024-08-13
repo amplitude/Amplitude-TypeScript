@@ -159,7 +159,7 @@ describe('joined-config', () => {
         generator = new BrowserJoinedConfigGenerator(localConfig);
         const remoteConfig = {
           autocapture: {
-            elementInteractions: false,
+            elementInteractions: true,
           },
         };
         mockRemoteConfigFetch = {
@@ -177,7 +177,7 @@ describe('joined-config', () => {
           formInteractions: false,
           attribution: false,
           pageViews: false,
-          elementInteractions: false,
+          elementInteractions: true,
         };
 
         await generator.initialize();
