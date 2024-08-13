@@ -414,7 +414,7 @@ describe('SessionReplay', () => {
       const result = sessionReplay.getSessionReplayProperties();
       expect(result).toEqual({});
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      expect(mockLoggerProvider.error).toHaveBeenCalled();
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
 
     test('should return an empty object if shouldRecord is false', async () => {
