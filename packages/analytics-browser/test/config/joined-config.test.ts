@@ -211,6 +211,31 @@ describe('joined-config', () => {
         expect(joinedConfig.defaultTracking).toStrictEqual(remoteConfig.autocapture);
       });
 
+      test.each([true, false])(
+        'should overwrite local autocapture if remote autocapture is boolean',
+        async (remoteAutocapture) => {
+          localConfig = createConfigurationMock(createConfigurationMock({}));
+          generator = new BrowserJoinedConfigGenerator(localConfig);
+          const remoteConfig = {
+            autocapture: remoteAutocapture,
+          };
+          mockRemoteConfigFetch = {
+            getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
+            metrics: metrics,
+          };
+          // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
+          (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+            mockRemoteConfigFetch,
+          );
+
+          await generator.initialize();
+          expect(generator.config.autocapture).toBe(undefined);
+          const joinedConfig = await generator.generateJoinedConfig();
+          expect(joinedConfig.autocapture).toStrictEqual(remoteAutocapture);
+          expect(joinedConfig.defaultTracking).toStrictEqual(remoteAutocapture);
+        },
+      );
+
       test('should handle getRemoteConfig error', async () => {
         const error = new Error('Mocked completeRequest error');
         (mockRemoteConfigFetch.getRemoteConfig as jest.Mock).mockRejectedValue(error);
