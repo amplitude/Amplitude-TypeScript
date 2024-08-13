@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.1...@amplitude/session-replay-browser@1.13.2) (2024-08-13)
+
+### Bug Fixes
+
+- **session replay:** change log level of init warning
+  ([542e10a](https://github.com/amplitude/Amplitude-TypeScript/commit/542e10a054f2dda4d41b12c81fc66a96b500f59f))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.0...@amplitude/session-replay-browser@1.13.1) (2024-08-12)
 
 ### Bug Fixes
