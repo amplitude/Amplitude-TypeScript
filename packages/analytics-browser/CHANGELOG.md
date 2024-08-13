@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.10.0...@amplitude/analytics-browser@2.11.0) (2024-08-13)
+
+
+### Features
+
+* support remote config for each autocapture field ([#848](https://github.com/amplitude/Amplitude-TypeScript/issues/848)) ([939d49f](https://github.com/amplitude/Amplitude-TypeScript/commit/939d49f488bda8bbe4fa57cd2a2ab23f75540fc5))
+
+
+
+
+
 # [2.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.9.3...@amplitude/analytics-browser@2.10.0) (2024-08-02)
 
 
