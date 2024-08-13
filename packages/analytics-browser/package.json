@@ -47,7 +47,7 @@
   "dependencies": {
     "@amplitude/analytics-client-common": "^2.3.0",
     "@amplitude/analytics-core": "^2.4.0",
-    "@amplitude/analytics-remote-config": "^0.3.0",
+    "@amplitude/analytics-remote-config": "^0.3.5",
     "@amplitude/analytics-types": "^2.7.0",
     "@amplitude/plugin-autocapture-browser": "^1.0.0",
     "@amplitude/plugin-page-view-tracking-browser": "^2.2.18",
