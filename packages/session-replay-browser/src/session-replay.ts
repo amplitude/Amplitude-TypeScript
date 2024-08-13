@@ -161,7 +161,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   getSessionReplayProperties() {
     if (!this.config || !this.identifiers) {
-      this.loggerProvider.error('Session replay init has not been called, cannot get session replay properties.');
+      this.loggerProvider.warn('Session replay init has not been called, cannot get session replay properties.');
       return {};
     }
 
