@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.3...@amplitude/session-replay-browser@1.13.4) (2024-08-14)
+
+### Bug Fixes
+
+- **session-replay-browser:** support disabling batching for interaction events
+  ([#853](https://github.com/amplitude/Amplitude-TypeScript/issues/853))
+  ([a9a926b](https://github.com/amplitude/Amplitude-TypeScript/commit/a9a926b35f33c11d471fd6102292ae7f101b8f3a))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.2...@amplitude/session-replay-browser@1.13.3) (2024-08-13)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
