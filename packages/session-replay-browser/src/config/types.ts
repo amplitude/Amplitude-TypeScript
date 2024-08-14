@@ -8,6 +8,7 @@ export interface SamplingConfig {
 export interface InteractionConfig {
   trackEveryNms?: number;
   enabled: boolean; // defaults to false
+  batch: boolean; // defaults to false
 }
 
 export type SessionReplayRemoteConfig = {
