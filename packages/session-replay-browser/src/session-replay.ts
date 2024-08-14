@@ -105,13 +105,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     managers.push({ name: 'replay', manager: rrwebEventManager });
 
     if (this.config.interactionConfig?.enabled) {
+      const payloadBatcher = this.config.interactionConfig.batch ? clickBatcher : undefined;
       const interactionEventManager = await createEventsManager<'interaction'>({
         config: this.config,
         sessionId: this.identifiers.sessionId,
         type: 'interaction',
         minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
         maxInterval: INTERACTION_MAX_INTERVAL,
-        payloadBatcher: clickBatcher,
+        payloadBatcher,
       });
       managers.push({ name: 'interaction', manager: interactionEventManager });
     }

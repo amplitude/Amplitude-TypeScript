@@ -201,6 +201,7 @@ describe('SessionReplay', () => {
         },
         async (config: SessionReplayJoinedConfig) => {
           expect(config.interactionConfig?.enabled).toBe(true);
+          expect(config.interactionConfig?.batch).toBeUndefined();
           expect(config.interactionConfig?.trackEveryNms).toBe(500);
         },
       ],
@@ -210,6 +211,7 @@ describe('SessionReplay', () => {
         },
         async (config: SessionReplayJoinedConfig) => {
           expect(config.interactionConfig?.enabled).toBe(true);
+          expect(config.interactionConfig?.batch).toBeUndefined();
           expect(config.interactionConfig?.trackEveryNms).toBeUndefined();
         },
       ],
@@ -220,6 +222,7 @@ describe('SessionReplay', () => {
         },
         async (config: SessionReplayJoinedConfig) => {
           expect(config.interactionConfig?.enabled).toBe(false);
+          expect(config.interactionConfig?.batch).toBeUndefined();
           expect(config.interactionConfig?.trackEveryNms).toBe(1_000);
         },
       ],
@@ -227,6 +230,29 @@ describe('SessionReplay', () => {
         undefined,
         async (config: SessionReplayJoinedConfig) => {
           expect(config.interactionConfig?.enabled).toBeUndefined();
+          expect(config.interactionConfig?.batch).toBeUndefined();
+          expect(config.interactionConfig?.trackEveryNms).toBeUndefined();
+        },
+      ],
+      [
+        {
+          enabled: true,
+          batch: true,
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.interactionConfig?.enabled).toBe(true);
+          expect(config.interactionConfig?.batch).toBe(true);
+          expect(config.interactionConfig?.trackEveryNms).toBeUndefined();
+        },
+      ],
+      [
+        {
+          enabled: true,
+          batch: false,
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.interactionConfig?.enabled).toBe(true);
+          expect(config.interactionConfig?.batch).toBe(false);
           expect(config.interactionConfig?.trackEveryNms).toBeUndefined();
         },
       ],
