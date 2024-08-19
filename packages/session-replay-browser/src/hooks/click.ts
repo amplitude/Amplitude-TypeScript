@@ -28,6 +28,18 @@ type Options = {
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
 
+export const clickNonBatcher: PayloadBatcher = ({ version, events }) => {
+  const clickEvents: ClickEvent[] = [];
+  events.forEach((evt: string) => {
+    const record = JSON.parse(evt) as Record<string, unknown>;
+    record.count = 1;
+    if (record.type === 'click') {
+      clickEvents.push(record as ClickEvent);
+    }
+  });
+  return { version, events: clickEvents };
+};
+
 export const clickBatcher: PayloadBatcher = ({ version, events }) => {
   const clickEvents: ClickEvent[] = [];
   events.forEach((evt: string) => {

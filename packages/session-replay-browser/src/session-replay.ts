@@ -17,7 +17,7 @@ import {
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { generateHashCode, getDebugConfig, getStorageSize, isSessionInSample, maskFn } from './helpers';
-import { clickBatcher, clickHook } from './hooks/click';
+import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
 import {
@@ -105,7 +105,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     managers.push({ name: 'replay', manager: rrwebEventManager });
 
     if (this.config.interactionConfig?.enabled) {
-      const payloadBatcher = this.config.interactionConfig.batch ? clickBatcher : undefined;
+      const payloadBatcher = this.config.interactionConfig.batch ? clickBatcher : clickNonBatcher;
       const interactionEventManager = await createEventsManager<'interaction'>({
         config: this.config,
         sessionId: this.identifiers.sessionId,
