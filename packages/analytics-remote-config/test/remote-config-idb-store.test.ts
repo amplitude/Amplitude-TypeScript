@@ -34,13 +34,10 @@ describe('RemoteConfigIDBStore', () => {
   };
   let remoteConfigStore: IDBPDatabase<unknown>;
   let metaStore: IDBPDatabase<RemoteConfigAPIStore.MetaDB>;
+  let remoteConfigOpenOrCreateMock: jest.SpyInstance;
   beforeEach(async () => {
-    remoteConfigStore = await RemoteConfigAPIStore.openOrCreateRemoteConfigStore('static_key_amp_config', [
-      'sessionReplay',
-    ]);
-    metaStore = await RemoteConfigAPIStore.openOrCreateMetaStore('static_key_amp_config_meta');
     jest.spyOn(RemoteConfigAPIStore, 'openOrCreateMetaStore');
-    jest.spyOn(RemoteConfigAPIStore, 'openOrCreateRemoteConfigStore');
+    remoteConfigOpenOrCreateMock = jest.spyOn(RemoteConfigAPIStore, 'openOrCreateRemoteConfigStore');
     jest.useFakeTimers();
   });
   afterEach(() => {
@@ -65,6 +62,7 @@ describe('RemoteConfigIDBStore', () => {
       const sessionIdTimestamp = new Date('2023-07-27 08:30:00').getTime();
       const currentTime = new Date('2023-07-31 08:30:00').getTime(); // 4 days ahead
       jest.useFakeTimers().setSystemTime(currentTime);
+      metaStore = await RemoteConfigAPIStore.openOrCreateMetaStore('static_key_amp_config_meta');
       await metaStore.put('lastFetchedSessionId', sessionIdTimestamp, 'sessionId');
 
       await RemoteConfigAPIStore.createRemoteConfigIDBStore({
@@ -78,9 +76,51 @@ describe('RemoteConfigIDBStore', () => {
         'sessionReplay',
       ]);
     });
+    test('should setup object stores', async () => {
+      await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        configKeys: ['sessionReplay'],
+      });
+      const remoteConfigDb = (await remoteConfigOpenOrCreateMock.mock.results[0].value) as IDBPDatabase<any>;
+      const objStoreNames = remoteConfigDb.objectStoreNames;
+      console.log('remoteConfigDb', remoteConfigDb, objStoreNames);
+      // remoteConfigDb
+      //   .expect(RemoteConfigAPIStore.openOrCreateRemoteConfigStore)
+      //   .toHaveBeenCalledWith('static_key_amp_config', ['sessionReplay']);
+      expect(remoteConfigDb.objectStoreNames).toEqual(['sessionReplay']);
+    });
+    test.only('should setup multiple object stores if create called more than once with different configKeys', async () => {
+      await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        configKeys: ['sessionReplay'],
+      });
+      await RemoteConfigAPIStore.createRemoteConfigIDBStore({
+        apiKey,
+        loggerProvider: mockLoggerProvider,
+        configKeys: ['analyticsSDK'],
+      });
+      console.log('after create');
+      const remoteConfigDb = (await remoteConfigOpenOrCreateMock.mock.results[1].value) as IDBPDatabase<any>;
+      console.log('remoteConfigDb', remoteConfigDb);
+      // remoteConfigDb
+      //   .expect(RemoteConfigAPIStore.openOrCreateRemoteConfigStore)
+      //   .toHaveBeenCalledWith('static_key_amp_config', ['sessionReplay']);
+      expect(remoteConfigDb.objectStoreNames.contains('sessionReplay')).toBe(true);
+      expect(remoteConfigDb.objectStoreNames.contains('analyticsSDK')).toBe(true);
+    });
   });
 
   describe('getRemoteConfig', () => {
+    beforeEach(async () => {
+      remoteConfigStore = await RemoteConfigAPIStore.openOrCreateRemoteConfigStore(
+        'static_key_amp_config',
+        ['sessionReplay'],
+        1,
+      );
+      metaStore = await RemoteConfigAPIStore.openOrCreateMetaStore('static_key_amp_config_meta');
+    });
     test('should return the remote config from idb store', async () => {
       await remoteConfigStore.put('sessionReplay', samplingConfig.sr_sampling_config, 'sr_sampling_config');
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
@@ -117,6 +157,14 @@ describe('RemoteConfigIDBStore', () => {
   });
 
   describe('remoteConfigHasValues', () => {
+    beforeEach(async () => {
+      remoteConfigStore = await RemoteConfigAPIStore.openOrCreateRemoteConfigStore(
+        'static_key_amp_config',
+        ['sessionReplay'],
+        1,
+      );
+      metaStore = await RemoteConfigAPIStore.openOrCreateMetaStore('static_key_amp_config_meta');
+    });
     test('should return true if remote config is in idb store', async () => {
       await remoteConfigStore.put('sessionReplay', samplingConfig.sr_sampling_config, 'sr_sampling_config');
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
@@ -162,6 +210,14 @@ describe('RemoteConfigIDBStore', () => {
   });
 
   describe('getLastFetchedSessionId', () => {
+    beforeEach(async () => {
+      remoteConfigStore = await RemoteConfigAPIStore.openOrCreateRemoteConfigStore(
+        'static_key_amp_config',
+        ['sessionReplay'],
+        1,
+      );
+      metaStore = await RemoteConfigAPIStore.openOrCreateMetaStore('static_key_amp_config_meta');
+    });
     const sessionIdTimestamp = new Date('2023-07-31 08:30:00').getTime();
     beforeEach(() => {
       jest.useFakeTimers().setSystemTime(sessionIdTimestamp);
@@ -193,6 +249,14 @@ describe('RemoteConfigIDBStore', () => {
   });
 
   describe('storeRemoteConfig', () => {
+    beforeEach(async () => {
+      remoteConfigStore = await RemoteConfigAPIStore.openOrCreateRemoteConfigStore(
+        'static_key_amp_config',
+        ['sessionReplay'],
+        1,
+      );
+      metaStore = await RemoteConfigAPIStore.openOrCreateMetaStore('static_key_amp_config_meta');
+    });
     test('should store the last fetched session id and the remote config', async () => {
       const store = await RemoteConfigAPIStore.createRemoteConfigIDBStore({
         apiKey,
@@ -267,13 +331,13 @@ describe('RemoteConfigIDBStore', () => {
 
     describe('openOrCreateRemoteConfigStore', () => {
       test('should create a remote config db', async () => {
-        await RemoteConfigAPIStore.openOrCreateRemoteConfigStore('myDB', ['sessionReplay']);
+        await RemoteConfigAPIStore.openOrCreateRemoteConfigStore('myDB', ['sessionReplay'], 1);
         expect(IDB.openDB).toHaveBeenCalled();
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         expect((IDB.openDB as jest.Mock).mock.calls[0][0]).toBe('myDB');
       });
       test('should create an object store for session replay', async () => {
-        await RemoteConfigAPIStore.openOrCreateRemoteConfigStore('myDB', ['sessionReplay']);
+        await RemoteConfigAPIStore.openOrCreateRemoteConfigStore('myDB', ['sessionReplay'], 1);
         expect(createObjectStoreMock).toHaveBeenCalledWith('sessionReplay');
       });
     });

@@ -8,26 +8,45 @@ export interface MetaDB extends DBSchema {
     key: string;
     value: number;
   };
+  lastRemoteConfigVersion: {
+    key: string;
+    value: number;
+  };
 }
 
-export const openOrCreateRemoteConfigStore = async (dbName: string, configKeys: string[]) => {
-  return await openDB(dbName, 1, {
+export const openOrCreateRemoteConfigStore = async (dbName: string, configKeys: string[], version: number) => {
+  console.log('open called', version);
+  return await openDB(dbName, version, {
     upgrade: (db) => {
+      console.log('openDB');
       configKeys.forEach((key: string) => {
         if (!db.objectStoreNames.contains(key)) {
           db.createObjectStore(key);
         }
       });
     },
+    blocked: (currentVersion: number, blockedVersion: number) => {
+      console.log('blocked, currentVersion', currentVersion, 'blockedVersion', blockedVersion);
+    },
+    blocking(_currentVersion, _blockedVersion, event) {
+      (event.target as IDBDatabase)?.close();
+    },
   });
 };
 
 export const openOrCreateMetaStore = async (dbName: string) => {
-  return await openDB<MetaDB>(dbName, 1, {
+  return await openDB<MetaDB>(dbName, 2, {
     upgrade: (db) => {
       if (!db.objectStoreNames.contains('lastFetchedSessionId')) {
         db.createObjectStore('lastFetchedSessionId');
       }
+      if (!db.objectStoreNames.contains('lastRemoteConfigVersion')) {
+        db.createObjectStore('lastRemoteConfigVersion');
+      }
+    },
+    blocking(currentVersion, blockedVersion, event) {
+      console.log('blocking, currentVersion', currentVersion, 'blockedVersion', blockedVersion);
+      (event.target as IDBDatabase)?.close();
     },
   });
 };
@@ -41,21 +60,24 @@ export const createRemoteConfigIDBStore = async <RemoteConfig extends { [key: st
   apiKey: string;
   configKeys: string[];
 }): Promise<RemoteConfigIDBStore<RemoteConfig>> => {
-  const remoteConfigDBName = `${apiKey.substring(0, 10)}_amp_config`;
-  let remoteConfigDB = await openOrCreateRemoteConfigStore(remoteConfigDBName, configKeys);
   const metaDBName = `${apiKey.substring(0, 10)}_amp_config_meta`;
   const metaDB = await openOrCreateMetaStore(metaDBName);
+  const remoteConfigVersion = (await metaDB.get('lastRemoteConfigVersion', 'version')) || 1;
+  const remoteConfigDBName = `${apiKey.substring(0, 10)}_amp_config`;
+  let remoteConfigDB = await openOrCreateRemoteConfigStore(remoteConfigDBName, configKeys, remoteConfigVersion + 1);
 
   try {
     const lastFetchedSessionId = await metaDB.get('lastFetchedSessionId', 'sessionId');
     if (lastFetchedSessionId && Date.now() - lastFetchedSessionId >= MAX_IDB_STORAGE_TIME) {
       remoteConfigDB.close();
       await deleteDB(remoteConfigDBName);
-      remoteConfigDB = await openOrCreateRemoteConfigStore(remoteConfigDBName, configKeys);
+      remoteConfigDB = await openOrCreateRemoteConfigStore(remoteConfigDBName, configKeys, remoteConfigVersion);
     }
   } catch (e) {
     loggerProvider.warn(`Failed to reset store: ${e as string}`);
   }
+
+  await metaDB.put('lastRemoteConfigVersion', remoteConfigDB.version, 'version');
 
   const storeRemoteConfig = async (remoteConfig: RemoteConfigAPIResponse<RemoteConfig>, sessionId?: number) => {
     try {
