@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.4...@amplitude/session-replay-browser@1.13.5) (2024-08-19)
+
+### Bug Fixes
+
+- **session-replay-browser:** send proper interaction response
+  ([#854](https://github.com/amplitude/Amplitude-TypeScript/issues/854))
+  ([ffea30a](https://github.com/amplitude/Amplitude-TypeScript/commit/ffea30a0665922d795ab92c666d745e8202ae314))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.3...@amplitude/session-replay-browser@1.13.4) (2024-08-14)
 
 ### Bug Fixes
