@@ -20,9 +20,6 @@ export interface RemoteConfigFetch<T> extends BaseRemoteConfigFetch<T> {
 }
 
 export interface RemoteConfigMetric {
-  // The time, in milliseconds, taken to fetch the last remote config via getRemoteConfig() from IndexedDB.
-  // If multiple remote config fetches occur, this value will be updated to reflect the time of the most recent fetch.
-  fetchTimeIDB?: number;
   // The time, in milliseconds, taken to fetch the last remote config via getRemoteConfig() from API.
   // If multiple remote config fetches occur, this value will be updated to reflect the time of the most recent fetch.
   fetchTimeAPISuccess?: number;
