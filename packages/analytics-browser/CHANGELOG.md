@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.11.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.0...@amplitude/analytics-browser@2.11.1) (2024-08-23)
+
+
+### Bug Fixes
+
+* **browser:** remove fetchIDB from remote config ([91c89d1](https://github.com/amplitude/Amplitude-TypeScript/commit/91c89d16fbdaa8bc6091c7fd193d63314a0da101))
+
+
+
+
+
 # [2.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.10.0...@amplitude/analytics-browser@2.11.0) (2024-08-13)
 
 
