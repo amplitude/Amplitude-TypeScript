@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.5...@amplitude/analytics-remote-config@0.4.0) (2024-08-23)
+
+### Features
+
+- **analytics-remote-config:** remove idb ([#855](https://github.com/amplitude/Amplitude-TypeScript/issues/855))
+  ([d3799ad](https://github.com/amplitude/Amplitude-TypeScript/commit/d3799ada148c6a531164d9dd2b3955fe2bdf8d71))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.4...@amplitude/analytics-remote-config@0.3.5) (2024-08-12)
 
 ### Bug Fixes
