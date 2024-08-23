@@ -324,31 +324,6 @@ describe('joined-config', () => {
         expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(100);
         expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(undefined);
       });
-
-      test('should set remote config fetch time IDB', async () => {
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue({
-            defaultTracking: true,
-            autocapture: true,
-          }),
-          metrics: {
-            fetchTimeIDB: 100,
-          },
-        };
-
-        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
-        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-          mockRemoteConfigFetch,
-        );
-
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_success).toBe(
-          undefined,
-        );
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(undefined);
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(100);
-      });
     });
   });
 

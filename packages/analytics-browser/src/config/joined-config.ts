@@ -69,12 +69,6 @@ export class BrowserJoinedConfigGenerator {
 
       this.config.loggerProvider.debug('Joined configuration: ', JSON.stringify(this.config, null, 2));
       this.config.requestMetadata ??= new RequestMetadata();
-      if (this.remoteConfigFetch?.metrics.fetchTimeIDB) {
-        this.config.requestMetadata.recordHistogram(
-          'remote_config_fetch_time_IDB',
-          this.remoteConfigFetch.metrics.fetchTimeIDB,
-        );
-      }
       if (this.remoteConfigFetch?.metrics.fetchTimeAPISuccess) {
         this.config.requestMetadata.recordHistogram(
           'remote_config_fetch_time_API_success',
