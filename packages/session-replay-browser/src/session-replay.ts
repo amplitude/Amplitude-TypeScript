@@ -416,13 +416,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   getDeviceId() {
-    let identityStoreDeviceId: string | undefined;
-    if (this.config?.instanceName) {
-      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
-      identityStoreDeviceId = identityStore.getIdentity().deviceId;
-    }
-
-    return identityStoreDeviceId || this.identifiers?.deviceId;
+    return this.identifiers?.deviceId;
   }
 
   getSessionId() {
