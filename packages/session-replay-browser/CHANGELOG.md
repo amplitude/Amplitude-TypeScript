@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.14.0-srtargeting.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.6...@amplitude/session-replay-browser@1.14.0-srtargeting.2) (2024-08-23)
+
+### Bug Fixes
+
+- **session replay:** update version
+  ([1bdcde0](https://github.com/amplitude/Amplitude-TypeScript/commit/1bdcde094b45151a720c2d76ba47ad2129d8d043))
+
+### Features
+
+- **session replay:** add ability to capture replays based on targeting via remote config
+  ([3daf644](https://github.com/amplitude/Amplitude-TypeScript/commit/3daf644e3fa471d88c5083375d745ace52b9f4f0))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.5...@amplitude/session-replay-browser@1.13.6) (2024-08-23)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
