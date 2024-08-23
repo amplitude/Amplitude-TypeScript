@@ -1,11 +1,9 @@
 import { BaseTransport } from '@amplitude/analytics-core';
 import { Config, ServerZone, Status } from '@amplitude/analytics-types';
-import * as RemoteConfigAPIStore from './remote-config-idb-store';
 import {
   CreateRemoteConfigFetch,
   RemoteConfigFetch as IRemoteConfigFetch,
   RemoteConfigAPIResponse,
-  RemoteConfigIDBStore,
   RemoteConfigMetric,
 } from './types';
 
@@ -23,7 +21,6 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   implements IRemoteConfigFetch<RemoteConfig>
 {
   localConfig: Config;
-  remoteConfigIDBStore: RemoteConfigIDBStore<RemoteConfig> | undefined;
   retryTimeout = 1000;
   attempts = 0;
   lastFetchedSessionId: number | undefined;
@@ -36,31 +33,12 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     this.configKeys = configKeys;
   }
 
-  async initialize() {
-    this.remoteConfigIDBStore = await RemoteConfigAPIStore.createRemoteConfigIDBStore<RemoteConfig>({
-      apiKey: this.localConfig.apiKey,
-      loggerProvider: this.localConfig.loggerProvider,
-      configKeys: this.configKeys,
-    });
-  }
-
   getRemoteConfig = async <K extends keyof RemoteConfig>(
     configNamespace: string,
     key: K,
     sessionId?: number,
   ): Promise<RemoteConfig[K] | undefined> => {
     const fetchStartTime = Date.now();
-    // First check IndexedDB for session
-    if (this.remoteConfigIDBStore) {
-      const lastFetchedSessionId = await this.remoteConfigIDBStore.getLastFetchedSessionId();
-
-      // Another option is to empty the db if current session doesn't match lastFetchedSessionId
-      if (!!lastFetchedSessionId && !!sessionId && lastFetchedSessionId === sessionId) {
-        const idbRemoteConfig = await this.remoteConfigIDBStore.getRemoteConfig(configNamespace, key);
-        this.metrics.fetchTimeIDB = Date.now() - fetchStartTime;
-        return idbRemoteConfig;
-      }
-    }
     // Finally fetch via API
     const configAPIResponse = await this.fetchWithTimeout(sessionId);
     if (configAPIResponse) {
@@ -110,11 +88,15 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     try {
       const urlParams = new URLSearchParams({
         api_key: this.localConfig.apiKey,
-        config_keys: this.configKeys.join(','),
       });
+      for (const configKey of this.configKeys) {
+        urlParams.append('config_keys', configKey);
+      }
+      if (sessionId) {
+        urlParams.set('session_id', String(sessionId));
+      }
       const options: RequestInit = {
         headers: {
-          'Content-Type': 'application/json',
           Accept: '*/*',
         },
         method: 'GET',
@@ -129,7 +111,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       switch (parsedStatus) {
         case Status.Success:
           this.attempts = 0;
-          return this.parseAndStoreConfig(res, sessionId);
+          return this.parseAndStoreConfig(res);
         case Status.Failed:
           return this.retryFetch(signal, sessionId);
         default:
@@ -152,10 +134,9 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     return this.fetchRemoteConfig(signal, sessionId);
   };
 
-  parseAndStoreConfig = async (res: Response, sessionId?: number): Promise<RemoteConfigAPIResponse<RemoteConfig>> => {
+  parseAndStoreConfig = async (res: Response): Promise<RemoteConfigAPIResponse<RemoteConfig>> => {
     const remoteConfig: RemoteConfigAPIResponse<RemoteConfig> =
       (await res.json()) as RemoteConfigAPIResponse<RemoteConfig>;
-    this.remoteConfigIDBStore && (await this.remoteConfigIDBStore.storeRemoteConfig(remoteConfig, sessionId));
     this.completeRequest({ success: SUCCESS_REMOTE_CONFIG });
     return remoteConfig;
   };
@@ -178,7 +159,5 @@ export const createRemoteConfigFetch: CreateRemoteConfigFetch = async <
   localConfig: Config;
   configKeys: string[];
 }) => {
-  const remoteConfigFetch = new RemoteConfigFetch<RemoteConfig>({ localConfig, configKeys });
-  await remoteConfigFetch.initialize();
-  return remoteConfigFetch;
+  return new RemoteConfigFetch<RemoteConfig>({ localConfig, configKeys });
 };
