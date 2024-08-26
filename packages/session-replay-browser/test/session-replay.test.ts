@@ -925,23 +925,14 @@ describe('SessionReplay', () => {
     test('should return undefined if no config set', () => {
       expect(sessionReplay.getDeviceId()).toEqual(undefined);
     });
-    test('should return device id from identity store if set', async () => {
-      const storedDeviceId = '6t7y8u';
-      jest.spyOn(AnalyticsClientCommon, 'getAnalyticsConnector').mockReturnValue({
-        identityStore: {
-          getIdentity: () => {
-            return {
-              deviceId: storedDeviceId,
-            };
-          },
-        },
-      } as unknown as ReturnType<typeof AnalyticsClientCommon.getAnalyticsConnector>);
-      await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance' }).promise;
-      expect(sessionReplay.getDeviceId()).toEqual(storedDeviceId);
-    });
     test('should return config device id if set', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance' }).promise;
       expect(sessionReplay.getDeviceId()).toEqual(mockOptions.deviceId);
+    });
+    test('should be consistent with session replay id', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance' }).promise;
+      const deviceIdFromSRId = sessionReplay.identifiers?.sessionReplayId?.split('/')[0];
+      expect(sessionReplay.getDeviceId()).toEqual(deviceIdFromSRId);
     });
   });
 
