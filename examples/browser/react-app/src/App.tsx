@@ -4,11 +4,11 @@ import './App.css';
 import { track, identify, setGroup, groupIdentify, Identify } from '@amplitude/analytics-browser';
 
 function App() {
-  useEffect(() => {
-    track('Page View', {
-      name: 'App',
-    });
-  }, []);
+  // useEffect(() => {
+  //   track('Page View', {
+  //     name: 'App',
+  //   });
+  // }, []);
 
   return (
     <div className="App">
