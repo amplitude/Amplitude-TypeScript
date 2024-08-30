@@ -18,6 +18,9 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
   'select',
   'textarea',
   'label',
+  'video',
+  'audio',
+  '[contenteditable="true" i]',
   '[data-amp-default-track]',
   '.amp-default-track',
 ];
@@ -26,6 +29,7 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
  * Default prefix to allo the plugin to capture data attributes as an event property.
  */
 export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
+export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
 export interface ElementInteractionsOptions {
   /**
@@ -65,6 +69,17 @@ export interface ElementInteractionsOptions {
     enabled?: boolean;
     messenger?: Messenger;
   };
+
+  /**
+   * Debounce time in milliseconds for tracking events.
+   * This is used to detect rage clicks.
+   */
+  debounceTime?: number;
+
+  /**
+   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
+   */
+  actionClickAllowlist?: string[];
 }
 
 export interface Messenger {
