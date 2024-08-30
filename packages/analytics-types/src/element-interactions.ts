@@ -26,9 +26,13 @@ export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
 ];
 
 /**
- * Default prefix to allo the plugin to capture data attributes as an event property.
+ * Default prefix to allow the plugin to capture data attributes as an event property.
  */
 export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
+
+/**
+ * Default list of elements on the page should be tracked when the page changes.
+ */
 export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
 export interface ElementInteractionsOptions {
@@ -85,9 +89,4 @@ export interface ElementInteractionsOptions {
 export interface Messenger {
   logger?: Logger;
   setup: () => void;
-}
-
-interface Element {
-  id: string;
-  className: string;
 }
