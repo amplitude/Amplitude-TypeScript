@@ -90,3 +90,8 @@ export interface Messenger {
   logger?: Logger;
   setup: () => void;
 }
+
+interface Element {
+  id: string;
+  className: string;
+}
