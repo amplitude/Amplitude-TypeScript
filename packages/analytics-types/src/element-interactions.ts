@@ -91,6 +91,8 @@ export interface Messenger {
   setup: () => void;
 }
 
+// The [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) type is used when the dom library is included in tsconfig.json
+// This interface is for packages without the dom library, for example, analytics-node
 interface Element {
   id: string;
   className: string;
