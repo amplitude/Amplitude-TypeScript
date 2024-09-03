@@ -16,6 +16,11 @@ export const getLogConfig = (sessionReplay: SessionReplay) => (): LogConfig => {
 const createInstance: () => AmplitudeSessionReplay = () => {
   const sessionReplay = new SessionReplay();
   return {
+    captureEnabled: debugWrapper(
+      sessionReplay.captureEnabled.bind(sessionReplay),
+      'captureEnabled',
+      getLogConfig(sessionReplay),
+    ),
     init: debugWrapper(sessionReplay.init.bind(sessionReplay), 'init', getLogConfig(sessionReplay)),
     setSessionId: debugWrapper(
       sessionReplay.setSessionId.bind(sessionReplay),

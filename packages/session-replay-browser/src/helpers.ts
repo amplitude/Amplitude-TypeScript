@@ -109,12 +109,16 @@ export const generateHashCode = function (str: string) {
   return hash;
 };
 
-export const isSessionInSample = function (sessionId: number, sampleRate: number) {
+export const sampleRateFn = function (sessionId: number) {
   const hashNumber = generateHashCode(sessionId.toString());
   const absHash = Math.abs(hashNumber);
   const absHashMultiply = absHash * 31;
   const mod = absHashMultiply % 1000000;
-  return mod / 1000000 < sampleRate;
+  return mod / 1000000;
+};
+
+export const isSessionInSample = function (sessionId: number, sampleRate: number) {
+  return sampleRateFn(sessionId) < sampleRate;
 };
 
 export const getCurrentUrl = () => {

@@ -70,6 +70,7 @@ export interface SessionIdentifiers {
 export type SessionReplayOptions = Omit<Partial<SessionReplayLocalConfig & SessionIdentifiers>, 'apiKey'>;
 
 export interface AmplitudeSessionReplay {
+  captureEnabled: () => boolean;
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
   setSessionId: (sessionId: number, deviceId?: string) => AmplitudeReturn<void>;
   getSessionId: () => number | undefined;

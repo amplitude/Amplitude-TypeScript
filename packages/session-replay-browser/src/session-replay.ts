@@ -46,9 +46,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
   private scrollHook?: scrollCallback;
+  private _captureEnabled = false;
 
   constructor() {
     this.loggerProvider = new Logger();
+  }
+
+  captureEnabled(): boolean {
+    return this._captureEnabled;
   }
 
   init(apiKey: string, options: SessionReplayOptions) {
@@ -308,7 +313,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     const privacyConfig = this.config.privacyConfig;
 
     this.loggerProvider.log('Session Replay capture beginning.');
-    this.recordCancelCallback = record({
+    this.loggerProvider.log('Session Replay capture beginning.');
+    this._captureEnabled = true;
+    const rrWebCancelCallback = record({
       emit: (event) => {
         if (this.shouldOptOut()) {
           this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
@@ -364,6 +371,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
         return true;
       },
     });
+
+    if (rrWebCancelCallback) {
+      this.recordCancelCallback = () => {
+        this._captureEnabled = false;
+        rrWebCancelCallback();
+      };
+    }
 
     void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
   }
