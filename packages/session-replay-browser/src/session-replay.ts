@@ -124,7 +124,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
 
-    this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
+    this.loggerProvider.log(`Installing @amplitude/session-replay-browser, version: ${VERSION}.`);
 
     this.teardownEventListeners(false);
 
@@ -378,45 +378,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         rrWebCancelCallback();
       };
     }
-
-    void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
   }
-
-  addCustomRRWebEvent = async (
-    eventName: CustomRRwebEvent,
-    eventData: { [key: string]: any } = {},
-    addStorageInfo = true,
-  ) => {
-    try {
-      let debugInfo: DebugInfo | undefined = undefined;
-      if (this.config) {
-        debugInfo = {
-          config: getDebugConfig(this.config),
-          version: VERSION,
-        };
-        if (addStorageInfo) {
-          const storageSizeData = await getStorageSize();
-          debugInfo = {
-            ...storageSizeData,
-            ...debugInfo,
-          };
-        }
-      }
-      // Check first to ensure we are recording
-      if (this.recordCancelCallback) {
-        record.addCustomEvent(eventName, {
-          ...eventData,
-          ...debugInfo,
-        });
-      } else {
-        this.loggerProvider.debug(
-          `Not able to add custom replay capture event ${eventName} due to no ongoing recording.`,
-        );
-      }
-    } catch (e) {
-      this.loggerProvider.debug('Error while adding custom replay capture event: ', e);
-    }
-  };
 
   stopRecordingEvents = () => {
     try {
