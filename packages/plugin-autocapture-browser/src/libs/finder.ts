@@ -272,7 +272,7 @@ function notEmpty<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
-export function* combinations(stack: Knot[][], path: Knot[] = []): Generator<Knot[]> {
+function* combinations(stack: Knot[][], path: Knot[] = []): Generator<Knot[]> {
   if (stack.length > 0) {
     for (const node of stack[0]) {
       yield* combinations(stack.slice(1, stack.length), path.concat(node));
