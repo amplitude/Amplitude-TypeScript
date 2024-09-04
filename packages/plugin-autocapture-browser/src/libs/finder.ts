@@ -132,10 +132,13 @@ function bottomUpSearch(
 }
 
 function findUniquePath(stack: Knot[][], fallback?: () => Path | null): Path | null {
-  const paths = sort(combinations(stack));
-  if (paths.length > config.threshold) {
+  // Check first the total number of combinations first since generating the combinations can cause memory exhaustion
+  const numCombinations = stack.reduce((acc, i) => acc * i.length, 1);
+  if (numCombinations > config.threshold) {
     return fallback ? fallback() : null;
   }
+
+  const paths = sort(combinations(stack));
   for (const candidate of paths) {
     if (unique(candidate)) {
       return candidate;
@@ -269,7 +272,7 @@ function notEmpty<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
 
-function* combinations(stack: Knot[][], path: Knot[] = []): Generator<Knot[]> {
+export function* combinations(stack: Knot[][], path: Knot[] = []): Generator<Knot[]> {
   if (stack.length > 0) {
     for (const node of stack[0]) {
       yield* combinations(stack.slice(1, stack.length), path.concat(node));

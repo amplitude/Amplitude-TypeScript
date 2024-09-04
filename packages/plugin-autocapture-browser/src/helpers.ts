@@ -131,6 +131,7 @@ export const getSelector = (element: Element, logger?: Logger): string => {
   try {
     selector = finder(element, {
       className: (name: string) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
+      maxNumberOfTries: 1000,
     });
     return selector;
   } catch (error) {
