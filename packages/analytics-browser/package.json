@@ -49,7 +49,7 @@
     "@amplitude/analytics-core": "^2.5.0",
     "@amplitude/analytics-remote-config": "^0.4.0",
     "@amplitude/analytics-types": "^2.8.0",
-    "@amplitude/plugin-autocapture-browser": "^1.0.0",
+    "@amplitude/plugin-autocapture-browser": "^1.0.1",
     "@amplitude/plugin-page-view-tracking-browser": "^2.2.20",
     "tslib": "^2.4.1"
   },
