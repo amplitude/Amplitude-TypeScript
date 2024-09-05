@@ -132,10 +132,13 @@ function bottomUpSearch(
 }
 
 function findUniquePath(stack: Knot[][], fallback?: () => Path | null): Path | null {
-  const paths = sort(combinations(stack));
-  if (paths.length > config.threshold) {
+  // Check first the total number of combinations first since generating the combinations can cause memory exhaustion
+  const numCombinations = stack.reduce((acc, i) => acc * i.length, 1);
+  if (numCombinations > config.threshold) {
     return fallback ? fallback() : null;
   }
+
+  const paths = sort(combinations(stack));
   for (const candidate of paths) {
     if (unique(candidate)) {
       return candidate;
