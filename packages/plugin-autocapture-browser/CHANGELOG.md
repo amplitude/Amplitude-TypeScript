@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0...@amplitude/plugin-autocapture-browser@1.0.1) (2024-09-05)
+
+### Bug Fixes
+
+- **autocapture:** prevent potential memory exhaustion when generating combinations
+  ([#863](https://github.com/amplitude/Amplitude-TypeScript/issues/863))
+  ([6fd6495](https://github.com/amplitude/Amplitude-TypeScript/commit/6fd6495d4fa889882b45af844e38cba488c6bc31))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.0.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0-beta.5...@amplitude/plugin-autocapture-browser@1.0.0) (2024-08-01)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
