@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.11.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.1...@amplitude/analytics-browser@2.11.2) (2024-09-05)
+
+
+### Bug Fixes
+
+* **browser:** bump plugin-autocapture-browser package ([#864](https://github.com/amplitude/Amplitude-TypeScript/issues/864)) ([6e14acf](https://github.com/amplitude/Amplitude-TypeScript/commit/6e14acf4e15f09ada5f4a6641997619efd93bc77))
+
+
+
+
+
 ## [2.11.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.0...@amplitude/analytics-browser@2.11.1) (2024-08-23)
 
 
