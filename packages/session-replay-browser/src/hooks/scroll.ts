@@ -19,6 +19,8 @@ export type ScrollEvent = {
   type: 'scroll';
 };
 
+export type ScrollEventPayload = { version: number; events: ScrollEvent[] };
+
 /**
  * This is intended to watch and update max scroll activity when loaded for a particular page.
  * A new instance should be created if the page URL changes, since by default it does not reset
@@ -32,16 +34,16 @@ export class ScrollWatcher {
   private _maxScrollY: number;
   private _maxScrollWidth: number;
   private _maxScrollHeight: number;
-  private readonly transport: BeaconTransport<ScrollEvent>;
+  private readonly transport: BeaconTransport<ScrollEventPayload>;
 
   static default(
     context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>,
     config: SessionReplayJoinedConfig,
   ): ScrollWatcher {
-    return new ScrollWatcher(new BeaconTransport<ScrollEvent>(context, config));
+    return new ScrollWatcher(new BeaconTransport<ScrollEventPayload>(context, config));
   }
 
-  constructor(transport: BeaconTransport<ScrollEvent>) {
+  constructor(transport: BeaconTransport<ScrollEventPayload>) {
     this._maxScrollX = 0;
     this._maxScrollY = 0;
     this._maxScrollWidth = getWindowWidth();
@@ -98,16 +100,21 @@ export class ScrollWatcher {
     const globalScope = getGlobalScope();
     if (globalScope && deviceId) {
       this.transport.send(deviceId, {
-        maxScrollX: this._maxScrollX,
-        maxScrollY: this._maxScrollY,
-        maxScrollWidth: this._maxScrollWidth,
-        maxScrollHeight: this._maxScrollHeight,
+        version: 1,
+        events: [
+          {
+            maxScrollX: this._maxScrollX,
+            maxScrollY: this._maxScrollY,
+            maxScrollWidth: this._maxScrollWidth,
+            maxScrollHeight: this._maxScrollHeight,
 
-        viewportHeight: getWindowHeight(),
-        viewportWidth: getWindowWidth(),
-        pageUrl: globalScope.location.href,
-        timestamp: this.timestamp,
-        type: 'scroll',
+            viewportHeight: getWindowHeight(),
+            viewportWidth: getWindowWidth(),
+            pageUrl: globalScope.location.href,
+            timestamp: this.timestamp,
+            type: 'scroll',
+          },
+        ],
       });
     }
   };
