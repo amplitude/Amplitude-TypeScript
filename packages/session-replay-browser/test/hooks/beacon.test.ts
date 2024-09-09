@@ -19,6 +19,7 @@ describe('beacon', () => {
     let transport: BeaconTransport<TestEvent>;
     let deviceId: string;
     let sessionId: number;
+    let apiKey: string;
 
     const xmlMockFns = {
       open: jest.fn(),
@@ -34,13 +35,16 @@ describe('beacon', () => {
 
       sessionId = Date.now();
       deviceId = randomUUID();
+      apiKey = randomUUID();
 
       transport = new BeaconTransport<TestEvent>(
         {
           sessionId,
           type: 'interaction',
         },
-        {} as SessionReplayJoinedConfig,
+        {
+          apiKey,
+        } as SessionReplayJoinedConfig,
       );
     });
 
@@ -85,7 +89,9 @@ describe('beacon', () => {
             sessionId,
             type: 'interaction',
           },
-          {} as SessionReplayJoinedConfig,
+          {
+            apiKey,
+          } as SessionReplayJoinedConfig,
         );
         transport.send(deviceId, {
           Field1: 'foo',
@@ -93,7 +99,7 @@ describe('beacon', () => {
         });
         expect(xmlMockFns.open).toHaveBeenCalledWith(
           'POST',
-          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction`,
+          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction&api_key=${apiKey}`,
           true,
         );
       });
@@ -104,7 +110,7 @@ describe('beacon', () => {
         });
         expect(xmlMockFns.open).toHaveBeenCalledWith(
           'POST',
-          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction`,
+          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction&api_key=${apiKey}`,
           true,
         );
       });
