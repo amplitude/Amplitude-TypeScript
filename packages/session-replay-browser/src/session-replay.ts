@@ -92,7 +92,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         },
         this.config,
       );
-      this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this))];
+      this.pageLeaveFns = [scrollWatcher.send(this.getDeviceId.bind(this)).bind(scrollWatcher)];
       this.scrollHook = scrollWatcher.hook.bind(scrollWatcher);
     }
 
