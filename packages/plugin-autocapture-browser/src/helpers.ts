@@ -1,9 +1,8 @@
 /* eslint-disable no-restricted-globals */
 import { finder } from './libs/finder';
 import * as constants from './constants';
-import { Logger } from '@amplitude/analytics-types';
-import { AutocaptureOptions, ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
-import { ActionType } from './typings/autocapture';
+import { Logger, ElementInteractionsOptions, ActionType } from '@amplitude/analytics-types';
+import { ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -12,7 +11,7 @@ const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
 
 export const createShouldTrackEvent = (
-  autocaptureOptions: AutocaptureOptions,
+  autocaptureOptions: ElementInteractionsOptions,
   allowlist: string[], // this can be any type of css selector allow list
 ): shouldTrackEvent => {
   return (actionType: ActionType, element: Element) => {

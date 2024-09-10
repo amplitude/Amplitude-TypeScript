@@ -1,8 +1,2 @@
-export {
-  autocapturePlugin as plugin,
-  autocapturePlugin,
-  DEFAULT_CSS_SELECTOR_ALLOWLIST,
-  DEFAULT_DATA_ATTRIBUTE_PREFIX,
-  AutocaptureOptions,
-} from './autocapture-plugin';
-export { Messenger, Action, ActionData, Message, WindowMessenger } from './libs/messenger';
+export { autocapturePlugin as plugin, autocapturePlugin } from './autocapture-plugin';
+export { Action, ActionData, Message, WindowMessenger } from './libs/messenger';
