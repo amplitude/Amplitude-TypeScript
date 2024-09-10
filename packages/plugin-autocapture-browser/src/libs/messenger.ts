@@ -6,13 +6,7 @@ import {
   AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
 } from '../constants';
 import { asyncLoadScript, generateUniqueId, getEventTagProps } from '../helpers';
-import { Logger } from '@amplitude/analytics-types';
-import { ActionType } from '../typings/autocapture';
-
-export interface Messenger {
-  logger?: Logger;
-  setup: () => void;
-}
+import { Logger, Messenger, ActionType } from '@amplitude/analytics-types';
 
 export type Action =
   | 'ping'

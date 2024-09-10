@@ -109,7 +109,7 @@ describe('action clicks:', () => {
     });
 
     test('should track button click even if there is no DOM change', async () => {
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger 2 click events on button
       const realButton = document.getElementById('real-button');
@@ -121,7 +121,7 @@ describe('action clicks:', () => {
     });
 
     test('should not track div click if it does not change the DOM or navigate', async () => {
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click event on div which is acting as a button
       document.getElementById('no-action-div')?.dispatchEvent(new Event('click'));
@@ -131,7 +131,7 @@ describe('action clicks:', () => {
     });
 
     test('should track div click if it causes a DOM change', async () => {
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click event on div which is acting as a button
       document.getElementById('addDivButton')?.dispatchEvent(new Event('click'));
@@ -190,7 +190,7 @@ describe('action clicks:', () => {
     });
 
     test('should not trigger duplicate events if the immediate click target is in the action click allowlist', async () => {
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click event on span in a button
       document.getElementById('button-text')?.dispatchEvent(new Event('click', { bubbles: true }));
@@ -212,7 +212,7 @@ describe('action clicks:', () => {
     });
 
     test('should trigger action click on innermost element', async () => {
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click event on span in a button
       document.getElementById('inner-div-button-text')?.dispatchEvent(new Event('click', { bubbles: true }));
@@ -236,7 +236,7 @@ describe('action clicks:', () => {
       test('should be able to track non-default tags by overwriting default actionClickAllowlist', async () => {
         // Use only div in allowlist
         plugin = autocapturePlugin({ actionClickAllowlist: ['h1'], debounceTime: TESTING_DEBOUNCE_TIME });
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click on card which should result in no event since div is not in the allowlist
         document.querySelector('.card')?.dispatchEvent(new Event('click'));
@@ -268,7 +268,7 @@ describe('action clicks:', () => {
     test('should not track when element type is hidden', async () => {
       // Use only div in allowlist
       plugin = autocapturePlugin({ actionClickAllowlist: ['input'], debounceTime: TESTING_DEBOUNCE_TIME });
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       const input = document.createElement('input');
       input.setAttribute('id', 'my-input-id');

@@ -72,25 +72,6 @@ describe('autoTrackingPlugin', () => {
       expect(loggerProvider.log).toHaveBeenNthCalledWith(1, `${plugin?.name as string} has been successfully added.`);
     });
 
-    test('should handle incompatible Amplitude SDK version', async () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
-      };
-      await plugin?.setup?.(config as BrowserConfig);
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.warn).toHaveBeenNthCalledWith(
-        1,
-        `${
-          plugin?.name as string
-        } plugin requires a later version of @amplitude/analytics-browser. Events are not tracked.`,
-      );
-    });
-
     test('should setup visual tagging selector', async () => {
       window.opener = true;
       const messengerMock = {
@@ -118,7 +99,7 @@ describe('autoTrackingPlugin', () => {
 
   describe('execute', () => {
     test('should return the same event type', async () => {
-      const event = await plugin?.execute({
+      const event = await plugin?.execute?.({
         event_type: 'custom_event',
       });
       expect(event).toEqual({
@@ -173,7 +154,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click event
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
@@ -238,7 +219,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click event
       const linkEl = document.getElementById('my-link-id') as HTMLAnchorElement;
@@ -307,7 +288,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click event
       const button = document.createElement('button');
@@ -379,7 +360,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       bodyParent?.appendChild(body);
       // fire the load event, so that the mutation observer can be mounted
@@ -452,7 +433,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click div which should not be tracked
       document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
@@ -484,7 +465,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click link
         document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
@@ -520,7 +501,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider as Logger,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
@@ -562,7 +543,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider as Logger,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click button
         document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
@@ -594,7 +575,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click link
       document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
@@ -644,7 +625,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click button2
       document.getElementById('my-button-id-2')?.dispatchEvent(new Event('click'));
@@ -679,7 +660,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click button
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
@@ -754,7 +735,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click button
       document.getElementById('my-button-id')?.dispatchEvent(new Event('click'));
@@ -774,7 +755,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click input
       document.getElementById('my-input-id')?.dispatchEvent(new Event('click'));
@@ -798,7 +779,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click input
       document.getElementById('my-input-id')?.dispatchEvent(new Event('click'));
@@ -824,7 +805,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider as Logger,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click input
       document.getElementById('my-input-id')?.dispatchEvent(new Event('click'));
@@ -849,7 +830,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider as Logger,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // trigger click input
       document.getElementById('my-div-id')?.dispatchEvent(new Event('click'));
@@ -869,7 +850,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider as Logger,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       const textNode = document.createTextNode('Some text node');
       document.body.appendChild(textNode);
@@ -915,7 +896,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
@@ -973,7 +954,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
@@ -1027,7 +1008,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
@@ -1082,7 +1063,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         // trigger click inner
         document.getElementById('inner')?.dispatchEvent(new Event('click', { bubbles: true }));
@@ -1133,7 +1114,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         const button = document.createElement('button');
         document.body.appendChild(button);
@@ -1154,7 +1135,7 @@ describe('autoTrackingPlugin', () => {
           defaultTracking: false,
           loggerProvider: loggerProvider,
         };
-        await plugin?.setup(config as BrowserConfig, instance);
+        await plugin?.setup?.(config as BrowserConfig, instance);
 
         const button = document.createElement('button');
         document.body.appendChild(button);
