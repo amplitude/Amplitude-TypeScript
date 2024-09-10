@@ -26,6 +26,7 @@ export class BeaconTransport<T> {
   private sendXhr: BeaconSendFn<T>;
   private readonly basePageUrl: string;
   private readonly context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>;
+  private readonly apiKey: string;
 
   constructor(context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>, config: SessionReplayJoinedConfig) {
     const globalScope = getGlobalScope();
@@ -53,6 +54,7 @@ export class BeaconTransport<T> {
     };
 
     this.basePageUrl = getServerUrl(config.serverZone);
+    this.apiKey = config.apiKey;
     this.context = context;
   }
 
@@ -62,6 +64,7 @@ export class BeaconTransport<T> {
       device_id: deviceId,
       session_id: String(sessionId),
       type: String(type),
+      api_key: this.apiKey,
     });
 
     const pageUrl = `${this.basePageUrl}?${urlParams.toString()}`;

@@ -11,14 +11,18 @@ type TestEvent = {
 jest.mock('@amplitude/analytics-client-common');
 
 describe('beacon', () => {
-  const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
-    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
+  const mockGlobalScope = (globalScope?: Partial<typeof globalThis>): typeof globalThis => {
+    const mockedGlobalScope = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope');
+    mockedGlobalScope.mockReturnValue(globalScope as typeof globalThis);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return AnalyticsClientCommon.getGlobalScope()!;
   };
 
   describe('BeaconTransport', () => {
     let transport: BeaconTransport<TestEvent>;
     let deviceId: string;
     let sessionId: number;
+    let apiKey: string;
 
     const xmlMockFns = {
       open: jest.fn(),
@@ -34,13 +38,16 @@ describe('beacon', () => {
 
       sessionId = Date.now();
       deviceId = randomUUID();
+      apiKey = randomUUID();
 
       transport = new BeaconTransport<TestEvent>(
         {
           sessionId,
           type: 'interaction',
         },
-        {} as SessionReplayJoinedConfig,
+        {
+          apiKey,
+        } as SessionReplayJoinedConfig,
       );
     });
 
@@ -51,7 +58,7 @@ describe('beacon', () => {
     describe('#send', () => {
       test('sends with beacon', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        mockGlobalScope({
+        const mockedGlobalScope = mockGlobalScope({
           navigator: {
             sendBeacon: jest.fn().mockImplementation(() => true),
           },
@@ -63,13 +70,20 @@ describe('beacon', () => {
             sessionId,
             type: 'interaction',
           },
-          {} as SessionReplayJoinedConfig,
+          {
+            apiKey,
+          } as SessionReplayJoinedConfig,
         );
         transport.send(deviceId, {
           Field1: 'foo',
           Field2: 1234,
         });
         expect(xmlMockFns.open).not.toHaveBeenCalled();
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        expect(mockedGlobalScope.navigator.sendBeacon).toHaveBeenCalledWith(
+          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction&api_key=${apiKey}`,
+          JSON.stringify({ Field1: 'foo', Field2: 1234 }),
+        );
       });
       test('falls back to xhr', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -85,7 +99,9 @@ describe('beacon', () => {
             sessionId,
             type: 'interaction',
           },
-          {} as SessionReplayJoinedConfig,
+          {
+            apiKey,
+          } as SessionReplayJoinedConfig,
         );
         transport.send(deviceId, {
           Field1: 'foo',
@@ -93,7 +109,7 @@ describe('beacon', () => {
         });
         expect(xmlMockFns.open).toHaveBeenCalledWith(
           'POST',
-          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction`,
+          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction&api_key=${apiKey}`,
           true,
         );
       });
@@ -104,7 +120,7 @@ describe('beacon', () => {
         });
         expect(xmlMockFns.open).toHaveBeenCalledWith(
           'POST',
-          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction`,
+          `https://api-sr.amplitude.com/sessions/v2/track?device_id=${deviceId}&session_id=${sessionId}&type=interaction&api_key=${apiKey}`,
           true,
         );
       });

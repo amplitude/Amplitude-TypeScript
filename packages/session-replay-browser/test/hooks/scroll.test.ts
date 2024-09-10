@@ -2,7 +2,7 @@
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "expectMaxScrolls"] }] */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { BeaconTransport } from '../../src/beacon-transport';
-import { ScrollEvent, ScrollWatcher } from '../../src/hooks/scroll';
+import { ScrollEventPayload, ScrollWatcher } from '../../src/hooks/scroll';
 import { utils } from '@amplitude/rrweb';
 import { randomUUID } from 'crypto';
 
@@ -33,9 +33,11 @@ describe('scroll', () => {
   };
 
   describe('ScrollWatcher', () => {
-    const mockTransport = BeaconTransport<ScrollEvent> as jest.MockedClass<typeof BeaconTransport<ScrollEvent>>;
+    const mockTransport = BeaconTransport<ScrollEventPayload> as jest.MockedClass<
+      typeof BeaconTransport<ScrollEventPayload>
+    >;
 
-    let mockTransportInstance: BeaconTransport<ScrollEvent>;
+    let mockTransportInstance: BeaconTransport<ScrollEventPayload>;
     let scrollWatcher: ScrollWatcher;
 
     beforeEach(() => {
@@ -84,16 +86,21 @@ describe('scroll', () => {
 
         expect(mockTransport.prototype.send.mock.calls[0][0]).toStrictEqual(deviceId);
         expect(mockTransport.prototype.send.mock.calls[0][1]).toStrictEqual({
-          maxScrollX: 3,
-          maxScrollY: 5,
-          maxScrollWidth: 3,
-          maxScrollHeight: 5,
+          version: 1,
+          events: [
+            {
+              maxScrollX: 3,
+              maxScrollY: 5,
+              maxScrollWidth: 3,
+              maxScrollHeight: 5,
 
-          viewportHeight: 0,
-          viewportWidth: 0,
-          pageUrl: 'http://localhost',
-          timestamp: expect.any(Number),
-          type: 'scroll',
+              viewportHeight: 0,
+              viewportWidth: 0,
+              pageUrl: 'http://localhost',
+              timestamp: expect.any(Number),
+              type: 'scroll',
+            },
+          ],
         });
       });
     });
