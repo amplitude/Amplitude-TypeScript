@@ -71,4 +71,5 @@ export {
   ActionType,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  DEFAULT_ACTION_CLICK_ALLOWLIST,
 } from './element-interactions';
