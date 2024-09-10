@@ -1,5 +1,15 @@
 /* eslint-disable no-restricted-globals */
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
+import {
+  BrowserClient,
+  BrowserConfig,
+  EnrichmentPlugin,
+  Logger,
+  ElementInteractionsOptions,
+  DEFAULT_CSS_SELECTOR_ALLOWLIST,
+  DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  DEFAULT_ACTION_CLICK_ALLOWLIST,
+  ActionType,
+} from '@amplitude/analytics-types';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription } from 'rxjs';
 import {
@@ -11,8 +21,7 @@ import {
   createShouldTrackEvent,
   getClosestElement,
 } from './helpers';
-import { Messenger, WindowMessenger } from './libs/messenger';
-import { ActionType } from './typings/autocapture';
+import { WindowMessenger } from './libs/messenger';
 import { getHierarchy } from './hierarchy';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
@@ -52,77 +61,10 @@ interface NavigateEvent extends Event {
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-export const DEFAULT_CSS_SELECTOR_ALLOWLIST = [
-  'a',
-  'button',
-  'input',
-  'select',
-  'textarea',
-  'label',
-  'video',
-  'audio',
-  '[contenteditable="true" i]',
-  '[data-amp-default-track]',
-  '.amp-default-track',
-];
-export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
-
-export interface AutocaptureOptions {
-  /**
-   * List of CSS selectors to allow auto tracking on.
-   * When provided, allow elements matching any selector to be tracked.
-   * Default is ['a', 'button', 'input', 'select', 'textarea', 'label', '[data-amp-default-track]', '.amp-default-track'].
-   */
-  cssSelectorAllowlist?: string[];
-
-  /**
-   * List of page URLs to allow auto tracking on.
-   * When provided, only allow tracking on these URLs.
-   * Both full URLs and regex are supported.
-   */
-  pageUrlAllowlist?: (string | RegExp)[];
-
-  /**
-   * Function to determine whether an event should be tracked.
-   * When provided, this function overwrites all other allowlists and configurations.
-   * If the function returns true, the event will be tracked.
-   * If the function returns false, the event will not be tracked.
-   * @param actionType - The type of action that triggered the event.
-   * @param element - The element that triggered the event.
-   */
-  shouldTrackEventResolver?: (actionType: ActionType, element: Element) => boolean;
-
-  /**
-   * Prefix for data attributes to allow auto collecting.
-   * Default is 'data-amp-track-'.
-   */
-  dataAttributePrefix?: string;
-
-  /**
-   * Options for integrating visual tagging selector.
-   */
-  visualTaggingOptions?: {
-    enabled?: boolean;
-    messenger?: Messenger;
-  };
-
-  /**
-   * Debounce time in milliseconds for tracking events.
-   * This is used to detect rage clicks.
-   */
-  debounceTime?: number;
-
-  /**
-   * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
-   */
-  actionClickAllowlist?: string[];
-}
-
 export type AutoCaptureOptionsWithDefaults = Required<
-  Pick<AutocaptureOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
+  Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
 > &
-  AutocaptureOptions;
+  ElementInteractionsOptions;
 
 export enum ObservablesEnum {
   ClickObservable = 'clickObservable',
@@ -164,7 +106,7 @@ export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is
   return event.type === 'click' || event.type === 'change';
 }
 
-export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnrichmentPlugin => {
+export const autocapturePlugin = (options: ElementInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {

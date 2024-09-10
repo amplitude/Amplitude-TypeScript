@@ -1,7 +1,6 @@
 import { AllWindowObservables } from 'src/autocapture-plugin';
 import { filter } from 'rxjs';
-import { ActionType } from 'src/typings/autocapture';
-import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserClient, ActionType } from '@amplitude/analytics-types';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CHANGED_EVENT } from '../constants';
 
