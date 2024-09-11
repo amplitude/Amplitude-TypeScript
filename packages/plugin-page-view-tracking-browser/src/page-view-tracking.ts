@@ -161,13 +161,11 @@ export const shouldTrackHistoryPageView = (
   switch (trackingOption) {
     case 'pathOnly': {
       if (oldURLStr == '') return true;
-      else {
-        const newURL = new URL(newURLStr);
-        const oldURL = new URL(oldURLStr);
-        const newHREF = newURL.protocol + '//' + newURL.host + newURL.pathname;
-        const oldHREF = oldURL.protocol + '//' + oldURL.host + oldURL.pathname;
-        return newHREF !== oldHREF;
-      }
+      const newURL = new URL(newURLStr);
+      const oldURL = new URL(oldURLStr);
+      const newBaseStr = newURL.protocol + '//' + newURL.host + newURL.pathname;
+      const oldBaseStr = oldURL.protocol + '//' + oldURL.host + oldURL.pathname;
+      return newBaseStr !== oldBaseStr;
     }
     default:
       return newURLStr !== oldURLStr;
