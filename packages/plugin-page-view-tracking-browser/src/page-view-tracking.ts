@@ -28,26 +28,26 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
       decodedLocationStr = decodeURI(locationStr);
     } catch (e) {
       /* istanbul ignore next */
-      loggerProvider?.log('Malformed URI sequence: ', e);
+      loggerProvider?.error('Malformed URI sequence: ', e);
     }
 
     return decodedLocationStr;
   };
 
   const createPageViewEvent = async (): Promise<Event> => {
-    const locationHref = getDecodeURI(location.href);
+    /* istanbul ignore next */
+    const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
     return {
       event_type: eventType,
       event_properties: {
         ...(await getCampaignParams()),
         '[Amplitude] Page Domain':
           /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-        '[Amplitude] Page Location': /* istanbul ignore next */ (typeof location !== 'undefined' && locationHref) || '',
+        '[Amplitude] Page Location': locationHREF,
         '[Amplitude] Page Path':
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-        '[Amplitude] Page URL':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && locationHref.split('?')[0]) || '',
+        '[Amplitude] Page URL': locationHREF.split('?')[0],
       },
     };
   };
