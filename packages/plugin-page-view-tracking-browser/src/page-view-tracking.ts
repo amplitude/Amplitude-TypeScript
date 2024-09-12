@@ -167,13 +167,19 @@ const isCampaignEvent = (event: Event) => {
 
 export const shouldTrackHistoryPageView = (
   trackingOption: Options['trackHistoryChanges'],
-  newURL: string,
-  oldURL: string,
+  newURLStr: string,
+  oldURLStr: string,
 ): boolean => {
   switch (trackingOption) {
-    case 'pathOnly':
-      return newURL.split('?')[0] !== oldURL.split('?')[0];
+    case 'pathOnly': {
+      if (oldURLStr == '') return true;
+      const newURL = new URL(newURLStr);
+      const oldURL = new URL(oldURLStr);
+      const newBaseStr = newURL.origin + newURL.pathname;
+      const oldBaseStr = oldURL.origin + oldURL.pathname;
+      return newBaseStr !== oldBaseStr;
+    }
     default:
-      return newURL !== oldURL;
+      return newURLStr !== oldURLStr;
   }
 };

@@ -530,7 +530,21 @@ describe('pageViewTrackingPlugin', () => {
     const url1 = 'https://www.example.com/path/to/page';
     const url2 = 'https://www.example.com/path/to/page?query=1';
     expect(shouldTrackHistoryPageView('all', url1, url2)).toBe(true);
-    expect(shouldTrackHistoryPageView('pathOnly', url1, url1)).toBe(false);
+    expect(shouldTrackHistoryPageView('pathOnly', url1, url2)).toBe(false);
+  });
+
+  test('shouldTrackHistoryPageView pathOnly option with hash route', () => {
+    const url1 = 'https://www.example.com/path/to/page';
+    const url2 = 'https://www.example.com/path/to/page#home';
+    expect(shouldTrackHistoryPageView('all', url1, url2)).toBe(true);
+    expect(shouldTrackHistoryPageView('pathOnly', url1, url2)).toBe(false);
+  });
+
+  test('shouldTrackHistoryPageView pathOnly option with null previous url', () => {
+    const url1 = 'https://www.example.com/path/to/page';
+    const url2 = '';
+    expect(shouldTrackHistoryPageView('all', url1, url2)).toBe(true);
+    expect(shouldTrackHistoryPageView('pathOnly', url1, url2)).toBe(true);
   });
 });
 
