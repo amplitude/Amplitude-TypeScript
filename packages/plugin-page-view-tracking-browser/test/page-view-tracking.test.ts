@@ -197,6 +197,167 @@ describe('pageViewTrackingPlugin', () => {
 
       expect(track).toHaveBeenCalledTimes(1);
     });
+
+    test('should track dynamic page view with decoded URI location info', async () => {
+      mockConfig.pageCounter = 0;
+
+      const amplitude = createInstance();
+      const track = jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: '[Amplitude] Page Viewed',
+          },
+        }),
+      });
+
+      const oldURL = new URL('https://www.example.com');
+      mockWindowLocationFromURL(oldURL);
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(mockConfig, amplitude);
+
+      // https://www.example.com/home-шеллы?x=test
+      const newURL = new URL('https://www.example.com/home-%D1%88%D0%B5%D0%BB%D0%BB%D1%8B?x=test');
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(track).toHaveBeenNthCalledWith(1, {
+        event_properties: {
+          '[Amplitude] Page Domain': oldURL.hostname,
+          '[Amplitude] Page Location': oldURL.toString(),
+          '[Amplitude] Page Path': oldURL.pathname,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': oldURL.toString(),
+        },
+        event_type: '[Amplitude] Page Viewed',
+      });
+
+      expect(track).toHaveBeenNthCalledWith(2, {
+        event_properties: {
+          '[Amplitude] Page Domain': newURL.hostname,
+          '[Amplitude] Page Location': 'https://www.example.com/home-шеллы?x=test',
+          '[Amplitude] Page Path': '/home-шеллы',
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': 'https://www.example.com/home-шеллы',
+        },
+        event_type: '[Amplitude] Page Viewed',
+      });
+
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should track dynamic page view with malformed location info', async () => {
+      mockConfig.pageCounter = 0;
+
+      const amplitude = createInstance();
+      const track = jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: '[Amplitude] Page Viewed',
+          },
+        }),
+      });
+
+      const oldURL = new URL('https://www.example.com');
+      mockWindowLocationFromURL(oldURL);
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(mockConfig, amplitude);
+
+      const malformedPath = '/home-%D1%88%D0%B5%D0BB%D0%BB%D1%8B'; // Invalid encoding string
+      const malformedURL = `https://www.example.com${malformedPath}`;
+      const malformedLocation = `https://www.example.com${malformedPath}?x=test`;
+      const newURL = new URL(malformedLocation);
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(track).toHaveBeenNthCalledWith(1, {
+        event_properties: {
+          '[Amplitude] Page Domain': oldURL.hostname,
+          '[Amplitude] Page Location': oldURL.toString(),
+          '[Amplitude] Page Path': oldURL.pathname,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': oldURL.toString(),
+        },
+        event_type: '[Amplitude] Page Viewed',
+      });
+
+      expect(track).toHaveBeenNthCalledWith(2, {
+        event_properties: {
+          '[Amplitude] Page Domain': newURL.hostname,
+          '[Amplitude] Page Location': malformedLocation,
+          '[Amplitude] Page Path': malformedPath,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': malformedURL,
+        },
+        event_type: '[Amplitude] Page Viewed',
+      });
+
+      expect(track).toHaveBeenCalledTimes(2);
+    });
+
+    test('should track dynamic page view with regular location info', async () => {
+      mockConfig.pageCounter = 0;
+
+      const amplitude = createInstance();
+      const track = jest.spyOn(amplitude, 'track').mockReturnValue({
+        promise: Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: '[Amplitude] Page Viewed',
+          },
+        }),
+      });
+
+      const oldURL = new URL('https://www.example.com');
+      mockWindowLocationFromURL(oldURL);
+      const plugin = pageViewTrackingPlugin();
+      await plugin.setup?.(mockConfig, amplitude);
+
+      const newBaseURL = `https://www.example.com/home-shell`;
+      const newURL = new URL(`${newBaseURL}?x=test`);
+      mockWindowLocationFromURL(newURL);
+      window.history.pushState(undefined, newURL.href);
+
+      // Page view tracking on push state executes async
+      // Block event loop for 1s before asserting
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      expect(track).toHaveBeenNthCalledWith(1, {
+        event_properties: {
+          '[Amplitude] Page Domain': oldURL.hostname,
+          '[Amplitude] Page Location': oldURL.toString(),
+          '[Amplitude] Page Path': oldURL.pathname,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': oldURL.toString(),
+        },
+        event_type: '[Amplitude] Page Viewed',
+      });
+
+      expect(track).toHaveBeenNthCalledWith(2, {
+        event_properties: {
+          '[Amplitude] Page Domain': newURL.hostname,
+          '[Amplitude] Page Location': newURL.toString(),
+          '[Amplitude] Page Path': newURL.pathname,
+          '[Amplitude] Page Title': '',
+          '[Amplitude] Page URL': newBaseURL,
+        },
+        event_type: '[Amplitude] Page Viewed',
+      });
+
+      expect(track).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('execute', () => {
