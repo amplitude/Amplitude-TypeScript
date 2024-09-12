@@ -22,20 +22,32 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
   let localConfig: BrowserConfig;
   const { trackOn, trackHistoryChanges, eventType = defaultPageViewEvent } = options;
 
+  const getDecodeURI = (locationStr: string): string => {
+    let decodedLocationStr = locationStr;
+    try {
+      decodedLocationStr = decodeURI(locationStr);
+    } catch (e) {
+      /* istanbul ignore next */
+      loggerProvider?.log('Malformed URI sequence: ', e);
+    }
+
+    return decodedLocationStr;
+  };
+
   const createPageViewEvent = async (): Promise<Event> => {
+    const locationHref = getDecodeURI(location.href);
     return {
       event_type: eventType,
       event_properties: {
         ...(await getCampaignParams()),
         '[Amplitude] Page Domain':
           /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-        '[Amplitude] Page Location':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && location.href) || '',
+        '[Amplitude] Page Location': /* istanbul ignore next */ (typeof location !== 'undefined' && locationHref) || '',
         '[Amplitude] Page Path':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && location.pathname) || '',
+          /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
         '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
         '[Amplitude] Page URL':
-          /* istanbul ignore next */ (typeof location !== 'undefined' && location.href.split('?')[0]) || '',
+          /* istanbul ignore next */ (typeof location !== 'undefined' && locationHref.split('?')[0]) || '',
       },
     };
   };
