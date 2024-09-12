@@ -163,8 +163,8 @@ export const shouldTrackHistoryPageView = (
       if (oldURLStr == '') return true;
       const newURL = new URL(newURLStr);
       const oldURL = new URL(oldURLStr);
-      const newBaseStr = newURL.protocol + '//' + newURL.host + newURL.pathname;
-      const oldBaseStr = oldURL.protocol + '//' + oldURL.host + oldURL.pathname;
+      const newBaseStr = newURL.origin + newURL.pathname;
+      const oldBaseStr = oldURL.origin + oldURL.pathname;
       return newBaseStr !== oldBaseStr;
     }
     default:
