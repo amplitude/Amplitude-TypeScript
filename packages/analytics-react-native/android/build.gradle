@@ -2,7 +2,7 @@ buildscript {
     ext.kotlinVersion = rootProject.ext.has('kotlinVersion') ? rootProject.ext.get('kotlinVersion') : "1.5.30"
     repositories {
         google()
-        jcenter()
+        mavenCentral()
     }
 
     dependencies {
@@ -18,7 +18,29 @@ def safeExtGet(prop, fallback) {
     rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
 }
 
+def isSupportNamespace() {
+    def apgParsed = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.tokenize('.')
+    def agpMajorVersion = apgParsed[0].toInteger()
+    def agpMinorVersion = apgParsed[1].toInteger()
+
+    /**
+     * Namespace is added in AGP 7.3 and is required starting from AGP 8.x.
+     * See: https://developer.android.com/build/releases/past-releases/agp-8-0-0-release-notes#namespace-dsl
+     */
+    return (agpMajorVersion == 7 && agpMinorVersion >= 3) || agpMajorVersion >= 8
+}
+
 android {
+    if (isSupportNamespace()) {
+        namespace "com.amplitude.reactnative"
+
+        sourceSets {
+            main {
+                manifest.srcFile "src/main/AndroidManifestNew.xml"
+            }
+        }
+    }
+
     compileSdkVersion safeExtGet('compileSdkVersion', 29)
     buildToolsVersion safeExtGet('buildToolsVersion', '29.0.2')
     defaultConfig {
