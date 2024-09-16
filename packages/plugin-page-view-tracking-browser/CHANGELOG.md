@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.2.22...@amplitude/plugin-page-view-tracking-browser@2.3.0) (2024-09-16)
+
+
+### Bug Fixes
+
+* fix the pathOnly option ([#869](https://github.com/amplitude/Amplitude-TypeScript/issues/869)) ([2ac566e](https://github.com/amplitude/Amplitude-TypeScript/commit/2ac566e7eef76d0d4328ff55f1516f6eec5636d4))
+
+
+### Features
+
+* decode URI for page view properties ([#870](https://github.com/amplitude/Amplitude-TypeScript/issues/870)) ([aa1cc9d](https://github.com/amplitude/Amplitude-TypeScript/commit/aa1cc9dc93a86eacb5cb03e9c1c8a3d6cf7ed766))
+
+
+
+
+
 ## [2.2.22](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.2.21...@amplitude/plugin-page-view-tracking-browser@2.2.22) (2024-09-10)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
