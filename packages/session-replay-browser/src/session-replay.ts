@@ -97,24 +97,35 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
-    const rrwebEventManager = await createEventsManager<'replay'>({
-      config: this.config,
-      sessionId: this.identifiers.sessionId,
-      type: 'replay',
-    });
-    managers.push({ name: 'replay', manager: rrwebEventManager });
+
+    try {
+      const rrwebEventManager = await createEventsManager<'replay'>({
+        config: this.config,
+        sessionId: this.identifiers.sessionId,
+        type: 'replay',
+      });
+      managers.push({ name: 'replay', manager: rrwebEventManager });
+    } catch (error) {
+      const typedError = error as Error;
+      this.loggerProvider.warn(`Error occurred while creating replay events manager: ${typedError.toString()}`);
+    }
 
     if (this.config.interactionConfig?.enabled) {
       const payloadBatcher = this.config.interactionConfig.batch ? clickBatcher : clickNonBatcher;
-      const interactionEventManager = await createEventsManager<'interaction'>({
-        config: this.config,
-        sessionId: this.identifiers.sessionId,
-        type: 'interaction',
-        minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
-        maxInterval: INTERACTION_MAX_INTERVAL,
-        payloadBatcher,
-      });
-      managers.push({ name: 'interaction', manager: interactionEventManager });
+      try {
+        const interactionEventManager = await createEventsManager<'interaction'>({
+          config: this.config,
+          sessionId: this.identifiers.sessionId,
+          type: 'interaction',
+          minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
+          maxInterval: INTERACTION_MAX_INTERVAL,
+          payloadBatcher,
+        });
+        managers.push({ name: 'interaction', manager: interactionEventManager });
+      } catch (error) {
+        const typedError = error as Error;
+        this.loggerProvider.warn(`Error occurred while creating interaction events manager: ${typedError.toString()}`);
+      }
     }
 
     this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
