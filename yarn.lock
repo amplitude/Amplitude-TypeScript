@@ -76,10 +76,10 @@
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-2.6.0.tgz#00d1957d3f5eecb85e00ef4a1b2f65c497967d46"
   integrity sha512-7MSENvLCTGjec7K45JT+RcOuoPTCvq1MMq/HRLiQK/BMR4taX7f/uXldEc8b//o+ZZP45IBqFroR7Bl8LwJQrQ==
 
-"@amplitude/analytics-types@^2.8.1":
-  version "2.8.1"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-2.8.1.tgz#baf7b23b3bccc72df9ef5b0464f4dd6b82c0f37a"
-  integrity sha512-q+JRrw92VZmCuFzuaL7gBsRidNtqsjLRqNfLNH5RtbKdG6hmx/UEVIGDm/NeLlH4pQokCTHUWeiS+cbmOkgOwQ==
+"@amplitude/analytics-types@^2.8.2":
+  version "2.8.2"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-2.8.2.tgz#aee2b0d42c962d8408056b45b957f18dbb2529ef"
+  integrity sha512-SWFXIMxhFm1/k3PUvxvYLY1iwzS28yd9A6pa5pEnrbaAZwM+E/24ucxs59VGp1N5qlIsvF0aVGSoKzN4ydh4eA==
 
 "@amplitude/experiment-core@0.7.2":
   version "0.7.2"
