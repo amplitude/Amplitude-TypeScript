@@ -233,6 +233,79 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    // In the browser, this would happen in form elements due to named property accessors
+    // form > input[name="id"]
+    // However in jsdom, this behavior is not implemented, so we set the id to the input element itself
+    // Note: in a browser, setting an id directly already casts to a string
+    test('should not error when element properties resolve to an element', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup(config as BrowserConfig, instance);
+
+      // Create scenario where element properties are elements
+      const formEl = document.createElement('form');
+      formEl.id = 'my-form-id';
+      formEl.setAttribute('data-attr', 'testing');
+      document.body.appendChild(formEl);
+
+      const input1 = document.createElement('input');
+      formEl.appendChild(input1);
+
+      // Set attributes to an element to test if they are cast to a string
+      formEl.id = input1 as unknown as string;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      formEl.classList = input1 as unknown as Array<string>;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      formEl.className = input1 as unknown as string;
+      console.log(formEl.classList);
+
+      const submitButton = document.createElement('button');
+      submitButton.setAttribute('type', 'submit');
+      formEl.appendChild(submitButton);
+
+      // trigger click event
+      submitButton?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element Hierarchy': [
+            { attrs: { type: 'submit' }, index: 1, indexOfType: 0, prevSib: 'input', tag: 'button' },
+            {
+              attrs: { 'data-attr': 'testing' },
+              classes: ['[object', 'HTMLInputElement]'],
+              id: '[object HTMLInputElement]',
+              index: 2,
+              indexOfType: 0,
+              prevSib: 'h2',
+              tag: 'form',
+            },
+            { index: 1, indexOfType: 0, prevSib: 'head', tag: 'body' },
+          ],
+        }),
+        { time: expect.any(Number) as number },
+      );
+
+      // stop observer and listeners
+      await plugin?.teardown?.();
+
+      // trigger click event
+      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      // assert no additional event was tracked
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
     test('should track click event properties immediately', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
@@ -636,7 +709,7 @@ describe('autoTrackingPlugin', () => {
 
       plugin = autocapturePlugin({
         shouldTrackEventResolver: (actionType, element) =>
-          actionType === 'click' && element.id === 'my-button-id-1' && element.tagName === 'BUTTON',
+          actionType === 'click' && element.getAttribute('id') === 'my-button-id-1' && element.tagName === 'BUTTON',
         debounceTime: TESTING_DEBOUNCE_TIME,
       });
 

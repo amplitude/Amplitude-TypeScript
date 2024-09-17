@@ -34,7 +34,7 @@ export const createShouldTrackEvent = (
     }
 
     /* istanbul ignore next */
-    const elementType = (element as HTMLInputElement)?.type || '';
+    const elementType = String(element?.getAttribute('type')) || '';
     if (typeof elementType === 'string') {
       switch (elementType.toLowerCase()) {
         case 'hidden':
@@ -146,10 +146,12 @@ export const getSelector = (element: Element, logger?: Logger): string => {
   if (tag) {
     selector = tag;
   }
-  if (element.id) {
-    selector = `#${element.id}`;
-  } else if (element.className) {
-    const classes = element.className
+  const id = element.getAttribute('id');
+  const className = element.getAttribute('class');
+  if (id) {
+    selector = `#${id}`;
+  } else if (className) {
+    const classes = className
       .split(' ')
       .filter((name) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS)
       .join('.');
@@ -209,7 +211,12 @@ export const getNearestLabel = (element: Element): string => {
   if (!parent) {
     return '';
   }
-  const labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
+  let labelElement;
+  try {
+    labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
+  } catch (error) {
+    labelElement = null;
+  }
   if (labelElement) {
     /* istanbul ignore next */
     const labelText = labelElement.textContent || '';
