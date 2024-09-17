@@ -58,7 +58,7 @@ export interface ElementInteractionsOptions {
    * @param actionType - The type of action that triggered the event.
    * @param element - The [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) that triggered the event.
    */
-  shouldTrackEventResolver?: (actionType: ActionType, element: Element) => boolean;
+  shouldTrackEventResolver?: (actionType: ActionType, element: DomElement) => boolean;
 
   /**
    * Prefix for data attributes to allow auto collecting.
@@ -91,9 +91,9 @@ export interface Messenger {
   setup: () => void;
 }
 
-// The [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) type is used when the dom library is included in tsconfig.json
-// This interface is for packages without the dom library, for example, analytics-node
-interface Element {
-  id: string;
-  className: string;
-}
+// DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
+// and never if it is not included
+// eslint-disable-next-line no-restricted-globals
+type DomElement = typeof globalThis extends { Element: infer T extends abstract new (...args: any) => any }
+  ? InstanceType<T>
+  : never;
