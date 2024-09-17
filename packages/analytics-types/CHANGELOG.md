@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.8.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.8.1...@amplitude/analytics-types@2.8.2) (2024-09-17)
+
+
+### Bug Fixes
+
+* **analytics-types:** update Element in element interactions ([#877](https://github.com/amplitude/Amplitude-TypeScript/issues/877)) ([d501ef6](https://github.com/amplitude/Amplitude-TypeScript/commit/d501ef639b915d5a19adb12c63a0ef55d0263e74))
+
+
+
+
+
 ## [2.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.8.0...@amplitude/analytics-types@2.8.1) (2024-09-10)
 
 
