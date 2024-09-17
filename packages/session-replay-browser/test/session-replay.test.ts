@@ -12,6 +12,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { InteractionConfig, SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
 import { CustomRRwebEvent, DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
+import * as SessionReplayEventsManager from '../src/events/events-manager';
 import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
@@ -138,6 +139,39 @@ describe('SessionReplay', () => {
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.maskSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(undefined);
+    });
+
+    test('should catch error and log a warn when initializing', async () => {
+      // enable interaction config
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+          return {
+            enabled: true,
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      // mock the error when creating events managers
+      jest.spyOn(SessionReplayEventsManager, 'createEventsManager').mockImplementation(() => {
+        throw new Error('test error');
+      });
+
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        privacyConfig: {
+          blockSelector: ['AF<S>FA$!@$'],
+          maskSelector: ['AF<S>FA$!@$!!'],
+          unmaskSelector: ['AF<S>FA$!@$@@'],
+        },
+      }).promise;
+
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
 
     test('should setup sdk', async () => {
