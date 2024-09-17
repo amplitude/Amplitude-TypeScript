@@ -52,7 +52,7 @@ describe('networkConnectivityCheckerPlugin', () => {
 
     await plugin.setup?.(config, amplitude);
 
-    expect(config.offline).toEqual(true);
+    expect(config.offline).toEqual(false);
     expect(addEventListenerSpy).not.toHaveBeenCalled();
     addEventListenerSpy.mockRestore();
   });

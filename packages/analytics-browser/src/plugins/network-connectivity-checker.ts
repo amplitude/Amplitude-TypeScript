@@ -37,7 +37,7 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
       config.loggerProvider.debug(
         'Network connectivity checker plugin is disabled because navigator is not available.',
       );
-      config.offline = true;
+      config.offline = false;
       return;
     }
 
