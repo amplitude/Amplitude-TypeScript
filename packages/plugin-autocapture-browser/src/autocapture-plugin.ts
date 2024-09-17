@@ -234,13 +234,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
-    if (!amplitude) {
-      /* istanbul ignore next */
-      config?.loggerProvider?.warn(
-        `${name} plugin requires a later version of @amplitude/analytics-browser. Events are not tracked.`,
-      );
-      return;
-    }
     logger = config.loggerProvider;
 
     /* istanbul ignore if */

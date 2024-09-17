@@ -8,7 +8,6 @@ const TESTING_DEBOUNCE_TIME = 4;
 
 describe('autoTrackingPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
-  const instance = createInstance();
 
   beforeAll(() => {
     Object.defineProperty(window, 'location', {
@@ -71,25 +70,6 @@ describe('autoTrackingPlugin', () => {
       expect(loggerProvider.warn).toHaveBeenCalledTimes(0);
       expect(loggerProvider.log).toHaveBeenCalledTimes(1);
       expect(loggerProvider.log).toHaveBeenNthCalledWith(1, `${plugin?.name as string} has been successfully added.`);
-    });
-
-    test('should handle incompatible Amplitude SDK version', async () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const config: Partial<BrowserConfig> = {
-        defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
-      };
-      await plugin?.setup?.(config as BrowserConfig, instance);
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.warn).toHaveBeenNthCalledWith(
-        1,
-        `${
-          plugin?.name as string
-        } plugin requires a later version of @amplitude/analytics-browser. Events are not tracked.`,
-      );
     });
 
     test('should setup visual tagging selector', async () => {
