@@ -33,6 +33,14 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
   };
 
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
+    if (typeof navigator === 'undefined') {
+      config.loggerProvider.debug(
+        'Network connectivity checker plugin is disabled because navigator is not available.',
+      );
+      config.offline = true;
+      return;
+    }
+
     config.offline = !navigator.onLine;
 
     addNetworkListener('online', () => {
