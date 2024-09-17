@@ -455,7 +455,7 @@ describe('autocapture-plugin helpers', () => {
       `;
 
       const inner = document.getElementById('inner');
-      expect(getClosestElement(inner, ['span', 'div'])?.id).toEqual('inner');
+      expect(getClosestElement(inner, ['span', 'div'])?.getAttribute('id')).toEqual('inner');
     });
 
     test('should return closest element if it matches any selectors', () => {
@@ -472,7 +472,7 @@ describe('autocapture-plugin helpers', () => {
       `;
 
       const inner = document.getElementById('inner');
-      expect(getClosestElement(inner, ['span', '[data-target]'])?.id).toEqual('parent2');
+      expect(getClosestElement(inner, ['span', '[data-target]'])?.getAttribute('id')).toEqual('parent2');
     });
 
     test('should return null when no element matches', () => {

@@ -40,7 +40,7 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
     return null;
   }
 
-  const tagName = element.tagName.toLowerCase();
+  const tagName = String(element.tagName).toLowerCase();
   const properties: HierarchyNode = {
     tag: tagName,
   };
@@ -53,12 +53,12 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
   const prevSiblingTag = element.previousElementSibling?.tagName?.toLowerCase();
   if (prevSiblingTag) {
-    properties.prevSib = prevSiblingTag;
+    properties.prevSib = String(prevSiblingTag);
   }
 
-  const id = element.id;
+  const id = element.getAttribute('id');
   if (id) {
-    properties.id = id;
+    properties.id = String(id);
   }
 
   const classes = Array.from(element.classList);
@@ -72,14 +72,14 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
-  if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes((element as HTMLInputElement).type) && !SVG_TAGS.includes(tagName)) {
+  if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
     for (const attr of filteredAttributes) {
       // If sensitive element, only allow certain attributes
       if (isSensitiveElement && !SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST.includes(attr.name)) {
         continue;
       }
 
-      // Finally limit attribute value length and save it
+      // Finally cast attribute value to string and limit attribute value length
       attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
     }
   }

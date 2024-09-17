@@ -243,8 +243,8 @@ export const autocapturePlugin = (options: AutocaptureOptions = {}): BrowserEnri
     const selector = getSelector(element, logger);
     /* istanbul ignore next */
     const properties: Record<string, any> = {
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.id,
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.className,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
