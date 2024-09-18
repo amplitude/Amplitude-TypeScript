@@ -223,7 +223,7 @@ describe('autoTrackingPlugin', () => {
         defaultTracking: false,
         loggerProvider: loggerProvider,
       };
-      await plugin?.setup(config as BrowserConfig, instance);
+      await plugin?.setup?.(config as BrowserConfig, instance);
 
       // Create scenario where element properties are elements
       const formEl = document.createElement('form');
