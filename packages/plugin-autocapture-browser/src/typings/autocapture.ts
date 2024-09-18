@@ -1,5 +1,3 @@
-export type ActionType = 'click' | 'change';
-
 export type HierarchyNode = {
   tag: string;
   id?: string;
