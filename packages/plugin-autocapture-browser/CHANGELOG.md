@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.1...@amplitude/plugin-autocapture-browser@1.0.2) (2024-09-18)
+
+### Bug Fixes
+
+- **autocapture:** use getAttribute to more safely access attributes and cast properties to string
+  ([#875](https://github.com/amplitude/Amplitude-TypeScript/issues/875))
+  ([9bef4b7](https://github.com/amplitude/Amplitude-TypeScript/commit/9bef4b7aadee113dea870d12ee3cd1ff351eee57))
+- **plugin-autocapture-browser:** import types from analytics-types
+  ([#879](https://github.com/amplitude/Amplitude-TypeScript/issues/879))
+  ([9d00976](https://github.com/amplitude/Amplitude-TypeScript/commit/9d00976708f749dfbf4ad2e4627bd3981fd8fa2a))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.0.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.0...@amplitude/plugin-autocapture-browser@1.0.1) (2024-09-05)
 
 ### Bug Fixes

@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.8...@amplitude/session-replay-browser@1.13.9) (2024-09-18)
+
+### Bug Fixes
+
+- **session-replay-browser:** add tests to cover the fix
+  ([41984c2](https://github.com/amplitude/Amplitude-TypeScript/commit/41984c2ee8384d93ba9d32d3a4fabd3cf75220bf))
+- **session-replay-browser:** handle exceptions when creating an events manager
+  ([0d1043f](https://github.com/amplitude/Amplitude-TypeScript/commit/0d1043fe5db454e45fd7d3b28fcf9bfb247fa445))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.7...@amplitude/session-replay-browser@1.13.8) (2024-09-10)
 
 ### Bug Fixes
