@@ -1,5 +1,5 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { KB_SIZE, MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
+import { KB_SIZE, MASK_TEXT_CLASS, PerformanceMarkMetadata, UNMASK_TEXT_CLASS } from './constants';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
 import { getInputType } from '@amplitude/rrweb-snapshot';
 import { ServerZone } from '@amplitude/analytics-types';
@@ -160,4 +160,64 @@ export const getDebugConfig = (config: SessionReplayJoinedConfig) => {
   const { apiKey } = debugConfig;
   debugConfig.apiKey = `****${apiKey.substring(apiKey.length - 4)}`;
   return debugConfig;
+};
+
+export const getPerformanceMarksByName = (markName: string): PerformanceMark[] => {
+  const entries = performance.getEntriesByName(markName);
+  const isMark = (entry: PerformanceEntry): entry is PerformanceMark => entry.entryType === 'mark';
+  return entries.filter(isMark);
+};
+
+export const getPerformanceStartTime = (name: string): number | undefined => {
+  if (!performance || typeof performance.now !== 'function') {
+    return;
+  }
+  const marks = getPerformanceMarksByName(name);
+  console.log('marks', marks);
+  return marks[0]?.startTime ?? 0;
+};
+
+export const getTimeTaken = (
+  startMark: number | null | undefined,
+  endMark: number | null | undefined,
+): number | undefined => {
+  if (
+    !performance ||
+    typeof startMark !== 'number' ||
+    typeof endMark !== 'number' ||
+    startMark === 0 ||
+    endMark === 0 ||
+    isNaN(startMark) ||
+    isNaN(endMark)
+  ) {
+    return;
+  }
+
+  console.log('startMark', startMark, 'endMark', endMark);
+  return endMark - startMark;
+};
+
+export const createPerformanceMark = (
+  name: string,
+  performanceMarkMetadata: PerformanceMarkMetadata | undefined | null = null,
+) => {
+  if (!performance || typeof performance.mark !== 'function') {
+    return;
+  }
+
+  performance.mark(name, { detail: { ...performanceMarkMetadata } });
+};
+
+export const clearPerformanceMark = (name: string) => {
+  if (!performance || typeof performance.clearMarks !== 'function') {
+    return;
+  }
+
+  performance.clearMarks(name);
+};
+
+export const clearPerformanceMarks = (marks: string[]) => {
+  marks.forEach((mark) => {
+    performance.clearMarks(mark);
+  });
 };
