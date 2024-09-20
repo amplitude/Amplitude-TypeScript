@@ -309,18 +309,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
-  getFullSnapshotPerformance = (event: eventWithTime) => {
+  getFullSnapshotPerformance = (event: eventWithTime): number | null => {
     this.loggerProvider.warn(`event type: ${event.type}`);
     // All other events do not get full snapshot
     if (event.type !== 4 && event.type !== 2) {
       clearPerformanceMarks(['sr-full-snapshot-start', 'sr-full-snapshot-end']);
-      return;
+      return null;
     }
 
     // If event is meta start full snapshot
     if (event.type === 4) {
       createPerformanceMark('sr-full-snapshot-start');
-      return;
+      return null;
     }
 
     // If event is full snapshot, get time and clear marks
@@ -332,10 +332,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider.warn(`Time taken to capture full snapshot: ${fullSnapshotTime || 0}ms.`);
     clearPerformanceMarks(['sr-full-snapshot-start', 'sr-full-snapshot-end']);
 
-    return;
+    return fullSnapshotTime || null;
   };
 
-  compressEvents = (event: eventWithTime): string => {
+  compressEvents = (event: eventWithTime) => {
     createPerformanceMark('sr-event-compression-start');
     const packedEvent = pack(event);
     createPerformanceMark('sr-event-compression-end');
@@ -348,7 +348,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     clearPerformanceMarks(['sr-event-compression-start', 'sr-event-compression-end']);
 
-    return packedEvent;
+    return { packedEvent, recordingTime };
   };
 
   recordEvents() {
@@ -376,7 +376,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
         const deviceId = this.getDeviceId();
         this.eventsManager &&
           deviceId &&
-          this.eventsManager.addEvent({ event: { type: 'replay', data: compressedEvent }, sessionId, deviceId });
+          this.eventsManager.addEvent({
+            event: { type: 'replay', data: compressedEvent.packedEvent },
+            sessionId,
+            deviceId,
+          });
       },
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {
