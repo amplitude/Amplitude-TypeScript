@@ -37,6 +37,7 @@ const samplingConfig = {
 describe('SessionReplay', () => {
   const { record } = RRWeb as MockedRRWeb;
   let originalFetch: typeof global.fetch;
+  let deferEvents: typeof global.requestIdleCallback;
   let globalSpy: jest.SpyInstance;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -117,12 +118,19 @@ describe('SessionReplay', () => {
         status: 200,
       });
     });
+    deferEvents = global.requestIdleCallback;
+    (global.requestIdleCallback as jest.Mock) = jest.fn((callback, options) => {
+      setTimeout(() => {
+        callback();
+      }, (options?.timeout as number) || 0);
+    });
     globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
   });
   afterEach(() => {
     jest.resetAllMocks();
     jest.spyOn(global.Math, 'random').mockRestore();
     global.fetch = originalFetch;
+    global.requestIdleCallback = deferEvents;
     jest.useRealTimers();
   });
   describe('init', () => {
@@ -862,23 +870,74 @@ describe('SessionReplay', () => {
       expect(currentSequenceEvents).toEqual(undefined);
     });
 
-    test('should addEvent to eventManager', async () => {
+    test('should defer event to when recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      // const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+      // .value;
       sessionReplay.recordEvents();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
-      const addEventSpy = jest.spyOn(sessionReplay.eventsManager, 'addEvent');
-      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
-      expect(currentSequenceEvents).toEqual(undefined);
+      // const addEventSpy = jest.spyOn(sessionReplay.eventsManager, 'addEvent');
+      const deferEventSpy = jest.spyOn(sessionReplay, 'deferEventCompression');
+      // const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
+      // expect(currentSequenceEvents).toEqual(undefined);
       const recordArg = record.mock.calls[0][0];
       // Emit event, which is stored in class and IDB
       recordArg?.emit && recordArg?.emit(mockEvent);
+      jest.advanceTimersByTime(2000);
+      expect(deferEventSpy).toHaveBeenCalledTimes(1);
+      expect(deferEventSpy).toHaveBeenCalledWith(mockEvent, mockOptions.sessionId);
+      // expect(addEventSpy).toHaveBeenCalledTimes(1);
+      // expect(addEventSpy).toHaveBeenCalledWith({
+      //   event: { type: 'replay', data: mockEventString },
+      //   sessionId: mockOptions.sessionId,
+      //   deviceId: mockOptions.deviceId,
+      // });
+    });
+
+    test('should call requestIdleCallback when deferring events', async () => {
+      globalSpy = jest
+        .spyOn(AnalyticsClientCommon, 'getGlobalScope')
+        .mockReturnValue({ ...mockGlobalScope, requestIdleCallback: global.requestIdleCallback });
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
+      expect(currentSequenceEvents).toEqual(undefined);
+      const addCompressedEventSpy = jest.spyOn(sessionReplay, 'addCompressedEvents');
+      const compressEventSpy = jest.spyOn(sessionReplay, 'compressEvents');
+
+      sessionReplay.deferEventCompression(mockEvent, 123);
+      jest.advanceTimersByTime(2000);
+
+      expect(compressEventSpy).toHaveBeenCalledTimes(1);
+      expect(addCompressedEventSpy).toHaveBeenCalledTimes(1);
+      expect(addCompressedEventSpy).toHaveBeenCalledWith(mockEvent, mockOptions.sessionId);
+      expect(global.requestIdleCallback).toHaveBeenCalled();
+    });
+
+    test('should add compressed events to event manger', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
+        .value;
+      if (!sessionReplay.eventsManager) {
+        throw new Error('Did not call init');
+      }
+      const addEventSpy = jest.spyOn(sessionReplay.eventsManager, 'addEvent');
+
+      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
+      expect(currentSequenceEvents).toEqual(undefined);
+
+      sessionReplay.addCompressedEvents(mockEvent, 123);
+      const events = sessionReplay.compressEvents(mockEvent);
+
       expect(addEventSpy).toHaveBeenCalledTimes(1);
       expect(addEventSpy).toHaveBeenCalledWith({
-        event: { type: 'replay', data: mockEventString },
+        event: { type: 'replay', data: events },
         sessionId: mockOptions.sessionId,
         deviceId: mockOptions.deviceId,
       });
@@ -1211,4 +1270,15 @@ describe('SessionReplay', () => {
       expect(mockLoggerProvider.debug).toHaveBeenCalled();
     });
   });
+
+  // describe('defer event compression', () => {
+  //   test('should defer event compression', async () => {
+  //     const sessionId = 123
+  //     requestIdleCallback(() => {
+  //       sessionReplay.addCompressedEvents(mockEvent, sessionId)
+  //     }, { timeout: 2000 });
+  //     jest.advanceTimersByTime(2000);
+  //     expect(mockLoggerProvider.log).toHaveBeenCalled();
+  //   });
+  // })
 });

@@ -30,6 +30,7 @@ import {
   SessionReplayOptions,
 } from './typings/session-replay';
 import { VERSION } from './version';
+import type { eventWithTime } from '@amplitude/rrweb-types';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -309,6 +310,36 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
+  compressEvents = (event: eventWithTime) => {
+    const packedEvent = pack(event);
+    return JSON.stringify(packedEvent);
+  };
+
+  addCompressedEvents = (event: eventWithTime, sessionId: number) => {
+    this.loggerProvider.log('Compressing event for session replay: ', event);
+    const compressedEvent = this.compressEvents(event);
+    const deviceId = this.getDeviceId();
+    this.eventsManager &&
+      deviceId &&
+      this.eventsManager.addEvent({ event: { type: 'replay', data: compressedEvent }, sessionId, deviceId });
+  };
+
+  deferEventCompression = (event: eventWithTime, sessionId: number) => {
+    const globalScope = getGlobalScope();
+    // In case the browser does not support requestIdleCallback, we will compress the event immediately
+    if (globalScope && 'requestIdleCallback' in globalScope) {
+      requestIdleCallback(
+        () => {
+          this.loggerProvider.log('Adding event to idle callback queue: ', event);
+          this.addCompressedEvents(event, sessionId);
+        },
+        { timeout: 2000 },
+      ); // Timeout and run after 2 seconds
+    } else {
+      this.addCompressedEvents(event, sessionId);
+    }
+  };
+
   recordEvents() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
@@ -327,13 +358,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.sendEvents();
           return;
         }
-        const eventString = JSON.stringify(event);
-        const deviceId = this.getDeviceId();
-        this.eventsManager &&
-          deviceId &&
-          this.eventsManager.addEvent({ event: { type: 'replay', data: eventString }, sessionId, deviceId });
+
+        this.deferEventCompression(event, sessionId);
       },
-      packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {
         mouseInteraction:
