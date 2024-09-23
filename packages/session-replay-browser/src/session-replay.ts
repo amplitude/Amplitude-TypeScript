@@ -315,8 +315,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return JSON.stringify(packedEvent);
   };
 
-  addCompressedEvents = (event: eventWithTime, sessionId: number) => {
-    this.loggerProvider.log('Compressing event for session replay: ', event);
+  addCompressedEvent = (event: eventWithTime, sessionId: number) => {
+    this.loggerProvider.debug('Compressing event for session replay: ', event);
     const compressedEvent = this.compressEvents(event);
     const deviceId = this.getDeviceId();
     this.eventsManager &&
@@ -324,31 +324,31 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventsManager.addEvent({ event: { type: 'replay', data: compressedEvent }, sessionId, deviceId });
   };
 
-  deferEventCompression = (event: eventWithTime, sessionId: number) => {
-    const globalScope = getGlobalScope();
+  deferEventCompression = (canDelayCompression: boolean | undefined, event: eventWithTime, sessionId: number) => {
     // In case the browser does not support requestIdleCallback, we will compress the event immediately
-    if (globalScope && 'requestIdleCallback' in globalScope) {
+    if (canDelayCompression) {
       requestIdleCallback(
         () => {
-          this.loggerProvider.log('Adding event to idle callback queue: ', event);
-          this.addCompressedEvents(event, sessionId);
+          this.loggerProvider.debug('Adding event to idle callback queue: ', event);
+          this.addCompressedEvent(event, sessionId);
         },
         { timeout: 2000 },
       ); // Timeout and run after 2 seconds
     } else {
-      this.addCompressedEvents(event, sessionId);
+      this.addCompressedEvent(event, sessionId);
     }
   };
 
   recordEvents() {
+    const globalScope = getGlobalScope();
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
+    const canDelayCompression = globalScope && 'requestIdleCallback' in globalScope;
     if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
     this.stopRecordingEvents();
     const privacyConfig = this.config.privacyConfig;
-
     this.loggerProvider.log('Session Replay capture beginning.');
     this.recordCancelCallback = record({
       emit: (event) => {
@@ -359,7 +359,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           return;
         }
 
-        this.deferEventCompression(event, sessionId);
+        this.deferEventCompression(canDelayCompression, event, sessionId);
       },
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {

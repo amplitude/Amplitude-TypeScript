@@ -871,6 +871,9 @@ describe('SessionReplay', () => {
     });
 
     test('should defer event to when recording', async () => {
+      globalSpy = jest
+        .spyOn(AnalyticsClientCommon, 'getGlobalScope')
+        .mockReturnValue({ ...mockGlobalScope, requestIdleCallback: global.requestIdleCallback });
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.recordEvents();
       if (!sessionReplay.eventsManager) {
@@ -884,7 +887,7 @@ describe('SessionReplay', () => {
       jest.advanceTimersByTime(2000);
 
       expect(deferEventSpy).toHaveBeenCalledTimes(1);
-      expect(deferEventSpy).toHaveBeenCalledWith(mockEvent, mockOptions.sessionId);
+      expect(deferEventSpy).toHaveBeenCalledWith(true, mockEvent, mockOptions.sessionId);
     });
 
     test('should call requestIdleCallback when deferring events', async () => {
@@ -899,10 +902,10 @@ describe('SessionReplay', () => {
       }
       const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
       expect(currentSequenceEvents).toEqual(undefined);
-      const addCompressedEventSpy = jest.spyOn(sessionReplay, 'addCompressedEvents');
+      const addCompressedEventSpy = jest.spyOn(sessionReplay, 'addCompressedEvent');
       const compressEventSpy = jest.spyOn(sessionReplay, 'compressEvents');
 
-      sessionReplay.deferEventCompression(mockEvent, 123);
+      sessionReplay.deferEventCompression(true, mockEvent, 123);
       jest.advanceTimersByTime(2000);
 
       expect(compressEventSpy).toHaveBeenCalledTimes(1);
@@ -923,7 +926,7 @@ describe('SessionReplay', () => {
       const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
       expect(currentSequenceEvents).toEqual(undefined);
 
-      sessionReplay.addCompressedEvents(mockEvent, 123);
+      sessionReplay.addCompressedEvent(mockEvent, 123);
       const events = sessionReplay.compressEvents(mockEvent);
 
       expect(addEventSpy).toHaveBeenCalledTimes(1);
