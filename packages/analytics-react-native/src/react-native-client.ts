@@ -34,7 +34,7 @@ import { isNative } from './utils/platform';
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
 
-export class AmplitudeReactNative extends AmplitudeCore {
+export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient {
   appState: AppStateStatus = 'background';
   private appStateChangeHandler: NativeEventSubscription | undefined;
   explicitSessionId: number | undefined;
