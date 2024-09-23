@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.2...@amplitude/plugin-autocapture-browser@1.0.3) (2024-09-23)
+
+### Bug Fixes
+
+- **analytics-react-native:** should export extendSession in client
+  ([#884](https://github.com/amplitude/Amplitude-TypeScript/issues/884))
+  ([ff2e9b5](https://github.com/amplitude/Amplitude-TypeScript/commit/ff2e9b56c71636fec79d56e5a6d2fd3f567a29b3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.0.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.1...@amplitude/plugin-autocapture-browser@1.0.2) (2024-09-18)
 
 ### Bug Fixes

@@ -20,6 +20,7 @@ export const {
   setSessionId,
   setUserId,
   track,
+  extendSession,
 } = client;
 export { Revenue, Identify } from '@amplitude/analytics-core';
 // Hack - react-native apps have trouble with:

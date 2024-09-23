@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.9...@amplitude/analytics-react-native@1.4.10) (2024-09-23)
+
+### Bug Fixes
+
+- **analytics-react-native:** should export extendSession in client
+  ([#884](https://github.com/amplitude/Amplitude-TypeScript/issues/884))
+  ([ff2e9b5](https://github.com/amplitude/Amplitude-TypeScript/commit/ff2e9b56c71636fec79d56e5a6d2fd3f567a29b3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.4.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.8...@amplitude/analytics-react-native@1.4.9) (2024-05-28)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
