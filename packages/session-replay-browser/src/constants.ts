@@ -30,3 +30,7 @@ export enum CustomRRwebEvent {
   GET_SR_PROPS = 'get-sr-props',
   DEBUG_INFO = 'debug-info',
 }
+
+export interface PerformanceMarkMetadata {
+  appId: string;
+}

@@ -16,7 +16,17 @@ import {
 } from './constants';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, getDebugConfig, getStorageSize, isSessionInSample, maskFn } from './helpers';
+import {
+  clearPerformanceMarks,
+  createPerformanceMark,
+  generateHashCode,
+  getDebugConfig,
+  getPerformanceStartTime,
+  getStorageSize,
+  getTimeTaken,
+  isSessionInSample,
+  maskFn,
+} from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -30,6 +40,7 @@ import {
   SessionReplayOptions,
 } from './typings/session-replay';
 import { VERSION } from './version';
+import type { eventWithTime } from '@amplitude/rrweb-types';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -309,6 +320,48 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
+  getFullSnapshotPerformance = (event: eventWithTime): number | null => {
+    this.loggerProvider.warn(`event type: ${event.type}`);
+    // All other events do not get full snapshot
+    if (event.type !== 4 && event.type !== 2) {
+      clearPerformanceMarks(['sr-full-snapshot-start', 'sr-full-snapshot-end']);
+      return null;
+    }
+
+    // If event is meta start full snapshot
+    if (event.type === 4) {
+      createPerformanceMark('sr-full-snapshot-start');
+      return null;
+    }
+
+    // If event is full snapshot, get time and clear marks
+    createPerformanceMark('sr-full-snapshot-end');
+    const fullSnapshotTime = getTimeTaken(
+      getPerformanceStartTime('sr-full-snapshot-start'),
+      getPerformanceStartTime('sr-full-snapshot-end'),
+    );
+    this.loggerProvider.warn(`Time taken to capture full snapshot: ${fullSnapshotTime || 0}ms.`);
+    clearPerformanceMarks(['sr-full-snapshot-start', 'sr-full-snapshot-end']);
+
+    return fullSnapshotTime || null;
+  };
+
+  compressEvents = (event: eventWithTime) => {
+    createPerformanceMark('sr-event-compression-start');
+    const packedEvent = pack(event);
+    createPerformanceMark('sr-event-compression-end');
+
+    const recordingTime = getTimeTaken(
+      getPerformanceStartTime('sr-event-compression-start'),
+      getPerformanceStartTime('sr-event-compression-end'),
+    );
+    this.loggerProvider.warn(`Time taken to record event: ${recordingTime || 0}ms.`);
+
+    clearPerformanceMarks(['sr-event-compression-start', 'sr-event-compression-end']);
+
+    return { packedEvent, recordingTime };
+  };
+
   recordEvents() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
@@ -317,8 +370,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     const privacyConfig = this.config.privacyConfig;
+    createPerformanceMark('sr-event-recording');
 
-    this.loggerProvider.log('Session Replay capture beginning.');
     this.recordCancelCallback = record({
       emit: (event) => {
         if (this.shouldOptOut()) {
@@ -327,13 +380,19 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.sendEvents();
           return;
         }
-        const eventString = JSON.stringify(event);
+
+        this.getFullSnapshotPerformance(event);
+        const compressedEvent = this.compressEvents(event);
+
         const deviceId = this.getDeviceId();
         this.eventsManager &&
           deviceId &&
-          this.eventsManager.addEvent({ event: { type: 'replay', data: eventString }, sessionId, deviceId });
+          this.eventsManager.addEvent({
+            event: { type: 'replay', data: compressedEvent.packedEvent },
+            sessionId,
+            deviceId,
+          });
       },
-      packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {
         mouseInteraction:
