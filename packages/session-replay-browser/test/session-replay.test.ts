@@ -1261,15 +1261,4 @@ describe('SessionReplay', () => {
       expect(mockLoggerProvider.debug).toHaveBeenCalled();
     });
   });
-
-  // describe('defer event compression', () => {
-  //   test('should defer event compression', async () => {
-  //     const sessionId = 123
-  //     requestIdleCallback(() => {
-  //       sessionReplay.addCompressedEvents(mockEvent, sessionId)
-  //     }, { timeout: 2000 });
-  //     jest.advanceTimersByTime(2000);
-  //     expect(mockLoggerProvider.log).toHaveBeenCalled();
-  //   });
-  // })
 });
