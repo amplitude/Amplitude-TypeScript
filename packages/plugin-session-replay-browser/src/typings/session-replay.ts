@@ -9,6 +9,12 @@ export interface SessionReplayPrivacyConfig {
   maskSelector?: string[];
   unmaskSelector?: string[];
 }
+
+export interface SessionReplayPerformanceConfig {
+  enabled: boolean;
+  timeout?: number;
+}
+
 export interface SessionReplayOptions {
   sampleRate?: number;
   privacyConfig?: SessionReplayPrivacyConfig;
@@ -16,4 +22,5 @@ export interface SessionReplayOptions {
   forceSessionTracking?: boolean;
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
+  performanceConfig?: SessionReplayPerformanceConfig;
 }

@@ -1,7 +1,7 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
-import { pack, record } from '@amplitude/rrweb';
+import { record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
@@ -30,6 +30,7 @@ import {
   SessionReplayOptions,
 } from './typings/session-replay';
 import { VERSION } from './version';
+import { EventCompressor } from './events/event-compressor';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -42,6 +43,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
   eventCount = 0;
+  eventCompressor: EventCompressor | undefined;
 
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
@@ -129,6 +131,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
+    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -317,7 +320,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     const privacyConfig = this.config.privacyConfig;
-
     this.loggerProvider.log('Session Replay capture beginning.');
     this.recordCancelCallback = record({
       emit: (event) => {
@@ -327,13 +329,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.sendEvents();
           return;
         }
-        const eventString = JSON.stringify(event);
-        const deviceId = this.getDeviceId();
-        this.eventsManager &&
-          deviceId &&
-          this.eventsManager.addEvent({ event: { type: 'replay', data: eventString }, sessionId, deviceId });
+
+        if (this.eventCompressor) {
+          // Schedule processing during idle time if the browser supports requestIdleCallback
+          this.eventCompressor.enqueueEvent(event, sessionId);
+        }
       },
-      packFn: pack,
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {
         mouseInteraction:

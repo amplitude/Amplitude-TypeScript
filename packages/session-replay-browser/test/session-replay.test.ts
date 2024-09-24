@@ -37,6 +37,7 @@ const samplingConfig = {
 describe('SessionReplay', () => {
   const { record } = RRWeb as MockedRRWeb;
   let originalFetch: typeof global.fetch;
+  let deferEvents: typeof global.requestIdleCallback;
   let globalSpy: jest.SpyInstance;
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
@@ -117,12 +118,19 @@ describe('SessionReplay', () => {
         status: 200,
       });
     });
+    deferEvents = global.requestIdleCallback;
+    (global.requestIdleCallback as jest.Mock) = jest.fn((callback, options) => {
+      setTimeout(() => {
+        callback();
+      }, (options?.timeout as number) || 0);
+    });
     globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
   });
   afterEach(() => {
     jest.resetAllMocks();
     jest.spyOn(global.Math, 'random').mockRestore();
     global.fetch = originalFetch;
+    global.requestIdleCallback = deferEvents;
     jest.useRealTimers();
   });
   describe('init', () => {
@@ -860,28 +868,6 @@ describe('SessionReplay', () => {
       }
       const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
       expect(currentSequenceEvents).toEqual(undefined);
-    });
-
-    test('should addEvent to eventManager', async () => {
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
-      sessionReplay.recordEvents();
-      if (!sessionReplay.eventsManager) {
-        throw new Error('Did not call init');
-      }
-      const addEventSpy = jest.spyOn(sessionReplay.eventsManager, 'addEvent');
-      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
-      expect(currentSequenceEvents).toEqual(undefined);
-      const recordArg = record.mock.calls[0][0];
-      // Emit event, which is stored in class and IDB
-      recordArg?.emit && recordArg?.emit(mockEvent);
-      expect(addEventSpy).toHaveBeenCalledTimes(1);
-      expect(addEventSpy).toHaveBeenCalledWith({
-        event: { type: 'replay', data: mockEventString },
-        sessionId: mockOptions.sessionId,
-        deviceId: mockOptions.deviceId,
-      });
     });
 
     test('should stop recording before starting anew', async () => {
