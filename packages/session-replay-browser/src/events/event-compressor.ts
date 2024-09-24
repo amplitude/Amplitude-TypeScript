@@ -48,9 +48,11 @@ export class EventCompressor {
   // Add an event to the task queue if idle callback is supported or compress the event directly
   public enqueueEvent(event: eventWithTime, sessionId: number): void {
     if (this.canUseIdleCallback && this.config.performanceConfig?.enabled) {
+      this.config.loggerProvider.debug('Enqueuing event for processing during idle time.');
       this.taskQueue.push({ event, sessionId });
       this.scheduleIdleProcessing();
     } else {
+      this.config.loggerProvider.debug('Processing event without idle callback.');
       this.addCompressedEvent(event, sessionId);
     }
   }
