@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.6.25...@amplitude/plugin-session-replay-browser@1.7.0) (2024-09-24)
+
+### Features
+
+- **session replay:** adding timeout into config
+  ([fd67792](https://github.com/amplitude/Amplitude-TypeScript/commit/fd677929ef772b46e103d002230e87fa2d3b587d))
+- **session replay:** performance config for requestIdleCallback
+  ([df7983e](https://github.com/amplitude/Amplitude-TypeScript/commit/df7983ea1d1a255cdb770a0e8cab23f875b5a2ea))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.6.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.6.24...@amplitude/plugin-session-replay-browser@1.6.25) (2024-09-18)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

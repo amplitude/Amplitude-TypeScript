@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.9...@amplitude/session-replay-browser@1.14.0) (2024-09-24)
+
+### Bug Fixes
+
+- **session replay:** add version option into local config generation
+  ([7993104](https://github.com/amplitude/Amplitude-TypeScript/commit/7993104aa194ffe2282b6640a12a2e6a80089665))
+- **session replay:** only check requestIdleCallback on initialization of recording
+  ([d337e2f](https://github.com/amplitude/Amplitude-TypeScript/commit/d337e2f61563d0d5db3739f05102901e096090d5))
+- **session replay:** update and consolidate tests
+  ([000c2cc](https://github.com/amplitude/Amplitude-TypeScript/commit/000c2cc2678d8ce15a63adeeb2367a2ca335ab29))
+
+### Features
+
+- **session replay:** adding timeout into config
+  ([fd67792](https://github.com/amplitude/Amplitude-TypeScript/commit/fd677929ef772b46e103d002230e87fa2d3b587d))
+- **session replay:** performance config for requestIdleCallback
+  ([df7983e](https://github.com/amplitude/Amplitude-TypeScript/commit/df7983ea1d1a255cdb770a0e8cab23f875b5a2ea))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.8...@amplitude/session-replay-browser@1.13.9) (2024-09-18)
 
 ### Bug Fixes
