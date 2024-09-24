@@ -7,6 +7,7 @@ import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   InteractionConfig,
   PrivacyConfig,
+  SessionReplayPerformanceConfig,
   SessionReplayVersion,
 } from './types';
 
@@ -26,6 +27,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
+  performanceConfig?: SessionReplayPerformanceConfig;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -45,6 +47,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.configEndpointUrl = options.configEndpointUrl;
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
+    this.performanceConfig = options.performanceConfig;
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;

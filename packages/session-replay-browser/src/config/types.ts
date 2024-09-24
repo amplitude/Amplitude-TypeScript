@@ -49,6 +49,7 @@ export interface SessionReplayLocalConfig extends Config {
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
+  performanceConfig?: SessionReplayPerformanceConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
@@ -70,6 +71,10 @@ export interface SessionReplayJoinedConfigGenerator {
 export interface SessionReplayVersion {
   version: string;
   type: SessionReplayType;
+}
+
+export interface SessionReplayPerformanceConfig {
+  enabled: boolean;
 }
 
 export type SessionReplayType = 'standalone' | 'plugin' | 'segment';

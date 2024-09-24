@@ -1,7 +1,7 @@
 import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
 import { Logger, returnWrapper } from '@amplitude/analytics-core';
 import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
-import { pack, record } from '@amplitude/rrweb';
+import { record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
@@ -30,7 +30,7 @@ import {
   SessionReplayOptions,
 } from './typings/session-replay';
 import { VERSION } from './version';
-import type { eventWithTime } from '@amplitude/rrweb-types';
+import { EventCompressor } from './events/event-compressor';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -43,6 +43,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
   eventCount = 0;
+  eventCompressor: EventCompressor | undefined;
 
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
@@ -130,6 +131,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
+    this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -310,40 +312,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
-  compressEvents = (event: eventWithTime) => {
-    const packedEvent = pack(event);
-    return JSON.stringify(packedEvent);
-  };
-
-  addCompressedEvent = (event: eventWithTime, sessionId: number) => {
-    this.loggerProvider.debug('Compressing event for session replay: ', event);
-    const compressedEvent = this.compressEvents(event);
-    const deviceId = this.getDeviceId();
-    this.eventsManager &&
-      deviceId &&
-      this.eventsManager.addEvent({ event: { type: 'replay', data: compressedEvent }, sessionId, deviceId });
-  };
-
-  deferEventCompression = (canDelayCompression: boolean | undefined, event: eventWithTime, sessionId: number) => {
-    // In case the browser does not support requestIdleCallback, we will compress the event immediately
-    if (canDelayCompression) {
-      requestIdleCallback(
-        () => {
-          this.loggerProvider.debug('Adding event to idle callback queue: ', event);
-          this.addCompressedEvent(event, sessionId);
-        },
-        { timeout: 2000 },
-      ); // Timeout and run after 2 seconds
-    } else {
-      this.addCompressedEvent(event, sessionId);
-    }
-  };
-
   recordEvents() {
-    const globalScope = getGlobalScope();
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
-    const canDelayCompression = globalScope && 'requestIdleCallback' in globalScope;
+    // const canDelayCompression = globalScope && 'requestIdleCallback' in globalScope;
     if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
@@ -359,7 +331,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
           return;
         }
 
-        this.deferEventCompression(canDelayCompression, event, sessionId);
+        if (this.eventCompressor) {
+          // Schedule processing during idle time if the browser supports requestIdleCallback
+          this.eventCompressor.enqueueEvent(event, sessionId);
+        }
       },
       inlineStylesheet: this.config.shouldInlineStylesheet,
       hooks: {
