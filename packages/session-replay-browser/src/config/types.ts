@@ -75,6 +75,7 @@ export interface SessionReplayVersion {
 
 export interface SessionReplayPerformanceConfig {
   enabled: boolean;
+  timeout?: number;
 }
 
 export type SessionReplayType = 'standalone' | 'plugin' | 'segment';

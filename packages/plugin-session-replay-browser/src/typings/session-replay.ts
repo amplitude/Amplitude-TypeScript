@@ -12,6 +12,7 @@ export interface SessionReplayPrivacyConfig {
 
 export interface SessionReplayPerformanceConfig {
   enabled: boolean;
+  timeout?: number;
 }
 
 export interface SessionReplayOptions {

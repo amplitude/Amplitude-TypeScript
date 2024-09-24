@@ -9,6 +9,7 @@ interface TaskQueue {
   sessionId: number;
 }
 
+const DEFAULT_TIMEOUT = 2000;
 export class EventCompressor {
   taskQueue: TaskQueue[] = [];
   isProcessing = false;
@@ -16,6 +17,7 @@ export class EventCompressor {
   config: SessionReplayJoinedConfig;
   deviceId: string | undefined;
   canUseIdleCallback: boolean | undefined;
+  timeout: number;
 
   constructor(
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
@@ -27,6 +29,7 @@ export class EventCompressor {
     this.eventsManager = eventsManager;
     this.config = config;
     this.deviceId = deviceId;
+    this.timeout = config.performanceConfig?.timeout || DEFAULT_TIMEOUT;
   }
 
   // Schedule processing during idle time
@@ -37,7 +40,7 @@ export class EventCompressor {
         (idleDeadline) => {
           this.processQueue(idleDeadline);
         },
-        { timeout: 2000 },
+        { timeout: this.timeout },
       );
     }
   }
@@ -69,20 +72,20 @@ export class EventCompressor {
         (idleDeadline) => {
           this.processQueue(idleDeadline);
         },
-        { timeout: 2000 },
+        { timeout: this.timeout },
       );
     } else {
       this.isProcessing = false;
     }
   }
 
-  compressEvents = (event: eventWithTime) => {
+  compressEvent = (event: eventWithTime) => {
     const packedEvent = pack(event);
     return JSON.stringify(packedEvent);
   };
 
   public addCompressedEvent = (event: eventWithTime, sessionId: number) => {
-    const compressedEvent = this.compressEvents(event);
+    const compressedEvent = this.compressEvent(event);
 
     if (this.eventsManager && this.deviceId) {
       this.eventsManager.addEvent({

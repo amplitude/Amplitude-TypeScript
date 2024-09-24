@@ -315,7 +315,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
   recordEvents() {
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
-    // const canDelayCompression = globalScope && 'requestIdleCallback' in globalScope;
     if (!shouldRecord || !sessionId || !this.config) {
       return;
     }

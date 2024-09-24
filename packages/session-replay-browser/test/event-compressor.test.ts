@@ -39,6 +39,7 @@ describe('EventCompressor', () => {
     sampleRate: 1,
     performanceConfig: {
       enabled: true,
+      timeout: 2000,
     },
   });
 
