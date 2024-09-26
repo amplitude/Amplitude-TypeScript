@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.11.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.6...@amplitude/analytics-browser@2.11.7) (2024-09-26)
+
+
+### Bug Fixes
+
+* disable network checker if navigator is unavailable ([1e0456e](https://github.com/amplitude/Amplitude-TypeScript/commit/1e0456eb4eb780d8ad100487cc06a7a768c75bfe))
+
+
+
+
+
 ## [2.11.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.5...@amplitude/analytics-browser@2.11.6) (2024-09-18)
 
 
