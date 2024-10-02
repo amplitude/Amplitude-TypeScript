@@ -1102,13 +1102,6 @@ describe('SessionReplay', () => {
     });
   });
 
-  describe('getSessionReplayDebugPropertyValue', () => {
-    test('null config', () => {
-      sessionReplay.config = undefined;
-      expect(sessionReplay.getSessionReplayDebugPropertyValue()).toBe('{"appHash":""}');
-    });
-  });
-
   describe('addCustomRRWebEvent', () => {
     test('should add custom event if null config', async () => {
       sessionReplay.config = undefined;

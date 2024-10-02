@@ -164,18 +164,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.recordEvents();
   }
 
-  getSessionReplayDebugPropertyValue() {
-    let apiKeyHash = '';
-    if (this.config) {
-      apiKeyHash = generateHashCode(this.config.apiKey).toString();
-    }
-    return JSON.stringify({
-      appHash: apiKeyHash,
-    });
-  }
-
   getSessionReplayProperties() {
-    if (!this.config || !this.identifiers) {
+    const config = this.config;
+    const identifiers = this.identifiers;
+    if (!config || !identifiers) {
       this.loggerProvider.warn('Session replay init has not been called, cannot get session replay properties.');
       return {};
     }
@@ -185,10 +177,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     if (shouldRecord) {
       eventProperties = {
-        [DEFAULT_SESSION_REPLAY_PROPERTY]: this.identifiers.sessionReplayId ? this.identifiers.sessionReplayId : null,
+        [DEFAULT_SESSION_REPLAY_PROPERTY]: identifiers.sessionReplayId ? identifiers.sessionReplayId : null,
       };
-      if (this.config.debugMode) {
-        eventProperties[SESSION_REPLAY_DEBUG_PROPERTY] = this.getSessionReplayDebugPropertyValue();
+      if (config.debugMode) {
+        eventProperties[SESSION_REPLAY_DEBUG_PROPERTY] = JSON.stringify({
+          appHash: generateHashCode(config.apiKey).toString(),
+        });
       }
     }
 
@@ -313,14 +307,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
   }
 
   recordEvents() {
+    const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
-    if (!shouldRecord || !sessionId || !this.config) {
+    if (!shouldRecord || !sessionId || !config) {
       return;
     }
     this.stopRecordingEvents();
-    const privacyConfig = this.config.privacyConfig;
-    this.loggerProvider.log('Session Replay capture beginning.');
+    const { privacyConfig } = config;
+
+    this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
     this.recordCancelCallback = record({
       emit: (event) => {
         if (this.shouldOptOut()) {
@@ -335,7 +331,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           this.eventCompressor.enqueueEvent(event, sessionId);
         }
       },
-      inlineStylesheet: this.config.shouldInlineStylesheet,
+      inlineStylesheet: config.shouldInlineStylesheet,
       hooks: {
         mouseInteraction:
           this.eventsManager &&
@@ -387,9 +383,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
   ) => {
     try {
       let debugInfo: DebugInfo | undefined = undefined;
-      if (this.config) {
+      const config = this.config;
+      if (config) {
         debugInfo = {
-          config: getDebugConfig(this.config),
+          config: getDebugConfig(config),
           version: VERSION,
         };
         if (addStorageInfo) {
