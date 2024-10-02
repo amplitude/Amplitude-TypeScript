@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.4.0...@amplitude/analytics-remote-config@0.4.1) (2024-10-02)
+
+### Bug Fixes
+
+- **session-replay-browser:** paranoia fixes for edge cases
+  ([#889](https://github.com/amplitude/Amplitude-TypeScript/issues/889))
+  ([299e22b](https://github.com/amplitude/Amplitude-TypeScript/commit/299e22b382760b411af40180c6d6c64f4286f0fe))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.3.5...@amplitude/analytics-remote-config@0.4.0) (2024-08-23)
 
 ### Features

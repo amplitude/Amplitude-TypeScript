@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.14.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.14.0...@amplitude/session-replay-browser@1.14.1) (2024-10-02)
+
+### Bug Fixes
+
+- **session-replay-browser:** paranoia fixes for edge cases
+  ([#889](https://github.com/amplitude/Amplitude-TypeScript/issues/889))
+  ([299e22b](https://github.com/amplitude/Amplitude-TypeScript/commit/299e22b382760b411af40180c6d6c64f4286f0fe))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.13.9...@amplitude/session-replay-browser@1.14.0) (2024-09-24)
 
 ### Bug Fixes
