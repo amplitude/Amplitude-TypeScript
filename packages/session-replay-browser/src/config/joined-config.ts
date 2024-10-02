@@ -52,7 +52,7 @@ export class SessionReplayJoinedConfigGenerator {
     });
   }
 
-  async generateJoinedConfig(sessionId?: number): Promise<SessionReplayJoinedConfig> {
+  async generateJoinedConfig(sessionId?: number, fail?: boolean): Promise<SessionReplayJoinedConfig> {
     const config: SessionReplayJoinedConfig = { ...this.localConfig };
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;
@@ -70,12 +70,14 @@ export class SessionReplayJoinedConfigGenerator {
         'sessionReplay',
         'sr_sampling_config',
         sessionId,
+        fail,
       );
 
       const privacyConfig = await this.remoteConfigFetch.getRemoteConfig(
         'sessionReplay',
         'sr_privacy_config',
         sessionId,
+        fail,
       );
 
       // This is intentionally forced to only be set through the remote config.
@@ -83,6 +85,7 @@ export class SessionReplayJoinedConfigGenerator {
         'sessionReplay',
         'sr_interaction_config',
         sessionId,
+        fail,
       );
 
       if (samplingConfig || privacyConfig) {
@@ -188,7 +191,7 @@ export class SessionReplayJoinedConfigGenerator {
       );
     }
 
-    this.localConfig.loggerProvider.debug(
+    this.localConfig.loggerProvider.log(
       JSON.stringify({ name: 'session replay joined config', config: getDebugConfig(config) }, null, 2),
     );
 
@@ -196,7 +199,10 @@ export class SessionReplayJoinedConfigGenerator {
   }
 }
 
-export const createSessionReplayJoinedConfigGenerator = async (apiKey: string, options: SessionReplayOptions) => {
+export const createSessionReplayJoinedConfigGenerator = async (
+  apiKey: string,
+  options: SessionReplayOptions,
+): Promise<SessionReplayJoinedConfigGenerator> => {
   const joinedConfigGenerator = new SessionReplayJoinedConfigGenerator(apiKey, options);
   await joinedConfigGenerator.initialize();
   return joinedConfigGenerator;

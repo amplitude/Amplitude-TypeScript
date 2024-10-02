@@ -200,7 +200,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     if (err) {
       this.loggerProvider.warn(err);
     } else if (success) {
-      this.loggerProvider.log(success);
+      this.loggerProvider.debug(success);
     }
   }
 }

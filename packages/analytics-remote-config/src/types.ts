@@ -11,6 +11,7 @@ export interface BaseRemoteConfigFetch<T> {
     configNamespace: string,
     key: K,
     sessionId?: number,
+    fail?: boolean,
   ) => Promise<T[K] | undefined>;
 }
 

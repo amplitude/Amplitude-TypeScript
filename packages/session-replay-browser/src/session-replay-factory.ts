@@ -5,8 +5,9 @@ import { SessionReplay } from './session-replay';
 import { AmplitudeSessionReplay } from './typings/session-replay';
 
 export const getLogConfig = (sessionReplay: SessionReplay) => (): LogConfig => {
-  const { config } = sessionReplay;
-  const { loggerProvider: logger, logLevel } = config || getDefaultConfig();
+  const { options } = sessionReplay;
+  const logger = options?.loggerProvider ?? getDefaultConfig().loggerProvider;
+  const logLevel = options?.logLevel ?? getDefaultConfig().logLevel;
   return {
     logger,
     logLevel,

@@ -62,9 +62,9 @@ export interface SessionReplayEventsIDBStore {
   cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
 }
 export interface SessionIdentifiers {
-  deviceId?: string;
-  sessionId?: number;
-  sessionReplayId?: string;
+  deviceId: string;
+  sessionId: number;
+  sessionReplayId: string;
 }
 
 export type SessionReplayOptions = Omit<Partial<SessionReplayLocalConfig & SessionIdentifiers>, 'apiKey'>;
