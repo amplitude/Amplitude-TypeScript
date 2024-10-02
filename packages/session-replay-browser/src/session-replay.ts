@@ -83,6 +83,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+    this.loggerProvider.log('_init: joined config', JSON.stringify(this.config));
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -144,7 +145,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
     if (this.joinedConfigGenerator && previousSessionId) {
-      this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+      this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId, true);
+      this.loggerProvider.log('asyncSetSessionId: joined config', JSON.stringify(this.config));
     }
     this.recordEvents();
   }
@@ -303,68 +305,71 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (!shouldRecord || !sessionId || !this.config) {
       return;
     }
-    this.stopRecordingEvents();
-    const privacyConfig = this.config.privacyConfig;
+    setTimeout(() => {
+      this.stopRecordingEvents();
+      const privacyConfig = this.config?.privacyConfig;
 
-    this.loggerProvider.log('Session Replay capture beginning.');
-    this.recordCancelCallback = record({
-      emit: (event) => {
-        if (this.shouldOptOut()) {
-          this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
-          this.stopRecordingEvents();
-          this.sendEvents();
-          return;
-        }
-        const eventString = JSON.stringify(event);
-        const deviceId = this.getDeviceId();
-        this.eventsManager &&
-          deviceId &&
-          this.eventsManager.addEvent({ event: { type: 'replay', data: eventString }, sessionId, deviceId });
-      },
-      packFn: pack,
-      inlineStylesheet: this.config.shouldInlineStylesheet,
-      hooks: {
-        mouseInteraction:
+      this.loggerProvider.log('Session Replay capture beginning.');
+      this.loggerProvider.log(`capturing replay for ${sessionId} with privacy config`, JSON.stringify(privacyConfig));
+      this.recordCancelCallback = record({
+        emit: (event) => {
+          if (this.shouldOptOut()) {
+            this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
+            this.stopRecordingEvents();
+            this.sendEvents();
+            return;
+          }
+          const eventString = JSON.stringify(event);
+          const deviceId = this.getDeviceId();
           this.eventsManager &&
-          clickHook({
-            eventsManager: this.eventsManager,
-            sessionId,
-            deviceIdFn: this.getDeviceId.bind(this),
-          }),
-        scroll: this.scrollHook,
-      },
-      maskAllInputs: true,
-      maskTextClass: MASK_TEXT_CLASS,
-      blockClass: BLOCK_CLASS,
-      // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
-      blockSelector: this.getBlockSelectors() as string | undefined,
-      maskInputFn: maskFn('input', privacyConfig),
-      maskTextFn: maskFn('text', privacyConfig),
-      // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
-      maskTextSelector: this.getMaskTextSelectors(),
-      recordCanvas: false,
-      errorHandler: (error) => {
-        const typedError = error as Error & { _external_?: boolean };
+            deviceId &&
+            this.eventsManager.addEvent({ event: { type: 'replay', data: eventString }, sessionId, deviceId });
+        },
+        packFn: pack,
+        inlineStylesheet: this.config?.shouldInlineStylesheet,
+        hooks: {
+          mouseInteraction:
+            this.eventsManager &&
+            clickHook({
+              eventsManager: this.eventsManager,
+              sessionId,
+              deviceIdFn: this.getDeviceId.bind(this),
+            }),
+          scroll: this.scrollHook,
+        },
+        maskAllInputs: true,
+        maskTextClass: MASK_TEXT_CLASS,
+        blockClass: BLOCK_CLASS,
+        // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
+        blockSelector: this.getBlockSelectors() as string | undefined,
+        maskInputFn: maskFn('input', privacyConfig),
+        maskTextFn: maskFn('text', privacyConfig),
+        // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
+        maskTextSelector: this.getMaskTextSelectors(),
+        recordCanvas: false,
+        errorHandler: (error) => {
+          const typedError = error as Error & { _external_?: boolean };
 
-        // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
-        if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
-          throw typedError;
-        }
+          // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
+          if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
+            throw typedError;
+          }
 
-        // rrweb does monkey patching on certain window functions such as CSSStyleSheet.proptype.insertRule,
-        // and errors from external clients calling these functions can get suppressed. Styled components depend
-        // on these errors being re-thrown.
-        if (typedError._external_) {
-          throw typedError;
-        }
+          // rrweb does monkey patching on certain window functions such as CSSStyleSheet.proptype.insertRule,
+          // and errors from external clients calling these functions can get suppressed. Styled components depend
+          // on these errors being re-thrown.
+          if (typedError._external_) {
+            throw typedError;
+          }
 
-        this.loggerProvider.warn('Error while capturing replay: ', typedError.toString());
-        // Return true so that we don't clutter user's consoles with internal rrweb errors
-        return true;
-      },
-    });
+          this.loggerProvider.warn('Error while capturing replay: ', typedError.toString());
+          // Return true so that we don't clutter user's consoles with internal rrweb errors
+          return true;
+        },
+      });
 
-    void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
+      void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
+    }, 5000);
   }
 
   addCustomRRWebEvent = async (

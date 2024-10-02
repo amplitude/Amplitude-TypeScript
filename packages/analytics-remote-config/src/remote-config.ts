@@ -1,5 +1,5 @@
 import { BaseTransport } from '@amplitude/analytics-core';
-import { Config, ServerZone, Status } from '@amplitude/analytics-types';
+import { Config, Status } from '@amplitude/analytics-types';
 import * as RemoteConfigAPIStore from './remote-config-idb-store';
 import {
   CreateRemoteConfigFetch,
@@ -48,6 +48,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     configNamespace: string,
     key: K,
     sessionId?: number,
+    fail?: boolean,
   ): Promise<RemoteConfig[K] | undefined> => {
     const fetchStartTime = Date.now();
     // First check IndexedDB for session
@@ -62,7 +63,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       }
     }
     // Finally fetch via API
-    const configAPIResponse = await this.fetchWithTimeout(sessionId);
+    const configAPIResponse = await this.fetchWithTimeout(fail ?? false, sessionId);
     if (configAPIResponse) {
       const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
       if (remoteConfig) {
@@ -75,27 +76,32 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   };
 
   getServerUrl() {
-    if (this.localConfig.serverZone === ServerZone.STAGING) {
-      return REMOTE_CONFIG_SERVER_URL_STAGING;
-    }
+    return 'http://localhost:5000/config';
+    // if (this.localConfig.serverZone === ServerZone.STAGING) {
+    //   return REMOTE_CONFIG_SERVER_URL_STAGING;
+    // }
 
-    if (this.localConfig.serverZone === ServerZone.EU) {
-      return REMOTE_CONFIG_SERVER_URL_EU;
-    }
+    // if (this.localConfig.serverZone === ServerZone.EU) {
+    //   return REMOTE_CONFIG_SERVER_URL_EU;
+    // }
 
-    return REMOTE_CONFIG_SERVER_URL;
+    // return REMOTE_CONFIG_SERVER_URL;
   }
 
-  fetchWithTimeout = async (sessionId?: number): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
+  fetchWithTimeout = async (
+    fail: boolean,
+    sessionId?: number,
+  ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
-    const remoteConfig = await this.fetchRemoteConfig(controller.signal, sessionId);
+    const remoteConfig = await this.fetchRemoteConfig(controller.signal, fail, sessionId);
     clearTimeout(timeoutId);
     return remoteConfig;
   };
 
   fetchRemoteConfig = async (
     signal: AbortController['signal'],
+    fail: boolean,
     sessionId?: number,
   ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     if (sessionId === this.lastFetchedSessionId && this.attempts >= this.localConfig.flushMaxRetries) {
@@ -111,6 +117,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       const urlParams = new URLSearchParams({
         api_key: this.localConfig.apiKey,
         config_keys: this.configKeys.join(','),
+        fail: String(fail),
       });
       const options: RequestInit = {
         headers: {
@@ -131,7 +138,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
           this.attempts = 0;
           return this.parseAndStoreConfig(res, sessionId);
         case Status.Failed:
-          return this.retryFetch(signal, sessionId);
+          return this.retryFetch(signal, fail, sessionId);
         default:
           return this.completeRequest({ err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
       }
@@ -146,10 +153,11 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
 
   retryFetch = async (
     signal: AbortController['signal'],
+    fail: boolean,
     sessionId?: number,
   ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     await new Promise((resolve) => setTimeout(resolve, this.attempts * this.retryTimeout));
-    return this.fetchRemoteConfig(signal, sessionId);
+    return this.fetchRemoteConfig(signal, fail, sessionId);
   };
 
   parseAndStoreConfig = async (res: Response, sessionId?: number): Promise<RemoteConfigAPIResponse<RemoteConfig>> => {
