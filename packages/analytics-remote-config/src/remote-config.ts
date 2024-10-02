@@ -118,11 +118,11 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
           return this.completeRequest({ err: UNEXPECTED_NETWORK_ERROR_MESSAGE });
       }
     } catch (e) {
-      const knownError = e as Error;
+      const knownError = e as Partial<Error>;
       if (signal.aborted) {
         return this.completeRequest({ err: TIMEOUT_MESSAGE });
       }
-      return this.completeRequest({ err: knownError.message });
+      return this.completeRequest({ err: knownError.message ?? UNEXPECTED_ERROR_MESSAGE });
     }
   };
 

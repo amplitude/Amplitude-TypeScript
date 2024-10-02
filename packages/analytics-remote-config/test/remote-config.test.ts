@@ -187,6 +187,21 @@ describe('RemoteConfigFetch', () => {
           expect(remoteConfigFetch.attempts).toBe(1);
         });
     });
+    test('should handle unexpected error with no message', async () => {
+      (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject({}));
+      const fetchPromise = remoteConfigFetch.fetchRemoteConfig(mockSignal, 123);
+      await runScheduleTimers();
+      let err: Error;
+      return fetchPromise
+        .catch((e: Error) => {
+          err = e;
+        })
+        .finally(() => {
+          expect(fetch).toHaveBeenCalledTimes(1);
+          expect(err.message).toEqual('Unexpected error occurred');
+          expect(remoteConfigFetch.attempts).toBe(1);
+        });
+    });
     test('should handle timeout error', async () => {
       const signalToAbort = {
         aborted: false,
