@@ -1,4 +1,6 @@
 import { RemoteConfigFetch, createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
+import { Logger } from '@amplitude/analytics-types';
+import { getDebugConfig } from '../helpers';
 import { SessionReplayOptions } from '../typings/session-replay';
 import { SessionReplayLocalConfig } from './local-config';
 import {
@@ -7,8 +9,6 @@ import {
   SessionReplayJoinedConfig,
   SessionReplayRemoteConfig,
 } from './types';
-import { getDebugConfig } from '../helpers';
-import { Logger } from '@amplitude/analytics-types';
 
 export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyConfig, loggerProvider: Logger) => {
   // This allows us to not search the DOM.
@@ -38,18 +38,12 @@ export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyCo
   return privacyConfig;
 };
 export class SessionReplayJoinedConfigGenerator {
-  localConfig: ISessionReplayLocalConfig;
-  remoteConfigFetch: RemoteConfigFetch<SessionReplayRemoteConfig> | undefined;
+  private readonly localConfig: ISessionReplayLocalConfig;
+  private readonly remoteConfigFetch: RemoteConfigFetch<SessionReplayRemoteConfig>;
 
-  constructor(apiKey: string, options: SessionReplayOptions) {
-    this.localConfig = new SessionReplayLocalConfig(apiKey, options);
-  }
-
-  async initialize() {
-    this.remoteConfigFetch = await createRemoteConfigFetch<SessionReplayRemoteConfig>({
-      localConfig: this.localConfig,
-      configKeys: ['sessionReplay'],
-    });
+  constructor(remoteConfigFetch: RemoteConfigFetch<SessionReplayRemoteConfig>, localConfig: ISessionReplayLocalConfig) {
+    this.localConfig = localConfig;
+    this.remoteConfigFetch = remoteConfigFetch;
   }
 
   async generateJoinedConfig(sessionId?: number): Promise<SessionReplayJoinedConfig> {
@@ -61,11 +55,6 @@ export class SessionReplayJoinedConfigGenerator {
     config.captureEnabled = true;
     let remoteConfig: SessionReplayRemoteConfig | undefined;
     try {
-      if (!this.remoteConfigFetch) {
-        config.captureEnabled = false;
-        return config;
-      }
-
       const samplingConfig = await this.remoteConfigFetch.getRemoteConfig(
         'sessionReplay',
         'sr_sampling_config',
@@ -197,7 +186,11 @@ export class SessionReplayJoinedConfigGenerator {
 }
 
 export const createSessionReplayJoinedConfigGenerator = async (apiKey: string, options: SessionReplayOptions) => {
-  const joinedConfigGenerator = new SessionReplayJoinedConfigGenerator(apiKey, options);
-  await joinedConfigGenerator.initialize();
-  return joinedConfigGenerator;
+  const localConfig = new SessionReplayLocalConfig(apiKey, options);
+  const remoteConfigFetch = await createRemoteConfigFetch<SessionReplayRemoteConfig>({
+    localConfig,
+    configKeys: ['sessionReplay'],
+  });
+
+  return new SessionReplayJoinedConfigGenerator(remoteConfigFetch, localConfig);
 };
