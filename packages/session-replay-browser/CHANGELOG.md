@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.14.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.14.1...@amplitude/session-replay-browser@1.14.2) (2024-10-04)
+
+### Bug Fixes
+
+- **session-replay-browser:** make joined config generator immutable
+  ([#890](https://github.com/amplitude/Amplitude-TypeScript/issues/890))
+  ([2489b20](https://github.com/amplitude/Amplitude-TypeScript/commit/2489b20f8453b104427b3cb88127dc643f872c65))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.14.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.14.0...@amplitude/session-replay-browser@1.14.1) (2024-10-02)
 
 ### Bug Fixes
