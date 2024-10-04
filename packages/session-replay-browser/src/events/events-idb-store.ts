@@ -127,11 +127,15 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
   }
 
   async initialize(type: EventType, sessionId?: number) {
-    const dbSuffix = type === 'replay' ? '' : `_${type}`;
-    const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
-    this.db = await createStore(dbName);
-    this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
-    await this.transitionFromKeyValStore(sessionId);
+    try {
+      const dbSuffix = type === 'replay' ? '' : `_${type}`;
+      const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
+      this.db = await createStore(dbName);
+      this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
+      await this.transitionFromKeyValStore(sessionId);
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
   }
 
   /**
