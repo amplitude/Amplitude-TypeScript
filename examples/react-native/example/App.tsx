@@ -34,6 +34,7 @@ import {
   track,
 } from '@amplitude/analytics-react-native';
 import {LogLevel} from '@amplitude/analytics-types';
+import {SessionReplayPlugin} from './session-replay';
 
 type SectionProps = PropsWithChildren<{
   title: string;
@@ -77,6 +78,7 @@ function App(): React.JSX.Element {
       await init('YOUR_API_KEY', 'example_user_id', {
         logLevel: LogLevel.Verbose,
       }).promise;
+      await add(new SessionReplayPlugin()).promise;
       track('test');
       await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
