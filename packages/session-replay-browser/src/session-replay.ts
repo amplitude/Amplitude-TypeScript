@@ -99,7 +99,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
-    const storeType = this.config.storeType ?? 'idb';
+    let storeType = this.config.storeType ?? 'idb';
+    if (storeType === 'idb' && !getGlobalScope()?.indexedDB) {
+      storeType = 'memory';
+      this.loggerProvider.warn('Could not use preferred indexedDB storage, reverting to in memory option.');
+    }
+    this.loggerProvider.log(`Using ${storeType} for event storage.`);
     try {
       const rrwebEventManager = await createEventsManager<'replay'>({
         config: this.config,

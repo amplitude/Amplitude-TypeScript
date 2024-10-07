@@ -8,7 +8,7 @@ import { SessionReplayJoinedConfig } from '../config/types';
 import { getStorageSize } from '../helpers';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { SessionReplayEventsIDBStore } from './events-idb-store';
-import { InMemoryEventsStore } from './in-memory-events-store';
+import { InMemoryEventsStore } from './events-memory-store';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
@@ -31,15 +31,21 @@ export const createEventsManager = async <Type extends EventType>({
 
   const store =
     storeType === 'idb'
-      ? await SessionReplayEventsIDBStore.new({
-          loggerProvider: config.loggerProvider,
-          apiKey: config.apiKey,
-          sessionId,
-          minInterval,
-          maxInterval,
+      ? await SessionReplayEventsIDBStore.new(
           type,
-        })
-      : new InMemoryEventsStore();
+          {
+            loggerProvider: config.loggerProvider,
+            minInterval,
+            maxInterval,
+            apiKey: config.apiKey,
+          },
+          sessionId,
+        )
+      : new InMemoryEventsStore({
+          loggerProvider: config.loggerProvider,
+          maxInterval,
+          minInterval,
+        });
 
   /**
    * Immediately sends events to the track destination.

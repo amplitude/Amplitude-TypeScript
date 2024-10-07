@@ -1,7 +1,7 @@
-import { MAX_EVENT_LIST_SIZE_IN_BYTES } from '../constants';
-import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
+import { Events, SendingSequencesReturn } from '../typings/session-replay';
+import { BaseEventsStore } from './base-events-store';
 
-export class InMemoryEventsStore implements EventsStore<number> {
+export class InMemoryEventsStore extends BaseEventsStore<number> {
   private finalizedSequences: Record<number, { sessionId: number; events: string[] }> = {};
   private sequences: Record<number, string[]> = {};
   private sequenceLengths: Record<number, number> = {};
@@ -33,7 +33,7 @@ export class InMemoryEventsStore implements EventsStore<number> {
     this.finalizedSequences[this.sequenceId] = { sessionId, events: this.sequences[sessionId] };
     this.resetCurrentSequence(sessionId);
     return {
-      events: this.finalizedSequences[this.sequenceId].events,
+      events: [...this.finalizedSequences[this.sequenceId].events],
       sequenceId: this.sequenceId++,
       sessionId,
     };
@@ -47,18 +47,27 @@ export class InMemoryEventsStore implements EventsStore<number> {
       this.resetCurrentSequence(sessionId);
     }
 
-    if (this.sequenceLengths[sessionId] + event.length > MAX_EVENT_LIST_SIZE_IN_BYTES) {
-      await this.storeCurrentSequence(sessionId);
+    let sequenceReturn: SendingSequencesReturn<number> | undefined;
+    if (this.shouldSplitEventsList(this.sequences[sessionId], event)) {
+      const sequenceId = await this.storeSendingEvents(sessionId, this.sequences[sessionId]);
+      if (sequenceId) {
+        sequenceReturn = {
+          sequenceId,
+          events: [...this.sequences[sessionId]],
+          sessionId,
+        };
+      }
+      this.resetCurrentSequence(sessionId);
     }
 
     this.sequences[sessionId].push(event);
     this.sequenceLengths[sessionId] += event.length;
-    return undefined;
+    return sequenceReturn;
   }
 
   async storeSendingEvents(sessionId: number, events: Events): Promise<number | undefined> {
-    this.finalizedSequences[this.sequenceId++] = { sessionId, events };
-    return undefined;
+    this.finalizedSequences[this.sequenceId] = { sessionId, events };
+    return this.sequenceId++;
   }
 
   async cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void> {

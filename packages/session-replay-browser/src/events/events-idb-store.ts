@@ -1,10 +1,9 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { STORAGE_PREFIX } from '@amplitude/analytics-core';
-import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
-import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { STORAGE_FAILURE } from '../messages';
-import { EventType, Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
+import { EventType, Events, SendingSequencesReturn } from '../typings/session-replay';
+import { BaseEventsStore, InstanceArgs as BaseInstanceArgs } from './base-events-store';
 import { IDBStore, IDBStoreSession, RecordingStatus } from './legacy-idb-types';
 
 export const currentSequenceKey = 'sessionCurrentSequence';
@@ -87,92 +86,42 @@ export const createStore = async (dbName: string) => {
     upgrade: defineObjectStores,
   });
 };
-export class SessionReplayEventsIDBStore implements EventsStore<number> {
+
+type InstanceArgs = {
+  apiKey: string;
+  db: IDBPDatabase<SessionReplayDB>;
+} & BaseInstanceArgs;
+
+export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   private readonly apiKey: string;
   private readonly db: IDBPDatabase<SessionReplayDB>;
-  private readonly loggerProvider: ILogger;
-  private maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
-  private interval: number;
-  private timeAtLastSplit: number;
 
-  private readonly minInterval: number;
-  private readonly maxInterval: number;
-
-  constructor({
-    apiKey,
-    db,
-    loggerProvider,
-    maxInterval,
-    minInterval,
-  }: {
-    loggerProvider: ILogger;
-    apiKey: string;
-    db: IDBPDatabase<SessionReplayDB>;
-    minInterval?: number;
-    maxInterval?: number;
-  }) {
-    this.loggerProvider = loggerProvider;
-    this.apiKey = apiKey;
-    this.maxInterval = maxInterval ?? MAX_INTERVAL;
-    this.minInterval = minInterval ?? MIN_INTERVAL;
-    this.interval = 0;
-    this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
-    this.db = db;
+  constructor(args: InstanceArgs) {
+    super(args);
+    this.apiKey = args.apiKey;
+    this.db = args.db;
   }
 
-  static async new({
-    apiKey,
-    loggerProvider,
-    maxInterval,
-    minInterval,
-    type,
-    sessionId,
-  }: {
-    loggerProvider: ILogger;
-    apiKey: string;
-    minInterval?: number;
-    maxInterval?: number;
-    type: EventType;
-    sessionId?: number;
-  }): Promise<SessionReplayEventsIDBStore | undefined> {
+  static async new(
+    type: EventType,
+    args: Omit<InstanceArgs, 'db'>,
+    sessionId?: number,
+  ): Promise<SessionReplayEventsIDBStore | undefined> {
     try {
       const dbSuffix = type === 'replay' ? '' : `_${type}`;
-      const dbName = `${apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
+      const dbName = `${args.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
       const db = await createStore(dbName);
       const eventsIDBStore = new SessionReplayEventsIDBStore({
+        ...args,
         db,
-        loggerProvider,
-        apiKey,
-        minInterval,
-        maxInterval,
       });
       await eventsIDBStore.transitionFromKeyValStore(sessionId);
       return eventsIDBStore;
     } catch (e) {
-      loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      args.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
     return;
   }
-
-  /**
-   * Determines whether to send the events list to the backend and start a new
-   * empty events list, based on the size of the list as well as the last time sent
-   * @param nextEventString
-   * @returns boolean
-   */
-  shouldSplitEventsList = (events: Events, nextEventString: string): boolean => {
-    const sizeOfNextEvent = new Blob([nextEventString]).size;
-    const sizeOfEventsList = new Blob(events).size;
-    if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
-      return true;
-    }
-    if (this.interval > 0 && Date.now() - this.timeAtLastSplit > this.interval && events.length) {
-      this.interval = Math.min(this.maxInterval, this.interval + this.minInterval);
-      this.timeAtLastSplit = Date.now();
-      return true;
-    }
-    return false;
-  };
 
   getSequencesToSend = async (): Promise<SendingSequencesReturn<number>[] | undefined> => {
     try {
@@ -221,10 +170,6 @@ export class SessionReplayEventsIDBStore implements EventsStore<number> {
   };
 
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
-    if (this.interval === 0) {
-      this.interval = this.minInterval;
-    }
-
     try {
       const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
       if (!tx) {
