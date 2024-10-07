@@ -4,13 +4,7 @@ import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { STORAGE_FAILURE } from '../messages';
-import {
-  SessionReplayEventsIDBStore as AmplitudeSessionReplayEventsIDBStore,
-  EventType,
-  Events,
-  SendingSequencesIDBInput,
-  SendingSequencesIDBReturn,
-} from '../typings/session-replay';
+import { EventType, Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
 import { IDBStore, IDBStoreSession, RecordingStatus } from './legacy-idb-types';
 
 export const currentSequenceKey = 'sessionCurrentSequence';
@@ -20,14 +14,11 @@ export const remoteConfigKey = 'remoteConfig';
 export interface SessionReplayDB extends DBSchema {
   sessionCurrentSequence: {
     key: number;
-    value: {
-      sessionId: number;
-      events: Events;
-    };
+    value: Omit<SendingSequencesReturn<number>, 'sequenceId'>;
   };
   sequencesToSend: {
     key: number;
-    value: SendingSequencesIDBInput;
+    value: Omit<SendingSequencesReturn<number>, 'sequenceId'>;
     indexes: { sessionId: number };
   };
 }
@@ -96,26 +87,27 @@ export const createStore = async (dbName: string) => {
     upgrade: defineObjectStores,
   });
 };
-export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEventsIDBStore {
-  apiKey: string;
-  db: IDBPDatabase<SessionReplayDB> | undefined;
-  loggerProvider: ILogger;
-  storageKey = '';
-  maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
-  interval: number;
-  timeAtLastSplit: number | null = null;
+export class SessionReplayEventsIDBStore implements EventsStore<number> {
+  private readonly apiKey: string;
+  private readonly db: IDBPDatabase<SessionReplayDB>;
+  private readonly loggerProvider: ILogger;
+  private maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
+  private interval: number;
+  private timeAtLastSplit: number;
 
   private readonly minInterval: number;
   private readonly maxInterval: number;
 
   constructor({
-    loggerProvider,
     apiKey,
-    minInterval,
+    db,
+    loggerProvider,
     maxInterval,
+    minInterval,
   }: {
     loggerProvider: ILogger;
     apiKey: string;
+    db: IDBPDatabase<SessionReplayDB>;
     minInterval?: number;
     maxInterval?: number;
   }) {
@@ -124,18 +116,42 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     this.maxInterval = maxInterval ?? MAX_INTERVAL;
     this.minInterval = minInterval ?? MIN_INTERVAL;
     this.interval = 0;
+    this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
+    this.db = db;
   }
 
-  async initialize(type: EventType, sessionId?: number) {
+  static async new({
+    apiKey,
+    loggerProvider,
+    maxInterval,
+    minInterval,
+    type,
+    sessionId,
+  }: {
+    loggerProvider: ILogger;
+    apiKey: string;
+    minInterval?: number;
+    maxInterval?: number;
+    type: EventType;
+    sessionId?: number;
+  }): Promise<SessionReplayEventsIDBStore | undefined> {
     try {
       const dbSuffix = type === 'replay' ? '' : `_${type}`;
-      const dbName = `${this.apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
-      this.db = await createStore(dbName);
-      this.timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
-      await this.transitionFromKeyValStore(sessionId);
+      const dbName = `${apiKey.substring(0, 10)}_amp_session_replay_events${dbSuffix}`;
+      const db = await createStore(dbName);
+      const eventsIDBStore = new SessionReplayEventsIDBStore({
+        db,
+        loggerProvider,
+        apiKey,
+        minInterval,
+        maxInterval,
+      });
+      await eventsIDBStore.transitionFromKeyValStore(sessionId);
+      return eventsIDBStore;
     } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
+    return;
   }
 
   /**
@@ -150,12 +166,7 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {
       return true;
     }
-    if (
-      this.timeAtLastSplit !== null &&
-      this.interval &&
-      Date.now() - this.timeAtLastSplit > this.interval &&
-      events.length
-    ) {
+    if (this.interval > 0 && Date.now() - this.timeAtLastSplit > this.interval && events.length) {
       this.interval = Math.min(this.maxInterval, this.interval + this.minInterval);
       this.timeAtLastSplit = Date.now();
       return true;
@@ -163,13 +174,21 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     return false;
   };
 
-  getSequencesToSend = async () => {
+  getSequencesToSend = async (): Promise<SendingSequencesReturn<number>[] | undefined> => {
     try {
-      const sequencesToSend = (await this.db?.getAll<'sequencesToSend'>(
-        sequencesToSendKey,
-      )) as SendingSequencesIDBReturn[];
+      const sequences: SendingSequencesReturn<number>[] = [];
+      let cursor = await this.db.transaction('sequencesToSend').store.openCursor();
+      while (cursor) {
+        const { sessionId, events } = cursor.value;
+        sequences.push({
+          events,
+          sequenceId: cursor.key,
+          sessionId,
+        });
+        cursor = await cursor.continue();
+      }
 
-      return sequencesToSend;
+      return sequences;
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
@@ -178,9 +197,6 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
   storeCurrentSequence = async (sessionId: number) => {
     try {
-      if (!this.db) {
-        return undefined;
-      }
       const currentSequenceData = await this.db.get<'sessionCurrentSequence'>(currentSequenceKey, sessionId);
       if (!currentSequenceData) {
         return undefined;
@@ -210,7 +226,7 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     }
 
     try {
-      const tx = this.db?.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
+      const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
       if (!tx) {
         return;
       }
@@ -254,7 +270,7 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
   storeSendingEvents = async (sessionId: number, events: Events) => {
     try {
-      const sequenceId = await this.db?.put<'sequencesToSend'>(sequencesToSendKey, {
+      const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
         sessionId: sessionId,
         events: events,
       });
@@ -267,7 +283,7 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
   cleanUpSessionEventsStore = async (sequenceId: number) => {
     try {
-      await this.db?.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
+      await this.db.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
@@ -282,13 +298,13 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
 
       const transitionCurrentSessionSequences = async (numericSessionId: number, sessionStore: IDBStoreSession) => {
         const currentSessionSequences = sessionStore.sessionSequences;
-        const promisesToBatch: Promise<number | SendingSequencesIDBReturn | undefined>[] = [];
+        const promisesToBatch: Promise<number | SendingSequencesReturn<number> | undefined>[] = [];
 
         Object.keys(currentSessionSequences).forEach((sequenceId) => {
           const numericSequenceId = parseInt(sequenceId, 10);
           const sequence = currentSessionSequences[numericSequenceId];
           if (numericSequenceId === sessionStore.currentSequenceId) {
-            const eventAddPromises: Promise<SendingSequencesIDBReturn | undefined>[] = sequence.events.map(
+            const eventAddPromises: Promise<SendingSequencesReturn<number> | undefined>[] = sequence.events.map(
               async (event) => this.addEventToCurrentSequence(numericSessionId, event),
             );
             promisesToBatch.concat(eventAddPromises);
@@ -352,23 +368,3 @@ export class SessionReplayEventsIDBStore implements AmplitudeSessionReplayEvents
     }
   };
 }
-
-export const createEventsIDBStore = async ({
-  loggerProvider,
-  apiKey,
-  sessionId,
-  type,
-  minInterval,
-  maxInterval,
-}: {
-  loggerProvider: ILogger;
-  apiKey: string;
-  type: EventType;
-  minInterval?: number;
-  maxInterval?: number;
-  sessionId?: number;
-}) => {
-  const eventsIDBStore = new SessionReplayEventsIDBStore({ loggerProvider, apiKey, minInterval, maxInterval });
-  await eventsIDBStore.initialize(type, sessionId);
-  return eventsIDBStore;
-};
