@@ -7,6 +7,9 @@ import { SessionReplayJoinedConfig } from '../config/types';
 import { getStorageSize } from '../helpers';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { SessionReplayEventsIDBStore } from './events-idb-store';
+import { InMemoryEventsStore } from './in-memory-events-store';
+
+type StoreType = 'memory' | 'idb';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
@@ -15,6 +18,7 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval,
   type,
   payloadBatcher,
+  storeType,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
@@ -22,17 +26,21 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval?: number;
   sessionId?: number;
   payloadBatcher?: PayloadBatcher;
+  storeType: StoreType;
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
   const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider, payloadBatcher });
 
-  const eventsIDBStore = await SessionReplayEventsIDBStore.new({
-    loggerProvider: config.loggerProvider,
-    apiKey: config.apiKey,
-    sessionId,
-    minInterval,
-    maxInterval,
-    type,
-  });
+  const store =
+    storeType === 'idb'
+      ? await SessionReplayEventsIDBStore.new({
+          loggerProvider: config.loggerProvider,
+          apiKey: config.apiKey,
+          sessionId,
+          minInterval,
+          maxInterval,
+          type,
+        })
+      : new InMemoryEventsStore();
 
   /**
    * Immediately sends events to the track destination.
@@ -41,6 +49,7 @@ export const createEventsManager = async <Type extends EventType>({
     events,
     sessionId,
     deviceId,
+    sequenceId,
   }: {
     events: string[];
     sessionId: number;
@@ -70,17 +79,17 @@ export const createEventsManager = async <Type extends EventType>({
       version: config.version,
       type,
       onComplete: async () => {
-        // if (!sequenceId) {
-        //   return;
-        // }
-        // await eventsIDBStore.cleanUpSessionEventsStore(sequenceId);
-        // return;
+        if (!sequenceId) {
+          return;
+        }
+        await store.cleanUpSessionEventsStore(sessionId, sequenceId);
+        return;
       },
     });
   };
 
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
-    eventsIDBStore
+    store
       .storeCurrentSequence(sessionId)
       .then((currentSequence) => {
         if (currentSequence) {
@@ -98,7 +107,7 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const sendStoredEvents = async ({ deviceId }: { deviceId: string }) => {
-    const sequencesToSend = await eventsIDBStore.getSequencesToSend();
+    const sequencesToSend = await store.getSequencesToSend();
     sequencesToSend &&
       sequencesToSend.forEach((sequence) => {
         sendEventsList({
@@ -119,7 +128,7 @@ export const createEventsManager = async <Type extends EventType>({
     sessionId: number;
     deviceId: string;
   }) => {
-    eventsIDBStore
+    store
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         return (

@@ -39,7 +39,6 @@ export interface SessionReplayDestinationContext extends SessionReplayDestinatio
 
 export interface SendingSequencesReturn<KeyType> {
   sequenceId: KeyType;
-  deviceId?: string;
   sessionId: number;
   events: Events;
 }
