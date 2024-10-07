@@ -4,9 +4,9 @@ import {
 } from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
-import { createEventsIDBStore } from './events-idb-store';
-import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { getStorageSize } from '../helpers';
+import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
+import { SessionReplayEventsIDBStore } from './events-idb-store';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
@@ -25,7 +25,7 @@ export const createEventsManager = async <Type extends EventType>({
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
   const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider, payloadBatcher });
 
-  const eventsIDBStore = await createEventsIDBStore({
+  const eventsIDBStore = await SessionReplayEventsIDBStore.new({
     loggerProvider: config.loggerProvider,
     apiKey: config.apiKey,
     sessionId,
@@ -41,12 +41,11 @@ export const createEventsManager = async <Type extends EventType>({
     events,
     sessionId,
     deviceId,
-    sequenceId,
   }: {
     events: string[];
     sessionId: number;
     deviceId: string;
-    sequenceId: number;
+    sequenceId?: number;
   }) => {
     if (config.debugMode) {
       getStorageSize()
@@ -62,7 +61,6 @@ export const createEventsManager = async <Type extends EventType>({
 
     trackDestination.sendEventsList({
       events: events,
-      sequenceId: sequenceId,
       sessionId: sessionId,
       flushMaxRetries: config.flushMaxRetries,
       apiKey: config.apiKey,
@@ -71,7 +69,13 @@ export const createEventsManager = async <Type extends EventType>({
       serverZone: config.serverZone,
       version: config.version,
       type,
-      onComplete: eventsIDBStore.cleanUpSessionEventsStore.bind(eventsIDBStore),
+      onComplete: async () => {
+        // if (!sequenceId) {
+        //   return;
+        // }
+        // await eventsIDBStore.cleanUpSessionEventsStore(sequenceId);
+        // return;
+      },
     });
   };
 
