@@ -1,3 +1,5 @@
+import { StoreType } from '@amplitude/session-replay-browser';
+
 export type MaskLevel =
   | 'light' // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
   | 'medium' // mask all inputs
@@ -23,4 +25,5 @@ export interface SessionReplayOptions {
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
   performanceConfig?: SessionReplayPerformanceConfig;
+  storeType?: StoreType;
 }

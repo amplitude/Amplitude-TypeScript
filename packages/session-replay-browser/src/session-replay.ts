@@ -99,13 +99,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
-
+    const storeType = this.config.storeType ?? 'idb';
     try {
       const rrwebEventManager = await createEventsManager<'replay'>({
         config: this.config,
         sessionId: this.identifiers.sessionId,
         type: 'replay',
-        storeType: this.config.storeType,
+        storeType,
       });
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
@@ -123,7 +123,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
           maxInterval: INTERACTION_MAX_INTERVAL,
           payloadBatcher,
-          storeType: this.config.storeType,
+          storeType,
         });
         managers.push({ name: 'interaction', manager: interactionEventManager });
       } catch (error) {
