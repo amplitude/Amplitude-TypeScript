@@ -67,7 +67,7 @@ export interface EventsStore<KeyType> {
   /**
    * Permanently removes the events batch for the session/sequence pair.
    */
-  cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
+  cleanUpSessionEventsStore(sessionId: number, sequenceId?: KeyType): Promise<void>;
 }
 export interface SessionIdentifiers {
   deviceId?: string;

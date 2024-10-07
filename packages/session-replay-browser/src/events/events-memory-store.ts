@@ -70,8 +70,10 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     return this.sequenceId++;
   }
 
-  async cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void> {
-    delete this.finalizedSequences[sequenceId];
+  async cleanUpSessionEventsStore(sessionId: number, sequenceId?: number): Promise<void> {
+    if (sequenceId !== undefined) {
+      delete this.finalizedSequences[sequenceId];
+    }
     this.resetCurrentSequence(sessionId);
   }
 }

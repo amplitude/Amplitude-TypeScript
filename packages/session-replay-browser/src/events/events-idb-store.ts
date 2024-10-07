@@ -123,6 +123,23 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     return;
   }
 
+  async getCurrentSequenceEvents(sessionId?: number) {
+    if (sessionId) {
+      const events = await this.db.get('sessionCurrentSequence', sessionId);
+      if (!events) {
+        return undefined;
+      }
+      return [events];
+    }
+
+    const allEvents = [];
+    for (const events of await this.db.getAll('sessionCurrentSequence')) {
+      allEvents.push(events);
+    }
+
+    return allEvents;
+  }
+
   getSequencesToSend = async (): Promise<SendingSequencesReturn<number>[] | undefined> => {
     try {
       const sequences: SendingSequencesReturn<number>[] = [];
@@ -172,9 +189,6 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   addEventToCurrentSequence = async (sessionId: number, event: string) => {
     try {
       const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
-      if (!tx) {
-        return;
-      }
       const sequenceEvents = await tx.store.get(sessionId);
       if (!sequenceEvents) {
         await tx.store.put({ sessionId, events: [event] });
@@ -226,7 +240,10 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     return undefined;
   };
 
-  cleanUpSessionEventsStore = async (_sessionId: number, sequenceId: number) => {
+  cleanUpSessionEventsStore = async (_sessionId: number, sequenceId?: number) => {
+    if (!sequenceId) {
+      return;
+    }
     try {
       await this.db.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
     } catch (e) {

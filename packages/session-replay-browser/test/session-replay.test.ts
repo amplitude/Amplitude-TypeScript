@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -85,6 +86,7 @@ describe('SessionReplay', () => {
     sampleRate: 1,
     sessionId: 123,
     serverZone: ServerZone.EU,
+    storeType: 'idb',
     privacyConfig: {
       blockSelector: '.className',
       maskSelector: ['.className1', '.className2'],
@@ -108,7 +110,7 @@ describe('SessionReplay', () => {
       getRemoteConfig: getRemoteConfigMock,
       metrics: {},
     });
-    jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
+    jest.spyOn(SessionReplayIDB, 'createStore');
     sessionReplay = new SessionReplay();
     initialize = jest.spyOn(sessionReplay, 'initialize');
     jest.useFakeTimers();
@@ -233,6 +235,31 @@ describe('SessionReplay', () => {
       expect(mockLoggerProvider.enable).toHaveBeenCalledWith(0);
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toEqual(['.class', '#id']);
       expect(sessionReplay.loggerProvider).toBeDefined();
+    });
+
+    test('fallback to memory store if no indexeddb', async () => {
+      globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+        ...mockGlobalScope,
+        indexedDB: null as any,
+      });
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        storeType: 'idb',
+      }).promise;
+
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith('Using memory for event storage.');
+    });
+
+    test('fallback to memory store if no global scope', async () => {
+      globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+        storeType: 'idb',
+      }).promise;
+
+      expect(mockLoggerProvider.log).toHaveBeenCalledWith('Using memory for event storage.');
     });
 
     test.each([
@@ -833,11 +860,16 @@ describe('SessionReplay', () => {
   });
 
   describe('recordEvents', () => {
+    let createEventsIDBStoreInstance: SessionReplayIDB.SessionReplayEventsIDBStore;
+    beforeEach(async () => {
+      createEventsIDBStoreInstance = (await SessionReplayIDB.SessionReplayEventsIDBStore.new('replay', {
+        loggerProvider: mockLoggerProvider,
+        apiKey,
+      }))!;
+    });
+
     test('should return early if no config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
-
       record.mockReset();
       sessionReplay.config = undefined;
       sessionReplay.recordEvents();
@@ -845,7 +877,7 @@ describe('SessionReplay', () => {
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
-      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
+      const currentSequenceEvents = await createEventsIDBStoreInstance.getCurrentSequenceEvents(123);
       expect(currentSequenceEvents).toEqual(undefined);
     });
     test('should return early if no identifiers', async () => {
@@ -859,14 +891,12 @@ describe('SessionReplay', () => {
     test('should return early if user opts out', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, optOut: true, privacyConfig: { blockSelector: ['#class'] } })
         .promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
       sessionReplay.recordEvents();
       expect(record).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
-      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
+      const currentSequenceEvents = await createEventsIDBStoreInstance.getCurrentSequenceEvents(123);
       expect(currentSequenceEvents).toEqual(undefined);
     });
 
@@ -880,15 +910,13 @@ describe('SessionReplay', () => {
 
     test('should stop recording and send events if user opts out during recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
       sessionReplay.recordEvents();
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
-      const currentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
+      const currentSequenceEvents = await createEventsIDBStoreInstance.getCurrentSequenceEvents(123);
       expect(currentSequenceEvents).toEqual(undefined);
       await createEventsIDBStoreInstance.addEventToCurrentSequence(123, mockEventString); // Add one event to list to trigger sending in sendEvents
       const sendEventsMock = jest.spyOn(sessionReplay.eventsManager, 'sendCurrentSequenceEvents');
@@ -902,8 +930,8 @@ describe('SessionReplay', () => {
       });
       expect(stopRecordingMock).toHaveBeenCalled();
       expect(sessionReplay.recordCancelCallback).toEqual(null);
-      const updatedCurrentSequenceEvents = await createEventsIDBStoreInstance.db.get('sessionCurrentSequence', 123);
-      expect(updatedCurrentSequenceEvents).toEqual({ events: [mockEventString], sessionId: 123 }); // events should not change, emmitted event should be ignored
+      const updatedCurrentSequenceEvents = await createEventsIDBStoreInstance.getCurrentSequenceEvents(123);
+      expect(updatedCurrentSequenceEvents).toEqual([{ events: [mockEventString], sessionId: 123 }]); // events should not change, emmitted event should be ignored
     });
 
     test('should add an error handler', async () => {
@@ -1017,14 +1045,16 @@ describe('SessionReplay', () => {
 
     test('should stop recording and send any events in queue', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await SessionReplayIDB.SessionReplayEventsIDBStore.new('replay', {
+        loggerProvider: mockLoggerProvider,
+        apiKey,
+      });
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
-      await createEventsIDBStoreInstance.addEventToCurrentSequence(123, mockEventString);
+      await createEventsIDBStoreInstance?.addEventToCurrentSequence(123, mockEventString);
       const sendEventsMock = jest.spyOn(sessionReplay.eventsManager, 'sendCurrentSequenceEvents');
       sessionReplay.shutdown();
       expect(stopRecordingMock).toHaveBeenCalled();

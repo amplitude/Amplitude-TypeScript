@@ -84,7 +84,7 @@ describe('module level integration', () => {
       getRemoteConfig: getRemoteConfigMock,
       metrics: {},
     });
-    jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
+    jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new');
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -128,8 +128,8 @@ describe('module level integration', () => {
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
-        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-          .value;
+        const createEventsIDBStoreInstance = await(SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+          .results[0].value;
 
         jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
@@ -144,11 +144,11 @@ describe('module level integration', () => {
 
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&type=replay`,
           expect.anything(),
         );
         expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
-          'Session replay event batch with seq id 1 tracked successfully for session id 1719847315000, size of events: 0 KB',
+          'Session replay event batch tracked successfully for session id 1719847315000, size of events: 0 KB',
         );
       });
 
@@ -167,8 +167,8 @@ describe('module level integration', () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-          .value;
+        const createEventsIDBStoreInstance = await(SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+          .results[0].value;
 
         jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         expect(sessionRecordingProperties).toMatchObject({
@@ -181,12 +181,12 @@ describe('module level integration', () => {
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&type=replay`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
-          'Session replay event batch with seq id 1 tracked successfully for session id 1719847315000, size of events: 0 KB',
+          'Session replay event batch tracked successfully for session id 1719847315000, size of events: 0 KB',
         );
       });
 
@@ -218,8 +218,8 @@ describe('module level integration', () => {
       test('should record session if included due to sampling', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
-        const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-          .value;
+        const createEventsIDBStoreInstance = await(SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+          .results[0].value;
         jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({
@@ -234,12 +234,12 @@ describe('module level integration', () => {
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
         expect(fetch).toHaveBeenLastCalledWith(
-          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&seq_number=1&type=replay`,
+          `${SESSION_REPLAY_SERVER_URL}?device_id=1a2b3c&session_id=${SESSION_ID_IN_20_SAMPLE}&type=replay`,
           expect.anything(),
         );
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(mockLoggerProvider.log).toHaveBeenLastCalledWith(
-          'Session replay event batch with seq id 1 tracked successfully for session id 1719847315000, size of events: 0 KB',
+          'Session replay event batch tracked successfully for session id 1719847315000, size of events: 0 KB',
         );
       });
     });

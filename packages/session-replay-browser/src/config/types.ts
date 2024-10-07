@@ -51,7 +51,7 @@ export interface SessionReplayLocalConfig extends Config {
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
   performanceConfig?: SessionReplayPerformanceConfig;
-  storeType?: StoreType;
+  storeType: StoreType;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

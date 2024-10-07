@@ -15,7 +15,11 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   private maxInterval = MAX_INTERVAL;
   private maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;
   private interval = this.minInterval;
-  private timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
+  private _timeAtLastSplit = Date.now(); // Initialize this so we have a point of comparison when events are recorded
+
+  public get timeAtLastSplit() {
+    return this._timeAtLastSplit;
+  }
 
   constructor(args: InstanceArgs) {
     this.loggerProvider = args.loggerProvider;
@@ -47,7 +51,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
     }
     if (Date.now() - this.timeAtLastSplit > this.interval && events.length) {
       this.interval = Math.min(this.maxInterval, this.interval + this.minInterval);
-      this.timeAtLastSplit = Date.now();
+      this._timeAtLastSplit = Date.now();
       return true;
     }
     return false;

@@ -1,5 +1,6 @@
 import {
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  EventsStore,
   EventType,
   StoreType,
 } from '../typings/session-replay';
@@ -29,23 +30,30 @@ export const createEventsManager = async <Type extends EventType>({
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
   const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider, payloadBatcher });
 
-  const store =
-    storeType === 'idb'
-      ? await SessionReplayEventsIDBStore.new(
-          type,
-          {
-            loggerProvider: config.loggerProvider,
-            minInterval,
-            maxInterval,
-            apiKey: config.apiKey,
-          },
-          sessionId,
-        )
-      : new InMemoryEventsStore({
-          loggerProvider: config.loggerProvider,
-          maxInterval,
-          minInterval,
-        });
+  const getMemoryStore = (): EventsStore<number> => {
+    return new InMemoryEventsStore({
+      loggerProvider: config.loggerProvider,
+      maxInterval,
+      minInterval,
+    });
+  };
+
+  const getIdbStoreOrFallback = async (): Promise<EventsStore<number>> => {
+    const store = await SessionReplayEventsIDBStore.new(
+      type,
+      {
+        loggerProvider: config.loggerProvider,
+        minInterval,
+        maxInterval,
+        apiKey: config.apiKey,
+      },
+      sessionId,
+    );
+    config.loggerProvider.log('Failed to initialize idb store, falling back to memory store.');
+    return store ?? getMemoryStore();
+  };
+
+  const store: EventsStore<number> = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
 
   /**
    * Immediately sends events to the track destination.
@@ -84,9 +92,6 @@ export const createEventsManager = async <Type extends EventType>({
       version: config.version,
       type,
       onComplete: async () => {
-        if (!sequenceId) {
-          return;
-        }
         await store.cleanUpSessionEventsStore(sessionId, sequenceId);
         return;
       },
