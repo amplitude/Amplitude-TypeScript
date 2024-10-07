@@ -1,6 +1,7 @@
 import {
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   EventType,
+  StoreType,
 } from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
@@ -8,8 +9,6 @@ import { getStorageSize } from '../helpers';
 import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { SessionReplayEventsIDBStore } from './events-idb-store';
 import { InMemoryEventsStore } from './in-memory-events-store';
-
-type StoreType = 'memory' | 'idb';
 
 export const createEventsManager = async <Type extends EventType>({
   config,

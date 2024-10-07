@@ -276,7 +276,7 @@ export class SessionReplayEventsIDBStore implements EventsStore<number> {
     return undefined;
   };
 
-  cleanUpSessionEventsStore = async (sequenceId: number) => {
+  cleanUpSessionEventsStore = async (_sessionId: number, sequenceId: number) => {
     try {
       await this.db.delete<'sequencesToSend'>(sequencesToSendKey, sequenceId);
     } catch (e) {

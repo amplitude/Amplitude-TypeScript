@@ -105,7 +105,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         config: this.config,
         sessionId: this.identifiers.sessionId,
         type: 'replay',
-        storeType: 'memory',
+        storeType: this.config.storeType,
       });
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
@@ -123,7 +123,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
           maxInterval: INTERACTION_MAX_INTERVAL,
           payloadBatcher,
-          storeType: 'memory',
+          storeType: this.config.storeType,
         });
         managers.push({ name: 'interaction', manager: interactionEventManager });
       } catch (error) {
