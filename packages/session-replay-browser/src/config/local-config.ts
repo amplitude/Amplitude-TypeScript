@@ -2,7 +2,7 @@ import { FetchTransport } from '@amplitude/analytics-client-common';
 import { Config, Logger } from '@amplitude/analytics-core';
 import { LogLevel } from '@amplitude/analytics-types';
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from '../constants';
-import { SessionReplayOptions } from '../typings/session-replay';
+import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   InteractionConfig,
@@ -27,6 +27,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   configEndpointUrl?: string;
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
+  storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
@@ -48,6 +49,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
     this.performanceConfig = options.performanceConfig;
+    this.storeType = options.storeType ?? 'idb';
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;

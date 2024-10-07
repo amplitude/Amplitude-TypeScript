@@ -64,6 +64,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       shouldInlineStylesheet: this.options.shouldInlineStylesheet,
       version: { type: 'plugin', version: VERSION },
       performanceConfig: this.options.performanceConfig,
+      storeType: this.options.storeType,
     }).promise;
   }
 

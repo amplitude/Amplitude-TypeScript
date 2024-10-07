@@ -14,6 +14,8 @@ export interface DebugInfo extends Partial<StorageData> {
 
 export type Events = string[];
 
+export type StoreType = 'memory' | 'idb';
+
 export type EventType = 'replay' | 'interaction';
 
 export interface SessionReplayDestinationSessionMetadata {
