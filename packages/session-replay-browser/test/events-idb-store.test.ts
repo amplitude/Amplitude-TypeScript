@@ -53,6 +53,18 @@ describe('SessionReplayEventsIDBStore', () => {
       await eventsStorage.initialize('replay');
       expect(EventsIDBStore.createStore).toHaveBeenCalledWith('static_key_amp_session_replay_events');
     });
+
+    test('should catch errors', async () => {
+      const mockCreateStore = jest.spyOn(EventsIDBStore, 'createStore');
+      const errorMessage = 'Failed to create store';
+
+      mockCreateStore.mockRejectedValue(new Error(errorMessage));
+
+      const eventsStorage = new SessionReplayEventsIDBStore({ apiKey, loggerProvider: mockLoggerProvider });
+
+      await eventsStorage.initialize('replay');
+      expect(mockLoggerProvider.warn).toHaveBeenCalled();
+    });
   });
 
   describe('getSequencesToSend', () => {
