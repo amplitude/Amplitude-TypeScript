@@ -26,7 +26,9 @@ class SessionReplayPluginModule(private val reactContext: ReactApplicationContex
             reactContext.applicationContext,
             deviceId ?: "",
             sessionId.toLong(),
-            logger = LogcatLogger.logger
+            logger = LogcatLogger.logger,
+            sampleRate = 1.0,
+            enableRemoteConfig = false,
         )
     }
 

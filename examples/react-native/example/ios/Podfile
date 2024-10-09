@@ -23,7 +23,7 @@ target 'example' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  pod 'AmplitudeSessionReplay', :git => 'https://github.com/amplitude/AmplitudeSessionReplay-iOS.git'
+  pod 'AmplitudeSessionReplay', :git => 'https://github.com/amplitude/AmplitudeSessionReplay-iOS.git', :branch => 'fix_gesture_capture'
 
   target 'exampleTests' do
     inherit! :complete

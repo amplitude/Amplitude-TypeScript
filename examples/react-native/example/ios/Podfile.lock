@@ -938,6 +938,8 @@ PODS:
   - React-Mapbuffer (0.74.6):
     - glog
     - React-debug
+  - react-native-safe-area-context (4.11.0):
+    - React-Core
   - React-nativeconfig (0.74.6)
   - React-NativeModulesApple (0.74.6):
     - glog
@@ -1169,12 +1171,34 @@ PODS:
     - React-utils (= 0.74.6)
   - RNCAsyncStorage (1.24.0):
     - React-Core
+  - RNScreens (3.34.0):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-RCTImage
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - SocketRocket (0.7.0)
   - Yoga (0.0.0)
 
 DEPENDENCIES:
   - "amplitude-react-native (from `../node_modules/@amplitude/analytics-react-native`)"
-  - AmplitudeSessionReplay (from `https://github.com/amplitude/AmplitudeSessionReplay-iOS.git`)
+  - AmplitudeSessionReplay (from `https://github.com/amplitude/AmplitudeSessionReplay-iOS.git`, branch `fix_gesture_capture`)
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
@@ -1207,6 +1231,7 @@ DEPENDENCIES:
   - React-jsitracing (from `../node_modules/react-native/ReactCommon/hermes/executor/`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
+  - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
@@ -1231,6 +1256,7 @@ DEPENDENCIES:
   - React-utils (from `../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
+  - RNScreens (from `../node_modules/react-native-screens`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -1241,6 +1267,7 @@ EXTERNAL SOURCES:
   amplitude-react-native:
     :path: "../node_modules/@amplitude/analytics-react-native"
   AmplitudeSessionReplay:
+    :branch: fix_gesture_capture
     :git: https://github.com/amplitude/AmplitudeSessionReplay-iOS.git
   boost:
     :podspec: "../node_modules/react-native/third-party-podspecs/boost.podspec"
@@ -1303,6 +1330,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   React-Mapbuffer:
     :path: "../node_modules/react-native/ReactCommon"
+  react-native-safe-area-context:
+    :path: "../node_modules/react-native-safe-area-context"
   React-nativeconfig:
     :path: "../node_modules/react-native/ReactCommon"
   React-NativeModulesApple:
@@ -1351,12 +1380,14 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
+  RNScreens:
+    :path: "../node_modules/react-native-screens"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 CHECKOUT OPTIONS:
   AmplitudeSessionReplay:
-    :commit: 58084d4327aa8fd7e92614b977218ecde096e159
+    :commit: 172b23ee1b36e71bfd3e4f17ade6ddf58b644264
     :git: https://github.com/amplitude/AmplitudeSessionReplay-iOS.git
 
 SPEC CHECKSUMS:
@@ -1374,51 +1405,53 @@ SPEC CHECKSUMS:
   RCTTypeSafety: 3d65944055cc73f3bb28c3f05c7eaff2bb7ceb83
   React: c5e9f3c07a890a7e2a1ec9b79faa5c53dd7aee01
   React-callinvoker: 9ac986dbbd0e1b3463cb740b12c0b37dbcd15fed
-  React-Codegen: 8425fee4c4db60d4c26dedf3a9c64ffe11622408
+  React-Codegen: f5bd8446ba2b7d4a7bb4b25e137f44f286eb98f7
   React-Core: e8de3613460de4f02cdf6a0d726526fe273766b4
   React-CoreModules: 704fd52f83780e1870a946d5c3ea6ea1175aa523
   React-cxxreact: 75572783e7feae5a9f67157ea13968bf5ab274a3
-  React-debug: ba387c702ddae4467b9546df73277a5e5d44c0d6
-  React-Fabric: f1c30535ade7821e69d84eb0d0a6fa3438b19359
-  React-FabricImage: 7249f3e011e99fec973b80e0a2255b37b89dd5bb
-  React-featureflags: 742aee2bf50ca88017a12d310f0639ef77b604f7
-  React-graphics: c77de03090e7e74c421374eab79fd939fed6a965
+  React-debug: 180e1bf4a97fa4404ee7fb68952cace122aa9d73
+  React-Fabric: 1118712bb2dfae21b7d03d5daf419018e867f8e9
+  React-FabricImage: 3878f51fa0ac860fb733f0a3c958442a7b5ec587
+  React-featureflags: 05fabc5e165fa3864c879556e83a455b8a0573fa
+  React-graphics: 77bb68d9d913682a23c621df01ab61b2e58a5c70
   React-hermes: e4c48dab6830b282e1b41023cdae9b5c1f7ae075
-  React-ImageManager: 5a7e20343b04b9af5ef2f3f56b9907ad9c688088
-  React-jserrorhandler: d6756d3773096df56fad726d74346ce75fa5f5cf
+  React-ImageManager: 6dbe9e5578c03d48b25e646ee65faa63b10e9544
+  React-jserrorhandler: 16f7ef986fd20a2d342e5430c9dd0502a4136320
   React-jsi: b34c85593159261ce19f9c5fd0a627b3dc1483c6
   React-jsiexecutor: dcf7df38a296d104b196c193a0111d3f8a46da0b
-  React-jsinspector: 83507de2717041ca6f4184291734680c7e2ad72a
-  React-jsitracing: 38156d55d60e683ecc6ed808d28e5e78e51558fa
+  React-jsinspector: 7dfaff7a0f57d23eeab023fe6a243f7707a14f6d
+  React-jsitracing: df84cc252a1f4bb0970f7fe13c470451b18c2cbb
   React-logger: de9b65c8c7b71a663e6e99d347b1c445f5190c39
-  React-Mapbuffer: d8adf69e5f42c7419d6594384f8a56e641141c8e
-  React-nativeconfig: bf6ea7351e761f3ab837b9fc406576c56492f57a
-  React-NativeModulesApple: d127c66e52964d33c7fb694ce98c078ea899dd16
+  React-Mapbuffer: 766bb4d8f655d816913325b353d800debbde7209
+  react-native-safe-area-context: 851c62c48dce80ccaa5637b6aa5991a1bc36eca9
+  React-nativeconfig: c36a079fa219a9911070cc0058b746407e1ef47d
+  React-NativeModulesApple: eab84dd7bda0650f3ce41c53f76ffd49d689763f
   React-perflogger: 9f21c9e3d8d220833e649a141fed8e5ca08977d9
   React-RCTActionSheet: 4c1f0dc56952f21a904e9f3bf74253eebee1d1d9
   React-RCTAnimation: 2c0b963d4fd978ce35daa330986a8bc442c7517a
   React-RCTAppDelegate: bfb8293aa467aae8a28050e4095b0ceff284cbd5
   React-RCTBlob: a440574d805536c58c0c409cb5058334c8d2886c
-  React-RCTFabric: c9b6c2bc7a42486299fe530ddf924587132b67c4
+  React-RCTFabric: 6ea72ddf222ea1e373d0cbac88a1c62355701995
   React-RCTImage: e63bc8abbad2c5a4eda53ff35282d83bc9df7559
   React-RCTLinking: 12c6962253fd2f2494231eb8ae2fecae71e54e2f
   React-RCTNetwork: 46df47440bd2bf63b0ca0a3c640471243ed2922a
   React-RCTSettings: 5e1dfa02ae2d6cf54b3fdfebaa80837540c50847
   React-RCTText: 1c045a74e4fda674523c932f53bdd15b2a3ba085
   React-RCTVibration: 2ba9de92ae71526b3e02b8b8b2fce5cbf47c393f
-  React-rendererdebug: 3e88af9d97507bbe2ce613f30991592a6c4a0542
-  React-rncore: fcb61a65739736630f2d09fc39f506fec8eec951
-  React-RuntimeApple: 1bc158ae2edbbfe92417d5e8a3c4e843eba0a05c
-  React-RuntimeCore: 8d8f9bc375713c0ab85d0002c95e5c9aac35262d
+  React-rendererdebug: acb324f4975412bb14d55b29dd5ca6961b5fa06a
+  React-rncore: 63db76511a92db6cf9649c9d6567e014b7eeb6f5
+  React-RuntimeApple: 6ecb0a470d1ef989895a4e5d31980004378ebf71
+  React-RuntimeCore: 2794fdb42f7d37f3c877f614e12a0a240b594815
   React-runtimeexecutor: bf091a7f5f5130daab6d8216aaa290374b214cb8
-  React-RuntimeHermes: 23bbb7d62eecb82eec5f0482993662419342d060
-  React-runtimescheduler: 4f1dd41de203f80e258f8872e95a4f95d4d78122
-  React-utils: 81d350ba53f31480c80622976422ad8eec0f303e
-  ReactCommon: 46324531c3152a87c01cca2d6539362a6033ce45
+  React-RuntimeHermes: 73249fcc108708a137119de18c3d40ac5ab90160
+  React-runtimescheduler: b63ebebd3e000e0ba4ac19ca69bdac071559ad57
+  React-utils: 2955bdc1b2ed495f14dc7d3bfbbb7e3624cfc0fc
+  ReactCommon: 5c504a77030c7ab89eee75b1725b80d8cee7f5d7
   RNCAsyncStorage: ec53e44dc3e75b44aa2a9f37618a49c3bc080a7a
+  RNScreens: aa943ad421c3ced3ef5a47ede02b0cbfc43a012e
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
-  Yoga: dbb1bd5faecc60d38ed0a2f2a75db536c759b334
+  Yoga: 4f4f07a17818e76d1b04edc01b68b6d49a682100
 
-PODFILE CHECKSUM: f4140ea3026f4255b4b250dcf27761805461ecf0
+PODFILE CHECKSUM: 7f72954ff28502add2e9d69f5b701aa81397fdd7
 
 COCOAPODS: 1.15.2
