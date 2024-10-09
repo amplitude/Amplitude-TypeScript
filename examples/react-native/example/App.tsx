@@ -36,6 +36,8 @@ import {
 import {LogLevel} from '@amplitude/analytics-types';
 import {SessionReplayPlugin} from './session-replay';
 
+import {AmpMaskView} from './AmpMaskView';
+
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
@@ -49,6 +51,7 @@ function Section({children, title}: SectionProps): React.JSX.Element {
           console.log('tap');
           track('tap');
         }}>
+        <AmpMaskView mask="amp-mask">
         <Text
           style={[
             styles.sectionTitle,
@@ -58,6 +61,7 @@ function Section({children, title}: SectionProps): React.JSX.Element {
           ]}>
           {title}
         </Text>
+        </AmpMaskView>
       </TouchableWithoutFeedback>
       <Text
         style={[
@@ -75,7 +79,7 @@ function Section({children, title}: SectionProps): React.JSX.Element {
 function App(): React.JSX.Element {
   useEffect(() => {
     (async () => {
-      await init('YOUR_API_KEY', 'example_user_id', {
+      await init('6151e18fcbce1f94010e8791964d2a71', 'example_user_id', {
         logLevel: LogLevel.Verbose,
       }).promise;
       await add(new SessionReplayPlugin()).promise;

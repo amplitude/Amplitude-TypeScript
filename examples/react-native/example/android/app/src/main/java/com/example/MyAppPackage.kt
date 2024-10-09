@@ -7,7 +7,7 @@ import com.facebook.react.uimanager.ViewManager
 
 class MyAppPackage : ReactPackage {
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
-        return emptyList()
+        return mutableListOf(SessionReplayViewManager())
     }
 
     override fun createNativeModules(
