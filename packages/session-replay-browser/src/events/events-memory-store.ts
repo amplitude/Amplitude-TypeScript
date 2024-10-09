@@ -50,7 +50,7 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     let sequenceReturn: SendingSequencesReturn<number> | undefined;
     if (this.shouldSplitEventsList(this.sequences[sessionId], event)) {
       const sequenceId = await this.storeSendingEvents(sessionId, this.sequences[sessionId]);
-      if (sequenceId) {
+      if (sequenceId !== undefined) {
         sequenceReturn = {
           sequenceId,
           events: [...this.sequences[sessionId]],
