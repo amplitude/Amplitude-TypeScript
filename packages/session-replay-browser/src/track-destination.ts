@@ -50,7 +50,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       }
       this.completeRequest({
         context,
-        err: `${MAX_RETRIES_EXCEEDED_MESSAGE}, batch sequence id, ${context.sequenceId}`,
+        err: MAX_RETRIES_EXCEEDED_MESSAGE,
       });
       return false;
     });
@@ -108,7 +108,6 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     const urlParams = new URLSearchParams({
       device_id: deviceId,
       session_id: `${context.sessionId}`,
-      seq_number: `${context.sequenceId}`,
       type: `${context.type}`,
     });
     const sessionReplayLibrary = `${context.version?.type || 'standalone'}/${context.version?.version || version}`;
@@ -176,7 +175,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     const sizeOfEventsList = Math.round(new Blob(context.events).size / KB_SIZE);
     this.completeRequest({
       context,
-      success: `Session replay event batch with seq id ${context.sequenceId} tracked successfully for session id ${context.sessionId}, size of events: ${sizeOfEventsList} KB`,
+      success: `Session replay event batch tracked successfully for session id ${context.sessionId}, size of events: ${sizeOfEventsList} KB`,
     });
   }
 
@@ -196,7 +195,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
     err?: string;
     success?: string;
   }) {
-    void context.onComplete(context.sequenceId);
+    void context.onComplete();
     if (err) {
       this.loggerProvider.warn(err);
     } else if (success) {

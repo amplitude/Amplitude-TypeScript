@@ -47,6 +47,7 @@ describe('EventCompressor', () => {
     eventsManager = await createEventsManager<'replay'>({
       config,
       type: 'replay',
+      storeType: 'memory',
     });
     eventCompressor = new EventCompressor(eventsManager, config, deviceId);
     deferEvents = global.requestIdleCallback;

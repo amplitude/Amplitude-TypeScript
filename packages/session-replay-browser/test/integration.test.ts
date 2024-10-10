@@ -73,7 +73,7 @@ describe('module level integration', () => {
       getRemoteConfig: getRemoteConfigMock,
       metrics: {},
     });
-    jest.spyOn(SessionReplayIDB, 'createEventsIDBStore');
+    jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new');
     jest.useFakeTimers();
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -112,8 +112,8 @@ describe('module level integration', () => {
     test('should handle unknown event type', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
       if (!sessionReplay.eventsManager) {
@@ -132,8 +132,8 @@ describe('module level integration', () => {
     test('should handle unexpected error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockImplementationOnce(() => Promise.reject('API Failure'));
       if (!sessionReplay.eventsManager) {
@@ -148,7 +148,7 @@ describe('module level integration', () => {
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&type=replay`,
         expect.anything(),
       );
       expect(mockLoggerProvider.warn).toHaveBeenCalledWith('API Failure');
@@ -156,8 +156,8 @@ describe('module level integration', () => {
     test('should not retry for 400 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
@@ -184,7 +184,7 @@ describe('module level integration', () => {
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&type=replay`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -193,8 +193,8 @@ describe('module level integration', () => {
     test('should not retry for 413 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock)
         .mockImplementationOnce(() => {
@@ -220,7 +220,7 @@ describe('module level integration', () => {
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&type=replay`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -229,8 +229,8 @@ describe('module level integration', () => {
     test('should handle retry for 500 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockReset();
       (fetch as jest.Mock)
@@ -262,8 +262,8 @@ describe('module level integration', () => {
     test('should only retry once for 500 error, even if config set to higher than one retry', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 10 }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockReset();
       (fetch as jest.Mock)
@@ -294,8 +294,8 @@ describe('module level integration', () => {
     test('should handle retry for 503 error', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockReset();
       (fetch as jest.Mock)
@@ -326,8 +326,8 @@ describe('module level integration', () => {
     test('should handle unexpected error where fetch response is null', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, { ...mockOptions, flushMaxRetries: 2 }).promise;
-      const createEventsIDBStoreInstance = await (SessionReplayIDB.createEventsIDBStore as jest.Mock).mock.results[0]
-        .value;
+      const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
+        .results[0].value;
       jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
       (fetch as jest.Mock).mockImplementationOnce(() => {
         return Promise.resolve(null);
@@ -345,7 +345,7 @@ describe('module level integration', () => {
       await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
       await runScheduleTimers();
       expect(fetch).toHaveBeenLastCalledWith(
-        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&seq_number=1&type=replay`,
+        `${SESSION_REPLAY_EU_SERVER_URL}?device_id=1a2b3c&session_id=123&type=replay`,
         expect.anything(),
       );
       // eslint-disable-next-line @typescript-eslint/unbound-method

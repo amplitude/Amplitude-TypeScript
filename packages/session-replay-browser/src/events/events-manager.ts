@@ -1,12 +1,15 @@
 import {
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
+  EventsStore,
   EventType,
+  StoreType,
 } from '../typings/session-replay';
 
 import { SessionReplayJoinedConfig } from '../config/types';
-import { createEventsIDBStore } from './events-idb-store';
-import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
 import { getStorageSize } from '../helpers';
+import { PayloadBatcher, SessionReplayTrackDestination } from '../track-destination';
+import { SessionReplayEventsIDBStore } from './events-idb-store';
+import { InMemoryEventsStore } from './events-memory-store';
 
 export const createEventsManager = async <Type extends EventType>({
   config,
@@ -15,6 +18,7 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval,
   type,
   payloadBatcher,
+  storeType,
 }: {
   config: SessionReplayJoinedConfig;
   type: Type;
@@ -22,17 +26,34 @@ export const createEventsManager = async <Type extends EventType>({
   maxInterval?: number;
   sessionId?: number;
   payloadBatcher?: PayloadBatcher;
+  storeType: StoreType;
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
   const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider, payloadBatcher });
 
-  const eventsIDBStore = await createEventsIDBStore({
-    loggerProvider: config.loggerProvider,
-    apiKey: config.apiKey,
-    sessionId,
-    minInterval,
-    maxInterval,
-    type,
-  });
+  const getMemoryStore = (): EventsStore<number> => {
+    return new InMemoryEventsStore({
+      loggerProvider: config.loggerProvider,
+      maxInterval,
+      minInterval,
+    });
+  };
+
+  const getIdbStoreOrFallback = async (): Promise<EventsStore<number>> => {
+    const store = await SessionReplayEventsIDBStore.new(
+      type,
+      {
+        loggerProvider: config.loggerProvider,
+        minInterval,
+        maxInterval,
+        apiKey: config.apiKey,
+      },
+      sessionId,
+    );
+    config.loggerProvider.log('Failed to initialize idb store, falling back to memory store.');
+    return store ?? getMemoryStore();
+  };
+
+  const store: EventsStore<number> = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
 
   /**
    * Immediately sends events to the track destination.
@@ -46,7 +67,7 @@ export const createEventsManager = async <Type extends EventType>({
     events: string[];
     sessionId: number;
     deviceId: string;
-    sequenceId: number;
+    sequenceId?: number;
   }) => {
     if (config.debugMode) {
       getStorageSize()
@@ -62,7 +83,6 @@ export const createEventsManager = async <Type extends EventType>({
 
     trackDestination.sendEventsList({
       events: events,
-      sequenceId: sequenceId,
       sessionId: sessionId,
       flushMaxRetries: config.flushMaxRetries,
       apiKey: config.apiKey,
@@ -71,12 +91,15 @@ export const createEventsManager = async <Type extends EventType>({
       serverZone: config.serverZone,
       version: config.version,
       type,
-      onComplete: eventsIDBStore.cleanUpSessionEventsStore.bind(eventsIDBStore),
+      onComplete: async () => {
+        await store.cleanUpSessionEventsStore(sessionId, sequenceId);
+        return;
+      },
     });
   };
 
   const sendCurrentSequenceEvents = ({ sessionId, deviceId }: { sessionId: number; deviceId: string }) => {
-    eventsIDBStore
+    store
       .storeCurrentSequence(sessionId)
       .then((currentSequence) => {
         if (currentSequence) {
@@ -94,7 +117,7 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const sendStoredEvents = async ({ deviceId }: { deviceId: string }) => {
-    const sequencesToSend = await eventsIDBStore.getSequencesToSend();
+    const sequencesToSend = await store.getSequencesToSend();
     sequencesToSend &&
       sequencesToSend.forEach((sequence) => {
         sendEventsList({
@@ -115,7 +138,7 @@ export const createEventsManager = async <Type extends EventType>({
     sessionId: number;
     deviceId: string;
   }) => {
-    eventsIDBStore
+    store
       .addEventToCurrentSequence(sessionId, event.data)
       .then((sequenceToSend) => {
         return (

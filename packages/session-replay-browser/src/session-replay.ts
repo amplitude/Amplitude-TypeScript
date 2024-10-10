@@ -99,12 +99,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     const managers: EventsManagerWithType<EventType, string>[] = [];
-
+    let { storeType } = this.config;
+    if (storeType === 'idb' && !getGlobalScope()?.indexedDB) {
+      storeType = 'memory';
+      this.loggerProvider.warn('Could not use preferred indexedDB storage, reverting to in memory option.');
+    }
+    this.loggerProvider.log(`Using ${storeType} for event storage.`);
     try {
       const rrwebEventManager = await createEventsManager<'replay'>({
         config: this.config,
         sessionId: this.identifiers.sessionId,
         type: 'replay',
+        storeType,
       });
       managers.push({ name: 'replay', manager: rrwebEventManager });
     } catch (error) {
@@ -122,6 +128,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           minInterval: this.config.interactionConfig.trackEveryNms ?? INTERACTION_MIN_INTERVAL,
           maxInterval: INTERACTION_MAX_INTERVAL,
           payloadBatcher,
+          storeType,
         });
         managers.push({ name: 'interaction', manager: interactionEventManager });
       } catch (error) {

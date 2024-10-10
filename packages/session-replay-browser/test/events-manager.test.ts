@@ -43,7 +43,7 @@ describe('createEventsManager', () => {
     storeSendingEvents: jest.fn(),
   } as unknown as SessionReplayIDB.SessionReplayEventsIDBStore;
   beforeEach(() => {
-    jest.spyOn(SessionReplayIDB, 'createEventsIDBStore').mockResolvedValue(mockIDBStore);
+    jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new').mockResolvedValue(mockIDBStore);
     jest.useFakeTimers();
     originalFetch = global.fetch;
     global.fetch = jest.fn(() =>
@@ -58,6 +58,21 @@ describe('createEventsManager', () => {
 
     jest.useRealTimers();
   });
+
+  test('falls back to memory store', async () => {
+    jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new').mockResolvedValue(undefined);
+
+    await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'idb',
+    });
+
+    expect(mockLoggerProvider.log).toHaveBeenCalledWith(
+      'Failed to initialize idb store, falling back to memory store.',
+    );
+  });
+
   describe('sendStoredEvents', () => {
     test('should read events from storage and send them', async () => {
       (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
@@ -66,6 +81,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -75,7 +91,6 @@ describe('createEventsManager', () => {
       expect(mockSendEventsList).toHaveBeenCalledWith(
         expect.objectContaining({
           events: [mockEventString],
-          sequenceId: 1,
           sessionId: 123,
           apiKey: 'static_key',
           deviceId: '1a2b3c',
@@ -92,6 +107,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -119,6 +135,7 @@ describe('createEventsManager', () => {
           debugMode: true,
         },
         type: 'replay',
+        storeType: 'idb',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       await getStoragePromise;
@@ -147,6 +164,7 @@ describe('createEventsManager', () => {
           debugMode: true,
         },
         type: 'replay',
+        storeType: 'idb',
       });
       await eventsManager.sendStoredEvents({ deviceId: '1a2b3c' });
       await getStoragePromise;
@@ -165,6 +183,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -180,7 +199,6 @@ describe('createEventsManager', () => {
           expect(mockSendEventsList).toHaveBeenCalledWith(
             expect.objectContaining({
               events: [mockEventString],
-              sequenceId: 1,
               sessionId: 123,
               apiKey: 'static_key',
               deviceId: '1a2b3c',
@@ -199,6 +217,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -219,6 +238,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       eventsManager.addEvent({ event: { type: 'replay', data: mockEventString }, sessionId: 123, deviceId: '1a2b3c' });
 
@@ -233,12 +253,13 @@ describe('createEventsManager', () => {
   });
 
   describe('sendCurrentSequenceEvents', () => {
-    test('should store events in IDB and send any returned', async () => {
-      const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
+    test('todo no sequence', async () => {
+      const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sessionId: 123 });
       (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
       jest.runAllTimers();
@@ -254,7 +275,40 @@ describe('createEventsManager', () => {
           expect(mockSendEventsList).toHaveBeenCalledWith(
             expect.objectContaining({
               events: [mockEventString],
-              sequenceId: 1,
+              sessionId: 123,
+              apiKey: 'static_key',
+              deviceId: '1a2b3c',
+              flushMaxRetries: 2,
+              onComplete: expect.any(Function),
+              sampleRate: 1,
+              serverZone: 'US',
+            }),
+          );
+        });
+    });
+
+    test('should store events in IDB and send any returned', async () => {
+      const mockStoreEventPromise = Promise.resolve({ events: [mockEventString], sequenceId: 1, sessionId: 123 });
+      (mockIDBStore.storeCurrentSequence as jest.Mock).mockReturnValue(mockStoreEventPromise);
+      const eventsManager = await createEventsManager<'replay'>({
+        config,
+        type: 'replay',
+        storeType: 'idb',
+      });
+      eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
+      jest.runAllTimers();
+      return mockStoreEventPromise
+        .catch(() => {
+          // ignore
+        })
+        .finally(() => {
+          expect(mockIDBStore.storeCurrentSequence).toHaveBeenCalledWith(123);
+          const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
+          const mockSendEventsList = trackDestinationInstance.sendEventsList;
+          expect(mockSendEventsList).toHaveBeenCalledTimes(1);
+          expect(mockSendEventsList).toHaveBeenCalledWith(
+            expect.objectContaining({
+              events: [mockEventString],
               sessionId: 123,
               apiKey: 'static_key',
               deviceId: '1a2b3c',
@@ -272,6 +326,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
@@ -293,6 +348,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       eventsManager.sendCurrentSequenceEvents({ sessionId: 123, deviceId: '1a2b3c' });
 
@@ -311,6 +367,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const flushMock = trackDestinationInstance.flush;
@@ -323,6 +380,7 @@ describe('createEventsManager', () => {
       const eventsManager = await createEventsManager({
         config,
         type: 'replay',
+        storeType: 'idb',
       });
       const trackDestinationInstance = (SessionReplayTrackDestination as jest.Mock).mock.instances[0];
       const flushMock = trackDestinationInstance.flush;

@@ -1,4 +1,5 @@
 import { Config, LogLevel, Logger } from '@amplitude/analytics-types';
+import { StoreType } from '../typings/session-replay';
 
 export interface SamplingConfig {
   sample_rate: number;
@@ -50,6 +51,7 @@ export interface SessionReplayLocalConfig extends Config {
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
   performanceConfig?: SessionReplayPerformanceConfig;
+  storeType: StoreType;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

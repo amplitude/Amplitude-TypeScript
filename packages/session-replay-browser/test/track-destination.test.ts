@@ -56,7 +56,7 @@ describe('SessionReplayTrackDestination', () => {
       const schedule = jest.spyOn(trackDestination, 'schedule').mockReturnValueOnce(undefined);
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,
@@ -79,7 +79,7 @@ describe('SessionReplayTrackDestination', () => {
       const completeRequest = jest.spyOn(trackDestination, 'completeRequest').mockReturnValueOnce(undefined);
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 1,
@@ -94,7 +94,7 @@ describe('SessionReplayTrackDestination', () => {
       expect(completeRequest).toHaveBeenCalledTimes(1);
       expect(completeRequest).toHaveBeenCalledWith({
         context: context,
-        err: 'Session replay event batch rejected due to exceeded retry count, batch sequence id, 1',
+        err: 'Session replay event batch rejected due to exceeded retry count',
       });
     });
 
@@ -103,7 +103,7 @@ describe('SessionReplayTrackDestination', () => {
       const schedule = jest.spyOn(trackDestination, 'schedule').mockReturnValueOnce(undefined);
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,
@@ -131,7 +131,7 @@ describe('SessionReplayTrackDestination', () => {
       trackDestination.queue = [
         {
           events: [mockEventString],
-          sequenceId: 1,
+
           sessionId: 123,
           apiKey,
           attempts: 0,
@@ -173,7 +173,7 @@ describe('SessionReplayTrackDestination', () => {
       trackDestination.queue = [
         {
           events: [mockEventString],
-          sequenceId: 1,
+
           sessionId: 123,
           apiKey,
           attempts: 0,
@@ -197,7 +197,7 @@ describe('SessionReplayTrackDestination', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,
@@ -224,7 +224,7 @@ describe('SessionReplayTrackDestination', () => {
       trackDestination.loggerProvider = mockLoggerProvider;
       const context: SessionReplayDestinationContext = {
         events: [],
-        sequenceId: 1,
+
         sessionId: 123,
         attempts: 0,
         timeout: 0,
@@ -244,7 +244,7 @@ describe('SessionReplayTrackDestination', () => {
       trackDestination.loggerProvider = mockLoggerProvider;
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         attempts: 0,
         timeout: 0,
@@ -264,7 +264,7 @@ describe('SessionReplayTrackDestination', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,
@@ -285,7 +285,7 @@ describe('SessionReplayTrackDestination', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,
@@ -305,7 +305,7 @@ describe('SessionReplayTrackDestination', () => {
       await trackDestination.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
-        'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=replay',
+        'https://api-sr.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&type=replay',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
           headers: {
@@ -326,7 +326,7 @@ describe('SessionReplayTrackDestination', () => {
 
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,
@@ -342,7 +342,7 @@ describe('SessionReplayTrackDestination', () => {
       await trackDestination.send(context);
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
-        'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&seq_number=1&type=replay',
+        'https://api-sr.eu.amplitude.com/sessions/v2/track?device_id=1a2b3c&session_id=123&type=replay',
         {
           body: JSON.stringify({ version: 1, events: [mockEventString] }),
           headers: {
@@ -363,7 +363,7 @@ describe('SessionReplayTrackDestination', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,
@@ -401,7 +401,7 @@ describe('SessionReplayTrackDestination', () => {
       const trackDestination = new SessionReplayTrackDestination({ loggerProvider: mockLoggerProvider });
       const context: SessionReplayDestinationContext = {
         events: [mockEventString],
-        sequenceId: 1,
+
         sessionId: 123,
         apiKey,
         attempts: 0,

@@ -14,6 +14,8 @@ export interface DebugInfo extends Partial<StorageData> {
 
 export type Events = string[];
 
+export type StoreType = 'memory' | 'idb';
+
 export type EventType = 'replay' | 'interaction';
 
 export interface SessionReplayDestinationSessionMetadata {
@@ -25,12 +27,11 @@ export interface SessionReplayDestinationSessionMetadata {
 
 export type SessionReplayDestination = {
   events: Events;
-  sequenceId: number;
   flushMaxRetries?: number;
   apiKey?: string;
   sampleRate: number;
   serverZone?: keyof typeof ServerZone;
-  onComplete: (sequenceId: number) => Promise<void>;
+  onComplete: () => Promise<void>;
 } & SessionReplayDestinationSessionMetadata;
 
 export interface SessionReplayDestinationContext extends SessionReplayDestination {
@@ -38,28 +39,35 @@ export interface SessionReplayDestinationContext extends SessionReplayDestinatio
   timeout: number;
 }
 
-export interface SendingSequencesIDBInput {
-  sequenceId?: number;
+export interface SendingSequencesReturn<KeyType> {
+  sequenceId: KeyType;
   sessionId: number;
   events: Events;
 }
 
-export type SendingSequencesIDBReturn = Required<SendingSequencesIDBInput>;
-
-export interface SessionReplayEventsIDBStore {
-  initialize(type: EventType): Promise<void>;
-  getSequencesToSend(): Promise<SendingSequencesIDBReturn[] | undefined>;
+/**
+ * This interface is not guaranteed to be stable, yet.
+ */
+export interface EventsStore<KeyType> {
+  getSequencesToSend(): Promise<SendingSequencesReturn<KeyType>[] | undefined>;
   /**
    * Moves current sequence of events to long term storage and resets short term storage.
    */
-  storeCurrentSequence(sessionId: number): Promise<SendingSequencesIDBInput | undefined>;
+  storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<KeyType> | undefined>;
   /**
    * Adds events to the current IDB sequence. Returns events that should be
    * sent to the track destination right away if should split events is true.
    */
-  addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesIDBReturn | undefined>;
-  storeSendingEvents(sessionId: number, events: Events): Promise<number | undefined>;
-  cleanUpSessionEventsStore(sessionId: number, sequenceId: number): Promise<void>;
+  addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesReturn<KeyType> | undefined>;
+  /**
+   * Returns the sequence id associated with the events batch.
+   * @returns the new sequence id or undefined if it cannot be determined or on any error.
+   */
+  storeSendingEvents(sessionId: number, events: Events): Promise<KeyType | undefined>;
+  /**
+   * Permanently removes the events batch for the session/sequence pair.
+   */
+  cleanUpSessionEventsStore(sessionId: number, sequenceId?: KeyType): Promise<void>;
 }
 export interface SessionIdentifiers {
   deviceId?: string;
