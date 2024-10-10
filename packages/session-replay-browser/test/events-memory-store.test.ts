@@ -31,14 +31,13 @@ describe('InMemoryEventsStore', () => {
     test('returns sequence id on split', async () => {
       await store.addEventToCurrentSequence(sessionId, 'test');
       store.shouldSplitEventsList = jest.fn().mockReturnValue(true);
-      await store.addEventToCurrentSequence(sessionId, 'test');
 
       const {
         sequenceId,
         events,
         sessionId: sequenceSessionId,
       } = (await store.addEventToCurrentSequence(sessionId, 'test'))!;
-      expect(sequenceId).toBeGreaterThanOrEqual(0);
+      expect(sequenceId).toBe(0);
       expect(events).toStrictEqual(['test']);
       expect(sequenceSessionId).toStrictEqual(sessionId);
     });
@@ -52,7 +51,7 @@ describe('InMemoryEventsStore', () => {
     test('sequence id produced', async () => {
       await store.addEventToCurrentSequence(sessionId, 'test');
       const { sequenceId, events, sessionId: sequenceSessionId } = (await store.storeCurrentSequence(sessionId))!;
-      expect(sequenceId).toBeGreaterThanOrEqual(0);
+      expect(sequenceId).toBe(0);
       expect(events).toStrictEqual(['test']);
       expect(sequenceSessionId).toStrictEqual(sessionId);
     });
@@ -70,7 +69,7 @@ describe('InMemoryEventsStore', () => {
       expect(sequences).toHaveLength(1);
 
       const { sequenceId, events, sessionId: sequenceSessionId } = sequences[0];
-      expect(sequenceId).toBeGreaterThanOrEqual(0);
+      expect(sequenceId).toBe(0);
       expect(events).toStrictEqual(['test']);
       expect(sequenceSessionId).toStrictEqual(sessionId);
     });
@@ -78,7 +77,7 @@ describe('InMemoryEventsStore', () => {
 
   describe('storeSendingEvents', () => {
     test('stores events', async () => {
-      expect(await store.storeSendingEvents(sessionId, ['test'])).toBeGreaterThanOrEqual(0);
+      expect(await store.storeSendingEvents(sessionId, ['test'])).toBe(0);
     });
   });
 
