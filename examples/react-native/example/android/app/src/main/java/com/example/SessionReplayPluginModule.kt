@@ -71,4 +71,8 @@ class SessionReplayPluginModule(private val reactContext: ReactApplicationContex
     fun teardown() {
         sessionReplay.shutdown()
     }
+
+    override fun invalidate() {
+        sessionReplay.shutdown()
+    }
 }
