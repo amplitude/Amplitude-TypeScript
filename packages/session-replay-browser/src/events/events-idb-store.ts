@@ -1,6 +1,6 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { STORAGE_PREFIX } from '@amplitude/analytics-core';
-import { DBSchema, IDBPDatabase, openDB } from 'idb';
+import { DBSchema, IDBPDatabase, IDBPTransaction, openDB } from 'idb';
 import { STORAGE_FAILURE } from '../messages';
 import { EventType, Events, SendingSequencesReturn } from '../typings/session-replay';
 import { BaseEventsStore, InstanceArgs as BaseInstanceArgs } from './base-events-store';
@@ -92,7 +92,29 @@ type InstanceArgs = {
   db: IDBPDatabase<SessionReplayDB>;
 } & BaseInstanceArgs;
 
-export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
+type TX = IDBPTransaction<SessionReplayDB, ['sessionCurrentSequence'], 'readwrite'>;
+
+export class SessionReplayEventsIDBStore extends BaseEventsStore<number, TX> {
+  async startTransaction(): Promise<TX> {
+    return this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
+  }
+  async finishTransaction(
+    tx: IDBPTransaction<SessionReplayDB, ['sessionCurrentSequence'], 'readwrite'>,
+  ): Promise<void> {
+    await tx.done;
+  }
+  async resetCurrentSequence(sessionId: number, tx: TX): Promise<void> {
+    await tx.store.put({ sessionId, events: [] });
+    return;
+  }
+  async getCurrentSequence(sessionId: number, tx: TX): Promise<Events> {
+    const sequenceEvents = await tx.store.get(sessionId);
+    return sequenceEvents?.events ?? [];
+  }
+  async addToCurrentSequence(sessionId: number, event: string, tx: TX): Promise<void> {
+    const storedEventInfo = await tx.store.get(sessionId);
+    await tx.store.put({ sessionId, events: (storedEventInfo?.events ?? []).concat(event) });
+  }
   private readonly apiKey: string;
   private readonly db: IDBPDatabase<SessionReplayDB>;
 
@@ -140,7 +162,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     return allEvents;
   }
 
-  getSequencesToSend = async (): Promise<SendingSequencesReturn<number>[] | undefined> => {
+  getPersistedSequences = async (limit?: number): Promise<SendingSequencesReturn<number>[]> => {
     try {
       const sequences: SendingSequencesReturn<number>[] = [];
       let cursor = await this.db.transaction('sequencesToSend').store.openCursor();
@@ -151,6 +173,12 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
           sequenceId: cursor.key,
           sessionId,
         });
+        if (limit !== undefined) {
+          limit--;
+          if (limit <= 0) {
+            return sequences;
+          }
+        }
         cursor = await cursor.continue();
       }
 
@@ -158,89 +186,42 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     } catch (e) {
       this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
     }
-    return undefined;
+    return [];
   };
 
-  storeCurrentSequence = async (sessionId: number) => {
-    try {
-      const currentSequenceData = await this.db.get<'sessionCurrentSequence'>(currentSequenceKey, sessionId);
-      if (!currentSequenceData) {
-        return undefined;
-      }
-
-      const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
-        sessionId: sessionId,
-        events: currentSequenceData.events,
-      });
-
-      await this.db.put<'sessionCurrentSequence'>(currentSequenceKey, { sessionId, events: [] });
-
-      return {
-        ...currentSequenceData,
-        sessionId,
-        sequenceId,
-      };
-    } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
-    }
-    return undefined;
-  };
-
-  addEventToCurrentSequence = async (sessionId: number, event: string) => {
-    try {
-      const tx = this.db.transaction<'sessionCurrentSequence', 'readwrite'>(currentSequenceKey, 'readwrite');
-      const sequenceEvents = await tx.store.get(sessionId);
-      if (!sequenceEvents) {
-        await tx.store.put({ sessionId, events: [event] });
-        return;
-      }
-      let eventsToSend;
-      if (this.shouldSplitEventsList(sequenceEvents.events, event)) {
-        eventsToSend = sequenceEvents.events;
-        // set store to empty array
-        await tx.store.put({ sessionId, events: [event] });
-      } else {
-        // add event to array
-        const updatedEvents = sequenceEvents.events.concat(event);
-        await tx.store.put({ sessionId, events: updatedEvents });
-      }
-
-      await tx.done;
-      if (!eventsToSend) {
-        return undefined;
-      }
-
-      const sequenceId = await this.storeSendingEvents(sessionId, eventsToSend);
-
-      if (!sequenceId) {
-        return undefined;
-      }
-
-      return {
-        events: eventsToSend,
-        sessionId,
-        sequenceId,
-      };
-    } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
-    }
-    return undefined;
-  };
-
-  storeSendingEvents = async (sessionId: number, events: Events) => {
-    try {
+  async persistSequence(sessionId: number, events?: Events) {
+    if (events) {
       const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
         sessionId: sessionId,
         events: events,
       });
-      return sequenceId;
-    } catch (e) {
-      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+      return {
+        sequenceId,
+        sessionId,
+        events,
+      };
     }
-    return undefined;
-  };
 
-  cleanUpSessionEventsStore = async (_sessionId: number, sequenceId?: number) => {
+    const currentSequenceData = await this.db.get<'sessionCurrentSequence'>(currentSequenceKey, sessionId);
+    if (!currentSequenceData) {
+      return undefined;
+    }
+
+    const sequenceId = await this.db.put<'sequencesToSend'>(sequencesToSendKey, {
+      sessionId: sessionId,
+      events: currentSequenceData.events,
+    });
+
+    await this.db.put<'sessionCurrentSequence'>(currentSequenceKey, { sessionId, events: [] });
+
+    return {
+      ...currentSequenceData,
+      sessionId,
+      sequenceId,
+    };
+  }
+
+  deleteSequence = async (_sessionId: number, sequenceId?: number) => {
     if (!sequenceId) {
       return;
     }
@@ -271,7 +252,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
             );
             promisesToBatch.concat(eventAddPromises);
           } else if (sequence.status !== RecordingStatus.SENT) {
-            promisesToBatch.push(this.storeSendingEvents(numericSessionId, sequence.events));
+            promisesToBatch.push(this.persistSequence(numericSessionId, sequence.events));
           }
         });
 
@@ -300,7 +281,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
                     const numericSequenceId = parseInt(sequenceId, 10);
                     if (oldSessionSequences[numericSequenceId].status !== RecordingStatus.SENT) {
                       promisesToBatch.push(
-                        this.storeSendingEvents(numericSessionId, oldSessionSequences[numericSequenceId].events),
+                        this.persistSequence(numericSessionId, oldSessionSequences[numericSequenceId].events),
                       );
                     }
                   });

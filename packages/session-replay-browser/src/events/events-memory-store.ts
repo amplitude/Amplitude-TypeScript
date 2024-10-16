@@ -1,63 +1,69 @@
 import { Events, SendingSequencesReturn } from '../typings/session-replay';
 import { BaseEventsStore } from './base-events-store';
 
-export class InMemoryEventsStore extends BaseEventsStore<number> {
+export class InMemoryEventsStore extends BaseEventsStore<number, void> {
   private finalizedSequences: Record<number, { sessionId: number; events: string[] }> = {};
   private sequences: Record<number, string[]> = {};
   private sequenceId = 0;
 
-  private resetCurrentSequence(sessionId: number) {
-    this.sequences[sessionId] = [];
-  }
-
-  private addSequence(sessionId: number): SendingSequencesReturn<number> {
+  private async addSequence(sessionId: number, events: Events): Promise<SendingSequencesReturn<number>> {
     const sequenceId = this.sequenceId++;
-    const events = [...this.sequences[sessionId]];
     this.finalizedSequences[sequenceId] = { sessionId, events };
-    this.resetCurrentSequence(sessionId);
+    await this.resetCurrentSequence(sessionId);
     return { sequenceId, events, sessionId };
   }
 
-  async getSequencesToSend(): Promise<SendingSequencesReturn<number>[] | undefined> {
-    return Object.entries(this.finalizedSequences).map(([sequenceId, { sessionId, events }]) => ({
-      sequenceId: Number(sequenceId),
-      sessionId,
-      events,
-    }));
+  async startTransaction(): Promise<void> {
+    return;
   }
 
-  async storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<number> | undefined> {
+  async finishTransaction(): Promise<void> {
+    return;
+  }
+
+  async getCurrentSequence(sessionId: number): Promise<Events> {
+    return this.sequences[sessionId];
+  }
+
+  async addToCurrentSequence(sessionId: number, event: string): Promise<void> {
+    this.sequences[sessionId].push(event);
+  }
+
+  async persistSequence(sessionId: number, events?: Events): Promise<SendingSequencesReturn<number> | undefined> {
+    if (events) {
+      return await this.addSequence(sessionId, events);
+    }
+
     if (!this.sequences[sessionId]) {
       return undefined;
     }
-    return this.addSequence(sessionId);
+
+    return await this.addSequence(sessionId, [...this.sequences[sessionId]]);
   }
 
-  async addEventToCurrentSequence(
-    sessionId: number,
-    event: string,
-  ): Promise<SendingSequencesReturn<number> | undefined> {
-    if (!this.sequences[sessionId]) {
-      this.resetCurrentSequence(sessionId);
+  async resetCurrentSequence(sessionId: number) {
+    this.sequences[sessionId] = [];
+  }
+
+  async getPersistedSequences(limit?: number): Promise<SendingSequencesReturn<number>[]> {
+    const sequences = [];
+    for (const [sequenceId, { sessionId, events }] of Object.entries(this.finalizedSequences)) {
+      sequences.push({
+        sequenceId: Number(sequenceId),
+        sessionId,
+        events,
+      });
+      if (limit !== undefined) {
+        limit--;
+        if (limit <= 0) {
+          return sequences;
+        }
+      }
     }
-
-    let sequenceReturn: SendingSequencesReturn<number> | undefined;
-    if (this.shouldSplitEventsList(this.sequences[sessionId], event)) {
-      sequenceReturn = this.addSequence(sessionId);
-    }
-
-    this.sequences[sessionId].push(event);
-
-    return sequenceReturn;
+    return sequences;
   }
 
-  async storeSendingEvents(sessionId: number, events: Events): Promise<number | undefined> {
-    this.finalizedSequences[this.sequenceId] = { sessionId, events };
-
-    return this.sequenceId++;
-  }
-
-  async cleanUpSessionEventsStore(_sessionId: number, sequenceId?: number): Promise<void> {
+  async deleteSequence(_sessionId: number, sequenceId?: number): Promise<void> {
     if (sequenceId !== undefined) {
       delete this.finalizedSequences[sequenceId];
     }

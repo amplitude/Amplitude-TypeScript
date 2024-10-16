@@ -53,7 +53,12 @@ export const createEventsManager = async <Type extends EventType>({
     return store ?? getMemoryStore();
   };
 
-  const store: EventsStore<number> = storeType === 'idb' ? await getIdbStoreOrFallback() : getMemoryStore();
+  const store: EventsStore<number> =
+    storeType.type === 'custom'
+      ? storeType.implementation
+      : storeType.type === 'idb'
+      ? await getIdbStoreOrFallback()
+      : getMemoryStore();
 
   /**
    * Immediately sends events to the track destination.
@@ -92,7 +97,7 @@ export const createEventsManager = async <Type extends EventType>({
       version: config.version,
       type,
       onComplete: async () => {
-        await store.cleanUpSessionEventsStore(sessionId, sequenceId);
+        await store.deleteSequence(sessionId, sequenceId);
         return;
       },
     });
@@ -117,16 +122,15 @@ export const createEventsManager = async <Type extends EventType>({
   };
 
   const sendStoredEvents = async ({ deviceId }: { deviceId: string }) => {
-    const sequencesToSend = await store.getSequencesToSend();
-    sequencesToSend &&
-      sequencesToSend.forEach((sequence) => {
-        sendEventsList({
-          sequenceId: sequence.sequenceId,
-          events: sequence.events,
-          sessionId: sequence.sessionId,
-          deviceId,
-        });
+    const sequencesToSend = await store.getPersistedSequences();
+    sequencesToSend.forEach((sequence) => {
+      sendEventsList({
+        sequenceId: sequence.sequenceId,
+        events: sequence.events,
+        sessionId: sequence.sessionId,
+        deviceId,
       });
+    });
   };
 
   const addEvent = ({

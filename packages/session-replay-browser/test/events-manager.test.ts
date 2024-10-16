@@ -75,7 +75,7 @@ describe('createEventsManager', () => {
 
   describe('sendStoredEvents', () => {
     test('should read events from storage and send them', async () => {
-      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+      (mockIDBStore.getPersistedSequences as jest.Mock).mockResolvedValue([
         { events: [mockEventString], sequenceId: 1, sessionId: 123 },
       ]);
       const eventsManager = await createEventsManager<'replay'>({
@@ -103,7 +103,7 @@ describe('createEventsManager', () => {
     });
 
     test('should not send if no events', async () => {
-      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue(undefined);
+      (mockIDBStore.getPersistedSequences as jest.Mock).mockResolvedValue(undefined);
       const eventsManager = await createEventsManager<'replay'>({
         config,
         type: 'replay',
@@ -117,7 +117,7 @@ describe('createEventsManager', () => {
     });
 
     test('should log the current storage size', async () => {
-      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+      (mockIDBStore.getPersistedSequences as jest.Mock).mockResolvedValue([
         { events: [mockEventString], sequenceId: 1, sessionId: 123 },
       ]);
       const getStoragePromise = Promise.resolve({
@@ -143,7 +143,7 @@ describe('createEventsManager', () => {
     });
 
     test('should handle an error in logging the current storage size', async () => {
-      (mockIDBStore.getSequencesToSend as jest.Mock).mockResolvedValue([
+      (mockIDBStore.getPersistedSequences as jest.Mock).mockResolvedValue([
         { events: [mockEventString], sequenceId: 1, sessionId: 123 },
       ]);
       const getStoragePromise = Promise.resolve({
@@ -339,7 +339,7 @@ describe('createEventsManager', () => {
           const mockOnComplete = trackDestinationInstance.sendEventsList.mock.calls[0][0].onComplete;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-call
           void mockOnComplete(123);
-          expect(mockIDBStore.cleanUpSessionEventsStore).toHaveBeenCalledTimes(1);
+          expect(mockIDBStore.deleteSequence).toHaveBeenCalledTimes(1);
         });
     });
     test('should catch errors', async () => {

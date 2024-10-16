@@ -49,7 +49,11 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
     this.performanceConfig = options.performanceConfig;
-    this.storeType = options.storeType ?? 'idb';
+    if (options.storeType?.type === 'custom') {
+      this.storeType = { type: 'custom', implementation: options.storeType.implementation };
+    } else {
+      this.storeType = { type: options.storeType?.type ?? 'idb' };
+    }
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;

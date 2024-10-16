@@ -59,13 +59,13 @@ describe('InMemoryEventsStore', () => {
 
   describe('getSequencesToSend', () => {
     test('get sequences', async () => {
-      expect(await store.getSequencesToSend()).toStrictEqual([]);
+      expect(await store.getPersistedSequences()).toStrictEqual([]);
     });
 
     test('get stored sequences', async () => {
       await store.addEventToCurrentSequence(sessionId, 'test');
       await store.storeCurrentSequence(sessionId);
-      const sequences = (await store.getSequencesToSend())!;
+      const sequences = (await store.getPersistedSequences())!;
       expect(sequences).toHaveLength(1);
 
       const { sequenceId, events, sessionId: sequenceSessionId } = sequences[0];
@@ -77,25 +77,25 @@ describe('InMemoryEventsStore', () => {
 
   describe('storeSendingEvents', () => {
     test('stores events', async () => {
-      expect(await store.storeSendingEvents(sessionId, ['test'])).toBe(0);
+      expect(await store.persist(sessionId, ['test'])).toBe(0);
     });
   });
 
   describe('cleanUpSessionEventsStore', () => {
     test('deletes sequence', async () => {
       // first build a new sequence
-      const sequenceId = (await store.storeSendingEvents(sessionId, ['test']))!;
-      const sequences = (await store.getSequencesToSend())!;
+      const sequenceId = (await store.persist(sessionId, ['test']))!;
+      const sequences = (await store.getPersistedSequences())!;
       expect(sequences).toHaveLength(1);
 
       const sequence = sequences[0];
       expect(sequence.sequenceId).toBe(sequenceId);
 
       // then delete it
-      await store.cleanUpSessionEventsStore(sessionId, sequenceId);
+      await store.deleteSequence(sessionId, sequenceId);
 
       // then confirm it's deleted
-      expect(await store.getSequencesToSend()).toStrictEqual([]);
+      expect(await store.getPersistedSequences()).toStrictEqual([]);
     });
   });
 });

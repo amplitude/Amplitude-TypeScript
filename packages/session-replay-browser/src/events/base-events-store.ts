@@ -1,3 +1,4 @@
+import { STORAGE_FAILURE } from '../messages';
 import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
 import { Logger } from '@amplitude/analytics-types';
@@ -9,7 +10,7 @@ export type InstanceArgs = {
   maxPersistedEventsSize?: number;
 };
 
-export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
+export abstract class BaseEventsStore<KeyType, TX> implements EventsStore<KeyType> {
   protected readonly loggerProvider: Logger;
   private minInterval = MIN_INTERVAL;
   private maxInterval = MAX_INTERVAL;
@@ -28,14 +29,58 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
     this.maxPersistedEventsSize = args.maxPersistedEventsSize ?? this.maxPersistedEventsSize;
   }
 
-  abstract addEventToCurrentSequence(
+  abstract startTransaction(): Promise<TX>;
+  abstract finishTransaction(tx: TX): Promise<void>;
+  abstract resetCurrentSequence(sessionId: number, tx: TX): Promise<void>;
+  abstract getCurrentSequence(sessionId: number, tx: TX): Promise<Events>;
+  abstract addToCurrentSequence(sessionId: number, event: string, tx: TX): Promise<void>;
+  abstract persistSequence(sessionId: number, events?: Events): Promise<SendingSequencesReturn<KeyType> | undefined>;
+  abstract getPersistedSequences(limit?: number): Promise<SendingSequencesReturn<KeyType>[]>;
+  abstract deleteSequence(sessionId: number, sequenceId?: KeyType): Promise<void>;
+
+  async storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<KeyType> | undefined> {
+    return await this.persistSequence(sessionId);
+  }
+
+  async addEventToCurrentSequence(
     sessionId: number,
     event: string,
-  ): Promise<SendingSequencesReturn<KeyType> | undefined>;
-  abstract getSequencesToSend(): Promise<SendingSequencesReturn<KeyType>[] | undefined>;
-  abstract storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<KeyType> | undefined>;
-  abstract storeSendingEvents(sessionId: number, events: Events): Promise<KeyType | undefined>;
-  abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
+  ): Promise<SendingSequencesReturn<KeyType> | undefined> {
+    try {
+      const tx = await this.startTransaction();
+      const sequenceEvents = await this.getCurrentSequence(sessionId, tx);
+      if (!sequenceEvents) {
+        await this.addToCurrentSequence(sessionId, event, tx);
+        return undefined;
+      }
+      let eventsToSend;
+      if (this.shouldSplitEventsList(sequenceEvents, event)) {
+        eventsToSend = sequenceEvents;
+        await this.resetCurrentSequence(sessionId, tx);
+      }
+      await this.addToCurrentSequence(sessionId, event, tx);
+
+      await this.finishTransaction(tx);
+      if (!eventsToSend) {
+        return undefined;
+      }
+
+      const sequence = await this.persistSequence(sessionId, eventsToSend);
+
+      if (!sequence) {
+        return undefined;
+      }
+
+      return {
+        events: eventsToSend,
+        sessionId,
+        sequenceId: sequence.sequenceId,
+      };
+    } catch (e) {
+      this.loggerProvider.warn(`${STORAGE_FAILURE}: ${e as string}`);
+    }
+    return undefined;
+  }
 
   /**
    * Determines whether to send the events list to the backend and start a new
@@ -43,7 +88,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
    * @param nextEventString
    * @returns boolean
    */
-  shouldSplitEventsList = (events: Events, nextEventString: string): boolean => {
+  private shouldSplitEventsList = (events: Events, nextEventString: string): boolean => {
     const sizeOfNextEvent = new Blob([nextEventString]).size;
     const sizeOfEventsList = new Blob(events).size;
     if (sizeOfEventsList + sizeOfNextEvent >= this.maxPersistedEventsSize) {

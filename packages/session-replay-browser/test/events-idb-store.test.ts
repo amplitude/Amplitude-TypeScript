@@ -68,10 +68,10 @@ describe('SessionReplayEventsIDBStore', () => {
         apiKey,
         loggerProvider: mockLoggerProvider,
       });
-      await eventsStorage?.storeSendingEvents(123, [mockEventString]);
-      await eventsStorage?.storeSendingEvents(456, [mockEventString]);
-      await eventsStorage?.storeSendingEvents(456, [mockEventString, mockEventString]);
-      const unsentSequences = await eventsStorage?.getSequencesToSend();
+      await eventsStorage?.persist(123, [mockEventString]);
+      await eventsStorage?.persist(456, [mockEventString]);
+      await eventsStorage?.persist(456, [mockEventString, mockEventString]);
+      const unsentSequences = await eventsStorage?.getPersistedSequences();
       expect(unsentSequences).toEqual([
         {
           sessionId: 123,
@@ -97,7 +97,7 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      const unsentSequences = await eventsStorage?.getSequencesToSend();
+      const unsentSequences = await eventsStorage?.getPersistedSequences();
       expect(unsentSequences).toBeUndefined();
     });
 
@@ -108,7 +108,7 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      const unsentSequences = await eventsStorage?.getSequencesToSend();
+      const unsentSequences = await eventsStorage?.getPersistedSequences();
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
       expect(unsentSequences).toBeUndefined();
     });
@@ -243,7 +243,7 @@ describe('SessionReplayEventsIDBStore', () => {
 
       // Fake as if there are events to send
       eventsStorage!.shouldSplitEventsList = jest.fn().mockReturnValue(true);
-      eventsStorage!.storeSendingEvents = jest.fn().mockResolvedValue(undefined);
+      eventsStorage!.persist = jest.fn().mockResolvedValue(undefined);
 
       await eventsStorage?.addEventToCurrentSequence(123, mockEventString);
 
@@ -281,10 +281,10 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      const sequenceId = await eventsStorage?.storeSendingEvents(123, [mockEventString]);
+      const sequenceId = await eventsStorage?.persist(123, [mockEventString]);
 
       expect(sequenceId).toBe(1);
-      const allSequencesToSend = await eventsStorage?.getSequencesToSend();
+      const allSequencesToSend = await eventsStorage?.getPersistedSequences();
       expect(allSequencesToSend).toEqual([{ events: [mockEventString], sessionId: 123, sequenceId: 1 }]);
     });
     test('should catch errors', async () => {
@@ -294,7 +294,7 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      const sequenceId = await eventsStorage?.storeSendingEvents(123, [mockEventString]);
+      const sequenceId = await eventsStorage?.persist(123, [mockEventString]);
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
       expect(sequenceId).toBeUndefined();
     });
@@ -305,7 +305,7 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      const sequenceId = await eventsStorage?.storeSendingEvents(123, [mockEventString]);
+      const sequenceId = await eventsStorage?.persist(123, [mockEventString]);
       expect(sequenceId).toBeUndefined();
     });
   });
@@ -320,12 +320,12 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      await eventsStorage?.storeSendingEvents(currentSessionId, [mockEventString]);
-      await eventsStorage?.storeSendingEvents(nextSessionId, [mockEventString2]);
+      await eventsStorage?.persist(currentSessionId, [mockEventString]);
+      await eventsStorage?.persist(nextSessionId, [mockEventString2]);
 
-      await eventsStorage?.cleanUpSessionEventsStore(0, 1);
+      await eventsStorage?.deleteSequence(0, 1);
 
-      const allSequencesToSend = await eventsStorage?.getSequencesToSend();
+      const allSequencesToSend = await eventsStorage?.getPersistedSequences();
       expect(allSequencesToSend).toEqual([{ events: [mockEventString2], sessionId: nextSessionId, sequenceId: 2 }]);
     });
     test('should do nothing for no sequence id', async () => {
@@ -335,7 +335,7 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      await eventsStorage?.cleanUpSessionEventsStore(0);
+      await eventsStorage?.deleteSequence(0);
       expect(db.delete).not.toHaveBeenCalled();
     });
     test('should catch errors', async () => {
@@ -345,7 +345,7 @@ describe('SessionReplayEventsIDBStore', () => {
         loggerProvider: mockLoggerProvider,
       });
 
-      await eventsStorage?.cleanUpSessionEventsStore(0, 1);
+      await eventsStorage?.deleteSequence(0, 1);
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
     });
   });
@@ -482,7 +482,7 @@ describe('SessionReplayEventsIDBStore', () => {
         123,
       );
 
-      const sequencesToSend = await eventsStorage?.getSequencesToSend();
+      const sequencesToSend = await eventsStorage?.getPersistedSequences();
       expect(sequencesToSend).toEqual([
         {
           events: [mockEventString],
@@ -530,7 +530,7 @@ describe('SessionReplayEventsIDBStore', () => {
         123,
       );
 
-      const sequencesToSend = await eventsStorage?.getSequencesToSend();
+      const sequencesToSend = await eventsStorage?.getPersistedSequences();
       expect(sequencesToSend).toEqual([
         {
           events: [mockEventString],

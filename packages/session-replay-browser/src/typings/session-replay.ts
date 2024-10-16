@@ -14,7 +14,7 @@ export interface DebugInfo extends Partial<StorageData> {
 
 export type Events = string[];
 
-export type StoreType = 'memory' | 'idb';
+export type StoreType = { type: 'memory' | 'idb' } | { type: 'custom'; implementation: EventsStore<number> };
 
 export type EventType = 'replay' | 'interaction';
 
@@ -49,7 +49,7 @@ export interface SendingSequencesReturn<KeyType> {
  * This interface is not guaranteed to be stable, yet.
  */
 export interface EventsStore<KeyType> {
-  getSequencesToSend(): Promise<SendingSequencesReturn<KeyType>[] | undefined>;
+  getPersistedSequences(limit?: number): Promise<SendingSequencesReturn<KeyType>[]>;
   /**
    * Moves current sequence of events to long term storage and resets short term storage.
    */
@@ -60,14 +60,9 @@ export interface EventsStore<KeyType> {
    */
   addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesReturn<KeyType> | undefined>;
   /**
-   * Returns the sequence id associated with the events batch.
-   * @returns the new sequence id or undefined if it cannot be determined or on any error.
-   */
-  storeSendingEvents(sessionId: number, events: Events): Promise<KeyType | undefined>;
-  /**
    * Permanently removes the events batch for the session/sequence pair.
    */
-  cleanUpSessionEventsStore(sessionId: number, sequenceId?: KeyType): Promise<void>;
+  deleteSequence(sessionId: number, sequenceId?: KeyType): Promise<void>;
 }
 export interface SessionIdentifiers {
   deviceId?: string;
