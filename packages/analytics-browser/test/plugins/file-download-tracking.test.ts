@@ -36,9 +36,12 @@ describe('fileDownloadTracking', () => {
     expect(amplitude.track).toHaveBeenCalledTimes(0);
   });
 
-  test('should track file_download event', async () => {
+  test.each([
+    'https://analytics.amplitude.com/files/my-file.pdf',
+    'https://analytics.amplitude.com/files/my-file.pdf?foo=bar',
+  ])('should track file_download event', async (value) => {
     // setup
-    document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
+    document.getElementById('my-link-id')?.setAttribute('href', value);
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
@@ -54,7 +57,7 @@ describe('fileDownloadTracking', () => {
       [FILE_NAME]: '/files/my-file.pdf',
       [LINK_ID]: 'my-link-id',
       [LINK_TEXT]: 'my-link-text',
-      [LINK_URL]: 'https://analytics.amplitude.com/files/my-file.pdf',
+      [LINK_URL]: value,
     });
 
     // stop observer and listeners

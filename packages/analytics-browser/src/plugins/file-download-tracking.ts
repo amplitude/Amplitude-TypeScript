@@ -78,7 +78,7 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
       };
 
       const ext =
-        /\.(pdf|xlsx?|docx?|txt|rtf|csv|exe|key|pp(s|t|tx)|7z|pkg|rar|gz|zip|avi|mov|mp4|mpe?g|wmv|midi?|mp3|wav|wma)$/;
+        /\.(pdf|xlsx?|docx?|txt|rtf|csv|exe|key|pp(s|t|tx)|7z|pkg|rar|gz|zip|avi|mov|mp4|mpe?g|wmv|midi?|mp3|wav|wma)(\?.+)?$/;
 
       // Adds listener to existing anchor tags
       const links = Array.from(document.getElementsByTagName('a'));
