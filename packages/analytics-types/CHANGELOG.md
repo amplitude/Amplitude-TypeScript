@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.8.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.8.2...@amplitude/analytics-types@2.8.3) (2024-10-21)
+
+
+### Bug Fixes
+
+* **analytics-types:** build in next.js ([#900](https://github.com/amplitude/Amplitude-TypeScript/issues/900)) ([63be8c3](https://github.com/amplitude/Amplitude-TypeScript/commit/63be8c3e6b20e772cdca86207c4618423aa547d8))
+
+
+
+
+
 ## [2.8.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.8.1...@amplitude/analytics-types@2.8.2) (2024-09-17)
 
 
