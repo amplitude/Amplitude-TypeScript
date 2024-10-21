@@ -94,6 +94,7 @@ export interface Messenger {
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included
 // eslint-disable-next-line no-restricted-globals
-type DomElement = typeof globalThis extends { Element: infer T extends abstract new (...args: any) => any }
-  ? InstanceType<T>
+type DomElement = typeof globalThis extends { Element: abstract new (...args: any) => any }
+  ? // eslint-disable-next-line no-restricted-globals
+    InstanceType<typeof globalThis['Element']>
   : never;
