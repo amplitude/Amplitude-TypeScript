@@ -233,7 +233,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 function App(): React.JSX.Element {
   useEffect(() => {
     (async () => {
-      await init('6151e18fcbce1f94010e8791964d2a71', 'example_user_id', {
+      await init('YOUR-API-KEY', 'example_user_id', {
         logLevel: LogLevel.Verbose,
       }).promise;
       await add(new SessionReplayPlugin()).promise;
