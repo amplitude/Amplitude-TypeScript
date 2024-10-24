@@ -31,9 +31,33 @@ describe('parseGA4Events', () => {
     ]);
   });
 
-  test('should parse ga4 events w/ request body', () => {
+  test('should parse ga4 events w/ request body separated with `\\r\\`', () => {
     const url = new URL(MOCK_URL);
     const data = 'en=page_view&_ee=1\\r\\en=custom_event&_ee=1&epn.1=1&ep.a=a&upn.2=2&up.b=b';
+    const result = parseGA4Events(url, data);
+
+    expect(result).toEqual([
+      {
+        ...MOCK_GA_EVENT,
+        en: 'page_view',
+        _ee: '1',
+      },
+      {
+        ...MOCK_GA_EVENT,
+        en: 'custom_event',
+        _ee: '1',
+        'ep.a': 'a',
+        'epn.1': '1',
+        'up.b': 'b',
+        'upn.2': '2',
+      },
+    ]);
+  });
+
+  test('should parse ga4 events w/ request body separated with `\n`', () => {
+    const url = new URL(MOCK_URL);
+    const data = `en=page_view&_ee=1
+en=custom_event&_ee=1&epn.1=1&ep.a=a&upn.2=2&up.b=b`;
     const result = parseGA4Events(url, data);
 
     expect(result).toEqual([
@@ -71,6 +95,46 @@ describe('parseGA4Events', () => {
         {
           event_type: 'custom_event',
           user_id: MOCK_GA_EVENT.uid,
+          event_properties: {
+            a: 'a',
+            1: 1,
+            [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: 'G-DELYSDZ9Q3',
+          },
+          user_properties: {
+            b: 'b',
+            2: 2,
+          },
+          extra: {
+            library: AMPLITUDE_EVENT_LIBRARY,
+          },
+        },
+      ]);
+    });
+
+    test('should ignore ga4 events w/o en', () => {
+      const amplitudeEvent = transformToAmplitudeEvents([
+        MOCK_GA_EVENT,
+        // `en` is not defined
+      ]);
+      expect(amplitudeEvent).toEqual([]);
+    });
+
+    test('should handle missing uid', () => {
+      const mockGaEvent: Record<string, string | number> = {
+        ...MOCK_GA_EVENT,
+        en: 'custom_event',
+        _ee: '1',
+        'ep.a': 'a',
+        'epn.1': '1',
+        'up.b': 'b',
+        'upn.2': '2',
+      };
+      delete mockGaEvent.uid;
+
+      const amplitudeEvent = transformToAmplitudeEvents([mockGaEvent]);
+      expect(amplitudeEvent).toEqual([
+        {
+          event_type: 'custom_event',
           event_properties: {
             a: 'a',
             1: 1,

@@ -7,7 +7,7 @@ export const MOCK_REGIONAL_URL: string = (() => {
   return regionalUrl.toString();
 })();
 
-export const MOCK_GA_EVENT = {
+export const MOCK_GA_EVENT: Record<string, string | number> = {
   v: '2',
   tid: 'G-DELYSDZ9Q3',
   gtm: '45je3890',
