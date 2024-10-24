@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.8.0...@amplitude/plugin-session-replay-browser@1.8.1) (2024-10-24)
+
+### Bug Fixes
+
+- **plugin-session-replay-browser:** add error catching/isolation to sr plugin apis
+  ([ab6cbb5](https://github.com/amplitude/Amplitude-TypeScript/commit/ab6cbb599db322b9b27685b3fcfc0d60a3cd41b3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.7.3...@amplitude/plugin-session-replay-browser@1.8.0) (2024-10-10)
 
 ### Features
