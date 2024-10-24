@@ -96,8 +96,8 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
 
     const event: ClickEvent = {
-      x: x + scrollX,
-      y: y + scrollY,
+      x: ( x ?? 0 ) + scrollX,
+      y: ( y ?? 0 ) + scrollY,
       selector,
 
       viewportHeight: innerHeight,
