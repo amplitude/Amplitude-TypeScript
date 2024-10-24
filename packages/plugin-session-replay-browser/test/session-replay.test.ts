@@ -184,6 +184,14 @@ describe('SessionReplayPlugin', () => {
         },
       });
     });
+
+    test('should fail gracefully', async () => {
+      const sessionReplay = new SessionReplayPlugin();
+      init.mockImplementation(() => {
+        throw new Error('Mock Error');
+      });
+      await sessionReplay.setup(mockConfig);
+    });
   });
 
   describe('execute', () => {
@@ -257,6 +265,25 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.execute(event);
       expect(setSessionId).not.toHaveBeenCalled();
     });
+
+    test('should return original event in case of errors', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup({ ...mockConfig });
+      getSessionReplayProperties.mockImplementation(() => {
+        throw new Error('Mock error');
+      });
+      const event = {
+        event_type: 'event_type',
+        event_properties: {
+          property_a: true,
+          property_b: 123,
+        },
+        session_id: 123,
+      };
+
+      const enrichedEvent = await sessionReplay.execute(event);
+      expect(enrichedEvent).toEqual(event);
+    });
   });
 
   describe('teardown', () => {
@@ -265,6 +292,17 @@ describe('SessionReplayPlugin', () => {
       await sessionReplay.setup(mockConfig);
       await sessionReplay.teardown?.();
       expect(shutdown).toHaveBeenCalled();
+    });
+
+    test('internal errors should not be thrown', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup(mockConfig);
+
+      // Mock the shutdown function to throw an error
+      shutdown.mockImplementation(() => {
+        throw new Error('Mock shutdown error');
+      });
+      await sessionReplay.teardown?.();
     });
   });
 

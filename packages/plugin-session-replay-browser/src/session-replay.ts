@@ -21,79 +21,92 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   }
 
   async setup(config: BrowserConfig) {
-    config.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
+    try {
+      config.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
 
-    this.config = config;
+      this.config = config;
 
-    if (this.options.forceSessionTracking) {
-      if (typeof config.defaultTracking === 'boolean') {
-        if (config.defaultTracking === false) {
+      if (this.options.forceSessionTracking) {
+        if (typeof config.defaultTracking === 'boolean') {
+          if (config.defaultTracking === false) {
+            config.defaultTracking = {
+              pageViews: false,
+              formInteractions: false,
+              fileDownloads: false,
+              sessions: true,
+            };
+          }
+        } else {
           config.defaultTracking = {
-            pageViews: false,
-            formInteractions: false,
-            fileDownloads: false,
+            ...config.defaultTracking,
             sessions: true,
           };
         }
-      } else {
-        config.defaultTracking = {
-          ...config.defaultTracking,
-          sessions: true,
-        };
       }
-    }
 
-    await sessionReplay.init(config.apiKey, {
-      instanceName: this.config.instanceName,
-      deviceId: this.config.deviceId,
-      optOut: this.config.optOut,
-      sessionId: this.config.sessionId,
-      loggerProvider: this.config.loggerProvider,
-      logLevel: this.config.logLevel,
-      flushMaxRetries: this.config.flushMaxRetries,
-      serverZone: this.config.serverZone,
-      sampleRate: this.options.sampleRate,
-      privacyConfig: {
-        blockSelector: this.options.privacyConfig?.blockSelector,
-        maskSelector: this.options.privacyConfig?.maskSelector,
-        unmaskSelector: this.options.privacyConfig?.unmaskSelector,
-        defaultMaskLevel: this.options.privacyConfig?.defaultMaskLevel,
-      },
-      debugMode: this.options.debugMode,
-      configEndpointUrl: this.options.configEndpointUrl,
-      shouldInlineStylesheet: this.options.shouldInlineStylesheet,
-      version: { type: 'plugin', version: VERSION },
-      performanceConfig: this.options.performanceConfig,
-      storeType: this.options.storeType,
-    }).promise;
+      await sessionReplay.init(config.apiKey, {
+        instanceName: this.config.instanceName,
+        deviceId: this.config.deviceId,
+        optOut: this.config.optOut,
+        sessionId: this.config.sessionId,
+        loggerProvider: this.config.loggerProvider,
+        logLevel: this.config.logLevel,
+        flushMaxRetries: this.config.flushMaxRetries,
+        serverZone: this.config.serverZone,
+        sampleRate: this.options.sampleRate,
+        privacyConfig: {
+          blockSelector: this.options.privacyConfig?.blockSelector,
+          maskSelector: this.options.privacyConfig?.maskSelector,
+          unmaskSelector: this.options.privacyConfig?.unmaskSelector,
+          defaultMaskLevel: this.options.privacyConfig?.defaultMaskLevel,
+        },
+        debugMode: this.options.debugMode,
+        configEndpointUrl: this.options.configEndpointUrl,
+        shouldInlineStylesheet: this.options.shouldInlineStylesheet,
+        version: { type: 'plugin', version: VERSION },
+        performanceConfig: this.options.performanceConfig,
+        storeType: this.options.storeType,
+      }).promise;
+    } catch (error) {
+      config.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
+    }
   }
 
   async execute(event: Event) {
-    // On event, synchronize the session id to the what's on the browserConfig (source of truth)
-    // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
-    // in SR.
-    if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
-      await sessionReplay.setSessionId(this.config.sessionId).promise;
+    try {
+      // On event, synchronize the session id to the what's on the browserConfig (source of truth)
+      // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
+      // in SR.
+      if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
+        await sessionReplay.setSessionId(this.config.sessionId).promise;
+      }
+      // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
+      // event is not of the current session (offline/late events). In that case, don't tag the events
+      if (this.config.sessionId && this.config.sessionId === event.session_id) {
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+        event.event_properties = {
+          ...event.event_properties,
+          ...sessionRecordingProperties,
+        };
+      }
+      return Promise.resolve(event);
+    } catch (error) {
+      this.config.loggerProvider.error(`Session Replay: Failed to enrich event due to ${(error as Error).message}`);
+      return Promise.resolve(event);
     }
-    // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
-    // event is not of the current session (offline/late events). In that case, don't tag the events
-    if (this.config.sessionId && this.config.sessionId === event.session_id) {
-      const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-      event.event_properties = {
-        ...event.event_properties,
-        ...sessionRecordingProperties,
-      };
-    }
-    return Promise.resolve(event);
   }
 
   async teardown(): Promise<void> {
-    sessionReplay.shutdown();
-    // the following are initialized in setup() which will always be called first
-    // here we reset them to null to prevent memory leaks
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    this.config = null;
+    try {
+      sessionReplay.shutdown();
+      // the following are initialized in setup() which will always be called first
+      // here we reset them to null to prevent memory leaks
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      this.config = null;
+    } catch (error) {
+      this.config.loggerProvider.error(`Session Replay: teardown failed due to ${(error as Error).message}`);
+    }
   }
 
   getSessionReplayProperties() {
