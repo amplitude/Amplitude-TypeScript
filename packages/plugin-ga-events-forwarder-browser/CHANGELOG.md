@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.3.4...@amplitude/plugin-ga-events-forwarder-browser@0.4.0) (2024-10-25)
+
+### Features
+
+- adds support to \n separated request body for ga forwarding
+  ([#903](https://github.com/amplitude/Amplitude-TypeScript/issues/903))
+  ([2b06701](https://github.com/amplitude/Amplitude-TypeScript/commit/2b06701706def23ae7e1bf4379f9bb21f0e8a98a))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.3.3...@amplitude/plugin-ga-events-forwarder-browser@0.3.4) (2024-07-08)
 
 ### Bug Fixes
