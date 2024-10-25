@@ -33,9 +33,11 @@ export const parseGA4Events = (url: URL, data?: BodyInit | null): GA4Event[] => 
     return [sharedProperties];
   }
 
+  const separator = data.toString().includes('\n') ? '\n' : '\\r\\';
+
   return data
     .toString()
-    .split('\\r\\')
+    .split(separator)
     .map<GA4Event>((event) => {
       return {
         ...sharedProperties,
@@ -53,25 +55,29 @@ export const parseGA4Events = (url: URL, data?: BodyInit | null): GA4Event[] => 
  * @returns A list of Amplitude events, transformed from Google Analytics events.
  */
 export const transformToAmplitudeEvents = (ga4Events: GA4Event[]): BaseEvent[] =>
-  ga4Events.map<BaseEvent>((ga4Event) => ({
-    event_type: String(ga4Event[GA_PAYLOAD_EVENT_NAME_KEY]),
-    user_id: String(ga4Event[GA_PAYLOAD_USER_ID_KEY]),
-    event_properties: {
-      ...getProperties(ga4Event, GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX, GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX),
-      [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
-    },
-    user_properties: getProperties(
-      ga4Event,
-      GA_PAYLOAD_USER_PROPERTY_STRING_PREFIX,
-      GA_PAYLOAD_USER_PROPERTY_NUMBER_PREFIX,
-    ),
-    // NOTE: Unable to pass an event to track() with custom library value because an internal plugin will overwrite `event.library` value.
-    // Instead, since an enrichment plugin's execute function is performed at a later time. pass an event to track() with library info in `event.extra`,
-    // then enrich `event.library` in this plugin's execute function.
-    extra: {
-      library: AMPLITUDE_EVENT_LIBRARY,
-    },
-  }));
+  ga4Events
+    .filter((ga4Event) => Boolean(ga4Event[GA_PAYLOAD_EVENT_NAME_KEY]))
+    .map<BaseEvent>((ga4Event) => ({
+      event_type: String(ga4Event[GA_PAYLOAD_EVENT_NAME_KEY]),
+      ...(ga4Event[GA_PAYLOAD_USER_ID_KEY] !== null && ga4Event[GA_PAYLOAD_USER_ID_KEY] !== undefined
+        ? { user_id: String(ga4Event[GA_PAYLOAD_USER_ID_KEY]) }
+        : undefined),
+      event_properties: {
+        ...getProperties(ga4Event, GA_PAYLOAD_EVENT_PROPERTY_STRING_PREFIX, GA_PAYLOAD_EVENT_PROPERTY_NUMBER_PREFIX),
+        [AMPLITUDE_EVENT_PROPERTY_MEASUREMENT_ID]: ga4Event[GA_PAYLOAD_TRACKING_ID_KEY],
+      },
+      user_properties: getProperties(
+        ga4Event,
+        GA_PAYLOAD_USER_PROPERTY_STRING_PREFIX,
+        GA_PAYLOAD_USER_PROPERTY_NUMBER_PREFIX,
+      ),
+      // NOTE: Unable to pass an event to track() with custom library value because an internal plugin will overwrite `event.library` value.
+      // Instead, since an enrichment plugin's execute function is performed at a later time. pass an event to track() with library info in `event.extra`,
+      // then enrich `event.library` in this plugin's execute function.
+      extra: {
+        library: AMPLITUDE_EVENT_LIBRARY,
+      },
+    }));
 
 /**
  * @param ga4Event  A list of deserialized Google Analytics events.
