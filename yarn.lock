@@ -116,37 +116,52 @@
     "@amplitude/analytics-types" "^2.1.1"
     tslib "^2.4.1"
 
-"@amplitude/rrdom@^2.0.0-alpha.21":
-  version "2.0.0-alpha.21"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.21.tgz#e6f5e2b511676032ceaad2e4667f9755777f477b"
-  integrity sha512-o6mPzNd8BgmiRDFaKB4fz4E2v3TL5+CzioD9mjrA167vurgFD9kak6d9s9DDxy+gVvRXoQ8bf3myyZLzPNVg4Q==
+"@amplitude/rrdom@^2.0.0-alpha.25":
+  version "2.0.0-alpha.25"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.25.tgz#c44c1bbcaee9e95148b3998912f6cb2ca085475f"
+  integrity sha512-GTdwpDJmwAZcllNmGH3xmLEfKkMhOqmqkpG9G0MVGdhRmL3pTAhmSZuyPUYUho71ZjKQtGnHMDPgfOtniWsWbw==
   dependencies:
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.21"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.25"
 
-"@amplitude/rrweb-snapshot@^2.0.0-alpha.21":
-  version "2.0.0-alpha.21"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.21.tgz#16098883f93203f8341ddb39500148bb69059795"
-  integrity sha512-7zVdfdItDk6cFeYr3sMn1JypAAFDbEjb26G7PgoJHqWE6avMhtYdW3gxAlvRX4DTR3cLw/8rd31jHIZpDKFOgg==
-
-"@amplitude/rrweb-types@^2.0.0-alpha.21":
-  version "2.0.0-alpha.21"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.21.tgz#b375f9459206a2a3c6ab164671c0b05d021225e2"
-  integrity sha512-y6iuwJBdtTPgcrsf7T13LVhpWtuJp8yscXGU/FXyHMpGzXLRjKxos/3hNVZ6hKAYV3kiVInED4JIViqmaXOdcQ==
+"@amplitude/rrweb-packer@2.0.0-alpha.25":
+  version "2.0.0-alpha.25"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-packer/-/rrweb-packer-2.0.0-alpha.25.tgz#e83fd577da7979b52a0262ddad5ea68c30bd4d7c"
+  integrity sha512-VqQ24tPDfP55Y1XlqC/hBvheyUxREruYhOnwvTzcHo+1bCVlMuru07j50oVv/SW3FHmY6t4k6LL1sQNZGGbx8g==
   dependencies:
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.21"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.25"
+    fflate "^0.4.4"
 
-"@amplitude/rrweb@2.0.0-alpha.21":
-  version "2.0.0-alpha.21"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.21.tgz#a7fb7c1547a1d8b6b4eb054285af5d75fd920a1f"
-  integrity sha512-Ry5J4U7jBcqG2i7cXwo9v1JSQqh0wh4nTRKOgIxM3vXvNti1hzS88I4nsCjrytm8aaCTNB6SCVa3n+yrGE3b8A==
+"@amplitude/rrweb-snapshot@2.0.0-alpha.25", "@amplitude/rrweb-snapshot@^2.0.0-alpha.25":
+  version "2.0.0-alpha.25"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.25.tgz#a748cb4c3e0ea5dfd12620262433508c85595f45"
+  integrity sha512-sXNJHGGqFeVoua7qXKd8cuI4s4RtWZyse1ovKmTLyKVLIWDNtv+kbubpR6ze4EAy5ciOvLe7H41L8ps6JZZg7g==
   dependencies:
-    "@amplitude/rrdom" "^2.0.0-alpha.21"
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.21"
-    "@amplitude/rrweb-types" "^2.0.0-alpha.21"
+    postcss "^8.4.38"
+
+"@amplitude/rrweb-types@^2.0.0-alpha.25":
+  version "2.0.0-alpha.25"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.25.tgz#1ec3cd5fa5ef4fedef8c34fbf4ccae2f9e7e505e"
+  integrity sha512-KtHn3Bu9EhTPJ5bRbf6Qs8+uz4PUlmk4qg+c4N5b1P36erHnhX5tuk9bfwzJawtDYX7x5a4jEdeqFBwLQrt//g==
+  dependencies:
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.25"
+
+"@amplitude/rrweb-utils@^2.0.0-alpha.25":
+  version "2.0.0-alpha.25"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.25.tgz#d2f62e348652952e422f236ee08ee3b0bfb2582d"
+  integrity sha512-+mXjaWFBgCxY16ZvTTKbVveF1ecQTXvP8x3ddjatbEkYVds6A8gox7lAUEQW3YGGAa5MFcnhYvGNJb+iPqw9iw==
+
+"@amplitude/rrweb@2.0.0-alpha.25":
+  version "2.0.0-alpha.25"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.25.tgz#c4b1c05c64fb01aa7969aa0c47a0663acf46251a"
+  integrity sha512-YdsUoCCGyuUfcGnsbx1/xxBN3Lp0XMAluMpV9IsQg8iGVHyWVb9MSscPxMNkDLzrrjLTLhGxIuyO2FY0OKxkfQ==
+  dependencies:
+    "@amplitude/rrdom" "^2.0.0-alpha.25"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.25"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.25"
+    "@amplitude/rrweb-utils" "^2.0.0-alpha.25"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
-    fflate "^0.4.4"
     mitt "^3.0.0"
 
 "@amplitude/ua-parser-js@^0.7.31", "@amplitude/ua-parser-js@^0.7.33":
@@ -10336,6 +10351,11 @@ mute-stream@^1.0.0:
   resolved "https://registry.yarnpkg.com/mute-stream/-/mute-stream-1.0.0.tgz#e31bd9fe62f0aed23520aa4324ea6671531e013e"
   integrity sha512-avsJQhyd+680gKXyG/sQc0nXaC6rBkPOfyHYcFb9+hdkqQkR9bdnkJ0AMZhke0oesPqIO+mFFJ+IdBc7mst4IA==
 
+nanoid@^3.3.7:
+  version "3.3.7"
+  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.7.tgz#d0c301a691bc8d54efa0a2226ccf3fe2fd656bd8"
+  integrity sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==
+
 nanomatch@^1.2.9:
   version "1.2.13"
   resolved "https://registry.yarnpkg.com/nanomatch/-/nanomatch-1.2.13.tgz#b87a8aa4fc0de8fe6be88895b38983ff265bd119"
@@ -11103,6 +11123,11 @@ picocolors@^1.0.1:
   resolved "https://registry.yarnpkg.com/picocolors/-/picocolors-1.0.1.tgz#a8ad579b571952f0e5d25892de5445bcfe25aaa1"
   integrity sha512-anP1Z8qwhkbmu7MFP5iTt+wQKXgwzf7zTyGlcdzabySa9vd0Xt392U0rVmz9poOaBj0uHJKyyo9/upk0HrEQew==
 
+picocolors@^1.1.0:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/picocolors/-/picocolors-1.1.1.tgz#3d321af3eab939b083c8f929a1d12cda81c26b6b"
+  integrity sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==
+
 picomatch@^2.0.4, picomatch@^2.2.1, picomatch@^2.2.3, picomatch@^2.3.1:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.3.1.tgz#3ba3833733646d9d3e4995946c1365a67fb07a42"
@@ -11165,6 +11190,15 @@ posix-character-classes@^0.1.0:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/posix-character-classes/-/posix-character-classes-0.1.1.tgz#01eac0fe3b5af71a2a6c02feabb8c1fef7e00eab"
   integrity sha512-xTgYBc3fuo7Yt7JbiuFxSYGToMoz8fLoE6TC9Wx1P/u+LfeThMOAqmuyECnlBaaJb+u1m9hHiXUEtwW4OzfUJg==
+
+postcss@^8.4.38:
+  version "8.4.47"
+  resolved "https://registry.yarnpkg.com/postcss/-/postcss-8.4.47.tgz#5bf6c9a010f3e724c503bf03ef7947dcb0fea365"
+  integrity sha512-56rxCq7G/XfB4EkXq9Egn5GCqugWvDFjafDOThIdMBsI15iqPqR5r15TfSr1YPYeEI19YeaXMCbY6u88Y76GLQ==
+  dependencies:
+    nanoid "^3.3.7"
+    picocolors "^1.1.0"
+    source-map-js "^1.2.1"
 
 prelude-ls@^1.2.1:
   version "1.2.1"
@@ -12202,6 +12236,11 @@ sort-keys@^4.0.0:
   integrity sha512-aUYIEU/UviqPgc8mHR6IW1EGxkAXpeRETYcrzg8cLAvUPZcpAlleSXHV2mY7G12GphSH6Gzv+4MMVSSkbdteHg==
   dependencies:
     is-plain-obj "^2.0.0"
+
+source-map-js@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/source-map-js/-/source-map-js-1.2.1.tgz#1ce5650fddd87abc099eda37dcff024c2667ae46"
+  integrity sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==
 
 source-map-resolve@^0.5.0:
   version "0.5.3"
