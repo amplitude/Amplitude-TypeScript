@@ -86,6 +86,9 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     }
 
     const { x, y } = e;
+    if (x === undefined || y === undefined) {
+      return;
+    }
 
     const node = record.mirror.getNode(e.id);
     let selector;
@@ -96,8 +99,8 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
 
     const event: ClickEvent = {
-      x: ( x ?? 0 ) + scrollX,
-      y: ( y ?? 0 ) + scrollY,
+      x: x + scrollX,
+      y: y + scrollY,
       selector,
 
       viewportHeight: innerHeight,

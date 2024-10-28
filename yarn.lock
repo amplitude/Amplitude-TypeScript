@@ -116,49 +116,49 @@
     "@amplitude/analytics-types" "^2.1.1"
     tslib "^2.4.1"
 
-"@amplitude/rrdom@^2.0.0-alpha.25":
-  version "2.0.0-alpha.25"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.25.tgz#c44c1bbcaee9e95148b3998912f6cb2ca085475f"
-  integrity sha512-GTdwpDJmwAZcllNmGH3xmLEfKkMhOqmqkpG9G0MVGdhRmL3pTAhmSZuyPUYUho71ZjKQtGnHMDPgfOtniWsWbw==
+"@amplitude/rrdom@^2.0.0-alpha.26":
+  version "2.0.0-alpha.26"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.26.tgz#4a1b6434371a90bf788b47256d35e18fad33bd18"
+  integrity sha512-pxuDZjc86cCrNwjQ+00TYNmVKZHm50wmcCd0u0bHgrasVuRSBWddB5Nt70TyvXC40oelAEDYyJWOoVWU+W+9gA==
   dependencies:
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.25"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.26"
 
-"@amplitude/rrweb-packer@2.0.0-alpha.25":
-  version "2.0.0-alpha.25"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-packer/-/rrweb-packer-2.0.0-alpha.25.tgz#e83fd577da7979b52a0262ddad5ea68c30bd4d7c"
-  integrity sha512-VqQ24tPDfP55Y1XlqC/hBvheyUxREruYhOnwvTzcHo+1bCVlMuru07j50oVv/SW3FHmY6t4k6LL1sQNZGGbx8g==
+"@amplitude/rrweb-packer@2.0.0-alpha.26":
+  version "2.0.0-alpha.26"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-packer/-/rrweb-packer-2.0.0-alpha.26.tgz#9d34ca929773943a33c342d77a03d0cab91816a3"
+  integrity sha512-uJM5/VFdjLUsKM++pAaXAAxpkBbh3r2Skxjx+3YS4OY49/kjA+KgzX1ottT8niOWQCxPngFgfOwle18z0QBXGA==
   dependencies:
-    "@amplitude/rrweb-types" "^2.0.0-alpha.25"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.26"
     fflate "^0.4.4"
 
-"@amplitude/rrweb-snapshot@2.0.0-alpha.25", "@amplitude/rrweb-snapshot@^2.0.0-alpha.25":
-  version "2.0.0-alpha.25"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.25.tgz#a748cb4c3e0ea5dfd12620262433508c85595f45"
-  integrity sha512-sXNJHGGqFeVoua7qXKd8cuI4s4RtWZyse1ovKmTLyKVLIWDNtv+kbubpR6ze4EAy5ciOvLe7H41L8ps6JZZg7g==
+"@amplitude/rrweb-snapshot@2.0.0-alpha.26", "@amplitude/rrweb-snapshot@^2.0.0-alpha.26":
+  version "2.0.0-alpha.26"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.26.tgz#67c1e74e1dbb9a189823daa1b9b9fb8f225e661b"
+  integrity sha512-ZXAqF+fX/0ngyCS8/Iu83FeMMMXuw9FRKFFK6vTUjvXXvFnBx1WjQZLVNJbaZu3hZUN7sECATuOXQklccY/TJw==
   dependencies:
     postcss "^8.4.38"
 
-"@amplitude/rrweb-types@^2.0.0-alpha.25":
-  version "2.0.0-alpha.25"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.25.tgz#1ec3cd5fa5ef4fedef8c34fbf4ccae2f9e7e505e"
-  integrity sha512-KtHn3Bu9EhTPJ5bRbf6Qs8+uz4PUlmk4qg+c4N5b1P36erHnhX5tuk9bfwzJawtDYX7x5a4jEdeqFBwLQrt//g==
+"@amplitude/rrweb-types@^2.0.0-alpha.26":
+  version "2.0.0-alpha.26"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.26.tgz#e5ff279b8f89e9ccb6cb6a3072906b639a39a48d"
+  integrity sha512-50SnMId2Xp3dGaVAEAQCwF3PkX0As8JSMpBoqrw+0bX8uubUySE4mR/tpv75wQ81JK49ruwrdMcmFWSWLfHA/w==
   dependencies:
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.25"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.26"
 
-"@amplitude/rrweb-utils@^2.0.0-alpha.25":
-  version "2.0.0-alpha.25"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.25.tgz#d2f62e348652952e422f236ee08ee3b0bfb2582d"
-  integrity sha512-+mXjaWFBgCxY16ZvTTKbVveF1ecQTXvP8x3ddjatbEkYVds6A8gox7lAUEQW3YGGAa5MFcnhYvGNJb+iPqw9iw==
+"@amplitude/rrweb-utils@^2.0.0-alpha.26":
+  version "2.0.0-alpha.26"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.26.tgz#b03b1ecce9cf2a8d3b9608eab245d71919a53bce"
+  integrity sha512-8GHzpI3nqI6GKGGwrBj3TClWqQ4g9TwXlnPZthGbiUgJ1U3mgF06u4e4tsort958IujYZQf0hk6JdLwB9HgvCg==
 
-"@amplitude/rrweb@2.0.0-alpha.25":
-  version "2.0.0-alpha.25"
-  resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.25.tgz#c4b1c05c64fb01aa7969aa0c47a0663acf46251a"
-  integrity sha512-YdsUoCCGyuUfcGnsbx1/xxBN3Lp0XMAluMpV9IsQg8iGVHyWVb9MSscPxMNkDLzrrjLTLhGxIuyO2FY0OKxkfQ==
+"@amplitude/rrweb@2.0.0-alpha.26":
+  version "2.0.0-alpha.26"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.26.tgz#0c386131d64f3bdf48a4e6f327e757644c565c20"
+  integrity sha512-VDJc81dNyzYSlC+afCG7kikT6OjiWjxo1o/75jNu67AAxOKRuQkddGn0jiwJDgwMYDmqw6jje0QNufbsTpci2g==
   dependencies:
-    "@amplitude/rrdom" "^2.0.0-alpha.25"
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.25"
-    "@amplitude/rrweb-types" "^2.0.0-alpha.25"
-    "@amplitude/rrweb-utils" "^2.0.0-alpha.25"
+    "@amplitude/rrdom" "^2.0.0-alpha.26"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.26"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.26"
+    "@amplitude/rrweb-utils" "^2.0.0-alpha.26"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"

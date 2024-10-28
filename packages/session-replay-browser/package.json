@@ -42,9 +42,9 @@
     "@amplitude/analytics-core": ">=1 <3",
     "@amplitude/analytics-remote-config": "^0.4.1",
     "@amplitude/analytics-types": ">=1 <3",
-    "@amplitude/rrweb": "2.0.0-alpha.25",
-    "@amplitude/rrweb-snapshot": "2.0.0-alpha.25",
-    "@amplitude/rrweb-packer": "2.0.0-alpha.25",
+    "@amplitude/rrweb": "2.0.0-alpha.26",
+    "@amplitude/rrweb-snapshot": "2.0.0-alpha.26",
+    "@amplitude/rrweb-packer": "2.0.0-alpha.26",
     "idb": "^8.0.0",
     "tslib": "^2.4.1"
   },
