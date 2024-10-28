@@ -29,12 +29,12 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
   }
 
   abstract addEventToCurrentSequence(
-    sessionId: number,
+    sessionId: string | number,
     event: string,
   ): Promise<SendingSequencesReturn<KeyType> | undefined>;
   abstract getSequencesToSend(): Promise<SendingSequencesReturn<KeyType>[] | undefined>;
   abstract storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<KeyType> | undefined>;
-  abstract storeSendingEvents(sessionId: number, events: Events): Promise<KeyType | undefined>;
+  abstract storeSendingEvents(sessionId: string | number, events: Events): Promise<KeyType | undefined>;
   abstract cleanUpSessionEventsStore(sessionId: number, sequenceId: KeyType): Promise<void>;
 
   /**

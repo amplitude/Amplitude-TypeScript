@@ -67,7 +67,7 @@ export interface SessionReplayRemoteConfigFetch {
 }
 
 export interface SessionReplayJoinedConfigGenerator {
-  generateJoinedConfig: (sessionId?: number) => Promise<SessionReplayJoinedConfig>;
+  generateJoinedConfig: (sessionId?: string | number) => Promise<SessionReplayJoinedConfig>;
 }
 
 export interface SessionReplayVersion {

@@ -46,7 +46,7 @@ export class SessionReplayJoinedConfigGenerator {
     this.remoteConfigFetch = remoteConfigFetch;
   }
 
-  async generateJoinedConfig(sessionId?: number): Promise<SessionReplayJoinedConfig> {
+  async generateJoinedConfig(_sessionId?: string | number): Promise<SessionReplayJoinedConfig> {
     const config: SessionReplayJoinedConfig = { ...this.localConfig };
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;
@@ -55,24 +55,12 @@ export class SessionReplayJoinedConfigGenerator {
     config.captureEnabled = true;
     let remoteConfig: SessionReplayRemoteConfig | undefined;
     try {
-      const samplingConfig = await this.remoteConfigFetch.getRemoteConfig(
-        'sessionReplay',
-        'sr_sampling_config',
-        sessionId,
-      );
+      const samplingConfig = await this.remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_sampling_config');
 
-      const privacyConfig = await this.remoteConfigFetch.getRemoteConfig(
-        'sessionReplay',
-        'sr_privacy_config',
-        sessionId,
-      );
+      const privacyConfig = await this.remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_privacy_config');
 
       // This is intentionally forced to only be set through the remote config.
-      config.interactionConfig = await this.remoteConfigFetch.getRemoteConfig(
-        'sessionReplay',
-        'sr_interaction_config',
-        sessionId,
-      );
+      config.interactionConfig = await this.remoteConfigFetch.getRemoteConfig('sessionReplay', 'sr_interaction_config');
 
       if (samplingConfig || privacyConfig) {
         remoteConfig = {};
