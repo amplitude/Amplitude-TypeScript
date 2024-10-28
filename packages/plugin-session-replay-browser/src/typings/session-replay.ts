@@ -1,3 +1,4 @@
+import { Event } from '@amplitude/analytics-types';
 import { StoreType } from '@amplitude/session-replay-browser';
 
 export type MaskLevel =
@@ -26,4 +27,5 @@ export interface SessionReplayOptions {
   shouldInlineStylesheet?: boolean;
   performanceConfig?: SessionReplayPerformanceConfig;
   storeType?: StoreType;
+  customSessionId?: (event: Event) => string | undefined;
 }

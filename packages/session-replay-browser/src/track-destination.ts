@@ -110,6 +110,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
       session_id: `${context.sessionId}`,
       type: `${context.type}`,
     });
+    if (typeof context.sessionId === 'string') {
+      urlParams.set('custom_session_id', 'true');
+    }
     const sessionReplayLibrary = `${context.version?.type || 'standalone'}/${context.version?.version || version}`;
     const payload = this.payloadBatcher({
       version: 1,
