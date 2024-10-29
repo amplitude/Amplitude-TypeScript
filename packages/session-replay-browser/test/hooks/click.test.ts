@@ -54,6 +54,15 @@ describe('click', () => {
       });
       expect(jest.spyOn(mockEventsManager, 'addEvent')).not.toHaveBeenCalled();
     });
+    test('do nothing if x/y is undefined', () => {
+      hook({
+        id: 1234,
+        type: MouseInteractions.Click,
+        x: undefined,
+        y: undefined,
+      });
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).not.toHaveBeenCalled();
+    });
     test('do nothing if no window given', () => {
       mockGlobalScope(undefined);
       const hook = clickHook({
