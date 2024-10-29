@@ -86,6 +86,9 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     }
 
     const { x, y } = e;
+    if (x === undefined || y === undefined) {
+      return;
+    }
 
     const node = record.mirror.getNode(e.id);
     let selector;
