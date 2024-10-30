@@ -1,0 +1,66 @@
+# @amplitude/plugin-session-replay-react-native
+
+Amplitude Session Replay plugin for React Native
+
+## Installation
+
+```sh
+npm install @amplitude/plugin-session-replay-react-native
+```
+
+## Usage
+Add the session replay plugin to your Amplitude instance as follows
+
+```js
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
+
+// ...
+
+await init('YOUR_API_KEY').promise;
+await add(new SessionReplayPlugin()).promise;
+
+```
+
+## Masking views
+To maks certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked
+
+```js
+import { AmpMaskView } from '@amplitude/plugin-session-replay-react-native';
+
+// ...
+
+<AmpMaskView mask="amp-mask">
+    <Text
+    style={[
+        styles.sectionTitle,
+        {
+        color: isDarkMode ? Colors.white : Colors.black,
+        },
+    ]}
+    >
+    {title}
+    </Text>
+</AmpMaskView>
+```
+
+## Unmasking views
+To unmask views, add the `AmpMaskView` tag with the mask property `amp-unmask` around the section to be unmasked
+
+```js
+import { AmpMaskView } from '@amplitude/plugin-session-replay-react-native';
+
+// ...
+
+<AmpMaskView mask="amp-unmask">
+    <Text
+    style={[
+        styles.sectionTitle,
+        {
+        color: isDarkMode ? Colors.white : Colors.black,
+        },
+    ]}
+    >
+    {title}
+    </Text>
+</AmpMaskView>
+```
