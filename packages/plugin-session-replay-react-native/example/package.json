@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.4.10",
-    "@amplitude/plugin-session-replay-react-native": "workspace:^",
+    "@amplitude/plugin-session-replay-react-native": "file:../",
     "@react-native-async-storage/async-storage": "^2.0.0",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
