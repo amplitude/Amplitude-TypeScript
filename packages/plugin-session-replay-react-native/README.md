@@ -9,25 +9,58 @@ npm install @amplitude/plugin-session-replay-react-native
 ```
 
 ## Usage
-
+Add the session replay plugin to your Amplitude instance as follows
 
 ```js
-import { multiply } from '@amplitude/plugin-session-replay-react-native';
+import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-native';
 
 // ...
 
-const result = await multiply(3, 7);
+await init('YOUR_API_KEY').promise;
+await add(new SessionReplayPlugin()).promise;
+
 ```
 
+## Masking views
+To maks certain views, add the `AmpMaskView` tag with the mask property `amp-mask` around the section to be masked
 
-## Contributing
+```js
+import { AmpMaskView } from '@amplitude/plugin-session-replay-react-native';
 
-See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the repository and the development workflow.
+// ...
 
-## License
+<AmpMaskView mask="amp-mask">
+    <Text
+    style={[
+        styles.sectionTitle,
+        {
+        color: isDarkMode ? Colors.white : Colors.black,
+        },
+    ]}
+    >
+    {title}
+    </Text>
+</AmpMaskView>
+```
 
-MIT
+## Unmasking views
+To unmask views, add the `AmpMaskView` tag with the mask property `amp-unmask` around the section to be unmasked
 
----
+```js
+import { AmpMaskView } from '@amplitude/plugin-session-replay-react-native';
 
-Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
+// ...
+
+<AmpMaskView mask="amp-unmask">
+    <Text
+    style={[
+        styles.sectionTitle,
+        {
+        color: isDarkMode ? Colors.white : Colors.black,
+        },
+    ]}
+    >
+    {title}
+    </Text>
+</AmpMaskView>
+```
