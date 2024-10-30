@@ -39,6 +39,11 @@ Now that you have successfully run the app, let's modify it.
 1. Open `App.tsx` in your text editor of choice and edit some lines.
 2. On the metro terminal, hit r to reload the app
 
+## Modifying the SDK
+
+1. Make changes to the SDK in the parent folder
+2. Hit `r` on the metro terminal to restart the app
+
 ## Congratulations! :tada:
 
 You've successfully run and modified your React Native App. :partying_face:
