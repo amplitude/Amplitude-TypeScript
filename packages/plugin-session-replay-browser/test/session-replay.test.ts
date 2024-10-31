@@ -1,4 +1,4 @@
-import { BrowserClient, BrowserConfig, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, Event, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
 import { VERSION } from '../src/version';
@@ -190,7 +190,7 @@ describe('SessionReplayPlugin', () => {
       init.mockImplementation(() => {
         throw new Error('Mock Error');
       });
-      await sessionReplay.setup(mockConfig);
+      await expect(sessionReplay.setup(mockConfig)).resolves.not.toThrow();
     });
   });
 
@@ -253,6 +253,43 @@ describe('SessionReplayPlugin', () => {
       expect(setSessionId).toHaveBeenCalledWith(456);
     });
 
+    test('should add session id from custom event property', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        customSessionId: (event: Event) => {
+          return (event.event_properties as { [key: string]: any })['custom_session_id'] as string;
+        },
+      });
+      await sessionReplay.setup({ ...mockConfig, sessionId: 123 });
+
+      const newEvent = {
+        event_type: 'session_start',
+        event_properties: {
+          custom_session_id: 456,
+        },
+      };
+      await sessionReplay.execute(newEvent);
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(setSessionId).toHaveBeenCalledWith(456);
+    });
+
+    test('should not call set session id for undefined custom property', async () => {
+      const sessionReplay = new SessionReplayPlugin({
+        customSessionId: (event: Event) => {
+          return (event.event_properties as { [key: string]: any })['custom_session_idx'] as string;
+        },
+      });
+      await sessionReplay.setup({ ...mockConfig, sessionId: 123 });
+
+      const newEvent = {
+        event_type: 'session_start',
+        event_properties: {
+          custom_session_id: 456,
+        },
+      };
+      await sessionReplay.execute(newEvent);
+      expect(setSessionId).toHaveBeenCalledTimes(0);
+    });
+
     test('should not update if session id unchanged', async () => {
       const sessionReplay = new SessionReplayPlugin();
       await sessionReplay.setup({ ...mockConfig, sessionId: 123 });
@@ -294,6 +331,7 @@ describe('SessionReplayPlugin', () => {
       expect(shutdown).toHaveBeenCalled();
     });
 
+    // eslint-disable-next-line jest/expect-expect
     test('internal errors should not be thrown', async () => {
       const sessionReplay = sessionReplayPlugin();
       await sessionReplay.setup(mockConfig);

@@ -48,6 +48,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         instanceName: this.config.instanceName,
         deviceId: this.config.deviceId,
         optOut: this.config.optOut,
+        // Setting this initially to undefined since the first event detected with the session ID will
+        // set the session ID instead.
         sessionId: this.options.customSessionId ? undefined : this.config.sessionId,
         loggerProvider: this.config.loggerProvider,
         logLevel: this.config.logLevel,
@@ -87,11 +89,15 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
           await sessionReplay.setSessionId(sessionId).promise;
         }
 
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-        event.event_properties = {
-          ...event.event_properties,
-          ...sessionRecordingProperties,
-        };
+        const eventSessionId = this.options.customSessionId ? this.options.customSessionId(event) : event.session_id;
+
+        if (sessionId === eventSessionId) {
+          const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+          event.event_properties = {
+            ...event.event_properties,
+            ...sessionRecordingProperties,
+          };
+        }
       }
 
       return Promise.resolve(event);
