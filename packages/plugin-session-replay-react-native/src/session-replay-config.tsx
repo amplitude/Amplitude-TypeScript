@@ -5,7 +5,7 @@ export interface SessionReplayConfig {
 
 export const getDefaultConfig = () => {
     return {
-        sampleRate: 1,
+        sampleRate: 0,
         enableRemoteConfig: true,
     };
 }
