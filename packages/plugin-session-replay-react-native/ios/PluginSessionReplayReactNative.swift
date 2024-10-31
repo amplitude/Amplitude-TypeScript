@@ -6,15 +6,15 @@ class PluginSessionReplayReactNative: NSObject {
     
     var sessionReplay: SessionReplay!
     
-    @objc(setup:deviceId:sessionId:resolve:reject:)
-    func setup(_ apiKey: String, deviceId: String, sessionId: NSNumber, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
-      print("setup: \(apiKey) \(deviceId) \(sessionId)")
+    @objc(setup:deviceId:sessionId:sampleRate:enableRemoteConfig:resolve:reject:)
+    func setup(_ apiKey: String, deviceId: String, sessionId: NSNumber, sampleRate: Float, enableRemoteConfig: Bool, resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+      print("setup: API Key: \(apiKey) Device Id: \(deviceId) Session Id: \(sessionId) Sample Rate: \(sampleRate) Enable Remote Config: \(enableRemoteConfig)")
       sessionReplay = SessionReplay(apiKey:apiKey,
                                     deviceId: deviceId,
                                     sessionId: sessionId.int64Value,
-                                    sampleRate: 1.0,
+                                    sampleRate: sampleRate,
                                     logger:ConsoleLogger(logLevel: LogLevelEnum.DEBUG.rawValue),
-                                    enableRemoteConfig: false)
+                                    enableRemoteConfig: enableRemoteConfig)
       sessionReplay.start()
       resolve(nil)
     }

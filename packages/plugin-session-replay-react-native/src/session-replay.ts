@@ -7,6 +7,7 @@ import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } fr
 
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';
+import { SessionReplayConfig, getDefaultConfig } from './session-replay-config';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
   name = '@amplitude/plugin-session-replay-react-native';
@@ -16,14 +17,26 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
   // @ts-ignore
   config: ReactNativeConfig;
 
-  constructor() {
-    // empty default constructor
+  sessionReplayConfig: SessionReplayConfig;
+
+  constructor(config: SessionReplayConfig = {}) {
+    this.sessionReplayConfig = {
+      ...getDefaultConfig(),
+      ...config,
+    };
+    console.log('Initializing SessionReplayPlugin with config: ', this.sessionReplayConfig);
   }
 
   async setup(config: ReactNativeConfig, _: ReactNativeClient): Promise<void> {
     this.config = config;
     console.log(`Installing @amplitude/plugin-session-replay-react-native, version ${VERSION}.`);
-    await PluginSessionReplayReactNative.setup(config.apiKey, config.deviceId, config.sessionId);
+    await PluginSessionReplayReactNative.setup(
+      config.apiKey,
+      config.deviceId,
+      config.sessionId,
+      this.sessionReplayConfig.sampleRate ?? 1,
+      this.sessionReplayConfig.enableRemoteConfig ?? true,
+    );
   }
 
   async execute(event: Event): Promise<Event | null> {

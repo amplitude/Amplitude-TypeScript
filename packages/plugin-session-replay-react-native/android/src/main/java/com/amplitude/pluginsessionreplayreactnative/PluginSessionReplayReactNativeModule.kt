@@ -19,7 +19,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun setup(apiKey: String, deviceId: String?, sessionId: Double) {
+  fun setup(apiKey: String, deviceId: String?, sessionId: Double, sampleRate: Double, enableRemoteConfig: Boolean) {
     LogcatLogger.logger.logMode = Logger.LogMode.DEBUG
     sessionReplay = SessionReplay(
       apiKey,
@@ -27,8 +27,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       deviceId ?: "",
       sessionId.toLong(),
       logger = LogcatLogger.logger,
-      sampleRate = 1.0,
-      enableRemoteConfig = false,
+      sampleRate = sampleRate,
+      enableRemoteConfig = enableRemoteConfig,
     )
   }
 
