@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.10...@amplitude/analytics-react-native@1.4.11) (2024-11-04)
+
+### Bug Fixes
+
+- make table non nullable
+  ([0dbd936](https://github.com/amplitude/Amplitude-TypeScript/commit/0dbd93636e404f1b8cb090661ff43da11e51ede2))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.4.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.9...@amplitude/analytics-react-native@1.4.10) (2024-09-23)
 
 ### Bug Fixes
