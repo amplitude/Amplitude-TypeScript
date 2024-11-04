@@ -55,7 +55,7 @@ class LegacyDatabaseStorage(context: Context, databaseName: String) : SQLiteOpen
 
     private fun queryDb(
         db: SQLiteDatabase,
-        table: String?,
+        table: String,
         columns: Array<String?>?,
         selection: String?,
         selectionArgs: Array<String?>?,
