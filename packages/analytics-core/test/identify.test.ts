@@ -186,4 +186,26 @@ describe('Identify class', () => {
 
     expect(identify.getUserProperties()).toStrictEqual(expectedProperties);
   });
+
+  test('should allow to set an array of objects', () => {
+    const identify = new Identify();
+    const propertyValue = [
+      {
+        key1: 'value1',
+        key2: 'value2',
+      },
+      {
+        key1: 'value3',
+        key2: 'value4',
+      },
+    ];
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore bypassing ts rules to test unexpected input
+    identify.set('PROPERTY_NAME', propertyValue);
+    const expectedProperties = {
+      [IdentifyOperation.SET]: { PROPERTY_NAME: propertyValue },
+    };
+
+    expect(identify.getUserProperties()).toStrictEqual(expectedProperties);
+  });
 });

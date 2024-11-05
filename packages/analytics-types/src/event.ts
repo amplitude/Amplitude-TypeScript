@@ -39,7 +39,8 @@ export type ValidPropertyType =
   | string
   | boolean
   | Array<string | number>
-  | { [key: string]: ValidPropertyType };
+  | { [key: string]: ValidPropertyType }
+  | Array<{ [key: string]: ValidPropertyType }>;
 
 interface BaseOperationConfig {
   [key: string]: ValidPropertyType;
