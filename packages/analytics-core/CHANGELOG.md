@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.3...@amplitude/analytics-core@2.5.4) (2024-11-05)
+
+
+### Bug Fixes
+
+* **analytics-types:** allow an array of objects as identity value type ([#914](https://github.com/amplitude/Amplitude-TypeScript/issues/914)) ([a6ddf9f](https://github.com/amplitude/Amplitude-TypeScript/commit/a6ddf9f369fb0240f7fe9ca7040ef36a48a65d41))
+
+
+
+
+
 ## [2.5.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.2...@amplitude/analytics-core@2.5.3) (2024-10-21)
 
 **Note:** Version bump only for package @amplitude/analytics-core
