@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.1...@amplitude/plugin-session-replay-react-native@0.2.2) (2024-11-16)
+
+### Bug Fixes
+
+- update android sdk version to fix r8 gson issue
+  ([54cdf6a](https://github.com/amplitude/Amplitude-TypeScript/commit/54cdf6a56caa94b6fe5493923febf131fea54872))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.0...@amplitude/plugin-session-replay-react-native@0.2.1) (2024-10-31)
 
 ### Bug Fixes
