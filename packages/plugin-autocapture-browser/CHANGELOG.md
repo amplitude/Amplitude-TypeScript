@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.0.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.3...@amplitude/plugin-autocapture-browser@1.0.4) (2024-11-25)
+
+### Bug Fixes
+
+- missing body for fetch intercepts in ga events forwarder
+  ([#922](https://github.com/amplitude/Amplitude-TypeScript/issues/922))
+  ([3257610](https://github.com/amplitude/Amplitude-TypeScript/commit/3257610eedaef7f694859fb432fe62faca769331))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.0.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.2...@amplitude/plugin-autocapture-browser@1.0.3) (2024-09-23)
 
 ### Bug Fixes
