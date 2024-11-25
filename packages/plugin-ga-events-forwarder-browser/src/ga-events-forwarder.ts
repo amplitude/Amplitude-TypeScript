@@ -102,7 +102,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     return intercept(requestUrl, data);
   };
 
-  const interceptFetch: FetchInterceptor = (resource, _options) => {
+  const interceptFetch: FetchInterceptor = (resource, options) => {
     let requestUrl: string | URL = '';
 
     // Fetch accepts strings, objects with stringifiers, or request objects
@@ -120,7 +120,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
       logger?.error(e);
     }
 
-    intercept(requestUrl, null);
+    intercept(requestUrl, options?.body);
   };
 
   /**
