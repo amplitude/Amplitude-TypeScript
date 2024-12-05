@@ -2,7 +2,14 @@ import { getGlobalScope } from '@amplitude/analytics-client-common';
 import { ServerZone } from '@amplitude/analytics-types';
 import { getInputType } from '@amplitude/rrweb-snapshot';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
-import { KB_SIZE, MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
+import {
+  KB_SIZE,
+  MASK_TEXT_CLASS,
+  SESSION_REPLAY_EU_URL,
+  SESSION_REPLAY_SERVER_URL,
+  SESSION_REPLAY_STAGING_URL,
+  UNMASK_TEXT_CLASS,
+} from './constants';
 import { StorageData } from './typings/session-replay';
 
 type ChromeStorageEstimate = {
@@ -121,17 +128,16 @@ export const generateSessionReplayId = (sessionId: string | number, deviceId: st
   return `${deviceId}/${sessionId}`;
 };
 
-export const getServerUrl = (_serverZone?: keyof typeof ServerZone): string => {
-  return 'http://localhost:3000/sessions/v2/track';
-  // if (serverZone === ServerZone.STAGING) {
-  //   return SESSION_REPLAY_STAGING_SERVER_URL;
-  // }
+export const getServerUrl = (serverZone?: keyof typeof ServerZone): string => {
+  if (serverZone === ServerZone.STAGING) {
+    return SESSION_REPLAY_STAGING_URL;
+  }
 
-  // if (serverZone === ServerZone.EU) {
-  //   return SESSION_REPLAY_EU_SERVER_URL;
-  // }
+  if (serverZone === ServerZone.EU) {
+    return SESSION_REPLAY_EU_URL;
+  }
 
-  // return SESSION_REPLAY_SERVER_URL;
+  return SESSION_REPLAY_SERVER_URL;
 };
 
 export const getStorageSize = async (): Promise<StorageData> => {
