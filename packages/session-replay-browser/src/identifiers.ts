@@ -2,11 +2,11 @@ import { generateSessionReplayId } from './helpers';
 import { SessionIdentifiers as ISessionIdentifiers } from './typings/session-replay';
 
 export class SessionIdentifiers implements ISessionIdentifiers {
-  deviceId?: string;
-  sessionId?: string | number;
-  sessionReplayId?: string;
+  deviceId?: string | undefined;
+  sessionId?: number | undefined;
+  sessionReplayId?: string | undefined;
 
-  constructor({ sessionId, deviceId }: { sessionId?: string | number; deviceId?: string }) {
+  constructor({ sessionId, deviceId }: { sessionId?: number; deviceId?: string }) {
     this.deviceId = deviceId;
     this.sessionId = sessionId;
 

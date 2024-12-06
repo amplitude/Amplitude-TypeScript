@@ -46,7 +46,7 @@ export class SessionReplayJoinedConfigGenerator {
     this.remoteConfigFetch = remoteConfigFetch;
   }
 
-  async generateJoinedConfig(sessionId?: string | number): Promise<SessionReplayJoinedConfig> {
+  async generateJoinedConfig(sessionId?: number): Promise<SessionReplayJoinedConfig> {
     const config: SessionReplayJoinedConfig = { ...this.localConfig };
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;

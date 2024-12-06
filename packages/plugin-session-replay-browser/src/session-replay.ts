@@ -48,7 +48,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         instanceName: this.config.instanceName,
         deviceId: this.config.deviceId,
         optOut: this.config.optOut,
-        sessionId: this.options.customSessionId ? undefined : this.config.sessionId,
+        sessionId: this.config.sessionId,
         loggerProvider: this.config.loggerProvider,
         logLevel: this.config.logLevel,
         flushMaxRetries: this.config.flushMaxRetries,
@@ -74,41 +74,21 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async execute(event: Event) {
     try {
-      if (this.options.customSessionId) {
-        const sessionId = this.options.customSessionId(event);
-        if (sessionId) {
-          // On event, synchronize the session id to the custom session id from the event. This may
-          // suffer from offline/delayed events messing up the state stored
-          if (sessionId !== sessionReplay.getSessionId()) {
-            await sessionReplay.setSessionId(sessionId).promise;
-          }
-
-          const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-          event.event_properties = {
-            ...event.event_properties,
-            ...sessionRecordingProperties,
-          };
-        }
-      } else {
-        // On event, synchronize the session id to the what's on the browserConfig (source of truth)
-        // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
-        // in SR.
-        const sessionId: string | number | undefined = this.config.sessionId;
-        if (sessionId && sessionId !== sessionReplay.getSessionId()) {
-          await sessionReplay.setSessionId(sessionId).promise;
-        }
-
-        // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
-        // event is not of the current session (offline/late events). In that case, don't tag the events
-        if (sessionId && sessionId === event.session_id) {
-          const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
-          event.event_properties = {
-            ...event.event_properties,
-            ...sessionRecordingProperties,
-          };
-        }
+      // On event, synchronize the session id to the what's on the browserConfig (source of truth)
+      // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
+      // in SR.
+      if (this.config.sessionId && this.config.sessionId !== sessionReplay.getSessionId()) {
+        await sessionReplay.setSessionId(this.config.sessionId).promise;
       }
-
+      // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
+      // event is not of the current session (offline/late events). In that case, don't tag the events
+      if (this.config.sessionId && this.config.sessionId === event.session_id) {
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+        event.event_properties = {
+          ...event.event_properties,
+          ...sessionRecordingProperties,
+        };
+      }
       return Promise.resolve(event);
     } catch (error) {
       this.config.loggerProvider.error(`Session Replay: Failed to enrich event due to ${(error as Error).message}`);

@@ -23,7 +23,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   localConfig: Config;
   retryTimeout = 1000;
   attempts = 0;
-  lastFetchedSessionId: number | string | undefined;
+  lastFetchedSessionId: number | undefined;
   sessionTargetingMatch = false;
   configKeys: string[];
   metrics: RemoteConfigMetric = {};
@@ -36,7 +36,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   getRemoteConfig = async <K extends keyof RemoteConfig>(
     configNamespace: string,
     key: K,
-    sessionId?: number | string,
+    sessionId?: number,
   ): Promise<RemoteConfig[K] | undefined> => {
     const fetchStartTime = Date.now();
     // Finally fetch via API
@@ -64,7 +64,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     return REMOTE_CONFIG_SERVER_URL;
   }
 
-  fetchWithTimeout = async (sessionId?: number | string): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
+  fetchWithTimeout = async (sessionId?: number): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     const remoteConfig = await this.fetchRemoteConfig(controller.signal, sessionId);
@@ -74,7 +74,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
 
   fetchRemoteConfig = async (
     signal: AbortController['signal'],
-    sessionId?: number | string,
+    sessionId?: number,
   ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     if (sessionId === this.lastFetchedSessionId && this.attempts >= this.localConfig.flushMaxRetries) {
       return this.completeRequest({ err: MAX_RETRIES_EXCEEDED_MESSAGE });
@@ -128,7 +128,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
 
   retryFetch = async (
     signal: AbortController['signal'],
-    sessionId?: number | string,
+    sessionId?: number,
   ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
     await new Promise((resolve) => setTimeout(resolve, this.attempts * this.retryTimeout));
     return this.fetchRemoteConfig(signal, sessionId);

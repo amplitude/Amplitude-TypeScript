@@ -1,14 +1,12 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { ServerZone } from '@amplitude/analytics-types';
-import { getInputType } from '@amplitude/rrweb-snapshot';
+import { KB_SIZE, MASK_TEXT_CLASS, UNMASK_TEXT_CLASS } from './constants';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
+import { getInputType } from '@amplitude/rrweb-snapshot';
+import { ServerZone } from '@amplitude/analytics-types';
 import {
-  KB_SIZE,
-  MASK_TEXT_CLASS,
-  SESSION_REPLAY_EU_URL,
+  SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL,
   SESSION_REPLAY_SERVER_URL,
-  SESSION_REPLAY_STAGING_URL,
-  UNMASK_TEXT_CLASS,
+  SESSION_REPLAY_STAGING_URL as SESSION_REPLAY_STAGING_SERVER_URL,
 } from './constants';
 import { StorageData } from './typings/session-replay';
 
@@ -111,7 +109,7 @@ export const generateHashCode = function (str: string) {
   return hash;
 };
 
-export const isSessionInSample = function (sessionId: string | number, sampleRate: number) {
+export const isSessionInSample = function (sessionId: number, sampleRate: number) {
   const hashNumber = generateHashCode(sessionId.toString());
   const absHash = Math.abs(hashNumber);
   const absHashMultiply = absHash * 31;
@@ -124,17 +122,17 @@ export const getCurrentUrl = () => {
   return globalScope?.location ? globalScope.location.href : '';
 };
 
-export const generateSessionReplayId = (sessionId: string | number, deviceId: string): string => {
+export const generateSessionReplayId = (sessionId: number, deviceId: string): string => {
   return `${deviceId}/${sessionId}`;
 };
 
 export const getServerUrl = (serverZone?: keyof typeof ServerZone): string => {
   if (serverZone === ServerZone.STAGING) {
-    return SESSION_REPLAY_STAGING_URL;
+    return SESSION_REPLAY_STAGING_SERVER_URL;
   }
 
   if (serverZone === ServerZone.EU) {
-    return SESSION_REPLAY_EU_URL;
+    return SESSION_REPLAY_EU_SERVER_URL;
   }
 
   return SESSION_REPLAY_SERVER_URL;
