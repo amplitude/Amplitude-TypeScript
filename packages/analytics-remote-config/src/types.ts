@@ -10,7 +10,7 @@ export interface BaseRemoteConfigFetch<T> {
   getRemoteConfig: <K extends keyof T>(
     configNamespace: string,
     key: K,
-    sessionId?: number,
+    sessionId?: number | string,
   ) => Promise<T[K] | undefined>;
 }
 

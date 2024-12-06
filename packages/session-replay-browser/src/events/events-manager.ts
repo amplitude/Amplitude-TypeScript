@@ -67,7 +67,6 @@ export const createEventsManager = async <Type extends EventType>({
     events: string[];
     sessionId: string | number;
     deviceId: string;
-    customSessionId?: string;
     sequenceId?: number;
   }) => {
     if (config.debugMode) {
@@ -138,7 +137,6 @@ export const createEventsManager = async <Type extends EventType>({
     event: { type: Type; data: string };
     sessionId: number;
     deviceId: string;
-    customSessionId: string | null;
   }) => {
     store
       .addEventToCurrentSequence(sessionId, event.data)
