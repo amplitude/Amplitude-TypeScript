@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.16.0...@amplitude/session-replay-browser@1.17.0) (2024-12-06)
+
+### Features
+
+- **session-replay:** supporting string session id
+  ([deecad4](https://github.com/amplitude/Amplitude-TypeScript/commit/deecad4f6a9e5522b5d567f5ff48513c7e2ae880))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.15.1...@amplitude/session-replay-browser@1.16.0) (2024-12-06)
 
 ### Bug Fixes
