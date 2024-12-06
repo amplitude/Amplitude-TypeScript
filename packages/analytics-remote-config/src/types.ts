@@ -10,7 +10,7 @@ export interface BaseRemoteConfigFetch<T> {
   getRemoteConfig: <K extends keyof T>(
     configNamespace: string,
     key: K,
-    sessionId?: number,
+    sessionId?: number | string,
   ) => Promise<T[K] | undefined>;
 }
 
@@ -31,7 +31,10 @@ export interface RemoteConfigMetric {
 
 export interface RemoteConfigIDBStore<RemoteConfig extends { [key: string]: object }>
   extends BaseRemoteConfigFetch<RemoteConfig> {
-  storeRemoteConfig: (remoteConfig: RemoteConfigAPIResponse<RemoteConfig>, sessionId?: number) => Promise<void>;
+  storeRemoteConfig: (
+    remoteConfig: RemoteConfigAPIResponse<RemoteConfig>,
+    sessionId?: number | string,
+  ) => Promise<void>;
   getLastFetchedSessionId: () => Promise<number | void>;
   remoteConfigHasValues: (configNamespace: string) => Promise<boolean>;
 }
