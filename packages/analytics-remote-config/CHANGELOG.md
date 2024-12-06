@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.4.1...@amplitude/analytics-remote-config@0.5.0) (2024-12-06)
+
+### Features
+
+- **analytics-remote-config:** add string type to sessionId for custom session id
+  ([45e131c](https://github.com/amplitude/Amplitude-TypeScript/commit/45e131c8aec630c9db8b9de0059c88cafd519583))
+- **analytics-remote-config:** support custom session id
+  ([e5937be](https://github.com/amplitude/Amplitude-TypeScript/commit/e5937be57c480bdf88128e9fa4a59c3b4d97d197))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.4.0...@amplitude/analytics-remote-config@0.4.1) (2024-10-02)
 
 ### Bug Fixes

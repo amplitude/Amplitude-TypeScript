@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.15.1...@amplitude/session-replay-browser@1.16.0) (2024-12-06)
+
+### Bug Fixes
+
+- **session-replay-browser:** use correct server urls
+  ([b37da79](https://github.com/amplitude/Amplitude-TypeScript/commit/b37da79bfd2a68849194e5bd1bd6e6ed49ae55e5))
+
+### Features
+
+- **analytics-remote-config:** add string type to sessionId for custom session id
+  ([45e131c](https://github.com/amplitude/Amplitude-TypeScript/commit/45e131c8aec630c9db8b9de0059c88cafd519583))
+- **session-replay-browser:** supporting string session id
+  ([633aa04](https://github.com/amplitude/Amplitude-TypeScript/commit/633aa048c7794660eef6b538dfe3b1cecd93b020))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.15.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.15.1-beta.0...@amplitude/session-replay-browser@1.15.1) (2024-10-30)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
