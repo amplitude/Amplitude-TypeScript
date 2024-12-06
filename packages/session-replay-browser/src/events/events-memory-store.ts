@@ -2,15 +2,15 @@ import { Events, SendingSequencesReturn } from '../typings/session-replay';
 import { BaseEventsStore } from './base-events-store';
 
 export class InMemoryEventsStore extends BaseEventsStore<number> {
-  private finalizedSequences: Record<number, { sessionId: number; events: string[] }> = {};
-  private sequences: Record<number, string[]> = {};
+  private finalizedSequences: Record<number, { sessionId: string | number; events: string[] }> = {};
+  private sequences: Record<string | number, string[]> = {};
   private sequenceId = 0;
 
-  private resetCurrentSequence(sessionId: number) {
+  private resetCurrentSequence(sessionId: string | number) {
     this.sequences[sessionId] = [];
   }
 
-  private addSequence(sessionId: number): SendingSequencesReturn<number> {
+  private addSequence(sessionId: string | number): SendingSequencesReturn<number> {
     const sequenceId = this.sequenceId++;
     const events = [...this.sequences[sessionId]];
     this.finalizedSequences[sequenceId] = { sessionId, events };
@@ -26,7 +26,7 @@ export class InMemoryEventsStore extends BaseEventsStore<number> {
     }));
   }
 
-  async storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<number> | undefined> {
+  async storeCurrentSequence(sessionId: string | number): Promise<SendingSequencesReturn<number> | undefined> {
     if (!this.sequences[sessionId]) {
       return undefined;
     }

@@ -21,7 +21,7 @@ export type ClickEvent = {
 export type ClickEventWithCount = ClickEvent & { count: number };
 
 type Options = {
-  sessionId: number;
+  sessionId: string | number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
 };
