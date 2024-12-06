@@ -1,4 +1,4 @@
-import { BrowserClient, BrowserConfig, LogLevel, Logger, Plugin, Event } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, LogLevel, Logger, Plugin } from '@amplitude/analytics-types';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
 import { VERSION } from '../src/version';
@@ -303,84 +303,6 @@ describe('SessionReplayPlugin', () => {
         throw new Error('Mock shutdown error');
       });
       await sessionReplay.teardown?.();
-    });
-
-    test('should update the session id on any event when using custom session id', async () => {
-      const sessionReplay = sessionReplayPlugin({
-        customSessionId: (event: Event) => {
-          const event_properties = event.event_properties as { [key: string]: any };
-          if (!event_properties) {
-            return;
-          }
-          return event_properties['custom_session_id'] as string | undefined;
-        },
-      });
-      await sessionReplay.setup({ ...mockConfig });
-      getSessionId.mockReturnValueOnce('test_122');
-      const event = {
-        event_type: 'event_type',
-        event_properties: {
-          property_a: true,
-          property_b: 123,
-          custom_session_id: 'test_123',
-        },
-        session_id: 124,
-      };
-
-      await sessionReplay.execute(event);
-      expect(setSessionId).toHaveBeenCalledTimes(1);
-      expect(setSessionId).toHaveBeenCalledWith('test_123');
-    });
-
-    test('should not update the session id when using custom session id and it does not change', async () => {
-      const sessionReplay = sessionReplayPlugin({
-        customSessionId: (event: Event) => {
-          const event_properties = event.event_properties as { [key: string]: any };
-          if (!event_properties) {
-            return;
-          }
-          return event_properties['custom_session_id'] as string | undefined;
-        },
-      });
-      await sessionReplay.setup({ ...mockConfig });
-      getSessionId.mockReturnValueOnce('test_123');
-      const event = {
-        event_type: 'event_type',
-        event_properties: {
-          property_a: true,
-          property_b: 123,
-          custom_session_id: 'test_123',
-        },
-        session_id: 124,
-      };
-
-      await sessionReplay.execute(event);
-      expect(setSessionId).not.toHaveBeenCalled();
-    });
-
-    test('should do nothing when the custom session id cannot be found', async () => {
-      const sessionReplay = sessionReplayPlugin({
-        customSessionId: (event: Event) => {
-          const event_properties = event.event_properties as { [key: string]: any };
-          if (!event_properties) {
-            return;
-          }
-          return event_properties['custom_session_id'] as string | undefined;
-        },
-      });
-      await sessionReplay.setup({ ...mockConfig });
-      const event = {
-        event_type: 'event_type',
-        event_properties: {
-          property_a: true,
-          property_b: 123,
-        },
-        session_id: 124,
-      };
-
-      const enrichedEvent = await sessionReplay.execute(event);
-      expect(setSessionId).not.toHaveBeenCalled();
-      expect(enrichedEvent).toEqual(event);
     });
   });
 

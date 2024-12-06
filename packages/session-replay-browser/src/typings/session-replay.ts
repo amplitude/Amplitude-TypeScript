@@ -20,8 +20,8 @@ export type EventType = 'replay' | 'interaction';
 
 export interface SessionReplayDestinationSessionMetadata {
   type: EventType;
-  sessionId: string | number;
-  deviceId: string | undefined;
+  sessionId: number;
+  deviceId?: string;
   version?: SessionReplayVersion;
 }
 
@@ -41,7 +41,7 @@ export interface SessionReplayDestinationContext extends SessionReplayDestinatio
 
 export interface SendingSequencesReturn<KeyType> {
   sequenceId: KeyType;
-  sessionId: string | number;
+  sessionId: number;
   events: Events;
 }
 
@@ -53,28 +53,25 @@ export interface EventsStore<KeyType> {
   /**
    * Moves current sequence of events to long term storage and resets short term storage.
    */
-  storeCurrentSequence(sessionId: string | number): Promise<SendingSequencesReturn<KeyType> | undefined>;
+  storeCurrentSequence(sessionId: number): Promise<SendingSequencesReturn<KeyType> | undefined>;
   /**
    * Adds events to the current IDB sequence. Returns events that should be
    * sent to the track destination right away if should split events is true.
    */
-  addEventToCurrentSequence(
-    sessionId: string | number,
-    event: string,
-  ): Promise<SendingSequencesReturn<KeyType> | undefined>;
+  addEventToCurrentSequence(sessionId: number, event: string): Promise<SendingSequencesReturn<KeyType> | undefined>;
   /**
    * Returns the sequence id associated with the events batch.
    * @returns the new sequence id or undefined if it cannot be determined or on any error.
    */
-  storeSendingEvents(sessionId: string | number, events: Events): Promise<KeyType | undefined>;
+  storeSendingEvents(sessionId: number, events: Events): Promise<KeyType | undefined>;
   /**
    * Permanently removes the events batch for the session/sequence pair.
    */
-  cleanUpSessionEventsStore(sessionId: string | number, sequenceId?: KeyType): Promise<void>;
+  cleanUpSessionEventsStore(sessionId: number, sequenceId?: KeyType): Promise<void>;
 }
 export interface SessionIdentifiers {
   deviceId?: string;
-  sessionId?: string | number;
+  sessionId?: number;
   sessionReplayId?: string;
 }
 
@@ -82,8 +79,8 @@ export type SessionReplayOptions = Omit<Partial<SessionReplayLocalConfig & Sessi
 
 export interface AmplitudeSessionReplay {
   init: (apiKey: string, options: SessionReplayOptions) => AmplitudeReturn<void>;
-  setSessionId: (sessionId: string | number, deviceId?: string) => AmplitudeReturn<void>;
-  getSessionId: () => string | number | undefined;
+  setSessionId: (sessionId: number, deviceId?: string) => AmplitudeReturn<void>;
+  getSessionId: () => number | undefined;
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
   flush: (useRetry: boolean) => Promise<void>;
   shutdown: () => void;
@@ -118,14 +115,14 @@ export interface SessionReplayEventsManager<Type, Event> {
     event,
     deviceId,
   }: {
-    sessionId: string | number;
+    sessionId: number;
     event: { type: Type; data: Event };
     deviceId: string;
   }): void;
   /**
    * Move events in short term storage to long term storage and send immediately to the track destination.
    */
-  sendCurrentSequenceEvents({ sessionId, deviceId }: { sessionId: string | number; deviceId: string }): void;
+  sendCurrentSequenceEvents({ sessionId, deviceId }: { sessionId: number; deviceId: string }): void;
   /**
    * Flush the track destination queue immediately. This should invoke sends for all the events in the queue.
    */

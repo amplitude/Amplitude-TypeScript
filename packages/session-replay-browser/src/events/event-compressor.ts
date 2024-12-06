@@ -6,7 +6,7 @@ import { getGlobalScope } from '@amplitude/analytics-client-common';
 
 interface TaskQueue {
   event: eventWithTime;
-  sessionId: string | number;
+  sessionId: number;
 }
 
 const DEFAULT_TIMEOUT = 2000;
@@ -46,7 +46,7 @@ export class EventCompressor {
   }
 
   // Add an event to the task queue if idle callback is supported or compress the event directly
-  public enqueueEvent(event: eventWithTime, sessionId: string | number): void {
+  public enqueueEvent(event: eventWithTime, sessionId: number): void {
     if (this.canUseIdleCallback && this.config.performanceConfig?.enabled) {
       this.config.loggerProvider.debug('Enqueuing event for processing during idle time.');
       this.taskQueue.push({ event, sessionId });
@@ -86,7 +86,7 @@ export class EventCompressor {
     return JSON.stringify(packedEvent);
   };
 
-  public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
+  public addCompressedEvent = (event: eventWithTime, sessionId: number) => {
     const compressedEvent = this.compressEvent(event);
 
     if (this.eventsManager && this.deviceId) {

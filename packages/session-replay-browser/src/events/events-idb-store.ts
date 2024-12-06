@@ -18,7 +18,7 @@ export interface SessionReplayDB extends DBSchema {
   sequencesToSend: {
     key: number;
     value: Omit<SendingSequencesReturn<number>, 'sequenceId'>;
-    indexes: { sessionId: string | number };
+    indexes: { sessionId: number };
   };
 }
 
@@ -105,7 +105,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
   static async new(
     type: EventType,
     args: Omit<InstanceArgs, 'db'>,
-    sessionId?: string | number,
+    sessionId?: number,
   ): Promise<SessionReplayEventsIDBStore | undefined> {
     try {
       const dbSuffix = type === 'replay' ? '' : `_${type}`;
@@ -173,10 +173,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
         events: currentSequenceData.events,
       });
 
-      await this.db.put<'sessionCurrentSequence'>(currentSequenceKey, {
-        sessionId,
-        events: [],
-      });
+      await this.db.put<'sessionCurrentSequence'>(currentSequenceKey, { sessionId, events: [] });
 
       return {
         ...currentSequenceData,
@@ -254,7 +251,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
     }
   };
 
-  transitionFromKeyValStore = async (sessionId?: string | number) => {
+  transitionFromKeyValStore = async (sessionId?: number) => {
     try {
       const keyValDb = await keyValDatabaseExists();
       if (!keyValDb) {

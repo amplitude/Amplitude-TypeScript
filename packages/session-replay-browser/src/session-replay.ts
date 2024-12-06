@@ -147,11 +147,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.initialize(true);
   }
 
-  setSessionId(sessionId: string | number, deviceId?: string) {
+  setSessionId(sessionId: number, deviceId?: string) {
     return returnWrapper(this.asyncSetSessionId(sessionId, deviceId));
   }
 
-  async asyncSetSessionId(sessionId: string | number, deviceId?: string) {
+  async asyncSetSessionId(sessionId: number, deviceId?: string) {
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
@@ -230,7 +230,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   };
 
-  sendEvents(sessionId?: string | number) {
+  sendEvents(sessionId?: number) {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
     this.eventsManager &&

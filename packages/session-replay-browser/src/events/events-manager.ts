@@ -24,7 +24,7 @@ export const createEventsManager = async <Type extends EventType>({
   type: Type;
   minInterval?: number;
   maxInterval?: number;
-  sessionId?: string | number;
+  sessionId?: number;
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
@@ -65,7 +65,7 @@ export const createEventsManager = async <Type extends EventType>({
     sequenceId,
   }: {
     events: string[];
-    sessionId: string | number;
+    sessionId: number;
     deviceId: string;
     sequenceId?: number;
   }) => {
