@@ -21,7 +21,7 @@ export type EventType = 'replay' | 'interaction';
 export interface SessionReplayDestinationSessionMetadata {
   type: EventType;
   sessionId: string | number;
-  deviceId: string;
+  deviceId: string | undefined;
   version?: SessionReplayVersion;
 }
 
