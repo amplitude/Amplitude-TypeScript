@@ -53,7 +53,7 @@ export class BeaconTransport<T> {
       return true;
     };
 
-    this.basePageUrl = getServerUrl(config.serverZone);
+    this.basePageUrl = getServerUrl(config.serverZone, config.trackServerUrl);
     this.apiKey = config.apiKey;
     this.context = context;
   }

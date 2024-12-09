@@ -23,7 +23,8 @@ export interface SessionReplayOptions {
   privacyConfig?: SessionReplayPrivacyConfig;
   debugMode?: boolean;
   forceSessionTracking?: boolean;
-  configEndpointUrl?: string;
+  configServerUrl?: string;
+  trackServerUrl?: string;
   shouldInlineStylesheet?: boolean;
   performanceConfig?: SessionReplayPerformanceConfig;
   storeType?: StoreType;

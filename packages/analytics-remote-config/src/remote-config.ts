@@ -4,6 +4,7 @@ import {
   CreateRemoteConfigFetch,
   RemoteConfigFetch as IRemoteConfigFetch,
   RemoteConfigAPIResponse,
+  RemoteConfigLocalConfig,
   RemoteConfigMetric,
 } from './types';
 
@@ -20,7 +21,7 @@ export const REMOTE_CONFIG_SERVER_URL_EU = 'https://sr-client-cfg.eu.amplitude.c
 export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   implements IRemoteConfigFetch<RemoteConfig>
 {
-  localConfig: Config;
+  localConfig: RemoteConfigLocalConfig;
   retryTimeout = 1000;
   attempts = 0;
   lastFetchedSessionId: number | string | undefined;
@@ -53,6 +54,10 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   };
 
   getServerUrl() {
+    if (this.localConfig.configServerUrl) {
+      return this.localConfig.configServerUrl;
+    }
+
     if (this.localConfig.serverZone === ServerZone.STAGING) {
       return REMOTE_CONFIG_SERVER_URL_STAGING;
     }
@@ -156,7 +161,7 @@ export const createRemoteConfigFetch: CreateRemoteConfigFetch = async <
   localConfig,
   configKeys,
 }: {
-  localConfig: Config;
+  localConfig: RemoteConfigLocalConfig;
   configKeys: string[];
 }) => {
   return new RemoteConfigFetch<RemoteConfig>({ localConfig, configKeys });

@@ -28,7 +28,11 @@ export const createEventsManager = async <Type extends EventType>({
   payloadBatcher?: PayloadBatcher;
   storeType: StoreType;
 }): Promise<AmplitudeSessionReplayEventsManager<Type, string>> => {
-  const trackDestination = new SessionReplayTrackDestination({ loggerProvider: config.loggerProvider, payloadBatcher });
+  const trackDestination = new SessionReplayTrackDestination({
+    ...config,
+    loggerProvider: config.loggerProvider,
+    payloadBatcher,
+  });
 
   const getMemoryStore = (): EventsStore<number> => {
     return new InMemoryEventsStore({

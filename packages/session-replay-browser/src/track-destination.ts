@@ -24,14 +24,24 @@ export type PayloadBatcher = ({ version, events }: { version: number; events: st
 export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrackDestination {
   loggerProvider: ILogger;
   storageKey = '';
+  trackServerUrl?: string;
   retryTimeout = 1000;
   private scheduled: ReturnType<typeof setTimeout> | null = null;
   payloadBatcher: PayloadBatcher;
   queue: SessionReplayDestinationContext[] = [];
 
-  constructor({ loggerProvider, payloadBatcher }: { loggerProvider: ILogger; payloadBatcher?: PayloadBatcher }) {
+  constructor({
+    trackServerUrl,
+    loggerProvider,
+    payloadBatcher,
+  }: {
+    trackServerUrl?: string;
+    loggerProvider: ILogger;
+    payloadBatcher?: PayloadBatcher;
+  }) {
     this.loggerProvider = loggerProvider;
     this.payloadBatcher = payloadBatcher ? payloadBatcher : (payload) => payload;
+    this.trackServerUrl = trackServerUrl;
   }
 
   sendEventsList(destinationData: SessionReplayDestination) {
@@ -135,8 +145,9 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
         body: JSON.stringify(payload),
         method: 'POST',
       };
-      const server_url = `${getServerUrl(context.serverZone)}?${urlParams.toString()}`;
-      const res = await fetch(server_url, options);
+
+      const serverUrl = `${getServerUrl(context.serverZone, this.trackServerUrl)}?${urlParams.toString()}`;
+      const res = await fetch(serverUrl, options);
       if (res === null) {
         this.completeRequest({ context, err: UNEXPECTED_ERROR_MESSAGE });
         return;
