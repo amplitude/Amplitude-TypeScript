@@ -45,7 +45,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       }
 
       await sessionReplay.init(config.apiKey, {
-        ...this.options,
         instanceName: this.config.instanceName,
         deviceId: this.config.deviceId,
         optOut: this.config.optOut,
@@ -54,6 +53,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         logLevel: this.config.logLevel,
         flushMaxRetries: this.config.flushMaxRetries,
         serverZone: this.config.serverZone,
+        configServerUrl: this.options.configServerUrl,
+        trackServerUrl: this.options.trackServerUrl,
         sampleRate: this.options.sampleRate,
         privacyConfig: {
           blockSelector: this.options.privacyConfig?.blockSelector,

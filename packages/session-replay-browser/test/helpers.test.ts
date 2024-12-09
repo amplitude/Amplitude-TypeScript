@@ -218,6 +218,12 @@ describe('SessionReplayPlugin helpers', () => {
     test('should return eu server url if eu config set', async () => {
       expect(getServerUrl(ServerZone.EU)).toEqual(SESSION_REPLAY_EU_URL);
     });
+
+    test('should allow server url override', async () => {
+      const customUrl = 'http://localhost:3000';
+
+      expect(getServerUrl(ServerZone.EU, customUrl)).toEqual(customUrl);
+    });
   });
 
   describe('getStorageSize', () => {
