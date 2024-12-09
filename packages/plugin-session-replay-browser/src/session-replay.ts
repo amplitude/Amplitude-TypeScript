@@ -45,6 +45,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       }
 
       await sessionReplay.init(config.apiKey, {
+        ...this.options,
         instanceName: this.config.instanceName,
         deviceId: this.config.deviceId,
         optOut: this.config.optOut,
@@ -61,7 +62,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
           defaultMaskLevel: this.options.privacyConfig?.defaultMaskLevel,
         },
         debugMode: this.options.debugMode,
-        configEndpointUrl: this.options.configEndpointUrl,
         shouldInlineStylesheet: this.options.shouldInlineStylesheet,
         version: { type: 'plugin', version: VERSION },
         performanceConfig: this.options.performanceConfig,
