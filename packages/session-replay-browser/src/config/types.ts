@@ -47,7 +47,12 @@ export interface SessionReplayLocalConfig extends Config {
   sampleRate: number;
   privacyConfig?: PrivacyConfig;
   debugMode?: boolean;
-  configEndpointUrl?: string;
+  // This will control which endpoint is used for remote config.
+  // This will override server zone if specified.
+  configServerUrl?: string;
+  // This will control which endpoint is used for session replay track calls.
+  // This will override server zone if specified.
+  trackServerUrl?: string;
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
   performanceConfig?: SessionReplayPerformanceConfig;

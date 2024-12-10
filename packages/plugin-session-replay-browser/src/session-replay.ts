@@ -53,6 +53,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         logLevel: this.config.logLevel,
         flushMaxRetries: this.config.flushMaxRetries,
         serverZone: this.config.serverZone,
+        configServerUrl: this.options.configServerUrl,
+        trackServerUrl: this.options.trackServerUrl,
         sampleRate: this.options.sampleRate,
         privacyConfig: {
           blockSelector: this.options.privacyConfig?.blockSelector,
@@ -61,7 +63,6 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
           defaultMaskLevel: this.options.privacyConfig?.defaultMaskLevel,
         },
         debugMode: this.options.debugMode,
-        configEndpointUrl: this.options.configEndpointUrl,
         shouldInlineStylesheet: this.options.shouldInlineStylesheet,
         version: { type: 'plugin', version: VERSION },
         performanceConfig: this.options.performanceConfig,

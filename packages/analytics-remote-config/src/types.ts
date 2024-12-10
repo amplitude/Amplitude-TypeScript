@@ -6,6 +6,10 @@ export interface RemoteConfigAPIResponse<RemoteConfig extends { [key: string]: o
   };
 }
 
+export interface RemoteConfigLocalConfig extends Config {
+  configServerUrl?: string;
+}
+
 export interface BaseRemoteConfigFetch<T> {
   getRemoteConfig: <K extends keyof T>(
     configNamespace: string,

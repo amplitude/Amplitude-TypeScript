@@ -128,7 +128,11 @@ export const generateSessionReplayId = (sessionId: string | number, deviceId: st
   return `${deviceId}/${sessionId}`;
 };
 
-export const getServerUrl = (serverZone?: keyof typeof ServerZone): string => {
+export const getServerUrl = (serverZone?: keyof typeof ServerZone, trackServerUrl?: string): string => {
+  if (trackServerUrl) {
+    return trackServerUrl;
+  }
+
   if (serverZone === ServerZone.STAGING) {
     return SESSION_REPLAY_STAGING_URL;
   }

@@ -24,7 +24,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   privacyConfig?: PrivacyConfig;
   interactionConfig?: InteractionConfig;
   debugMode?: boolean;
-  configEndpointUrl?: string;
+  configServerUrl?: string;
+  trackServerUrl?: string;
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
   storeType: StoreType;
@@ -45,7 +46,8 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.apiKey = apiKey;
     this.sampleRate = options.sampleRate || DEFAULT_SAMPLE_RATE;
     this.serverZone = options.serverZone || DEFAULT_SERVER_ZONE;
-    this.configEndpointUrl = options.configEndpointUrl;
+    this.configServerUrl = options.configServerUrl;
+    this.trackServerUrl = options.trackServerUrl;
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
     this.performanceConfig = options.performanceConfig;

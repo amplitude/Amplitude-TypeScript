@@ -185,6 +185,44 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
+    test('should call initalize on session replay sdk with custom server urls', async () => {
+      const configServerUrl = 'http://localhost:3000';
+      const trackServerUrl = 'http://localhost:3001';
+
+      const sessionReplay = new SessionReplayPlugin({
+        sampleRate: 0.4,
+        privacyConfig: {
+          blockSelector: ['#id'],
+        },
+        configServerUrl,
+        trackServerUrl,
+      });
+      await sessionReplay.setup(mockConfig);
+
+      expect(init).toHaveBeenCalledTimes(1);
+
+      expect(init.mock.calls[0][0]).toEqual(mockConfig.apiKey);
+      expect(init.mock.calls[0][1]).toEqual({
+        deviceId: mockConfig.deviceId,
+        flushMaxRetries: mockConfig.flushMaxRetries,
+        logLevel: mockConfig.logLevel,
+        loggerProvider: mockConfig.loggerProvider,
+        optOut: mockConfig.optOut,
+        sampleRate: 0.4,
+        serverZone: mockConfig.serverZone,
+        configServerUrl,
+        trackServerUrl,
+        sessionId: mockConfig.sessionId,
+        privacyConfig: {
+          blockSelector: ['#id'],
+        },
+        version: {
+          type: 'plugin',
+          version: VERSION,
+        },
+      });
+    });
+
     test('should fail gracefully', async () => {
       const sessionReplay = new SessionReplayPlugin();
       init.mockImplementation(() => {
