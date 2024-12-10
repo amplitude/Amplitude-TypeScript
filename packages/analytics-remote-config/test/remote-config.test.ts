@@ -1,5 +1,5 @@
 import { Config } from '@amplitude/analytics-core';
-import { Config as IConfig, Logger, ServerZone } from '@amplitude/analytics-types';
+import { Logger, ServerZone } from '@amplitude/analytics-types';
 import {
   REMOTE_CONFIG_SERVER_URL,
   REMOTE_CONFIG_SERVER_URL_EU,
@@ -7,7 +7,7 @@ import {
   RemoteConfigFetch,
   createRemoteConfigFetch,
 } from '../src/remote-config';
-import { RemoteConfigAPIResponse, RemoteConfigIDBStore } from '../src/types';
+import { RemoteConfigAPIResponse, RemoteConfigIDBStore, RemoteConfigLocalConfig } from '../src/types';
 
 type MockedLogger = jest.Mocked<Logger>;
 
@@ -55,7 +55,7 @@ describe('RemoteConfigFetch', () => {
     warn: jest.fn(),
     debug: jest.fn(),
   };
-  let localConfig: IConfig;
+  let localConfig: RemoteConfigLocalConfig;
   let mockConfigStore: RemoteConfigIDBStore<{ [key: string]: object }>;
 
   let remoteConfigFetch: RemoteConfigFetch<typeof samplingConfig>;
@@ -452,11 +452,16 @@ describe('RemoteConfigFetch', () => {
       await initialize(config);
       expect(remoteConfigFetch.getServerUrl()).toEqual(REMOTE_CONFIG_SERVER_URL_EU);
     });
-
     test('should return staging server url if staging config set', async () => {
       const config = { ...localConfig, optOut: localConfig.optOut, serverZone: ServerZone.STAGING };
       await initialize(config);
       expect(remoteConfigFetch.getServerUrl()).toEqual(REMOTE_CONFIG_SERVER_URL_STAGING);
+    });
+    test('should allow custom server url', async () => {
+      const configServerUrl = 'http://localhost:3000';
+      const config = { ...localConfig, optOut: localConfig.optOut, serverZone: ServerZone.STAGING, configServerUrl };
+      await initialize(config);
+      expect(remoteConfigFetch.getServerUrl()).toEqual(configServerUrl);
     });
   });
 
