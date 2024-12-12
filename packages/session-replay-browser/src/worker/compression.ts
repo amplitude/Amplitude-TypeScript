@@ -12,4 +12,4 @@ onmessage = (e) => {
 };
 
 // added for testing
-export const compressionOnMessage: (e: any) => void = onmessage
+export const compressionOnMessage = onmessage;

@@ -16,7 +16,8 @@ describe('compression', () => {
       },
     };
 
-    compressionOnMessage({
+    // hack to make typescript not complain
+    (compressionOnMessage as (_: unknown) => void)({
       data: {
         event: testEvent,
         sessionId: 1234,
