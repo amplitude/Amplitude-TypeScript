@@ -24,6 +24,7 @@ export class EventCompressor {
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
     config: SessionReplayJoinedConfig,
     deviceId: string | undefined,
+    workerScriptInternal?: string, // this is used for unit testing
   ) {
     const globalScope = getGlobalScope();
     this.canUseIdleCallback = globalScope && 'requestIdleCallback' in globalScope;
@@ -34,10 +35,12 @@ export class EventCompressor {
 
     // These two lines will be changed at compile time.
     const replace: Record<string, string> = {};
-    const workerScript = replace.COMPRESSION_WEBWORKER_BODY;
+    // This next line is going to be ridiculously hard to cover in unit tests, ignoring.
+    /* istanbul ignore next */
+    const workerScript = replace.COMPRESSION_WEBWORKER_BODY ?? workerScriptInternal;
     if (globalScope && globalScope.Worker && workerScript) {
       config.loggerProvider.log('[Experimental] Enabling web worker for compression');
-      
+
       const worker = new Worker(URL.createObjectURL(new Blob([workerScript], { type: 'application/javascript' })));
       worker.onerror = (e) => {
         config.loggerProvider.error(e);
@@ -118,6 +121,7 @@ export class EventCompressor {
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
     if (this.worker) {
       // This indirectly compresses the event.
+      console.log('posted message', { event, sessionId });
       this.worker.postMessage({ event, sessionId });
     } else {
       const compressedEvent = this.compressEvent(event);
