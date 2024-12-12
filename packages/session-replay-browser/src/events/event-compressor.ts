@@ -1,8 +1,8 @@
+import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { pack } from '@amplitude/rrweb-packer';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from 'src/config/types';
 import { SessionReplayEventsManager } from 'src/typings/session-replay';
-import { pack } from '@amplitude/rrweb-packer';
-import { getGlobalScope } from '@amplitude/analytics-client-common';
 
 interface TaskQueue {
   event: eventWithTime;
@@ -18,6 +18,7 @@ export class EventCompressor {
   deviceId: string | undefined;
   canUseIdleCallback: boolean | undefined;
   timeout: number;
+  worker?: Worker;
 
   constructor(
     eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>,
@@ -30,6 +31,24 @@ export class EventCompressor {
     this.config = config;
     this.deviceId = deviceId;
     this.timeout = config.performanceConfig?.timeout || DEFAULT_TIMEOUT;
+
+    // These two lines will be changed at compile time.
+    const replace: Record<string, string> = {};
+    const workerScript = replace.COMPRESSION_WEBWORKER_BODY;
+    if (globalScope && globalScope.Worker && workerScript) {
+      config.loggerProvider.log('[Experimental] Enabling web worker for compression');
+      
+      const worker = new Worker(URL.createObjectURL(new Blob([workerScript], { type: 'application/javascript' })));
+      worker.onerror = (e) => {
+        config.loggerProvider.error(e);
+      };
+      worker.onmessage = (e) => {
+        const { compressedEvent, sessionId } = e.data as Record<string, string>;
+        this.addCompressedEventToManager(compressedEvent, sessionId);
+      };
+
+      this.worker = worker;
+    }
   }
 
   // Schedule processing during idle time
@@ -86,15 +105,23 @@ export class EventCompressor {
     return JSON.stringify(packedEvent);
   };
 
-  public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
-    const compressedEvent = this.compressEvent(event);
-
+  private addCompressedEventToManager = (compressedEvent: string, sessionId: string | number) => {
     if (this.eventsManager && this.deviceId) {
       this.eventsManager.addEvent({
         event: { type: 'replay', data: compressedEvent },
         sessionId,
         deviceId: this.deviceId,
       });
+    }
+  };
+
+  public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
+    if (this.worker) {
+      // This indirectly compresses the event.
+      this.worker.postMessage({ event, sessionId });
+    } else {
+      const compressedEvent = this.compressEvent(event);
+      this.addCompressedEventToManager(compressedEvent, sessionId);
     }
   };
 }
