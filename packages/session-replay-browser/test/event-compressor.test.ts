@@ -1,8 +1,10 @@
+/* eslint-disable jest/no-conditional-expect */
 import { Logger } from '@amplitude/analytics-types';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { EventCompressor } from '../src/events/event-compressor';
 import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayEventsManager } from '../src/typings/session-replay';
+import { eventWithTime } from '@amplitude/rrweb';
 
 const mockEvent = {
   type: 4,
@@ -158,5 +160,59 @@ describe('EventCompressor', () => {
 
     // Ensure processQueue was called recursively
     expect(processQueueMock).toHaveBeenCalledTimes(2);
+  });
+
+  test.each([true, false])('should use webworkers if script exists', async (error: boolean) => {
+    let postMessageMock = jest.fn();
+    let onMessageMock = jest.fn();
+    let onErrorMock = jest.fn();
+    class MockWorker {
+      postMessage = (e: any) => {
+        postMessageMock = jest.fn(() => {
+          this.onmessage({ data: { compressedEvent: '', sessionId: 1234 } });
+        });
+        onErrorMock = jest.fn(() => {
+          this.onerror(e);
+        });
+        if (error) {
+          onErrorMock(e);
+        } else {
+          postMessageMock(e);
+        }
+      };
+      onmessage = (e: any) => {
+        onMessageMock = jest.fn();
+        onMessageMock(e);
+      };
+      onerror = (e: any) => {
+        onErrorMock = jest.fn();
+        onErrorMock(e);
+      };
+    }
+
+    global.Worker = MockWorker as unknown as typeof global.Worker;
+
+    URL.createObjectURL = jest.fn();
+    eventsManager = await createEventsManager<'replay'>({
+      config,
+      type: 'replay',
+      storeType: 'memory',
+    });
+    eventCompressor = new EventCompressor(eventsManager, config, deviceId, 'console.log("hi")');
+
+    const testEvent: eventWithTime = {
+      data: {
+        height: 1,
+        width: 1,
+        href: 'http://localhost',
+      },
+      type: 4,
+      timestamp: 1,
+    };
+    const testSessionId = 1234;
+    eventCompressor.addCompressedEvent(testEvent, testSessionId);
+
+    expect(postMessageMock).toHaveBeenCalledTimes(error ? 0 : 1);
+    expect(onErrorMock).toHaveBeenCalledTimes(error ? 1 : 0);
   });
 });
