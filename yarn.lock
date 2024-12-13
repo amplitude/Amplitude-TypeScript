@@ -66,10 +66,10 @@
     "@amplitude/analytics-types" "^2.6.0"
     tslib "^2.4.1"
 
-"@amplitude/analytics-remote-config@^0.4.1":
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-remote-config/-/analytics-remote-config-0.4.1.tgz#b62cf8aa82290f68b314197e20351b10ea44ae3e"
-  integrity sha512-BYl6kQ9qjztrCACsugpxO+foLaQIC0aSEzoXEAb/gwOzInmqkyyI+Ub+aWTBih4xgB/lhWlOcidWHAmNiTJTNw==
+"@amplitude/analytics-remote-config@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-remote-config/-/analytics-remote-config-0.5.0.tgz#c668b601050da8377ffc717ecb83f4e22e13dcb7"
+  integrity sha512-cDvhFx/UjF1nyb39nk4kUlhDPbFi0C9EJ21qpCkqVYhnpLGdykyNjkORZ30VeSBQuYp/Ftuo3bvs/89tpXhB9A==
   dependencies:
     "@amplitude/analytics-client-common" ">=1 <3"
     "@amplitude/analytics-core" ">=1 <3"

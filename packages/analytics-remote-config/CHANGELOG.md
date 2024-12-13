@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.5.0...@amplitude/analytics-remote-config@0.6.0) (2024-12-13)
+
+### Features
+
+- **session-replay-browser:** support custom urls for remote config and track endpoints.
+  ([#931](https://github.com/amplitude/Amplitude-TypeScript/issues/931))
+  ([af6aa43](https://github.com/amplitude/Amplitude-TypeScript/commit/af6aa43b12fa577b5fa8434065b43e4e94668f0e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-remote-config@0.4.1...@amplitude/analytics-remote-config@0.5.0) (2024-12-06)
 
 ### Features

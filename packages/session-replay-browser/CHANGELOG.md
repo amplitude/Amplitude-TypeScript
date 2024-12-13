@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.17.0...@amplitude/session-replay-browser@1.18.0) (2024-12-13)
+
+### Features
+
+- **session-replay-browser:** support custom urls for remote config and track endpoints.
+  ([#931](https://github.com/amplitude/Amplitude-TypeScript/issues/931))
+  ([af6aa43](https://github.com/amplitude/Amplitude-TypeScript/commit/af6aa43b12fa577b5fa8434065b43e4e94668f0e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.16.0...@amplitude/session-replay-browser@1.17.0) (2024-12-06)
 
 ### Features
