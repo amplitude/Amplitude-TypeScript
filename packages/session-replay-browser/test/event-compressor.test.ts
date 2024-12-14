@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-conditional-expect */
 import { Logger } from '@amplitude/analytics-types';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { EventCompressor } from '../src/events/event-compressor';
