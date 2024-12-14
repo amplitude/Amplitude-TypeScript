@@ -43,6 +43,9 @@ describe('EventCompressor', () => {
       enabled: true,
       timeout: 2000,
     },
+    experimental: {
+      useWebWorker: true,
+    },
   });
 
   beforeEach(async () => {
@@ -166,6 +169,7 @@ describe('EventCompressor', () => {
     let postMessageMock = jest.fn();
     let onMessageMock = jest.fn();
     let onErrorMock = jest.fn();
+    let terminateMock = jest.fn();
     class MockWorker {
       postMessage = (e: any) => {
         postMessageMock = jest.fn(() => {
@@ -187,6 +191,10 @@ describe('EventCompressor', () => {
       onerror = (e: any) => {
         onErrorMock = jest.fn();
         onErrorMock(e);
+      };
+      terminate = () => {
+        terminateMock = jest.fn();
+        terminateMock();
       };
     }
 
@@ -214,5 +222,8 @@ describe('EventCompressor', () => {
 
     expect(postMessageMock).toHaveBeenCalledTimes(error ? 0 : 1);
     expect(onErrorMock).toHaveBeenCalledTimes(error ? 1 : 0);
+
+    eventCompressor.terminate();
+    expect(terminateMock).toHaveBeenCalled();
   });
 });

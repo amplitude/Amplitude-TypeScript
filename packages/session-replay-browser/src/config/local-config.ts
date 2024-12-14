@@ -30,6 +30,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   version?: SessionReplayVersion;
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
+  experimental?: { useWebWorker: boolean };
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -58,6 +59,9 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     }
     if (options.debugMode) {
       this.debugMode = options.debugMode;
+    }
+    if (options.experimental) {
+      this.experimental = options.experimental;
     }
   }
 }

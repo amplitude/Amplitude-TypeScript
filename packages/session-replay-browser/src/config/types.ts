@@ -57,6 +57,10 @@ export interface SessionReplayLocalConfig extends Config {
   version?: SessionReplayVersion;
   performanceConfig?: SessionReplayPerformanceConfig;
   storeType: StoreType;
+
+  experimental?: {
+    useWebWorker: boolean;
+  };
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

@@ -38,7 +38,7 @@ export class EventCompressor {
     // This next line is going to be ridiculously hard to cover in unit tests, ignoring.
     /* istanbul ignore next */
     const workerScript = replace.COMPRESSION_WEBWORKER_BODY ?? workerScriptInternal;
-    if (globalScope && globalScope.Worker && workerScript) {
+    if (this.config.experimental?.useWebWorker && globalScope && globalScope.Worker && workerScript) {
       config.loggerProvider.log('[Experimental] Enabling web worker for compression');
 
       const worker = new Worker(URL.createObjectURL(new Blob([workerScript], { type: 'application/javascript' })));
@@ -121,11 +121,14 @@ export class EventCompressor {
   public addCompressedEvent = (event: eventWithTime, sessionId: string | number) => {
     if (this.worker) {
       // This indirectly compresses the event.
-      console.log('posted message', { event, sessionId });
       this.worker.postMessage({ event, sessionId });
     } else {
       const compressedEvent = this.compressEvent(event);
       this.addCompressedEventToManager(compressedEvent, sessionId);
     }
+  };
+
+  public terminate = () => {
+    this.worker?.terminate();
   };
 }

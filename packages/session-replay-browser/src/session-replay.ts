@@ -138,6 +138,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     this.eventsManager = new MultiEventManager<'replay' | 'interaction', string>(...managers);
+    // To prevent too many threads.
+    if (this.eventCompressor) {
+      this.eventCompressor.terminate();
+    }
     this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
