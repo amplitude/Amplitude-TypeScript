@@ -967,6 +967,41 @@ describe('SessionReplay', () => {
         recordArg?.errorHandler && recordArg?.errorHandler(error);
       }).toThrow(error);
     });
+
+    test('should not add hooks if interaction config is not enabled', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const error = new Error('test') as Error & { _external_?: boolean };
+      error._external_ = true;
+      expect(recordArg?.hooks).toStrictEqual({});
+    });
+
+    test('should add hooks if interaction config is enabled', async () => {
+      // enable interaction config
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+          return {
+            enabled: true,
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const error = new Error('test') as Error & { _external_?: boolean };
+      error._external_ = true;
+      expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
+      expect(recordArg?.hooks?.scroll).toBeDefined();
+    });
   });
 
   describe('getDeviceId', () => {

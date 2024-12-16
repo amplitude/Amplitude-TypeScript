@@ -321,7 +321,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
-    const { privacyConfig } = config;
+    const { privacyConfig, interactionConfig } = config;
+
+    const hooks = interactionConfig?.enabled
+      ? {
+          mouseInteraction:
+            this.eventsManager &&
+            clickHook({
+              eventsManager: this.eventsManager,
+              sessionId,
+              deviceIdFn: this.getDeviceId.bind(this),
+            }),
+          scroll: this.scrollHook,
+        }
+      : {};
 
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
     this.recordCancelCallback = record({
@@ -339,16 +352,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
       },
       inlineStylesheet: config.shouldInlineStylesheet,
-      hooks: {
-        mouseInteraction:
-          this.eventsManager &&
-          clickHook({
-            eventsManager: this.eventsManager,
-            sessionId,
-            deviceIdFn: this.getDeviceId.bind(this),
-          }),
-        scroll: this.scrollHook,
-      },
+      hooks,
       maskAllInputs: true,
       maskTextClass: MASK_TEXT_CLASS,
       blockClass: BLOCK_CLASS,
