@@ -4,6 +4,7 @@ import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } fro
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '../libs/finder';
 import { getGlobalScope } from '@amplitude/analytics-client-common';
+import type { Logger } from '@amplitude/analytics-types';
 
 // exported for testing
 export type ClickEvent = {
@@ -67,8 +68,8 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
   return { version, events: Object.values(reduced) };
 };
 
-export const clickHook: (options: Options) => mouseInteractionCallBack =
-  ({ eventsManager, sessionId, deviceIdFn }) =>
+export const clickHook: (logger: Logger, options: Options) => mouseInteractionCallBack =
+  (logger, { eventsManager, sessionId, deviceIdFn }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {
       return;
@@ -93,7 +94,11 @@ export const clickHook: (options: Options) => mouseInteractionCallBack =
     const node = record.mirror.getNode(e.id);
     let selector;
     if (node) {
-      selector = finder(node as Element);
+      try {
+        selector = finder(node as Element);
+      } catch (err) {
+        logger.debug('error resolving selector from finder');
+      }
     }
 
     const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
