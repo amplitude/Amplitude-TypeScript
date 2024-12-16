@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import { MouseInteractions } from '@amplitude/rrweb-types';
@@ -5,10 +8,32 @@ import { SessionReplayEventsManager } from '../../src/typings/session-replay';
 import { UUID } from '@amplitude/analytics-core';
 import { ClickEvent, ClickEventWithCount, clickBatcher, clickHook, clickNonBatcher } from '../../src/hooks/click';
 import { record, utils } from '@amplitude/rrweb';
+import type { Logger } from '@amplitude/analytics-types';
+import { finder } from '../../src/libs/finder';
 
 jest.mock('@amplitude/rrweb');
+jest.mock('../../src/libs/finder');
 
 describe('click', () => {
+  const mockLoggerProvider: Logger = {
+    error: jest.fn(),
+    log: jest.fn(),
+    disable: jest.fn(),
+    enable: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  };
+
+  // Need to mock this in one function, but we want to use the real function everywhere else.
+  // If there is a better way to do this in Jest, please refactor this!
+  const mockFinder = finder as jest.Mock;
+  beforeEach(() => {
+    mockFinder.mockImplementation((arg) => {
+      const fn = jest.requireActual('../../src/libs/finder');
+      return fn.finder(arg);
+    });
+  });
+
   describe('clickHook', () => {
     const mockEventsManager: jest.Mocked<SessionReplayEventsManager<'interaction', string>> = {
       sendStoredEvents: jest.fn(),
@@ -39,7 +64,7 @@ describe('click', () => {
     const deviceId = UUID();
     const sessionId = Math.round(Math.random() * 1_000_000);
 
-    const hook = clickHook({
+    const hook = clickHook(mockLoggerProvider, {
       deviceIdFn: () => deviceId,
       eventsManager: mockEventsManager,
       sessionId: sessionId,
@@ -65,7 +90,7 @@ describe('click', () => {
     });
     test('do nothing if no window given', () => {
       mockGlobalScope(undefined);
-      const hook = clickHook({
+      const hook = clickHook(mockLoggerProvider, {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
@@ -82,7 +107,7 @@ describe('click', () => {
       mockGlobalScope({
         location: undefined,
       });
-      const hook = clickHook({
+      const hook = clickHook(mockLoggerProvider, {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
@@ -154,6 +179,39 @@ describe('click', () => {
         timestamp: expect.any(Number),
         type: 'click',
         selector: 'div',
+      });
+    });
+    test('no selector info on finder failure', () => {
+      const mockFinder = finder as jest.Mock;
+      mockFinder.mockImplementation(() => {
+        throw new Error('');
+      });
+
+      (record.mirror.getNode as jest.Mock).mockImplementation(() => {
+        const ele = document.createElement('div');
+        document.body.appendChild(ele);
+        return ele;
+      }) as any;
+      const hook = clickHook(mockLoggerProvider, {
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+      });
+      hook({
+        id: 1234,
+        type: MouseInteractions.Click,
+        x: 3,
+        y: 3,
+      });
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
+        x: 3,
+        y: 3,
+        viewportHeight: 768,
+        viewportWidth: 1024,
+        pageUrl: 'http://localhost/',
+        timestamp: expect.any(Number),
+        type: 'click',
       });
     });
   });

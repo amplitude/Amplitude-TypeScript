@@ -327,7 +327,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       ? {
           mouseInteraction:
             this.eventsManager &&
-            clickHook({
+            clickHook(this.loggerProvider, {
               eventsManager: this.eventsManager,
               sessionId,
               deviceIdFn: this.getDeviceId.bind(this),
