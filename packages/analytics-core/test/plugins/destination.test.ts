@@ -321,6 +321,57 @@ describe('destination', () => {
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(0);
     });
+    test('should send batches in order', async () => {
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 1,
+      };
+
+      const context1 = {
+        event: { event_type: 'event_type_1' },
+        attempts: 0,
+        callback: () => undefined,
+        timeout: 0,
+      };
+      const context2 = {
+        event: { event_type: 'event_type_2' },
+        attempts: 0,
+        callback: () => undefined,
+        timeout: 0,
+      };
+      destination.queue = [context1, context2];
+
+      const resolveOrder: number[] = [];
+      const send = jest
+        .spyOn(destination, 'send')
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(() => {
+                resolveOrder.push(1);
+                resolve();
+              }, 1000),
+            ),
+        ) // 1st call resolves in 1 sec
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) =>
+              setTimeout(() => {
+                resolveOrder.push(2);
+                resolve();
+              }, 500),
+            ),
+        ); // 2nd call resolves in 0.5 sec
+
+      const result = await destination.flush();
+
+      expect(result).toBe(undefined);
+      expect(send).toHaveBeenNthCalledWith(1, [context1], false);
+      expect(send).toHaveBeenNthCalledWith(2, [context2], false);
+      expect(send).toHaveBeenCalledTimes(2);
+      expect(resolveOrder).toEqual([1, 2]);
+    });
   });
 
   describe('send', () => {
@@ -1233,9 +1284,10 @@ describe('destination', () => {
           code: 200,
         });
 
-        expect(transportProvider.send).toHaveBeenCalledTimes(eventCount + 1);
+        // When 413, retry of the second batch won't be recorded here as it's async
+        expect(transportProvider.send).toHaveBeenCalledTimes(2);
         // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(loggerProvider.warn).toHaveBeenCalledTimes(eventCount);
+        expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
         expect(loggerProvider.warn).toHaveBeenCalledWith(jsons(response.body));
       },

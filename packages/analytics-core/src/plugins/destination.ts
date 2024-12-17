@@ -151,7 +151,12 @@ export class Destination implements DestinationPlugin {
 
     const batches = chunk(list, this.config.flushQueueSize);
 
-    await Promise.all(batches.map((batch) => this.send(batch, useRetry)));
+    // Promise.all() doesn't guarantee resolve order.
+    // Sequentially resolve to make sure backend receives events in order
+    await batches.reduce(async (promise, batch) => {
+      await promise;
+      return await this.send(batch, useRetry);
+    }, Promise.resolve());
 
     this.scheduleTryable(later);
   }
