@@ -81,6 +81,32 @@ describe('timeline', () => {
     });
   });
 
+  describe('deregister', () => {
+    test('should remove plugin correctly', async () => {
+      await timeline.register(
+        {
+          name: 'test-plugin',
+        },
+        config,
+      );
+      expect(timeline.plugins.length).toBe(1);
+      await timeline.deregister('test-plugin', config);
+      expect(timeline.plugins.length).toBe(0);
+    });
+
+    test('should only remove plugin that was already registered', async () => {
+      await timeline.register(
+        {
+          name: 'test-plugin',
+        },
+        config,
+      );
+      expect(timeline.plugins.length).toBe(1);
+      await timeline.deregister('bad-test-plugin', config);
+      expect(timeline.plugins.length).toBe(1);
+    });
+  });
+
   describe('reset', () => {
     test('should reset timeline', () => {
       const timeline = new Timeline(new AmplitudeCore());
@@ -199,9 +225,9 @@ describe('timeline', () => {
     expect(destinationExecute).toHaveBeenCalledTimes(10);
 
     // deregister
-    await timeline.deregister('plugin:before');
-    await timeline.deregister('plugin:enrichment');
-    await timeline.deregister('plugin:destination');
+    await timeline.deregister('plugin:before', config);
+    await timeline.deregister('plugin:enrichment', config);
+    await timeline.deregister('plugin:destination', config);
     expect(timeline.plugins.length).toBe(0);
   });
 
@@ -233,7 +259,7 @@ describe('timeline', () => {
       };
       await timeline.register(before, config);
       await timeline.apply(undefined);
-      await timeline.deregister('plugin:before');
+      await timeline.deregister('plugin:before', config);
       expect(beforeExecute).toHaveBeenCalledTimes(0);
     });
 
@@ -282,9 +308,9 @@ describe('timeline', () => {
       const callback = jest.fn();
       await timeline.apply([event, callback]);
 
-      await timeline.deregister('plugin:before');
-      await timeline.deregister('plugin:enrichment');
-      await timeline.deregister('plugin:destination');
+      await timeline.deregister('plugin:before', config);
+      await timeline.deregister('plugin:enrichment', config);
+      await timeline.deregister('plugin:destination', config);
 
       expect(beforeExecute).toHaveBeenCalledTimes(1);
       expect(enrichmentExecute).toHaveBeenCalledTimes(1);
@@ -353,11 +379,11 @@ describe('timeline', () => {
       const callback = jest.fn();
       await timeline.apply([event, callback]);
 
-      await timeline.deregister('plugin:before:1');
-      await timeline.deregister('plugin:before:2');
-      await timeline.deregister('plugin:before:3');
-      await timeline.deregister('plugin:enrichment');
-      await timeline.deregister('plugin:destination');
+      await timeline.deregister('plugin:before:1', config);
+      await timeline.deregister('plugin:before:2', config);
+      await timeline.deregister('plugin:before:3', config);
+      await timeline.deregister('plugin:enrichment', config);
+      await timeline.deregister('plugin:destination', config);
 
       expect(beforeExecute1).toHaveBeenCalledTimes(1);
       expect(beforeExecute2).toHaveBeenCalledTimes(1);
@@ -428,11 +454,11 @@ describe('timeline', () => {
       const callback = jest.fn();
       await timeline.apply([event, callback]);
 
-      await timeline.deregister('plugin:before');
-      await timeline.deregister('plugin:enrichment:1');
-      await timeline.deregister('plugin:enrichment:2');
-      await timeline.deregister('plugin:enrichment:3');
-      await timeline.deregister('plugin:destination');
+      await timeline.deregister('plugin:before', config);
+      await timeline.deregister('plugin:enrichment:1', config);
+      await timeline.deregister('plugin:enrichment:2', config);
+      await timeline.deregister('plugin:enrichment:3', config);
+      await timeline.deregister('plugin:destination', config);
 
       expect(beforeExecute).toHaveBeenCalledTimes(1);
       expect(enrichmentExecute1).toHaveBeenCalledTimes(1);
