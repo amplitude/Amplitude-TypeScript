@@ -43,7 +43,7 @@ export class Timeline {
 
   async deregister(pluginName: string, config: Config) {
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
-    if (index == -1) {
+    if (index === -1) {
       config.loggerProvider.warn(`Plugin with name ${pluginName} does not exist, skipping deregistration`);
       return;
     }
