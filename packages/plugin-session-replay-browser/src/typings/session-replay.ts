@@ -29,4 +29,7 @@ export interface SessionReplayOptions {
   performanceConfig?: SessionReplayPerformanceConfig;
   storeType?: StoreType;
   customSessionId?: (event: Event) => string | undefined;
+  experimental?: {
+    useWebWorker: boolean;
+  };
 }

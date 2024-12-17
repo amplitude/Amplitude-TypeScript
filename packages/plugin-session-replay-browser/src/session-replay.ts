@@ -67,6 +67,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         version: { type: 'plugin', version: VERSION },
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
+        experimental: this.options.experimental,
       }).promise;
     } catch (error) {
       config.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
