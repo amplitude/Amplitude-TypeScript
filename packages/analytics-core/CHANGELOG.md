@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.4...@amplitude/analytics-core@2.5.5) (2024-12-17)
+
+
+### Bug Fixes
+
+* amplitude.remove should only remove if plugin was already registered ([ad84bf6](https://github.com/amplitude/Amplitude-TypeScript/commit/ad84bf62a8b113a3d59de1b16a052b72ffe14c22))
+* **analytics-browser:** should send batches sequentially ([#935](https://github.com/amplitude/Amplitude-TypeScript/issues/935)) ([ad319d6](https://github.com/amplitude/Amplitude-TypeScript/commit/ad319d602d167b1db7ee3c8d07beb4c00be8c080))
+
+
+
+
+
 ## [2.5.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.3...@amplitude/analytics-core@2.5.4) (2024-11-05)
 
 
