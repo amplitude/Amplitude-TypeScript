@@ -114,7 +114,7 @@ export class AmplitudeCore implements CoreClient {
   }
 
   _removePlugin(pluginName: string) {
-    return returnWrapper(this.timeline.deregister(pluginName));
+    return returnWrapper(this.timeline.deregister(pluginName, this.config));
   }
 
   dispatchWithCallback(event: Event, callback: (result: Result) => void): void {
