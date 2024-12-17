@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.18.1...@amplitude/session-replay-browser@1.19.0) (2024-12-17)
+
+### Features
+
+- **session-replay-browser:** WebWorker support for compression
+  ([#932](https://github.com/amplitude/Amplitude-TypeScript/issues/932))
+  ([4ebe04a](https://github.com/amplitude/Amplitude-TypeScript/commit/4ebe04adda714ae02851835c49e6bc224df7f4af))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.18.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.18.0...@amplitude/session-replay-browser@1.18.1) (2024-12-16)
 
 ### Bug Fixes
