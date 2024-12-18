@@ -34,6 +34,25 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
     return decodedLocationStr;
   };
 
+  /* istanbul ignore next */
+  const getDocumentTitle = () => {
+    if (typeof document === 'undefined') {
+      localConfig?.loggerProvider.warn('document is undefined. Default [Amplitude] Page Title to an empty string');
+      return '';
+    }
+
+    const title = document.title;
+    if (typeof title !== 'string') {
+      localConfig?.loggerProvider.warn(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+        `document.title is not a string. Default [Amplitude] Page Title to an empty string. document.title: ${title}`,
+      );
+      return '';
+    }
+
+    return title;
+  };
+
   const createPageViewEvent = async (): Promise<Event> => {
     /* istanbul ignore next */
     const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
@@ -46,7 +65,7 @@ export const pageViewTrackingPlugin: CreatePageViewTrackingPlugin = (options: Op
         '[Amplitude] Page Location': locationHREF,
         '[Amplitude] Page Path':
           /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-        '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+        '[Amplitude] Page Title': getDocumentTitle(),
         '[Amplitude] Page URL': locationHREF.split('?')[0],
       },
     };
