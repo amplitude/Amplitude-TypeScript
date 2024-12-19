@@ -55,43 +55,36 @@ export const umd = {
   ],
 };
 
+const updateLibPrefix = (isUndo) => {
+  const path = 'src/lib-prefix.ts'
+  if (!fs.existsSync(path)) {
+    // Supported in rollup 4, we're currently rollup 2
+    // this.error(`File not found: ${path}`);
+    return;
+  }
+
+  let content = fs.readFileSync(path, 'utf-8');
+  let updatedContent;
+  if (isUndo) {
+    updatedContent = content.replace(/amplitude-ts-sdk-script/g, 'amplitude-ts');
+  } else {
+    updatedContent = content.replace(/amplitude-ts/g, 'amplitude-ts-sdk-script');
+  }
+
+  fs.writeFileSync(path, updatedContent, 'utf-8');
+  // this.info(`File updated: ${path}`);
+}
 
 
-const updateLibPrefix = () => {
+const updateLibPrefixPlugin = (isUndo) => {
   return {
     name: 'update-lib-prefix',
     buildStart() {
-      const path = 'src/lib-prefix.ts'
-      if (!fs.existsSync(path)) {
-        // Supported in rollup 4, we're currently rollup 2
-        // this.error(`File not found: ${path}`);
-        return;
-      }
-
-      let content = fs.readFileSync(path, 'utf-8');
-      const updatedContent = content.replace(/amplitude-ts/g, 'amplitude-ts-sdk-script');
-      fs.writeFileSync(path, updatedContent, 'utf-8');
-      // this.info(`File updated: ${path}`);
+      updateLibPrefix(false);
     },
-  };
-}
-
-const undoLibPrefix = () => {
-  return {
-    name: 'undo-lib-prefix',
     buildEnd() {
-      const path = 'src/lib-prefix.ts'
-      if (!fs.existsSync(path)) {
-        // Supported in rollup 4, we're currently rollup 2
-        // this.error(`File not found: ${path}`);
-        return;
-      }
-
-      let content = fs.readFileSync(path, 'utf-8');
-      const updatedContent = content.replace(/amplitude-ts-sdk-script/g, 'amplitude-ts');
-      fs.writeFileSync(path, updatedContent, 'utf-8');
-      // this.info(`File updated: ${path}`);
-    },
+      updateLibPrefix(true);
+    }
   };
 }
 
@@ -104,7 +97,7 @@ export const iife = {
     sourcemap: true,
   },
   plugins: [
-    updateLibPrefix(),
+    updateLibPrefixPlugin(),
     typescript({
       module: 'es6',
       noEmit: false,
@@ -121,7 +114,6 @@ export const iife = {
       },
     }),
     gzip(),
-    undoLibPrefix(),
   ],
 };
 
