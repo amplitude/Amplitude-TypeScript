@@ -2,6 +2,7 @@ import { BeforePlugin, BrowserConfig, Event } from '@amplitude/analytics-types';
 import { UUID } from '@amplitude/analytics-core';
 import { getLanguage } from '@amplitude/analytics-client-common';
 import { VERSION } from '../version';
+import { LIBPREFIX } from '../lib-prefix';
 
 const BROWSER_PLATFORM = 'Web';
 const IP_ADDRESS = '$remote';
@@ -14,7 +15,7 @@ export class Context implements BeforePlugin {
   // @ts-ignore
   config: BrowserConfig;
   userAgent: string | undefined;
-  library = `amplitude-ts/${VERSION}`;
+  library = `${LIBPREFIX}/${VERSION}`;
 
   constructor() {
     /* istanbul ignore else */
