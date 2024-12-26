@@ -844,7 +844,7 @@ describe('browser-client', () => {
         setTimeout(async () => {
           await client.track('test 2').promise;
           resolve();
-        }, 10),
+        }, 15),
       );
 
       // assert session id is unchanged
