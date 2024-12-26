@@ -824,12 +824,8 @@ describe('browser-client', () => {
       expect(eventTime1 > 0).toBeTruthy();
 
       // wait for session to almost expire, then extend it
-      await new Promise<void>((resolve) =>
-        setTimeout(() => {
-          client.extendSession();
-          resolve();
-        }, 15),
-      );
+      jest.advanceTimersByTime(15);
+      client.extendSession();
 
       // assert session id is unchanged
       expect(client.config.sessionId).toBe(firstSessionId);
@@ -839,13 +835,8 @@ describe('browser-client', () => {
       expect(extendedLastEventTime > eventTime1).toBeTruthy();
 
       // send another event just before session expires (again)
-      await new Promise<void>((resolve) =>
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        setTimeout(async () => {
-          await client.track('test 2').promise;
-          resolve();
-        }, 15),
-      );
+      jest.advanceTimersByTime(15);
+      await client.track('test 2').promise;
 
       // assert session id is unchanged
       expect(client.config.sessionId).toBe(firstSessionId);
@@ -855,13 +846,9 @@ describe('browser-client', () => {
       expect(eventTime2 > extendedLastEventTime).toBeTruthy();
 
       // Wait for session to timeout, without extendSession()
-      await new Promise<void>((resolve) =>
-        // eslint-disable-next-line @typescript-eslint/no-misused-promises
-        setTimeout(async () => {
-          await client.track('test 3').promise;
-          resolve();
-        }, 21),
-      );
+      jest.advanceTimersByTime(21);
+      await client.track('test 3').promise;
+
       // assert session id is changed
       expect(client.config.sessionId).not.toBe(firstSessionId);
       expect(client.config.sessionId ?? -1 > firstSessionId).toBeTruthy();
