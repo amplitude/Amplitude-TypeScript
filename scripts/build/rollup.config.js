@@ -72,11 +72,12 @@ const updateLibPrefix = (isUndo) => {
   }
 
   fs.writeFileSync(path, updatedContent, 'utf-8');
+  // Supported in rollup 4, we're currently rollup 2
   // this.info(`File updated: ${path}`);
 }
 
 
-const updateLibPrefixPlugin = (isUndo) => {
+const updateLibPrefixPlugin = () => {
   return {
     name: 'update-lib-prefix',
     buildStart() {
