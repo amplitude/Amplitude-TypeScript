@@ -5,6 +5,7 @@ import { terser } from 'rollup-plugin-terser';
 import gzip from 'rollup-plugin-gzip';
 import execute from 'rollup-plugin-execute';
 import { exec } from 'child_process';
+import fs from 'fs';
 
 // The paths are relative to process.cwd(), which are packages/*
 const base = '../..';
@@ -54,6 +55,40 @@ export const umd = {
   ],
 };
 
+const updateLibPrefix = (isUndo) => {
+  const path = 'src/lib-prefix.ts'
+  if (!fs.existsSync(path)) {
+    // Supported in rollup 4, we're currently rollup 2
+    // this.error(`File not found: ${path}`);
+    return;
+  }
+
+  let content = fs.readFileSync(path, 'utf-8');
+  let updatedContent;
+  if (isUndo) {
+    updatedContent = content.replace(/amplitude-ts-sdk-script/g, 'amplitude-ts');
+  } else {
+    updatedContent = content.replace(/amplitude-ts/g, 'amplitude-ts-sdk-script');
+  }
+
+  fs.writeFileSync(path, updatedContent, 'utf-8');
+  // Supported in rollup 4, we're currently rollup 2
+  // this.info(`File updated: ${path}`);
+}
+
+
+const updateLibPrefixPlugin = () => {
+  return {
+    name: 'update-lib-prefix',
+    buildStart() {
+      updateLibPrefix(false);
+    },
+    buildEnd() {
+      updateLibPrefix(true);
+    }
+  };
+}
+
 export const iife = {
   input: 'src/snippet-index.ts',
   output: {
@@ -63,6 +98,7 @@ export const iife = {
     sourcemap: true,
   },
   plugins: [
+    updateLibPrefixPlugin(),
     typescript({
       module: 'es6',
       noEmit: false,
