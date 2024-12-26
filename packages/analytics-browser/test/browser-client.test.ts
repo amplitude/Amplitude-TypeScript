@@ -836,7 +836,10 @@ describe('browser-client', () => {
 
       // send another event just before session expires (again)
       jest.advanceTimersByTime(15);
+      // Mock Date.now() because isNewSession() depends on it
+      const dateNowMocked = jest.spyOn(Date, 'now').mockImplementation(() => extendedLastEventTime + 15); // Example fixed timestamp
       await client.track('test 2').promise;
+      dateNowMocked.mockRestore();
 
       // assert session id is unchanged
       expect(client.config.sessionId).toBe(firstSessionId);
