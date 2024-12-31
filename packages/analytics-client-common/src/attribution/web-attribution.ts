@@ -1,4 +1,4 @@
-import { BrowserConfig } from '@amplitude/analytics-types';
+import { BrowserConfig, Logger } from '@amplitude/analytics-types';
 import { Campaign, Storage } from '@amplitude/analytics-types';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
 import { getStorageKey } from '../storage/helpers';
@@ -15,6 +15,7 @@ export class WebAttribution {
   shouldTrackNewCampaign = false;
   sessionTimeout: number;
   lastEventTime?: number;
+  logger: Logger;
 
   constructor(options: Options, config: BrowserConfig) {
     this.options = {
@@ -28,6 +29,7 @@ export class WebAttribution {
     this.currentCampaign = BASE_CAMPAIGN;
     this.sessionTimeout = config.sessionTimeout;
     this.lastEventTime = config.lastEventTime;
+    this.logger = config.loggerProvider;
     config.loggerProvider.log('Installing web attribution tracking.');
   }
 
@@ -35,7 +37,7 @@ export class WebAttribution {
     [this.currentCampaign, this.previousCampaign] = await this.fetchCampaign();
     const isEventInNewSession = !this.lastEventTime ? true : isNewSession(this.sessionTimeout, this.lastEventTime);
 
-    if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options, isEventInNewSession)) {
+    if (isNewCampaign(this.currentCampaign, this.previousCampaign, this.options, this.logger, isEventInNewSession)) {
       this.shouldTrackNewCampaign = true;
       await this.storage.set(this.storageKey, this.currentCampaign);
     }

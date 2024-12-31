@@ -8,6 +8,15 @@ import {
 
 import { getStorageKey } from '../../src/storage/helpers';
 
+const loggerProvider = {
+  log: jest.fn(),
+  debug: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  enable: jest.fn(),
+  disable: jest.fn(),
+};
+
 describe('getStorageKey', () => {
   test('should return storage key without explicit suffix and limit', () => {
     expect(getStorageKey('API_KEY')).toBe('AMP_API_KEY');
@@ -27,7 +36,7 @@ describe('isNewCampaign', () => {
       ...BASE_CAMPAIGN,
       utm_campaign: 'utm_campaign',
     };
-    expect(isNewCampaign(currentCampaign, previousCampaign, {})).toBe(true);
+    expect(isNewCampaign(currentCampaign, previousCampaign, {}, loggerProvider)).toBe(true);
   });
 
   test('should return true for new referrer', () => {
@@ -41,7 +50,7 @@ describe('isNewCampaign', () => {
       utm_campaign: 'utm_campaign',
       referring_domain: 'b.c.d.e',
     };
-    expect(isNewCampaign(currentCampaign, previousCampaign, {})).toBe(true);
+    expect(isNewCampaign(currentCampaign, previousCampaign, {}, loggerProvider)).toBe(true);
   });
 
   test('should return false for string excluded referrer', () => {
@@ -53,9 +62,14 @@ describe('isNewCampaign', () => {
       referring_domain: 'amplitude.com',
     };
     expect(
-      isNewCampaign(currentCampaign, previousCampaign, {
-        excludeReferrers: ['amplitude.com'],
-      }),
+      isNewCampaign(
+        currentCampaign,
+        previousCampaign,
+        {
+          excludeReferrers: ['amplitude.com'],
+        },
+        loggerProvider,
+      ),
     ).toBe(false);
   });
 
@@ -68,9 +82,14 @@ describe('isNewCampaign', () => {
       referring_domain: 'amplitude.com',
     };
     expect(
-      isNewCampaign(currentCampaign, previousCampaign, {
-        excludeReferrers: getDefaultExcludedReferrers('.amplitude.com'),
-      }),
+      isNewCampaign(
+        currentCampaign,
+        previousCampaign,
+        {
+          excludeReferrers: getDefaultExcludedReferrers('.amplitude.com'),
+        },
+        loggerProvider,
+      ),
     ).toBe(false);
   });
 
@@ -83,9 +102,14 @@ describe('isNewCampaign', () => {
       referring_domain: 'analytics.amplitude.com',
     };
     expect(
-      isNewCampaign(currentCampaign, previousCampaign, {
-        excludeReferrers: getDefaultExcludedReferrers('.amplitude.com'),
-      }),
+      isNewCampaign(
+        currentCampaign,
+        previousCampaign,
+        {
+          excludeReferrers: getDefaultExcludedReferrers('.amplitude.com'),
+        },
+        loggerProvider,
+      ),
     ).toBe(false);
   });
 
@@ -95,9 +119,14 @@ describe('isNewCampaign', () => {
       ...BASE_CAMPAIGN,
     };
     expect(
-      isNewCampaign(currentCampaign, previousCampaign, {
-        excludeReferrers: ['a'],
-      }),
+      isNewCampaign(
+        currentCampaign,
+        previousCampaign,
+        {
+          excludeReferrers: ['a'],
+        },
+        loggerProvider,
+      ),
     ).toBe(true);
   });
 
@@ -108,9 +137,14 @@ describe('isNewCampaign', () => {
       referring_domain: 'a',
     };
     expect(
-      isNewCampaign(currentCampaign, previousCampaign, {
-        excludeReferrers: ['a'],
-      }),
+      isNewCampaign(
+        currentCampaign,
+        previousCampaign,
+        {
+          excludeReferrers: ['a'],
+        },
+        loggerProvider,
+      ),
     ).toBe(false);
   });
 
@@ -124,7 +158,7 @@ describe('isNewCampaign', () => {
       ...BASE_CAMPAIGN,
     };
 
-    expect(isNewCampaign(currentCampaign, previousCampaign, {}, false)).toBe(false);
+    expect(isNewCampaign(currentCampaign, previousCampaign, {}, loggerProvider, false)).toBe(false);
   });
 
   test('should return true for no referrer with any new campaign in the same session', () => {
@@ -138,7 +172,7 @@ describe('isNewCampaign', () => {
       utm_source: 'utm_source',
     };
 
-    expect(isNewCampaign(currentCampaign, previousCampaign, {}, false)).toBe(true);
+    expect(isNewCampaign(currentCampaign, previousCampaign, {}, loggerProvider, false)).toBe(true);
   });
 });
 
