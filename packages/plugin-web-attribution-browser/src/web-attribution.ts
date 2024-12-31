@@ -4,6 +4,12 @@ import { isNewCampaign } from '@amplitude/analytics-client-common';
 import { CreateWebAttributionPlugin, Options } from './typings/web-attribution';
 import { isNewSession } from '@amplitude/analytics-client-common';
 
+/**
+ * @deprecated
+ * This plugin is not used by @amplitude/analytics-browser and
+ * is replaced by WebAttribution in @amplitude/analytics-client-common to
+ * be able to send identify events before session start.
+ */
 export const webAttributionPlugin: CreateWebAttributionPlugin = function (options: Options = {}) {
   const plugin: BeforePlugin = {
     name: '@amplitude/plugin-web-attribution-browser',
@@ -19,7 +25,7 @@ export const webAttributionPlugin: CreateWebAttributionPlugin = function (option
 
       const isEventInNewSession = isNewSession(config.sessionTimeout, config.lastEventTime);
 
-      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, isEventInNewSession)) {
+      if (isNewCampaign(currentCampaign, previousCampaign, pluginConfig, config.loggerProvider, isEventInNewSession)) {
         if (pluginConfig.resetSessionOnNewCampaign) {
           amplitude.setSessionId(Date.now());
           config.loggerProvider.log('Created a new session for new campaign.');

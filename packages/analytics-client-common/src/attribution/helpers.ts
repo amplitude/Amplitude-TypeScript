@@ -1,5 +1,5 @@
 import { createIdentifyEvent, Identify } from '@amplitude/analytics-core';
-import { Campaign } from '@amplitude/analytics-types';
+import { Campaign, Logger } from '@amplitude/analytics-types';
 import { BASE_CAMPAIGN } from './constants';
 
 export interface Options {
@@ -27,17 +27,21 @@ export const isNewCampaign = (
   current: Campaign,
   previous: Campaign | undefined,
   options: Options,
+  logger: Logger,
   isNewSession = true,
 ) => {
   const { referrer, referring_domain, ...currentCampaign } = current;
   const { referrer: _previous_referrer, referring_domain: prevReferringDomain, ...previousCampaign } = previous || {};
 
   if (isExcludedReferrer(options.excludeReferrers, current.referring_domain)) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+    logger.log(`This is not a new campaign because ${current.referring_domain} is in the exclude referrer list.`);
     return false;
   }
 
   //In the same session, direct traffic should not override or unset any persisting query params
   if (!isNewSession && isDirectTraffic(current) && previous) {
+    logger.log('This is not a new campaign because this is a direct traffic in the same session.');
     return false;
   }
 
@@ -45,7 +49,15 @@ export const isNewCampaign = (
   const hasNewDomain =
     domainWithoutSubdomain(referring_domain || '') !== domainWithoutSubdomain(prevReferringDomain || '');
 
-  return !previous || hasNewCampaign || hasNewDomain;
+  const result = !previous || hasNewCampaign || hasNewDomain;
+
+  if (!result) {
+    logger.log("This is not a new campaign because it's the same as the previous one.");
+  } else {
+    logger.log(`This is a new campaign. An $identify event will be sent.`);
+  }
+
+  return result;
 };
 
 export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], referringDomain = '') => {
