@@ -35,13 +35,13 @@ export const isNewCampaign = (
 
   if (isExcludedReferrer(options.excludeReferrers, current.referring_domain)) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    logger.log(`This is not a new campaign because ${current.referring_domain} is in the exclude referrer list.`);
+    logger.debug(`This is not a new campaign because ${current.referring_domain} is in the exclude referrer list.`);
     return false;
   }
 
   //In the same session, direct traffic should not override or unset any persisting query params
   if (!isNewSession && isDirectTraffic(current) && previous) {
-    logger.log('This is not a new campaign because this is a direct traffic in the same session.');
+    logger.debug('This is not a new campaign because this is a direct traffic in the same session.');
     return false;
   }
 
@@ -52,9 +52,9 @@ export const isNewCampaign = (
   const result = !previous || hasNewCampaign || hasNewDomain;
 
   if (!result) {
-    logger.log("This is not a new campaign because it's the same as the previous one.");
+    logger.debug("This is not a new campaign because it's the same as the previous one.");
   } else {
-    logger.log(`This is a new campaign. An $identify event will be sent.`);
+    logger.debug(`This is a new campaign. An $identify event will be sent.`);
   }
 
   return result;
