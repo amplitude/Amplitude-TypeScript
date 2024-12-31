@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.31](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.30...@amplitude/plugin-web-attribution-browser@2.1.31) (2024-12-31)
+
+
+### Bug Fixes
+
+* add comments in isNewCampaign() ([#941](https://github.com/amplitude/Amplitude-TypeScript/issues/941)) ([a14a68c](https://github.com/amplitude/Amplitude-TypeScript/commit/a14a68c65cea7a4bf8a842761ff7a81830e5d3ba))
+
+
+
+
+
 ## [2.1.30](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.29...@amplitude/plugin-web-attribution-browser@2.1.30) (2024-12-17)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser
