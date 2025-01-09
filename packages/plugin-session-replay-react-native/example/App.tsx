@@ -22,6 +22,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 import {
   Colors,
@@ -96,6 +97,10 @@ type ViewGalleryScreenNavigationProps = NativeStackScreenProps<
   RootStackParamList,
   'ViewGallery'
 >;
+type WebViewScreenNavigationProps = NativeStackScreenProps<
+  RootStackParamList,
+  'WebView'
+>;
 
 function HomeScreen({ navigation }: HomeScreenNavigationProps) {
   const isDarkMode = useColorScheme() === 'dark';
@@ -124,6 +129,12 @@ function HomeScreen({ navigation }: HomeScreenNavigationProps) {
             <Button
               title="Go to Details"
               onPress={() => navigation.navigate('ViewGallery')}
+            />
+          </Section>
+          <Section title="Go to web view">
+            <Button
+              title="Go to Web View"
+              onPress={() => navigation.navigate('WebView')}
             />
           </Section>
           <Section title="Step One">
@@ -192,6 +203,14 @@ const ViewGalleryScreen = ({
   );
 };
 
+const WebViewScreen = () => {
+  return (
+    <AmpMaskView mask="amp-unmask" style={{ flex: 1 }}>
+      <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
+    </AmpMaskView>
+  );
+}
+
 const SwitchExample = () => {
   const [isEnabled, setIsEnabled] = useState(false);
   const toggleSwitch = () => setIsEnabled((previousState) => !previousState);
@@ -232,6 +251,7 @@ const TextInputExample = () => {
 type RootStackParamList = {
   Home: undefined;
   ViewGallery: undefined;
+  WebView: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -264,6 +284,11 @@ function App(): React.JSX.Element {
           name="ViewGallery"
           options={{ title: 'View Gallery' }}
           component={ViewGalleryScreen}
+        />
+        <Stack.Screen
+          name="WebView"
+          options={{ title: 'Web View' }}
+          component={WebViewScreen}
         />
       </Stack.Navigator>
     </NavigationContainer>
