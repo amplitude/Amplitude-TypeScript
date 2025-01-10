@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.5...@amplitude/plugin-session-replay-react-native@0.2.6) (2025-01-10)
+
+### Bug Fixes
+
+- update SR sdk versions and update test app
+  ([4664d6f](https://github.com/amplitude/Amplitude-TypeScript/commit/4664d6f7cdff61884519b42422eb8595770ad42b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.2.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.4...@amplitude/plugin-session-replay-react-native@0.2.5) (2024-12-13)
 
 ### Bug Fixes
