@@ -13,11 +13,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   options: SessionReplayOptions;
 
   constructor(options?: SessionReplayOptions) {
-    this.options = { ...options };
-    // The user did not explicitly configure forceSessionTracking to false, default to true.
-    if (this.options.forceSessionTracking !== false) {
-      this.options.forceSessionTracking = true;
-    }
+    this.options = { forceSessionTracking: false, ...options };
   }
 
   async setup(config: BrowserConfig) {
