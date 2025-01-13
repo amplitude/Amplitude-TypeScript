@@ -613,6 +613,8 @@ describe('browser-client', () => {
       expect(extendedLastEventTime > eventTime1).toBeTruthy();
 
       // send another event just before session expires (again)
+      // Mock Date.now() because isNewSession() depends on it
+      const dateNowMocked = jest.spyOn(Date, 'now').mockImplementation(() => extendedLastEventTime + 15);
       await new Promise<void>((resolve) =>
         // eslint-disable-next-line @typescript-eslint/no-misused-promises
         setTimeout(async () => {
@@ -620,6 +622,7 @@ describe('browser-client', () => {
           resolve();
         }, 15),
       );
+      dateNowMocked.mockRestore();
 
       // assert session id is unchanged
       expect(client.config.sessionId).toBe(firstSessionId);
