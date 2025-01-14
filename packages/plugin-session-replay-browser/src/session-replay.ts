@@ -18,7 +18,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async setup(config: BrowserConfig) {
     try {
-      config.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
+      config?.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
 
       this.config = config;
 
@@ -66,7 +66,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         experimental: this.options.experimental,
       }).promise;
     } catch (error) {
-      config.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
+      config?.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
     }
   }
 
@@ -109,7 +109,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
       return Promise.resolve(event);
     } catch (error) {
-      this.config.loggerProvider.error(`Session Replay: Failed to enrich event due to ${(error as Error).message}`);
+      this.config?.loggerProvider.error(`Session Replay: Failed to enrich event due to ${(error as Error).message}`);
       return Promise.resolve(event);
     }
   }
@@ -123,7 +123,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
       // @ts-ignore
       this.config = null;
     } catch (error) {
-      this.config.loggerProvider.error(`Session Replay: teardown failed due to ${(error as Error).message}`);
+      this.config?.loggerProvider.error(`Session Replay: teardown failed due to ${(error as Error).message}`);
     }
   }
 
