@@ -94,7 +94,7 @@ describe('SessionReplayPlugin', () => {
     });
 
     describe('defaultTracking', () => {
-      test('should not change defaultTracking if its set to true', async () => {
+      test('should not change defaultTracking forceSessionTracking is not defined', async () => {
         const sessionReplay = new SessionReplayPlugin();
         await sessionReplay.setup({
           ...mockConfig,
@@ -103,8 +103,17 @@ describe('SessionReplayPlugin', () => {
         expect(sessionReplay.config.defaultTracking).toBe(true);
       });
 
+      test('should not change defaultTracking if its set to true', async () => {
+        const sessionReplay = new SessionReplayPlugin({ forceSessionTracking: true });
+        await sessionReplay.setup({
+          ...mockConfig,
+          defaultTracking: true,
+        });
+        expect(sessionReplay.config.defaultTracking).toBe(true);
+      });
+
       test('should modify defaultTracking to enable sessions if its set to false', async () => {
-        const sessionReplay = new SessionReplayPlugin();
+        const sessionReplay = new SessionReplayPlugin({ forceSessionTracking: true });
         await sessionReplay.setup({
           ...mockConfig,
           defaultTracking: false,
@@ -118,7 +127,7 @@ describe('SessionReplayPlugin', () => {
       });
 
       test('should modify defaultTracking to enable sessions if it is an object', async () => {
-        const sessionReplay = new SessionReplayPlugin();
+        const sessionReplay = new SessionReplayPlugin({ forceSessionTracking: true });
         await sessionReplay.setup({
           ...mockConfig,
           defaultTracking: {
@@ -223,12 +232,15 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
+    // eslint-disable-next-line jest/expect-expect
     test('should fail gracefully', async () => {
-      const sessionReplay = new SessionReplayPlugin();
-      init.mockImplementation(() => {
-        throw new Error('Mock Error');
-      });
-      await sessionReplay.setup(mockConfig);
+      expect(async () => {
+        const sessionReplay = new SessionReplayPlugin();
+        init.mockImplementation(() => {
+          throw new Error('Mock Error');
+        });
+        await sessionReplay.setup(mockConfig);
+      }).not.toThrow();
     });
   });
 
@@ -333,14 +345,16 @@ describe('SessionReplayPlugin', () => {
     });
 
     test('internal errors should not be thrown', async () => {
-      const sessionReplay = sessionReplayPlugin();
-      await sessionReplay.setup(mockConfig);
+      expect(async () => {
+        const sessionReplay = sessionReplayPlugin();
+        await sessionReplay.setup(mockConfig);
 
-      // Mock the shutdown function to throw an error
-      shutdown.mockImplementation(() => {
-        throw new Error('Mock shutdown error');
-      });
-      await sessionReplay.teardown?.();
+        // Mock the shutdown function to throw an error
+        shutdown.mockImplementation(() => {
+          throw new Error('Mock shutdown error');
+        });
+        await sessionReplay.teardown?.();
+      }).not.toThrow();
     });
 
     test('should update the session id on any event when using custom session id', async () => {
