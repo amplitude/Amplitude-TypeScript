@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.4.1...@amplitude/plugin-ga-events-forwarder-browser@0.4.2) (2025-01-15)
+
+### Bug Fixes
+
+- missing user id in ga4 forwarder plugin ([#948](https://github.com/amplitude/Amplitude-TypeScript/issues/948))
+  ([e1f2da7](https://github.com/amplitude/Amplitude-TypeScript/commit/e1f2da79338b8cef5cd2835a40906e5053148239))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-ga-events-forwarder-browser@0.4.0...@amplitude/plugin-ga-events-forwarder-browser@0.4.1) (2024-11-25)
 
 ### Bug Fixes
