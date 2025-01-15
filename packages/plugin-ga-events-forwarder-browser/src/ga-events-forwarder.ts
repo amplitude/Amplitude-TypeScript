@@ -185,7 +185,7 @@ export const gaEventsForwarderPlugin = ({ measurementIds = [] }: Options = {}): 
     // });
     if (userId !== lastSeenGAUserId) {
       // 2a. Set current event's user ID as Amplitude SDK's current user ID.
-      amplitude.setUserId(event.user_id);
+      amplitude.setUserId(userId);
       // 2b. Update last seen GA user ID to be used on the next iteration.
       lastSeenGAUserId = userId;
     }
