@@ -66,16 +66,6 @@
     "@amplitude/analytics-types" "^2.6.0"
     tslib "^2.4.1"
 
-"@amplitude/analytics-remote-config@^0.4.1":
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-remote-config/-/analytics-remote-config-0.4.1.tgz#b62cf8aa82290f68b314197e20351b10ea44ae3e"
-  integrity sha512-BYl6kQ9qjztrCACsugpxO+foLaQIC0aSEzoXEAb/gwOzInmqkyyI+Ub+aWTBih4xgB/lhWlOcidWHAmNiTJTNw==
-  dependencies:
-    "@amplitude/analytics-client-common" ">=1 <3"
-    "@amplitude/analytics-core" ">=1 <3"
-    "@amplitude/analytics-types" ">=1 <3"
-    tslib "^2.4.1"
-
 "@amplitude/analytics-types@^2.1.1":
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-2.1.1.tgz#89ef85397c4e6bc3a6aeaae4f3d4354ebb7de297"
@@ -140,6 +130,11 @@
   dependencies:
     "@amplitude/rrweb-types" "^2.0.0-alpha.26"
     fflate "^0.4.4"
+
+"@amplitude/rrweb-plugin-console-record@2.0.0-alpha.26":
+  version "2.0.0-alpha.26"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-plugin-console-record/-/rrweb-plugin-console-record-2.0.0-alpha.26.tgz#4cb99dcab65610215b750cc6bb8e1fe60d59c36f"
+  integrity sha512-JSnziFpz1pCwHVZzlWSa8UAmeHTs81UFoWlW8QlLCGhSVCikXewxEqefsb2TSJJw8Fj4BrFdnc0aKcvbBmHDjA==
 
 "@amplitude/rrweb-snapshot@2.0.0-alpha.26", "@amplitude/rrweb-snapshot@^2.0.0-alpha.26":
   version "2.0.0-alpha.26"

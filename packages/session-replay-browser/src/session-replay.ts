@@ -31,6 +31,7 @@ import {
 } from './typings/session-replay';
 import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
+import { getRecordConsolePlugin } from '@amplitude/rrweb-plugin-console-record';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -333,6 +334,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
           return;
         }
 
+        const originalLog = (console.log as unknown as { __rrweb_original__?: (...data: any[]) => void })
+          .__rrweb_original__;
+        const logFn = originalLog ? originalLog : console.log;
+        logFn('I am testing', event);
+        this.loggerProvider.log('I am testing logging without check', event);
         if (this.eventCompressor) {
           // Schedule processing during idle time if the browser supports requestIdleCallback
           this.eventCompressor.enqueueEvent(event, sessionId);
@@ -378,6 +384,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // Return true so that we don't clutter user's consoles with internal rrweb errors
         return true;
       },
+      plugins: [getRecordConsolePlugin()],
     });
 
     void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
