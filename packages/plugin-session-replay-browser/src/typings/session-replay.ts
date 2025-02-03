@@ -28,6 +28,7 @@ export interface SessionReplayOptions {
   shouldInlineStylesheet?: boolean;
   performanceConfig?: SessionReplayPerformanceConfig;
   storeType?: StoreType;
+  deviceId?: string;
   customSessionId?: (event: Event) => string | undefined;
   experimental?: {
     useWebWorker: boolean;

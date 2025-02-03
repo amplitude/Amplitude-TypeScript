@@ -2,6 +2,7 @@ import { BrowserClient, BrowserConfig, LogLevel, Logger, Plugin, Event } from '@
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
 import { VERSION } from '../src/version';
+import { randomUUID } from 'crypto';
 
 jest.mock('@amplitude/session-replay-browser');
 type MockedSessionReplayBrowser = jest.Mocked<typeof import('@amplitude/session-replay-browser')>;
@@ -61,6 +62,9 @@ describe('SessionReplayPlugin', () => {
     setSessionId.mockReturnValue({
       promise: Promise.resolve(),
     });
+    getSessionReplayProperties.mockImplementation(() => {
+      return { '[Amplitude] Session Replay ID': 'foo/bar' };
+    });
     plugins.splice(0, plugins.length);
     mockAmplitude.add.mockImplementation((plugin) => {
       plugins.push(plugin);
@@ -85,12 +89,17 @@ describe('SessionReplayPlugin', () => {
 
   describe('setup', () => {
     test('should setup plugin', async () => {
-      const sessionReplay = new SessionReplayPlugin();
+      const customDeviceId = randomUUID();
+      const sessionReplay = new SessionReplayPlugin({
+        deviceId: customDeviceId,
+      });
       await sessionReplay.setup(mockConfig);
       expect(sessionReplay.config.serverUrl).toBe('url');
       expect(sessionReplay.config.flushMaxRetries).toBe(1);
       expect(sessionReplay.config.flushQueueSize).toBe(0);
       expect(sessionReplay.config.flushIntervalMillis).toBe(0);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
     });
 
     describe('defaultTracking', () => {

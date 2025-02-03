@@ -42,7 +42,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
       await sessionReplay.init(config.apiKey, {
         instanceName: this.config.instanceName,
-        deviceId: this.config.deviceId,
+        deviceId: this.options.deviceId ?? this.config.deviceId,
         optOut: this.config.optOut,
         sessionId: this.options.customSessionId ? undefined : this.config.sessionId,
         loggerProvider: this.config.loggerProvider,
