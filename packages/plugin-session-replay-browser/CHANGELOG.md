@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.12.1...@amplitude/plugin-session-replay-browser@1.13.0) (2025-02-03)
+
+### Features
+
+- **plugin-session-replay-browser:** support custom device id
+  ([#951](https://github.com/amplitude/Amplitude-TypeScript/issues/951))
+  ([6f63ca5](https://github.com/amplitude/Amplitude-TypeScript/commit/6f63ca5d78e4ee4d1f4b2cc2693fa95a6a90382e))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.12.0...@amplitude/plugin-session-replay-browser@1.12.1) (2025-01-14)
 
 ### Bug Fixes
