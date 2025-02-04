@@ -6,12 +6,12 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Amplitude SDK Playground</title>
   </head>
-  <script src="./amplitude-min.umd.js"></script>
+  <script src="./amplitude-min.js"></script>
 	
   <script>
-    const client = new amplitude.AmplitudeUnified()
-    client.init(
+    amplitude.init(
             '5b9a9510e261f9ead90865bbc5a7ad1d',
+            undefined,
             {sampleRate: 1},
             {deploymentKey: '5b9a9510e261f9ead90865bbc5a7ad1d'}
     );
