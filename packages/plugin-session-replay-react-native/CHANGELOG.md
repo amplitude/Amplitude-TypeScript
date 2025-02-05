@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.6...@amplitude/plugin-session-replay-react-native@0.2.7) (2025-02-05)
+
+### Bug Fixes
+
+- update Session Replay RN webview docs
+  ([78e7392](https://github.com/amplitude/Amplitude-TypeScript/commit/78e73922a1045a334b0b1563e9804b12ba1baa35))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [0.2.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.5...@amplitude/plugin-session-replay-react-native@0.2.6) (2025-01-10)
 
 ### Bug Fixes
