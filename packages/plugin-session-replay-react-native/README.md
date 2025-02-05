@@ -69,3 +69,12 @@ import { AmpMaskView } from '@amplitude/plugin-session-replay-react-native';
     </Text>
 </AmpMaskView>
 ```
+
+## Tracking Web Views (Beta)
+Web views are blocked by default and will not be tracked. If you'd like webviews to be tracked, you can manually unmask them by doing the following
+
+```js
+<AmpMaskView mask="amp-unmask" style={{ flex: 1 }}>
+    <WebView source={{ uri: 'https://reactnative.dev/' }} style={{ flex: 1 }} />
+</AmpMaskView>
+```
