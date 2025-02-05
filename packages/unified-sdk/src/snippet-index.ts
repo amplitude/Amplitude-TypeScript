@@ -1,5 +1,5 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { AmplitudeUnified } from './index';
+import { AmplitudeUnified } from './unified-client';
 
 // https://developer.mozilla.org/en-US/docs/Glossary/IIFE
 (function () {
