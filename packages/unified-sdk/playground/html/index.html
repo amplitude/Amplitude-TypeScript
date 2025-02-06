@@ -7,7 +7,6 @@
     <title>Amplitude SDK Playground</title>
   </head>
   <script src="./amplitude-min.js"></script>
-	
   <script>
     amplitude.init(
             '5b9a9510e261f9ead90865bbc5a7ad1d',
@@ -15,6 +14,15 @@
             {sampleRate: 1},
             {deploymentKey: '5b9a9510e261f9ead90865bbc5a7ad1d'}
     );
+
+    amplitude.track('unified sdk tracked').promise.then((result) => {
+      console.log(`amplitude.track('unified sdk tracked') result: ${JSON.stringify(result, null, 2)}`)
+    });
+
+    amplitude.experiment.fetch().then((client) => {
+      console.log('amplitude.experiment.fetch() result:', client);
+    })
+
   </script>
   <body>
     <h1>Amplitude SDK Playground</h1>
