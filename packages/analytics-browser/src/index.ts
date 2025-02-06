@@ -26,3 +26,4 @@ export const {
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
 export * as Types from '@amplitude/analytics-types';
+export { AmplitudeBrowser } from './browser-client';
