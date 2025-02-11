@@ -56,9 +56,9 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       addEventListener(form, 'change', () => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
-            [FORM_ID]: form.id,
-            [FORM_NAME]: form.name,
-            [FORM_DESTINATION]: form.action,
+            [FORM_ID]: form.getAttribute('id'),
+            [FORM_NAME]: form.getAttribute('name'),
+            [FORM_DESTINATION]: form.getAttribute('action'),
           });
         }
         hasFormChanged = true;
@@ -67,16 +67,16 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       addEventListener(form, 'submit', () => {
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
-            [FORM_ID]: form.id,
-            [FORM_NAME]: form.name,
-            [FORM_DESTINATION]: form.action,
+            [FORM_ID]: form.getAttribute('id'),
+            [FORM_NAME]: form.getAttribute('name'),
+            [FORM_DESTINATION]: form.getAttribute('action'),
           });
         }
 
         amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
-          [FORM_ID]: form.id,
-          [FORM_NAME]: form.name,
-          [FORM_DESTINATION]: form.action,
+          [FORM_ID]: form.getAttribute('id'),
+          [FORM_NAME]: form.getAttribute('name'),
+          [FORM_DESTINATION]: form.getAttribute('action'),
         });
         hasFormChanged = false;
       });
