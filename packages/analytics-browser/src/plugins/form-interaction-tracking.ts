@@ -33,6 +33,18 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     eventListeners = [];
   };
 
+  // Extracts the form action attribute, and normalizes it to a valid URL to preserve the previous behavior of accessing the action property directly.
+  const extractFormAction = (form: HTMLFormElement): string | null => {
+    let formDestination = form.getAttribute('action');
+    try {
+      // eslint-disable-next-line no-restricted-globals
+      formDestination = new URL(encodeURI(formDestination ?? ''), window.location.href).href;
+    } catch {
+      //
+    }
+    return formDestination;
+  };
+
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
   const type = PluginType.ENRICHMENT;
   const setup = async (config: BrowserConfig, amplitude?: BrowserClient) => {
@@ -55,28 +67,30 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
 
       addEventListener(form, 'change', () => {
         if (!hasFormChanged) {
+          const formDestination = extractFormAction(form);
           amplitude.track(DEFAULT_FORM_START_EVENT, {
-            [FORM_ID]: form.id,
-            [FORM_NAME]: form.name,
-            [FORM_DESTINATION]: form.action,
+            [FORM_ID]: form.getAttribute('id'),
+            [FORM_NAME]: form.getAttribute('name'),
+            [FORM_DESTINATION]: formDestination,
           });
         }
         hasFormChanged = true;
       });
 
       addEventListener(form, 'submit', () => {
+        const formDestination = extractFormAction(form);
         if (!hasFormChanged) {
           amplitude.track(DEFAULT_FORM_START_EVENT, {
-            [FORM_ID]: form.id,
-            [FORM_NAME]: form.name,
-            [FORM_DESTINATION]: form.action,
+            [FORM_ID]: form.getAttribute('id'),
+            [FORM_NAME]: form.getAttribute('name'),
+            [FORM_DESTINATION]: formDestination,
           });
         }
 
         amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
-          [FORM_ID]: form.id,
-          [FORM_NAME]: form.name,
-          [FORM_DESTINATION]: form.action,
+          [FORM_ID]: form.getAttribute('id'),
+          [FORM_NAME]: form.getAttribute('name'),
+          [FORM_DESTINATION]: formDestination,
         });
         hasFormChanged = false;
       });
