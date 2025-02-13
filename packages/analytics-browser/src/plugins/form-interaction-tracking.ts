@@ -62,29 +62,31 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
         let hasFormChanged = false;
 
         addEventListener(form, 'change', () => {
+          const formDestination = extractFormAction(form);
           if (!hasFormChanged) {
             amplitude.track(DEFAULT_FORM_START_EVENT, {
               [FORM_ID]: stringOrUndefined(form.id),
               [FORM_NAME]: stringOrUndefined(form.name),
-              [FORM_DESTINATION]: form.action,
+              [FORM_DESTINATION]: formDestination,
             });
           }
           hasFormChanged = true;
         });
 
         addEventListener(form, 'submit', () => {
+          const formDestination = extractFormAction(form);
           if (!hasFormChanged) {
             amplitude.track(DEFAULT_FORM_START_EVENT, {
               [FORM_ID]: stringOrUndefined(form.id),
               [FORM_NAME]: stringOrUndefined(form.name),
-              [FORM_DESTINATION]: form.action,
+              [FORM_DESTINATION]: formDestination,
             });
           }
 
           amplitude.track(DEFAULT_FORM_SUBMIT_EVENT, {
             [FORM_ID]: stringOrUndefined(form.id),
             [FORM_NAME]: stringOrUndefined(form.name),
-            [FORM_DESTINATION]: form.action,
+            [FORM_DESTINATION]: formDestination,
           });
           hasFormChanged = false;
         });
@@ -142,4 +144,16 @@ export const stringOrUndefined = <T>(name: T): T extends string ? string : undef
   }
 
   return name as T extends string ? string : undefined;
+};
+
+// Extracts the form action attribute, and normalizes it to a valid URL to preserve the previous behavior of accessing the action property directly.
+export const extractFormAction = (form: HTMLFormElement): string | null => {
+  let formDestination = form.getAttribute('action');
+  try {
+    // eslint-disable-next-line no-restricted-globals
+    formDestination = new URL(encodeURI(formDestination ?? ''), window.location.href).href;
+  } catch {
+    //
+  }
+  return formDestination;
 };

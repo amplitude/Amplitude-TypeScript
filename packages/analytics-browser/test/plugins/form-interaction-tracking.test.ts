@@ -70,6 +70,30 @@ describe('formInteractionTracking', () => {
     expect(amplitude.track).toHaveBeenCalledTimes(1);
   });
 
+  test('should return current location if form action attribute is missing', async () => {
+    // setup
+    const config = createConfigurationMock();
+    const plugin = formInteractionTracking();
+    await plugin.setup?.(config, amplitude);
+    window.dispatchEvent(new Event('load'));
+
+    // Remove form action
+    document.getElementById('my-form-id')?.removeAttribute('action');
+    // trigger change event
+    document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+    // assert first event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+    expect(amplitude.track).toHaveBeenNthCalledWith(1, '[Amplitude] Form Started', {
+      [FORM_ID]: 'my-form-id',
+      [FORM_NAME]: 'my-form-name',
+      [FORM_DESTINATION]: 'http://localhost/',
+    });
+    // trigger change event again
+    document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+    // assert second event was not tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+  });
+
   test('should track form_start event for a dynamically added form tag', async () => {
     // setup
     const config = createConfigurationMock();
