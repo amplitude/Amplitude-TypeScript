@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.13.0...@amplitude/plugin-session-replay-browser@1.13.1) (2025-02-13)
+
+### Bug Fixes
+
+- add safe access to loggerProvider in session replay plugin
+  ([#949](https://github.com/amplitude/Amplitude-TypeScript/issues/949))
+  ([54f16ef](https://github.com/amplitude/Amplitude-TypeScript/commit/54f16ef1a2c9936a012d08ff6d28267706a899f3))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [1.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.12.1...@amplitude/plugin-session-replay-browser@1.13.0) (2025-02-03)
 
 ### Features

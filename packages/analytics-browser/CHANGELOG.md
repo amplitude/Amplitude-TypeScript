@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.13.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.7...@amplitude/analytics-browser@1.13.8) (2025-02-13)
+
+### Bug Fixes
+
+- **plugin-form-interaction-tracking-browser:** Access element attributes through getAttribute
+  ([#958](https://github.com/amplitude/Amplitude-TypeScript/issues/958))
+  ([9a7aadf](https://github.com/amplitude/Amplitude-TypeScript/commit/9a7aadf1bfc98bbd55a66012bd1b2f49ac8ab7a9))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.6...@amplitude/analytics-browser@1.13.7) (2025-01-14)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
