@@ -42,9 +42,9 @@
     "@amplitude/analytics-core": ">=1 <3",
     "@amplitude/analytics-remote-config": "^0.6.0",
     "@amplitude/analytics-types": ">=1 <3",
-    "@amplitude/rrweb": "2.0.0-alpha.26",
-    "@amplitude/rrweb-packer": "2.0.0-alpha.26",
-    "@amplitude/rrweb-snapshot": "2.0.0-alpha.26",
+    "@amplitude/rrweb": "2.0.0-alpha.27",
+    "@amplitude/rrweb-packer": "2.0.0-alpha.27",
+    "@amplitude/rrweb-snapshot": "2.0.0-alpha.27",
     "@rollup/plugin-replace": "^6.0.1",
     "idb": "^8.0.0",
     "tslib": "^2.4.1"
