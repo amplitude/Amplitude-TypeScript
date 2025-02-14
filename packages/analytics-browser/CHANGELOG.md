@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.11.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.11...@amplitude/analytics-browser@2.11.12) (2025-02-14)
+
+
+### Bug Fixes
+
+* **analytics-browser:** form tracking accesses element attributes through getAttribute ([#959](https://github.com/amplitude/Amplitude-TypeScript/issues/959)) ([28305b1](https://github.com/amplitude/Amplitude-TypeScript/commit/28305b16a6361494ed4de5a4805dba520273e1c1))
+
+
+
+
+
 ## [2.11.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.10...@amplitude/analytics-browser@2.11.11) (2024-12-31)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
