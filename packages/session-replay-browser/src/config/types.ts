@@ -1,5 +1,5 @@
 import { Config, LogLevel, Logger } from '@amplitude/analytics-types';
-import { StoreType } from '../typings/session-replay';
+import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
 
 export interface SamplingConfig {
   sample_rate: number;
@@ -12,10 +12,18 @@ export interface InteractionConfig {
   batch: boolean; // defaults to false
 }
 
+export interface LoggingConfig {
+  console: {
+    enabled: boolean;
+    levels: ConsoleLogLevel[];
+  };
+}
+
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
   sr_interaction_config?: InteractionConfig;
+  sr_logging_config?: LoggingConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
@@ -66,6 +74,7 @@ export interface SessionReplayLocalConfig extends Config {
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   captureEnabled?: boolean;
   interactionConfig?: InteractionConfig;
+  loggingConfig?: LoggingConfig;
 }
 
 export interface SessionReplayRemoteConfigFetch {

@@ -31,6 +31,7 @@ import {
 } from './typings/session-replay';
 import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
+import { getRecordConsolePlugin } from '@amplitude/rrweb-plugin-console-record';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -325,7 +326,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
-    const { privacyConfig, interactionConfig } = config;
+    const { privacyConfig, interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
       ? {
@@ -339,6 +340,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
           scroll: this.scrollHook,
         }
       : {};
+
+    const plugins = [
+      ...(loggingConfig?.console.enabled ? [getRecordConsolePlugin({ level: loggingConfig.console.levels })] : []),
+    ];
 
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
     this.recordCancelCallback = record({
@@ -386,6 +391,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // Return true so that we don't clutter user's consoles with internal rrweb errors
         return true;
       },
+      plugins,
     });
 
     void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);

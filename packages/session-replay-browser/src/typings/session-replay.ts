@@ -18,6 +18,8 @@ export type StoreType = 'memory' | 'idb';
 
 export type EventType = 'replay' | 'interaction';
 
+export type ConsoleLogLevel = 'info' | 'log' | 'warn' | 'error';
+
 export interface SessionReplayDestinationSessionMetadata {
   type: EventType;
   sessionId: string | number;
