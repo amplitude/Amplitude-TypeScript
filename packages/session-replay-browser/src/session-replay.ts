@@ -4,7 +4,7 @@ import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
 import { record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
-import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
+import { LoggingConfig, SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
   BLOCK_CLASS,
   CustomRRwebEvent,
@@ -318,6 +318,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
+  getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
+    const plugins = [];
+
+    if (loggingConfig?.console.enabled) {
+      plugins.push(getRecordConsolePlugin({ level: loggingConfig.console.levels }));
+    }
+
+    return plugins.length > 0 ? plugins : undefined;
+  }
+
   recordEvents() {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
@@ -340,10 +350,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
           scroll: this.scrollHook,
         }
       : {};
-
-    const plugins = [
-      ...(loggingConfig?.console.enabled ? [getRecordConsolePlugin({ level: loggingConfig.console.levels })] : []),
-    ];
 
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
     this.recordCancelCallback = record({
@@ -391,7 +397,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // Return true so that we don't clutter user's consoles with internal rrweb errors
         return true;
       },
-      plugins,
+      plugins: this.getRecordingPlugins(loggingConfig),
     });
 
     void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
