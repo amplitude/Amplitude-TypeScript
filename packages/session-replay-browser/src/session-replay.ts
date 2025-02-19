@@ -321,7 +321,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
   getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
     const plugins = [];
 
-    if (loggingConfig?.console.enabled) {
+    // Default plugin settings -
+    // {
+    //   level: ['info', 'log', 'warn', 'error'],
+    //   lengthThreshold: 10000,
+    //   stringifyOptions: {
+    //     stringLengthLimit: undefined,
+    //     numOfKeysLimit: 50,
+    //     depthOfLimit: 4,
+    //   },
+    //   logger: window.console,
+    //   }
+    if (loggingConfig?.console?.enabled) {
       plugins.push(getRecordConsolePlugin({ level: loggingConfig.console.levels }));
     }
 

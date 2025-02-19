@@ -10,7 +10,12 @@ import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 
 import { IDBFactory } from 'fake-indexeddb';
-import { InteractionConfig, SessionReplayJoinedConfig, SessionReplayRemoteConfig } from '../src/config/types';
+import {
+  InteractionConfig,
+  LoggingConfig,
+  SessionReplayJoinedConfig,
+  SessionReplayRemoteConfig,
+} from '../src/config/types';
 import { CustomRRwebEvent, DEFAULT_SAMPLE_RATE } from '../src/constants';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import * as SessionReplayEventsManager from '../src/events/events-manager';
@@ -329,6 +334,51 @@ describe('SessionReplay', () => {
       getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
         if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
           return interactionConfig;
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        sampleRate: 0.5,
+      }).promise;
+      expect(sessionReplay.config?.transportProvider).toBeDefined();
+      expect(sessionReplay.config?.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config?.optOut).toBe(false);
+      expect(sessionReplay.identifiers?.deviceId).toBe('1a2b3c');
+      expect(sessionReplay.identifiers?.sessionId).toBe(123);
+      expect(sessionReplay.config?.logLevel).toBe(0);
+      expect(sessionReplay.loggerProvider).toBeDefined();
+
+      sessionReplay.config && expectationFn(sessionReplay.config);
+    });
+
+    test.each([
+      [
+        {
+          console: { enabled: true, levels: ['warn', 'error'] },
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.loggingConfig?.console.enabled).toBe(true);
+          expect(config.loggingConfig?.console.levels).toStrictEqual(['warn', 'error']);
+        },
+      ],
+      [
+        {
+          console: { enabled: true, levels: ['error'] },
+        },
+        async (config: SessionReplayJoinedConfig) => {
+          expect(config.loggingConfig?.console.enabled).toBe(true);
+          expect(config.loggingConfig?.console.levels).toStrictEqual(['error']);
+        },
+      ],
+    ])('should setup sdk with interaction config', async (loggingConfig, expectationFn) => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
+          return loggingConfig;
         }
         return;
       });
@@ -1253,6 +1303,27 @@ describe('SessionReplay', () => {
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
       expect(record.addCustomEvent).not.toHaveBeenCalled();
       expect(mockLoggerProvider.debug).toHaveBeenCalled();
+    });
+  });
+
+  describe('getRecordingPlugins', () => {
+    test('disabled console logging', async () => {
+      const loggingConfig: LoggingConfig = {
+        console: {
+          enabled: false,
+          levels: [],
+        },
+      };
+      expect(sessionReplay.getRecordingPlugins(loggingConfig)).toBeUndefined();
+    });
+    test('enabled console logging', async () => {
+      const loggingConfig: LoggingConfig = {
+        console: {
+          enabled: true,
+          levels: ['warn', 'error'],
+        },
+      };
+      expect(sessionReplay.getRecordingPlugins(loggingConfig)).toHaveLength(1);
     });
   });
 });

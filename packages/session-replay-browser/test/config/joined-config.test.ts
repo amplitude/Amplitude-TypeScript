@@ -54,6 +54,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
   }: {
     samplingConfig?: Partial<SessionReplayRemoteConfig['sr_sampling_config']>;
     privacyConfig?: SessionReplayRemoteConfig['sr_privacy_config'];
+    loggingConfig?: Partial<SessionReplayRemoteConfig['sr_logging_config']>;
   }) => {
     getRemoteConfigMock.mockImplementation((_, key: keyof SessionReplayRemoteConfig) => {
       let result = undefined;
@@ -221,6 +222,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           ...mockLocalConfig,
           captureEnabled: true,
           optOut: mockLocalConfig.optOut,
+          loggingConfig: undefined,
           privacyConfig: {
             ...privacyConfig,
             defaultMaskLevel: 'light',
