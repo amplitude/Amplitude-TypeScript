@@ -144,11 +144,6 @@ export class Destination implements DestinationPlugin {
     const later: Context[] = [];
     this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
 
-    if (this.scheduled) {
-      clearTimeout(this.scheduled);
-      this.scheduled = null;
-    }
-
     const batches = chunk(list, this.config.flushQueueSize);
 
     // Promise.all() doesn't guarantee resolve order.
@@ -159,6 +154,11 @@ export class Destination implements DestinationPlugin {
     }, Promise.resolve());
 
     this.scheduleTryable(later);
+
+    if (this.scheduled) {
+      clearTimeout(this.scheduled);
+      this.scheduled = null;
+    }
   }
 
   async send(list: Context[], useRetry = true) {
