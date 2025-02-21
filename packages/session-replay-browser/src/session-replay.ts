@@ -4,7 +4,7 @@ import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
 import { record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
-import { SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
+import { LoggingConfig, SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
 import {
   BLOCK_CLASS,
   CustomRRwebEvent,
@@ -31,6 +31,7 @@ import {
 } from './typings/session-replay';
 import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
+import { getRecordConsolePlugin } from '@amplitude/rrweb-plugin-console-record';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -317,6 +318,27 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
+  getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
+    const plugins = [];
+
+    // Default plugin settings -
+    // {
+    //   level: ['info', 'log', 'warn', 'error'],
+    //   lengthThreshold: 10000,
+    //   stringifyOptions: {
+    //     stringLengthLimit: undefined,
+    //     numOfKeysLimit: 50,
+    //     depthOfLimit: 4,
+    //   },
+    //   logger: window.console,
+    //   }
+    if (loggingConfig?.console?.enabled) {
+      plugins.push(getRecordConsolePlugin({ level: loggingConfig.console.levels }));
+    }
+
+    return plugins.length > 0 ? plugins : undefined;
+  }
+
   recordEvents() {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
@@ -325,7 +347,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
-    const { privacyConfig, interactionConfig } = config;
+    const { privacyConfig, interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
       ? {
@@ -386,6 +408,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // Return true so that we don't clutter user's consoles with internal rrweb errors
         return true;
       },
+      plugins: this.getRecordingPlugins(loggingConfig),
     });
 
     void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);

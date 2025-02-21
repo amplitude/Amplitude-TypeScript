@@ -131,6 +131,11 @@
     "@amplitude/rrweb-types" "^2.0.0-alpha.27"
     fflate "^0.4.4"
 
+"@amplitude/rrweb-plugin-console-record@2.0.0-alpha.27":
+  version "2.0.0-alpha.27"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-plugin-console-record/-/rrweb-plugin-console-record-2.0.0-alpha.27.tgz#ac5486aff2257e64e505eaec319c0dcd7f19b5f4"
+  integrity sha512-weiAluiLnHGqWZWLyqfFrUsyh445q7FrlGe6SLTSykjevWEU1lIavN9D5ZlqZXITRbvhGqIdQykajFkb9U0N4Q==
+
 "@amplitude/rrweb-snapshot@2.0.0-alpha.27", "@amplitude/rrweb-snapshot@^2.0.0-alpha.27":
   version "2.0.0-alpha.27"
   resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.27.tgz#4d8d03373c724e9a7e4aa0553984bb3d913fd787"
