@@ -9,6 +9,7 @@ import {
 } from '../../src/messages';
 import { uuidPattern } from '../helpers/util';
 import { RequestMetadata } from '../../src';
+import { TrackEvent } from '@amplitude/analytics-types/src';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
@@ -753,6 +754,82 @@ describe('destination', () => {
         serverUploadTime: 1,
       },
     };
+
+    // timeline:
+    //  0       -> event_type_1
+    //  1000    -> flush() because of flush interval -> request1
+    //  1050    -> event_type_2
+    //  2000    -> no flush() because request1 hasn't fulfilled
+    //  2100    -> request1 fulfilled
+    //  3000    -> flush() with only event2
+    test('should schedule another flush after the previous resolves', async () => {
+      const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+      const testFlushIntervalMillis = 1000;
+      let request1Payload: { events: TrackEvent[] } = { events: [{ event_type: 'init' }] };
+      let request2Payload: { events: TrackEvent[] } = { events: [{ event_type: 'init' }] };
+
+      class Http {
+        send = jest
+          .fn()
+          .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
+            console.log(`debug | time: ${Date.now() - startTimestamp} send, request 1`);
+
+            request1Payload = payload;
+
+            return new Promise((resolve) => {
+              setTimeout(() => {
+                console.log(`debug | time: ${Date.now() - startTimestamp} | send, request 1, resolved`);
+                resolve(successResponse);
+              }, testFlushIntervalMillis + 100);
+            });
+          })
+          .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
+            console.log(`debug | time: ${Date.now() - startTimestamp} send, request 2`);
+
+            request2Payload = payload;
+
+            return Promise.resolve(successResponse);
+          })
+          .mockImplementation((_, payload: { events: DestinationContext[] }) => {
+            console.log(`debug | time: ${Date.now() - startTimestamp} | wrong!, send() was called more than once`);
+            console.log(JSON.stringify(payload, null, 2));
+          });
+      }
+
+      const transportProvider = new Http();
+      const destination = new Destination();
+      const config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 3,
+        flushIntervalMillis: testFlushIntervalMillis,
+        transportProvider,
+      };
+
+      await destination.setup(config);
+
+      const startTimestamp = Date.now();
+      console.log(`debug | time: 0 | sending event 1`);
+      void destination.execute({ event_type: 'event_type_1' });
+
+      // Advance time to just past the flush interval (triggers first request)
+      await wait(testFlushIntervalMillis + 50);
+
+      console.log(`debug | time: ${Date.now() - startTimestamp} | sending event 2`);
+      void destination.execute({ event_type: 'event_type_2' });
+
+      // Verify the flush calls
+      console.log(`debug | time: ${Date.now() - startTimestamp} | waiting 2000`);
+      await wait(testFlushIntervalMillis * 3);
+      console.log(`debug | time: ${Date.now() - startTimestamp} | waited 2000`);
+
+      console.log(JSON.stringify(request1Payload, null, 2));
+      expect(request1Payload.events.length).toBe(1);
+      expect(request1Payload.events[0].event_type).toBe('event_type_1');
+      console.log(JSON.stringify(request2Payload, null, 2));
+      expect(request2Payload.events.length).toBe(1);
+      expect(request2Payload.events[0].event_type).toBe('event_type_2');
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+    });
 
     test('should handle unexpected error', async () => {
       class Http {
