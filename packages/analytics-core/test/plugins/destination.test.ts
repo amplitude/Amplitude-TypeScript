@@ -811,29 +811,6 @@ describe('destination', () => {
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
 
-    test('should handle unexpected error', async () => {
-      class Http {
-        send = jest.fn().mockImplementationOnce(() => {
-          return Promise.resolve(null);
-        });
-      }
-      const transportProvider = new Http();
-      const destination = new Destination();
-      const config = {
-        ...useDefaultConfig(),
-        flushQueueSize: 2,
-        flushIntervalMillis: 500,
-        transportProvider,
-      };
-      await destination.setup(config);
-      const result = await destination.execute({
-        event_type: 'event_type',
-      });
-      expect(result.code).toBe(0);
-      expect(result.message).toBe(UNEXPECTED_ERROR_MESSAGE);
-      expect(transportProvider.send).toHaveBeenCalledTimes(1);
-    });
-
     // timeline:
     //  0       -> setup with event2 with timeout 1200
     //             event1 tracked
@@ -894,6 +871,29 @@ describe('destination', () => {
       expect(request2Payload.events.length).toBe(1);
       expect(request2Payload.events[0].event_type).toBe('event_type_2');
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
+    });
+
+    test('should handle unexpected error', async () => {
+      class Http {
+        send = jest.fn().mockImplementationOnce(() => {
+          return Promise.resolve(null);
+        });
+      }
+      const transportProvider = new Http();
+      const destination = new Destination();
+      const config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 2,
+        flushIntervalMillis: 500,
+        transportProvider,
+      };
+      await destination.setup(config);
+      const result = await destination.execute({
+        event_type: 'event_type',
+      });
+      expect(result.code).toBe(0);
+      expect(result.message).toBe(UNEXPECTED_ERROR_MESSAGE);
+      expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
     test('should not retry with invalid api key', async () => {
