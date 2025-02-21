@@ -772,27 +772,18 @@ describe('destination', () => {
         send = jest
           .fn()
           .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
-            console.log(`debug | time: ${Date.now() - startTimestamp} send, request 1`);
-
+            // expect() doesn't work here so move it outside
             request1Payload = payload;
-
             return new Promise((resolve) => {
               setTimeout(() => {
-                console.log(`debug | time: ${Date.now() - startTimestamp} | send, request 1, resolved`);
                 resolve(successResponse);
               }, testFlushIntervalMillis + 100);
             });
           })
           .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
-            console.log(`debug | time: ${Date.now() - startTimestamp} send, request 2`);
-
+            // expect() doesn't work here so move it outside
             request2Payload = payload;
-
             return Promise.resolve(successResponse);
-          })
-          .mockImplementation((_, payload: { events: DestinationContext[] }) => {
-            console.log(`debug | time: ${Date.now() - startTimestamp} | wrong!, send() was called more than once`);
-            console.log(JSON.stringify(payload, null, 2));
           });
       }
 
@@ -806,26 +797,15 @@ describe('destination', () => {
       };
 
       await destination.setup(config);
-
-      const startTimestamp = Date.now();
-      console.log(`debug | time: 0 | sending event 1`);
       void destination.execute({ event_type: 'event_type_1' });
 
-      // Advance time to just past the flush interval (triggers first request)
       await wait(testFlushIntervalMillis + 50);
-
-      console.log(`debug | time: ${Date.now() - startTimestamp} | sending event 2`);
       void destination.execute({ event_type: 'event_type_2' });
 
-      // Verify the flush calls
-      console.log(`debug | time: ${Date.now() - startTimestamp} | waiting 2000`);
       await wait(testFlushIntervalMillis * 3);
-      console.log(`debug | time: ${Date.now() - startTimestamp} | waited 2000`);
 
-      console.log(JSON.stringify(request1Payload, null, 2));
       expect(request1Payload.events.length).toBe(1);
       expect(request1Payload.events[0].event_type).toBe('event_type_1');
-      console.log(JSON.stringify(request2Payload, null, 2));
       expect(request2Payload.events.length).toBe(1);
       expect(request2Payload.events[0].event_type).toBe('event_type_2');
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
