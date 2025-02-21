@@ -759,8 +759,8 @@ describe('destination', () => {
     //  0       -> event_type_1
     //  1000    -> flush() because of flush interval -> request1
     //  1050    -> event_type_2
-    //  2000    -> no flush() because request1 hasn't fulfilled
-    //  2100    -> request1 fulfilled
+    //  2000    -> no flush() because request1 hasn't resolved
+    //  2100    -> request1 resolved
     //  3000    -> flush() with only event2
     test('should schedule another flush after the previous resolves', async () => {
       const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
