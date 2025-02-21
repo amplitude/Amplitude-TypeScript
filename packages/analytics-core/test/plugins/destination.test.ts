@@ -834,6 +834,68 @@ describe('destination', () => {
       expect(transportProvider.send).toHaveBeenCalledTimes(1);
     });
 
+    // timeline:
+    //  0       -> setup with event2 with timeout 1200
+    //             event1 tracked
+    //  1000    -> flush event1
+    //  1500    -> request1 resolved
+    //  2700 (1500 + 1200)    -> flush with only event1
+    test('should schedule another flush after the previous resolves when pending events have timeout', async () => {
+      const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+      const testFlushIntervalMillis = 1000;
+      let request1Payload: { events: TrackEvent[] } = { events: [{ event_type: 'init' }] };
+      let request2Payload: { events: TrackEvent[] } = { events: [{ event_type: 'init' }] };
+
+      class Http {
+        send = jest
+          .fn()
+          .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
+            // expect() doesn't work here so move it outside
+            request1Payload = payload;
+            console.log(Date.now(), 'request1 received');
+            return new Promise((resolve) => {
+              setTimeout(() => {
+                console.log(Date.now(), 'request1 resolved');
+                resolve(successResponse);
+              }, 500);
+            });
+          })
+          .mockImplementation((_, payload: { events: TrackEvent[] }) => {
+            // expect() doesn't work here so move it outside
+            request2Payload = payload;
+            return Promise.resolve(successResponse);
+          });
+      }
+
+      const transportProvider = new Http();
+      const destination = new Destination();
+      const config = {
+        ...useDefaultConfig(),
+        flushQueueSize: 3,
+        flushIntervalMillis: testFlushIntervalMillis,
+        transportProvider,
+      };
+
+      await destination.setup(config);
+      destination.queue.push({
+        event: { event_type: 'event_type_2' },
+        attempts: 1,
+        callback: jest.fn(),
+        timeout: testFlushIntervalMillis + 200,
+      });
+      void destination.execute({ event_type: 'event_type_1' });
+
+      console.log(Date.now(), 'before wait');
+      await wait(testFlushIntervalMillis * 3 + 50);
+      console.log(Date.now(), 'before expect');
+
+      expect(request1Payload.events.length).toBe(1);
+      expect(request1Payload.events[0].event_type).toBe('event_type_1');
+      expect(request2Payload.events.length).toBe(1);
+      expect(request2Payload.events[0].event_type).toBe('event_type_2');
+      expect(transportProvider.send).toHaveBeenCalledTimes(2);
+    });
+
     test('should not retry with invalid api key', async () => {
       class Http {
         send = jest.fn().mockImplementationOnce(() => {
