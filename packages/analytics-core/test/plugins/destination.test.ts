@@ -815,7 +815,8 @@ describe('destination', () => {
     //  0       -> setup with event2 with timeout 1200
     //             event1 tracked
     //  1000    -> flush event1
-    //  1500    -> request1 resolved
+    //  1500    -> request1 resolved, schedule(1200)
+    //  2500    -> no flush
     //  2700 (1500 + 1200)    -> flush with only event1
     test('should schedule another flush after the previous resolves when pending events have timeout', async () => {
       const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -829,15 +830,13 @@ describe('destination', () => {
           .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
             // expect() doesn't work here so move it outside
             request1Payload = payload;
-            console.log(Date.now(), 'request1 received');
             return new Promise((resolve) => {
               setTimeout(() => {
-                console.log(Date.now(), 'request1 resolved');
                 resolve(successResponse);
               }, 500);
             });
           })
-          .mockImplementation((_, payload: { events: TrackEvent[] }) => {
+          .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
             // expect() doesn't work here so move it outside
             request2Payload = payload;
             return Promise.resolve(successResponse);
@@ -862,9 +861,7 @@ describe('destination', () => {
       });
       void destination.execute({ event_type: 'event_type_1' });
 
-      console.log(Date.now(), 'before wait');
-      await wait(testFlushIntervalMillis * 3 + 50);
-      console.log(Date.now(), 'before expect');
+      await wait(2500);
 
       expect(request1Payload.events.length).toBe(1);
       expect(request1Payload.events[0].event_type).toBe('event_type_1');
