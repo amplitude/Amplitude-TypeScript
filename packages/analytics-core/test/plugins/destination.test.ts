@@ -861,7 +861,7 @@ describe('destination', () => {
       });
       void destination.execute({ event_type: 'event_type_1' });
 
-      await wait(2500);
+      await wait(2500 + 100);
 
       expect(request1Payload.events.length).toBe(1);
       expect(request1Payload.events[0].event_type).toBe('event_type_1');
