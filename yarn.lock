@@ -17,6 +17,11 @@
     "@amplitude/analytics-types" ">=1 <3"
     tslib "^2.4.1"
 
+"@amplitude/analytics-types@>=1 <2":
+  version "1.3.4"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-1.3.4.tgz#9142a893313cc28a9c7a7a3e3360c33636fc9b7d"
+  integrity sha512-tR70gzqFkEzX9QpxvWYMfLCledT7vMhgd3d4/bkp3nnGXTOORaVUOCcSgOyxyuFdSx84T61aP/eZPKIcZcaP+A==
+
 "@amplitude/plugin-autocapture-browser@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@amplitude/plugin-autocapture-browser/-/plugin-autocapture-browser-1.0.2.tgz#9f983ebab82142311dfe35e77a54c539e8293279"
@@ -3699,6 +3704,11 @@
   dependencies:
     "@typescript-eslint/types" "5.46.1"
     eslint-visitor-keys "^3.3.0"
+
+"@ungap/structured-clone@^1.2.0":
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/@ungap/structured-clone/-/structured-clone-1.3.0.tgz#d06bbb384ebcf6c505fde1c3d0ed4ddffe0aaff8"
+  integrity sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==
 
 "@yarnpkg/lockfile@^1.1.0":
   version "1.1.0"
