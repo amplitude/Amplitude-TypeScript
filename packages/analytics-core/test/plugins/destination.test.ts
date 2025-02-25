@@ -1,5 +1,5 @@
 import { Destination, getResponseBodyString } from '../../src/plugins/destination';
-import { Config, DestinationContext, Logger, Payload, Result, Status } from '@amplitude/analytics-types';
+import { Config, DestinationContext, Logger, Payload, Status } from '@amplitude/analytics-types';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -12,6 +12,15 @@ import { RequestMetadata } from '../../src';
 import { TrackEvent } from '@amplitude/analytics-types/src';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
+
+const getMockLogger = (): Logger => ({
+  log: jest.fn(),
+  debug: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  enable: jest.fn(),
+  disable: jest.fn(),
+});
 
 describe('destination', () => {
   describe('setup', () => {
@@ -71,6 +80,7 @@ describe('destination', () => {
     test('should execute plugin', async () => {
       const uuid: string = expect.stringMatching(uuidPattern) as string;
       const destination = new Destination();
+      destination.config = useDefaultConfig();
       const event = {
         event_type: 'event_type',
       };
@@ -78,62 +88,50 @@ describe('destination', () => {
         event_type: 'event_type',
         insert_id: uuid,
       };
-      const addToQueue = jest.spyOn(destination, 'addToQueue').mockImplementation((context: DestinationContext) => {
-        context.callback({ event, code: 200, message: Status.Success });
-      });
-      await destination.execute(event);
-      expect(event).toEqual(expectedEvent);
-      expect(addToQueue).toHaveBeenCalledTimes(1);
+      const schedule = jest.spyOn(destination, 'schedule').mockImplementation(jest.fn);
+      const saveEvents = jest.spyOn(destination, 'saveEvents').mockImplementation(jest.fn);
+
+      void destination.execute(event);
+
+      expect(destination.queue.length).toBe(1);
+      expect(destination.queue[0].event).toEqual(expectedEvent);
+      expect(schedule).toHaveBeenCalledTimes(1);
+      expect(saveEvents).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('addToQueue', () => {
-    test('should add to queue and schedule a flush', () => {
+  describe('removeEventsExceedFlushMaxRetries', () => {
+    test('should remove events exceed flushMaxRetries', async () => {
       const destination = new Destination();
       destination.config = {
         ...useDefaultConfig(),
-        flushIntervalMillis: 0,
+        flushMaxRetries: 3,
       };
-      const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
-      const event = {
-        event_type: 'event_type',
-      };
-      const context = {
-        event,
-        callback: () => undefined,
-        attempts: 0,
-        timeout: 0,
-      };
-      destination.addToQueue(context);
-      expect(schedule).toHaveBeenCalledTimes(1);
-      expect(context.attempts).toBe(1);
-    });
-
-    test('should add to queue and schedule timeout flush', () => {
-      jest.useFakeTimers();
-      const destination = new Destination();
-      destination.config = {
-        ...useDefaultConfig(),
-        flushIntervalMillis: 0,
-      };
-      const schedule = jest.spyOn(destination, 'schedule').mockReturnValueOnce(undefined);
-      const event = {
-        event_type: 'event_type',
-      };
-      const context = {
-        event,
-        callback: () => undefined,
-        attempts: 0,
-        timeout: 1,
-      };
-      destination.addToQueue(context);
-
-      jest.runAllTimers();
-
-      expect(schedule).toHaveBeenCalledTimes(1);
-      expect(context.attempts).toBe(1);
-
-      jest.useRealTimers();
+      const fulfillRequest = jest.spyOn(destination, 'fulfillRequest').mockImplementation(jest.fn);
+      const list = [
+        {
+          event: { event_type: 'event_1' },
+          attempts: 2,
+          callback: () => undefined,
+          timeout: 0,
+        },
+        {
+          event: { event_type: 'event_2' },
+          attempts: 2,
+          callback: () => undefined,
+          timeout: 0,
+        },
+        {
+          event: { event_type: 'event_3' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+      ];
+      const result = destination.removeEventsExceedFlushMaxRetries(list);
+      expect(fulfillRequest).toHaveBeenCalledTimes(2);
+      expect(result.length).toBe(1);
+      expect(result[0].event.event_type).toBe('event_3');
     });
   });
 
@@ -146,7 +144,7 @@ describe('destination', () => {
       jest.useRealTimers();
     });
 
-    test('should schedule a flush', async () => {
+    test('should schedule a flush when no one scheduled', async () => {
       const destination = new Destination();
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       (destination as any).scheduled = null;
@@ -170,14 +168,44 @@ describe('destination', () => {
           return Promise.resolve(undefined);
         })
         .mockReturnValueOnce(Promise.resolve(undefined));
-      destination.schedule(0);
-      // exhause first setTimeout
+      destination.schedule(1000);
+      // exhause setTimeout
       jest.runAllTimers();
-      // wait for next tick to call nested setTimeout
-      await Promise.resolve();
-      // exhause nested setTimeout
+      expect(flush).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      [1, 0],
+      [3, 1],
+    ])('should schedule a flush based on timeout', async (timeout, flushCalledTimes) => {
+      const destination = new Destination();
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      destination.scheduleId = setTimeout(() => {}, 2);
+      destination.scheduledTimeout = 2;
+      destination.queue = [
+        {
+          event: { event_type: 'event_type' },
+          attempts: 0,
+          callback: () => undefined,
+          timeout: 0,
+        },
+      ];
+      destination.config = {
+        ...destination.config,
+        offline: false,
+      };
+      const flush = jest
+        .spyOn(destination, 'flush')
+        .mockImplementationOnce(() => {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          (destination as any).scheduled = null;
+          return Promise.resolve(undefined);
+        })
+        .mockReturnValueOnce(Promise.resolve(undefined));
+      destination.schedule(timeout);
+      // exhause setTimeout
       jest.runAllTimers();
-      expect(flush).toHaveBeenCalledTimes(2);
+      expect(flush).toHaveBeenCalledTimes(flushCalledTimes);
     });
 
     test('should not schedule a flush if offline', async () => {
@@ -213,15 +241,6 @@ describe('destination', () => {
       jest.runAllTimers();
       expect(flush).toHaveBeenCalledTimes(0);
     });
-
-    test('should not schedule if one is already in progress', () => {
-      const destination = new Destination();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      (destination as any).scheduled = setTimeout(jest.fn, 0);
-      const flush = jest.spyOn(destination, 'flush').mockReturnValueOnce(Promise.resolve(undefined));
-      destination.schedule(0);
-      expect(flush).toHaveBeenCalledTimes(0);
-    });
   });
 
   describe('flush', () => {
@@ -254,6 +273,31 @@ describe('destination', () => {
       expect(send).toHaveBeenCalledTimes(0);
       expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush while offline.');
+    });
+
+    test('should skip flush if previous one has not resolved', async () => {
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+
+      const destination = new Destination();
+      destination.config = {
+        ...useDefaultConfig(),
+        offline: false,
+        loggerProvider: loggerProvider,
+      };
+      destination.flushId = setTimeout(jest.fn, 1);
+
+      const send = jest.spyOn(destination, 'send').mockReturnValueOnce(Promise.resolve());
+      await destination.flush();
+      expect(send).toHaveBeenCalledTimes(0);
+      expect(loggerProvider.debug).toHaveBeenCalledTimes(1);
+      expect(loggerProvider.debug).toHaveBeenCalledWith('Skipping flush because previous flush has not resolved.');
     });
 
     test('should get batch and call send', async () => {
@@ -322,6 +366,7 @@ describe('destination', () => {
       expect(result).toBe(undefined);
       expect(send).toHaveBeenCalledTimes(0);
     });
+
     test('should send batches in order', async () => {
       const destination = new Destination();
       destination.config = {
@@ -756,12 +801,12 @@ describe('destination', () => {
     };
 
     // timeline:
-    //  0       -> event_type_1
-    //  1000    -> flush() because of flush interval -> request1
-    //  1050    -> event_type_2
-    //  2000    -> no flush() because request1 hasn't resolved
-    //  2100    -> request1 resolved
-    //  3000    -> flush() with only event2
+    //  0       -> event1
+    //  1000    -> flush(event1) because of flush interval
+    //  1050    -> event2
+    //  2050 (1050 + 1000)   -> no flush(event2) because request1 has not resolved
+    //  2200(1000 + 1200)    -> request1 resolved, schedule unsent events
+    //  3200    -> flush(event2)
     test('should schedule another flush after the previous resolves', async () => {
       const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
       const testFlushIntervalMillis = 1000;
@@ -777,7 +822,7 @@ describe('destination', () => {
             return new Promise((resolve) => {
               setTimeout(() => {
                 resolve(successResponse);
-              }, testFlushIntervalMillis + 100);
+              }, 1200);
             });
           })
           .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
@@ -794,74 +839,16 @@ describe('destination', () => {
         flushQueueSize: 3,
         flushIntervalMillis: testFlushIntervalMillis,
         transportProvider,
+        loggerProvider: getMockLogger(),
       };
 
       await destination.setup(config);
       void destination.execute({ event_type: 'event_type_1' });
 
-      await wait(testFlushIntervalMillis + 50);
+      await wait(1050);
       void destination.execute({ event_type: 'event_type_2' });
 
-      await wait(testFlushIntervalMillis * 3);
-
-      expect(request1Payload.events.length).toBe(1);
-      expect(request1Payload.events[0].event_type).toBe('event_type_1');
-      expect(request2Payload.events.length).toBe(1);
-      expect(request2Payload.events[0].event_type).toBe('event_type_2');
-      expect(transportProvider.send).toHaveBeenCalledTimes(2);
-    });
-
-    // timeline:
-    //  0       -> setup with event2 with timeout 1200
-    //             event1 tracked
-    //  1000    -> flush event1
-    //  1500    -> request1 resolved, schedule(1200)
-    //  2500    -> no flush
-    //  2700 (1500 + 1200)    -> flush with only event1
-    test('should schedule another flush after the previous resolves when pending events have timeout', async () => {
-      const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-      const testFlushIntervalMillis = 1000;
-      let request1Payload: { events: TrackEvent[] } = { events: [{ event_type: 'init' }] };
-      let request2Payload: { events: TrackEvent[] } = { events: [{ event_type: 'init' }] };
-
-      class Http {
-        send = jest
-          .fn()
-          .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
-            // expect() doesn't work here so move it outside
-            request1Payload = payload;
-            return new Promise((resolve) => {
-              setTimeout(() => {
-                resolve(successResponse);
-              }, 500);
-            });
-          })
-          .mockImplementationOnce((_, payload: { events: TrackEvent[] }) => {
-            // expect() doesn't work here so move it outside
-            request2Payload = payload;
-            return Promise.resolve(successResponse);
-          });
-      }
-
-      const transportProvider = new Http();
-      const destination = new Destination();
-      const config = {
-        ...useDefaultConfig(),
-        flushQueueSize: 3,
-        flushIntervalMillis: testFlushIntervalMillis,
-        transportProvider,
-      };
-
-      await destination.setup(config);
-      destination.queue.push({
-        event: { event_type: 'event_type_2' },
-        attempts: 1,
-        callback: jest.fn(),
-        timeout: testFlushIntervalMillis + 200,
-      });
-      void destination.execute({ event_type: 'event_type_1' });
-
-      await wait(2500 + 100);
+      await wait(2200);
 
       expect(request1Payload.events.length).toBe(1);
       expect(request1Payload.events[0].event_type).toBe('event_type_1');
@@ -1205,62 +1192,9 @@ describe('destination', () => {
       expect(destination.queue.length).toBe(0);
       expect(transportProvider.send).toHaveBeenCalledTimes(2);
     });
-
-    test('should handle retry for 503 error', async () => {
-      class Http {
-        send = jest
-          .fn()
-          .mockImplementationOnce(() => {
-            return Promise.resolve({
-              statusCode: 500,
-              status: Status.Failed,
-            });
-          })
-          .mockImplementationOnce(() => {
-            return Promise.resolve({
-              statusCode: 500,
-              status: Status.Failed,
-            });
-          });
-      }
-      const transportProvider = new Http();
-      const destination = new Destination();
-      destination.retryTimeout = 10;
-      const config = {
-        ...useDefaultConfig(),
-        flushMaxRetries: 1,
-        flushQueueSize: 2,
-        flushIntervalMillis: 500,
-        transportProvider,
-      };
-      await destination.setup(config);
-      const results = await Promise.all([
-        destination.execute({
-          event_type: 'event_type',
-          insert_id: '0',
-        }),
-        destination.execute({
-          event_type: 'event_type',
-          insert_id: '1',
-        }),
-      ]);
-      expect(results[0].code).toBe(500);
-      expect(results[1].code).toBe(500);
-      expect(destination.queue.length).toBe(0);
-      expect(transportProvider.send).toHaveBeenCalledTimes(1);
-    });
   });
 
   describe('logging', () => {
-    const getMockLogger = (): Logger => ({
-      log: jest.fn(),
-      debug: jest.fn(),
-      warn: jest.fn(),
-      error: jest.fn(),
-      enable: jest.fn(),
-      disable: jest.fn(),
-    });
-
     test('should handle null loggerProvider', async () => {
       class Http {
         send = jest.fn().mockImplementationOnce(() => {
@@ -1351,7 +1285,7 @@ describe('destination', () => {
             .mockImplementationOnce(() => {
               return Promise.resolve(response);
             })
-            .mockImplementationOnce(() => {
+            .mockImplementation(() => {
               return Promise.resolve({
                 status: Status.Success,
                 statusCode: 200,
@@ -1374,22 +1308,21 @@ describe('destination', () => {
         };
         await destination.setup(config);
         destination.retryTimeout = 10;
-        destination.throttleTimeout = 1;
+        destination.throttleTimeout = 10;
         const event = {
           event_type: 'event_type',
         };
         let result;
         if (eventCount > 1) {
           // Need 2 events for 413 to retry, send them both at the same time
-          result = await new Promise((resolve) => {
-            const context: DestinationContext = {
-              event,
-              attempts: 0,
-              callback: (result: Result) => resolve(result),
-              timeout: 0,
-            };
-            void destination.addToQueue(context, context);
-          });
+          const context: DestinationContext = {
+            event,
+            attempts: 0,
+            callback: jest.fn(),
+            timeout: 0,
+          };
+          destination.queue.push(context);
+          result = await destination.execute(event);
         } else {
           result = await destination.execute(event);
         }
@@ -1400,8 +1333,7 @@ describe('destination', () => {
           code: 200,
         });
 
-        // When 413, retry of the second batch won't be recorded here as it's async
-        expect(transportProvider.send).toHaveBeenCalledTimes(2);
+        expect(transportProvider.send).toHaveBeenCalledTimes(status === Status.PayloadTooLarge ? 3 : 2);
         // eslint-disable-next-line @typescript-eslint/unbound-method
         expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
         // eslint-disable-next-line @typescript-eslint/unbound-method,@typescript-eslint/restrict-template-expressions
