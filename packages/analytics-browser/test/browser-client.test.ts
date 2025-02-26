@@ -7,7 +7,7 @@ import {
 } from '@amplitude/analytics-client-common';
 import { WebAttribution } from '@amplitude/analytics-client-common/src';
 import * as core from '@amplitude/analytics-core';
-import { AutocaptureOptions, LogLevel, OfflineDisabled, UserSession } from '@amplitude/analytics-types';
+import { AutocaptureOptions, LogLevel, OfflineDisabled, Status, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
@@ -817,6 +817,20 @@ describe('browser-client', () => {
       // assert sessionId is set
       expect(client.config.sessionId).toBe(firstSessionId);
       expect(client.config.lastEventTime).toBeUndefined();
+
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      jest.spyOn(client.config.transportProvider, 'send').mockReturnValue(
+        Promise.resolve({
+          status: Status.Success,
+          statusCode: 200,
+          body: {
+            eventsIngested: 1,
+            payloadSizeBytes: 1,
+            serverUploadTime: 1,
+          },
+        }),
+      );
 
       // send an event
       await client.track('test 1').promise;
