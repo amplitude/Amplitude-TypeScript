@@ -7,6 +7,8 @@ class JSDOMEnvironmentExtended extends JSDOMEnvironment {
     this.global.ReadableStream = ReadableStream;
     this.global.TextDecoder = TextDecoder;
     this.global.TextEncoder = TextEncoder;
+    this.global.BroadcastChannel = BroadcastChannel;
+    this.global.TransformStream = TransformStream;
 
     this.global.Blob = Blob;
     this.global.structuredClone = structuredClone;
