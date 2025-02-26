@@ -122,6 +122,10 @@ export class Destination implements DestinationPlugin {
     }
 
     if (this.scheduleId === null || (this.scheduleId && timeout > this.scheduledTimeout)) {
+      if (this.scheduleId) {
+        clearTimeout(this.scheduleId);
+      }
+      this.scheduledTimeout = timeout;
       this.scheduleId = setTimeout(() => {
         this.queue = this.queue.map((context) => {
           context.timeout = 0;
