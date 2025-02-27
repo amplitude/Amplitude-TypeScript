@@ -782,6 +782,7 @@ describe('integration', () => {
       rev.setQuantity(1);
       rev.setPrice(100);
       rev.setRevenueType('t');
+      rev.setCurrency('USD');
       rev.setRevenue(200);
       const response = await client.revenue(rev).promise;
       expect(response.event).toEqual({
@@ -793,6 +794,7 @@ describe('integration', () => {
           $quantity: 1,
           $revenue: 200,
           $revenueType: 't',
+          $currency: 'USD',
         },
         event_type: 'revenue_amount',
         insert_id: uuid,

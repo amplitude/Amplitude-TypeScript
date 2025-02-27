@@ -40,6 +40,7 @@ export interface EventOptions {
   revenue?: number;
   productId?: string;
   revenueType?: string;
+  currency?: string;
   event_id?: number;
   session_id?: number;
   insert_id?: string;
