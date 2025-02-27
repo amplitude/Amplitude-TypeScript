@@ -77,6 +77,7 @@ export interface Revenue {
   setQuantity(quantity: number): Revenue;
   setPrice(price: number): Revenue;
   setRevenueType(revenueType: string): Revenue;
+  setCurrency(currency: string): Revenue;
   setEventProperties(properties: { [key: string]: any }): Revenue;
   setRevenue(revenue: number): Revenue;
 }
@@ -86,6 +87,7 @@ export enum RevenueProperty {
   REVENUE_QUANTITY = '$quantity',
   REVENUE_PRICE = '$price',
   REVENUE_TYPE = '$revenueType',
+  REVENUE_CURRENCY = '$currency',
   REVENUE = '$revenue',
 }
 
@@ -94,7 +96,7 @@ export interface RevenueEventProperties {
   [RevenueProperty.REVENUE_QUANTITY]?: number;
   [RevenueProperty.REVENUE_PRICE]?: number;
   [RevenueProperty.REVENUE_TYPE]?: string;
-  [RevenueProperty.REVENUE_TYPE]?: string;
+  [RevenueProperty.REVENUE_CURRENCY]?: string;
   [RevenueProperty.REVENUE]?: number;
 }
 

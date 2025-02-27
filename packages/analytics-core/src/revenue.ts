@@ -11,6 +11,7 @@ export class Revenue implements IRevenue {
   private quantity: number;
   private price: number;
   private revenueType?: string;
+  private currency?: string;
   private properties?: { [key: string]: any };
   private revenue?: number;
 
@@ -42,6 +43,11 @@ export class Revenue implements IRevenue {
     return this;
   }
 
+  setCurrency(currency: string) {
+    this.currency = currency;
+    return this;
+  }
+
   setRevenue(revenue: number) {
     this.revenue = revenue;
     return this;
@@ -60,6 +66,7 @@ export class Revenue implements IRevenue {
     eventProperties[RevenueProperty.REVENUE_QUANTITY] = this.quantity;
     eventProperties[RevenueProperty.REVENUE_PRICE] = this.price;
     eventProperties[RevenueProperty.REVENUE_TYPE] = this.revenueType;
+    eventProperties[RevenueProperty.REVENUE_CURRENCY] = this.currency;
     eventProperties[RevenueProperty.REVENUE] = this.revenue;
     return eventProperties;
   }
