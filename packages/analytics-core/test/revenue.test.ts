@@ -59,9 +59,14 @@ describe('Revenue class', () => {
     const revenueType = 'testRevenueType';
     const revenue = new Revenue();
     revenue.setRevenueType(revenueType);
+    revenue.setCurrency('USD');
     const event = createRevenueEvent(revenue);
 
-    const expectedProperties = { ...defaultRevenueProperty, [RevenueProperty.REVENUE_TYPE]: revenueType };
+    const expectedProperties = {
+      ...defaultRevenueProperty,
+      [RevenueProperty.REVENUE_TYPE]: revenueType,
+      [RevenueProperty.REVENUE_CURRENCY]: 'USD',
+    };
 
     expect(event.event_properties).toEqual(expectedProperties);
   });
