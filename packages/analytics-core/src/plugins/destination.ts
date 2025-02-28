@@ -52,7 +52,16 @@ export class Destination implements DestinationPlugin {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: Config;
-  private scheduled: ReturnType<typeof setTimeout> | null = null;
+  // Indicator of whether events that are scheduled (but not flushed yet).
+  // When flush:
+  //   1. assign `scheduleId` to `flushId`
+  //   2. set `scheduleId` to null
+  scheduleId: ReturnType<typeof setTimeout> | null = null;
+  // Timeout in milliseconds of current schedule
+  scheduledTimeout = 0;
+  // Indicator of whether current flush resolves.
+  // When flush resolves, set `flushId` to null
+  flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
 
   async setup(config: Config): Promise<undefined> {
@@ -80,14 +89,16 @@ export class Destination implements DestinationPlugin {
         callback: (result: Result) => resolve(result),
         timeout: 0,
       };
-      void this.addToQueue(context);
+      this.queue.push(context);
+      this.schedule(this.config.flushIntervalMillis);
+      this.saveEvents();
     });
   }
 
-  getTryableList(list: Context[]) {
+  removeEventsExceedFlushMaxRetries(list: Context[]) {
     return list.filter((context) => {
+      context.attempts += 1;
       if (context.attempts < this.config.flushMaxRetries) {
-        context.attempts += 1;
         return true;
       }
       void this.fulfillRequest([context], 500, MAX_RETRIES_EXCEEDED_MESSAGE);
@@ -95,59 +106,64 @@ export class Destination implements DestinationPlugin {
     });
   }
 
-  scheduleTryable(list: Context[], shouldAddToQueue = false) {
+  scheduleEvents(list: Context[]) {
     list.forEach((context) => {
-      // Only need to concat the queue for the first time
-      if (shouldAddToQueue) {
-        this.queue = this.queue.concat(context);
-      }
-      if (context.timeout === 0) {
-        this.schedule(this.config.flushIntervalMillis);
-        return;
-      }
-
-      setTimeout(() => {
-        context.timeout = 0;
-        this.schedule(0);
-      }, context.timeout);
+      this.schedule(context.timeout === 0 ? this.config.flushIntervalMillis : context.timeout);
     });
   }
 
-  addToQueue(...list: Context[]) {
-    const tryable = this.getTryableList(list);
-    this.scheduleTryable(tryable, true);
-    this.saveEvents();
-  }
-
+  // Schedule a flush in timeout when
+  // 1. No schedule
+  // 2. Timeout greater than existing timeout.
+  // This makes sure that when throttled, no flush when throttle timeout expires.
   schedule(timeout: number) {
-    if (this.scheduled || this.config.offline) {
+    if (this.config.offline) {
       return;
     }
 
-    this.scheduled = setTimeout(() => {
-      void this.flush(true).then(() => {
-        if (this.queue.length > 0) {
-          this.schedule(timeout);
-        }
-      });
-    }, timeout);
+    if (this.scheduleId === null || (this.scheduleId && timeout > this.scheduledTimeout)) {
+      if (this.scheduleId) {
+        clearTimeout(this.scheduleId);
+      }
+      this.scheduledTimeout = timeout;
+      this.scheduleId = setTimeout(() => {
+        this.queue = this.queue.map((context) => {
+          context.timeout = 0;
+          return context;
+        });
+        void this.flush(true);
+      }, timeout);
+      return;
+    }
   }
 
+  // Mark current schedule is flushed.
+  resetSchedule() {
+    this.scheduleId = null;
+    this.scheduledTimeout = 0;
+  }
+
+  // Flush all events regardless of their timeout
   async flush(useRetry = false) {
     // Skip flush if offline
     if (this.config.offline) {
+      this.resetSchedule();
       this.config.loggerProvider.debug('Skipping flush while offline.');
       return;
     }
 
+    if (this.flushId) {
+      this.resetSchedule();
+      this.config.loggerProvider.debug('Skipping flush because previous flush has not resolved.');
+      return;
+    }
+
+    this.flushId = this.scheduleId;
+    this.resetSchedule();
+
     const list: Context[] = [];
     const later: Context[] = [];
     this.queue.forEach((context) => (context.timeout === 0 ? list.push(context) : later.push(context)));
-
-    if (this.scheduled) {
-      clearTimeout(this.scheduled);
-      this.scheduled = null;
-    }
 
     const batches = chunk(list, this.config.flushQueueSize);
 
@@ -158,7 +174,10 @@ export class Destination implements DestinationPlugin {
       return await this.send(batch, useRetry);
     }, Promise.resolve());
 
-    this.scheduleTryable(later);
+    // Mark current flush is done
+    this.flushId = null;
+
+    this.scheduleEvents(this.queue);
   }
 
   async send(list: Context[], useRetry = true) {
@@ -264,8 +283,8 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    const tryable = this.getTryableList(retry);
-    this.scheduleTryable(tryable);
+    const tryable = this.removeEventsExceedFlushMaxRetries(retry);
+    this.scheduleEvents(tryable);
   }
 
   handlePayloadTooLargeResponse(res: PayloadTooLargeResponse, list: Context[]) {
@@ -279,8 +298,8 @@ export class Destination implements DestinationPlugin {
 
     this.config.flushQueueSize /= 2;
 
-    const tryable = this.getTryableList(list);
-    this.scheduleTryable(tryable);
+    const tryable = this.removeEventsExceedFlushMaxRetries(list);
+    this.scheduleEvents(tryable);
   }
 
   handleRateLimitResponse(res: RateLimitResponse, list: Context[]) {
@@ -310,8 +329,8 @@ export class Destination implements DestinationPlugin {
       this.config.loggerProvider.warn(getResponseBodyString(res));
     }
 
-    const tryable = this.getTryableList(retry);
-    this.scheduleTryable(tryable);
+    const tryable = this.removeEventsExceedFlushMaxRetries(retry);
+    this.scheduleEvents(tryable);
   }
 
   handleOtherResponse(list: Context[]) {
@@ -320,8 +339,8 @@ export class Destination implements DestinationPlugin {
       return context;
     });
 
-    const tryable = this.getTryableList(later);
-    this.scheduleTryable(tryable);
+    const tryable = this.removeEventsExceedFlushMaxRetries(later);
+    this.scheduleEvents(tryable);
   }
 
   fulfillRequest(list: Context[], code: number, message: string) {
