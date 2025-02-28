@@ -1,47 +1,5 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
-
-# [2.8.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser-test@2.7.0...@amplitude/analytics-browser-test@2.8.0-beta.1) (2025-02-28)
-
-
-### Bug Fixes
-
-* [AMP-95816] fix pageCounter bug ([#720](https://github.com/amplitude/Amplitude-TypeScript/issues/720)) ([8899853](https://github.com/amplitude/Amplitude-TypeScript/commit/88998534b3bd3c88e66fb88bafd41768e41d377c))
-* adding tests ([ba9688a](https://github.com/amplitude/Amplitude-TypeScript/commit/ba9688a31377a3e7903e9689970a99878e635569))
-* don't automatically start new session on setUserId ([#427](https://github.com/amplitude/Amplitude-TypeScript/issues/427)) ([d40b5c3](https://github.com/amplitude/Amplitude-TypeScript/commit/d40b5c305e1d67d988e70608ba01789b8f0abb2b))
-* extend session on new events ([#432](https://github.com/amplitude/Amplitude-TypeScript/issues/432)) ([8bb049d](https://github.com/amplitude/Amplitude-TypeScript/commit/8bb049df4c6b99ff44303cf2aaeb7357ae90b362))
-* fix the session event fire too often issue ([#751](https://github.com/amplitude/Amplitude-TypeScript/issues/751)) ([69bc69b](https://github.com/amplitude/Amplitude-TypeScript/commit/69bc69bd8e05b36ca76079dc9a01552315aaef5a))
-* fix web attribution identify and session start order ([#696](https://github.com/amplitude/Amplitude-TypeScript/issues/696)) ([2f077da](https://github.com/amplitude/Amplitude-TypeScript/commit/2f077da7b528ed6f23f7459b7c961c099dbcb1bb))
-* sest sion end events being assigned to a different session id ([#426](https://github.com/amplitude/Amplitude-TypeScript/issues/426)) ([7d52037](https://github.com/amplitude/Amplitude-TypeScript/commit/7d52037280159ddb176e5e1ef64577bd97edfc36))
-* simplify plugins and eliminate enums ([#407](https://github.com/amplitude/Amplitude-TypeScript/issues/407)) ([890ec66](https://github.com/amplitude/Amplitude-TypeScript/commit/890ec6695a8b25cd6988e9f7ae584d4ba2835f67))
-* update attribution plugin to apply utm params to the `session_start` event ([#619](https://github.com/amplitude/Amplitude-TypeScript/issues/619)) ([bf45ca6](https://github.com/amplitude/Amplitude-TypeScript/commit/bf45ca6c17ac8d656cb6c5bb4f4fa19ff344ac85))
-
-
-### Features
-
-* add client upload time ([#601](https://github.com/amplitude/Amplitude-TypeScript/issues/601)) ([b80d090](https://github.com/amplitude/Amplitude-TypeScript/commit/b80d090c5a70f75b4d3cb653efa1af48ff2fcd34))
-* **analytics-browser:** consume remote config ([#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769)) ([9c4e03c](https://github.com/amplitude/Amplitude-TypeScript/commit/9c4e03c3b3989213ac04410c8b9bf5e78ed393cf))
-* landing page improvement ([#667](https://github.com/amplitude/Amplitude-TypeScript/issues/667)) ([5f365f0](https://github.com/amplitude/Amplitude-TypeScript/commit/5f365f0b933ee890aee1d9ac083576f09b0defc3))
-* make default event tracking enabled by default ([#386](https://github.com/amplitude/Amplitude-TypeScript/issues/386)) ([242f42d](https://github.com/amplitude/Amplitude-TypeScript/commit/242f42dd2e46eaec95c827795e04f74fba39c35f))
-* remote config ([#832](https://github.com/amplitude/Amplitude-TypeScript/issues/832)) ([c415f79](https://github.com/amplitude/Amplitude-TypeScript/commit/c415f792a98253ac60885eb1dc7e53b78ca47dcb)), closes [#769](https://github.com/amplitude/Amplitude-TypeScript/issues/769) [#772](https://github.com/amplitude/Amplitude-TypeScript/issues/772) [#780](https://github.com/amplitude/Amplitude-TypeScript/issues/780) [#782](https://github.com/amplitude/Amplitude-TypeScript/issues/782) [#811](https://github.com/amplitude/Amplitude-TypeScript/issues/811) [#828](https://github.com/amplitude/Amplitude-TypeScript/issues/828)
-* simplify browser SDK options and plugin options interface ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384)) ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
-* simplify init interface ([#416](https://github.com/amplitude/Amplitude-TypeScript/issues/416)) ([93752da](https://github.com/amplitude/Amplitude-TypeScript/commit/93752da1e6ed521263c6d5295a37fc5dc7f3de86))
-* simplify user identity storage options/configuration ([#390](https://github.com/amplitude/Amplitude-TypeScript/issues/390)) ([f8cf0cc](https://github.com/amplitude/Amplitude-TypeScript/commit/f8cf0cca8c2a17738f13878642fa5b37c0070f77))
-* use server side user agent parser ([#382](https://github.com/amplitude/Amplitude-TypeScript/issues/382)) ([69bd255](https://github.com/amplitude/Amplitude-TypeScript/commit/69bd2558cb37d027064b6459cc2887c219196973))
-
-
-### Reverts
-
-* update attribution plugin to apply utm params to the `session_start` event ([#638](https://github.com/amplitude/Amplitude-TypeScript/issues/638)) ([c820279](https://github.com/amplitude/Amplitude-TypeScript/commit/c820279cbef2123d890beb7861d7edbbc3926f6e))
-
-
-
-
-
-# Change Log
-
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
