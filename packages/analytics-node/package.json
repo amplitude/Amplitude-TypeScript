@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-node",
-  "version": "2.0.0-beta.0",
+  "version": "2.0.0-beta.1",
   "description": "Official Amplitude SDK for NodeJS",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -37,8 +37,8 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^2.0.0",
-    "@amplitude/analytics-types": "^2.0.0",
+    "@amplitude/analytics-core": "^2.5.6",
+    "@amplitude/analytics-types": "^2.9.0",
     "tslib": "^2.4.1"
   },
   "files": [

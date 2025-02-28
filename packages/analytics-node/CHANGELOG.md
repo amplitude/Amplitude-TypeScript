@@ -1,5 +1,30 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [2.0.0-beta.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.1.6...@amplitude/analytics-node@2.0.0-beta.1) (2025-02-28)
+
+
+### Bug Fixes
+
+* response with non-json format ([#758](https://github.com/amplitude/Amplitude-TypeScript/issues/758)) ([3d234ca](https://github.com/amplitude/Amplitude-TypeScript/commit/3d234ca5a71bacf9ab7f82a115cb2010e94a3a33))
+* simplify plugins and eliminate enums ([#407](https://github.com/amplitude/Amplitude-TypeScript/issues/407)) ([890ec66](https://github.com/amplitude/Amplitude-TypeScript/commit/890ec6695a8b25cd6988e9f7ae584d4ba2835f67))
+
+
+### Features
+
+* add offline mode ([#644](https://github.com/amplitude/Amplitude-TypeScript/issues/644)) ([f2cd717](https://github.com/amplitude/Amplitude-TypeScript/commit/f2cd717316eef66b101153cb8eedf37fadc6de0c))
+* add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428)) ([1a8ff7d](https://github.com/amplitude/Amplitude-TypeScript/commit/1a8ff7d665d2a936db7cb42f4cde5350379b7cae))
+* log response body from API to logger ([#415](https://github.com/amplitude/Amplitude-TypeScript/issues/415)) ([#422](https://github.com/amplitude/Amplitude-TypeScript/issues/422)) ([d14b5c0](https://github.com/amplitude/Amplitude-TypeScript/commit/d14b5c00a88f1a61149a61128bb4c4d07ed35836))
+* simplify browser SDK options and plugin options interface ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384)) ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
+
+
+
+
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 

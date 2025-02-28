@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.8.4...@amplitude/analytics-types@2.9.0) (2025-02-28)
+
+
+### Bug Fixes
+
+* ability to send revenue currency to amplitude ([d4f52e7](https://github.com/amplitude/Amplitude-TypeScript/commit/d4f52e74e9840a3361784dfc37ef21125375d02e))
+
+
+### Features
+
+* moves groups to eventoptions type [#970](https://github.com/amplitude/Amplitude-TypeScript/issues/970) ([#972](https://github.com/amplitude/Amplitude-TypeScript/issues/972)) ([f60f71c](https://github.com/amplitude/Amplitude-TypeScript/commit/f60f71c694f6cccccd9d8276a1e04fcc839aa54b))
+
+
+
+
+
 ## [2.8.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.8.3...@amplitude/analytics-types@2.8.4) (2024-11-05)
 
 
