@@ -6,7 +6,6 @@ export interface BaseEvent extends EventOptions {
   event_properties?: { [key: string]: any } | undefined;
   user_properties?: { [key: string]: any } | undefined;
   group_properties?: { [key: string]: any } | undefined;
-  groups?: { [key: string]: any } | undefined;
 }
 
 export interface EventOptions {
@@ -50,4 +49,5 @@ export interface EventOptions {
   user_agent?: string;
   android_app_set_id?: string;
   extra?: { [key: string]: any };
+  groups?: { [key: string]: any } | undefined;
 }
