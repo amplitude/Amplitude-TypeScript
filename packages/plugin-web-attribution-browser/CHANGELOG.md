@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.1.33](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.32...@amplitude/plugin-web-attribution-browser@2.1.33) (2025-02-28)
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([d392f62](https://github.com/amplitude/Amplitude-TypeScript/commit/d392f6290b8bb4dd955d6e6f20b00191679489c4))
+
+
+
+
+
 ## [2.1.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-attribution-browser@2.1.31...@amplitude/plugin-web-attribution-browser@2.1.32) (2025-02-14)
 
 **Note:** Version bump only for package @amplitude/plugin-web-attribution-browser

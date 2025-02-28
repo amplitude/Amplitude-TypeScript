@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.5.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.5...@amplitude/analytics-core@2.5.6) (2025-02-28)
+
+
+### Bug Fixes
+
+* ability to send revenue currency to amplitude ([d4f52e7](https://github.com/amplitude/Amplitude-TypeScript/commit/d4f52e74e9840a3361784dfc37ef21125375d02e))
+* adding tests ([ba9688a](https://github.com/amplitude/Amplitude-TypeScript/commit/ba9688a31377a3e7903e9689970a99878e635569))
+* **analytics-core:** should not flush until previous request resolves ([#964](https://github.com/amplitude/Amplitude-TypeScript/issues/964)) ([771ce55](https://github.com/amplitude/Amplitude-TypeScript/commit/771ce556cb131b71ddb28461268a6feb5f3a1b1d))
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([d392f62](https://github.com/amplitude/Amplitude-TypeScript/commit/d392f6290b8bb4dd955d6e6f20b00191679489c4))
+
+
+
+
+
 ## [2.5.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.4...@amplitude/analytics-core@2.5.5) (2024-12-17)
 
 

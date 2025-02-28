@@ -1,5 +1,22 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## 0.2.8 (2025-02-28)
+
+
+### Reverts
+
+* Revert "ci: remove noImplicitUseStrict as it's deprecated in ts 5.5 (#974)" ([29df7ea](https://github.com/amplitude/Amplitude-TypeScript/commit/29df7ea187a414ddbd1894f89f996a67a3c5c36c)), closes [#974](https://github.com/amplitude/Amplitude-TypeScript/issues/974)
+* Revert "chore(release): publish" ([d392f62](https://github.com/amplitude/Amplitude-TypeScript/commit/d392f6290b8bb4dd955d6e6f20b00191679489c4))
+
+
+
+
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 

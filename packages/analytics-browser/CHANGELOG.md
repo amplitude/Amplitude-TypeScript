@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.11.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.12...@amplitude/analytics-browser@2.11.13) (2025-02-28)
+
+
+### Bug Fixes
+
+* **analytics-core:** should not flush until previous request resolves ([#964](https://github.com/amplitude/Amplitude-TypeScript/issues/964)) ([771ce55](https://github.com/amplitude/Amplitude-TypeScript/commit/771ce556cb131b71ddb28461268a6feb5f3a1b1d))
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([d392f62](https://github.com/amplitude/Amplitude-TypeScript/commit/d392f6290b8bb4dd955d6e6f20b00191679489c4))
+
+
+
+
+
 ## [2.11.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.11...@amplitude/analytics-browser@2.11.12) (2025-02-14)
 
 
