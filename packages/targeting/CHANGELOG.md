@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/targeting@0.2.0...@amplitude/targeting@0.2.1) (2025-02-28)
+
+**Note:** Version bump only for package @amplitude/targeting
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 # [0.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/targeting@0.1.1...@amplitude/targeting@0.2.0) (2024-07-01)
 
 ### Features

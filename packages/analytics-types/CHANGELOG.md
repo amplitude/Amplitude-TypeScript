@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@1.3.4...@amplitude/analytics-types@1.3.5) (2025-02-28)
+
+### Bug Fixes
+
+- adding revenue currency
+  ([42085e6](https://github.com/amplitude/Amplitude-TypeScript/commit/42085e6a2d84c473af0207e725d1cec972d4d241))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@1.3.3...@amplitude/analytics-types@1.3.4) (2023-12-19)
 
 **Note:** Version bump only for package @amplitude/analytics-types
