@@ -1,22 +1,27 @@
-import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
 import {
+  AmplitudeCore,
+  Destination,
+  Identify,
+  returnWrapper,
+  Revenue,
+  UUID,
   getAnalyticsConnector,
+  setConnectorDeviceId,
+  setConnectorUserId,
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
-  IdentityEventSender,
   isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
-  setConnectorDeviceId,
-  setConnectorUserId,
-  isNewSession,
   isPageViewTrackingEnabled,
+  isNewSession,
+  IdentityEventSender,
   WebAttribution,
   getQueryParams,
-} from '@amplitude/analytics-client-common';
+} from '@amplitude/analytics-core';
 import {
   BrowserClient,
   BrowserConfig,

@@ -16,8 +16,16 @@ import {
   OfflineDisabled,
   AutocaptureOptions,
 } from '@amplitude/analytics-types';
-import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
-import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
+import {
+  Config,
+  Logger,
+  MemoryStorage,
+  UUID,
+  CookieStorage,
+  getCookieName,
+  FetchTransport,
+  getQueryParams,
+} from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
 import { SessionStorage } from './storage/session-storage';
