@@ -92,7 +92,7 @@ export class AmplitudeCore implements CoreClient {
       this.q.push(this.remove.bind(this, pluginName));
       return returnWrapper();
     }
-    return returnWrapper(this.timeline.deregister(pluginName));
+    return returnWrapper(this.timeline.deregister(pluginName, this.config));
   }
 
   dispatchWithCallback(event: Event, callback: (result: Result) => void): void {
