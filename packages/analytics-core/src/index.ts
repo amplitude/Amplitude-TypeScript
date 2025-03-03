@@ -11,3 +11,9 @@ export { UUID } from './utils/uuid';
 export { MemoryStorage } from './storage/memory';
 export { BaseTransport } from './transports/base';
 export { createIdentifyEvent } from './utils/event-builder';
+
+export { getGlobalScope } from './global-scope';
+
+// The following APIs are available in browser environment only.
+
+// The following APIs are available in node environment only.

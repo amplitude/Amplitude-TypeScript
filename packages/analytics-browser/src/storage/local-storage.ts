@@ -1,4 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { getGlobalScope } from '@amplitude/analytics-core';
 import { BrowserStorage } from './browser-storage';
 import { Logger } from '@amplitude/analytics-types';
 

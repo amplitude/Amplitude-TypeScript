@@ -1,5 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { BaseTransport } from '@amplitude/analytics-core';
+import { BaseTransport, getGlobalScope } from '@amplitude/analytics-core';
 import { Payload, Response, Transport } from '@amplitude/analytics-types';
 
 export class SendBeaconTransport extends BaseTransport implements Transport {
