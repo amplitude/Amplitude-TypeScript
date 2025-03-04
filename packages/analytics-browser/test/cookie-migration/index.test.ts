@@ -1,8 +1,7 @@
-import { CookieStorage, getOldCookieName } from '@amplitude/analytics-client-common';
 import { Storage, UserSession } from '@amplitude/analytics-types';
 import { decode, parseLegacyCookies, parseTime } from '../../src/cookie-migration';
 import * as LocalStorageModule from '../../src/storage/local-storage';
-import { MemoryStorage } from '@amplitude/analytics-core';
+import { MemoryStorage, CookieStorage, getOldCookieName } from '@amplitude/analytics-core';
 
 describe('cookie-migration', () => {
   const API_KEY = 'asdfasdf';
