@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.19.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.19.2...@amplitude/session-replay-browser@1.19.3) (2025-03-04)
+
+
+### Bug Fixes
+
+* **session replay:** reduce chance of recursive loop with console tracking ([a118511](https://github.com/amplitude/Amplitude-TypeScript/commit/a1185118446b6305154c59319f5d947c78315e94))
+
+
+
+
+
 ## 1.19.2 (2025-02-28)
 
 
