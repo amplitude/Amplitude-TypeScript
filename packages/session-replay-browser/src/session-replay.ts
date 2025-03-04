@@ -81,7 +81,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
-    this.loggerProvider = new SafeLoggerProvider(options?.loggerProvider || new Logger());
+    this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });

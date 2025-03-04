@@ -37,7 +37,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     const defaultConfig = getDefaultConfig();
     super({
       transportProvider: defaultConfig.transportProvider,
-      loggerProvider: new SafeLoggerProvider(options?.loggerProvider || defaultConfig.loggerProvider),
+      loggerProvider: new SafeLoggerProvider(options.loggerProvider || defaultConfig.loggerProvider),
       ...options,
       apiKey,
     });
