@@ -1,11 +1,10 @@
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import {
   CookieStorage,
   FetchTransport,
   getAnalyticsConnector,
   getCookieName,
-} from '@amplitude/analytics-client-common';
-import { WebAttribution } from '@amplitude/analytics-client-common/src';
+  WebAttribution,
+} from '@amplitude/analytics-core';
 import * as core from '@amplitude/analytics-core';
 import { AutocaptureOptions, LogLevel, OfflineDisabled, Status, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
@@ -406,7 +405,7 @@ describe('browser-client', () => {
     });
 
     test('should not support offline mode if global scope returns undefined', async () => {
-      const getGlobalScopeMock = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValueOnce(undefined);
+      const getGlobalScopeMock = jest.spyOn(core, 'getGlobalScope').mockReturnValueOnce(undefined);
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
 
       await client.init(apiKey, {
@@ -1169,7 +1168,7 @@ describe('browser-client', () => {
 
       client.webAttribution = new WebAttribution({}, { ...client.config, lastEventTime: undefined });
       client.webAttribution.shouldTrackNewCampaign = true;
-      jest.spyOn(AnalyticsClientCommon, 'isNewSession').mockReturnValueOnce(false);
+      jest.spyOn(core, 'isNewSession').mockReturnValueOnce(false);
       await client.process({
         event_type: 'event',
       });

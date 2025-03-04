@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getGlobalScope } from '../src/global-scope';
 

@@ -1,3 +1,7 @@
+/**
+ * @jest-environment jsdom
+ */
+
 import { CookieStorage } from '../../src/storage/cookie';
 import * as GlobalScopeModule from '../../src/global-scope';
 
