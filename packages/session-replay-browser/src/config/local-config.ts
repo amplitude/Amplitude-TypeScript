@@ -10,6 +10,7 @@ import {
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
 } from './types';
+import { SafeLoggerProvider } from '../logger';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -36,6 +37,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     const defaultConfig = getDefaultConfig();
     super({
       transportProvider: defaultConfig.transportProvider,
+      loggerProvider: new SafeLoggerProvider(options.loggerProvider || defaultConfig.loggerProvider),
       ...options,
       apiKey,
     });

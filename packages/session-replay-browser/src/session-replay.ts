@@ -32,6 +32,7 @@ import {
 import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
 import { getRecordConsolePlugin } from '@amplitude/rrweb-plugin-console-record';
+import { SafeLoggerProvider } from './logger';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -51,7 +52,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private scrollHook?: scrollCallback;
 
   constructor() {
-    this.loggerProvider = new Logger();
+    this.loggerProvider = new SafeLoggerProvider(new Logger());
   }
 
   init(apiKey: string, options: SessionReplayOptions) {
@@ -80,7 +81,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
-    this.loggerProvider = options.loggerProvider || new Logger();
+    this.loggerProvider = new SafeLoggerProvider(options.loggerProvider || new Logger());
     Object.prototype.hasOwnProperty.call(options, 'logLevel') &&
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
