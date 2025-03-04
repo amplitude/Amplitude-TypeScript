@@ -1,12 +1,25 @@
-import {
-  RevenueProperty,
-  RevenueEventProperties,
-  Revenue as IRevenue,
-  ValidPropertyType,
-} from '@amplitude/analytics-types';
+import { ValidPropertyType } from './event/event';
 import { isValidObject } from './utils/valid-properties';
 
-export class Revenue implements IRevenue {
+export enum RevenueProperty {
+  REVENUE_PRODUCT_ID = '$productId',
+  REVENUE_QUANTITY = '$quantity',
+  REVENUE_PRICE = '$price',
+  REVENUE_TYPE = '$revenueType',
+  REVENUE_CURRENCY = '$currency',
+  REVENUE = '$revenue',
+}
+
+export interface RevenueEventProperties {
+  [RevenueProperty.REVENUE_PRODUCT_ID]?: string;
+  [RevenueProperty.REVENUE_QUANTITY]?: number;
+  [RevenueProperty.REVENUE_PRICE]?: number;
+  [RevenueProperty.REVENUE_TYPE]?: string;
+  [RevenueProperty.REVENUE_CURRENCY]?: string;
+  [RevenueProperty.REVENUE]?: number;
+}
+
+export class Revenue {
   private productId: string;
   private quantity: number;
   private price: number;
