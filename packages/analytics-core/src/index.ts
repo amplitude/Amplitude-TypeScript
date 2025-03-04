@@ -33,3 +33,7 @@ export { CookieStorage } from './storage/cookie';
 export { getCookieName, getOldCookieName } from './cookie-name';
 export { FetchTransport } from './transports/fetch';
 export { getLanguage } from './language';
+
+export { Event } from './event/event';
+export { EventOptions } from './event/base-event';
+export { Result } from './result';
