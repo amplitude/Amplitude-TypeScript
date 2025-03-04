@@ -33,7 +33,3 @@ export { CookieStorage } from './storage/cookie';
 export { getCookieName, getOldCookieName } from './cookie-name';
 export { FetchTransport } from './transports/fetch';
 export { getLanguage } from './language';
-
-// The following APIs are available in browser environment only.
-
-// The following APIs are available in node environment only.
