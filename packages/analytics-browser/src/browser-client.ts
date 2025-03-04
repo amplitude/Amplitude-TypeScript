@@ -1,9 +1,6 @@
 import {
   AmplitudeCore,
   Destination,
-  Event,
-  EventOptions,
-  Result,
   Identify,
   returnWrapper,
   Revenue,
@@ -29,8 +26,13 @@ import {
   BrowserClient,
   BrowserConfig,
   BrowserOptions,
+  Event,
+  EventOptions,
+  Identify as IIdentify,
+  Revenue as IRevenue,
   TransportType,
   OfflineDisabled,
+  Result,
 } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -270,7 +272,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.config.transportProvider = createTransport(transport);
   }
 
-  identify(identify: Identify, eventOptions?: EventOptions) {
+  identify(identify: IIdentify, eventOptions?: EventOptions) {
     if (isInstanceProxy(identify)) {
       const queue = identify._q;
       identify._q = [];
@@ -285,7 +287,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return super.identify(identify, eventOptions);
   }
 
-  groupIdentify(groupType: string, groupName: string | string[], identify: Identify, eventOptions?: EventOptions) {
+  groupIdentify(groupType: string, groupName: string | string[], identify: IIdentify, eventOptions?: EventOptions) {
     if (isInstanceProxy(identify)) {
       const queue = identify._q;
       identify._q = [];
@@ -294,7 +296,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return super.groupIdentify(groupType, groupName, identify, eventOptions);
   }
 
-  revenue(revenue: Revenue, eventOptions?: EventOptions) {
+  revenue(revenue: IRevenue, eventOptions?: EventOptions) {
     if (isInstanceProxy(revenue)) {
       const queue = revenue._q;
       revenue._q = [];
