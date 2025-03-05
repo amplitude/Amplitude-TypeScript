@@ -4,12 +4,12 @@ describe('page-view-tracking-enrichment', () => {
   describe('execute', () => {
     test('should enrich page view event', async () => {
       const mockEvent = {
-        event_type: 'Page View',
+        event_type: '[Amplitude] Page Viewed',
       };
       const plugin = pageViewTrackingEnrichment();
       const result = await plugin.execute?.(mockEvent);
       expect(result).toEqual({
-        event_type: 'Page View',
+        event_type: '[Amplitude] Page Viewed',
         event_properties: {
           new_property: 'new_value',
         },
