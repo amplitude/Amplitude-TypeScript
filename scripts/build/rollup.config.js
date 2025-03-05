@@ -37,7 +37,7 @@ export const umd = {
   },
   plugins: [
     typescript({
-      module: 'es6',
+      module: 'es2020',
       noEmit: false,
       outDir: 'lib/umd',
       rootDir: 'src',
@@ -100,7 +100,7 @@ export const iife = {
   plugins: [
     updateLibPrefixPlugin(),
     typescript({
-      module: 'es6',
+      module: 'es2020',
       noEmit: false,
       outDir: 'lib/script',
       rootDir: 'src',
@@ -164,7 +164,7 @@ export const iifeGTM = {
   },
   plugins: [
     typescript({
-      module: 'es6',
+      module: 'es2020',
       noEmit: false,
       outDir: 'lib/script',
       rootDir: 'src',
