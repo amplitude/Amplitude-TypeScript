@@ -6,11 +6,32 @@ import { terser } from 'rollup-plugin-terser';
 import typescript from '@rollup/plugin-typescript';
 import { rollup } from 'rollup';
 import path from 'node:path';
+import commonjs from '@rollup/plugin-commonjs';
 
 iife.input = umd.input;
 iife.output.name = 'sessionReplay';
 iife.output.inlineDynamicImports = true;
 umd.output.inlineDynamicImports = true;
+
+// Update main bundle configuration to exclude console plugin
+const mainBundleConfig = {
+  ...iife,
+  external: ['@amplitude/rrweb-plugin-console-record'],
+  plugins: [
+    ...iife.plugins,
+    resolve({
+      browser: true,
+      preferBuiltins: true,
+      // Exclude the console plugin from being bundled
+      exclude: ['@amplitude/rrweb-plugin-console-record'],
+    }),
+    commonjs({
+      include: /node_modules/,
+      // Exclude the console plugin from being bundled
+      exclude: ['@amplitude/rrweb-plugin-console-record'],
+    }),
+  ],
+};
 
 async function buildWebWorker() {
   const input = path.join(path.dirname(new URL(import.meta.url).pathname), './src/worker/compression.ts');
@@ -54,8 +75,8 @@ export async function webWorkerPlugins() {
 export default async () => {
   const commonPlugins = await webWorkerPlugins();
 
-  iife.plugins = [...commonPlugins, ...iife.plugins];
+  mainBundleConfig.plugins = [...commonPlugins, ...mainBundleConfig.plugins];
   umd.plugins = [...commonPlugins, ...umd.plugins];
 
-  return [iife, umd];
+  return [mainBundleConfig, umd];
 };
