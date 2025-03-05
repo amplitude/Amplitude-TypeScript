@@ -31,7 +31,6 @@ import {
 } from './typings/session-replay';
 import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
-import { getRecordConsolePlugin } from '@amplitude/rrweb-plugin-console-record';
 import { SafeLoggerProvider } from './logger';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
@@ -174,7 +173,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     if (this.joinedConfigGenerator && previousSessionId) {
       this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
     }
-    this.recordEvents();
+    void this.recordEvents();
   }
 
   getSessionReplayProperties() {
@@ -222,7 +221,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   focusListener = () => {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
-    this.recordEvents();
+    void this.recordEvents();
   };
 
   /**
@@ -258,7 +257,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.eventsManager && shouldSendStoredEvents && this.eventsManager.sendStoredEvents({ deviceId });
 
-    this.recordEvents();
+    void this.recordEvents();
   }
 
   shouldOptOut() {
@@ -319,28 +318,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return maskSelector as unknown as string;
   }
 
-  getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
+  async getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
     const plugins = [];
 
-    // Default plugin settings -
-    // {
-    //   level: ['info', 'log', 'warn', 'error'],
-    //   lengthThreshold: 10000,
-    //   stringifyOptions: {
-    //     stringLengthLimit: undefined,
-    //     numOfKeysLimit: 50,
-    //     depthOfLimit: 4,
-    //   },
-    //   logger: window.console,
-    //   }
     if (loggingConfig?.console?.enabled) {
-      plugins.push(getRecordConsolePlugin({ level: loggingConfig.console.levels }));
+      try {
+        const { getRecordConsolePlugin } = await import('@amplitude/rrweb-plugin-console-record');
+        plugins.push(getRecordConsolePlugin({ level: loggingConfig.console.levels }));
+      } catch (error) {
+        this.loggerProvider.warn('Failed to load console plugin:', error);
+      }
     }
 
     return plugins.length > 0 ? plugins : undefined;
   }
 
-  recordEvents() {
+  async recordEvents() {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
@@ -364,55 +357,52 @@ export class SessionReplay implements AmplitudeSessionReplay {
       : {};
 
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
-    this.recordCancelCallback = record({
-      emit: (event) => {
-        if (this.shouldOptOut()) {
-          this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
-          this.stopRecordingEvents();
-          this.sendEvents();
-          return;
-        }
 
-        if (this.eventCompressor) {
-          // Schedule processing during idle time if the browser supports requestIdleCallback
-          this.eventCompressor.enqueueEvent(event, sessionId);
-        }
-      },
-      inlineStylesheet: config.shouldInlineStylesheet,
-      hooks,
-      maskAllInputs: true,
-      maskTextClass: MASK_TEXT_CLASS,
-      blockClass: BLOCK_CLASS,
-      // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
-      blockSelector: this.getBlockSelectors() as string | undefined,
-      maskInputFn: maskFn('input', privacyConfig),
-      maskTextFn: maskFn('text', privacyConfig),
-      // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
-      maskTextSelector: this.getMaskTextSelectors(),
-      recordCanvas: false,
-      errorHandler: (error) => {
-        const typedError = error as Error & { _external_?: boolean };
+    try {
+      this.recordCancelCallback = record({
+        emit: (event) => {
+          if (this.shouldOptOut()) {
+            this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
+            this.stopRecordingEvents();
+            this.sendEvents();
+            return;
+          }
 
-        // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
-        if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
-          throw typedError;
-        }
+          if (this.eventCompressor) {
+            this.eventCompressor.enqueueEvent(event, sessionId);
+          }
+        },
+        inlineStylesheet: config.shouldInlineStylesheet,
+        hooks,
+        maskAllInputs: true,
+        maskTextClass: MASK_TEXT_CLASS,
+        blockClass: BLOCK_CLASS,
+        blockSelector: this.getBlockSelectors() as string | undefined,
+        maskInputFn: maskFn('input', privacyConfig),
+        maskTextFn: maskFn('text', privacyConfig),
+        maskTextSelector: this.getMaskTextSelectors(),
+        recordCanvas: false,
+        errorHandler: (error) => {
+          const typedError = error as Error & { _external_?: boolean };
 
-        // rrweb does monkey patching on certain window functions such as CSSStyleSheet.proptype.insertRule,
-        // and errors from external clients calling these functions can get suppressed. Styled components depend
-        // on these errors being re-thrown.
-        if (typedError._external_) {
-          throw typedError;
-        }
+          if (typedError.message.includes('insertRule') && typedError.message.includes('CSSStyleSheet')) {
+            throw typedError;
+          }
 
-        this.loggerProvider.warn('Error while capturing replay: ', typedError.toString());
-        // Return true so that we don't clutter user's consoles with internal rrweb errors
-        return true;
-      },
-      plugins: this.getRecordingPlugins(loggingConfig),
-    });
+          if (typedError._external_) {
+            throw typedError;
+          }
 
-    void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
+          this.loggerProvider.warn('Error while capturing replay: ', typedError.toString());
+          return true;
+        },
+        plugins: await this.getRecordingPlugins(loggingConfig),
+      });
+
+      void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
+    } catch (error) {
+      this.loggerProvider.warn('Failed to initialize session replay:', error);
+    }
   }
 
   addCustomRRWebEvent = async (

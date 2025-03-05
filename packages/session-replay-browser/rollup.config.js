@@ -1,6 +1,5 @@
 import { iife, umd } from '../../scripts/build/rollup.config';
 
-
 import resolve from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
 import { terser } from 'rollup-plugin-terser';
@@ -10,6 +9,8 @@ import path from 'node:path';
 
 iife.input = umd.input;
 iife.output.name = 'sessionReplay';
+iife.output.inlineDynamicImports = true;
+umd.output.inlineDynamicImports = true;
 
 async function buildWebWorker() {
   const input = path.join(path.dirname(new URL(import.meta.url).pathname), './src/worker/compression.ts');
