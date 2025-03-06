@@ -1,4 +1,5 @@
-import { BeforePlugin, Config } from '@amplitude/analytics-types';
+import { BeforePlugin } from '@amplitude/analytics-types';
+import { IConfig } from '../config';
 import { Event } from '../event/event';
 import { getAnalyticsConnector } from '../analytics-connector';
 
@@ -16,7 +17,7 @@ export class IdentityEventSender implements BeforePlugin {
     return context;
   }
 
-  async setup(config: Config) {
+  async setup(config: IConfig) {
     if (config.instanceName) {
       this.identityStore = getAnalyticsConnector(config.instanceName).identityStore;
     }
