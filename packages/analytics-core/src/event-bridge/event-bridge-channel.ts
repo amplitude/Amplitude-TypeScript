@@ -1,4 +1,4 @@
-import { EventBridgeReceiver } from '@amplitude/analytics-types';
+import { IEventBridgeReceiver } from './event-bridge';
 import { Event } from '../event/event';
 
 const QUEUE_CAPACITY = 512;
@@ -6,7 +6,7 @@ const QUEUE_CAPACITY = 512;
 export class EventBridgeChannel {
   channel: string;
   queue: Event[] = [];
-  receiver: EventBridgeReceiver | undefined;
+  receiver: IEventBridgeReceiver | undefined;
 
   constructor(channel: string) {
     this.channel = channel;
@@ -20,7 +20,7 @@ export class EventBridgeChannel {
     this.receiver.receive(this.channel, event);
   }
 
-  setReceiver(receiver: EventBridgeReceiver) {
+  setReceiver(receiver: IEventBridgeReceiver) {
     if (this.receiver) {
       return;
     }
@@ -28,7 +28,7 @@ export class EventBridgeChannel {
     const events = this.queue;
     this.queue = [];
     events.forEach((event) => {
-      (this.receiver as EventBridgeReceiver).receive(this.channel, event);
+      (this.receiver as IEventBridgeReceiver).receive(this.channel, event);
     });
   }
 }
