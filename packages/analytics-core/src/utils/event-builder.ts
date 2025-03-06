@@ -4,12 +4,11 @@ import {
   IdentifyEvent,
   GroupIdentifyEvent,
   SpecialEventType,
-  Identify as IIdentify,
-  Revenue,
   RevenueEvent,
   EventOptions,
 } from '@amplitude/analytics-types';
-import { Identify } from '../identify';
+import { Identify, IIdentify } from '../identify';
+import { IRevenue } from '../revenue';
 
 export const createTrackEvent = (
   eventInput: BaseEvent | string,
@@ -67,7 +66,7 @@ export const createGroupEvent = (groupType: string, groupName: string | string[]
   return groupEvent;
 };
 
-export const createRevenueEvent = (revenue: Revenue, eventOptions?: EventOptions): RevenueEvent => {
+export const createRevenueEvent = (revenue: IRevenue, eventOptions?: EventOptions): RevenueEvent => {
   return {
     ...eventOptions,
     event_type: SpecialEventType.REVENUE,

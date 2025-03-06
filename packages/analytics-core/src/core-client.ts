@@ -1,14 +1,6 @@
-import {
-  BaseEvent,
-  Config,
-  CoreClient,
-  Event,
-  EventOptions,
-  Identify,
-  Plugin,
-  Result,
-  Revenue,
-} from '@amplitude/analytics-types';
+import { BaseEvent, Config, CoreClient, Event, EventOptions, Plugin, Result } from '@amplitude/analytics-types';
+import { IIdentify } from './identify';
+import { IRevenue } from './revenue';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './messages';
 import { Timeline } from './timeline';
 import {
@@ -73,12 +65,12 @@ export class AmplitudeCore implements CoreClient {
 
   logEvent = this.track.bind(this);
 
-  identify(identify: Identify, eventOptions?: EventOptions) {
+  identify(identify: IIdentify, eventOptions?: EventOptions) {
     const event = createIdentifyEvent(identify, eventOptions);
     return returnWrapper(this.dispatch(event));
   }
 
-  groupIdentify(groupType: string, groupName: string | string[], identify: Identify, eventOptions?: EventOptions) {
+  groupIdentify(groupType: string, groupName: string | string[], identify: IIdentify, eventOptions?: EventOptions) {
     const event = createGroupIdentifyEvent(groupType, groupName, identify, eventOptions);
     return returnWrapper(this.dispatch(event));
   }
@@ -88,7 +80,7 @@ export class AmplitudeCore implements CoreClient {
     return returnWrapper(this.dispatch(event));
   }
 
-  revenue(revenue: Revenue, eventOptions?: EventOptions) {
+  revenue(revenue: IRevenue, eventOptions?: EventOptions) {
     const event = createRevenueEvent(revenue, eventOptions);
     return returnWrapper(this.dispatch(event));
   }
