@@ -1,4 +1,7 @@
-import { BaseEvent, Config, CoreClient, Event, EventOptions, Plugin, Result } from '@amplitude/analytics-types';
+import { Config, CoreClient, Plugin } from '@amplitude/analytics-types';
+import { BaseEvent, EventOptions } from './event/base-event';
+import { Result } from './result';
+import { Event } from './event/event';
 import { IIdentify } from './identify';
 import { IRevenue } from './revenue';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './messages';

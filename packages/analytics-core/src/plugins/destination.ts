@@ -2,15 +2,15 @@ import {
   Config,
   DestinationContext as Context,
   DestinationPlugin,
-  Event,
   InvalidResponse,
   PayloadTooLargeResponse,
   RateLimitResponse,
   Response,
-  Result,
-  Status,
   SuccessResponse,
 } from '@amplitude/analytics-types';
+import { Event } from '../event/event';
+import { Result } from '../result';
+import { Status } from '../status';
 import {
   INVALID_API_KEY,
   MAX_RETRIES_EXCEEDED_MESSAGE,

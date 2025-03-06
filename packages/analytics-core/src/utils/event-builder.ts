@@ -1,14 +1,7 @@
-import {
-  BaseEvent,
-  TrackEvent,
-  IdentifyEvent,
-  GroupIdentifyEvent,
-  SpecialEventType,
-  RevenueEvent,
-  EventOptions,
-} from '@amplitude/analytics-types';
 import { Identify, IIdentify } from '../identify';
 import { IRevenue } from '../revenue';
+import { BaseEvent, EventOptions } from '../event/base-event';
+import { TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType, RevenueEvent } from '../event/event';
 
 export const createTrackEvent = (
   eventInput: BaseEvent | string,
