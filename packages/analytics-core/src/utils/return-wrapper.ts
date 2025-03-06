@@ -1,4 +1,6 @@
-import { AmplitudeReturn } from '@amplitude/analytics-types';
+export interface AmplitudeReturn<T> {
+  promise: Promise<T>;
+}
 
 export const returnWrapper: {
   (): AmplitudeReturn<void>;

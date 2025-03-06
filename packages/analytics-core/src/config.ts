@@ -1,7 +1,8 @@
-import { Storage, Transport, ServerZoneType, OfflineDisabled } from '@amplitude/analytics-types';
+import { Transport, ServerZoneType, OfflineDisabled } from '@amplitude/analytics-types';
 import { Event } from './event/event';
 import { Plan } from './event/plan';
 import { IngestionMetadata } from './event/ingestion-metadata';
+import { Storage } from './storage/storage';
 import {
   AMPLITUDE_SERVER_URL,
   AMPLITUDE_BATCH_SERVER_URL,
