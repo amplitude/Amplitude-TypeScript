@@ -4,11 +4,11 @@ import {
   CoreClient,
   DestinationPlugin,
   EnrichmentPlugin,
-  Event,
   EventCallback,
   Plugin,
-  Result,
 } from '@amplitude/analytics-types';
+import { Event } from './event/event';
+import { Result } from './result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 

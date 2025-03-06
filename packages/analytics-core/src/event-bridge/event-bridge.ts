@@ -1,4 +1,5 @@
-import { Event, EventBridgeReceiver, EventBridge as IEventBridge } from '@amplitude/analytics-types';
+import { EventBridgeReceiver, EventBridge as IEventBridge } from '@amplitude/analytics-types';
+import { Event } from '../event/event';
 import { EventBridgeChannel } from './event-bridge-channel';
 
 export class EventBridge implements IEventBridge {

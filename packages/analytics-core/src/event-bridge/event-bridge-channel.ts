@@ -1,4 +1,5 @@
-import { Event, EventBridgeReceiver } from '@amplitude/analytics-types';
+import { EventBridgeReceiver } from '@amplitude/analytics-types';
+import { Event } from '../event/event';
 
 const QUEUE_CAPACITY = 512;
 

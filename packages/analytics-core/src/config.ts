@@ -1,11 +1,9 @@
 import {
-  Event,
   Config as IConfig,
   Logger as ILogger,
   LogLevel,
   Storage,
   Transport,
-  Plan,
   IngestionMetadata,
   Options,
   ServerZoneType,
@@ -14,6 +12,8 @@ import {
   HistogramOptions as IHistogramOptions,
   HistogramKey,
 } from '@amplitude/analytics-types';
+import { Event } from './event/event';
+import { Plan } from './event/plan';
 import {
   AMPLITUDE_SERVER_URL,
   AMPLITUDE_BATCH_SERVER_URL,

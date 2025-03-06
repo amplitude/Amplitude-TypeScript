@@ -1,4 +1,5 @@
-import { BeforePlugin, Config, Event } from '@amplitude/analytics-types';
+import { BeforePlugin, Config } from '@amplitude/analytics-types';
+import { Event } from '../event/event';
 import { getAnalyticsConnector } from '../analytics-connector';
 
 export class IdentityEventSender implements BeforePlugin {
