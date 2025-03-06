@@ -353,6 +353,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     this.networkObservers?.start((event: NetworkRequestEvent) => {
+      console.log('event in observer', event);
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });
     const { privacyConfig, interactionConfig, loggingConfig } = config;

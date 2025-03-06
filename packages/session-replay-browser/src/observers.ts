@@ -1,5 +1,4 @@
 import { getGlobalScope } from '@amplitude/analytics-client-common';
-// import type { Logger } from '@amplitude/analytics-types';
 
 export interface NetworkRequestEvent {
   timestamp: number;
@@ -10,19 +9,17 @@ export interface NetworkRequestEvent {
   duration?: number;
   requestHeaders?: Record<string, string>;
   responseHeaders?: Record<string, string>;
+  error?: {
+    name: string;
+    message: string;
+  };
 }
 
 export type NetworkEventCallback = (event: NetworkRequestEvent) => void;
 
 export class NetworkObservers {
   private fetchObserver: (() => void) | null = null;
-  //   private loggerProvider: Logger;
   private eventCallback?: NetworkEventCallback;
-
-  //   constructor(loggerProvider: Logger) {
-  constructor() {
-    // this.loggerProvider = loggerProvider;
-  }
 
   start(eventCallback: NetworkEventCallback) {
     this.eventCallback = eventCallback;
@@ -47,7 +44,7 @@ export class NetworkObservers {
       const requestEvent: NetworkRequestEvent = {
         timestamp: startTime,
         type: 'fetch',
-        method: init?.method || 'GET',
+        method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
         url: input.toString(),
         requestHeaders: init?.headers as Record<string, string>,
       };
@@ -71,6 +68,14 @@ export class NetworkObservers {
       } catch (error) {
         const endTime = Date.now();
         requestEvent.duration = endTime - startTime;
+
+        // Capture error information
+        const typedError = error as Error;
+        requestEvent.error = {
+          name: typedError.name || 'UnknownError',
+          message: typedError.message || 'An unknown error occurred',
+        };
+
         this.eventCallback?.(requestEvent);
         throw error;
       }
