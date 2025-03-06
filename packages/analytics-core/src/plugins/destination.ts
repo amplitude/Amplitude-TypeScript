@@ -1,5 +1,4 @@
 import {
-  Config,
   DestinationContext as Context,
   DestinationPlugin,
   InvalidResponse,
@@ -23,6 +22,7 @@ import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
+import { IConfig } from '../config';
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -51,7 +51,7 @@ export class Destination implements DestinationPlugin {
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  config: Config;
+  config: IConfig;
   // Indicator of whether events that are scheduled (but not flushed yet).
   // When flush:
   //   1. assign `scheduleId` to `flushId`
@@ -64,7 +64,7 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
 
-  async setup(config: Config): Promise<undefined> {
+  async setup(config: IConfig): Promise<undefined> {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;

@@ -1,4 +1,5 @@
-import { Config, CoreClient, Plugin } from '@amplitude/analytics-types';
+import { CoreClient, Plugin } from '@amplitude/analytics-types';
+import { IConfig } from './config';
 import { BaseEvent, EventOptions } from './event/base-event';
 import { Result } from './result';
 import { Event } from './event/event';
@@ -21,7 +22,7 @@ export class AmplitudeCore implements CoreClient {
   protected name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  config: Config;
+  config: IConfig;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   timeline: Timeline;
@@ -34,7 +35,7 @@ export class AmplitudeCore implements CoreClient {
     this.name = name;
   }
 
-  protected async _init(config: Config) {
+  protected async _init(config: IConfig) {
     this.config = config;
     this.timeline.reset(this);
     await this.runQueuedFunctions('q');
