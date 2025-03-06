@@ -1,4 +1,4 @@
-import { Storage } from '@amplitude/analytics-types';
+import { Storage } from './storage';
 
 export class MemoryStorage<T> implements Storage<T> {
   memoryStorage: Map<string, T> = new Map();
