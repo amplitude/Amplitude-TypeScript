@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.19.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.19.3...@amplitude/session-replay-browser@1.19.4) (2025-03-06)
+
+
+### Bug Fixes
+
+* **session replay:** truncate the X-Client-Url to avoid ELB 400 error ([#984](https://github.com/amplitude/Amplitude-TypeScript/issues/984)) ([9cbbb09](https://github.com/amplitude/Amplitude-TypeScript/commit/9cbbb094190a3296e1abff0e2167ee9a8dbc0805))
+
+
+
+
+
 ## [1.19.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.19.2...@amplitude/session-replay-browser@1.19.3) (2025-03-04)
 
 
