@@ -1,4 +1,6 @@
-import { Transport, ServerZoneType, OfflineDisabled } from '@amplitude/analytics-types';
+import { OfflineDisabled } from './offline';
+import { ServerZoneType } from './server-zone';
+import { Transport } from './transports/transport';
 import { Event } from './event/event';
 import { Plan } from './event/plan';
 import { IngestionMetadata } from './event/ingestion-metadata';
