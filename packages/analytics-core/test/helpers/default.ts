@@ -1,7 +1,6 @@
-import { Config } from '@amplitude/analytics-types';
-import { getDefaultConfig } from '../../src/config';
+import { getDefaultConfig, IConfig } from '../../src/config';
 
-export const useDefaultConfig = (): Config => ({
+export const useDefaultConfig = (): IConfig => ({
   apiKey: API_KEY,
   transportProvider: {
     send: () => Promise.resolve(null),
