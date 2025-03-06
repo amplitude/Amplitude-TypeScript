@@ -1,5 +1,7 @@
 import { BaseTransport } from './base';
-import { Payload, Response, Transport } from '@amplitude/analytics-types';
+import { Transport } from '@amplitude/analytics-types';
+import { Payload } from '../payload';
+import { Response } from '../response';
 
 export class FetchTransport extends BaseTransport implements Transport {
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {

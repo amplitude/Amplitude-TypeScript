@@ -1,12 +1,6 @@
-import {
-  BeforePlugin,
-  Config,
-  CoreClient,
-  DestinationPlugin,
-  EnrichmentPlugin,
-  EventCallback,
-  Plugin,
-} from '@amplitude/analytics-types';
+import { BeforePlugin, CoreClient, DestinationPlugin, EnrichmentPlugin, Plugin } from '@amplitude/analytics-types';
+import { IConfig } from './config';
+import { EventCallback } from './event-callback';
 import { Event } from './event/event';
 import { Result } from './result';
 import { buildResult } from './utils/result-builder';
@@ -22,7 +16,7 @@ export class Timeline {
 
   constructor(private client: CoreClient) {}
 
-  async register(plugin: Plugin, config: Config) {
+  async register(plugin: Plugin, config: IConfig) {
     if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       config.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
@@ -41,7 +35,7 @@ export class Timeline {
     this.plugins.push(plugin);
   }
 
-  async deregister(pluginName: string, config: Config) {
+  async deregister(pluginName: string, config: IConfig) {
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (index === -1) {
       config.loggerProvider.warn(`Plugin with name ${pluginName} does not exist, skipping deregistration`);
