@@ -1,5 +1,5 @@
 import { BaseTransport } from './base';
-import { Transport } from '@amplitude/analytics-types';
+import { Transport } from './transport';
 import { Payload } from '../payload';
 import { Response } from '../response';
 

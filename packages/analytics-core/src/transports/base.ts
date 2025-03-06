@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Transport } from '@amplitude/analytics-types';
+import { Transport } from './transport';
 import { Status } from '../status';
 import { Payload } from '../payload';
 import { Response } from '../response';
