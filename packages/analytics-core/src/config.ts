@@ -1,14 +1,4 @@
-import {
-  Storage,
-  Transport,
-  IngestionMetadata,
-  Options,
-  ServerZoneType,
-  OfflineDisabled,
-  RequestMetadata as IRequestMetadata,
-  HistogramOptions as IHistogramOptions,
-  HistogramKey,
-} from '@amplitude/analytics-types';
+import { Storage, Transport, IngestionMetadata, ServerZoneType, OfflineDisabled } from '@amplitude/analytics-types';
 import { Event } from './event/event';
 import { Plan } from './event/plan';
 import {
@@ -111,7 +101,30 @@ export interface IConfig {
   /**
    * Metrics of the SDK.
    */
-  requestMetadata?: RequestMetadata;
+  requestMetadata?: IRequestMetadata;
+}
+
+export interface IRequestMetadata {
+  sdk: {
+    metrics: {
+      histogram: IHistogramOptions;
+    };
+  };
+
+  recordHistogram<T extends HistogramKey>(key: T, value: IHistogramOptions[T]): void;
+}
+
+export interface IHistogramOptions {
+  remote_config_fetch_time_IDB?: number;
+  remote_config_fetch_time_API_success?: number;
+  remote_config_fetch_time_API_fail?: number;
+}
+
+export type HistogramKey = keyof IHistogramOptions;
+
+export interface ConfigOptions extends Partial<IConfig> {
+  apiKey: string;
+  transportProvider: Transport;
 }
 
 export class Config implements IConfig {
@@ -141,7 +154,7 @@ export class Config implements IConfig {
     this._optOut = optOut;
   }
 
-  constructor(options: Options) {
+  constructor(options: ConfigOptions) {
     const defaultConfig = getDefaultConfig();
     this.apiKey = options.apiKey;
     this.flushIntervalMillis = options.flushIntervalMillis ?? defaultConfig.flushIntervalMillis;
