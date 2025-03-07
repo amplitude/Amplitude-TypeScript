@@ -1,4 +1,5 @@
-import { BeforePlugin, CoreClient, DestinationPlugin, EnrichmentPlugin, Plugin } from '@amplitude/analytics-types';
+import { BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './plugins/plugin';
+import { CoreClient } from './core-client';
 import { IConfig } from './config';
 import { EventCallback } from './event-callback';
 import { Event } from './event/event';

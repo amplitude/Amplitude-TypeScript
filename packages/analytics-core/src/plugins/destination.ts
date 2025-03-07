@@ -1,4 +1,4 @@
-import { DestinationContext as Context, DestinationPlugin } from '@amplitude/analytics-types';
+import { DestinationPlugin } from './plugin';
 import { Event } from '../event/event';
 import { Result } from '../result';
 import { Status } from '../status';
@@ -16,6 +16,14 @@ import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
 import { IConfig } from '../config';
+import { EventCallback } from '../event-callback';
+
+interface Context {
+  event: Event;
+  attempts: number;
+  callback: EventCallback;
+  timeout: number;
+}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
