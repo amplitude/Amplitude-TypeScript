@@ -38,3 +38,4 @@ export { Plugin, BeforePlugin, DestinationPlugin, EnrichmentPlugin, PluginType }
 export { Result } from './result';
 export { ElementInteractionsOptions } from './element-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './page-view-tracking';
+export { Status } from './status';

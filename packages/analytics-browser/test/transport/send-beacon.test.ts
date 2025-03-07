@@ -1,5 +1,5 @@
 import { SendBeaconTransport } from '../../src/transports/send-beacon';
-import { Status } from '@amplitude/analytics-types';
+import { Status } from '@amplitude/analytics-core';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('beacon', () => {

@@ -1,5 +1,5 @@
 import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
-import { BrowserConfig as IBrowserConfig, BrowserRemoteConfig } from '@amplitude/analytics-types';
+import { BrowserConfig as IBrowserConfig, BrowserRemoteConfig } from '../../src/browser';
 import { BrowserJoinedConfigGenerator, createBrowserJoinedConfigGenerator } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
 import { RequestMetadata } from '@amplitude/analytics-core';
