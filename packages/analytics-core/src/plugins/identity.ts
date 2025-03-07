@@ -1,4 +1,4 @@
-import { BeforePlugin } from '@amplitude/analytics-types';
+import { BeforePlugin } from './plugin';
 import { IConfig } from '../config';
 import { Event } from '../event/event';
 import { getAnalyticsConnector } from '../analytics-connector';
