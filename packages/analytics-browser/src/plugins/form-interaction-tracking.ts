@@ -1,4 +1,4 @@
-import { BrowserClient, Event, EnrichmentPlugin } from '@amplitude/analytics-types';
+import { BrowserClient } from '@amplitude/analytics-types';
 import {
   DEFAULT_FORM_START_EVENT,
   DEFAULT_FORM_SUBMIT_EVENT,
@@ -7,7 +7,7 @@ import {
   FORM_DESTINATION,
 } from '../constants';
 import { BrowserConfig } from '../config';
-import { getGlobalScope } from '@amplitude/analytics-core';
+import { getGlobalScope, Event, EnrichmentPlugin } from '@amplitude/analytics-core';
 
 interface EventListener {
   element: Element;

@@ -1,5 +1,5 @@
-import { BeforePlugin, BrowserConfig, Event } from '@amplitude/analytics-types';
-import { UUID, getLanguage } from '@amplitude/analytics-core';
+import { BrowserConfig } from '@amplitude/analytics-types';
+import { UUID, getLanguage, Event, BeforePlugin } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 import { LIBPREFIX } from '../lib-prefix';
 
