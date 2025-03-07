@@ -1,4 +1,4 @@
-import { BrowserConfig as IBrowserConfig, BrowserRemoteConfig } from '@amplitude/analytics-types';
+import { BrowserConfig as IBrowserConfig, BrowserRemoteConfig } from '../browser';
 import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import { RequestMetadata } from '@amplitude/analytics-core';
 

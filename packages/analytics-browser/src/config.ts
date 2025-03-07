@@ -4,7 +4,7 @@ import {
   DefaultTrackingOptions,
   TrackingOptions,
   AutocaptureOptions,
-} from '@amplitude/analytics-types';
+} from './browser';
 import {
   Config,
   Logger,
@@ -32,7 +32,7 @@ import { SessionStorage } from './storage/session-storage';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
-import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
+import { CookieOptions } from './browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 
