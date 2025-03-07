@@ -60,9 +60,7 @@ export function trackClicks({
 
     for (const click of clicks) {
       /* istanbul ignore next */
-      amplitude?.track(clickType, click.targetElementProperties, {
-        time: click.timestamp,
-      });
+      amplitude?.track(clickType, click.targetElementProperties);
     }
   });
 }
