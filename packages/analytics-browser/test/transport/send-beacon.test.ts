@@ -1,6 +1,6 @@
 import { SendBeaconTransport } from '../../src/transports/send-beacon';
 import { Status } from '@amplitude/analytics-types';
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('beacon', () => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -66,7 +66,7 @@ describe('beacon', () => {
     });
 
     test('should handle GlobalScope is not defined', async () => {
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValueOnce(undefined);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValueOnce(undefined);
       const transport = new SendBeaconTransport();
       const url = 'http://localhost:3000';
       const payload = {

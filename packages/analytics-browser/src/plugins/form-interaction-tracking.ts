@@ -7,7 +7,7 @@ import {
   FORM_DESTINATION,
 } from '../constants';
 import { BrowserConfig } from '../config';
-import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { getGlobalScope } from '@amplitude/analytics-core';
 
 interface EventListener {
   element: Element;

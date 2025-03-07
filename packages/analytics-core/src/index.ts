@@ -11,3 +11,25 @@ export { UUID } from './utils/uuid';
 export { MemoryStorage } from './storage/memory';
 export { BaseTransport } from './transports/base';
 export { createIdentifyEvent } from './utils/event-builder';
+
+export { getGlobalScope } from './global-scope';
+export { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from './analytics-connector';
+export {
+  getPageViewTrackingConfig,
+  getAttributionTrackingConfig,
+  getElementInteractionsConfig,
+  isAttributionTrackingEnabled,
+  isFileDownloadTrackingEnabled,
+  isFormInteractionTrackingEnabled,
+  isPageViewTrackingEnabled,
+  isSessionTrackingEnabled,
+  isElementInteractionsEnabled,
+} from './default-tracking';
+export { isNewSession } from './session';
+export { IdentityEventSender } from './plugins/identity';
+export { WebAttribution } from './attribution/web-attribution';
+export { getQueryParams } from './query-params';
+export { CookieStorage } from './storage/cookie';
+export { getCookieName, getOldCookieName } from './cookie-name';
+export { FetchTransport } from './transports/fetch';
+export { getLanguage } from './language';
