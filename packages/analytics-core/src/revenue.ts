@@ -2,13 +2,13 @@ import { isValidObject } from './utils/valid-properties';
 
 export interface IRevenue {
   getEventProperties(): RevenueEventProperties;
-  setProductId(productId: string): Revenue;
-  setQuantity(quantity: number): Revenue;
-  setPrice(price: number): Revenue;
-  setRevenueType(revenueType: string): Revenue;
-  setCurrency(currency: string): Revenue;
-  setEventProperties(properties: { [key: string]: any }): Revenue;
-  setRevenue(revenue: number): Revenue;
+  setProductId(productId: string): IRevenue;
+  setQuantity(quantity: number): IRevenue;
+  setPrice(price: number): IRevenue;
+  setRevenueType(revenueType: string): IRevenue;
+  setCurrency(currency: string): IRevenue;
+  setEventProperties(properties: { [key: string]: any }): IRevenue;
+  setRevenue(revenue: number): IRevenue;
 }
 
 export class Revenue implements IRevenue {
