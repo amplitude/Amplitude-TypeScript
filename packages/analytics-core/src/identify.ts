@@ -3,16 +3,16 @@ import { isValidProperties } from './utils/valid-properties';
 
 export interface IIdentify {
   getUserProperties(): IdentifyUserProperties;
-  set(property: string, value: ValidPropertyType): Identify;
-  setOnce(property: string, value: ValidPropertyType): Identify;
-  append(property: string, value: ValidPropertyType): Identify;
-  prepend(property: string, value: ValidPropertyType): Identify;
-  postInsert(property: string, value: ValidPropertyType): Identify;
-  preInsert(property: string, value: ValidPropertyType): Identify;
-  remove(property: string, value: ValidPropertyType): Identify;
-  add(property: string, value: number): Identify;
-  unset(property: string): Identify;
-  clearAll(): Identify;
+  set(property: string, value: ValidPropertyType): IIdentify;
+  setOnce(property: string, value: ValidPropertyType): IIdentify;
+  append(property: string, value: ValidPropertyType): IIdentify;
+  prepend(property: string, value: ValidPropertyType): IIdentify;
+  postInsert(property: string, value: ValidPropertyType): IIdentify;
+  preInsert(property: string, value: ValidPropertyType): IIdentify;
+  remove(property: string, value: ValidPropertyType): IIdentify;
+  add(property: string, value: number): IIdentify;
+  unset(property: string): IIdentify;
+  clearAll(): IIdentify;
 }
 
 export class Identify implements IIdentify {
