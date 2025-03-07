@@ -3,10 +3,14 @@ import {
   FetchTransport,
   getAnalyticsConnector,
   getCookieName,
-  WebAttribution,
+  LogLevel,
+  OfflineDisabled,
+  Status,
+  UserSession,
 } from '@amplitude/analytics-core';
+import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
-import { AutocaptureOptions, LogLevel, OfflineDisabled, Status, UserSession } from '@amplitude/analytics-types';
+import { AutocaptureOptions } from '../src/browser';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
