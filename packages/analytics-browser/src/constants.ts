@@ -1,4 +1,4 @@
-import { IdentityStorageType, ServerZoneType } from '@amplitude/analytics-types';
+import { IdentityStorageType, ServerZoneType } from '@amplitude/analytics-core';
 
 export const DEFAULT_EVENT_PREFIX = '[Amplitude]';
 
