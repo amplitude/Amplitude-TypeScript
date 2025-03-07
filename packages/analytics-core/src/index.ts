@@ -1,11 +1,11 @@
-export { AmplitudeCore } from './core-client';
+export { AmplitudeCore, CoreClient } from './core-client';
 export { Identify, IIdentify } from './identify';
 export { Revenue, IRevenue } from './revenue';
 export { Destination } from './plugins/destination';
 export { IConfig, Config, RequestMetadata } from './config';
 export { Logger, ILogger, LogLevel } from './logger';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './constants';
-export { returnWrapper } from './utils/return-wrapper';
+export { returnWrapper, AmplitudeReturn } from './utils/return-wrapper';
 export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
 export { UUID } from './utils/uuid';
 export { MemoryStorage } from './storage/memory';

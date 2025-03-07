@@ -1,4 +1,4 @@
-import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserClient } from '../web-client';
 import {
   DEFAULT_FORM_START_EVENT,
   DEFAULT_FORM_SUBMIT_EVENT,

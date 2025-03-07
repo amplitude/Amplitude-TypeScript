@@ -1,5 +1,5 @@
 import { debugWrapper, getClientLogConfig, getClientStates } from '@amplitude/analytics-core';
-import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserClient } from './web-client';
 import { AmplitudeBrowser } from './browser-client';
 
 export const createInstance = (): BrowserClient => {
