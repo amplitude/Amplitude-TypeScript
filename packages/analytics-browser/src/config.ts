@@ -3,7 +3,6 @@ import {
   BrowserConfig as IBrowserConfig,
   DefaultTrackingOptions,
   TrackingOptions,
-  UserSession,
   AutocaptureOptions,
 } from '@amplitude/analytics-types';
 import {
@@ -25,6 +24,7 @@ import {
   getCookieName,
   FetchTransport,
   getQueryParams,
+  UserSession,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';

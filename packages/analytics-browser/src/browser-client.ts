@@ -11,6 +11,13 @@ import {
   isNewSession,
   IdentityEventSender,
   getQueryParams,
+  Event,
+  EventOptions,
+  IIdentify,
+  IRevenue,
+  TransportType,
+  OfflineDisabled,
+  Result,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -23,18 +30,7 @@ import {
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
 } from './default-tracking';
-import {
-  BrowserClient,
-  BrowserConfig,
-  BrowserOptions,
-  Event,
-  EventOptions,
-  Identify as IIdentify,
-  Revenue as IRevenue,
-  TransportType,
-  OfflineDisabled,
-  Result,
-} from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, BrowserOptions } from '@amplitude/analytics-types';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';

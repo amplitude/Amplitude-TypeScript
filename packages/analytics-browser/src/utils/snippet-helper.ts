@@ -1,4 +1,5 @@
-import { AmplitudeReturn, InstanceProxy, QueueProxy, Result } from '@amplitude/analytics-types';
+import { AmplitudeReturn, InstanceProxy, QueueProxy } from '@amplitude/analytics-types';
+import { Result } from '@amplitude/analytics-core';
 
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
