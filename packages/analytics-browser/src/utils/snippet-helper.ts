@@ -1,5 +1,17 @@
-import { AmplitudeReturn, InstanceProxy, QueueProxy } from '@amplitude/analytics-types';
-import { Result } from '@amplitude/analytics-core';
+import { Result, AmplitudeReturn } from '@amplitude/analytics-core';
+
+interface ProxyItem {
+  name: string;
+  args: any[];
+  resolve?: (promise: Promise<Result>) => void;
+}
+
+type QueueProxy = Array<ProxyItem>;
+
+interface InstanceProxy {
+  _q: QueueProxy;
+  _iq: Record<string, InstanceProxy>;
+}
 
 /**
  * Applies the proxied functions on the proxied amplitude snippet to an instance of the real object.
