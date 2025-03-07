@@ -89,8 +89,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
     this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
-    // this.networkObservers = new NetworkObservers(this.loggerProvider);
-    this.networkObservers = new NetworkObservers();
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -353,10 +351,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     this.networkObservers?.start((event: NetworkRequestEvent) => {
-      console.log('event in observer', event);
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });
     const { privacyConfig, interactionConfig, loggingConfig } = config;
+
+    if (loggingConfig?.network?.enabled) {
+      this.networkObservers = new NetworkObservers();
+    }
 
     const hooks = interactionConfig?.enabled
       ? {
@@ -446,7 +447,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
       // Check first to ensure we are recording
       if (this.recordCancelCallback) {
-        this.loggerProvider.debug('Adding custom replay capture event:', JSON.stringify(eventData));
         record.addCustomEvent(eventName, {
           ...eventData,
           ...debugInfo,
