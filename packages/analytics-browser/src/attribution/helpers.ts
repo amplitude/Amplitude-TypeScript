@@ -1,7 +1,5 @@
-import { createIdentifyEvent } from '../utils/event-builder';
-import { Identify } from '../identify';
-import { Campaign } from '@amplitude/analytics-types';
-import { ILogger } from '../logger';
+import { createIdentifyEvent, Identify, ILogger } from '@amplitude/analytics-core';
+import { Campaign } from './campaign';
 import { BASE_CAMPAIGN } from './constants';
 
 export interface Options {
