@@ -148,6 +148,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
 
+    // Initialize network observers if logging is enabled
+    if (this.config?.loggingConfig?.network?.enabled) {
+      this.networkObservers = new NetworkObservers();
+    }
+
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
     this.teardownEventListeners(false);
@@ -354,10 +359,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });
     const { privacyConfig, interactionConfig, loggingConfig } = config;
-
-    if (loggingConfig?.network?.enabled) {
-      this.networkObservers = new NetworkObservers();
-    }
 
     const hooks = interactionConfig?.enabled
       ? {
