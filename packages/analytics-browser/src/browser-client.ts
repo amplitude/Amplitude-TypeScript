@@ -8,6 +8,11 @@ import {
   getAnalyticsConnector,
   setConnectorDeviceId,
   setConnectorUserId,
+  isNewSession,
+  IdentityEventSender,
+  getQueryParams,
+} from '@amplitude/analytics-core';
+import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
@@ -17,11 +22,7 @@ import {
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
-  isNewSession,
-  IdentityEventSender,
-  WebAttribution,
-  getQueryParams,
-} from '@amplitude/analytics-core';
+} from './default-tracking';
 import {
   BrowserClient,
   BrowserConfig,
@@ -45,6 +46,7 @@ import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
 import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
+import { WebAttribution } from './attribution/web-attribution';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment

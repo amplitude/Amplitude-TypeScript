@@ -1,4 +1,4 @@
-import { Campaign } from '@amplitude/analytics-types';
+import { Campaign } from './campaign';
 
 export const UTM_CAMPAIGN = 'utm_campaign';
 export const UTM_CONTENT = 'utm_content';
