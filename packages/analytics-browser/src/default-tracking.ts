@@ -1,12 +1,10 @@
 import {
-  AttributionOptions,
-  AutocaptureOptions,
-  BrowserOptions,
   PageTrackingHistoryChanges,
   PageTrackingOptions,
   PageTrackingTrackOn,
   ElementInteractionsOptions,
-} from '@amplitude/analytics-types';
+} from '@amplitude/analytics-core';
+import { BrowserOptions, AutocaptureOptions, AttributionOptions } from './browser';
 
 /**
  * Returns false if autocapture === false or if autocapture[event],

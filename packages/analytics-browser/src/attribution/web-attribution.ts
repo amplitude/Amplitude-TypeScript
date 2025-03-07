@@ -1,4 +1,4 @@
-import { BrowserConfig } from '@amplitude/analytics-types';
+import { BrowserConfig } from '../browser';
 import { ILogger, Storage, getStorageKey, isNewSession } from '@amplitude/analytics-core';
 import { Campaign } from './campaign';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';

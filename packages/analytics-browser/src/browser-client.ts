@@ -30,7 +30,8 @@ import {
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
 } from './default-tracking';
-import { BrowserClient, BrowserConfig, BrowserOptions } from '@amplitude/analytics-types';
+import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserConfig, BrowserOptions } from './browser';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';
