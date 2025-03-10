@@ -1,6 +1,6 @@
-import { TransportType } from '../transports/transport';
+import { TransportType } from './transport';
 import { CoreClient } from '../core-client';
-import { Plugin } from '../plugins/plugin';
+import { Plugin } from './plugin';
 import { AmplitudeReturn } from '../utils/return-wrapper';
 import { BrowserConfig, BrowserOptions } from './browser-config';
 

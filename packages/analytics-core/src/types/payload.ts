@@ -1,4 +1,4 @@
-import { Event } from '../event/event';
+import { Event } from './event/event';
 import { RequestMetadata } from '../config';
 
 export interface PayloadOptions {

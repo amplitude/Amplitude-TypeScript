@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
-import { Transport } from './transport';
+import { Transport } from '../types/transport';
 import { Status } from '../types/status';
 import { Payload } from '../types/payload';
 import { Response } from '../types/response';

@@ -1,5 +1,5 @@
 import { IEventBridgeReceiver } from './event-bridge';
-import { Event } from '../event/event';
+import { Event } from '../types/event/event';
 
 const QUEUE_CAPACITY = 512;
 

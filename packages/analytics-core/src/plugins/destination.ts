@@ -1,5 +1,5 @@
-import { DestinationPlugin } from './plugin';
-import { Event } from '../event/event';
+import { DestinationPlugin } from '../types/plugin';
+import { Event } from '../types/event/event';
 import { Result } from '../types/result';
 import { Status } from '../types/status';
 import {

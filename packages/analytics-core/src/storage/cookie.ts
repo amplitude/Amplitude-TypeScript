@@ -1,4 +1,4 @@
-import { Storage, CookieStorageOptions } from './storage';
+import { Storage, CookieStorageOptions } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
 
 export class CookieStorage<T> implements Storage<T> {

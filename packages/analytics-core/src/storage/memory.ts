@@ -1,4 +1,4 @@
-import { Storage } from './storage';
+import { Storage } from '../types/storage';
 
 export class MemoryStorage<T> implements Storage<T> {
   memoryStorage: Map<string, T> = new Map();

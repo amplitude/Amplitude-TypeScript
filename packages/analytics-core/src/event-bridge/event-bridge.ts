@@ -1,4 +1,4 @@
-import { Event } from '../event/event';
+import { Event } from '../types/event/event';
 import { EventBridgeChannel } from './event-bridge-channel';
 
 export interface IEventBridge {

@@ -2,40 +2,42 @@ export { AmplitudeCore, CoreClient } from './core-client';
 export { Identify, IIdentify } from './identify';
 export { Revenue, IRevenue } from './revenue';
 export { Destination } from './plugins/destination';
+export { IdentityEventSender } from './plugins/identity';
 export { IConfig, Config, RequestMetadata } from './config';
 export { Logger, ILogger } from './logger';
-export { LogLevel } from './types/loglevel';
-export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
-export { returnWrapper, AmplitudeReturn } from './utils/return-wrapper';
-export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
-export { UUID } from './utils/uuid';
-export { MemoryStorage } from './storage/memory';
-export { BaseTransport } from './transports/base';
-export { createIdentifyEvent } from './utils/event-builder';
-
 export { getGlobalScope } from './global-scope';
 export { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from './analytics-connector';
 export { isNewSession } from './session';
-export { IdentityEventSender } from './plugins/identity';
-export { getQueryParams } from './query-params';
-export { CookieStorage } from './storage/cookie';
 export { getCookieName, getOldCookieName } from './cookie-name';
-export { FetchTransport } from './transports/fetch';
 export { getLanguage } from './language';
+export { getQueryParams } from './query-params';
 
-export { Storage, IdentityStorageType } from './storage/storage';
+export { returnWrapper, AmplitudeReturn } from './utils/return-wrapper';
+export { debugWrapper, getClientLogConfig, getClientStates } from './utils/debug';
+export { UUID } from './utils/uuid';
+export { createIdentifyEvent } from './utils/event-builder';
+
+export { MemoryStorage } from './storage/memory';
+export { CookieStorage } from './storage/cookie';
 export { getStorageKey } from './storage/helpers';
-export { Event } from './event/event';
-export { EventOptions } from './event/base-event';
-export { IngestionMetadata } from './event/ingestion-metadata';
+
+export { BaseTransport } from './transports/base';
+export { FetchTransport } from './transports/fetch';
+
+export { LogLevel } from './types/loglevel';
+export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
+export { Storage, IdentityStorageType } from './types/storage';
+export { Event } from './types/event/event';
+export { EventOptions } from './types/event/base-event';
+export { IngestionMetadata } from './types/event/ingestion-metadata';
 export { ServerZoneType } from './types/server-zone';
 export { OfflineDisabled } from './types/offline';
-export { Plan } from './event/plan';
-export { TransportType, Transport } from './transports/transport';
+export { Plan } from './types/event/plan';
+export { TransportType, Transport } from './types/transport';
 export { Payload } from './types/payload';
 export { Response } from './types/response';
 export { UserSession } from './types/user-session';
-export { Plugin, BeforePlugin, DestinationPlugin, EnrichmentPlugin, PluginType } from './plugins/plugin';
+export { Plugin, BeforePlugin, DestinationPlugin, EnrichmentPlugin, PluginType } from './types/plugin';
 export { Result } from './types/result';
 export {
   ElementInteractionsOptions,

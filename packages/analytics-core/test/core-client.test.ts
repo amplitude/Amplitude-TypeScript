@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Event } from '../src/event/event';
-import { Plugin } from '../src/plugins/plugin';
+import { Event } from '../src/types/event/event';
+import { Plugin } from '../src/types/plugin';
 import { Status } from '../src/types/status';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/types/messages';

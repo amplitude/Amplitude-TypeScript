@@ -1,10 +1,10 @@
 import { OfflineDisabled } from './types/offline';
 import { ServerZoneType } from './types/server-zone';
-import { Transport } from './transports/transport';
-import { Event } from './event/event';
-import { Plan } from './event/plan';
-import { IngestionMetadata } from './event/ingestion-metadata';
-import { Storage } from './storage/storage';
+import { Transport } from './types/transport';
+import { Event } from './types/event/event';
+import { Plan } from './types/event/plan';
+import { IngestionMetadata } from './types/event/ingestion-metadata';
+import { Storage } from './types/storage';
 import {
   AMPLITUDE_SERVER_URL,
   AMPLITUDE_BATCH_SERVER_URL,

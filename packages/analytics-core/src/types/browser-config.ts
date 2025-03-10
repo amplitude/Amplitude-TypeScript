@@ -1,6 +1,6 @@
 import { UserSession } from './user-session';
-import { IdentityStorageType, Storage } from '../storage/storage';
-import { Transport } from '../transports/transport';
+import { IdentityStorageType, Storage } from './storage';
+import { Transport } from './transport';
 import { IConfig } from '../config';
 import { ElementInteractionsOptions } from './element-interactions';
 import { PageTrackingOptions } from './page-view-tracking';

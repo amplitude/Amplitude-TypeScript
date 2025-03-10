@@ -1,7 +1,7 @@
 import { Identify, IIdentify } from '../identify';
 import { IRevenue } from '../revenue';
-import { BaseEvent, EventOptions } from '../event/base-event';
-import { TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType, RevenueEvent } from '../event/event';
+import { BaseEvent, EventOptions } from '../types/event/base-event';
+import { TrackEvent, IdentifyEvent, GroupIdentifyEvent, SpecialEventType, RevenueEvent } from '../types/event/event';
 
 export const createTrackEvent = (
   eventInput: BaseEvent | string,

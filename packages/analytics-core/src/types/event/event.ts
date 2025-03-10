@@ -1,5 +1,5 @@
 import { BaseEvent } from './base-event';
-import { RevenueEventProperties } from '../revenue';
+import { RevenueEventProperties } from '../../revenue';
 
 export enum IdentifyOperation {
   // Base Operations to set values

@@ -1,4 +1,4 @@
-import { Event } from '../event/event';
+import { Event } from '../types/event/event';
 import { Result } from '../types/result';
 import { Status } from '../types/status';
 

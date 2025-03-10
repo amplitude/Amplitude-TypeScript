@@ -1,6 +1,6 @@
-import { BeforePlugin } from './plugin';
+import { BeforePlugin } from '../types/plugin';
 import { IConfig } from '../config';
-import { Event } from '../event/event';
+import { Event } from '../types/event/event';
 import { getAnalyticsConnector } from '../analytics-connector';
 
 export class IdentityEventSender implements BeforePlugin {
