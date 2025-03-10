@@ -1,9 +1,9 @@
 import { BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './plugins/plugin';
 import { CoreClient } from './core-client';
 import { IConfig } from './config';
-import { EventCallback } from './event-callback';
+import { EventCallback } from './types/event-callback';
 import { Event } from './event/event';
-import { Result } from './result';
+import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 

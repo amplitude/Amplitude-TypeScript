@@ -1,7 +1,7 @@
 import { BaseTransport } from './base';
 import { Transport } from './transport';
-import { Payload } from '../payload';
-import { Response } from '../response';
+import { Payload } from '../types/payload';
+import { Response } from '../types/response';
 
 export class FetchTransport extends BaseTransport implements Transport {
   async send(serverUrl: string, payload: Payload): Promise<Response | null> {

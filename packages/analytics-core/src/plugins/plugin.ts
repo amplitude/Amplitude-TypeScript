@@ -1,6 +1,6 @@
 import { Event } from '../event/event';
 import { IConfig } from '../config';
-import { Result } from '../result';
+import { Result } from '../types/result';
 import { CoreClient } from '../core-client';
 
 type PluginTypeBefore = 'before';

@@ -6,7 +6,7 @@ import {
   MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
-} from '../../src/messages';
+} from '../../src/types/messages';
 import { uuidPattern } from '../helpers/util';
 import { RequestMetadata } from '../../src';
 import { TrackEvent } from '@amplitude/analytics-types/src';

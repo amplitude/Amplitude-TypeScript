@@ -7,5 +7,5 @@ module.exports = {
   setupFiles: ['./test/setup.js'],
   rootDir: '.',
   testEnvironment: 'node',
-  coveragePathIgnorePatterns: ['global-scope.ts'],
+  coveragePathIgnorePatterns: ['global-scope.ts', 'types/'],
 };

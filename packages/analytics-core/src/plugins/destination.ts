@@ -1,22 +1,28 @@
 import { DestinationPlugin } from './plugin';
 import { Event } from '../event/event';
-import { Result } from '../result';
-import { Status } from '../status';
-import { Response, InvalidResponse, PayloadTooLargeResponse, RateLimitResponse, SuccessResponse } from '../response';
+import { Result } from '../types/result';
+import { Status } from '../types/status';
+import {
+  Response,
+  InvalidResponse,
+  PayloadTooLargeResponse,
+  RateLimitResponse,
+  SuccessResponse,
+} from '../types/response';
 import {
   INVALID_API_KEY,
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
-} from '../messages';
-import { STORAGE_PREFIX } from '../constants';
+} from '../types/messages';
+import { STORAGE_PREFIX } from '../types/constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
 import { IConfig } from '../config';
-import { EventCallback } from '../event-callback';
+import { EventCallback } from '../types/event-callback';
 
 interface Context {
   event: Event;

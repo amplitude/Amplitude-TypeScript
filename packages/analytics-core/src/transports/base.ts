@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Transport } from './transport';
-import { Status } from '../status';
-import { Payload } from '../payload';
-import { Response } from '../response';
+import { Status } from '../types/status';
+import { Payload } from '../types/payload';
+import { Response } from '../types/response';
 
 export class BaseTransport implements Transport {
   send(_serverUrl: string, _payload: Payload): Promise<Response | null> {

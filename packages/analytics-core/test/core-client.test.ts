@@ -2,9 +2,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event } from '../src/event/event';
 import { Plugin } from '../src/plugins/plugin';
-import { Status } from '../src/status';
+import { Status } from '../src/types/status';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/messages';
+import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/types/messages';
 import { useDefaultConfig } from './helpers/default';
 async function runScheduleTimers() {
   // eslint-disable-next-line @typescript-eslint/unbound-method

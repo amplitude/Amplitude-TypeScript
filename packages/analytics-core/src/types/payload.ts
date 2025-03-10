@@ -1,5 +1,5 @@
-import { Event } from './event/event';
-import { RequestMetadata } from './config';
+import { Event } from '../event/event';
+import { RequestMetadata } from '../config';
 
 export interface PayloadOptions {
   min_id_length?: number;

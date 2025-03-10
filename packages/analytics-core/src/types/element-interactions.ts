@@ -1,4 +1,4 @@
-import { ILogger } from './logger';
+import { ILogger } from '../logger';
 
 export type ActionType = 'click' | 'change';
 

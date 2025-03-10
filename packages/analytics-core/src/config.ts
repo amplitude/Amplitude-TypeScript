@@ -1,5 +1,5 @@
-import { OfflineDisabled } from './offline';
-import { ServerZoneType } from './server-zone';
+import { OfflineDisabled } from './types/offline';
+import { ServerZoneType } from './types/server-zone';
 import { Transport } from './transports/transport';
 import { Event } from './event/event';
 import { Plan } from './event/plan';
@@ -10,10 +10,10 @@ import {
   AMPLITUDE_BATCH_SERVER_URL,
   EU_AMPLITUDE_SERVER_URL,
   EU_AMPLITUDE_BATCH_SERVER_URL,
-} from './constants';
+} from './types/constants';
 
 import { Logger, ILogger } from './logger';
-import { LogLevel } from './logLevel';
+import { LogLevel } from './types/loglevel';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 12,

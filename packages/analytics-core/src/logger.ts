@@ -1,4 +1,4 @@
-import { LogLevel } from './loglevel';
+import { LogLevel } from './types/loglevel';
 
 const PREFIX = 'Amplitude Logger ';
 

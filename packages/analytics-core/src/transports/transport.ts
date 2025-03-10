@@ -1,5 +1,5 @@
-import { Payload } from '../payload';
-import { Response } from '../response';
+import { Payload } from '../types/payload';
+import { Response } from '../types/response';
 
 export interface Transport {
   send(serverUrl: string, payload: Payload): Promise<Response | null>;

@@ -1,4 +1,4 @@
-import { UNSET_VALUE } from './constants';
+import { UNSET_VALUE } from './types/constants';
 import { isValidProperties } from './utils/valid-properties';
 
 export interface IIdentify {

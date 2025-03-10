@@ -1,11 +1,11 @@
 import { Plugin } from './plugins/plugin';
 import { IConfig } from './config';
 import { BaseEvent, EventOptions } from './event/base-event';
-import { Result } from './result';
+import { Result } from './types/result';
 import { Event } from './event/event';
 import { IIdentify } from './identify';
 import { IRevenue } from './revenue';
-import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './messages';
+import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './types/messages';
 import { Timeline } from './timeline';
 import {
   createGroupEvent,
