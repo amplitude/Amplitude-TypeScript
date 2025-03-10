@@ -19,22 +19,12 @@ import {
   getAnalyticsConnector,
   setConnectorDeviceId,
   setConnectorUserId,
-  getPageViewTrackingConfig,
-  getAttributionTrackingConfig,
-  getElementInteractionsConfig,
-  isAttributionTrackingEnabled,
-  isFileDownloadTrackingEnabled,
-  isFormInteractionTrackingEnabled,
-  isPageViewTrackingEnabled,
-  isSessionTrackingEnabled,
-  isElementInteractionsEnabled,
   isNewSession,
   getQueryParams,
   getCookieName,
   getOldCookieName,
   getLanguage,
   IdentityEventSender,
-  WebAttribution,
   CookieStorage,
   FetchTransport,
 } from '../src/index';
@@ -70,24 +60,13 @@ describe('index', () => {
     expect(typeof getAnalyticsConnector).toBe('function');
     expect(typeof setConnectorDeviceId).toBe('function');
     expect(typeof setConnectorUserId).toBe('function');
-    expect(typeof getPageViewTrackingConfig).toBe('function');
-    expect(typeof getAttributionTrackingConfig).toBe('function');
-    expect(typeof getElementInteractionsConfig).toBe('function');
-    expect(typeof isAttributionTrackingEnabled).toBe('function');
-    expect(typeof isFileDownloadTrackingEnabled).toBe('function');
-    expect(typeof isFormInteractionTrackingEnabled).toBe('function');
-    expect(typeof isPageViewTrackingEnabled).toBe('function');
-    expect(typeof isSessionTrackingEnabled).toBe('function');
-    expect(typeof isElementInteractionsEnabled).toBe('function');
     expect(typeof isNewSession).toBe('function');
     expect(typeof getQueryParams).toBe('function');
     expect(typeof getCookieName).toBe('function');
     expect(typeof getOldCookieName).toBe('function');
     expect(typeof getLanguage).toBe('function');
-    expect(typeof getPageViewTrackingConfig).toBe('function');
     expect(typeof IdentityEventSender).toBe('function');
     expect(() => new IdentityEventSender()).not.toThrow();
-    expect(typeof WebAttribution).toBe('function');
     expect(typeof CookieStorage).toBe('function');
     expect(() => new CookieStorage()).not.toThrow();
     expect(typeof FetchTransport).toBe('function');

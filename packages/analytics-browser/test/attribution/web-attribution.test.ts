@@ -3,8 +3,7 @@ import { AttributionOptions, BrowserConfig, LogLevel } from '@amplitude/analytic
 import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import { CampaignParser } from '../../src/attribution/campaign-parser';
 import { WebAttribution } from '../../src/attribution/web-attribution';
-import { FetchTransport } from '../../src/transports/fetch';
-import { CookieStorage } from '../../src/storage/cookie';
+import { FetchTransport, CookieStorage } from '@amplitude/analytics-core';
 
 describe('shouldTrackNewCampaign', () => {
   const mockConfig: BrowserConfig = {

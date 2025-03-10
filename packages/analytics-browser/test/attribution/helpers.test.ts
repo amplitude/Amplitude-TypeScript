@@ -6,7 +6,7 @@ import {
   isExcludedReferrer,
 } from '../../src/attribution/helpers';
 
-import { getStorageKey } from '../../src/storage/helpers';
+import { getStorageKey } from '@amplitude/analytics-core';
 
 const loggerProvider = {
   log: jest.fn(),
