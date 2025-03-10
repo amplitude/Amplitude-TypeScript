@@ -1,3 +1,5 @@
+import { LogLevel } from './loglevel';
+
 const PREFIX = 'Amplitude Logger ';
 
 export interface ILogger {
@@ -7,14 +9,6 @@ export interface ILogger {
   warn(...args: any[]): void;
   error(...args: any[]): void;
   debug(...args: any[]): void;
-}
-
-export enum LogLevel {
-  None = 0,
-  Error = 1,
-  Warn = 2,
-  Verbose = 3,
-  Debug = 4,
 }
 
 export interface LogConfig {

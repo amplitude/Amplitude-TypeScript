@@ -12,7 +12,8 @@ import {
   EU_AMPLITUDE_BATCH_SERVER_URL,
 } from './constants';
 
-import { Logger, ILogger, LogLevel } from './logger';
+import { Logger, ILogger } from './logger';
+import { LogLevel } from './logLevel';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 12,
