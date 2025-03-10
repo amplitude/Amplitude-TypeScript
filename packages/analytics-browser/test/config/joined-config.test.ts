@@ -1,8 +1,11 @@
 import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
-import { BrowserConfig as IBrowserConfig, BrowserRemoteConfig } from '../../src/browser';
-import { BrowserJoinedConfigGenerator, createBrowserJoinedConfigGenerator } from '../../src/config/joined-config';
+import {
+  BrowserJoinedConfigGenerator,
+  createBrowserJoinedConfigGenerator,
+  BrowserRemoteConfig,
+} from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
-import { RequestMetadata } from '@amplitude/analytics-core';
+import { RequestMetadata, BrowserConfig as IBrowserConfig } from '@amplitude/analytics-core';
 
 jest.mock('@amplitude/analytics-remote-config', () => ({
   createRemoteConfigFetch: jest.fn(),

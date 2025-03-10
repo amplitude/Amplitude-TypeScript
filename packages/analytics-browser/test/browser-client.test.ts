@@ -7,10 +7,10 @@ import {
   OfflineDisabled,
   Status,
   UserSession,
+  AutocaptureOptions,
 } from '@amplitude/analytics-core';
 import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
-import { AutocaptureOptions } from '../src/browser';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
