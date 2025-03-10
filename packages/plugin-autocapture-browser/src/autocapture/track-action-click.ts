@@ -5,7 +5,7 @@ import {
   ObservablesEnum,
 } from 'src/autocapture-plugin';
 import { filter, map, merge, switchMap, take, timeout, EMPTY } from 'rxjs';
-import { BrowserClient, ActionType } from '@amplitude/analytics-types';
+import { BrowserClient, ActionType } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, getClosestElement, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 

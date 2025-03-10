@@ -1,6 +1,12 @@
-import { Logger, MemoryStorage, UUID, LogLevel, UserSession } from '@amplitude/analytics-core';
-import { BrowserClient } from '../../src/web-client';
-import { BrowserConfig } from '../../src/browser';
+import {
+  Logger,
+  MemoryStorage,
+  UUID,
+  LogLevel,
+  UserSession,
+  BrowserClient,
+  BrowserConfig,
+} from '@amplitude/analytics-core';
 
 export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
   init: jest.fn(),

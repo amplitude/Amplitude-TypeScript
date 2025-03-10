@@ -1,7 +1,6 @@
-import { BrowserClient } from '../web-client';
 import { DEFAULT_FILE_DOWNLOAD_EVENT, FILE_EXTENSION, FILE_NAME, LINK_ID, LINK_TEXT, LINK_URL } from '../constants';
 import { BrowserConfig } from '../config';
-import { getGlobalScope, Event, EnrichmentPlugin } from '@amplitude/analytics-core';
+import { getGlobalScope, Event, EnrichmentPlugin, BrowserClient } from '@amplitude/analytics-core';
 
 interface EventListener {
   element: Element;

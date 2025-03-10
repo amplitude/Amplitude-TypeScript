@@ -1,5 +1,8 @@
-import { BrowserConfig, BrowserOptions } from './browser';
-import { TransportType, CoreClient, Plugin, AmplitudeReturn } from '@amplitude/analytics-core';
+import { TransportType } from '../transports/transport';
+import { CoreClient } from '../core-client';
+import { Plugin } from '../plugins/plugin';
+import { AmplitudeReturn } from '../utils/return-wrapper';
+import { BrowserConfig, BrowserOptions } from './browser-config';
 
 interface Client extends CoreClient {
   /**
@@ -98,6 +101,7 @@ export interface BrowserClient extends Client {
    * ```
    */
   init(apiKey: string, options?: BrowserOptions): AmplitudeReturn<void>;
+
   init(apiKey: string, userId?: string, options?: BrowserOptions): AmplitudeReturn<void>;
 
   /**

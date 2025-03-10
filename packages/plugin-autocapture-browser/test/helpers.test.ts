@@ -17,7 +17,7 @@ import {
   createShouldTrackEvent,
 } from '../src/helpers';
 import { mockWindowLocationFromURL } from './utils';
-import { Logger } from '@amplitude/analytics-types';
+import { ILogger } from '@amplitude/analytics-core';
 
 describe('autocapture-plugin helpers', () => {
   afterEach(() => {
@@ -216,7 +216,7 @@ describe('autocapture-plugin helpers', () => {
     });
 
     test('should use fallback logic with element id to get selector when finder has error', () => {
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
@@ -226,7 +226,7 @@ describe('autocapture-plugin helpers', () => {
 
       // This is a floating element, so finder will throw error as it cannot find it in the document tree.
       // This case might happen as some of the element might be removed from the DOM tree before the selector is retrieved.
-      const result = getSelector(inner as HTMLElement, loggerProvider as Logger);
+      const result = getSelector(inner as HTMLElement, loggerProvider as ILogger);
       expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(loggerProvider.warn).toHaveBeenCalledWith(
         `Failed to get selector with finder, use fallback strategy instead: Error: Can't select any node with this selector: #inner`,
@@ -235,7 +235,7 @@ describe('autocapture-plugin helpers', () => {
     });
 
     test('should use fallback logic with class to get selector when finder has error', () => {
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
@@ -245,7 +245,7 @@ describe('autocapture-plugin helpers', () => {
 
       // This is a floating element, so finder will throw error as it cannot find it in the document tree.
       // This case might happen as some of the element might be removed from the DOM tree before the selector is retrieved.
-      const result = getSelector(inner as HTMLElement, loggerProvider as Logger);
+      const result = getSelector(inner as HTMLElement, loggerProvider as ILogger);
       expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(loggerProvider.warn).toHaveBeenCalledWith(
         `Failed to get selector with finder, use fallback strategy instead: Error: Can't select any node with this selector: .inner`,
@@ -254,7 +254,7 @@ describe('autocapture-plugin helpers', () => {
     });
 
     test('should use fallback logic with tag to get selector when finder has error', () => {
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
@@ -264,7 +264,7 @@ describe('autocapture-plugin helpers', () => {
 
       // This is a floating element, so finder will throw error as it cannot find it in the document tree.
       // This case might happen as some of the element might be removed from the DOM tree before the selector is retrieved.
-      const result = getSelector(inner as HTMLElement, loggerProvider as Logger);
+      const result = getSelector(inner as HTMLElement, loggerProvider as ILogger);
       expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
       expect(loggerProvider.warn).toHaveBeenCalledWith(
         `Failed to get selector with finder, use fallback strategy instead: Error: Can't select any node with this selector: div`,

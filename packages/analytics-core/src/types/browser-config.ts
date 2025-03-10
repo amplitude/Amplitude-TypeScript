@@ -1,12 +1,9 @@
-import {
-  UserSession,
-  IdentityStorageType,
-  Storage,
-  Transport,
-  IConfig,
-  ElementInteractionsOptions,
-  PageTrackingOptions,
-} from '@amplitude/analytics-core';
+import { UserSession } from './user-session';
+import { IdentityStorageType, Storage } from '../storage/storage';
+import { Transport } from '../transports/transport';
+import { IConfig } from '../config';
+import { ElementInteractionsOptions } from './element-interactions';
+import { PageTrackingOptions } from './page-view-tracking';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -224,9 +221,3 @@ type HiddenOptions = 'apiKey' | 'transportProvider' | 'requestMetadata';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface BrowserOptions extends Omit<Partial<ExternalBrowserConfig>, HiddenOptions> {}
-
-export type BrowserRemoteConfig = {
-  browserSDK: {
-    autocapture?: AutocaptureOptions | boolean;
-  };
-};

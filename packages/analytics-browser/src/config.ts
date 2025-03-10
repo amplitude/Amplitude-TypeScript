@@ -1,11 +1,4 @@
 import {
-  BrowserOptions,
-  BrowserConfig as IBrowserConfig,
-  DefaultTrackingOptions,
-  TrackingOptions,
-  AutocaptureOptions,
-} from './browser';
-import {
   Config,
   Logger,
   ILogger,
@@ -25,6 +18,12 @@ import {
   FetchTransport,
   getQueryParams,
   UserSession,
+  BrowserOptions,
+  BrowserConfig as IBrowserConfig,
+  DefaultTrackingOptions,
+  TrackingOptions,
+  AutocaptureOptions,
+  CookieOptions,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -32,7 +31,6 @@ import { SessionStorage } from './storage/session-storage';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
-import { CookieOptions } from './browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 

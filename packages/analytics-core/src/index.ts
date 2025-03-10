@@ -37,6 +37,23 @@ export { Response } from './types/response';
 export { UserSession } from './types/user-session';
 export { Plugin, BeforePlugin, DestinationPlugin, EnrichmentPlugin, PluginType } from './plugins/plugin';
 export { Result } from './types/result';
-export { ElementInteractionsOptions } from './types/element-interactions';
+export {
+  ElementInteractionsOptions,
+  Messenger,
+  ActionType,
+  DEFAULT_CSS_SELECTOR_ALLOWLIST,
+  DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  DEFAULT_ACTION_CLICK_ALLOWLIST,
+} from './types/element-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
 export { Status } from './types/status';
+export {
+  BrowserConfig,
+  BrowserOptions,
+  DefaultTrackingOptions,
+  TrackingOptions,
+  AutocaptureOptions,
+  CookieOptions,
+  AttributionOptions,
+} from './types/browser-config';
+export { BrowserClient } from './types/browser-client';

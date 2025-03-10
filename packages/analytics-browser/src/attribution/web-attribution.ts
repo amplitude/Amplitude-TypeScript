@@ -1,5 +1,4 @@
-import { BrowserConfig } from '../browser';
-import { ILogger, Storage, getStorageKey, isNewSession } from '@amplitude/analytics-core';
+import { BrowserConfig, ILogger, Storage, getStorageKey, isNewSession } from '@amplitude/analytics-core';
 import { Campaign } from './campaign';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
 import { CampaignParser } from './campaign-parser';

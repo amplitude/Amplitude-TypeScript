@@ -18,6 +18,9 @@ import {
   TransportType,
   OfflineDisabled,
   Result,
+  BrowserOptions,
+  BrowserConfig,
+  BrowserClient,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -30,8 +33,6 @@ import {
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
 } from './default-tracking';
-import { BrowserClient } from './web-client';
-import { BrowserConfig, BrowserOptions } from './browser';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';

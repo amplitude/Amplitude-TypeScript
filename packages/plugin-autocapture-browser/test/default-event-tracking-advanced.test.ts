@@ -1,5 +1,5 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createInstance } from '@amplitude/analytics-browser';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
@@ -57,13 +57,13 @@ describe('autoTrackingPlugin', () => {
 
   describe('setup', () => {
     test('should setup successfully', async () => {
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       const amplitude: Partial<BrowserClient> = {};
       await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
@@ -81,13 +81,13 @@ describe('autoTrackingPlugin', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         visualTaggingOptions: { enabled: true, messenger: messengerMock as any },
       });
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       const amplitude: Partial<BrowserClient> = {};
       await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
@@ -114,7 +114,7 @@ describe('autoTrackingPlugin', () => {
 
     let instance = createInstance();
     let track: jest.SpyInstance;
-    let loggerProvider: Logger;
+    let loggerProvider: ILogger;
 
     beforeEach(async () => {
       loggerProvider = {
@@ -122,7 +122,7 @@ describe('autoTrackingPlugin', () => {
         warn: jest.fn(),
         error: jest.fn(),
         debug: jest.fn(),
-      } as unknown as Logger;
+      } as unknown as ILogger;
       plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
       instance = createInstance();
       await instance.init(API_KEY, USER_ID).promise;
@@ -566,13 +566,13 @@ describe('autoTrackingPlugin', () => {
 
         // Use only div in allowlist
         plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'], debounceTime: TESTING_DEBOUNCE_TIME });
-        const loggerProvider: Partial<Logger> = {
+        const loggerProvider: Partial<ILogger> = {
           log: jest.fn(),
           warn: jest.fn(),
         };
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider as ILogger,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -608,13 +608,13 @@ describe('autoTrackingPlugin', () => {
         document.body.appendChild(button);
 
         plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
-        const loggerProvider: Partial<Logger> = {
+        const loggerProvider: Partial<ILogger> = {
           log: jest.fn(),
           warn: jest.fn(),
         };
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider as ILogger,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -870,13 +870,13 @@ describe('autoTrackingPlugin', () => {
       input.type = 'password';
       document.body.appendChild(input);
 
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -895,13 +895,13 @@ describe('autoTrackingPlugin', () => {
       div.setAttribute('class', 'my-div-class');
       document.body.appendChild(div);
 
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -915,13 +915,13 @@ describe('autoTrackingPlugin', () => {
     });
 
     test('should not throw error when there is text node added to the page', async () => {
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
