@@ -140,53 +140,48 @@ describe('action clicks:', () => {
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 503));
 
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(
-        1,
-        '[Amplitude] Element Clicked',
-        {
-          '[Amplitude] Element Hierarchy': [
-            {
-              id: 'addDivButton',
-              index: 0,
-              indexOfType: 0,
-              tag: 'div',
+      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
+        '[Amplitude] Element Hierarchy': [
+          {
+            id: 'addDivButton',
+            index: 0,
+            indexOfType: 0,
+            tag: 'div',
+          },
+          {
+            id: 'inner-left',
+            classes: ['column'],
+            index: 0,
+            indexOfType: 0,
+            tag: 'div',
+          },
+          {
+            attrs: {
+              'data-test-attr': 'test-attr',
             },
-            {
-              id: 'inner-left',
-              classes: ['column'],
-              index: 0,
-              indexOfType: 0,
-              tag: 'div',
-            },
-            {
-              attrs: {
-                'data-test-attr': 'test-attr',
-              },
-              id: 'main',
-              classes: ['class1', 'class2'],
-              index: 0,
-              indexOfType: 0,
-              tag: 'div',
-            },
-            {
-              index: 1,
-              indexOfType: 0,
-              prevSib: 'head',
-              tag: 'body',
-            },
-          ],
-          '[Amplitude] Element ID': 'addDivButton',
-          '[Amplitude] Element Parent Label': 'Card Title',
-          '[Amplitude] Element Position Left': 0,
-          '[Amplitude] Element Position Top': 0,
-          '[Amplitude] Element Selector': '#addDivButton',
-          '[Amplitude] Element Tag': 'div',
-          '[Amplitude] Element Text': 'Add div',
-          '[Amplitude] Viewport Height': 768,
-          '[Amplitude] Viewport Width': 1024,
-        },
-        { time: expect.any(Number) as number },
-      );
+            id: 'main',
+            classes: ['class1', 'class2'],
+            index: 0,
+            indexOfType: 0,
+            tag: 'div',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+        ],
+        '[Amplitude] Element ID': 'addDivButton',
+        '[Amplitude] Element Parent Label': 'Card Title',
+        '[Amplitude] Element Position Left': 0,
+        '[Amplitude] Element Position Top': 0,
+        '[Amplitude] Element Selector': '#addDivButton',
+        '[Amplitude] Element Tag': 'div',
+        '[Amplitude] Element Text': 'Add div',
+        '[Amplitude] Viewport Height': 768,
+        '[Amplitude] Viewport Width': 1024,
+      });
     });
 
     test('should not trigger duplicate events if the immediate click target is in the action click allowlist', async () => {
@@ -207,7 +202,6 @@ describe('action clicks:', () => {
           '[Amplitude] Element Tag': 'button',
           '[Amplitude] Element Text': 'Click me',
         }),
-        { time: expect.any(Number) as number },
       );
     });
 
@@ -228,7 +222,6 @@ describe('action clicks:', () => {
           '[Amplitude] Element Parent Label': 'Add div',
           '[Amplitude] Element Tag': 'span',
         }),
-        { time: expect.any(Number) as number },
       );
     });
 
@@ -259,7 +252,6 @@ describe('action clicks:', () => {
             '[Amplitude] Element Parent Label': 'Card Title',
             '[Amplitude] Element Tag': 'h1',
           }),
-          { time: expect.any(Number) as number },
         );
         expect(document.querySelectorAll('.new-div').length).toBe(2);
       });

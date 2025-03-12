@@ -75,9 +75,6 @@ export function trackActionClick({
     amplitude?.track(
       AMPLITUDE_ELEMENT_CLICKED_EVENT,
       getEventProperties('click', (actionClick as ElementBasedTimestampedEvent<MouseEvent>).closestTrackedAncestor),
-      {
-        time: actionClick.timestamp,
-      },
     );
   });
 }
