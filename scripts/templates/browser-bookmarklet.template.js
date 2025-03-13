@@ -86,6 +86,8 @@ const snippet = (
       'setPrice',
       'setRevenue',
       'setRevenueType',
+      'setReceipt',
+      'setReceiptSig',
       'setEventProperties',
     ];
     for (var j = 0; j < revenueFuncs.length; j++) {
