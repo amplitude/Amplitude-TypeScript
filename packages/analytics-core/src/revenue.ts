@@ -9,6 +9,8 @@ export interface IRevenue {
   setCurrency(currency: string): IRevenue;
   setEventProperties(properties: { [key: string]: any }): IRevenue;
   setRevenue(revenue: number): IRevenue;
+  setReceipt(receipt: string): IRevenue;
+  setReceiptSig(receiptSig: string): IRevenue;
 }
 
 export class Revenue implements IRevenue {
@@ -19,6 +21,8 @@ export class Revenue implements IRevenue {
   private currency?: string;
   private properties?: { [key: string]: any };
   private revenue?: number;
+  private receipt?: string;
+  private receiptSig?: string;
 
   constructor() {
     this.productId = '';
@@ -58,6 +62,16 @@ export class Revenue implements IRevenue {
     return this;
   }
 
+  setReceipt(receipt: string) {
+    this.receipt = receipt;
+    return this;
+  }
+
+  setReceiptSig(receiptSig: string) {
+    this.receiptSig = receiptSig;
+    return this;
+  }
+
   setEventProperties(properties: { [key: string]: ValidPropertyType }) {
     if (isValidObject(properties)) {
       this.properties = properties;
@@ -73,6 +87,8 @@ export class Revenue implements IRevenue {
     eventProperties[RevenueProperty.REVENUE_TYPE] = this.revenueType;
     eventProperties[RevenueProperty.REVENUE_CURRENCY] = this.currency;
     eventProperties[RevenueProperty.REVENUE] = this.revenue;
+    eventProperties[RevenueProperty.RECEIPT] = this.receipt;
+    eventProperties[RevenueProperty.RECEIPT_SIG] = this.receiptSig;
     return eventProperties;
   }
 }
@@ -84,6 +100,8 @@ export interface RevenueEventProperties {
   [RevenueProperty.REVENUE_TYPE]?: string;
   [RevenueProperty.REVENUE_CURRENCY]?: string;
   [RevenueProperty.REVENUE]?: number;
+  [RevenueProperty.RECEIPT]?: string;
+  [RevenueProperty.RECEIPT_SIG]?: string;
 }
 
 export enum RevenueProperty {
@@ -93,6 +111,8 @@ export enum RevenueProperty {
   REVENUE_TYPE = '$revenueType',
   REVENUE_CURRENCY = '$currency',
   REVENUE = '$revenue',
+  RECEIPT = '$receipt',
+  RECEIPT_SIG = '$receiptSig',
 }
 
 export type ValidPropertyType =
