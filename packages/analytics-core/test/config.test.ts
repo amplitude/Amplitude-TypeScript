@@ -1,4 +1,4 @@
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '../src/types/loglevel';
 import {
   AMPLITUDE_BATCH_SERVER_URL,
   AMPLITUDE_SERVER_URL,

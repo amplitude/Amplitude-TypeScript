@@ -1,4 +1,4 @@
-import { SpecialEventType } from '@amplitude/analytics-types';
+import { SpecialEventType } from '../../src/types/event/event';
 import { Identify } from '../../src/identify';
 import {
   createTrackEvent,

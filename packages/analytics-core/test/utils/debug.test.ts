@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '../../src/types/loglevel';
 import {
   getStacktrace,
   getClientLogConfig,

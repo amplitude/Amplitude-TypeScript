@@ -24,7 +24,7 @@ import { UUID } from '../utils/uuid';
 import { IConfig } from '../config';
 import { EventCallback } from '../types/event-callback';
 
-interface Context {
+export interface Context {
   event: Event;
   attempts: number;
   callback: EventCallback;
