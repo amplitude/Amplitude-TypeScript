@@ -60,6 +60,7 @@ const snippet = (name, integrity, version, globalVar) => `
       'setRevenueType',
       'setReceipt',
       'setReceiptSig',
+      'setCurrency',
       'setEventProperties',
     ];
     for (var j = 0; j < revenueFuncs.length; j++) {
