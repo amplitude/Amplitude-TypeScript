@@ -1,5 +1,4 @@
-import { EventBridge as IEventBridge } from '@amplitude/analytics-types';
-import { EventBridge } from './event-bridge';
+import { EventBridge, IEventBridge } from './event-bridge';
 
 export class EventBridgeContainer {
   static instances: Record<string, IEventBridge> = {};

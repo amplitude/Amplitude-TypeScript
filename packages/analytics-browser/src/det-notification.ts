@@ -1,4 +1,4 @@
-import { BrowserConfig } from '@amplitude/analytics-types';
+import { BrowserConfig } from '@amplitude/analytics-core';
 
 let notified = false;
 

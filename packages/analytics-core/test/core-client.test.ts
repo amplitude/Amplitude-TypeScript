@@ -1,8 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Event, Plugin, Status } from '@amplitude/analytics-types';
+import { Event } from '../src/types/event/event';
+import { Plugin } from '../src/types/plugin';
+import { Status } from '../src/types/status';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
-import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/messages';
+import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/types/messages';
 import { useDefaultConfig } from './helpers/default';
 async function runScheduleTimers() {
   // eslint-disable-next-line @typescript-eslint/unbound-method

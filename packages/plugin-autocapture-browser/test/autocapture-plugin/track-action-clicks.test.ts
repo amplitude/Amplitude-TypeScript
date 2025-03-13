@@ -1,5 +1,5 @@
 import { autocapturePlugin } from '../../src/autocapture-plugin';
-import { BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
+import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createInstance } from '@amplitude/analytics-browser';
 
 const TESTING_DEBOUNCE_TIME = 4;
@@ -44,13 +44,13 @@ describe('action clicks:', () => {
     let instance = createInstance();
     let track: jest.SpyInstance;
 
-    const loggerProvider: Partial<Logger> = {
+    const loggerProvider: Partial<ILogger> = {
       log: jest.fn(),
       warn: jest.fn(),
     };
     const config: Partial<BrowserConfig> = {
       defaultTracking: false,
-      loggerProvider: loggerProvider as Logger,
+      loggerProvider: loggerProvider as ILogger,
     };
 
     beforeEach(async () => {

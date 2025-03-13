@@ -1,6 +1,5 @@
-import { createIdentifyEvent } from '../utils/event-builder';
-import { Identify } from '../identify';
-import { Campaign, Logger } from '@amplitude/analytics-types';
+import { createIdentifyEvent, Identify, ILogger } from '@amplitude/analytics-core';
+import { Campaign } from './campaign';
 import { BASE_CAMPAIGN } from './constants';
 
 export interface Options {
@@ -28,7 +27,7 @@ export const isNewCampaign = (
   current: Campaign,
   previous: Campaign | undefined,
   options: Options,
-  logger: Logger,
+  logger: ILogger,
   isNewSession = true,
 ) => {
   const { referrer, referring_domain, ...currentCampaign } = current;

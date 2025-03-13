@@ -1,6 +1,11 @@
-import { BrowserConfig as IBrowserConfig, BrowserRemoteConfig } from '@amplitude/analytics-types';
 import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
-import { RequestMetadata } from '@amplitude/analytics-core';
+import { RequestMetadata, BrowserConfig as IBrowserConfig, AutocaptureOptions } from '@amplitude/analytics-core';
+
+export type BrowserRemoteConfig = {
+  browserSDK: {
+    autocapture?: AutocaptureOptions | boolean;
+  };
+};
 
 export class BrowserJoinedConfigGenerator {
   // Local config before generateJoinedConfig is called

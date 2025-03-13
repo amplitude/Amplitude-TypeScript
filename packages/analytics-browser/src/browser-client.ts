@@ -8,6 +8,21 @@ import {
   getAnalyticsConnector,
   setConnectorDeviceId,
   setConnectorUserId,
+  isNewSession,
+  IdentityEventSender,
+  getQueryParams,
+  Event,
+  EventOptions,
+  IIdentify,
+  IRevenue,
+  TransportType,
+  OfflineDisabled,
+  Result,
+  BrowserOptions,
+  BrowserConfig,
+  BrowserClient,
+} from '@amplitude/analytics-core';
+import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
@@ -17,23 +32,7 @@ import {
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
-  isNewSession,
-  IdentityEventSender,
-  WebAttribution,
-  getQueryParams,
-} from '@amplitude/analytics-core';
-import {
-  BrowserClient,
-  BrowserConfig,
-  BrowserOptions,
-  Event,
-  EventOptions,
-  Identify as IIdentify,
-  Revenue as IRevenue,
-  TransportType,
-  OfflineDisabled,
-  Result,
-} from '@amplitude/analytics-types';
+} from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';
@@ -45,6 +44,7 @@ import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
 import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
+import { WebAttribution } from './attribution/web-attribution';
 
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment

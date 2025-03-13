@@ -1,30 +1,29 @@
 import {
-  Event,
-  BrowserOptions,
-  BrowserConfig as IBrowserConfig,
-  DefaultTrackingOptions,
-  Storage,
-  TrackingOptions,
-  TransportType,
-  UserSession,
-  Logger as ILogger,
-  LogLevel,
-  Plan,
-  IngestionMetadata,
-  IdentityStorageType,
-  ServerZoneType,
-  OfflineDisabled,
-  AutocaptureOptions,
-} from '@amplitude/analytics-types';
-import {
   Config,
   Logger,
+  ILogger,
+  LogLevel,
+  Event,
+  Storage,
+  IngestionMetadata,
+  ServerZoneType,
+  OfflineDisabled,
+  Plan,
+  IdentityStorageType,
+  TransportType,
   MemoryStorage,
   UUID,
   CookieStorage,
   getCookieName,
   FetchTransport,
   getQueryParams,
+  UserSession,
+  BrowserOptions,
+  BrowserConfig as IBrowserConfig,
+  DefaultTrackingOptions,
+  TrackingOptions,
+  AutocaptureOptions,
+  CookieOptions,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -32,7 +31,6 @@ import { SessionStorage } from './storage/session-storage';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
-import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 

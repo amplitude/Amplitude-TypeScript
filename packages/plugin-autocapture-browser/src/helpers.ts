@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { finder } from './libs/finder';
 import * as constants from './constants';
-import { Logger, ElementInteractionsOptions, ActionType } from '@amplitude/analytics-types';
+import { ILogger, ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
 import { ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -125,7 +125,7 @@ export const getText = (element: Element): string => {
   return text;
 };
 
-export const getSelector = (element: Element, logger?: Logger): string => {
+export const getSelector = (element: Element, logger?: ILogger): string => {
   let selector = '';
   try {
     selector = finder(element, {
@@ -254,7 +254,7 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
 };
 
 // Returns the element properties for the given element in Visual Labeling.
-export const getEventTagProps = (element: Element, logger?: Logger) => {
+export const getEventTagProps = (element: Element, logger?: ILogger) => {
   if (!element) {
     return {};
   }

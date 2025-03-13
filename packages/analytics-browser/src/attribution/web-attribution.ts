@@ -1,10 +1,8 @@
-import { BrowserConfig, Logger } from '@amplitude/analytics-types';
-import { Campaign, Storage } from '@amplitude/analytics-types';
+import { BrowserConfig, ILogger, Storage, getStorageKey, isNewSession } from '@amplitude/analytics-core';
+import { Campaign } from './campaign';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
-import { getStorageKey } from '../storage/helpers';
 import { CampaignParser } from './campaign-parser';
 import { BASE_CAMPAIGN } from './constants';
-import { isNewSession } from '../session';
 
 export class WebAttribution {
   options: Options;
@@ -15,7 +13,7 @@ export class WebAttribution {
   shouldTrackNewCampaign = false;
   sessionTimeout: number;
   lastEventTime?: number;
-  logger: Logger;
+  logger: ILogger;
 
   constructor(options: Options, config: BrowserConfig) {
     this.options = {

@@ -1,10 +1,15 @@
-import {
-  RevenueProperty,
-  RevenueEventProperties,
-  Revenue as IRevenue,
-  ValidPropertyType,
-} from '@amplitude/analytics-types';
 import { isValidObject } from './utils/valid-properties';
+
+export interface IRevenue {
+  getEventProperties(): RevenueEventProperties;
+  setProductId(productId: string): IRevenue;
+  setQuantity(quantity: number): IRevenue;
+  setPrice(price: number): IRevenue;
+  setRevenueType(revenueType: string): IRevenue;
+  setCurrency(currency: string): IRevenue;
+  setEventProperties(properties: { [key: string]: any }): IRevenue;
+  setRevenue(revenue: number): IRevenue;
+}
 
 export class Revenue implements IRevenue {
   private productId: string;
@@ -71,3 +76,29 @@ export class Revenue implements IRevenue {
     return eventProperties;
   }
 }
+
+export interface RevenueEventProperties {
+  [RevenueProperty.REVENUE_PRODUCT_ID]?: string;
+  [RevenueProperty.REVENUE_QUANTITY]?: number;
+  [RevenueProperty.REVENUE_PRICE]?: number;
+  [RevenueProperty.REVENUE_TYPE]?: string;
+  [RevenueProperty.REVENUE_CURRENCY]?: string;
+  [RevenueProperty.REVENUE]?: number;
+}
+
+export enum RevenueProperty {
+  REVENUE_PRODUCT_ID = '$productId',
+  REVENUE_QUANTITY = '$quantity',
+  REVENUE_PRICE = '$price',
+  REVENUE_TYPE = '$revenueType',
+  REVENUE_CURRENCY = '$currency',
+  REVENUE = '$revenue',
+}
+
+export type ValidPropertyType =
+  | number
+  | string
+  | boolean
+  | Array<string | number>
+  | { [key: string]: ValidPropertyType }
+  | Array<{ [key: string]: ValidPropertyType }>;

@@ -3,13 +3,13 @@ import {
   BrowserClient,
   BrowserConfig,
   EnrichmentPlugin,
-  Logger,
+  ILogger,
   ElementInteractionsOptions,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   ActionType,
-} from '@amplitude/analytics-types';
+} from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription } from 'rxjs';
 import {
@@ -123,7 +123,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const type = 'enrichment';
 
   const subscriptions: Subscription[] = [];
-  let logger: Logger | undefined = undefined;
+  let logger: ILogger | undefined = undefined;
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {

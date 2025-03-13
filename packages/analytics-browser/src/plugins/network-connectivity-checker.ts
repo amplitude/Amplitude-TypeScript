@@ -1,5 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-core';
-import { BeforePlugin, BrowserClient } from '@amplitude/analytics-types';
+import { getGlobalScope, BeforePlugin, BrowserClient } from '@amplitude/analytics-core';
 import { BrowserConfig } from 'src/config';
 
 interface EventListener {
