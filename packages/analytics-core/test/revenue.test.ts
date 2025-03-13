@@ -93,13 +93,12 @@ describe('Revenue class', () => {
   });
 
   test('setReceiptSig', () => {
-    const receitSig = 'test receiptSig';
+    const receiptSig = 'test receiptSig';
     const revenue = new Revenue();
-    revenue.setReceiptSig(receitSig);
+    revenue.setReceiptSig(receiptSig);
     const event = createRevenueEvent(revenue);
 
-    const expectedProperties = { ...defaultRevenueProperty, [RevenueProperty.RECEIPT_SIG]: receitSig };
-
+    const expectedProperties = { ...defaultRevenueProperty, [RevenueProperty.RECEIPT_SIG]: receiptSig };
     expect(event.event_properties).toEqual(expectedProperties);
   });
 
