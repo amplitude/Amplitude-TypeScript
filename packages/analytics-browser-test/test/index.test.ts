@@ -784,6 +784,8 @@ describe('integration', () => {
       rev.setRevenueType('t');
       rev.setCurrency('USD');
       rev.setRevenue(200);
+      rev.setReceipt('receipt');
+      rev.setReceiptSig('receipt sig');
       const response = await client.revenue(rev).promise;
       expect(response.event).toEqual({
         device_id: uuid,
@@ -795,6 +797,8 @@ describe('integration', () => {
           $revenue: 200,
           $revenueType: 't',
           $currency: 'USD',
+          $receipt: 'receipt',
+          $receiptSig: 'receipt sig',
         },
         event_type: 'revenue_amount',
         insert_id: uuid,
