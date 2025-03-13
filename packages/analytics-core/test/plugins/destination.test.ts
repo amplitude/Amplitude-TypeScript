@@ -1,5 +1,8 @@
-import { Destination, getResponseBodyString } from '../../src/plugins/destination';
-import { Config, DestinationContext, Logger, Payload, Status } from '@amplitude/analytics-types';
+import { Destination, getResponseBodyString, Context } from '../../src/plugins/destination';
+import { IConfig } from '../../src/config';
+import { ILogger } from '../../src/logger';
+import { Payload } from '../../src/types/payload';
+import { Status } from '../../src/types/status';
 import { API_KEY, useDefaultConfig } from '../helpers/default';
 import {
   INVALID_API_KEY,
@@ -9,11 +12,11 @@ import {
 } from '../../src/types/messages';
 import { uuidPattern } from '../helpers/util';
 import { RequestMetadata } from '../../src';
-import { TrackEvent } from '@amplitude/analytics-types/src';
+import { TrackEvent } from '../../src/types/event/event';
 
 const jsons = (obj: any) => JSON.stringify(obj, null, 2);
 
-const getMockLogger = (): Logger => ({
+const getMockLogger = (): ILogger => ({
   log: jest.fn(),
   debug: jest.fn(),
   warn: jest.fn(),
@@ -1211,7 +1214,7 @@ describe('destination', () => {
       const transportProvider = new Http();
       const destination = new Destination();
 
-      const config: Config = {
+      const config: IConfig = {
         ...useDefaultConfig(),
         flushQueueSize: 1,
         flushIntervalMillis: 1,
@@ -1315,7 +1318,7 @@ describe('destination', () => {
         let result;
         if (eventCount > 1) {
           // Need 2 events for 413 to retry, send them both at the same time
-          const context: DestinationContext = {
+          const context: Context = {
             event,
             attempts: 0,
             callback: jest.fn(),

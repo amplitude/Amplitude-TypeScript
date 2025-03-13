@@ -1,5 +1,6 @@
 import { Timeline } from '../src/timeline';
-import { DestinationPlugin, EnrichmentPlugin, Event, Plugin } from '@amplitude/analytics-types';
+import { DestinationPlugin, EnrichmentPlugin, Plugin } from '../src/types/plugin';
+import { Event } from '../src/types/event/event';
 import { useDefaultConfig, promiseState } from './helpers/default';
 import { createTrackEvent } from '../src/utils/event-builder';
 import { AmplitudeCore } from '../src/core-client';

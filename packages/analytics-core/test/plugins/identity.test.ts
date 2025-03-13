@@ -1,5 +1,5 @@
 import { IdentityEventSender } from '../../src/plugins/identity';
-import { Config } from '@amplitude/analytics-types';
+import { IConfig } from '../../src/config';
 import { getAnalyticsConnector } from '../../src/analytics-connector';
 
 describe('identity', () => {
@@ -10,7 +10,7 @@ describe('identity', () => {
 
     test('should set identity in analytics connector on identify with default instance', async () => {
       const plugin = new IdentityEventSender();
-      await plugin.setup({} as Config);
+      await plugin.setup({} as IConfig);
       const event = {
         event_type: '$identify',
         user_properties: {
@@ -27,7 +27,7 @@ describe('identity', () => {
       const plugin = new IdentityEventSender();
       await plugin.setup({
         instanceName: 'env',
-      } as Config);
+      } as IConfig);
       const event = {
         event_type: '$identify',
         user_properties: {
@@ -42,7 +42,7 @@ describe('identity', () => {
 
     test('should do nothing on track event', async () => {
       const plugin = new IdentityEventSender();
-      await plugin.setup({} as Config);
+      await plugin.setup({} as IConfig);
       const event = {
         event_type: 'test_track',
       };
