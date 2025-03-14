@@ -37,6 +37,8 @@ export interface EventOptions {
   price?: number;
   quantity?: number;
   revenue?: number;
+  receipt?: string;
+  receiptSig?: string;
   productId?: string;
   revenueType?: string;
   currency?: string;
