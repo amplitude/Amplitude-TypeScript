@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.6...@amplitude/analytics-core@2.6.0) (2025-03-14)
+
+
+### Features
+
+* **analytics-core:** add support for revenue receipt and receipt sig ([#991](https://github.com/amplitude/Amplitude-TypeScript/issues/991)) ([e736a65](https://github.com/amplitude/Amplitude-TypeScript/commit/e736a65e35f0462a6b6080e66a27ffaec9a512b5))
+* **analytics-core:** merge analytics-client-common  ([#977](https://github.com/amplitude/Amplitude-TypeScript/issues/977)) ([1746ae5](https://github.com/amplitude/Amplitude-TypeScript/commit/1746ae5efb1ecd0e7586bc22ff8a704a6928c26a))
+* **analytics-core:** merge analytics-types ([#989](https://github.com/amplitude/Amplitude-TypeScript/issues/989)) ([9f7ed68](https://github.com/amplitude/Amplitude-TypeScript/commit/9f7ed68e8ec468f5c597ce427c70ffd855dde629))
+
+
+
+
+
 ## [2.5.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.5...@amplitude/analytics-core@2.5.6) (2025-02-28)
 
 

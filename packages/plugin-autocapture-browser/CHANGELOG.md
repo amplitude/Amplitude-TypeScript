@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.5...@amplitude/plugin-autocapture-browser@1.1.0) (2025-03-14)
+
+
+### Bug Fixes
+
+* **autocapture:** remove time assignment for element interactions tracking ([#981](https://github.com/amplitude/Amplitude-TypeScript/issues/981)) ([c837a07](https://github.com/amplitude/Amplitude-TypeScript/commit/c837a07e62285a7e033014f5ea9d38cf246f4f89))
+
+
+### Features
+
+* **analytics-core:** merge analytics-types ([#989](https://github.com/amplitude/Amplitude-TypeScript/issues/989)) ([9f7ed68](https://github.com/amplitude/Amplitude-TypeScript/commit/9f7ed68e8ec468f5c597ce427c70ffd855dde629))
+
+
+
+
+
 ## 1.0.5 (2025-02-28)
 
 
