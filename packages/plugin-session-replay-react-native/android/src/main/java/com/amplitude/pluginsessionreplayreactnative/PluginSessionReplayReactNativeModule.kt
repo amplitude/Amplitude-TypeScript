@@ -13,7 +13,6 @@ import com.facebook.react.bridge.WritableNativeMap
 class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
   private lateinit var sessionReplay: SessionReplay
-  private var isInitialized = false
 
   override fun getName(): String {
     return "PluginSessionReplayReactNative"
@@ -21,73 +20,69 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
 
   @ReactMethod
   fun setup(apiKey: String, deviceId: String?, sessionId: Double, sampleRate: Double, enableRemoteConfig: Boolean) {
-      LogcatLogger.logger.logMode = Logger.LogMode.DEBUG
-      sessionReplay = SessionReplay(
-        apiKey,
-        reactContext.applicationContext,
-        deviceId ?: "",
-        sessionId.toLong(),
-        logger = LogcatLogger.logger,
-        sampleRate = sampleRate,
-        enableRemoteConfig = enableRemoteConfig,
-      )
-    isInitialized = true
+    LogcatLogger.logger.logMode = Logger.LogMode.DEBUG
+    sessionReplay = SessionReplay(
+      apiKey,
+      reactContext.applicationContext,
+      deviceId ?: "",
+      sessionId.toLong(),
+      logger = LogcatLogger.logger,
+      sampleRate = sampleRate,
+      enableRemoteConfig = enableRemoteConfig,
+    )
   }
 
   @ReactMethod
   fun setSessionId(sessionId: Double) {
-    if (isInitialized) {
-      sessionReplay.setSessionId(sessionId.toLong())
-    }
+    sessionReplay.setSessionId(sessionId.toLong())
   }
 
   @ReactMethod
   fun getSessionId(promise: Promise) {
-    if (isInitialized) {
-      promise.resolve(sessionReplay.getSessionId().toDouble())
-    }
-    promise.resolve(-1)
+    promise.resolve(sessionReplay.getSessionId().toDouble())
   }
 
   @ReactMethod
   fun getSessionReplayProperties(promise: Promise) {
+    val properties: Map<String, Any> = sessionReplay.getSessionReplayProperties()
     val map: WritableMap = WritableNativeMap()
-    if (isInitialized) {
-      val properties: Map<String, Any> = sessionReplay.getSessionReplayProperties()
-      for ((key, value) in properties) {
-        when (value) {
-          is String -> map.putString(key, value)
-          is Int -> map.putInt(key, value)
-          is Long -> map.putDouble(key, value.toDouble())
-          is Double -> map.putDouble(key, value)
-          is Boolean -> map.putBoolean(key, value)
-        }
+    for ((key, value) in properties) {
+      if (value is String) {
+        map.putString(key, value)
+      } else if (value is Int) {
+        map.putInt(key, value)
+      } else if (value is Long) {
+        map.putDouble(key, value.toDouble())
+      } else if (value is Double) {
+        map.putDouble(key, value)
+      } else if (value is Boolean) {
+        map.putBoolean(key, value)
       }
-      promise.resolve(map)
-      return
     }
     promise.resolve(map)
+  }
+  
+  @ReactMethod
+  fun start() {
+    sessionReplay.start()
+  }
+
+  @ReactMethod
+  fun stop() {
+    sessionReplay.stop()
   }
 
   @ReactMethod
   fun flush() {
-    if (isInitialized) {
-      sessionReplay.flush()
-    }
+    sessionReplay.flush()
   }
 
   @ReactMethod
   fun teardown() {
-    if (isInitialized) {
-      sessionReplay.shutdown()
-      isInitialized = false
-    }
+    sessionReplay.shutdown()
   }
 
   override fun invalidate() {
-    if (isInitialized) {
-      sessionReplay.shutdown()
-      isInitialized = false
-    }
+    sessionReplay.shutdown()
   }
 }
