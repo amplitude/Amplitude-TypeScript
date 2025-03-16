@@ -70,6 +70,8 @@ import {
   UTMParameters as UTMParametersType,
 } from './attribution/campaign';
 
+// Export the following types to maintain backward compatibility with `analytics-types`.
+// In the next major version, only export customer-facing types to reduce the public API surface.
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Types {
   export type AmplitudeReturn<T> = AmplitudeReturnType<T>;
