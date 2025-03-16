@@ -287,7 +287,7 @@ function App(): React.JSX.Element {
       sampleRate: 1
     };
     (async () => {
-      await init('6151e18fcbce1f94010e8791964d2a71', 'example_user_id', {
+      await init('YOUR-API-KEY', 'example_user_id', {
         logLevel: LogLevel.Verbose,
       }).promise;
       sessionReplayPlugin = new SessionReplayPlugin(config);
