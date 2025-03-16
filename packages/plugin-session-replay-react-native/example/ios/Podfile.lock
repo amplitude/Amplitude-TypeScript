@@ -1,6 +1,6 @@
 PODS:
   - amplitude-plugin-session-replay-react-native (0.2.8):
-    - AmplitudeSessionReplay (>= 0.2.1)
+    - AmplitudeSessionReplay (>= 0.1.0)
     - DoubleConversion
     - glog
     - hermes-engine
@@ -23,7 +23,7 @@ PODS:
     - Yoga
   - amplitude-react-native (1.4.13):
     - React-Core
-  - AmplitudeSessionReplay (0.2.1)
+  - AmplitudeSessionReplay (0.1.2)
   - boost (1.84.0)
   - DoubleConversion (1.1.6)
   - FBLazyVector (0.76.5)
@@ -1910,9 +1910,9 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  amplitude-plugin-session-replay-react-native: d85b39e12aeaf2e6f7bf871884e07388d0b41813
+  amplitude-plugin-session-replay-react-native: 6e549778660237bab17fdf43e7b7d3a7d65456db
   amplitude-react-native: d0039a3ce502eb441ba818af1b8c8ba710ef16e7
-  AmplitudeSessionReplay: 1d9e864003599b4082ea67730da0d936b923e96f
+  AmplitudeSessionReplay: 20ecc2741cf4b3f1a9d6be2b72beda4a94558052
   boost: 1dca942403ed9342f98334bf4c3621f011aa7946
   DoubleConversion: f16ae600a246532c4020132d54af21d0ddb2a385
   FBLazyVector: 1bf99bb46c6af9a2712592e707347315f23947aa
