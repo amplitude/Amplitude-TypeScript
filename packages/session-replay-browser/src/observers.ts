@@ -32,6 +32,10 @@ export class NetworkObservers {
     this.eventCallback = undefined;
   }
 
+  protected notifyEvent(event: NetworkRequestEvent) {
+    this.eventCallback?.(event);
+  }
+
   private observeFetch() {
     const globalScope = getGlobalScope();
     if (!globalScope) return;
@@ -63,7 +67,7 @@ export class NetworkObservers {
         });
         requestEvent.responseHeaders = headers;
 
-        this.eventCallback?.(requestEvent);
+        this.notifyEvent(requestEvent);
         return response;
       } catch (error) {
         const endTime = Date.now();
@@ -76,7 +80,7 @@ export class NetworkObservers {
           message: typedError.message || 'An unknown error occurred',
         };
 
-        this.eventCallback?.(requestEvent);
+        this.notifyEvent(requestEvent);
         throw error;
       }
     };

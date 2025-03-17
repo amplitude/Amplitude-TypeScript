@@ -17,7 +17,7 @@ export interface LoggingConfig {
     enabled: boolean;
     levels: ConsoleLogLevel[];
   };
-  network: {
+  network?: {
     enabled: boolean;
   };
 }

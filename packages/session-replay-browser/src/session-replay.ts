@@ -149,7 +149,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
 
     // Initialize network observers if logging is enabled
-    if (this.config?.loggingConfig?.network?.enabled) {
+    if (this.config.loggingConfig?.network?.enabled) {
       this.networkObservers = new NetworkObservers();
     }
 

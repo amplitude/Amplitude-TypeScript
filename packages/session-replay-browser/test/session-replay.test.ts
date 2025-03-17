@@ -8,6 +8,7 @@ import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
+import { NetworkObservers } from '../src/observers';
 
 import { IDBFactory } from 'fake-indexeddb';
 import {
@@ -154,6 +155,50 @@ describe('SessionReplay', () => {
       expect(sessionReplay.config?.privacyConfig?.blockSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.maskSelector).toStrictEqual(undefined);
       expect(sessionReplay.config?.privacyConfig?.unmaskSelector).toStrictEqual(undefined);
+    });
+
+    test('should start network observers when network logging is enabled in remote config', async () => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
+          return {
+            network: {
+              enabled: true,
+            },
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      sessionReplay.recordEvents();
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    test('should not start network observers when network logging is disabled in remote config', async () => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
+          return {
+            network: {
+              enabled: false,
+            },
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      sessionReplay.recordEvents();
+      expect(startSpy).not.toHaveBeenCalled();
     });
 
     test('should catch error and log a warn when initializing', async () => {
@@ -803,7 +848,6 @@ describe('SessionReplay', () => {
         sampleRate: 0.5,
         captureEnabled: false,
       });
-
       await sessionReplay.init(apiKey, { ...mockOptions }).promise;
       const shouldRecord = sessionReplay.getShouldRecord();
       expect(shouldRecord).toBe(false);
@@ -1324,6 +1368,49 @@ describe('SessionReplay', () => {
         },
       };
       expect(sessionReplay.getRecordingPlugins(loggingConfig)).toHaveLength(1);
+    });
+  });
+
+  describe('should call addCustomRRWebEvent with network request events', () => {
+    test('should call addCustomRRWebEvent with network request events', async () => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
+          return {
+            network: {
+              enabled: true,
+            },
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+      const mockNetworkEvent = {
+        type: 'fetch' as const,
+        url: 'https://example.com',
+        timestamp: Date.now(),
+        method: 'GET',
+        status: 200,
+        requestHeaders: {},
+        responseHeaders: {},
+        requestBody: '',
+        responseBody: '',
+      };
+
+      // Get the callback that was passed to start
+      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      sessionReplay.recordEvents();
+      const startCallback = startSpy.mock.calls[0][0];
+
+      // Call the callback with our mock event
+      startCallback(mockNetworkEvent);
+
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
     });
   });
 });
