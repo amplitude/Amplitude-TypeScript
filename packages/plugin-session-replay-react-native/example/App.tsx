@@ -52,6 +52,8 @@ type SectionProps = PropsWithChildren<{
   title: string;
 }>;
 
+let sessionReplayPlugin: SessionReplayPlugin | undefined = undefined;
+
 function Section({ children, title }: SectionProps): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
   return (
@@ -135,6 +137,28 @@ function HomeScreen({ navigation }: HomeScreenNavigationProps) {
             <Button
               title="Go to Web View"
               onPress={() => navigation.navigate('WebView')}
+            />
+          </Section>
+          <Section title="Session Replay Controls">
+            <Button
+              title="Start Recording"
+              onPress={async () => {
+                if (sessionReplayPlugin) {
+                  await sessionReplayPlugin.start();
+                  track("session-replay-started");
+                  console.log('Session replay recording started');
+                }
+              }}
+            />
+            <Button
+              title="Stop Recording"
+              onPress={async () => {
+                if (sessionReplayPlugin) {
+                  await sessionReplayPlugin.stop();
+                  track("session-replay-stopped");
+                  console.log('Session replay recording stopped');
+                }
+              }}
             />
           </Section>
           <Section title="Step One">
@@ -266,7 +290,8 @@ function App(): React.JSX.Element {
       await init('YOUR-API-KEY', 'example_user_id', {
         logLevel: LogLevel.Verbose,
       }).promise;
-      await add(new SessionReplayPlugin(config)).promise;
+      sessionReplayPlugin = new SessionReplayPlugin(config);
+      await add(sessionReplayPlugin).promise;
       track('test');
       await identify(new Identify().set('react-native-test', 'yes')).promise;
     })();
@@ -333,6 +358,14 @@ const styles = StyleSheet.create({
     margin: 12,
     borderWidth: 1,
     padding: 10,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonSpacer: {
+    width: 20,
   },
 });
 

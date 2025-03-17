@@ -61,6 +61,16 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
     }
     promise.resolve(map)
   }
+  
+  @ReactMethod
+  fun start() {
+    sessionReplay.start()
+  }
+
+  @ReactMethod
+  fun stop() {
+    sessionReplay.stop()
+  }
 
   @ReactMethod
   fun flush() {

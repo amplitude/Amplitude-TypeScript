@@ -38,6 +38,20 @@ class PluginSessionReplayReactNative: NSObject {
       resolve(sessionReplay.additionalEventProperties)
     }
     
+    @objc(start:reject:)
+    func start(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+      print("start")
+      sessionReplay.start()
+      resolve(nil)
+    }
+    
+    @objc(stop:reject:)
+    func stop(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
+      print("stop")
+      sessionReplay.stop()
+      resolve(nil)
+    }
+    
     @objc(flush:reject:)
     func flush(_ resolve: RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) -> Void {
       print("flush")
