@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.2.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.8...@amplitude/plugin-session-replay-react-native@0.2.9) (2025-03-17)
+
+
+### Bug Fixes
+
+* add start and stop functions and fix lateinit crash on Android ([#995](https://github.com/amplitude/Amplitude-TypeScript/issues/995)) ([84c1084](https://github.com/amplitude/Amplitude-TypeScript/commit/84c1084fb38b2bedd5ccf344a7d0fa44a011bc29))
+
+
+
+
+
 ## 0.2.8 (2025-02-28)
 
 
