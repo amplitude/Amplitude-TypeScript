@@ -17,6 +17,9 @@ export interface LoggingConfig {
     enabled: boolean;
     levels: ConsoleLogLevel[];
   };
+  network?: {
+    enabled: boolean;
+  };
 }
 
 export type SessionReplayRemoteConfig = {
