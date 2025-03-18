@@ -18,8 +18,8 @@ export type DeliveryMode = 'all' | { timeout: number };
  */
 export type Source = 'cache' | 'remote';
 
-const US_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
-const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
+export const US_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
+export const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
 const DEFAULT_MAX_RETRIES = 3;
 // TODO(xinyi)
 // const DEFAULT_MIN_TIME_BETWEEN_FETCHES = 5 * 60 * 1000; // 5 minutes
@@ -72,22 +72,7 @@ interface CallbackInfo {
  */
 type RemoteConfigCallback = (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => void;
 
-export class RemoteConfigClient {
-  private readonly apiKey: string;
-  private readonly serverUrl: string;
-  private readonly logger: ILogger;
-  private readonly storage: RemoteConfigStorage;
-
-  // Registered callbackInfos by subscribe().
-  private callbackInfos: CallbackInfo[] = [];
-
-  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US') {
-    this.apiKey = apiKey;
-    this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
-    this.logger = logger;
-    this.storage = new RemoteConfigLocalstorage(apiKey, logger);
-  }
-
+export interface IRemoteConfigClient {
   /**
    * Subscribe for updates to remote config.
    * Callback is guaranteed to be called at least once,
@@ -100,6 +85,36 @@ export class RemoteConfigClient {
    * @param callback - a block that will be called when remote config is fetched.
    * @return id - identification of the subscribe and can be used to unsubscribe from updates.
    */
+  subscribe(key: string | undefined, deliveryMode: DeliveryMode, callback: RemoteConfigCallback): string;
+  /**
+   * Unsubscribe a callback from receiving future updates.
+   *
+   * @param id - identification of the callback that you want to unsubscribe.
+   * It's the return value of subscribe().
+   * @return boolean - whether the callback is removed.
+   */
+  unsubscribe(id: string): boolean;
+  /**
+   * Request the remote config client to fetch from remote, update cache, and callback.
+   */
+  updateConfigs(): void;
+}
+
+export class RemoteConfigClient implements IRemoteConfigClient {
+  readonly apiKey: string;
+  readonly serverUrl: string;
+  readonly logger: ILogger;
+  readonly storage: RemoteConfigStorage;
+  // Registered callbackInfos by subscribe().
+  callbackInfos: CallbackInfo[] = [];
+
+  constructor(apiKey: string, logger: ILogger, serverZone: ServerZoneType = 'US') {
+    this.apiKey = apiKey;
+    this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
+    this.logger = logger;
+    this.storage = new RemoteConfigLocalstorage(apiKey, logger);
+  }
+
   subscribe(key: string | undefined, deliveryMode: DeliveryMode = 'all', callback: RemoteConfigCallback): string {
     const id = UUID();
     const callbackInfo = {
@@ -119,32 +134,23 @@ export class RemoteConfigClient {
     return id;
   }
 
-  /**
-   * Unsubscribe a callback from receiving future updates.
-   *
-   * @param id - identification of the callback that you want to unsubscribe.
-   * It's the return value of subscribe().
-   */
-  unsubscribe(id: string) {
+  unsubscribe(id: string): boolean {
     const index = this.callbackInfos.findIndex((callbackInfo) => callbackInfo.id === id);
     if (index === -1) {
       this.logger.debug(`Remote config client unsubscribe failed because callback with id ${id} doesn't exist.`);
-      return;
+      return false;
     }
 
     this.callbackInfos.splice(index, 1);
     this.logger.debug(`Remote config client unsubscribe succeeded removing callback with id ${id}.`);
+    return true;
   }
 
-  /**
-   * Request the remote config client to fetch from remote, update cache, and callback.
-   */
-  updateConfigs() {
-    void this.fetch().then((result) => {
-      void this.storage.setConfig(result);
-      this.callbackInfos.forEach((callbackInfo) => {
-        this.sendCallback(callbackInfo, result, 'remote');
-      });
+  async updateConfigs() {
+    const result = await this.fetch();
+    void this.storage.setConfig(result);
+    this.callbackInfos.forEach((callbackInfo) => {
+      this.sendCallback(callbackInfo, result, 'remote');
     });
   }
 
@@ -155,7 +161,7 @@ export class RemoteConfigClient {
    * @param callbackInfo
    * @private
    */
-  private async subscribeAll(callbackInfo: CallbackInfo) {
+  async subscribeAll(callbackInfo: CallbackInfo) {
     const remotePromise = this.fetch().then((result) => {
       this.logger.debug('Remote config client subscription all mode fetched from remote.');
       this.sendCallback(callbackInfo, result, 'remote');
@@ -183,7 +189,7 @@ export class RemoteConfigClient {
    * @param timeout
    * @private
    */
-  private async subscribeWaitForRemote(callbackInfo: CallbackInfo, timeout: number) {
+  async subscribeWaitForRemote(callbackInfo: CallbackInfo, timeout: number) {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject('Timeout exceeded');
@@ -218,7 +224,7 @@ export class RemoteConfigClient {
    * @param source
    * @private
    */
-  private sendCallback(callbackInfo: CallbackInfo, remoteConfigInfo: RemoteConfigInfo, source: Source) {
+  sendCallback(callbackInfo: CallbackInfo, remoteConfigInfo: RemoteConfigInfo, source: Source) {
     callbackInfo.lastCallback = new Date();
 
     let filteredConfig: RemoteConfig | null;
@@ -237,7 +243,7 @@ export class RemoteConfigClient {
     callbackInfo.callback(filteredConfig, source, remoteConfigInfo.lastFetch);
   }
 
-  private async fetch(retries: number = DEFAULT_MAX_RETRIES): Promise<RemoteConfigInfo> {
+  async fetch(retries: number = DEFAULT_MAX_RETRIES): Promise<RemoteConfigInfo> {
     const failedRemoteConfigInfo: RemoteConfigInfo = {
       remoteConfig: null,
       lastFetch: new Date(),
