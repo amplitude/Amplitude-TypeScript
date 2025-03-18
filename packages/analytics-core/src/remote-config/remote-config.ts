@@ -1,6 +1,6 @@
 import { ServerZoneType } from '../types/server-zone';
 import { ILogger } from '../logger';
-import { RemoteConfigIdbStorage } from './remote-config-idb-storage';
+import { RemoteConfigLocalstorage } from './remote-config-localstorage';
 import { UUID } from '../utils/uuid';
 
 /**
@@ -32,7 +32,7 @@ const FETCHED_KEYS = [
   'sessionReplay.sr_targeting_config',
 ];
 
-interface RemoteConfig {
+export interface RemoteConfig {
   [key: string]: any;
 }
 
@@ -46,7 +46,6 @@ export interface RemoteConfigStorage {
   /**
    * Fetch remote config from storage asynchronously.
    */
-  //
   fetchConfig(): Promise<RemoteConfigInfo>;
   /**
    * Set remote config to storage asynchronously.
@@ -86,7 +85,7 @@ export class RemoteConfigClient {
     this.apiKey = apiKey;
     this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
     this.logger = logger;
-    this.storage = new RemoteConfigIdbStorage(apiKey);
+    this.storage = new RemoteConfigLocalstorage(apiKey, logger);
   }
 
   /**
