@@ -12,20 +12,27 @@ export class RemoteConfigLocalstorage implements RemoteConfigStorage {
 
   fetchConfig(): Promise<RemoteConfigInfo> {
     const result = localStorage.getItem(this.key);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const remoteConfig: RemoteConfig | null = result ? (JSON.parse(result) as RemoteConfig) : null;
-      this.logger.debug('Remote config localstorage get successfully.');
-      return Promise.resolve({
-        remoteConfig: remoteConfig,
-        lastFetch: new Date(),
-      });
-    } catch (error) {
-      this.logger.debug('Remote config localstorage failed to get: ', error);
+    if (result === null) {
+      this.logger.debug('Remote config localstorage gets null because the key does not exist');
       return Promise.resolve({
         remoteConfig: null,
         lastFetch: new Date(),
       });
+    } else {
+      try {
+        const remoteConfig: RemoteConfig = JSON.parse(result) as RemoteConfig;
+        this.logger.debug('Remote config localstorage get successfully.');
+        return Promise.resolve({
+          remoteConfig: remoteConfig,
+          lastFetch: new Date(),
+        });
+      } catch (error) {
+        this.logger.debug('Remote config localstorage failed to get: ', error);
+        return Promise.resolve({
+          remoteConfig: null,
+          lastFetch: new Date(),
+        });
+      }
     }
   }
 
