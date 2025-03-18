@@ -1,9 +1,15 @@
-import { Logger, UUID } from '@amplitude/analytics-core';
-import { AttributionOptions, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import { CampaignParser } from '../../src/attribution/campaign-parser';
 import { WebAttribution } from '../../src/attribution/web-attribution';
-import { FetchTransport, CookieStorage } from '@amplitude/analytics-core';
+import {
+  FetchTransport,
+  CookieStorage,
+  Logger,
+  UUID,
+  AttributionOptions,
+  BrowserConfig,
+  LogLevel,
+} from '@amplitude/analytics-core';
 
 describe('shouldTrackNewCampaign', () => {
   const mockConfig: BrowserConfig = {
