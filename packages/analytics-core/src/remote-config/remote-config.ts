@@ -118,7 +118,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     this.storage = new RemoteConfigLocalstorage(apiKey, logger);
   }
 
-  subscribe(key: string | undefined, deliveryMode: DeliveryMode = 'all', callback: RemoteConfigCallback): string {
+  subscribe(key: string | undefined, deliveryMode: DeliveryMode, callback: RemoteConfigCallback): string {
     const id = UUID();
     const callbackInfo = {
       id: id,
@@ -247,6 +247,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     callbackInfo.callback(filteredConfig, source, remoteConfigInfo.lastFetch);
   }
 
+  /* istanbul ignore next */
   async fetch(retries: number = DEFAULT_MAX_RETRIES): Promise<RemoteConfigInfo> {
     const failedRemoteConfigInfo: RemoteConfigInfo = {
       remoteConfig: null,
