@@ -20,10 +20,10 @@ export type Source = 'cache' | 'remote';
 
 export const US_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
-const DEFAULT_MAX_RETRIES = 3;
+export const DEFAULT_MAX_RETRIES = 3;
 // TODO(xinyi)
 // const DEFAULT_MIN_TIME_BETWEEN_FETCHES = 5 * 60 * 1000; // 5 minutes
-const FETCHED_KEYS = [
+export const FETCHED_KEYS = [
   'analyticsSDK.browserSDK',
   'sessionReplay.sr_interaction_config',
   'sessionReplay.sr_logging_config',
@@ -47,6 +47,7 @@ export interface RemoteConfigStorage {
    * Fetch remote config from storage asynchronously.
    */
   fetchConfig(): Promise<RemoteConfigInfo>;
+
   /**
    * Set remote config to storage asynchronously.
    * @param config
@@ -58,7 +59,7 @@ export interface RemoteConfigStorage {
  * Information about each callback registered by `RemoteConfigClient.subscribe()`,
  * managed internally by `RemoteConfigClient`.
  */
-interface CallbackInfo {
+export interface CallbackInfo {
   id: string;
   key?: string;
   deliveryMode: DeliveryMode;
@@ -86,6 +87,7 @@ export interface IRemoteConfigClient {
    * @return id - identification of the subscribe and can be used to unsubscribe from updates.
    */
   subscribe(key: string | undefined, deliveryMode: DeliveryMode, callback: RemoteConfigCallback): string;
+
   /**
    * Unsubscribe a callback from receiving future updates.
    *
@@ -94,6 +96,7 @@ export interface IRemoteConfigClient {
    * @return boolean - whether the callback is removed.
    */
   unsubscribe(id: string): boolean;
+
   /**
    * Request the remote config client to fetch from remote, update cache, and callback.
    */
@@ -159,7 +162,6 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    * - if remote is fetched first, no cache fetch.
    * - if cache is fetched first, still fetching remote.
    * @param callbackInfo
-   * @private
    */
   async subscribeAll(callbackInfo: CallbackInfo) {
     const remotePromise = this.fetch().then((result) => {
@@ -187,7 +189,6 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    * Waits for a remote response until the given timeout, then return a cached copy, if available.
    * @param callbackInfo
    * @param timeout
-   * @private
    */
   async subscribeWaitForRemote(callbackInfo: CallbackInfo, timeout: number) {
     const timeoutPromise = new Promise((_, reject) => {
@@ -212,7 +213,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
         this.sendCallback(callbackInfo, result, 'cache');
       } else {
         this.logger.debug('Remote config client subscription wait for remote mode failed to fetch cache.');
-        this.sendCallback(callbackInfo, { remoteConfig: null, lastFetch: new Date() }, 'remote');
+        this.sendCallback(callbackInfo, result, 'remote');
       }
     }
   }
@@ -222,7 +223,6 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    * @param callbackInfo
    * @param remoteConfigInfo - the whole remote config object without filtering by key.
    * @param source
-   * @private
    */
   sendCallback(callbackInfo: CallbackInfo, remoteConfigInfo: RemoteConfigInfo, source: Source) {
     callbackInfo.lastCallback = new Date();
@@ -234,7 +234,11 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       // if key = 'a', filter result is {b: {c: 1}};
       // if key = 'a.b', filter result is {c: 1}
       filteredConfig = callbackInfo.key.split('.').reduce((config, key) => {
-        return config ? config : ([key] as RemoteConfig);
+        if (config === null) {
+          return config;
+        }
+
+        return key in config ? (config[key] as RemoteConfig) : null;
       }, remoteConfigInfo.remoteConfig);
     } else {
       filteredConfig = remoteConfigInfo.remoteConfig;
@@ -283,7 +287,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     }
   }
 
-  private getUrlParams(): string {
+  getUrlParams(): string {
     const urlParams = new URLSearchParams({
       api_key: this.apiKey,
     });
