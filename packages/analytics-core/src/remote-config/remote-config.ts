@@ -247,7 +247,6 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     callbackInfo.callback(filteredConfig, source, remoteConfigInfo.lastFetch);
   }
 
-  /* istanbul ignore next */
   async fetch(retries: number = DEFAULT_MAX_RETRIES): Promise<RemoteConfigInfo> {
     const failedRemoteConfigInfo: RemoteConfigInfo = {
       remoteConfig: null,
@@ -266,8 +265,9 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       if (!res.ok) {
         const body = await res.text();
         this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
-        if (retries > 1) {
-          return this.fetch(retries--);
+        retries -= 1;
+        if (retries > 0) {
+          return this.fetch(retries);
         }
         return failedRemoteConfigInfo;
       }
@@ -281,8 +281,9 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     } catch (error) {
       // Handle rejects when the request fails, for example, a network error
       this.logger.debug(`Remote config client fetch with retry time ${retries} is rejected because: `, error);
-      if (retries > 1) {
-        return this.fetch(retries--);
+      retries -= 1;
+      if (retries > 0) {
+        return this.fetch(retries);
       }
       return failedRemoteConfigInfo;
     }

@@ -439,6 +439,92 @@ describe('RemoteConfigClient', () => {
     });
   });
 
+  describe('fetch', () => {
+    test('should return successful response when fetch succeeds', async () => {
+      const mockResponse = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockResponse.remoteConfig),
+        } as Response),
+      );
+
+      const result = await client.fetch();
+
+      expect(result.remoteConfig).toEqual(mockResponse.remoteConfig);
+      expect(result.lastFetch).toBeInstanceOf(Date);
+    });
+
+    test('should retry and succeed when the first attempt fails', async () => {
+      const mockResponse = {
+        remoteConfig: { key: 'value' },
+        lastFetch: new Date(),
+      };
+
+      global.fetch = jest
+        .fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('Server error'),
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockResponse.remoteConfig),
+        } as Response);
+
+      const result = await client.fetch(2);
+
+      expect(result.remoteConfig).toEqual(mockResponse.remoteConfig);
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 500'));
+    });
+
+    test('should retry and fail after maximum retries', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('Server error'),
+        } as Response),
+      );
+
+      const result = await client.fetch(2);
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledTimes(2);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('failed with 500'));
+    });
+
+    test('should handle network errors and retry', async () => {
+      global.fetch = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('Network Error'))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({ key: 'value' }),
+        } as Response);
+
+      const result = await client.fetch(2);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('is rejected because:'), expect.any(Error));
+    });
+
+    test('should retry and fail after max retries on network error', async () => {
+      global.fetch = jest.fn(() => Promise.reject(new Error('Network Error')));
+
+      const result = await client.fetch(2);
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledTimes(2);
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('is rejected because:'), expect.any(Error));
+    });
+  });
+
   describe('getUrlParams', () => {
     test('should generate correct US URL', () => {
       const expectedUrl =
