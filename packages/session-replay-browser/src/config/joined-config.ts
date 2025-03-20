@@ -6,6 +6,7 @@ import { SessionReplayLocalConfig } from './local-config';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   PrivacyConfig,
+  SessionReplayConfigs,
   SessionReplayJoinedConfig,
   SessionReplayRemoteConfig,
 } from './types';
@@ -46,7 +47,7 @@ export class SessionReplayJoinedConfigGenerator {
     this.remoteConfigFetch = remoteConfigFetch;
   }
 
-  async generateJoinedConfig(sessionId?: string | number): Promise<SessionReplayJoinedConfig> {
+  async generateJoinedConfig(sessionId?: string | number): Promise<SessionReplayConfigs> {
     const config: SessionReplayJoinedConfig = { ...this.localConfig };
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;
@@ -97,7 +98,11 @@ export class SessionReplayJoinedConfigGenerator {
     }
 
     if (!remoteConfig) {
-      return config;
+      return {
+        localConfig: this.localConfig,
+        joinedConfig: config,
+        remoteConfig,
+      };
     }
 
     const { sr_sampling_config: samplingConfig, sr_privacy_config: remotePrivacyConfig } = remoteConfig;
@@ -188,7 +193,11 @@ export class SessionReplayJoinedConfigGenerator {
       JSON.stringify({ name: 'session replay joined config', config: getDebugConfig(config) }, null, 2),
     );
 
-    return config;
+    return {
+      localConfig: this.localConfig,
+      joinedConfig: config,
+      remoteConfig,
+    };
   }
 }
 

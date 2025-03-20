@@ -31,4 +31,5 @@ export enum CustomRRwebEvent {
   GET_SR_PROPS = 'get-sr-props',
   DEBUG_INFO = 'debug-info',
   FETCH_REQUEST = 'fetch-request',
+  METADATA = 'metadata',
 }
