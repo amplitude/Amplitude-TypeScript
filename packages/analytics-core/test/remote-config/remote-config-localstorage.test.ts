@@ -52,7 +52,7 @@ describe('RemoteConfigLocalstorage', () => {
       expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage get successfully.');
     });
 
-    it('should return remote config info null if JSON parsing fails', async () => {
+    it('should return remote config info null and clear storage if JSON parsing fails', async () => {
       localStorage.setItem(storageKey, '{ invalid json }');
 
       const result = await storage.fetchConfig();
@@ -60,6 +60,7 @@ describe('RemoteConfigLocalstorage', () => {
       expect(result.remoteConfig).toBeNull();
       expect(result.lastFetch).toEqual(mockDate);
       expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage failed to get: ', expect.any(Error));
+      expect(localStorage.getItem(storageKey)).toBeNull();
     });
 
     it('should return remote config info null localStorage is empty', async () => {
@@ -68,6 +69,21 @@ describe('RemoteConfigLocalstorage', () => {
       expect(result.remoteConfig).toBeNull();
       expect(result.lastFetch).toBeInstanceOf(Date);
       expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage gets null because the key does not exist');
+    });
+
+    it('should return remote config info null if localStorage.getItem throws an error', async () => {
+      const getItemSpy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new Error('localStorage is undefined');
+      });
+
+      const result = await storage.fetchConfig();
+
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage failed to access: ', expect.any(Error));
+
+      // Restore the original getItem implementation
+      getItemSpy.mockRestore();
     });
   });
 

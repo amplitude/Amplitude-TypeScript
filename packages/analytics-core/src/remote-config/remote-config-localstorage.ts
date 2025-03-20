@@ -11,28 +11,35 @@ export class RemoteConfigLocalstorage implements RemoteConfigStorage {
   }
 
   fetchConfig(): Promise<RemoteConfigInfo> {
-    const result = localStorage.getItem(this.key);
+    let result: string | null = null;
+    const failedRemoteConfigInfo = {
+      remoteConfig: null,
+      lastFetch: new Date(),
+    };
+
+    try {
+      result = localStorage.getItem(this.key);
+    } catch (error) {
+      this.logger.debug('Remote config localstorage failed to access: ', error);
+      return Promise.resolve(failedRemoteConfigInfo);
+    }
+
     if (result === null) {
       this.logger.debug('Remote config localstorage gets null because the key does not exist');
+      return Promise.resolve(failedRemoteConfigInfo);
+    }
+
+    try {
+      const remoteConfigInfo: RemoteConfigInfo = JSON.parse(result) as RemoteConfigInfo;
+      this.logger.debug('Remote config localstorage get successfully.');
       return Promise.resolve({
-        remoteConfig: null,
-        lastFetch: new Date(),
+        remoteConfig: remoteConfigInfo.remoteConfig,
+        lastFetch: new Date(remoteConfigInfo.lastFetch),
       });
-    } else {
-      try {
-        const remoteConfigInfo: RemoteConfigInfo = JSON.parse(result) as RemoteConfigInfo;
-        this.logger.debug('Remote config localstorage get successfully.');
-        return Promise.resolve({
-          remoteConfig: remoteConfigInfo.remoteConfig,
-          lastFetch: new Date(remoteConfigInfo.lastFetch),
-        });
-      } catch (error) {
-        this.logger.debug('Remote config localstorage failed to get: ', error);
-        return Promise.resolve({
-          remoteConfig: null,
-          lastFetch: new Date(),
-        });
-      }
+    } catch (error) {
+      this.logger.debug('Remote config localstorage failed to get: ', error);
+      localStorage.removeItem(this.key);
+      return Promise.resolve(failedRemoteConfigInfo);
     }
   }
 
