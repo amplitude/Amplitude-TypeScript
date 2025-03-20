@@ -8,6 +8,7 @@ import { XHRTransport } from '../src/transports/xhr';
 import { createTransport } from '../src/config';
 import { SendBeaconTransport } from '../src/transports/send-beacon';
 import { uuidPattern } from './helpers/constants';
+import { VERSION } from '../src/version';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -59,6 +60,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        version: VERSION,
       });
     });
   });
@@ -107,6 +109,7 @@ describe('config', () => {
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
+        version: VERSION,
       });
     });
 
@@ -187,6 +190,7 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
         _userId: 'user-user-user',
+        version: VERSION,
       });
     });
 
