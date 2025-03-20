@@ -14,6 +14,8 @@ import {
   SessionReplayJoinedConfig,
   SessionReplayJoinedConfigGenerator,
   SessionReplayMetadata,
+  SessionReplayLocalConfig,
+  SessionReplayRemoteConfig,
 } from './config/types';
 import {
   BLOCK_CLASS,
@@ -102,11 +104,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.identifiers.sessionId,
     );
     this.config = joinedConfig;
-    this.metadata = {
-      joinedConfig,
-      localConfig,
-      remoteConfig,
-    };
+
+    this.setMetadata(options.sessionId, joinedConfig, localConfig, remoteConfig);
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -197,8 +196,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
     if (this.joinedConfigGenerator && previousSessionId) {
-      const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+      const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig(
+        this.identifiers.sessionId,
+      );
       this.config = joinedConfig;
+      this.setMetadata(sessionId, joinedConfig, localConfig, remoteConfig);
     }
     void this.recordEvents();
   }
@@ -521,5 +523,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.teardownEventListeners(true);
     this.stopRecordingEvents();
     this.sendEvents();
+  }
+
+  private setMetadata(
+    sessionId: string | number | undefined,
+    joinedConfig: SessionReplayJoinedConfig,
+    localConfig: SessionReplayLocalConfig,
+    remoteConfig: SessionReplayRemoteConfig | undefined,
+  ) {
+    this.metadata = {
+      joinedConfig,
+      localConfig,
+      remoteConfig,
+      sessionId,
+      hash: sessionId?.toString() ? generateHashCode(sessionId?.toString()) : undefined,
+      sampleRate: joinedConfig.sampleRate,
+    };
   }
 }
