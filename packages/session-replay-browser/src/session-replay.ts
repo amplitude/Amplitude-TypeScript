@@ -250,7 +250,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   focusListener = () => {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
-    void this.recordEvents();
+    void this.recordEvents(false);
   };
 
   /**
@@ -373,7 +373,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return plugins.length > 0 ? plugins : undefined;
   }
 
-  async recordEvents() {
+  async recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
@@ -451,11 +451,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       });
 
       void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
-      void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
-
+      if (shouldLogMetadata) {
+        void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
+      }
     } catch (error) {
       this.loggerProvider.warn('Failed to initialize session replay:', error);
     }
+
   }
 
   addCustomRRWebEvent = async (
