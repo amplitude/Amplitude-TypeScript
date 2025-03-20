@@ -3,7 +3,7 @@
  */
 
 import { RemoteConfigLocalstorage } from '../../src/remote-config/remote-config-localstorage';
-import { RemoteConfigInfo, RemoteConfig } from '../../src/remote-config/remote-config';
+import { RemoteConfig, RemoteConfigInfo } from '../../src/remote-config/remote-config';
 import { ILogger } from '../../src/logger';
 
 describe('RemoteConfigLocalstorage', () => {
@@ -37,13 +37,18 @@ describe('RemoteConfigLocalstorage', () => {
 
   describe('fetchConfig', () => {
     it('should return remote config info', async () => {
-      const mockConfig: RemoteConfig = { key1: 'value1' };
-      localStorage.setItem(storageKey, JSON.stringify(mockConfig));
+      const lastFetch = new Date('2025-03-20T12:00:00Z');
+      const remoteConfig: RemoteConfig = { key1: 'value1' };
+      const mockConfigInfo: RemoteConfigInfo = {
+        remoteConfig: remoteConfig,
+        lastFetch: lastFetch,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(mockConfigInfo));
 
       const result = await storage.fetchConfig();
 
-      expect(result.remoteConfig).toEqual(mockConfig);
-      expect(result.lastFetch).toEqual(mockDate);
+      expect(result.remoteConfig).toEqual(remoteConfig);
+      expect(result.lastFetch).toEqual(lastFetch);
       expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage get successfully.');
     });
 
