@@ -87,6 +87,7 @@ interface InternalBrowserConfig {
   lastEventTime?: number;
   lastEventId?: number;
   transportProvider: Transport;
+  version?: string;
 }
 
 /**

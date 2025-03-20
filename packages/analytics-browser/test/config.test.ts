@@ -11,6 +11,7 @@ import { uuidPattern } from './helpers/constants';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from '../src/constants';
 import { AmplitudeBrowser } from '../src/browser-client';
 import { MemoryStorage, getCookieName, FetchTransport } from '@amplitude/analytics-core';
+import { VERSION } from '../src/version';
 
 describe('config', () => {
   const someUUID: string = expect.stringMatching(uuidPattern) as string;
@@ -75,6 +76,7 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
         fetchRemoteConfig: false,
+        version: VERSION,
       });
     });
 
@@ -132,6 +134,7 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
         fetchRemoteConfig: false,
+        version: VERSION,
       });
       expect(getTopLevelDomain).toHaveBeenCalledTimes(1);
     });
@@ -233,6 +236,7 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
         fetchRemoteConfig: false,
+        version: VERSION,
       });
     });
 
