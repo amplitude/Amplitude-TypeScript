@@ -23,6 +23,7 @@ export interface BrowserConfig extends Config {
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
   userId?: string;
+  version?: string;
 }
 
 export interface DefaultTrackingOptions {
