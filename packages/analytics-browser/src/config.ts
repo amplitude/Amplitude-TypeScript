@@ -15,6 +15,7 @@ import { CookieStorage, getCookieName, FetchTransport } from '@amplitude/analyti
 import { LocalStorage } from './storage/local-storage';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
+import { VERSION } from './version';
 
 export const getDefaultConfig = () => {
   const cookieStorage = new MemoryStorage<UserSession>();
@@ -208,6 +209,7 @@ export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions)
     },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
     userId,
+    version: VERSION,
   });
 };
 
