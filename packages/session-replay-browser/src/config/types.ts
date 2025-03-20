@@ -104,6 +104,9 @@ export interface SessionReplayMetadata {
     name: string;
     version: string;
   };
+  sessionId: string | number | undefined;
+  hash?: number;
+  sampleRate: number;
 }
 
 export interface SessionReplayVersion {
