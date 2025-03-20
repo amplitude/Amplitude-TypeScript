@@ -36,7 +36,7 @@ export interface SessionReplayRemoteConfigAPIResponse {
 }
 
 export type MaskLevel =
-  | 'light' // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
+  | 'light' // only mask a subset of inputs that's deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
   | 'medium' // mask all inputs
   | 'conservative'; // mask all inputs and all texts
 
@@ -138,8 +138,23 @@ export interface SessionReplayRemoteConfigFetch {
   getRemoteConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig | void>;
 }
 
+export interface SessionReplayConfigs {
+  localConfig: SessionReplayLocalConfig;
+  joinedConfig: SessionReplayJoinedConfig;
+  remoteConfig: SessionReplayRemoteConfig | undefined;
+}
 export interface SessionReplayJoinedConfigGenerator {
-  generateJoinedConfig: (sessionId?: string | number) => Promise<SessionReplayJoinedConfig>;
+  generateJoinedConfig: (sessionId?: string | number) => Promise<SessionReplayConfigs>;
+}
+
+export interface SessionReplayMetadata {
+  remoteConfig: SessionReplayRemoteConfig | undefined;
+  localConfig: SessionReplayLocalConfig;
+  joinedConfig: SessionReplayJoinedConfig;
+  framework?: {
+    name: string;
+    version: string;
+  };
 }
 
 export interface SessionReplayVersion {

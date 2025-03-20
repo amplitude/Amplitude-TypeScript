@@ -9,7 +9,12 @@ import {
 import { record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
-import { LoggingConfig, SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
+import {
+  LoggingConfig,
+  SessionReplayJoinedConfig,
+  SessionReplayJoinedConfigGenerator,
+  SessionReplayMetadata,
+} from './config/types';
 import {
   BLOCK_CLASS,
   CustomRRwebEvent,
@@ -56,6 +61,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   pageLeaveFns: PageLeaveFn[] = [];
   private scrollHook?: scrollCallback;
   private networkObservers?: NetworkObservers;
+  private metadata: SessionReplayMetadata | undefined;
 
   constructor() {
     this.loggerProvider = new SafeLoggerProvider(new Logger());
@@ -92,7 +98,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
-    this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+    const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig(
+      this.identifiers.sessionId,
+    );
+    this.config = joinedConfig;
+    this.metadata = {
+      joinedConfig,
+      localConfig,
+      remoteConfig,
+    };
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -183,7 +197,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
     if (this.joinedConfigGenerator && previousSessionId) {
-      this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+      const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+      this.config = joinedConfig;
     }
     void this.recordEvents();
   }
@@ -434,6 +449,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       });
 
       void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
+      void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
+
     } catch (error) {
       this.loggerProvider.warn('Failed to initialize session replay:', error);
     }
@@ -447,7 +464,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     try {
       let debugInfo: DebugInfo | undefined = undefined;
       const config = this.config;
-      if (config) {
+      if (config && eventName === CustomRRwebEvent.DEBUG_INFO) {
         debugInfo = {
           config: getDebugConfig(config),
           version: VERSION,
