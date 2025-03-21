@@ -1,4 +1,6 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
+import * as hierarchyModule from '../src/hierarchy';
+
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createInstance } from '@amplitude/analytics-browser';
 import { mockWindowLocationFromURL } from './utils';
@@ -190,7 +192,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Tag': 'a',
         '[Amplitude] Element Text': 'my-link-text',
         '[Amplitude] Element Aria Label': 'my-link',
-        '[Amplitude] Element Selector': '#my-link-id',
         '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
@@ -207,6 +208,60 @@ describe('autoTrackingPlugin', () => {
 
       // assert no additional event was tracked
       expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should only collect element hierarchy once', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // add spy to getHierarchy
+      jest.spyOn(hierarchyModule, 'getHierarchy');
+
+      // trigger click event
+      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.objectContaining({
+          '[Amplitude] Element Hierarchy': [
+            {
+              attrs: {
+                'aria-label': 'my-link',
+                href: 'https://www.amplitude.com/click-link',
+              },
+              classes: ['my-link-class'],
+              id: 'my-link-id',
+              index: 0,
+              indexOfType: 0,
+              tag: 'a',
+            },
+            {
+              index: 1,
+              indexOfType: 0,
+              prevSib: 'head',
+              tag: 'body',
+            },
+          ],
+        }),
+      );
+
+      // stop observer and listeners
+      await plugin?.teardown?.();
+
+      // trigger click event
+      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      // assert getHierarchy was only called once since it is expensive
+      expect(hierarchyModule.getHierarchy).toHaveBeenCalledTimes(1);
     });
 
     // In the browser, this would happen in form elements due to named property accessors
@@ -326,7 +381,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Tag': 'a',
         '[Amplitude] Element Text': 'my-link-text',
         '[Amplitude] Element Aria Label': 'my-link',
-        '[Amplitude] Element Selector': '#my-link-id',
         '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
@@ -392,7 +446,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Tag': 'button',
         '[Amplitude] Element Text': 'submit',
         '[Amplitude] Element Aria Label': 'my-button',
-        '[Amplitude] Element Selector': '#my-button-id',
         '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
@@ -464,7 +517,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Tag': 'button',
         '[Amplitude] Element Text': 'submit',
         '[Amplitude] Element Aria Label': 'my-button',
-        '[Amplitude] Element Selector': '#my-button-id',
         '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,
@@ -748,7 +800,6 @@ describe('autoTrackingPlugin', () => {
         '[Amplitude] Element Position Top': 0,
         '[Amplitude] Element Tag': 'button',
         '[Amplitude] Element Text': 'submit',
-        '[Amplitude] Element Selector': '#my-button-id',
         '[Amplitude] Element Parent Label': 'my-h2-text',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
         '[Amplitude] Viewport Height': 768,

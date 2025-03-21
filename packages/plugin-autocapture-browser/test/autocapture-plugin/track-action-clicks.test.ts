@@ -176,7 +176,6 @@ describe('action clicks:', () => {
         '[Amplitude] Element Parent Label': 'Card Title',
         '[Amplitude] Element Position Left': 0,
         '[Amplitude] Element Position Top': 0,
-        '[Amplitude] Element Selector': '#addDivButton',
         '[Amplitude] Element Tag': 'div',
         '[Amplitude] Element Text': 'Add div',
         '[Amplitude] Viewport Height': 768,
@@ -198,7 +197,6 @@ describe('action clicks:', () => {
         '[Amplitude] Element Clicked',
         expect.objectContaining({
           '[Amplitude] Element ID': 'real-button',
-          '[Amplitude] Element Selector': '#real-button',
           '[Amplitude] Element Tag': 'button',
           '[Amplitude] Element Text': 'Click me',
         }),

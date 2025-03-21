@@ -3,7 +3,6 @@ import {
   BrowserClient,
   BrowserConfig,
   EnrichmentPlugin,
-  ILogger,
   ElementInteractionsOptions,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
@@ -11,13 +10,12 @@ import {
   ActionType,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
-import { fromEvent, map, Observable, Subscription } from 'rxjs';
+import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
 import {
   getText,
   getAttributesWithPrefix,
   removeEmptyProperties,
   getNearestLabel,
-  getSelector,
   createShouldTrackEvent,
   getClosestElement,
 } from './helpers';
@@ -123,16 +121,17 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const type = 'enrichment';
 
   const subscriptions: Subscription[] = [];
-  let logger: ILogger | undefined = undefined;
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
     const clickObservable = fromEvent<MouseEvent>(document, 'click', { capture: true }).pipe(
       map((click) => addAdditionalEventProperties(click, 'click')),
+      share(),
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
       map((change) => addAdditionalEventProperties(change, 'change')),
+      share(),
     );
 
     // Create Observable from unhandled errors
@@ -146,6 +145,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
         map((navigate) => addAdditionalEventProperties(navigate, 'navigate')),
+        share(),
       );
     }
 
@@ -161,7 +161,10 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
         subtree: true,
       });
       return () => mutationObserver.disconnect();
-    }).pipe(map((mutation) => addAdditionalEventProperties(mutation, 'mutation')));
+    }).pipe(
+      map((mutation) => addAdditionalEventProperties(mutation, 'mutation')),
+      share(),
+    );
 
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
@@ -182,7 +185,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     const ariaLabel = element.getAttribute('aria-label');
     const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
     const nearestLabel = getNearestLabel(element);
-    const selector = getSelector(element, logger);
     /* istanbul ignore next */
     const properties: Record<string, any> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
@@ -194,7 +196,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_SELECTOR]: selector,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
@@ -234,8 +235,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
-    logger = config.loggerProvider;
-
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
