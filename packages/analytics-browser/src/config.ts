@@ -56,6 +56,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
   partnerId?: string;
   sessionTimeout: number;
   trackingOptions: TrackingOptions;
+  version = VERSION;
 
   // NOTE: These protected properties are used to cache values from async storage
   protected _deviceId?: string;
@@ -209,7 +210,6 @@ export const useBrowserConfig = async (apiKey: string, options?: BrowserOptions)
     },
     transportProvider: options?.transportProvider ?? createTransport(options?.transport),
     userId,
-    version: VERSION,
   });
 };
 
