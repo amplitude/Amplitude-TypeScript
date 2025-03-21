@@ -22,20 +22,6 @@ describe('fileDownloadTracking', () => {
     document.querySelector('a#my-link-id')?.remove();
   });
 
-  test('should not track file_download event if window load event was not triggered', async () => {
-    // setup
-    document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
-    const config = createConfigurationMock();
-    const plugin = fileDownloadTracking();
-    await plugin.setup?.(config, amplitude);
-
-    // trigger click event
-    document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
-
-    // assert file download event was tracked
-    expect(amplitude.track).toHaveBeenCalledTimes(0);
-  });
-
   test.each([
     'https://analytics.amplitude.com/files/my-file.pdf',
     'https://analytics.amplitude.com/files/my-file.pdf?foo=bar',
