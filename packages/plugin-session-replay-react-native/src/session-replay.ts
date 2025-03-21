@@ -8,6 +8,7 @@ import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } fr
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';
 import { SessionReplayConfig, getDefaultConfig } from './session-replay-config';
+import { LogLevel } from '@amplitude/analytics-types';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
   name = '@amplitude/plugin-session-replay-react-native';
@@ -37,6 +38,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       config.sessionId,
       this.sessionReplayConfig.sampleRate ?? 1,
       this.sessionReplayConfig.enableRemoteConfig ?? true,
+      this.sessionReplayConfig.logLevel ?? LogLevel.Warn,
     );
     this.isInitialized = true;
   }

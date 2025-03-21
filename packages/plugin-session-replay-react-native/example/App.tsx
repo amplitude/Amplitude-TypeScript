@@ -284,7 +284,8 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const config: SessionReplayConfig = {
       enableRemoteConfig: false,
-      sampleRate: 1
+      sampleRate: 1,
+      logLevel: LogLevel.Debug
     };
     (async () => {
       await init('YOUR-API-KEY', 'example_user_id', {
