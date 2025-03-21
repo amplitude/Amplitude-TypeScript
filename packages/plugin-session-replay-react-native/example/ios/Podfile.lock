@@ -1,5 +1,5 @@
 PODS:
-  - amplitude-plugin-session-replay-react-native (0.2.8):
+  - amplitude-plugin-session-replay-react-native (0.2.9):
     - AmplitudeSessionReplay (>= 0.1.0)
     - DoubleConversion
     - glog
@@ -1910,7 +1910,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  amplitude-plugin-session-replay-react-native: 6e549778660237bab17fdf43e7b7d3a7d65456db
+  amplitude-plugin-session-replay-react-native: cdc7ead81f6bec871dd966d35bc590cb088c7159
   amplitude-react-native: d0039a3ce502eb441ba818af1b8c8ba710ef16e7
   AmplitudeSessionReplay: 20ecc2741cf4b3f1a9d6be2b72beda4a94558052
   boost: 1dca942403ed9342f98334bf4c3621f011aa7946
