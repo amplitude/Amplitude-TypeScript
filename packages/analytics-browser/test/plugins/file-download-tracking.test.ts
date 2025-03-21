@@ -156,19 +156,46 @@ describe('fileDownloadTracking', () => {
     });
   });
 
-  test('should not track file_download event', async () => {
+  test('should track file download event when the plugin is added after window load', async () => {
     // setup
-    document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.png');
+    document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
     const config = createConfigurationMock();
     const plugin = fileDownloadTracking();
     await plugin.setup?.(config, amplitude);
-    window.dispatchEvent(new Event('load'));
 
     // trigger change event
     document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
 
-    // assert file download event was not tracked
-    expect(amplitude.track).toHaveBeenCalledTimes(0);
+    // assert first event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+  });
+
+  test('should track form_start event when the plugin is added before window load', async () => {
+    const originalReadyState = document.readyState;
+    Object.defineProperty(document, 'readyState', {
+      value: 'loading',
+      writable: true,
+      configurable: true,
+    });
+
+    // setup
+    document.getElementById('my-link-id')?.setAttribute('href', 'https://analytics.amplitude.com/files/my-file.pdf');
+    const config = createConfigurationMock();
+    const plugin = fileDownloadTracking();
+    await plugin.setup?.(config, amplitude);
+
+    // trigger change event
+    window.dispatchEvent(new Event('load'));
+    document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+    // assert first event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+
+    // Restore the original value after each test
+    Object.defineProperty(document, 'readyState', {
+      value: originalReadyState,
+      writable: true,
+    });
   });
 
   test('should not enrich events', async () => {

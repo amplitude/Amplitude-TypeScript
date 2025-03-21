@@ -115,7 +115,6 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
     };
 
     // If the document is already loaded, initialize immediately.
-    /* istanbul ignore else*/
     if (document.readyState === 'complete') {
       initializeFormTracking();
     } else {
@@ -123,7 +122,13 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
       // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
       // after the body is built. When Amplitude gets initialized in a script tag, the body tag is still unavailable. So register this
       // only after the window is loaded
-      getGlobalScope()?.addEventListener('load', initializeFormTracking);
+      const window = getGlobalScope();
+      /* istanbul ignore else*/
+      if (window) {
+        window.addEventListener('load', initializeFormTracking);
+      } else {
+        config.loggerProvider.debug('Form interaction tracking is not installed because global is undefined.');
+      }
     }
   };
   const execute = async (event: Event) => event;
