@@ -27,7 +27,6 @@ interface ElementSelectedData {
   '[Amplitude] Element Hierarchy'?: string;
   '[Amplitude] Element Tag'?: string;
   '[Amplitude] Element Text'?: string;
-  '[Amplitude] Element Selector'?: string;
   '[Amplitude] Page URL'?: string;
   elementScreenshot?: Blob;
 }
