@@ -29,12 +29,9 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
 
   const name = '@amplitude/plugin-file-download-tracking-browser';
   const type = 'enrichment';
+
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
-    // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
-    // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
-    // only after the window is loaded
-    /* istanbul ignore next */
-    getGlobalScope()?.addEventListener('load', function () {
+    const initializeFileDownloadTracking = () => {
       /* istanbul ignore if */
       if (!amplitude) {
         // TODO: Add required minimum version of @amplitude/analytics-browser
@@ -104,8 +101,24 @@ export const fileDownloadTracking = (): EnrichmentPlugin => {
           childList: true,
         });
       }
-    });
+    };
+
+    // If the document is already loaded, initialize immediately.
+    /* istanbul ignore else*/
+    if (document.readyState === 'complete') {
+      initializeFileDownloadTracking();
+    } else {
+      // Otherwise, wait for the load event.
+      const window = getGlobalScope();
+      /* istanbul ignore else*/
+      if (window) {
+        window.addEventListener('load', initializeFileDownloadTracking);
+      } else {
+        config.loggerProvider.debug('File download tracking is not installed because global is undefined.');
+      }
+    }
   };
+
   const execute = async (event: Event) => event;
   const teardown = async () => {
     observer?.disconnect();
