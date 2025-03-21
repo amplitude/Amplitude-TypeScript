@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.1.0...@amplitude/plugin-autocapture-browser@1.1.1) (2025-03-21)
+
+
+### Bug Fixes
+
+* **autocapture:** removed deprecated Element Selector event property … ([#1001](https://github.com/amplitude/Amplitude-TypeScript/issues/1001)) ([590d3f4](https://github.com/amplitude/Amplitude-TypeScript/commit/590d3f4c38c336fd490786babdfde292f9350101))
+
+
+
+
+
 # [1.1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.0.5...@amplitude/plugin-autocapture-browser@1.1.0) (2025-03-14)
 
 

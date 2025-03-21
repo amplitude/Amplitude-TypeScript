@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.20.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.19.4...@amplitude/session-replay-browser@1.20.0) (2025-03-21)
+
+
+### Features
+
+* **session replay:** initial network observers ([#987](https://github.com/amplitude/Amplitude-TypeScript/issues/987)) ([5c648de](https://github.com/amplitude/Amplitude-TypeScript/commit/5c648debbfafbd1ad0721d4b3008a84c1a6eeffe))
+
+
+
+
+
 ## [1.19.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.19.3...@amplitude/session-replay-browser@1.19.4) (2025-03-06)
 
 
