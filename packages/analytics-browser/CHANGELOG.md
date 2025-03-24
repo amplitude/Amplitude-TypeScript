@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.12.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.12.1...@amplitude/analytics-browser@2.12.2) (2025-03-24)
+
+
+### Bug Fixes
+
+* **analytics-browser:** re-export enums from analytics-types ([#1005](https://github.com/amplitude/Amplitude-TypeScript/issues/1005)) ([01a497e](https://github.com/amplitude/Amplitude-TypeScript/commit/01a497ea79513c9995db5852e38f8661f28edb77))
+* **analytics-browser:** should track file download and form interaction when plugins are installed after page loads ([#1003](https://github.com/amplitude/Amplitude-TypeScript/issues/1003)) ([6066677](https://github.com/amplitude/Amplitude-TypeScript/commit/6066677f65aefbe67d4b3efbfb96ba5a95264230))
+
+
+
+
+
 ## [2.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.12.0...@amplitude/analytics-browser@2.12.1) (2025-03-21)
 
 

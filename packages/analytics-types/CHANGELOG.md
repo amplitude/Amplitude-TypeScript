@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.9.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.9.0...@amplitude/analytics-types@2.9.1) (2025-03-24)
+
+
+### Bug Fixes
+
+* typo in a docblock ([#954](https://github.com/amplitude/Amplitude-TypeScript/issues/954)) ([71e9f9a](https://github.com/amplitude/Amplitude-TypeScript/commit/71e9f9ac464d9bfa10d47fe052a902cff782888b))
+
+
+
+
+
 # [2.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.8.4...@amplitude/analytics-types@2.9.0) (2025-02-28)
 
 
