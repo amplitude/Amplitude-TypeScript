@@ -89,13 +89,13 @@ export namespace Types {
   export type BrowserOptions = BrowserOptionsType;
   export type Config = IConfigType;
   export type Event = EventType;
-  export type IdentifyOperation = IdentifyOperationType;
-  export type SpecialEventType = SpecialEventTypeType;
+  export const IdentifyOperation = IdentifyOperationType;
+  export const SpecialEventType = SpecialEventTypeType;
   export type Identify = IIdentifyType;
   export type Revenue = IRevenueType;
-  export type RevenueProperty = RevenuePropertyType;
+  export const RevenueProperty = RevenuePropertyType;
   export type Logger = ILoggerType;
-  export type LogLevel = LogLevelType;
+  export const LogLevel = LogLevelType;
   export type Plugin = PluginType;
   export type BeforePlugin = BeforePluginType;
   export type EnrichmentPlugin = EnrichmentPluginType;
