@@ -38,11 +38,7 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
   const name = '@amplitude/plugin-form-interaction-tracking-browser';
   const type = 'enrichment';
   const setup = async (config: BrowserConfig, amplitude: BrowserClient) => {
-    // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
-    // after the body is built. When Amplitud gets initialized in a script tag, the body tag is still unavailable. So register this
-    // only after the window is loaded
-    /* istanbul ignore next */
-    getGlobalScope()?.addEventListener('load', function () {
+    const initializeFormTracking = () => {
       /* istanbul ignore if */
       if (!amplitude) {
         // TODO: Add required minimum version of @amplitude/analytics-browser
@@ -116,7 +112,24 @@ export const formInteractionTracking = (): EnrichmentPlugin => {
           childList: true,
         });
       }
-    });
+    };
+
+    // If the document is already loaded, initialize immediately.
+    if (document.readyState === 'complete') {
+      initializeFormTracking();
+    } else {
+      // Otherwise, wait for the load event.
+      // The form interaction plugin observes changes in the dom. For this to work correctly, the observer can only be setup
+      // after the body is built. When Amplitude gets initialized in a script tag, the body tag is still unavailable. So register this
+      // only after the window is loaded
+      const window = getGlobalScope();
+      /* istanbul ignore else*/
+      if (window) {
+        window.addEventListener('load', initializeFormTracking);
+      } else {
+        config.loggerProvider.debug('Form interaction tracking is not installed because global is undefined.');
+      }
+    }
   };
   const execute = async (event: Event) => event;
   const teardown = async () => {
