@@ -1,6 +1,7 @@
-import { Storage, CookieStorageOptions } from '../types/storage';
+import { CookieStorageOptions, Storage } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
 import { ILogger, Logger } from '../logger';
+import { LogLevel } from '../types/loglevel';
 
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
@@ -11,7 +12,8 @@ export class CookieStorage<T> implements Storage<T> {
 
   constructor(options?: CookieStorageOptions) {
     this.options = { ...options };
-    this.logger?.debug(`Cookie storage is created with options ${JSON.stringify(this.options, null, 2)}`);
+    this.logger.enable(LogLevel.Debug);
+    this.logger.debug(`Cookie storage is created with options ${JSON.stringify(this.options, null, 2)}`);
   }
 
   async isEnabled(): Promise<boolean> {
@@ -60,7 +62,7 @@ export class CookieStorage<T> implements Storage<T> {
     const cookies = cookieString.split('; ').filter((c) => c.startsWith(key + '='));
 
     if (cookies.length === 0) {
-      this.logger?.debug(`Cookie ${key} not found.`);
+      this.logger.debug(`Cookie ${key} not found.`);
       return undefined;
     }
 
@@ -70,18 +72,21 @@ export class CookieStorage<T> implements Storage<T> {
     } else {
       // If two cookies, remove the one without the leading dot.
       // For example: .amplitude.com stays while amplitude.com is deleted
-      this.logger?.debug(`Two cookies with the same key are found. Deleting  ${cookies.join(' ')}`);
-      const originalDomain = this.options.domain;
+      this.logger.debug(`Two cookies with the same key are found. Deleting one ${cookies.join(' ')}`);
 
-      const removalOptions = {
-        ...this.options,
-        domain: originalDomain,
-      };
-      const tempStorage = new CookieStorage<string>(removalOptions);
-      await tempStorage.remove(key);
+      if (this.options.domain?.startsWith('.')) {
+        const removalOptions = {
+          ...this.options,
+          domain: this.options.domain?.substring(1),
+        };
+        this.logger.debug(`Cookie removal options ${(JSON.stringify(removalOptions), null, 2)}`);
+        const tempStorage = new CookieStorage<string>(removalOptions);
+        await tempStorage.remove(key);
+      }
 
       // Return the remaining cookie
       const refreshedCookies = globalScope?.document?.cookie.split('; ').filter((c) => c.startsWith(key + '=')) ?? [];
+      this.logger.debug(`After deletion, cookies: ${JSON.stringify(refreshedCookies, null, 2)}`);
       const match = refreshedCookies.find((c) => c.startsWith(key + '='));
       return match?.substring(key.length + 1);
     }
