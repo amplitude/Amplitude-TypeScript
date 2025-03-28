@@ -1,4 +1,4 @@
-import { Storage, CookieStorageOptions } from '../types/storage';
+import { CookieStorageOptions, Storage } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
 
 export class CookieStorage<T> implements Storage<T> {
@@ -49,14 +49,37 @@ export class CookieStorage<T> implements Storage<T> {
     }
   }
 
+  /* istanbul ignore next */
   async getRaw(key: string): Promise<string | undefined> {
     const globalScope = getGlobalScope();
-    const cookie = globalScope?.document?.cookie.split('; ') ?? [];
-    const match = cookie.find((c) => c.indexOf(key + '=') === 0);
-    if (!match) {
+    const cookieString = globalScope?.document?.cookie ?? '';
+    const cookies = cookieString.split('; ').filter((c) => c.startsWith(key + '='));
+
+    if (cookies.length === 0) {
       return undefined;
     }
-    return match.substring(key.length + 1);
+
+    // If only one cookie, return its value
+    if (cookies.length === 1) {
+      return cookies[0].substring(key.length + 1);
+    } else {
+      // If two cookies, remove the one without the leading dot.
+      // For example: .amplitude.com stays while amplitude.com is deleted
+      if (this.options.domain?.startsWith('.')) {
+        const removalOptions = {
+          ...this.options,
+          domain: this.options.domain?.substring(1),
+        };
+
+        const tempStorage = new CookieStorage<string>(removalOptions);
+        await tempStorage.remove(key);
+      }
+
+      // Return the remaining cookie
+      const refreshedCookies = globalScope?.document?.cookie.split('; ').filter((c) => c.startsWith(key + '=')) ?? [];
+      const match = refreshedCookies.find((c) => c.startsWith(key + '='));
+      return match?.substring(key.length + 1);
+    }
   }
 
   async set(key: string, value: T | null): Promise<void> {
