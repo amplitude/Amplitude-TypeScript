@@ -49,8 +49,7 @@ export class CookieStorage<T> implements Storage<T> {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
+  /* istanbul ignore next */
   async getRaw(key: string): Promise<string | undefined> {
     const globalScope = getGlobalScope();
     const cookieString = globalScope?.document?.cookie ?? '';
