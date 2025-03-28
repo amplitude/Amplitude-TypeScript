@@ -1,12 +1,17 @@
 import { Storage, CookieStorageOptions } from '../types/storage';
 import { getGlobalScope } from '../global-scope';
+import { ILogger, Logger } from '../logger';
 
 export class CookieStorage<T> implements Storage<T> {
   options: CookieStorageOptions;
+  // Cookie storage is initialized before the global logger in BrowserConfig.
+  // So have to crate a local logger.
+  logger: ILogger = new Logger();
   private static testValue: undefined | string;
 
   constructor(options?: CookieStorageOptions) {
     this.options = { ...options };
+    this.logger?.debug(`Cookie storage is created with options ${JSON.stringify(this.options, null, 2)}`);
   }
 
   async isEnabled(): Promise<boolean> {
@@ -51,12 +56,35 @@ export class CookieStorage<T> implements Storage<T> {
 
   async getRaw(key: string): Promise<string | undefined> {
     const globalScope = getGlobalScope();
-    const cookie = globalScope?.document?.cookie.split('; ') ?? [];
-    const match = cookie.find((c) => c.indexOf(key + '=') === 0);
-    if (!match) {
+    const cookieString = globalScope?.document?.cookie ?? '';
+    const cookies = cookieString.split('; ').filter((c) => c.startsWith(key + '='));
+
+    if (cookies.length === 0) {
+      this.logger?.debug(`Cookie ${key} not found.`);
       return undefined;
     }
-    return match.substring(key.length + 1);
+
+    // If only one cookie, return its value
+    if (cookies.length === 1) {
+      return cookies[0].substring(key.length + 1);
+    } else {
+      // If two cookies, remove the one without the leading dot.
+      // For example: .amplitude.com stays while amplitude.com is deleted
+      this.logger?.debug(`Two cookies with the same key are found. Deleting  ${cookies.join(' ')}`);
+      const originalDomain = this.options.domain;
+
+      const removalOptions = {
+        ...this.options,
+        domain: originalDomain,
+      };
+      const tempStorage = new CookieStorage<string>(removalOptions);
+      await tempStorage.remove(key);
+
+      // Return the remaining cookie
+      const refreshedCookies = globalScope?.document?.cookie.split('; ').filter((c) => c.startsWith(key + '=')) ?? [];
+      const match = refreshedCookies.find((c) => c.startsWith(key + '='));
+      return match?.substring(key.length + 1);
+    }
   }
 
   async set(key: string, value: T | null): Promise<void> {
