@@ -88,7 +88,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     },
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
-    public fetchRemoteConfig: boolean = false,
+    public fetchRemoteConfig: boolean = true,
     userId?: string,
     pageCounter?: number,
     debugLogsEnabled?: boolean,

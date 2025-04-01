@@ -76,8 +76,9 @@ export interface ExternalBrowserConfig extends IConfig {
    */
   pageCounter?: number;
   /**
-   * Whether to fetch remote configuration.
-   * @defaultValue `false`
+   * Whether to fetch remote configuration. The remote configuration can be updated in the Amplitude platform here:
+   * https://app.amplitude.com/data/amplitude/{your_org_name}/settings/autocapture
+   * @defaultValue `true`
    */
   fetchRemoteConfig?: boolean;
 }
