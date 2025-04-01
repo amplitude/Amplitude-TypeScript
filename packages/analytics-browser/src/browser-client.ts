@@ -60,7 +60,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, Pl
   webAttribution: WebAttribution | undefined;
 
   plugin(name: string): Plugin | undefined {
-    return this.timeline.plugins.find((plugin) => plugin.name === name);
+    const plugin = this.timeline.plugins.find((plugin) => plugin.name === name);
+    if (plugin === undefined) {
+      this.config.loggerProvider.debug(`Cannot find plugin with name ${name}`);
+      return undefined;
+    }
+
+    return plugin;
   }
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {

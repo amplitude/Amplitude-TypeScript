@@ -25,8 +25,6 @@ export const {
 } = client;
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
-// Export for prototype augmentation
-export { AmplitudeBrowser } from './browser-client';
 
 import {
   AmplitudeReturn as AmplitudeReturnType,
