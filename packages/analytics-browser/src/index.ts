@@ -37,6 +37,8 @@ import {
   BrowserConfig as BrowserConfigType,
   IConfig as IConfigType,
   Event as EventType,
+  IdentifyEvent as IdentifyEventType,
+  GroupIdentifyEvent as GroupIdentifyEventType,
   IdentifyOperation as IdentifyOperationType,
   SpecialEventType as SpecialEventTypeType,
   IIdentify as IIdentifyType,
@@ -50,6 +52,7 @@ import {
   DestinationPlugin as DestinationPluginType,
   Result as ResultType,
   ServerZoneType as ServerZoneTypeType,
+  ServerZone as ServerZoneEnum,
   IdentityStorageType as IdentityStorageTypeType,
   Storage as StorageTypeType,
   TransportType as TransportTypeType,
@@ -89,6 +92,8 @@ export namespace Types {
   export type BrowserOptions = BrowserOptionsType;
   export type Config = IConfigType;
   export type Event = EventType;
+  export type IdentifyEvent = IdentifyEventType;
+  export type GroupIdentifyEvent = GroupIdentifyEventType;
   export const IdentifyOperation = IdentifyOperationType;
   export const SpecialEventType = SpecialEventTypeType;
   export type Identify = IIdentifyType;
@@ -102,6 +107,7 @@ export namespace Types {
   export type DestinationPlugin = DestinationPluginType;
   export type Result = ResultType;
   export type ServerZoneType = ServerZoneTypeType;
+  export const ServerZone = ServerZoneEnum;
   export type IdentityStorageType = IdentityStorageTypeType;
   export type Storage<T> = StorageTypeType<T>;
   export type TransportType = TransportTypeType;
