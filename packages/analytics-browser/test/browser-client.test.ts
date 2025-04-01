@@ -56,6 +56,49 @@ describe('browser-client', () => {
     document.cookie = `AMP_${apiKey}=null; expires=-1`;
   });
 
+  describe('plugin', () => {
+    test('should return plugin by name', async () => {
+      const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking: {
+          ...defaultTracking,
+          fileDownloads: true,
+        },
+      }).promise;
+      const result = client.plugin('@amplitude/plugin-file-download-tracking-browser');
+      // result should be fileDownloadTrackingPlugin
+      // comparing with the first call to the spy
+      expect(result).toBe(fileDownloadTrackingPlugin.mock.results[0].value);
+    });
+
+    test('should return undefined when name doesn not exist', async () => {
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking: {
+          ...defaultTracking,
+          fileDownloads: true,
+        },
+        loggerProvider: loggerProvider,
+      }).promise;
+      const result = client.plugin('plugin-file-download-tracking-browser');
+      // result should be fileDownloadTrackingPlugin
+      // comparing with the first call to the spy
+      expect(result).toBe(undefined);
+      expect(loggerProvider.debug).toHaveBeenCalledWith(
+        'Cannot find plugin with name plugin-file-download-tracking-browser',
+      );
+    });
+  });
+
   describe('init', () => {
     test('should NOT use remote config by default', async () => {
       await client.init(apiKey).promise;
