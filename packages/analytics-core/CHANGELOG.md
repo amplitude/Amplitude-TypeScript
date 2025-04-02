@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.6.1...@amplitude/analytics-core@2.7.0) (2025-04-02)
+
+
+### Bug Fixes
+
+* **analytics-browser:** export more types ([#1011](https://github.com/amplitude/Amplitude-TypeScript/issues/1011)) ([561afc2](https://github.com/amplitude/Amplitude-TypeScript/commit/561afc2538da25867db02646829b2eb81693abcd))
+
+
+### Features
+
+* **analytics-browser:** set default for fetchRemoteConfig option to true ([#1008](https://github.com/amplitude/Amplitude-TypeScript/issues/1008)) ([5138cd1](https://github.com/amplitude/Amplitude-TypeScript/commit/5138cd16be1ff3bb57c38ec0eae5098a1b7933fc))
+
+
+
+
+
 ## [2.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.6.0...@amplitude/analytics-core@2.6.1) (2025-03-21)
 
 
