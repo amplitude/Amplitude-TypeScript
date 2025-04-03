@@ -3,6 +3,7 @@ package com.amplitude.pluginsessionreplayreactnative
 import com.amplitude.android.sessionreplay.SessionReplay
 import com.amplitude.common.Logger
 import com.amplitude.common.android.LogcatLogger
+import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
@@ -19,7 +20,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun setup(apiKey: String, deviceId: String?, sessionId: Double, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int) {
+  fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int) {
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -36,6 +37,10 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       logger = LogcatLogger.logger,
       sampleRate = sampleRate,
       enableRemoteConfig = enableRemoteConfig,
+      serverZone = when (serverZone) {
+        "EU" -> ServerZone.EU
+        else -> ServerZone.US
+      }
     )
   }
 
