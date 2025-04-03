@@ -1,7 +1,7 @@
 import { RemoteConfigStorage, RemoteConfigInfo } from './remote-config';
 import { ILogger } from '../logger';
 
-export class RemoteConfigLocalstorage implements RemoteConfigStorage {
+export class RemoteConfigLocalStorage implements RemoteConfigStorage {
   private readonly key: string;
   private readonly logger: ILogger;
 
@@ -31,13 +31,13 @@ export class RemoteConfigLocalstorage implements RemoteConfigStorage {
 
     try {
       const remoteConfigInfo: RemoteConfigInfo = JSON.parse(result) as RemoteConfigInfo;
-      this.logger.debug('Remote config localstorage get successfully.');
+      this.logger.debug('Remote config localstorage parsed successfully.');
       return Promise.resolve({
         remoteConfig: remoteConfigInfo.remoteConfig,
         lastFetch: new Date(remoteConfigInfo.lastFetch),
       });
     } catch (error) {
-      this.logger.debug('Remote config localstorage failed to get: ', error);
+      this.logger.debug('Remote config localstorage failed to parse: ', error);
       localStorage.removeItem(this.key);
       return Promise.resolve(failedRemoteConfigInfo);
     }

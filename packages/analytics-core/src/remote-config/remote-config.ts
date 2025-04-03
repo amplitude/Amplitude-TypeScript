@@ -187,8 +187,6 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
   /**
    * Waits for a remote response until the given timeout, then return a cached copy, if available.
-   * @param callbackInfo
-   * @param timeout
    */
   async subscribeWaitForRemote(callbackInfo: CallbackInfo, timeout: number) {
     const timeoutPromise = new Promise((_, reject) => {
