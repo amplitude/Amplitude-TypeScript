@@ -7,7 +7,7 @@ import {
   US_SERVER_URL,
 } from '../../src/remote-config/remote-config';
 import { ILogger } from '../../src/logger';
-import { RemoteConfigLocalstorage } from '../../src/remote-config/remote-config-localstorage';
+import { RemoteConfigLocalStorage } from '../../src/remote-config/remote-config-localstorage';
 
 jest.mock('../../src/remote-config/remote-config-localstorage');
 const mockUuid = 'uuid123456789';
@@ -49,7 +49,7 @@ describe('RemoteConfigClient', () => {
     loggerDebug = jest.spyOn(mockLogger, 'debug');
     storageFetchConfig = jest.spyOn(mockStorage, 'fetchConfig');
 
-    (RemoteConfigLocalstorage as jest.Mock).mockImplementation(() => mockStorage);
+    (RemoteConfigLocalStorage as jest.Mock).mockImplementation(() => mockStorage);
     client = new RemoteConfigClient(mockApiKey, mockLogger);
 
     // Clears only the call history but keeps the original mock implementation

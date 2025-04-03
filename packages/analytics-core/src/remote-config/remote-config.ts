@@ -1,6 +1,6 @@
 import { ServerZoneType } from '../types/server-zone';
 import { ILogger } from '../logger';
-import { RemoteConfigLocalstorage } from './remote-config-localstorage';
+import { RemoteConfigLocalStorage } from './remote-config-localstorage';
 import { UUID } from '../utils/uuid';
 
 /**
@@ -115,7 +115,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     this.apiKey = apiKey;
     this.serverUrl = serverZone === 'US' ? US_SERVER_URL : EU_SERVER_URL;
     this.logger = logger;
-    this.storage = new RemoteConfigLocalstorage(apiKey, logger);
+    this.storage = new RemoteConfigLocalStorage(apiKey, logger);
   }
 
   subscribe(key: string | undefined, deliveryMode: DeliveryMode, callback: RemoteConfigCallback): string {

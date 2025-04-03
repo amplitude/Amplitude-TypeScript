@@ -2,14 +2,14 @@
  * @jest-environment jsdom
  */
 
-import { RemoteConfigLocalstorage } from '../../src/remote-config/remote-config-localstorage';
+import { RemoteConfigLocalStorage } from '../../src/remote-config/remote-config-localstorage';
 import { RemoteConfig, RemoteConfigInfo } from '../../src/remote-config/remote-config';
 import { ILogger } from '../../src/logger';
 
-describe('RemoteConfigLocalstorage', () => {
+describe('RemoteConfigLocalStorage', () => {
   let logger: ILogger;
   let loggerDebug: jest.SpyInstance;
-  let storage: RemoteConfigLocalstorage;
+  let storage: RemoteConfigLocalStorage;
   const apiKey = '12345678901234567890';
   const storageKey = `AMP_remote_config_${apiKey.substring(0, 10)}`;
   const mockDate = new Date('2025-03-18T12:00:00Z');
@@ -25,7 +25,7 @@ describe('RemoteConfigLocalstorage', () => {
     };
     loggerDebug = jest.spyOn(logger, 'debug');
 
-    storage = new RemoteConfigLocalstorage(apiKey, logger);
+    storage = new RemoteConfigLocalStorage(apiKey, logger);
     localStorage.clear();
 
     jest.useFakeTimers().setSystemTime(mockDate);
@@ -49,7 +49,7 @@ describe('RemoteConfigLocalstorage', () => {
 
       expect(result.remoteConfig).toEqual(remoteConfig);
       expect(result.lastFetch).toEqual(lastFetch);
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage get successfully.');
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage parsed successfully.');
     });
 
     it('should return remote config info null and clear storage if JSON parsing fails', async () => {
@@ -59,7 +59,7 @@ describe('RemoteConfigLocalstorage', () => {
 
       expect(result.remoteConfig).toBeNull();
       expect(result.lastFetch).toEqual(mockDate);
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage failed to get: ', expect.any(Error));
+      expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage failed to parse: ', expect.any(Error));
       expect(localStorage.getItem(storageKey)).toBeNull();
     });
 
