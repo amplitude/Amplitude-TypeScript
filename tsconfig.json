@@ -7,7 +7,7 @@
     "inlineSources": true,
     "importHelpers": true,
     "lib": ["es6"],
-    "module": "commonjs",
+    "module": "es2020",
     "moduleResolution": "node",
     "noEmitHelpers": true,
     "noFallthroughCasesInSwitch": true,
