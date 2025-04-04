@@ -13,14 +13,14 @@ export class LocalStorage<T> extends BrowserStorage<T> {
     let loggerProvider;
     let localStorage;
     try {
-      loggerProvider = config?.loggerProvider; // Extract loggerProvider
+      loggerProvider = config?.loggerProvider;
       localStorage = getGlobalScope()?.localStorage;
     } catch {
       localStorage = undefined;
     }
 
     super(localStorage);
-    this.loggerProvider = loggerProvider; // Assign after super()
+    this.loggerProvider = loggerProvider;
   }
 
   async set(key: string, value: T): Promise<void> {
