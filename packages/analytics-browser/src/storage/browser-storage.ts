@@ -5,7 +5,7 @@ export class BrowserStorage<T> implements AmplitudeStorage<T> {
   constructor(private storage?: Storage) {}
 
   async isEnabled(): Promise<boolean> {
-    if (!this.isUnavailable) {
+    if (this.isUnavailable) {
       return false;
     }
 
