@@ -81,12 +81,19 @@ sessionReplay.shutdown()
 |`sessionId`|`number`|Yes|`undefined`|Sets an identifier for the users current session. The value must be in milliseconds since epoch (Unix Timestamp).|
 |`sampleRate`|`number`|No|`0`|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.01`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.01` would select `1%` of those sessions.|
 |`optOut`|`boolean`|No|`false`|Sets permission to collect replays for sessions. Setting a value of true prevents Amplitude from collecting session replays.|
-|`flushMaxRetries`|`number`|No|`5`|Sets the maximum number of retries for failed upload attempts. This is only applicable to retryable errors.|
+|`flushMaxRetries`|`number`|No|`2`|Sets the maximum number of retries for failed upload attempts. This is only applicable to retryable errors.|
 |`logLevel`|`number`|No|`LogLevel.Warn`|`LogLevel.None` or `LogLevel.Error` or `LogLevel.Warn` or `LogLevel.Verbose` or `LogLevel.Debug`. Sets the log level.|
 |`loggerProvider`|`Logger`|No|`Logger`|Sets a custom loggerProvider class from the Logger to emit log messages to desired destination.|
 |`serverZone`|`string`|No|`US`|EU or US. Sets the Amplitude server zone. Set this to EU for Amplitude projects created in EU data center.|
-|`privacyConfig`|`object`|No|`undefined`| Supports advanced masking configs with CSS selectors.|
-|`debugMode`|`boolean`|No|`false`| Adds additional debug event property to help debug instrumentation issues (such as mismatching apps). Only recommended for debugging initial setup, and not recommended for production.|
+|`privacyConfig`|`object`|No|`undefined`|Supports advanced masking configs with CSS selectors.|
+|`debugMode`|`boolean`|No|`false`|Adds additional debug event property to help debug instrumentation issues (such as mismatching apps). Only recommended for debugging initial setup, and not recommended for production.|
+|`configServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL to fetch remote configuration. If provided, it overrides the default server zone configuration.|
+|`trackServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL for sending session replay data. If provided, it overrides the default server zone configuration.|
+|`shouldInlineStylesheet`|`boolean`|No|`true`|If stylesheets are inlined, the contents of the stylesheet will be stored. During replay, the stored stylesheet will be used instead of attempting to fetch it remotely. This prevents replays from appearing broken due to missing stylesheets. Note: Inlining stylesheets may not work in all cases. If this is `undefined` stylesheets will be inlined.|
+|`storeType`|`string`|No|`idb`|Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events when all events cannot be sent during capture. `memory` stores replay events only in memory, meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.|
+|`performanceConfig.enabled`|`boolean`|No|`false`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
+|`performanceConfig.timeout`|`number`|No|`undefined`|Optional timeout in milliseconds for the `requestIdleCallback` API. If specified, this value will be used to set a maximum time for the browser to wait before executing the deferred compression task, even if the browser is not idle.|
+|`experimental.useWebWorker`|`boolean`|No|`false`|If the SDK should compress the replay events using a webworker.|
 
 ## Privacy
 By default, the session replay will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:
