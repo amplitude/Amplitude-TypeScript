@@ -55,7 +55,15 @@ const sessionReplayTracking = sessionReplayPlugin({
 |-|-|-|-|-|
 |`sampleRate`|`number`|`undefined`|Yes|Use this option to control how many sessions will be selected for replay collection. A selected session will be collected for replay, while sessions that are not selected will not.  <br></br>The number should be a decimal between 0 and 1, ie `0.01`, representing the fraction of sessions you would like to have randomly selected for replay collection. Over a large number of sessions, `0.01` would select `1%` of those sessions.|
 |`privacyConfig`|`object`|`undefined`|No| Supports advanced masking configs with CSS selectors.|
+|`forceSessionTracking`|`boolean`|`false`|No|If this is enabled we will force the browser SDK to also send start and end session events.|
 |`debugMode`|`boolean`|`false`|No| Adds additional debug event property to help debug instrumentation issues (such as mismatching apps). Only recommended for debugging initial setup, and not recommended for production.|
+|`configServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL to fetch remote configuration. If provided, it overrides the default server zone configuration.|
+|`trackServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL for sending session replay data. If provided, it overrides the default server zone configuration.|
+|`shouldInlineStylesheet`|`boolean`|No|`true`|If stylesheets are inlined, the contents of the stylesheet will be stored. During replay, the stored stylesheet will be used instead of attempting to fetch it remotely. This prevents replays from appearing broken due to missing stylesheets. Note: Inlining stylesheets may not work in all cases. If this is `undefined` stylesheets will be inlined.|
+|`storeType`|`string`|No|`idb`|Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events when all events cannot be sent during capture. `memory` stores replay events only in memory, meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.|
+|`performanceConfig.enabled`|`boolean`|No|`false`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
+|`performanceConfig.timeout`|`number`|No|`undefined`|Optional timeout in milliseconds for the `requestIdleCallback` API. If specified, this value will be used to set a maximum time for the browser to wait before executing the deferred compression task, even if the browser is not idle.|
+|`experimental.useWebWorker`|`boolean`|No|`false`|If the SDK should compress the replay events using a webworker.|
 
 ### 3. Install plugin to Amplitude SDK
 
