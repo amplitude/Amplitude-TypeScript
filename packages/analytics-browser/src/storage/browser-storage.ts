@@ -1,14 +1,9 @@
 import { Storage as AmplitudeStorage } from '@amplitude/analytics-core';
 
 export class BrowserStorage<T> implements AmplitudeStorage<T> {
-  isUnavailable = false;
   constructor(private storage?: Storage) {}
 
   async isEnabled(): Promise<boolean> {
-    if (this.isUnavailable) {
-      return false;
-    }
-
     /* istanbul ignore if */
     if (!this.storage) {
       return false;

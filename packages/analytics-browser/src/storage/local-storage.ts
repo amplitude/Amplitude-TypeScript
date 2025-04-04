@@ -10,19 +10,17 @@ export class LocalStorage<T> extends BrowserStorage<T> {
   loggerProvider?: ILogger;
 
   constructor(config?: LocalStorageOptions) {
-    let isUnavailable = false;
-    const loggerProvider = config?.loggerProvider; // Extract loggerProvider
+    let loggerProvider;
     let localStorage;
     try {
+      loggerProvider = config?.loggerProvider; // Extract loggerProvider
       localStorage = getGlobalScope()?.localStorage;
     } catch {
-      isUnavailable = true;
+      localStorage = undefined;
     }
 
     super(localStorage);
     this.loggerProvider = loggerProvider; // Assign after super()
-
-    this.isUnavailable = isUnavailable;
   }
 
   async set(key: string, value: T): Promise<void> {
