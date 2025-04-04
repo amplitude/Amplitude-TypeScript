@@ -35,4 +35,27 @@ describe('local-storage', () => {
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith('Failed to save 1 events because the queue length exceeded 1000.');
   });
+
+  test('should not be enabled if "window.localStorage" getter throws an error', async () => {
+    let backupLocalStorage: Storage | null = null;
+    try {
+      backupLocalStorage = window.localStorage;
+      Object.defineProperty(window, 'localStorage', {
+        get: () => {
+          // simulates security error: https://www.chromium.org/for-testers/bug-reporting-guidelines/uncaught-securityerror-failed-to-read-the-localstorage-property-from-window-access-is-denied-for-this-document/
+          const err = `SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document`;
+          throw new Error(err);
+        },
+        configurable: true,
+      });
+      const localStorage = new LocalStorage();
+      expect(await localStorage.isEnabled()).toBe(false);
+    } finally {
+      console.log('restoring localStorage');
+      Object.defineProperty(window, 'localStorage', {
+        get: () => backupLocalStorage,
+        configurable: true,
+      });
+    }
+  });
 });
