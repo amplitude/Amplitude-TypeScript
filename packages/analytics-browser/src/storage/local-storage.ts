@@ -10,7 +10,17 @@ export class LocalStorage<T> extends BrowserStorage<T> {
   loggerProvider?: ILogger;
 
   constructor(config?: LocalStorageOptions) {
-    super(getGlobalScope()?.localStorage);
+    let localStorage;
+
+    try {
+      localStorage = getGlobalScope()?.localStorage;
+      console.log('localStorage', localStorage);
+    } catch (e) {
+      console.log('localStorage error', e);
+      config?.loggerProvider?.debug(`Failed to access localStorage. error=${JSON.stringify(e)}`);
+      localStorage = undefined;
+    }
+    super(localStorage);
     this.loggerProvider = config?.loggerProvider;
   }
 
