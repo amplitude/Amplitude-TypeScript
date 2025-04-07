@@ -48,8 +48,13 @@ describe('local-storage', () => {
         },
         configurable: true,
       });
-      const localStorage = new LocalStorage();
-      expect(await localStorage.isEnabled()).toBe(false);
+      const configs = [undefined, { loggerProvider: undefined }, { loggerProvider: new Logger() }];
+      await Promise.all(
+        configs.map(async (config) => {
+          const localStorage = new LocalStorage(config);
+          expect(await localStorage.isEnabled()).toBe(false);
+        }),
+      );
     } finally {
       Object.defineProperty(window, 'localStorage', {
         get: () => backupLocalStorage,
