@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.7.0...@amplitude/analytics-core@2.8.0) (2025-04-07)
+
+
+### Features
+
+* **analytics-core:** remote config client ([#997](https://github.com/amplitude/Amplitude-TypeScript/issues/997)) ([9a25350](https://github.com/amplitude/Amplitude-TypeScript/commit/9a25350802fc6326501bd31a201534d2f906985b))
+
+
+
+
+
 # [2.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.6.1...@amplitude/analytics-core@2.7.0) (2025-04-02)
 
 
