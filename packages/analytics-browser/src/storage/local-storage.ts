@@ -14,7 +14,8 @@ export class LocalStorage<T> extends BrowserStorage<T> {
 
     try {
       localStorage = getGlobalScope()?.localStorage;
-    } catch {
+    } catch (e) {
+      config?.loggerProvider?.debug(`Failed to access localStorage.: ${e}`);
       localStorage = undefined;
     }
     super(localStorage);
