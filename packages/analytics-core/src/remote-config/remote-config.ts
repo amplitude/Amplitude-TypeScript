@@ -21,6 +21,12 @@ export type Source = 'cache' | 'remote';
 export const US_SERVER_URL = 'https://sr-client-cfg.amplitude.com/config';
 export const EU_SERVER_URL = 'https://sr-client-cfg.eu.amplitude.com/config';
 export const DEFAULT_MAX_RETRIES = 3;
+
+/**
+ * The default timeout for fetch in milliseconds.
+ * Linear backoff policy: timeout / retry times is the interval between fetch retry.
+ */
+const DEFAULT_TIMEOUT = 1000;
 // TODO(xinyi)
 // const DEFAULT_MIN_TIME_BETWEEN_FETCHES = 5 * 60 * 1000; // 5 minutes
 export const FETCHED_KEYS = [
@@ -245,46 +251,48 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     callbackInfo.callback(filteredConfig, source, remoteConfigInfo.lastFetch);
   }
 
-  async fetch(retries: number = DEFAULT_MAX_RETRIES): Promise<RemoteConfigInfo> {
+  async fetch(retries: number = DEFAULT_MAX_RETRIES, timeout: number = DEFAULT_TIMEOUT): Promise<RemoteConfigInfo> {
+    const interval = timeout / retries;
     const failedRemoteConfigInfo: RemoteConfigInfo = {
       remoteConfig: null,
       lastFetch: new Date(),
     };
 
-    try {
-      const res = await fetch(this.getUrlParams(), {
-        method: 'GET',
-        headers: {
-          Accept: '*/*',
-        },
-      });
+    for (let attempt = 0; attempt < retries; attempt++) {
+      try {
+        const res = await fetch(this.getUrlParams(), {
+          method: 'GET',
+          headers: {
+            Accept: '*/*',
+          },
+        });
 
-      // Handle unsuccessful fetch
-      if (!res.ok) {
-        const body = await res.text();
-        this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
-        retries -= 1;
-        if (retries > 0) {
-          return this.fetch(retries);
+        // Handle unsuccessful fetch
+        if (!res.ok) {
+          const body = await res.text();
+          this.logger.debug(`Remote config client fetch with retry time ${retries} failed with ${res.status}: ${body}`);
+        } else {
+          // Handle successful fetch
+          const remoteConfig: RemoteConfig = (await res.json()) as RemoteConfig;
+          return {
+            remoteConfig: remoteConfig,
+            lastFetch: new Date(),
+          };
         }
-        return failedRemoteConfigInfo;
+      } catch (error) {
+        // Handle rejects when the request fails, for example, a network error
+        this.logger.debug(`Remote config client fetch with retry time ${retries} is rejected because: `, error);
       }
 
-      // Handle successful fetch
-      const remoteConfig: RemoteConfig = (await res.json()) as RemoteConfig;
-      return {
-        remoteConfig: remoteConfig,
-        lastFetch: new Date(),
-      };
-    } catch (error) {
-      // Handle rejects when the request fails, for example, a network error
-      this.logger.debug(`Remote config client fetch with retry time ${retries} is rejected because: `, error);
-      retries -= 1;
-      if (retries > 0) {
-        return this.fetch(retries);
+      // Linear backoff:
+      // wait for the specified interval before the next attempt
+      // except after the last attempt.
+      if (attempt < retries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, interval));
       }
-      return failedRemoteConfigInfo;
     }
+
+    return failedRemoteConfigInfo;
   }
 
   getUrlParams(): string {
