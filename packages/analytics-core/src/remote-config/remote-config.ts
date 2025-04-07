@@ -56,7 +56,6 @@ export interface RemoteConfigStorage {
 
   /**
    * Set remote config to storage asynchronously.
-   * @param config
    */
   setConfig(config: RemoteConfigInfo): Promise<boolean>;
 }
@@ -167,7 +166,6 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    * Send remote first. If it's already complete, we can skip the cached response.
    * - if remote is fetched first, no cache fetch.
    * - if cache is fetched first, still fetching remote.
-   * @param callbackInfo
    */
   async subscribeAll(callbackInfo: CallbackInfo) {
     const remotePromise = this.fetch().then((result) => {
@@ -224,9 +222,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
   /**
    * Call the callback with filtered remote config based on key.
-   * @param callbackInfo
    * @param remoteConfigInfo - the whole remote config object without filtering by key.
-   * @param source
    */
   sendCallback(callbackInfo: CallbackInfo, remoteConfigInfo: RemoteConfigInfo, source: Source) {
     callbackInfo.lastCallback = new Date();
@@ -288,11 +284,18 @@ export class RemoteConfigClient implements IRemoteConfigClient {
       // wait for the specified interval before the next attempt
       // except after the last attempt.
       if (attempt < retries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, interval));
+        await new Promise((resolve) => setTimeout(resolve, this.getJitterDelay(interval)));
       }
     }
 
     return failedRemoteConfigInfo;
+  }
+
+  /**
+   * Return jitter in the bound of [0,baseDelay) and then floor round.
+   */
+  getJitterDelay(baseDelay: number): number {
+    return Math.floor(Math.random() * baseDelay);
   }
 
   getUrlParams(): string {
