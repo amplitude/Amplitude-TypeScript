@@ -18,11 +18,7 @@ export class LocalStorage<T> extends BrowserStorage<T> {
       localStorage = undefined;
     }
     super(localStorage);
-    try {
-      this.loggerProvider = config?.loggerProvider;
-    } catch {
-      this.loggerProvider = undefined;
-    }
+    this.loggerProvider = config?.loggerProvider;
   }
 
   async set(key: string, value: T): Promise<void> {
