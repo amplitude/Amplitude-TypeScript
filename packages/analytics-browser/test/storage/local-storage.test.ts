@@ -51,7 +51,6 @@ describe('local-storage', () => {
       const localStorage = new LocalStorage();
       expect(await localStorage.isEnabled()).toBe(false);
     } finally {
-      console.log('restoring localStorage');
       Object.defineProperty(window, 'localStorage', {
         get: () => backupLocalStorage,
         configurable: true,
