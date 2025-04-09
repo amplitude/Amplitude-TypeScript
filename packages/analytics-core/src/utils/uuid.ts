@@ -7,9 +7,20 @@
  * @private
  */
 
+import { getGlobalScope } from '../global-scope';
+
 const hex: string[] = [...Array(256).keys()].map((index) => index.toString(16).padStart(2, '0'));
 
 export const UUID = (): string => {
+  const global = getGlobalScope();
+  let crypto: Crypto;
+  if (global?.crypto?.getRandomValues) {
+    crypto = global.crypto;
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    crypto = require('crypto') as Crypto;
+  }
+
   const r = crypto.getRandomValues(new Uint8Array(16));
 
   r[6] = (r[6] & 0x0f) | 0x40;
