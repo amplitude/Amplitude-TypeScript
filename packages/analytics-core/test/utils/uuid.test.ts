@@ -24,7 +24,10 @@ describe('UUID', () => {
   test('should generate a valid UUID-4 (no native Crypto)', () => {
     /* eslint-disable @typescript-eslint/no-unsafe-assignment */
     const backupCrypto = (global as any).crypto;
-    (global as any).crypto = null;
+    Object.defineProperty(global, 'crypto', {
+      value: null,
+      writable: true,
+    });
 
     try {
       const uuid = UUID();
