@@ -11,14 +11,42 @@ import { getGlobalScope } from '../global-scope';
 
 const hex: string[] = [...Array(256).keys()].map((index) => index.toString(16).padStart(2, '0'));
 
-export const UUID = (): string => {
+interface Crypto {
+  getRandomValues: (array: Uint8Array) => Uint8Array;
+}
+
+const legacyUUID = function (a?: any): string {
+  return a // if the placeholder was passed, return
+    ? // a random number from 0 to 15
+      (
+        a ^ // unless b is 8,
+        ((Math.random() * // in which case
+          16) >> // a random number from
+          (a / 4))
+      ) // 8 to 11
+        .toString(16) // in hexadecimal
+    : // or otherwise a concatenated string:
+      (
+        String(1e7) + // 10000000 +
+        String(-1e3) + // -1000 +
+        String(-4e3) + // -4000 +
+        String(-8e3) + // -80000000 +
+        String(-1e11)
+      ) // -100000000000,
+        .replace(
+          // replacing
+          /[018]/g, // zeroes, ones, and eights with
+          UUID, // random hex digits
+        );
+};
+
+export const UUID = (a?: any): string => {
   const global = getGlobalScope();
-  let crypto: Crypto;
-  if (global?.crypto?.getRandomValues) {
-    crypto = global.crypto;
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    crypto = require('crypto') as Crypto;
+  let crypto: Crypto | undefined = global?.crypto;
+
+  if (!crypto) {
+    // Fallback to legacy UUID generation if crypto is not available
+    return legacyUUID(a);
   }
 
   const r = crypto.getRandomValues(new Uint8Array(16));

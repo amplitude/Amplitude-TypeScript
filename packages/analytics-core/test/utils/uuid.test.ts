@@ -6,14 +6,15 @@ describe('UUID', () => {
     expect(uuid.length).toEqual(36);
     expect(uuid.substring(14, 15)).toEqual('4');
   });
+  
   test('should generate a valid UUID-4 (nodejs)', () => {
     const backupCrypto = global.crypto;
     Object.defineProperties(global, {
       crypto: {
-        value: {
-          getRandomValues: undefined,
-        },
+        value: null,
         writable: true,
+        enumerable: true,
+        configurable: true,
       },
     });
 
