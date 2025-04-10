@@ -53,23 +53,74 @@ export type PrivacyConfig = {
 export interface SessionReplayLocalConfig extends Config {
   apiKey: string;
   loggerProvider: Logger;
+  /**
+   * LogLevel.None or LogLevel.Error or LogLevel.Warn or LogLevel.Verbose or LogLevel.Debug.
+   * Sets the log level.
+   *
+   * @defaultValue LogLevel.Warn
+   */
   logLevel: LogLevel;
+  /**
+   * The maximum number of retries allowed for sending replay events.
+   * Once this limit is reached, failed events will no longer be sent.
+   *
+   * @defaultValue 2
+   */
   flushMaxRetries: number;
+  /**
+   * Use this option to control how many sessions to select for replay collection.
+   * The number should be a decimal between 0 and 1, for example 0.4, representing
+   * the fraction of sessions to have randomly selected for replay collection.
+   * Over a large number of sessions, 0.4 would select 40% of those sessions.
+   * Sample rates as small as six decimal places (0.000001) are supported.
+   *
+   * @defaultValue 0
+   */
   sampleRate: number;
   privacyConfig?: PrivacyConfig;
+  /**
+   * Adds additional debug event property to help debug instrumentation issues
+   * (such as mismatching apps). Only recommended for debugging initial setup,
+   * and not recommended for production.
+   */
   debugMode?: boolean;
-  // This will control which endpoint is used for remote config.
-  // This will override server zone if specified.
+  /**
+   * Specifies the endpoint URL to fetch remote configuration.
+   * If provided, it overrides the default server zone configuration.
+   */
   configServerUrl?: string;
-  // This will control which endpoint is used for session replay track calls.
-  // This will override server zone if specified.
+  /**
+   * Specifies the endpoint URL for sending session replay data.
+   * If provided, it overrides the default server zone configuration.
+   */
   trackServerUrl?: string;
+  /**
+   * If stylesheets are inlined, the contents of the stylesheet will be stored.
+   * During replay, the stored stylesheet will be used instead of attempting to fetch it remotely.
+   * This prevents replays from appearing broken due to missing stylesheets.
+   * Note: Inlining stylesheets may not work in all cases.
+   */
   shouldInlineStylesheet?: boolean;
   version?: SessionReplayVersion;
+  /**
+   * Performance configuration config. If enabled, we will defer compression
+   * to be done during the browser's idle periods.
+   */
   performanceConfig?: SessionReplayPerformanceConfig;
+  /**
+   * Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events
+   * when all events cannot be sent during capture. `memory` stores replay events only in memory,
+   * meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.
+   */
   storeType: StoreType;
 
+  /**
+   * Experimental features.
+   */
   experimental?: {
+    /**
+     * If the SDK should compress the replay events using a webworker.
+     */
     useWebWorker: boolean;
   };
 }
@@ -96,8 +147,19 @@ export interface SessionReplayVersion {
   type: SessionReplayType;
 }
 
+/**
+ * Configuration options for session replay performance.
+ */
 export interface SessionReplayPerformanceConfig {
+  /**
+   * If enabled, event compression will be deferred to occur during the browser's idle periods.
+   */
   enabled: boolean;
+  /**
+   * Optional timeout in milliseconds for the `requestIdleCallback` API.
+   * If specified, this value will be used to set a maximum time for the browser to wait
+   * before executing the deferred compression task, even if the browser is not idle.
+   */
   timeout?: number;
 }
 
