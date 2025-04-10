@@ -38,7 +38,7 @@ const hex: string[] = [...Array(256).keys()].map((index) => index.toString(16).p
 
 export const UUID = (a?: any): string => {
   const globalScope = getGlobalScope();
-  
+
   /* istanbul ignore next */
   if (!globalScope?.crypto?.getRandomValues) {
     // Fallback to legacy UUID generation if crypto is not available
