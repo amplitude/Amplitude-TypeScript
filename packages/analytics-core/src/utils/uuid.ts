@@ -44,7 +44,7 @@ export const UUID = (a?: any): string => {
   const global = getGlobalScope();
   let crypto: Crypto | undefined = global?.crypto;
 
-  if (!crypto) {
+  if (!crypto?.getRandomValues) {
     // Fallback to legacy UUID generation if crypto is not available
     return legacyUUID(a);
   }
