@@ -9,8 +9,6 @@
 
 import { getGlobalScope } from '../global-scope';
 
-const hex: string[] = [...Array(256).keys()].map((index) => index.toString(16).padStart(2, '0'));
-
 const legacyUUID = function (a?: any): string {
   return a // if the placeholder was passed, return
     ? // a random number from 0 to 15
@@ -36,16 +34,18 @@ const legacyUUID = function (a?: any): string {
         );
 };
 
-export const UUID = (a?: any): string => {
-  const global = getGlobalScope();
+const hex: string[] = [...Array(256).keys()].map((index) => index.toString(16).padStart(2, '0'));
 
+export const UUID = (a?: any): string => {
+  const globalScope = getGlobalScope();
+  
   /* istanbul ignore next */
-  if (!global?.crypto?.getRandomValues) {
+  if (!globalScope?.crypto?.getRandomValues) {
     // Fallback to legacy UUID generation if crypto is not available
     return legacyUUID(a);
   }
 
-  const r = global.crypto.getRandomValues(new Uint8Array(16));
+  const r = globalScope.crypto.getRandomValues(new Uint8Array(16));
 
   r[6] = (r[6] & 0x0f) | 0x40;
   r[8] = (r[8] & 0x3f) | 0x80;
