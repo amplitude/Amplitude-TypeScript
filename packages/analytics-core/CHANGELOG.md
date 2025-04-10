@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.8.0...@amplitude/analytics-core@2.8.1) (2025-04-10)
+
+
+### Bug Fixes
+
+* **uuid:** set UUID's using crypto libraries instead of Math.random ([#852](https://github.com/amplitude/Amplitude-TypeScript/issues/852)) ([54b86bb](https://github.com/amplitude/Amplitude-TypeScript/commit/54b86bba518261e365a0b3ff49cb44521531491c))
+
+
+
+
+
 # [2.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.7.0...@amplitude/analytics-core@2.8.0) (2025-04-07)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.13.2",
+  "version": "2.13.3",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -45,10 +45,10 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^2.8.0",
+    "@amplitude/analytics-core": "^2.8.1",
     "@amplitude/analytics-remote-config": "^0.4.0",
-    "@amplitude/plugin-autocapture-browser": "^1.1.5",
-    "@amplitude/plugin-page-view-tracking-browser": "^2.3.15",
+    "@amplitude/plugin-autocapture-browser": "^1.1.6",
+    "@amplitude/plugin-page-view-tracking-browser": "^2.3.16",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
