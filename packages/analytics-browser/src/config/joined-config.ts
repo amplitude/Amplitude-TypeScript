@@ -59,6 +59,7 @@ export class BrowserJoinedConfigGenerator {
         }
 
         if (typeof remoteConfig.autocapture === 'object') {
+          const transformedAutocaptureRemoteConfig = { ...remoteConfig.autocapture };
           if (this.config.autocapture === undefined) {
             this.config.autocapture = remoteConfig.autocapture;
           }
@@ -68,16 +69,21 @@ export class BrowserJoinedConfigGenerator {
             typeof remoteConfig.autocapture.elementInteractions === 'object' &&
             remoteConfig.autocapture.elementInteractions?.pageUrlAllowlistRegex?.length
           ) {
-            const exactAllowList = remoteConfig.autocapture.elementInteractions.pageUrlAllowlist ?? [];
+            transformedAutocaptureRemoteConfig.elementInteractions = {
+              ...remoteConfig.autocapture.elementInteractions,
+            };
+
+            const exactAllowList = transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlist ?? [];
             // Convert string patterns to RegExp objects
-            const regexList = remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex.map(
-              (pattern) => new RegExp(pattern),
-            );
+            const regexList =
+              transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlistRegex?.map(
+                (pattern) => new RegExp(pattern),
+              ) ?? [];
 
             const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
 
-            remoteConfig.autocapture.elementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
-            delete remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex;
+            transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
+            delete transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlistRegex;
           }
 
           if (typeof this.config.autocapture === 'boolean') {
@@ -88,14 +94,14 @@ export class BrowserJoinedConfigGenerator {
               pageViews: this.config.autocapture,
               sessions: this.config.autocapture,
               elementInteractions: this.config.autocapture,
-              ...remoteConfig.autocapture,
+              ...transformedAutocaptureRemoteConfig,
             };
           }
 
           if (typeof this.config.autocapture === 'object') {
             this.config.autocapture = {
               ...this.config.autocapture,
-              ...remoteConfig.autocapture,
+              ...transformedAutocaptureRemoteConfig,
             };
           }
         }
