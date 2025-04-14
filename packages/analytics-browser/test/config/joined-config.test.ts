@@ -430,7 +430,6 @@ describe('joined-config', () => {
       });
 
       test('should not fail or override pageUrlAllowlist when pageUrlAllowlistRegex is undefined', async () => {
-        // Arrange: Set up the local configuration and the BrowserJoinedConfigGenerator
         localConfig = createConfigurationMock({});
         generator = new BrowserJoinedConfigGenerator(localConfig);
 
@@ -443,13 +442,11 @@ describe('joined-config', () => {
           },
         };
 
-        // Mock the remote configuration fetch to return the defined remoteConfig
         mockRemoteConfigFetch = {
           getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
           metrics: metrics,
         };
 
-        // Mock the createRemoteConfigFetch function to return our mocked remoteConfigFetch object
         (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
           mockRemoteConfigFetch,
         );
