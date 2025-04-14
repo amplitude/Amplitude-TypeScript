@@ -1,9 +1,24 @@
 import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
-import { RequestMetadata, BrowserConfig as IBrowserConfig, AutocaptureOptions } from '@amplitude/analytics-core';
+import {
+  RequestMetadata,
+  BrowserConfig as IBrowserConfig,
+  AutocaptureOptions,
+  type ElementInteractionsOptions,
+} from '@amplitude/analytics-core';
+
+export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
+  elementInteractions?: boolean | ElementInteractionsOptionsRemoteConfig;
+}
+export interface ElementInteractionsOptionsRemoteConfig extends ElementInteractionsOptions {
+  /**
+   * Related to pageUrlAllowlist but holds regex strings which will be initialized and appended to pageUrlAllowlist
+   */
+  pageUrlAllowlistRegex?: string[];
+}
 
 export type BrowserRemoteConfig = {
   browserSDK: {
-    autocapture?: AutocaptureOptions | boolean;
+    autocapture?: AutocaptureOptionsRemoteConfig | boolean;
   };
 };
 
@@ -46,6 +61,23 @@ export class BrowserJoinedConfigGenerator {
         if (typeof remoteConfig.autocapture === 'object') {
           if (this.config.autocapture === undefined) {
             this.config.autocapture = remoteConfig.autocapture;
+          }
+
+          // Handle pageUrlAllowlistRegex conversion to RegExp objects
+          if (
+            typeof remoteConfig.autocapture.elementInteractions === 'object' &&
+            remoteConfig.autocapture.elementInteractions?.pageUrlAllowlistRegex?.length
+          ) {
+            const exactAllowList = remoteConfig.autocapture.elementInteractions.pageUrlAllowlist ?? [];
+            // Convert string patterns to RegExp objects
+            const regexList = remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex.map(
+              (pattern) => new RegExp(pattern),
+            );
+
+            const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
+
+            remoteConfig.autocapture.elementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
+            delete remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex;
           }
 
           if (typeof this.config.autocapture === 'boolean') {
