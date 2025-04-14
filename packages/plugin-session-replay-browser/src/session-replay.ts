@@ -1,4 +1,4 @@
-import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-types';
+import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-core';
 import * as sessionReplay from '@amplitude/session-replay-browser';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';

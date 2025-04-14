@@ -1,4 +1,4 @@
-import { Event } from '@amplitude/analytics-types';
+import { Event } from '@amplitude/analytics-core';
 import {
   StoreType,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

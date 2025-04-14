@@ -2,29 +2,12 @@
 # yarn lockfile v1
 
 
-"@amplitude/analytics-client-common@>=1 <2":
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-client-common/-/analytics-client-common-1.2.3.tgz#13c31681ee84e4519f66a0451e6014351c20df53"
-  integrity sha512-J/RlOmzvrhhLkk5HhpYlV83SGnli+IRWzHaWPV5Dhg1yieaMZlGPkyoS26gyMMPBIv9fcoG6b4LptO9pbMbjSg==
-  dependencies:
-    "@amplitude/analytics-connector" "^1.5.0"
-    "@amplitude/analytics-core" "^1.2.5"
-    "@amplitude/analytics-types" "^1.3.4"
-    tslib "^2.4.1"
-
 "@amplitude/analytics-connector@^1.4.8":
   version "1.6.4"
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-connector/-/analytics-connector-1.6.4.tgz#8a811ff5c8ee46bdfea0e8f61c7578769b5778ed"
   integrity sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q==
 
-"@amplitude/analytics-connector@^1.5.0":
-  version "1.6.3"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-connector/-/analytics-connector-1.6.3.tgz#0879fede6835fd288974b6697eaf4b8d1bce6569"
-  integrity sha512-ms/G/hT/KYrJ+czdYFEbk/nmYLYkln89HmegJHcV+8L++UOh8mW8hYfZKbBTw5YyB1PKxUbBZum5n2I3hNMd2A==
-  dependencies:
-    "@amplitude/experiment-core" "^0.11.0"
-
-"@amplitude/analytics-core@>=1 <2", "@amplitude/analytics-core@^1.2.5":
+"@amplitude/analytics-core@>=1 <2":
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-core/-/analytics-core-1.2.5.tgz#f5fc39d93920f3e5447956b9a7525b924b5c0791"
   integrity sha512-V7CVlHVN+1diKiOpdp2bCPZ0mbS4CmUYF+v+eXDwVfJL3M/t3sVcT1apXnmVYGYi14cGu9hQOD11rD6qKbUOsw==
@@ -46,13 +29,6 @@
   version "1.3.4"
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-1.3.4.tgz#9142a893313cc28a9c7a7a3e3360c33636fc9b7d"
   integrity sha512-tR70gzqFkEzX9QpxvWYMfLCledT7vMhgd3d4/bkp3nnGXTOORaVUOCcSgOyxyuFdSx84T61aP/eZPKIcZcaP+A==
-
-"@amplitude/experiment-core@^0.11.0":
-  version "0.11.0"
-  resolved "https://registry.yarnpkg.com/@amplitude/experiment-core/-/experiment-core-0.11.0.tgz#a4aa408b0f2f087dbaaa0452eb8e91591f03a5a1"
-  integrity sha512-egqb/eWFUU+gn6w3t9/L8PHpivAZrIVOX6dTk0NUVNfG3jeN4VuB77BOvu51xxfNF3Hvs6J49do9hRtE/LdvSw==
-  dependencies:
-    js-base64 "^3.7.5"
 
 "@amplitude/rrdom@^2.0.0-alpha.29":
   version "2.0.0-alpha.29"
@@ -9269,11 +9245,6 @@ joi@^17.2.1:
     "@sideway/address" "^4.1.3"
     "@sideway/formula" "^3.0.0"
     "@sideway/pinpoint" "^2.0.0"
-
-js-base64@^3.7.5:
-  version "3.7.7"
-  resolved "https://registry.yarnpkg.com/js-base64/-/js-base64-3.7.7.tgz#e51b84bf78fbf5702b9541e2cb7bfcb893b43e79"
-  integrity sha512-7rCnleh0z2CkXhH67J8K1Ytz0b2Y+yxTPL+/KOJoa20hfnVQ/3/T6W/KflYI4bRHRagNeXeU2bkNGI3v1oS/lw==
 
 js-sdsl@^4.1.4:
   version "4.2.0"
