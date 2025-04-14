@@ -3,26 +3,16 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import * as amplitude from '@amplitude/analytics-browser';
 
-/**
- * Start by calling amplitude.init(). This must be done before any event tracking
- * preferrably in the root file of the project.
- * 
- * Calling init() requires an API key
- * ```
- * amplitude.init(API_KEY)
- * ```
- * 
- * Optionally, a user id can be provided when calling init()
- * ```
- * amplitude.init(API_KEY, 'example.react.user@amplitude.com')
- * ```
- * 
- * Optionally, a config object can be provided. Refer to https://amplitude.github.io/Amplitude-TypeScript/interfaces/Types.BrowserConfig.html
- * for object properties.
- */
-amplitude.init('API_KEY', 'example.react.user@amplitude.com');
+import * as amplitude from '@amplitude/analytics-browser';
+import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+import { plugin as engagementPlugin } from '@amplitude/engagement-browser';
+
+// Guides and Surveys SDK
+amplitude.add(engagementPlugin());
+// Session Replay Browser SDK
+amplitude.add(sessionReplayPlugin());
+amplitude.init('5b9a9510e261f9ead90865bbc5a7ad1d', { "autocapture": true, logLevel: amplitude.Types.LogLevel.Debug });
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
