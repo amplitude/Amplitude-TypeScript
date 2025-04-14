@@ -1,4 +1,4 @@
-import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
+import { ILogger, LogLevel } from '@amplitude/analytics-core';
 
 export class SafeLoggerProvider implements ILogger {
   private logger: ILogger;

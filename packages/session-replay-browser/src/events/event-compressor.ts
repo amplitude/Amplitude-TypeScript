@@ -1,4 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { getGlobalScope } from '@amplitude/analytics-core';
 import { pack } from '@amplitude/rrweb-packer';
 import type { eventWithTime } from '@amplitude/rrweb-types';
 import { SessionReplayJoinedConfig } from 'src/config/types';

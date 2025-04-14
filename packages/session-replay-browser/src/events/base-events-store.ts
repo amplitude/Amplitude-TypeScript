@@ -1,16 +1,16 @@
 import { MAX_EVENT_LIST_SIZE_IN_BYTES, MAX_INTERVAL, MIN_INTERVAL } from '../constants';
 import { Events, EventsStore, SendingSequencesReturn } from '../typings/session-replay';
-import { Logger } from '@amplitude/analytics-types';
+import { ILogger } from '@amplitude/analytics-core';
 
 export type InstanceArgs = {
-  loggerProvider: Logger;
+  loggerProvider: ILogger;
   minInterval?: number;
   maxInterval?: number;
   maxPersistedEventsSize?: number;
 };
 
 export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
-  protected readonly loggerProvider: Logger;
+  protected readonly loggerProvider: ILogger;
   private minInterval = MIN_INTERVAL;
   private maxInterval = MAX_INTERVAL;
   private maxPersistedEventsSize = MAX_EVENT_LIST_SIZE_IN_BYTES;

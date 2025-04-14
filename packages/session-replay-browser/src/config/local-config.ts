@@ -1,6 +1,4 @@
-import { FetchTransport } from '@amplitude/analytics-client-common';
-import { Config, Logger } from '@amplitude/analytics-core';
-import { LogLevel } from '@amplitude/analytics-types';
+import { Config, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
 import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from '../constants';
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {

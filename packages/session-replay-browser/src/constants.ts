@@ -1,5 +1,4 @@
-import { AMPLITUDE_PREFIX } from '@amplitude/analytics-core';
-import { ServerZone } from '@amplitude/analytics-types';
+import { AMPLITUDE_PREFIX, ServerZone } from '@amplitude/analytics-core';
 
 export const DEFAULT_EVENT_PROPERTY_PREFIX = '[Amplitude]';
 
