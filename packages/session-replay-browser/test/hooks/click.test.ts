@@ -2,20 +2,20 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import { MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplayEventsManager } from '../../src/typings/session-replay';
 import { UUID } from '@amplitude/analytics-core';
 import { ClickEvent, ClickEventWithCount, clickBatcher, clickHook, clickNonBatcher } from '../../src/hooks/click';
 import { record, utils } from '@amplitude/rrweb';
-import type { Logger } from '@amplitude/analytics-types';
+import type { ILogger } from '@amplitude/analytics-core';
 import { finder } from '../../src/libs/finder';
 
 jest.mock('@amplitude/rrweb');
 jest.mock('../../src/libs/finder');
 
 describe('click', () => {
-  const mockLoggerProvider: Logger = {
+  const mockLoggerProvider: ILogger = {
     error: jest.fn(),
     log: jest.fn(),
     disable: jest.fn(),
@@ -43,7 +43,7 @@ describe('click', () => {
     };
 
     const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
     };
 
     const mockWindowScroll = (left = 0, top = 0) => {

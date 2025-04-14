@@ -1,6 +1,5 @@
 import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
-
+import * as AnalyticsCore from '@amplitude/analytics-core';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 
 // Test subclass to access protected methods
@@ -22,7 +21,7 @@ describe('NetworkObservers', () => {
     mockFetch = jest.fn();
     globalScope = { fetch: mockFetch };
 
-    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
+    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
 
     networkObservers = new TestNetworkObservers();
   });
@@ -152,7 +151,7 @@ describe('NetworkObservers', () => {
     });
 
     it('should handle missing global scope', () => {
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
 
       networkObservers.start(callback);
 
@@ -161,7 +160,7 @@ describe('NetworkObservers', () => {
 
     it('should handle missing fetch', () => {
       const scopeWithoutFetch = {} as typeof globalThis;
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(scopeWithoutFetch);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scopeWithoutFetch);
 
       networkObservers.start(callback);
 

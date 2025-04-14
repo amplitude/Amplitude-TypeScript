@@ -6,9 +6,9 @@ import {
   SESSION_REPLAY_STAGING_URL,
   UNMASK_TEXT_CLASS,
 } from '../src/constants';
-import { ServerZone } from '@amplitude/analytics-types';
+import { ServerZone } from '@amplitude/analytics-core';
 import { generateHashCode, getServerUrl, getStorageSize, isSessionInSample, maskFn } from '../src/helpers';
-import * as clientCommon from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
@@ -228,12 +228,12 @@ describe('SessionReplayPlugin helpers', () => {
 
   describe('getStorageSize', () => {
     test('should return a default set of data if global scope is not defined', async () => {
-      jest.spyOn(clientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
       const storageSize = await getStorageSize();
       expect(storageSize).toEqual({ totalStorageSize: 0, percentOfQuota: 0, usageDetails: '' });
     });
     test('should return formatted storage size data', async () => {
-      jest.spyOn(clientCommon, 'getGlobalScope').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         navigator: {
           storage: {
             estimate: async () => {
@@ -252,7 +252,7 @@ describe('SessionReplayPlugin helpers', () => {
       expect(storageSize).toEqual({ totalStorageSize: 209, percentOfQuota: 0.005, usageDetails: '{"indexedDB":10}' });
     });
     test('should return a default set of data if values within navigator are not defined', async () => {
-      jest.spyOn(clientCommon, 'getGlobalScope').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         navigator: {
           storage: {
             estimate: async () => {

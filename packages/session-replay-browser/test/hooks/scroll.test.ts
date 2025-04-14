@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint jest/expect-expect: ["error", { "assertFunctionNames": ["expect", "expectMaxScrolls"] }] */
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import { BeaconTransport } from '../../src/beacon-transport';
 import { ScrollEventPayload, ScrollWatcher } from '../../src/hooks/scroll';
 import { utils } from '@amplitude/rrweb';
@@ -11,7 +11,7 @@ jest.mock('../../src/beacon-transport');
 
 describe('scroll', () => {
   const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
-    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
+    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
   };
 
   const mockWindowScroll = (left = 0, top = 0) => {

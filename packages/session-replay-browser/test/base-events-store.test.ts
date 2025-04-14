@@ -1,4 +1,4 @@
-import { Logger } from '@amplitude/analytics-types';
+import { ILogger } from '@amplitude/analytics-core';
 import { InMemoryEventsStore } from '../src/events/events-memory-store';
 
 describe('BaseEventsStore', () => {
@@ -6,7 +6,7 @@ describe('BaseEventsStore', () => {
     jest.useRealTimers();
   });
 
-  const mockLoggerProvider: Logger = {
+  const mockLoggerProvider: ILogger = {
     error: jest.fn(),
     log: jest.fn(),
     disable: jest.fn(),

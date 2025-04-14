@@ -3,9 +3,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
-import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
+import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { NetworkObservers } from '../src/observers';
@@ -27,7 +27,7 @@ import { SessionReplayOptions } from '../src/typings/session-replay';
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
 
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 
 const mockEvent = {
   type: 4,
@@ -132,7 +132,7 @@ describe('SessionReplay', () => {
         callback();
       }, (options?.timeout as number) || 0);
     });
-    globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+    globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
   });
   afterEach(() => {
     jest.resetAllMocks();
@@ -249,7 +249,7 @@ describe('SessionReplay', () => {
 
     test('should invoke page leave listeners', async () => {
       const invokeEventMap = new Map<string, any>();
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         document: {
           hasFocus: () => false,
         },
@@ -288,7 +288,7 @@ describe('SessionReplay', () => {
     });
 
     test('fallback to memory store if no indexeddb', async () => {
-      globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         ...mockGlobalScope,
         indexedDB: null as any,
       });
@@ -302,7 +302,7 @@ describe('SessionReplay', () => {
     });
 
     test('fallback to memory store if no global scope', async () => {
-      globalSpy = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
       await sessionReplay.init(apiKey, {
         ...mockOptions,
         sampleRate: 0.5,
@@ -477,7 +477,7 @@ describe('SessionReplay', () => {
     });
     test('it should not call initialize if the document does not have focus', () => {
       const initialize = jest.spyOn(sessionReplay, 'initialize');
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         document: {
           hasFocus: () => false,
         },
@@ -626,7 +626,7 @@ describe('SessionReplay', () => {
     });
 
     test('should ignore focus handler when debug mode is on.', async () => {
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         ...mockGlobalScope,
         document: {
           hasFocus: () => false,
@@ -795,7 +795,7 @@ describe('SessionReplay', () => {
       expect(sessionReplay.shouldOptOut()).toEqual(undefined);
     });
     test('should return opt out from identity store if set', async () => {
-      jest.spyOn(AnalyticsClientCommon, 'getAnalyticsConnector').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getAnalyticsConnector').mockReturnValue({
         identityStore: {
           getIdentity: () => {
             return {
@@ -803,12 +803,12 @@ describe('SessionReplay', () => {
             };
           },
         },
-      } as unknown as ReturnType<typeof AnalyticsClientCommon.getAnalyticsConnector>);
+      } as unknown as ReturnType<typeof AnalyticsCore.getAnalyticsConnector>);
       await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance' }).promise;
       expect(sessionReplay.shouldOptOut()).toEqual(true);
     });
     test('should return opt out from identity store even if set to false', async () => {
-      jest.spyOn(AnalyticsClientCommon, 'getAnalyticsConnector').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getAnalyticsConnector').mockReturnValue({
         identityStore: {
           getIdentity: () => {
             return {
@@ -816,7 +816,7 @@ describe('SessionReplay', () => {
             };
           },
         },
-      } as unknown as ReturnType<typeof AnalyticsClientCommon.getAnalyticsConnector>);
+      } as unknown as ReturnType<typeof AnalyticsCore.getAnalyticsConnector>);
       await sessionReplay.init(apiKey, { ...mockOptions, instanceName: 'my_instance', optOut: true }).promise;
       expect(sessionReplay.shouldOptOut()).toEqual(false);
     });
@@ -1154,7 +1154,7 @@ describe('SessionReplay', () => {
     });
 
     test('should remove event listeners with pagehide', async () => {
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({
         ...mockGlobalScope,
         self: {
           onpagehide: (() => {
