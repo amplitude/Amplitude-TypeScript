@@ -72,6 +72,13 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     }
   }
 
+  async onSessionIdChanged(sessionId: number): Promise<void> {
+    this.config.loggerProvider.debug(
+      `Analytics session id is changed to ${sessionId}, SR session id is ${String(sessionReplay.getSessionId())}.`,
+    );
+    await sessionReplay.setSessionId(sessionId).promise;
+  }
+
   async execute(event: Event) {
     try {
       if (this.options.customSessionId) {

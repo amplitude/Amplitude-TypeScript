@@ -14,13 +14,14 @@ type MockedBrowserClient = jest.Mocked<BrowserClient>;
 describe('SessionReplayPlugin', () => {
   const { init, setSessionId, getSessionReplayProperties, shutdown, getSessionId } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
+  const mockLoggerProviderDebug = jest.fn();
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
     log: jest.fn(),
     disable: jest.fn(),
     enable: jest.fn(),
     warn: jest.fn(),
-    debug: jest.fn(),
+    debug: mockLoggerProviderDebug,
   };
   const mockConfig: BrowserConfig = {
     apiKey: 'static_key',
@@ -268,6 +269,22 @@ describe('SessionReplayPlugin', () => {
         });
         await sessionReplay.setup?.(mockConfig, mockAmplitude);
       }).not.toThrow();
+    });
+  });
+
+  describe('onSessionIdChanged', () => {
+    test('should call setSessionId()', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      getSessionId.mockReturnValueOnce(123);
+      await sessionReplay.setup?.({ ...mockConfig }, mockAmplitude);
+
+      await sessionReplay.onSessionIdChanged?.(456);
+
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(setSessionId).toHaveBeenCalledWith(456);
+      expect(mockLoggerProviderDebug).toHaveBeenCalledWith(
+        'Analytics session id is changed to 456, SR session id is 123.',
+      );
     });
   });
 

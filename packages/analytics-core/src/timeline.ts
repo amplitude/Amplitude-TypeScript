@@ -1,4 +1,4 @@
-import { BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './types/plugin';
+import { AnalyticsIdentity, BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './types/plugin';
 import { CoreClient } from './core-client';
 import { IConfig } from './config';
 import { EventCallback } from './types/event-callback';
@@ -154,5 +154,23 @@ export class Timeline {
     });
 
     await Promise.all(executeDestinations);
+  }
+
+  onIdentityChanged(identity: AnalyticsIdentity) {
+    this.plugins.forEach((plugin) => {
+      void plugin.onIdentityChanged?.(identity);
+    });
+  }
+
+  onSessionIdChanged(sessionId: number) {
+    this.plugins.forEach((plugin) => {
+      void plugin.onSessionIdChanged?.(sessionId);
+    });
+  }
+
+  onOptOutChanged(optOut: boolean) {
+    this.plugins.forEach((plugin) => {
+      void plugin.onOptOutChanged?.(optOut);
+    });
   }
 }
