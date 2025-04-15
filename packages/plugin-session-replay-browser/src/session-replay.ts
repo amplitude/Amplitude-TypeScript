@@ -11,9 +11,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   // @ts-ignore
   config: BrowserConfig;
   options: SessionReplayOptions;
+  srInitOptions: sessionReplay.SessionReplayOptions;
 
   constructor(options?: SessionReplayOptions) {
     this.options = { forceSessionTracking: false, ...options };
+    this.srInitOptions = this.options;
   }
 
   async setup(config: BrowserConfig, _client: BrowserClient) {
@@ -41,7 +43,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         }
       }
 
-      await sessionReplay.init(config.apiKey, {
+      this.srInitOptions = {
         instanceName: this.config.instanceName,
         deviceId: this.options.deviceId ?? this.config.deviceId,
         optOut: this.config.optOut,
@@ -65,7 +67,9 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
         experimental: this.options.experimental,
-      }).promise;
+      };
+
+      await sessionReplay.init(config.apiKey, this.srInitOptions).promise;
     } catch (error) {
       /* istanbul ignore next */
       config?.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
@@ -77,6 +81,19 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
       `Analytics session id is changed to ${sessionId}, SR session id is ${String(sessionReplay.getSessionId())}.`,
     );
     await sessionReplay.setSessionId(sessionId).promise;
+  }
+
+  async onOptOutChanged(optOut: boolean): Promise<void> {
+    this.config.loggerProvider.debug(
+      `optOut is changed to ${String(optOut)}, calling ${
+        optOut ? 'sessionReplay.shutdown()' : 'sessionReplay.init()'
+      }.`,
+    );
+    if (optOut) {
+      sessionReplay.shutdown();
+    } else {
+      await sessionReplay.init(this.config.apiKey, this.srInitOptions).promise;
+    }
   }
 
   async execute(event: Event) {

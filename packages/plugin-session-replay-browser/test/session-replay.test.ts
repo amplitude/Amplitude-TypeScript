@@ -288,6 +288,39 @@ describe('SessionReplayPlugin', () => {
     });
   });
 
+  describe('onOptOutChanged', () => {
+    test('should shutdown when optOut is changed to true', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup?.({ ...mockConfig }, mockAmplitude);
+
+      await sessionReplay.onOptOutChanged?.(true);
+
+      expect(shutdown).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProviderDebug).toHaveBeenCalledWith(
+        'optOut is changed to true, calling sessionReplay.shutdown().',
+      );
+    });
+
+    test('should re init when optOut is changed to false', async () => {
+      const customDeviceId = randomUUID();
+      const sessionReplay = new SessionReplayPlugin({
+        deviceId: customDeviceId,
+      });
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      await sessionReplay.onOptOutChanged?.(false);
+
+      expect(init).toHaveBeenCalledTimes(2);
+      expect(mockLoggerProviderDebug).toHaveBeenCalledWith('optOut is changed to false, calling sessionReplay.init().');
+      expect(sessionReplay.config.serverUrl).toBe('url');
+      expect(sessionReplay.config.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config.flushQueueSize).toBe(0);
+      expect(sessionReplay.config.flushIntervalMillis).toBe(0);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
+      expect(init).toHaveBeenNthCalledWith(2, 'static_key', expect.objectContaining({ deviceId: customDeviceId }));
+    });
+  });
+
   describe('execute', () => {
     test('should add event property for [Amplitude] Session Replay ID', async () => {
       const sessionReplay = sessionReplayPlugin();
