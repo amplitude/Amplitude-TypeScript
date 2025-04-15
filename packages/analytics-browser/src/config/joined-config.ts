@@ -65,10 +65,10 @@ export class BrowserJoinedConfigGenerator {
             this.config.autocapture = remoteConfig.autocapture;
           }
 
-          // Handle pageUrlAllowlistRegex conversion to RegExp objects
+          // Handle Element Interactions config initialization
           if (
             typeof remoteConfig.autocapture.elementInteractions === 'object' &&
-            remoteConfig.autocapture.elementInteractions?.pageUrlAllowlistRegex?.length
+            remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex?.length
           ) {
             transformedAutocaptureRemoteConfig.elementInteractions = {
               ...remoteConfig.autocapture.elementInteractions,
@@ -77,8 +77,9 @@ export class BrowserJoinedConfigGenerator {
 
             const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
             // Convert string patterns to RegExp objects
-            const regexList =
-              transformedRcElementInteractions.pageUrlAllowlistRegex?.map((pattern) => new RegExp(pattern)) ?? [];
+            const regexList = remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex.map(
+              (pattern) => new RegExp(pattern),
+            );
 
             const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
 
