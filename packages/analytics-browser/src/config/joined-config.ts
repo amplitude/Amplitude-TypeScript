@@ -60,6 +60,7 @@ export class BrowserJoinedConfigGenerator {
 
         if (typeof remoteConfig.autocapture === 'object') {
           const transformedAutocaptureRemoteConfig = { ...remoteConfig.autocapture };
+
           if (this.config.autocapture === undefined) {
             this.config.autocapture = remoteConfig.autocapture;
           }
@@ -72,18 +73,17 @@ export class BrowserJoinedConfigGenerator {
             transformedAutocaptureRemoteConfig.elementInteractions = {
               ...remoteConfig.autocapture.elementInteractions,
             };
+            const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
 
-            const exactAllowList = transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlist ?? [];
+            const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
             // Convert string patterns to RegExp objects
             const regexList =
-              transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlistRegex?.map(
-                (pattern) => new RegExp(pattern),
-              ) ?? [];
+              transformedRcElementInteractions.pageUrlAllowlistRegex?.map((pattern) => new RegExp(pattern)) ?? [];
 
             const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
 
-            transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
-            delete transformedAutocaptureRemoteConfig.elementInteractions.pageUrlAllowlistRegex;
+            transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
+            delete transformedRcElementInteractions.pageUrlAllowlistRegex;
           }
 
           if (typeof this.config.autocapture === 'boolean') {
