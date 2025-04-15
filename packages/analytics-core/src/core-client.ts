@@ -321,7 +321,6 @@ export class AmplitudeCore implements CoreClient {
   }
 
   _setOptOut(optOut: boolean) {
-    this.config.loggerProvider.debug(`function setOptOut(optOut: ${String(optOut)}), config.optOut: ${String(optOut)}`);
     if (this.config.optOut !== optOut) {
       this.timeline.onOptOutChanged(optOut);
       this.config.optOut = Boolean(optOut);
