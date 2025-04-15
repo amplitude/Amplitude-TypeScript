@@ -1,8 +1,8 @@
-import { Logger, LogLevel } from '@amplitude/analytics-types';
+import { ILogger, LogLevel } from '@amplitude/analytics-core';
 import { SafeLoggerProvider } from '../src/logger';
 
 describe('SafeLoggerProvider', () => {
-  let mockLogger: jest.Mocked<Logger>;
+  let mockLogger: jest.Mocked<ILogger>;
   let logSpy: jest.SpyInstance;
   let warnSpy: jest.SpyInstance;
   let errorSpy: jest.SpyInstance;

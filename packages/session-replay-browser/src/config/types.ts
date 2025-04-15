@@ -1,4 +1,4 @@
-import { Config, LogLevel, Logger } from '@amplitude/analytics-types';
+import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
 import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
 
 export interface SamplingConfig {
@@ -50,9 +50,9 @@ export type PrivacyConfig = {
   unmaskSelector?: string[];
 };
 
-export interface SessionReplayLocalConfig extends Config {
+export interface SessionReplayLocalConfig extends IConfig {
   apiKey: string;
-  loggerProvider: Logger;
+  loggerProvider: ILogger;
   /**
    * LogLevel.None or LogLevel.Error or LogLevel.Warn or LogLevel.Verbose or LogLevel.Debug.
    * Sets the log level.

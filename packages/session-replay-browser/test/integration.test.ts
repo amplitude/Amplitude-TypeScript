@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
-import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
+import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
 import * as RRWeb from '@amplitude/rrweb';
 import { IDBFactory } from 'fake-indexeddb';
 import { EventType, SessionReplayOptions } from 'src/typings/session-replay';
@@ -13,7 +13,7 @@ import { UNEXPECTED_ERROR_MESSAGE } from '../src/messages';
 import { SessionReplay } from '../src/session-replay';
 
 jest.mock('idb-keyval');
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 jest.mock('@amplitude/rrweb');
 type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
 
@@ -81,7 +81,7 @@ describe('module level integration', () => {
         status: 200,
       }),
     ) as jest.Mock;
-    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
   });
   afterEach(() => {
     jest.resetAllMocks();

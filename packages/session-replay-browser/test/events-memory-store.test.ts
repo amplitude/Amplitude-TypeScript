@@ -1,9 +1,9 @@
 // We don't want to call expects in conditions and typescript doesn't take these checks into account.
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { Logger } from '@amplitude/analytics-types';
+import { ILogger } from '@amplitude/analytics-core';
 import { InMemoryEventsStore } from '../src/events/events-memory-store';
 
-const mockLoggerProvider: Logger = {
+const mockLoggerProvider: ILogger = {
   error: jest.fn(),
   log: jest.fn(),
   disable: jest.fn(),

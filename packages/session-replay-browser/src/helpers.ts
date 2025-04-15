@@ -1,5 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { ServerZone } from '@amplitude/analytics-types';
+import { getGlobalScope, ServerZone } from '@amplitude/analytics-core';
 import { getInputType } from '@amplitude/rrweb-snapshot';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
 import {

@@ -1,4 +1,4 @@
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import { SessionReplayJoinedConfig } from 'src/config/types';
 import { BeaconTransport } from '../../src/beacon-transport';
 import { randomUUID } from 'crypto';
@@ -8,14 +8,12 @@ type TestEvent = {
   Field2: number;
 };
 
-jest.mock('@amplitude/analytics-client-common');
-
 describe('beacon', () => {
   const mockGlobalScope = (globalScope?: Partial<typeof globalThis>): typeof globalThis => {
-    const mockedGlobalScope = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope');
+    const mockedGlobalScope = jest.spyOn(AnalyticsCore, 'getGlobalScope');
     mockedGlobalScope.mockReturnValue(globalScope as typeof globalThis);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return AnalyticsClientCommon.getGlobalScope()!;
+    return AnalyticsCore.getGlobalScope()!;
   };
 
   describe('BeaconTransport', () => {

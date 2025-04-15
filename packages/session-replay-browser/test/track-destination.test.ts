@@ -1,10 +1,10 @@
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
-import { Logger, ServerZone } from '@amplitude/analytics-types';
+import * as AnalyticsCore from '@amplitude/analytics-core';
+import { ILogger, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayDestinationContext } from 'src/typings/session-replay';
 import { SessionReplayTrackDestination } from '../src/track-destination';
 import { VERSION } from '../src/version';
 
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 const mockEvent = {
   type: 4,
   data: { href: 'https://analytics.amplitude.com/', width: 1728, height: 154 },
@@ -42,7 +42,7 @@ describe('SessionReplayTrackDestination', () => {
       }),
     ) as jest.Mock;
 
-    jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue({} as unknown as typeof globalThis);
+    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as unknown as typeof globalThis);
   });
   afterEach(() => {
     jest.resetAllMocks();

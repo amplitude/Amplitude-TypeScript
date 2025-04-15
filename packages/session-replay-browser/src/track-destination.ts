@@ -1,5 +1,4 @@
-import { BaseTransport } from '@amplitude/analytics-core';
-import { Logger as ILogger, Status } from '@amplitude/analytics-types';
+import { BaseTransport, ILogger, Status } from '@amplitude/analytics-core';
 import { getCurrentUrl, getServerUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,

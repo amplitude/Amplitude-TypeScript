@@ -1,4 +1,4 @@
-import { Logger } from '@amplitude/analytics-types';
+import { ILogger } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { EventCompressor } from '../src/events/event-compressor';
 import { createEventsManager } from '../src/events/events-manager';
@@ -11,7 +11,7 @@ const mockEvent = {
   timestamp: 1687358660935,
 };
 
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 
 describe('EventCompressor', () => {
   let eventsManager: SessionReplayEventsManager<'replay' | 'interaction', string>;

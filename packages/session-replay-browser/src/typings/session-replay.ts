@@ -1,4 +1,4 @@
-import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
+import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayJoinedConfig, SessionReplayLocalConfig, SessionReplayVersion } from '../config/types';
 
 export type StorageData = {

@@ -1,6 +1,11 @@
-import { getAnalyticsConnector, getGlobalScope } from '@amplitude/analytics-client-common';
-import { Logger, returnWrapper } from '@amplitude/analytics-core';
-import { Logger as ILogger, LogLevel } from '@amplitude/analytics-types';
+import {
+  Logger,
+  returnWrapper,
+  getAnalyticsConnector,
+  getGlobalScope,
+  ILogger,
+  LogLevel,
+} from '@amplitude/analytics-core';
 import { record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';

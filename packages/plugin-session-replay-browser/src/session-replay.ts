@@ -1,9 +1,9 @@
-import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-core';
 import * as sessionReplay from '@amplitude/session-replay-browser';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
 
-export class SessionReplayPlugin implements EnrichmentPlugin {
+export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, BrowserConfig> {
   name = '@amplitude/plugin-session-replay-browser';
   type = 'enrichment' as const;
   // this.config is defined in setup() which will always be called first
@@ -16,7 +16,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
     this.options = { forceSessionTracking: false, ...options };
   }
 
-  async setup(config: BrowserConfig) {
+  async setup(config: BrowserConfig, _client: BrowserClient) {
     try {
       /* istanbul ignore next */
       config?.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);

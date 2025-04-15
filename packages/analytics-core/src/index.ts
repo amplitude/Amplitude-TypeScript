@@ -4,7 +4,7 @@ export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
 export { IdentityEventSender } from './plugins/identity';
 export { IConfig, Config, RequestMetadata } from './config';
-export { Logger, ILogger } from './logger';
+export { Logger, ILogger, LogConfig } from './logger';
 export { getGlobalScope } from './global-scope';
 export { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from './analytics-connector';
 export { isNewSession } from './session';
