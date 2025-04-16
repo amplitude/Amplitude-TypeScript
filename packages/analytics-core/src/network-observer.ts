@@ -1,4 +1,4 @@
-import { getGlobalScope, UUID } from '@amplitude/analytics-core';
+import { getGlobalScope, UUID } from '../src/';
 
 export interface NetworkRequestMethod {
   GET: 'GET';
