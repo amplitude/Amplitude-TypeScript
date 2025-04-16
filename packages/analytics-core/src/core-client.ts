@@ -2,7 +2,13 @@ import { Plugin } from './types/plugin';
 import { IConfig } from './config';
 import { BaseEvent, EventOptions } from './types/event/base-event';
 import { Result } from './types/result';
-import { Event, IdentifyOperation, SpecialEventType, UserProperties } from './types/event/event';
+import {
+  Event,
+  IdentifyOperation,
+  IdentifyUserProperties,
+  SpecialEventType,
+  UserProperties,
+} from './types/event/event';
 import { IIdentify, OrderedIdentifyOperations } from './identify';
 import { IRevenue } from './revenue';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './types/messages';
@@ -319,34 +325,37 @@ export class AmplitudeCore implements CoreClient {
     }
 
     // Keep non-operation keys for later merge
-    const nonOpProperties: Record<string, any> = {};
-    for (const key in userProperties) {
+    const nonOpProperties: {
+      [key in Exclude<string, IdentifyOperation>]: any;
+    } = {};
+    Object.keys(userProperties).forEach((key) => {
       if (!Object.values(IdentifyOperation).includes(key as IdentifyOperation)) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         nonOpProperties[key] = userProperties[key];
       }
-    }
+    });
 
     OrderedIdentifyOperations.forEach((operation) => {
+      // Skip when key is an operation.
       if (!Object.keys(userProperties).includes(operation)) return;
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const opProperties = userProperties[operation];
+      const opProperties: IdentifyUserProperties = userProperties[operation];
 
       switch (operation) {
         case IdentifyOperation.CLEAR_ALL:
-          for (const prop in updatedProperties) {
-            // Due to operation order, the following line will never execute.
-            /* istanbul ignore next */
+          // Due to operation order, the following line will never execute.
+          /* istanbul ignore next */
+          Object.keys(updatedProperties).forEach((prop) => {
             delete updatedProperties[prop];
-          }
+          });
           break;
         case IdentifyOperation.UNSET:
-          for (const prop in opProperties) {
+          Object.keys(opProperties).forEach((prop) => {
             delete updatedProperties[prop];
-          }
+          });
           break;
         case IdentifyOperation.SET:
           Object.assign(updatedProperties, opProperties);

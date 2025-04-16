@@ -306,7 +306,9 @@ describe('SessionReplayPlugin', () => {
       const sessionReplay = new SessionReplayPlugin({
         deviceId: customDeviceId,
       });
+      // First init() called
       await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      // Second init() called
       await sessionReplay.onOptOutChanged?.(false);
 
       expect(init).toHaveBeenCalledTimes(2);
