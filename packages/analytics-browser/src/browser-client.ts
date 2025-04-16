@@ -188,6 +188,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, Pl
     this.config.loggerProvider.debug('function setUserId: ', userId);
     if (userId !== this.config.userId || userId === undefined) {
       this.config.userId = userId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onIdentityChanged({ userId: userId });
       setConnectorUserId(userId, this.config.instanceName);
     }
   }
@@ -202,8 +204,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, Pl
       return;
     }
     this.config.loggerProvider.debug('function setDeviceId: ', deviceId);
-    this.config.deviceId = deviceId;
-    setConnectorDeviceId(deviceId, this.config.instanceName);
+    if (deviceId !== this.config.deviceId) {
+      this.config.deviceId = deviceId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onIdentityChanged({ deviceId: deviceId });
+      setConnectorDeviceId(deviceId, this.config.instanceName);
+    }
   }
 
   reset() {
@@ -229,6 +235,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, Pl
     this.config.loggerProvider.debug('function setSessionId: ', sessionId);
 
     const previousSessionId = this.getSessionId();
+    if (previousSessionId !== sessionId) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onSessionIdChanged(sessionId);
+    }
+
     const lastEventTime = this.config.lastEventTime;
     let lastEventId = this.config.lastEventId ?? -1;
 

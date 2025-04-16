@@ -1,4 +1,4 @@
-import { BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './types/plugin';
+import { AnalyticsIdentity, BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './types/plugin';
 import { CoreClient } from './core-client';
 import { IConfig } from './config';
 import { EventCallback } from './types/event-callback';
@@ -154,5 +154,35 @@ export class Timeline {
     });
 
     await Promise.all(executeDestinations);
+  }
+
+  onIdentityChanged(identity: AnalyticsIdentity) {
+    this.plugins.forEach((plugin) => {
+      // Intentionally to not await plugin.onIdentityChanged() for non-blocking.
+      // Ignore optional channing next line for test coverage.
+      // If the plugin doesn't implement it, it won't be called.
+      /* istanbul ignore next */
+      void plugin.onIdentityChanged?.(identity);
+    });
+  }
+
+  onSessionIdChanged(sessionId: number) {
+    this.plugins.forEach((plugin) => {
+      // Intentionally to not await plugin.onSessionIdChanged() for non-blocking.
+      // Ignore optional channing next line for test coverage.
+      // If the plugin doesn't implement it, it won't be called.
+      /* istanbul ignore next */
+      void plugin.onSessionIdChanged?.(sessionId);
+    });
+  }
+
+  onOptOutChanged(optOut: boolean) {
+    this.plugins.forEach((plugin) => {
+      // Intentionally to not await plugin.onOptOutChanged() for non-blocking.
+      // Ignore optional channing next line for test coverage.
+      // If the plugin doesn't implement it, it won't be called.
+      /* istanbul ignore next */
+      void plugin.onOptOutChanged?.(optOut);
+    });
   }
 }
