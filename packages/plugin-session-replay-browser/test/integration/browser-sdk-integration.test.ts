@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as amplitude from '@amplitude/analytics-browser';
 import { sessionReplayPlugin } from '../../src/session-replay';
-import { Event } from '@amplitude/analytics-types';
+import { Event } from '@amplitude/analytics-core';
 import { server } from './mockAPIHandlers';
 import { matchRequestUrl } from 'msw';
 
