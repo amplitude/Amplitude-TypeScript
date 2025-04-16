@@ -69,9 +69,6 @@ export function getRequestBodyLength(body: FetchRequestBody | null | undefined):
       } else if ((value as Blob).size) {
         // if we encounter a "File" type, we should not count it and just return undefined
         total += (value as Blob).size;
-      } else {
-        // if we encounter some non-string or non-blob type, we should not count it and just return undefined
-        return;
       }
     }
     return total;
