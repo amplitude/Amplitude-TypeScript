@@ -244,6 +244,11 @@ describe('NetworkObserver', () => {
           });
         }
       });
+      it('globalScope is not available', () => {
+        jest.spyOn(Global, 'getGlobalScope').mockReturnValue(undefined);
+        const body = 'Hello World!';
+        expect(getRequestBodyLength(body)).toBeUndefined();
+      });
     });
   });
 

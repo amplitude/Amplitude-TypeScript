@@ -27,8 +27,7 @@ export interface NetworkRequestEvent {
     message: string;
   };
   startTime?: number;
-  endTime?: number; // TODO: check what timestamp being used?
-  // TODO: add errorCode Question: what is error code?
+  endTime?: number;
 }
 
 // using this type instead of the DOM's ttp so that it's Node compatible
@@ -41,7 +40,6 @@ export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | U
 
 export function getRequestBodyLength(body: FetchRequestBody | null | undefined): number | undefined {
   const global = getGlobalScope();
-  /* istanbul ignore next */
   if (!global?.TextEncoder) {
     return;
   }
@@ -84,14 +82,18 @@ export class NetworkEventCallback {
 }
 
 export class NetworkObserver {
-  private restoreNativeFetch: (() => void) | null = null;
+  private originalFetch: typeof fetch;
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   private isObserving = false;
+  private globalScope: typeof globalThis;
 
   constructor() {
-    if (!NetworkObserver.isSupported()) {
+    const globalScope = getGlobalScope();
+    if (!globalScope || !NetworkObserver.isSupported()) {
       throw new Error('Fetch API is not supported in this environment.');
     }
+    this.globalScope = globalScope;
+    this.originalFetch = this.globalScope.fetch;
   }
 
   static isSupported(): boolean {
@@ -110,7 +112,7 @@ export class NetworkObserver {
   unsubscribe(eventCallback: NetworkEventCallback) {
     this.eventCallbacks.delete(eventCallback.id);
     if (this.eventCallbacks.size === 0 && this.isObserving) {
-      this.restoreNativeFetch?.();
+      this.globalScope.fetch = this.originalFetch;
       this.isObserving = false;
     }
   }
@@ -122,12 +124,9 @@ export class NetworkObserver {
   }
 
   private observeFetch() {
-    const globalScope = getGlobalScope();
-    if (!globalScope) return;
+    const originalFetch = this.globalScope.fetch;
 
-    const originalFetch = globalScope.fetch;
-
-    globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    this.globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const requestEvent: NetworkRequestEvent = {
         timestamp: startTime,
@@ -175,10 +174,6 @@ export class NetworkObserver {
         this.triggerEventCallbacks(requestEvent);
         throw error;
       }
-    };
-
-    this.restoreNativeFetch = () => {
-      globalScope.fetch = originalFetch;
     };
   }
 }
