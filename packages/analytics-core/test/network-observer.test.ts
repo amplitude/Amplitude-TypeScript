@@ -1,4 +1,5 @@
 import {
+  FormDataBrowser,
   getRequestBodyLength,
   NetworkEventCallback,
   NetworkObserver,
@@ -7,6 +8,7 @@ import {
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
+import * as Global from '../src/global-scope';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 
 // Test subclass to access protected methods
@@ -27,13 +29,12 @@ describe('NetworkObserver', () => {
     events = [];
     originalFetchMock = jest.fn();
     globalScope = {
-      ...globalThis,
       fetch: originalFetchMock,
       TextEncoder,
       ReadableStream: streams.ReadableStream,
     } as PartialGlobal;
 
-    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
+    jest.spyOn(Global, 'getGlobalScope').mockReturnValue(globalScope as typeof globalThis);
 
     networkObserver = new TestNetworkObserver();
   });
@@ -182,8 +183,8 @@ describe('NetworkObserver', () => {
     });
   });
 
-  describe('.getRequestBodyLength()', () => {
-    describe('it should return the body length when the body is of type', () => {
+  describe('getRequestBodyLength', () => {
+    describe('should return the body length when the body is of type', () => {
       it('string', () => {
         const body = 'Hello World!';
         expect(getRequestBodyLength(body)).toBe(body.length);
@@ -208,8 +209,8 @@ describe('NetworkObserver', () => {
         formData.append('key', val);
         const blob = new Blob(['Hello World!']);
         formData.append('file', blob);
-        const expectedSize = 'key='.length + val.length + 'file='.length + blob.size + 1;
-        expect(getRequestBodyLength(formData)).toBe(expectedSize);
+        const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
+        expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBe(expectedSize);
       });
       it('URLSearchParams', () => {
         const params = new URLSearchParams();
@@ -222,11 +223,7 @@ describe('NetworkObserver', () => {
       });
     });
 
-    describe('it should not return the body length when', () => {
-      it('body is a ReadableStream', () => {
-        const stream = new streams.ReadableStream();
-        expect(getRequestBodyLength(stream as ReadableStream)).toBeUndefined();
-      });
+    describe('should not return the body length when', () => {
       it('body is undefined', () => {
         const body = undefined;
         expect(getRequestBodyLength(body)).toBeUndefined();
@@ -258,7 +255,7 @@ describe('NetworkObserver', () => {
     it('should throw an exception if fetch is not supported', async () => {
       // Mock the global scope to not have fetch
       const scopeWithoutFetch = {} as typeof globalThis;
-      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(scopeWithoutFetch);
+      jest.spyOn(Global, 'getGlobalScope').mockReturnValue(scopeWithoutFetch);
       expect(() => {
         new NetworkObserver();
       }).toThrow();

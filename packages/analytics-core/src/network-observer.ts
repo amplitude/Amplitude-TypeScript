@@ -1,4 +1,5 @@
-import { getGlobalScope, UUID } from '../src/';
+import { getGlobalScope } from './global-scope';
+import { UUID } from './utils/uuid';
 
 export interface NetworkRequestMethod {
   GET: 'GET';
@@ -30,11 +31,15 @@ export interface NetworkRequestEvent {
   // TODO: add errorCode Question: what is error code?
 }
 
-interface FormDataBrowser extends FormData {
-  entries(): IterableIterator<[string, FormDataEntryValue]>;
+// using this type instead of the DOM's ttp so that it's Node compatible
+type FormDataEntryValueBrowser = string | Blob | null;
+export interface FormDataBrowser {
+  entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
 }
 
-export function getRequestBodyLength(body: BodyInit | null | undefined): number | undefined {
+export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
+
+export function getRequestBodyLength(body: FetchRequestBody | null | undefined): number | undefined {
   if (body === null || body === undefined) {
     return;
   }
@@ -61,11 +66,14 @@ export function getRequestBodyLength(body: BodyInit | null | undefined): number 
     const formData = body as FormDataBrowser;
     let total = 0;
     for (const [key, value] of formData.entries()) {
+      total += key.length;
       if (typeof value === 'string') {
-        total += new TextEncoder().encode(key + '=' + value).length;
-      } else {
+        total += new TextEncoder().encode(value).length;
+      } else if ((value as Blob).size) {
         // if we encounter a "File" type, we should not count it and just return undefined
-        // TODO: research how FormData works, and if this is the best practice, and what a File type is on a browser
+        total += (value as Blob).size;
+      } else {
+        // if we encounter some non-string or non-blob type, we should not count it and just return undefined
         return;
       }
     }
@@ -133,7 +141,7 @@ export class NetworkObserver {
         method: init?.method || 'GET', // Fetch API defaults to GET when no method is provided
         url: input.toString(),
         requestHeaders: init?.headers as Record<string, string>,
-        requestBodySize: getRequestBodyLength(init?.body),
+        requestBodySize: getRequestBodyLength(init?.body as FetchRequestBody),
       };
 
       try {
