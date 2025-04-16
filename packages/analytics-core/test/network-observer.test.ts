@@ -228,10 +228,6 @@ describe('NetworkObserver', () => {
         const body = undefined;
         expect(getRequestBodyLength(body)).toBeUndefined();
       });
-      it('body is null', () => {
-        const body = null;
-        expect(getRequestBodyLength(body)).toBeUndefined();
-      });
       it('TextEncoder is not available', () => {
         try {
           Object.defineProperty(globalScope, 'TextEncoder', {

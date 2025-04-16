@@ -40,9 +40,6 @@ export interface FormDataBrowser {
 export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
 
 export function getRequestBodyLength(body: FetchRequestBody | null | undefined): number | undefined {
-  if (body === null || body === undefined) {
-    return;
-  }
   const global = getGlobalScope();
   /* istanbul ignore next */
   if (!global?.TextEncoder) {
