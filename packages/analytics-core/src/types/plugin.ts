@@ -11,7 +11,6 @@ export type PluginType = PluginTypeBefore | PluginTypeEnrichment | PluginTypeDes
 export interface AnalyticsIdentity {
   deviceId?: string;
   userId?: string;
-  // TODO(xinyi): this is not supported right now
   userProperties?: { [key: string]: any };
 }
 
@@ -21,13 +20,16 @@ interface PluginBase<T = CoreClient, U = IConfig> {
   setup?(config: U, client: T): Promise<void>;
   teardown?(): Promise<void>;
   /**
-   * The function is called when identity is changed.
-   * Only available on Browser SDK.
-   * React Native and Node SDK don't support it now.
-   * @param identity Changed identity.
-   * If a filed doesn't exist, it means it's not changed.
-   * For example, {userId: undefined} means userId is changed to undefined
-   * and deviceId and userProperties are unchanged
+   * Called when the identity is changed. This is a **best-effort** API and may not be triggered in all scenarios.
+   *
+   * Currently supported only in the Browser SDK. Not supported in React Native or Node SDKs.
+   *
+   * @param identity The changed identity. If a field is missing, it means it has not changed.
+   * For example, `{ userId: undefined }` means the userId was explicitly changed to `undefined`,
+   * while deviceId and userProperties remain unchanged.
+   *
+   * Note: `onIdentityChanged()` will be triggered when a user logs in via `setUserId()`.
+   * It will not be triggered on subsequent page loads (e.g., when a user reopens the site in a new tab).
    */
   onIdentityChanged?(identity: AnalyticsIdentity): Promise<void>;
   onSessionIdChanged?(sessionId: number): Promise<void>;

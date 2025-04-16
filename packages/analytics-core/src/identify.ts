@@ -168,3 +168,19 @@ export enum IdentifyOperation {
   UNSET = '$unset',
   CLEAR_ALL = '$clearAll',
 }
+
+/**
+ * Note that the order of operations should align with https://github.com/amplitude/nova/blob/7701b5986b565d4b2fb53b99a9f2175df055dea8/src/main/java/com/amplitude/ingestion/core/UserPropertyUtils.java#L210
+ */
+export const OrderedIdentifyOperations = [
+  IdentifyOperation.CLEAR_ALL,
+  IdentifyOperation.UNSET,
+  IdentifyOperation.SET,
+  IdentifyOperation.SET_ONCE,
+  IdentifyOperation.ADD,
+  IdentifyOperation.APPEND,
+  IdentifyOperation.PREPEND,
+  IdentifyOperation.PREINSERT,
+  IdentifyOperation.POSTINSERT,
+  IdentifyOperation.REMOVE,
+];

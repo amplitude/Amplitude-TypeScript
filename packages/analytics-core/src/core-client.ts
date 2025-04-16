@@ -2,8 +2,8 @@ import { Plugin } from './types/plugin';
 import { IConfig } from './config';
 import { BaseEvent, EventOptions } from './types/event/base-event';
 import { Result } from './types/result';
-import { Event } from './types/event/event';
-import { IIdentify } from './identify';
+import { Event, IdentifyOperation, SpecialEventType, UserProperties } from './types/event/event';
+import { IIdentify, OrderedIdentifyOperations } from './identify';
 import { IRevenue } from './revenue';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from './types/messages';
 import { Timeline } from './timeline';
@@ -15,8 +15,7 @@ import {
   createTrackEvent,
 } from './utils/event-builder';
 import { buildResult } from './utils/result-builder';
-import { returnWrapper } from './utils/return-wrapper';
-import { AmplitudeReturn } from './utils/return-wrapper';
+import { AmplitudeReturn, returnWrapper } from './utils/return-wrapper';
 
 export interface CoreClient {
   /**
@@ -287,11 +286,92 @@ export class AmplitudeCore implements CoreClient {
     return this.process(event);
   }
 
+  /**
+   *
+   * This method applies identify operations to user properties and
+   * returns a single object representing the final user property state.
+   *
+   * This is a best-effort api that only supports $set, $clearAll, and $unset.
+   * Other operations are not supported and are ignored.
+   *
+   *
+   * @param userProperties The `event.userProperties` object from an Identify event.
+   * @returns A key-value object user properties without operations.
+   *
+   * @example
+   * Input:
+   * {
+   *   $set: { plan: 'premium' },
+   *   custom_flag: true
+   * }
+   *
+   * Output:
+   * {
+   *   plan: 'premium',
+   *   custom_flag: true
+   * }
+   */
+  getOperationAppliedUserProperties(userProperties: UserProperties | undefined): { [key: string]: any } {
+    const updatedProperties: { [key: string]: any } = {};
+
+    if (userProperties === undefined) {
+      return updatedProperties;
+    }
+
+    // Keep non-operation keys for later merge
+    const nonOpProperties: Record<string, any> = {};
+    for (const key in userProperties) {
+      if (!Object.values(IdentifyOperation).includes(key as IdentifyOperation)) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        nonOpProperties[key] = userProperties[key];
+      }
+    }
+
+    OrderedIdentifyOperations.forEach((operation) => {
+      if (!Object.keys(userProperties).includes(operation)) return;
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const opProperties = userProperties[operation];
+
+      switch (operation) {
+        case IdentifyOperation.CLEAR_ALL:
+          for (const prop in updatedProperties) {
+            // Due to operation order, the following line will never execute.
+            /* istanbul ignore next */
+            delete updatedProperties[prop];
+          }
+          break;
+        case IdentifyOperation.UNSET:
+          for (const prop in opProperties) {
+            delete updatedProperties[prop];
+          }
+          break;
+        case IdentifyOperation.SET:
+          Object.assign(updatedProperties, opProperties);
+          break;
+      }
+    });
+
+    // Merge non-operation properties.
+    // Custom properties should not be affected by operations.
+    // https://github.com/amplitude/nova/blob/343f678ded83c032e83b189796b3c2be161b48f5/src/main/java/com/amplitude/userproperty/model/ModifyUserPropertiesIdent.java#L79-L83
+    Object.assign(updatedProperties, nonOpProperties);
+
+    return updatedProperties;
+  }
+
   async process(event: Event): Promise<Result> {
     try {
       // skip event processing if opt out
       if (this.config.optOut) {
         return buildResult(event, 0, OPT_OUT_MESSAGE);
+      }
+
+      if (event.event_type === SpecialEventType.IDENTIFY) {
+        const userProperties = this.getOperationAppliedUserProperties(event.user_properties);
+        this.timeline.onIdentityChanged({ userProperties: userProperties });
       }
 
       const result = await this.timeline.push(event);
