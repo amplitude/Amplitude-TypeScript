@@ -1,4 +1,4 @@
-import { BrowserClient, BrowserConfig, LogLevel, Logger, Plugin, Event } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, LogLevel, ILogger, Plugin, Event } from '@amplitude/analytics-core';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
 import { VERSION } from '../src/version';
@@ -7,7 +7,7 @@ import { randomUUID } from 'crypto';
 jest.mock('@amplitude/session-replay-browser');
 type MockedSessionReplayBrowser = jest.Mocked<typeof import('@amplitude/session-replay-browser')>;
 
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
