@@ -429,6 +429,51 @@ describe('joined-config', () => {
         expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
       });
 
+      test('should skip and warn on invalid regex patterns', async () => {
+        localConfig = createConfigurationMock(createConfigurationMock({}));
+        generator = new BrowserJoinedConfigGenerator(localConfig);
+
+        const remoteConfig = {
+          autocapture: {
+            elementInteractions: {
+              pageUrlAllowlistRegex: ['^https://.*\\.example\\.com$', '***', '.*\\.amplitude\\.com$'],
+            },
+          },
+        };
+
+        mockRemoteConfigFetch = {
+          getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
+          metrics: metrics,
+        };
+        const logWarn = jest.spyOn(localConfig.loggerProvider, 'warn');
+
+        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+          mockRemoteConfigFetch,
+        );
+
+        await generator.initialize();
+        const joinedConfig = await generator.generateJoinedConfig();
+
+        // Verify the pageUrlAllowlist contains only RegExp objects
+        expectIsAutocaptureObjectWithElementInteractions(joinedConfig);
+        const elementInteractions = joinedConfig.autocapture?.elementInteractions;
+
+        const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
+        expect(Array.isArray(pageUrlAllowlist)).toBe(true);
+        expect(pageUrlAllowlist?.length).toBe(2);
+
+        // Both items should be RegExp objects
+        expect(pageUrlAllowlist?.[0]).toBeInstanceOf(RegExp);
+        expect(pageUrlAllowlist?.[1]).toBeInstanceOf(RegExp);
+        expect(pageUrlAllowlist?.[0].toString()).toBe(new RegExp('^https://.*\\.example\\.com$').toString());
+        expect(pageUrlAllowlist?.[1].toString()).toBe(new RegExp('.*\\.amplitude\\.com$').toString());
+
+        // pageUrlAllowlistRegex should have been removed
+        expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
+
+        expect(logWarn).toHaveBeenCalledWith('Invalid regex pattern: ***', expect.any(Error));
+      });
+
       test('should not fail or override pageUrlAllowlist when pageUrlAllowlistRegex is undefined', async () => {
         localConfig = createConfigurationMock({});
         generator = new BrowserJoinedConfigGenerator(localConfig);

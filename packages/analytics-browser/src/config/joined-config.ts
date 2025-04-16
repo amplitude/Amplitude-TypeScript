@@ -76,10 +76,15 @@ export class BrowserJoinedConfigGenerator {
             const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
 
             const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
-            // Convert string patterns to RegExp objects
-            const regexList = remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex.map(
-              (pattern) => new RegExp(pattern),
-            );
+            // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
+            const regexList = [];
+            for (const pattern of remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex) {
+              try {
+                regexList.push(new RegExp(pattern));
+              } catch (regexError) {
+                this.config.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
+              }
+            }
 
             const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
 
