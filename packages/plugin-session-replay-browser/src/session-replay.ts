@@ -93,6 +93,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         optOut ? 'sessionReplay.shutdown()' : 'sessionReplay.init()'
       }.`,
     );
+    // TODO: compare optOut with this.sr.getOptOut().
+    // Need to add getOptOut() to the interface AmplitudeSessionReplay first.
     if (optOut) {
       this.sr.shutdown();
     } else {
