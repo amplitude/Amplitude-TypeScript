@@ -23,6 +23,10 @@ import {
 import { buildResult } from './utils/result-builder';
 import { AmplitudeReturn, returnWrapper } from './utils/return-wrapper';
 
+interface PluginHost {
+  plugin(name: string): Plugin | undefined;
+}
+
 export interface CoreClient {
   /**
    * Adds a new plugin.
@@ -179,7 +183,7 @@ export interface CoreClient {
   flush(): AmplitudeReturn<void>;
 }
 
-export class AmplitudeCore implements CoreClient {
+export class AmplitudeCore implements CoreClient, PluginHost {
   protected initializing = false;
   protected name: string;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -418,5 +422,15 @@ export class AmplitudeCore implements CoreClient {
 
   flush() {
     return returnWrapper(this.timeline.flush());
+  }
+
+  plugin(name: string): Plugin | undefined {
+    const plugin = this.timeline.plugins.find((plugin) => plugin.name === name);
+    if (plugin === undefined) {
+      this.config.loggerProvider.debug(`Cannot find plugin with name ${name}`);
+      return undefined;
+    }
+
+    return plugin;
   }
 }

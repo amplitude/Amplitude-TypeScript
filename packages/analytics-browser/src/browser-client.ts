@@ -21,7 +21,6 @@ import {
   BrowserOptions,
   BrowserConfig,
   BrowserClient,
-  Plugin,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -47,27 +46,17 @@ import { createBrowserJoinedConfigGenerator } from './config/joined-config';
 import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
 import { WebAttribution } from './attribution/web-attribution';
 
-interface PluginHost {
-  plugin(name: string): Plugin | undefined;
-}
-
-export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, PluginHost {
+/**
+ * Exported for `@amplitude/unified` or integration with blade plugins.
+ * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
+ */
+export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
-
-  plugin(name: string): Plugin | undefined {
-    const plugin = this.timeline.plugins.find((plugin) => plugin.name === name);
-    if (plugin === undefined) {
-      this.config.loggerProvider.debug(`Cannot find plugin with name ${name}`);
-      return undefined;
-    }
-
-    return plugin;
-  }
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
