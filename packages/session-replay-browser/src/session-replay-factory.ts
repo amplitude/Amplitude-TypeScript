@@ -12,7 +12,7 @@ export const getLogConfig = (sessionReplay: SessionReplay) => (): LogConfig => {
   };
 };
 
-const createInstance: () => AmplitudeSessionReplay = () => {
+export const createInstance: () => AmplitudeSessionReplay = () => {
   const sessionReplay = new SessionReplay();
   return {
     init: debugWrapper(sessionReplay.init.bind(sessionReplay), 'init', getLogConfig(sessionReplay)),
