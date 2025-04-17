@@ -49,12 +49,12 @@ jobs:
       - name: Truncate Issue Title
         id: truncate
         run: |
-          # Calculate max length for title (255 - length of prefix - length of ellipsis)
+          # Calculate max length for title (255 - length of prefix - length of ellipsis - space)
           PREFIX="[SDK - ${{ inputs.label }}] "
           ELLIPSIS="..."
-          MAX_TITLE_LENGTH=$((255 - ${#PREFIX} - ${#ELLIPSIS}))
-          # Truncate title if needed
-          TITLE="${{ github.event.issue.title }}"
+          MAX_TITLE_LENGTH=$((255 - ${#PREFIX} - ${#ELLIPSIS} - 1))
+          # Process and truncate title if needed
+          TITLE=$(echo "${{ github.event.issue.title }}" | tr '\n' ' ' | sed 's/"/\\"/g')
           if [ ${#TITLE} -gt $MAX_TITLE_LENGTH ]; then
             TITLE="${TITLE:0:$MAX_TITLE_LENGTH}..."
           fi
