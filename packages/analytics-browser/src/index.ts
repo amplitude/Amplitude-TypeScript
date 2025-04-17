@@ -23,6 +23,7 @@ export const {
   setUserId,
   track,
 } = client;
+export { AmplitudeBrowser } from './browser-client';
 export { runQueuedFunctions } from './utils/snippet-helper';
 export { Revenue, Identify } from '@amplitude/analytics-core';
 
