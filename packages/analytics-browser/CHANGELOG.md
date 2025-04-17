@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.14.0...@amplitude/analytics-browser@2.15.0) (2025-04-17)
+
+
+### Bug Fixes
+
+* **analytics-core:** add support for experiment plugin ([#1033](https://github.com/amplitude/Amplitude-TypeScript/issues/1033)) ([69a20c7](https://github.com/amplitude/Amplitude-TypeScript/commit/69a20c7a895eb4bb4668583ea3371d0ca2df18d2))
+
+
+### Features
+
+* **analytics-core:** new plugin interfaces onXXXchanged() ([#1025](https://github.com/amplitude/Amplitude-TypeScript/issues/1025)) ([e6fd23b](https://github.com/amplitude/Amplitude-TypeScript/commit/e6fd23b17809d0c7d94e7627636b200166d41a0f))
+
+
+
+
+
 # [2.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.13.3...@amplitude/analytics-browser@2.14.0) (2025-04-15)
 
 

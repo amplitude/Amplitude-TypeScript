@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.21.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.21.0...@amplitude/session-replay-browser@1.21.1) (2025-04-17)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
 # [1.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.20.2...@amplitude/session-replay-browser@1.21.0) (2025-04-15)
 
 
