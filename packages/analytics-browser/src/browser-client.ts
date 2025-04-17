@@ -47,8 +47,8 @@ import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
 import { WebAttribution } from './attribution/web-attribution';
 
 /**
- * Exported for `@amplitude/unified`.
- * If you are instrumenting by `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
+ * Exported for `@amplitude/unified` or integration with blade plugins.
+ * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
  */
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
