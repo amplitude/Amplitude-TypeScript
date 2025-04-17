@@ -482,4 +482,28 @@ describe('core-client', () => {
       expect(flush).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('plugin', () => {
+    test('should return plugin by name', async () => {
+      const mockPlugin: Plugin = {
+        name: 'mock-plugin',
+      };
+      client.timeline.plugins.push(mockPlugin);
+
+      const result = client.plugin('mock-plugin');
+
+      expect(result).toBe(mockPlugin);
+
+      // Clean timeline plugins
+      client.timeline.plugins = [];
+    });
+
+    test('should return undefined when name does not exist', async () => {
+      client.config = mockConfig;
+      const result = client.plugin('mock-plugin');
+
+      expect(result).toBe(undefined);
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith('Cannot find plugin with name mock-plugin');
+    });
+  });
 });
