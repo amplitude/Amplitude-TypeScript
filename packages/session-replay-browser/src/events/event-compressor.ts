@@ -1,8 +1,8 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
 import { pack } from '@amplitude/rrweb-packer';
 import type { eventWithTime } from '@amplitude/rrweb-types';
-import { SessionReplayJoinedConfig } from 'src/config/types';
-import { SessionReplayEventsManager } from 'src/typings/session-replay';
+import { SessionReplayJoinedConfig } from '../config/types';
+import { SessionReplayEventsManager } from '../typings/session-replay';
 
 interface TaskQueue {
   event: eventWithTime;
