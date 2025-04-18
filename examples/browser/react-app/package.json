@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@amplitude/analytics-browser": "^2.0.0-beta",
+    "@amplitude/analytics-browser":  "^2.15.0",
+    "@amplitude/plugin-session-replay-browser": "^1.16.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.4.3",
