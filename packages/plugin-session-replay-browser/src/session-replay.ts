@@ -14,8 +14,14 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   config: BrowserConfig;
   options: SessionReplayOptions;
   srInitOptions: sessionReplay.SessionReplayOptions;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
-  sr: AmplitudeSessionReplay = sessionReplay.createInstance();
+  sr: AmplitudeSessionReplay = {
+    flush: sessionReplay.flush,
+    getSessionId: sessionReplay.getSessionId,
+    getSessionReplayProperties: sessionReplay.getSessionReplayProperties,
+    init: sessionReplay.init,
+    setSessionId: sessionReplay.setSessionId,
+    shutdown: sessionReplay.shutdown,
+  };
 
   constructor(options?: SessionReplayOptions) {
     this.options = { forceSessionTracking: false, ...options };
