@@ -6,6 +6,7 @@ import {
 } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
 import { RequestMetadata, BrowserConfig as IBrowserConfig } from '@amplitude/analytics-core';
+import { NetworkTrackingOptions } from '@amplitude/analytics-types';
 
 jest.mock('@amplitude/analytics-remote-config', () => ({
   createRemoteConfigFetch: jest.fn(),
@@ -326,6 +327,52 @@ describe('joined-config', () => {
         );
         expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(100);
         expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(undefined);
+      });
+
+      describe('networkTrackingOptions', () => {
+        test('ignoreAmplitudeRequests is true by default', async () => {
+          localConfig = createConfigurationMock(
+            createConfigurationMock({
+              networkTrackingOptions: {
+                ignoreAmplitudeRequests: true,
+                captureRules: [
+                  {
+                    hosts: ['example.com'],
+                    statusCodeRange: ['200'],
+                    slowThreshold: 10,
+                  },
+                  {
+                    hosts: ['*'],
+                    statusCodeRange: ['0', '500-599'],
+                  },
+                ],
+              },
+              autocapture: true,
+            }),
+          );
+          generator = new BrowserJoinedConfigGenerator(localConfig);
+          const remoteConfig = {
+            autocapture: {},
+          };
+          mockRemoteConfigFetch = {
+            getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
+            metrics: metrics,
+          };
+          // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
+          (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
+            mockRemoteConfigFetch,
+          );
+          await generator.initialize();
+          const joinedConfig = await generator.generateJoinedConfig();
+          const networkTrackingOptions = joinedConfig.networkTrackingOptions as NetworkTrackingOptions;
+          expect(networkTrackingOptions.ignoreAmplitudeRequests).toBe(true);
+          expect(networkTrackingOptions.captureRules?.[0].hosts).toEqual(['example.com']);
+          expect(networkTrackingOptions.captureRules?.[0].statusCodeRange).toEqual(['200']);
+          expect(networkTrackingOptions.captureRules?.[0].slowThreshold).toEqual(10);
+          expect(networkTrackingOptions.captureRules?.[1].hosts).toEqual(['*']);
+          expect(networkTrackingOptions.captureRules?.[1].statusCodeRange).toEqual(['0', '500-599']);
+          expect(networkTrackingOptions.captureRules?.[1].slowThreshold).toEqual(undefined);
+        });
       });
     });
   });

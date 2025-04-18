@@ -12,12 +12,11 @@ export interface NetworkRequestMethod {
 }
 
 export interface NetworkRequestEvent {
-  timestamp: number;
-  type: 'fetch';
+  type: string;
   method: string;
   url: string;
   status?: number;
-  duration?: number;
+  duration?: number; // in milliseconds
   requestBodySize?: number;
   requestHeaders?: Record<string, string>;
   responseBodySize?: number;
@@ -129,7 +128,7 @@ export class NetworkObserver {
     this.globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const requestEvent: NetworkRequestEvent = {
-        timestamp: startTime,
+        startTime,
         type: 'fetch',
         method: init?.method || 'GET', // Fetch API defaults to GET when no method is provided
         url: input.toString(),
