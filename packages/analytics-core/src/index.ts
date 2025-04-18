@@ -59,3 +59,5 @@ export {
   AttributionOptions,
 } from './types/browser-config';
 export { BrowserClient } from './types/browser-client';
+
+export { NetworkObserver, NetworkRequestEvent, NetworkEventCallback } from './network-observer';
