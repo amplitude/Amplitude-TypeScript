@@ -158,11 +158,6 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   elementInteractions?: boolean | ElementInteractionsOptions;
-  /**
-   * Enables/disables network request tracking.
-   * @defaultValue `false`
-   */
-  networkTracking?: boolean;
 }
 
 export interface TrackingOptions {

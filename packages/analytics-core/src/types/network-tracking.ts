@@ -27,7 +27,7 @@ export interface NetworkCaptureRule {
    * Range list that defines the status codes to be captured.
    * @defaultValue `0,500-599`
    */
-  statusCodeRange?: string;
+  statusCodeRange?: string[];
   /**
    * Threshold for what is classified as a slow request (in seconds).
    * @defaultValue `3`
