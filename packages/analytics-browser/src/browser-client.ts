@@ -85,7 +85,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
-    if (options.fetchRemoteConfig) {
+    if (browserOptions.fetchRemoteConfig) {
       const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
       browserOptions = await joinedConfigGenerator.generateJoinedConfig();
     }
