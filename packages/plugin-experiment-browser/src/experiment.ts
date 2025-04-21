@@ -1,4 +1,4 @@
-import { EnrichmentPlugin, CoreClient, IConfig, BrowserClient, BrowserConfig } from '@amplitude/analytics-core';
+import { EnrichmentPlugin, BrowserClient, BrowserConfig } from '@amplitude/analytics-core';
 
 import {
   ExperimentConfig,
@@ -18,8 +18,8 @@ export class ExperimentPlugin implements EnrichmentPlugin<BrowserClient, Browser
     this.config = config;
   }
 
-  async setup(config: IConfig, _client: CoreClient) {
-    this.experiment = initializeWithAmplitudeAnalytics(config.apiKey, config);
+  async setup(config: BrowserConfig, _client: BrowserClient) {
+    this.experiment = initializeWithAmplitudeAnalytics(config.apiKey, this.config);
   }
 }
 
