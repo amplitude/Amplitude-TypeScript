@@ -494,4 +494,61 @@ describe('timeline', () => {
       expect(flush).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('onIdentityChanged', () => {
+    test('should call onIdentityChanged() of each plugin', async () => {
+      const onIdentityChanged = jest.fn().mockReturnValue(Promise.resolve(undefined));
+      const plugin: EnrichmentPlugin = {
+        name: 'mock',
+        type: 'enrichment',
+        onIdentityChanged,
+      };
+      const mockIdentity = {
+        deviceId: 'test-device-id',
+        userId: 'test-user-id',
+      };
+      timeline.plugins.push(plugin);
+
+      timeline.onIdentityChanged(mockIdentity);
+
+      expect(onIdentityChanged).toHaveBeenCalledTimes(1);
+      expect(onIdentityChanged).toHaveBeenCalledWith(mockIdentity);
+    });
+  });
+
+  describe('onSessionIdChanged', () => {
+    test('should call onSessionIdChanged() of each plugin', async () => {
+      const onSessionIdChanged = jest.fn().mockReturnValue(Promise.resolve(undefined));
+      const plugin: EnrichmentPlugin = {
+        name: 'mock',
+        type: 'enrichment',
+        onSessionIdChanged,
+      };
+      const mockSessionId = 123;
+      timeline.plugins.push(plugin);
+
+      timeline.onSessionIdChanged?.(mockSessionId);
+
+      expect(onSessionIdChanged).toHaveBeenCalledTimes(1);
+      expect(onSessionIdChanged).toHaveBeenCalledWith(mockSessionId);
+    });
+  });
+
+  describe('onOptOutChanged', () => {
+    test('should call onOptOutChanged() of each plugin', async () => {
+      const onOptOutChanged = jest.fn().mockReturnValue(Promise.resolve(undefined));
+      const plugin: EnrichmentPlugin = {
+        name: 'mock',
+        type: 'enrichment',
+        onOptOutChanged,
+      };
+      const mockOptOut = true;
+      timeline.plugins.push(plugin);
+
+      timeline.onOptOutChanged?.(mockOptOut);
+
+      expect(onOptOutChanged).toHaveBeenCalledTimes(1);
+      expect(onOptOutChanged).toHaveBeenCalledWith(mockOptOut);
+    });
+  });
 });

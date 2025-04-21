@@ -52,6 +52,39 @@ export interface IdentifyUserProperties {
   [IdentifyOperation.REMOVE]?: BaseOperationConfig;
 }
 
+/**
+ * Represents the structure of user properties that can be sent with an Identify or GroupIdentify event.
+ *
+ * This type supports both:
+ *
+ * 1. Reserved Amplitude identify operations via `IdentifyUserProperties`:
+ *    These operations enable structured updates to user properties.
+ *
+ *    Example:
+ *    ```ts
+ *    {
+ *      $set: { plan: 'premium', login_count: 1 },
+ *      $add: { login_count: 1 },
+ *      $unset: { plan: '-' },
+ *      $clearAll: '-'
+ *    }
+ *    ```
+ *
+ * 2. Custom user-defined properties (excluding reserved operation keys):
+ *    Useful for assigning static properties without using Identify operations.
+ *
+ *    Example:
+ *    ```ts
+ *    {
+ *      custom_flag: true,
+ *      experiment_group: 'B',
+ *      favorite_color: 'blue'
+ *    }
+ *    ```
+ *
+ * This union ensures compatibility with Amplitude's identify semantics
+ * while allowing flexibility to define arbitrary non-reserved properties.
+ */
 export type UserProperties =
   | IdentifyUserProperties
   | {

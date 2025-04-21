@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.9.0...@amplitude/analytics-core@2.10.0) (2025-04-17)
+
+
+### Bug Fixes
+
+* **analytics-core:** add support for experiment plugin ([#1033](https://github.com/amplitude/Amplitude-TypeScript/issues/1033)) ([69a20c7](https://github.com/amplitude/Amplitude-TypeScript/commit/69a20c7a895eb4bb4668583ea3371d0ca2df18d2))
+
+
+### Features
+
+* **analytics-core:** new plugin interfaces onXXXchanged() ([#1025](https://github.com/amplitude/Amplitude-TypeScript/issues/1025)) ([e6fd23b](https://github.com/amplitude/Amplitude-TypeScript/commit/e6fd23b17809d0c7d94e7627636b200166d41a0f))
+
+
+
+
+
+# [2.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.8.1...@amplitude/analytics-core@2.9.0) (2025-04-15)
+
+
+### Features
+
+* **session-replay-browser:** migrate to core v2.x ([#1022](https://github.com/amplitude/Amplitude-TypeScript/issues/1022)) ([7a665d5](https://github.com/amplitude/Amplitude-TypeScript/commit/7a665d55fff89092ed5f2bb94caa1eb2c7efe5b1))
+
+
+
+
+
 ## [2.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.8.0...@amplitude/analytics-core@2.8.1) (2025-04-10)
 
 

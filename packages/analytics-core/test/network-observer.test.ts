@@ -252,9 +252,15 @@ describe('NetworkObserver', () => {
       // Mock the global scope to not have fetch
       const scopeWithoutFetch = {} as typeof globalThis;
       jest.spyOn(Global, 'getGlobalScope').mockReturnValue(scopeWithoutFetch);
-      expect(() => {
-        new NetworkObserver();
-      }).toThrow();
+      const localLogger = {
+        error: jest.fn(),
+        disable: jest.fn(),
+        enable: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn(),
+        log: jest.fn(),
+      };
+      new NetworkObserver(localLogger);
     });
 
     it('should only restore globalScope.fetch when all subscriptions are unsubscribed', async () => {

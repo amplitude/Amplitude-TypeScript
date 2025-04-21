@@ -1,4 +1,4 @@
-import { BrowserClient, BrowserConfig, LogLevel, Logger, Plugin, Event } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, LogLevel, ILogger, Plugin, Event } from '@amplitude/analytics-core';
 import * as sessionReplayBrowser from '@amplitude/session-replay-browser';
 import { SessionReplayPlugin, sessionReplayPlugin } from '../src/session-replay';
 import { VERSION } from '../src/version';
@@ -7,20 +7,21 @@ import { randomUUID } from 'crypto';
 jest.mock('@amplitude/session-replay-browser');
 type MockedSessionReplayBrowser = jest.Mocked<typeof import('@amplitude/session-replay-browser')>;
 
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 
 type MockedBrowserClient = jest.Mocked<BrowserClient>;
 
 describe('SessionReplayPlugin', () => {
   const { init, setSessionId, getSessionReplayProperties, shutdown, getSessionId } =
     sessionReplayBrowser as MockedSessionReplayBrowser;
+  const mockLoggerProviderDebug = jest.fn();
   const mockLoggerProvider: MockedLogger = {
     error: jest.fn(),
     log: jest.fn(),
     disable: jest.fn(),
     enable: jest.fn(),
     warn: jest.fn(),
-    debug: jest.fn(),
+    debug: mockLoggerProviderDebug,
   };
   const mockConfig: BrowserConfig = {
     apiKey: 'static_key',
@@ -268,6 +269,57 @@ describe('SessionReplayPlugin', () => {
         });
         await sessionReplay.setup?.(mockConfig, mockAmplitude);
       }).not.toThrow();
+    });
+  });
+
+  describe('onSessionIdChanged', () => {
+    test('should call setSessionId()', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      getSessionId.mockReturnValueOnce(123);
+      await sessionReplay.setup?.({ ...mockConfig }, mockAmplitude);
+
+      await sessionReplay.onSessionIdChanged?.(456);
+
+      expect(setSessionId).toHaveBeenCalledTimes(1);
+      expect(setSessionId).toHaveBeenCalledWith(456);
+      expect(mockLoggerProviderDebug).toHaveBeenCalledWith(
+        'Analytics session id is changed to 456, SR session id is 123.',
+      );
+    });
+  });
+
+  describe('onOptOutChanged', () => {
+    test('should shutdown when optOut is changed to true', async () => {
+      const sessionReplay = sessionReplayPlugin();
+      await sessionReplay.setup?.({ ...mockConfig }, mockAmplitude);
+
+      await sessionReplay.onOptOutChanged?.(true);
+
+      expect(shutdown).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProviderDebug).toHaveBeenCalledWith(
+        'optOut is changed to true, calling sessionReplay.shutdown().',
+      );
+    });
+
+    test('should re init when optOut is changed to false', async () => {
+      const customDeviceId = randomUUID();
+      const sessionReplay = new SessionReplayPlugin({
+        deviceId: customDeviceId,
+      });
+      // First init() called
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+      // Second init() called
+      await sessionReplay.onOptOutChanged?.(false);
+
+      expect(init).toHaveBeenCalledTimes(2);
+      expect(mockLoggerProviderDebug).toHaveBeenCalledWith('optOut is changed to false, calling sessionReplay.init().');
+      expect(sessionReplay.config.serverUrl).toBe('url');
+      expect(sessionReplay.config.flushMaxRetries).toBe(1);
+      expect(sessionReplay.config.flushQueueSize).toBe(0);
+      expect(sessionReplay.config.flushIntervalMillis).toBe(0);
+
+      expect(init).toHaveBeenCalledWith('static_key', expect.objectContaining({ deviceId: customDeviceId }));
+      expect(init).toHaveBeenNthCalledWith(2, 'static_key', expect.objectContaining({ deviceId: customDeviceId }));
     });
   });
 

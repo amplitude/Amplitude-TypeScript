@@ -1,11 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Event } from '../src/types/event/event';
+import { Event, IdentifyEvent, SpecialEventType, UserProperties } from '../src/types/event/event';
 import { Plugin } from '../src/types/plugin';
 import { Status } from '../src/types/status';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/types/messages';
 import { useDefaultConfig } from './helpers/default';
+import { IdentifyOperation } from '../src/identify';
+import { UNSET_VALUE } from '../src/types/constants';
+import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+
 async function runScheduleTimers() {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   await new Promise(process.nextTick);
@@ -21,6 +25,40 @@ describe('core-client', () => {
   const badRequest = { event: { event_type: 'sample' }, code: 400, message: Status.Invalid };
   const continueRequest = { event: { event_type: 'sample' }, code: 100, message: Status.Unknown };
   const client = new AmplitudeCore();
+  const mockLoggerProvider = {
+    error: jest.fn(),
+    log: jest.fn(),
+    disable: jest.fn(),
+    enable: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  };
+  const mockConfig: BrowserConfig = {
+    apiKey: 'static_key',
+    flushIntervalMillis: 0,
+    flushMaxRetries: 1,
+    flushQueueSize: 0,
+    logLevel: LogLevel.None,
+    loggerProvider: mockLoggerProvider,
+    optOut: false,
+    deviceId: '1a2b3c',
+    serverUrl: 'url',
+    serverZone: 'US',
+    useBatch: false,
+    sessionId: 123,
+    cookieExpiration: 365,
+    cookieSameSite: 'Lax',
+    cookieSecure: false,
+    cookieUpgrade: true,
+    disableCookies: false,
+    domain: '.amplitude.com',
+    sessionTimeout: 30 * 60 * 1000,
+    trackingOptions: {
+      ipAddress: true,
+      language: true,
+      platform: true,
+    },
+  } as unknown as BrowserConfig;
 
   beforeEach(() => {
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
@@ -334,6 +372,84 @@ describe('core-client', () => {
     });
   });
 
+  describe('getNoOperationFormattedUserProperties', () => {
+    test('should strip out identify operations $set', () => {
+      const client = new AmplitudeCore();
+      const userProperties: UserProperties = {
+        [IdentifyOperation.SET]: { key1: 'value1' },
+      };
+      const result = client.getOperationAppliedUserProperties(userProperties);
+      expect(result).toEqual({ key1: 'value1' });
+    });
+
+    test('should apply by order', () => {
+      const client = new AmplitudeCore();
+      const userProperties: UserProperties = {
+        [IdentifyOperation.CLEAR_ALL]: UNSET_VALUE,
+        [IdentifyOperation.SET]: { key1: 'value1', key2: 'value2' },
+        [IdentifyOperation.UNSET]: { key1: UNSET_VALUE },
+      };
+      const result = client.getOperationAppliedUserProperties(userProperties);
+      expect(result).toEqual({ key1: 'value1', key2: 'value2' });
+    });
+
+    test('should keep items without identify operations', () => {
+      const client = new AmplitudeCore();
+      const userProperties: UserProperties = { key1: 'value1', key2: 'value2' };
+      const result = client.getOperationAppliedUserProperties(userProperties);
+      expect(result).toEqual(userProperties);
+    });
+
+    test('should handle mixed user properties', () => {
+      const client = new AmplitudeCore();
+      const userProperties: UserProperties = {
+        [IdentifyOperation.CLEAR_ALL]: UNSET_VALUE,
+        [IdentifyOperation.SET]: { key1: 'value1', key2: 'value2' },
+        [IdentifyOperation.UNSET]: { key1: UNSET_VALUE },
+        key3: 'value3',
+      };
+      const result = client.getOperationAppliedUserProperties(userProperties);
+      expect(result).toEqual({
+        key1: 'value1',
+        key2: 'value2',
+        key3: 'value3',
+      });
+    });
+
+    test('should return empty object when user properties is undefined', () => {
+      const client = new AmplitudeCore();
+      expect(client.getOperationAppliedUserProperties(undefined)).toEqual({});
+    });
+  });
+
+  describe('process', () => {
+    test('should call onIdentifyChanged on identify events', async () => {
+      const client = new AmplitudeCore();
+      client.config = mockConfig;
+      const getOperationAppliedUserPropertiesSpy = jest.spyOn(
+        AmplitudeCore.prototype,
+        'getOperationAppliedUserProperties',
+      );
+      const onIdentityChanged = jest.spyOn(client.timeline, 'onIdentityChanged');
+      jest.spyOn(client.timeline, 'push').mockReturnValueOnce(
+        Promise.resolve({
+          event: { event_type: 'test' },
+          code: 200,
+          message: '',
+        }),
+      );
+
+      const identifyEvent: IdentifyEvent = {
+        user_properties: {},
+        event_type: SpecialEventType.IDENTIFY,
+      };
+      await client.process(identifyEvent);
+
+      expect(getOperationAppliedUserPropertiesSpy).toHaveBeenCalledTimes(1);
+      expect(onIdentityChanged).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('setOptOut', () => {
     test('should update opt out value', () => {
       client.setOptOut(true);
@@ -364,6 +480,30 @@ describe('core-client', () => {
       await client.add(plugin).promise;
       await client.flush().promise;
       expect(flush).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('plugin', () => {
+    test('should return plugin by name', async () => {
+      const mockPlugin: Plugin = {
+        name: 'mock-plugin',
+      };
+      client.timeline.plugins.push(mockPlugin);
+
+      const result = client.plugin('mock-plugin');
+
+      expect(result).toBe(mockPlugin);
+
+      // Clean timeline plugins
+      client.timeline.plugins = [];
+    });
+
+    test('should return undefined when name does not exist', async () => {
+      client.config = mockConfig;
+      const result = client.plugin('mock-plugin');
+
+      expect(result).toBe(undefined);
+      expect(mockLoggerProvider.debug).toHaveBeenCalledWith('Cannot find plugin with name mock-plugin');
     });
   });
 });

@@ -1,18 +1,7 @@
 import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
-
-export interface NetworkRequestMethod {
-  GET: 'GET';
-  POST: 'POST';
-  PUT: 'PUT';
-  DELETE: 'DELETE';
-  PATCH: 'PATCH';
-  OPTIONS: 'OPTIONS';
-  HEAD: 'HEAD';
-}
-
+import { ILogger } from '.';
 export interface NetworkRequestEvent {
-  timestamp: number;
   type: 'fetch';
   method: string;
   url: string;
@@ -82,18 +71,22 @@ export class NetworkEventCallback {
 }
 
 export class NetworkObserver {
-  private originalFetch: typeof fetch;
+  private originalFetch?: typeof fetch;
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   private isObserving = false;
-  private globalScope: typeof globalThis;
+  // eslint-disable-next-line no-restricted-globals
+  private globalScope?: typeof globalThis;
 
-  constructor() {
+  constructor(logger?: ILogger) {
     const globalScope = getGlobalScope();
-    if (!globalScope || !NetworkObserver.isSupported()) {
-      throw new Error('Fetch API is not supported in this environment.');
+    if (!NetworkObserver.isSupported()) {
+      /* istanbul ignore next */
+      logger?.error('Fetch API is not supported in this environment.');
+      return;
     }
     this.globalScope = globalScope;
-    this.originalFetch = this.globalScope.fetch;
+    /* istanbul ignore next */
+    this.originalFetch = this.globalScope?.fetch;
   }
 
   static isSupported(): boolean {
@@ -111,7 +104,7 @@ export class NetworkObserver {
 
   unsubscribe(eventCallback: NetworkEventCallback) {
     this.eventCallbacks.delete(eventCallback.id);
-    if (this.eventCallbacks.size === 0 && this.isObserving) {
+    if (this.originalFetch && this.globalScope && this.eventCallbacks.size === 0 && this.isObserving) {
       this.globalScope.fetch = this.originalFetch;
       this.isObserving = false;
     }
@@ -124,14 +117,18 @@ export class NetworkObserver {
   }
 
   private observeFetch() {
+    /* istanbul ignore next */
+    if (!this.globalScope || !this.originalFetch) {
+      return;
+    }
     const originalFetch = this.globalScope.fetch;
 
     this.globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const requestEvent: NetworkRequestEvent = {
-        timestamp: startTime,
+        startTime,
         type: 'fetch',
-        method: init?.method || 'GET', // Fetch API defaults to GET when no method is provided
+        method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
         url: input.toString(),
         requestHeaders: init?.headers as Record<string, string>,
         requestBodySize: getRequestBodyLength(init?.body as FetchRequestBody),

@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-core",
-  "version": "2.8.1",
+  "version": "2.10.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -35,7 +35,8 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "tslib": "^2.4.1"
+    "tslib": "^2.4.1",
+    "@amplitude/analytics-connector": "^1.6.4"
   },
   "files": [
     "lib"
