@@ -2,11 +2,11 @@ import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
 export interface NetworkRequestEvent {
-  type: 'fetch';
+  type: string;
   method: string;
   url: string;
   status?: number;
-  duration?: number;
+  duration?: number; // in milliseconds
   requestBodySize?: number;
   requestHeaders?: Record<string, string>;
   responseBodySize?: number;
