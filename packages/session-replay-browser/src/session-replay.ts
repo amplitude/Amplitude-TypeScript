@@ -155,7 +155,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Initialize network observers if logging is enabled
     if (this.config.loggingConfig?.network?.enabled) {
-      this.config;
       this.networkObservers = new NetworkObservers();
     }
 
