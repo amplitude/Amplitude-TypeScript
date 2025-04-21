@@ -52,6 +52,7 @@ describe('browser-client', () => {
   });
 
   afterEach(() => {
+    jest.clearAllMocks();
     // clean up cookies
     document.cookie = `AMP_${apiKey}=null; expires=-1`;
   });
