@@ -28,8 +28,8 @@ export interface UnifiedSharedOptions {
 
 export type UnifiedOptions = UnifiedSharedOptions & {
   analytics?: BrowserOptions;
-  sr?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
-  experiment?: Omit<ExperimentConfig, keyof UnifiedSharedOptions>;
+  sr?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions> | boolean;
+  experiment?: Omit<ExperimentConfig, keyof UnifiedSharedOptions> | boolean;
 };
 
 export interface UnifiedClient extends BrowserClient {
@@ -68,16 +68,18 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
 
     await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
 
-    await super.add(
-      sessionReplayPlugin({
-        ...unifiedOptions?.sr,
-        ...sharedOptions,
-        debugMode: sharedOptions.logLevel === LogLevel.Debug ? true : false,
-      }),
-    ).promise;
+    if (!unifiedOptions?.sr) {
+      await super.add(
+        sessionReplayPlugin({
+          ...(typeof unifiedOptions?.sr === 'boolean' ? {} : unifiedOptions?.sr),
+          ...sharedOptions,
+          debugMode: sharedOptions.logLevel === LogLevel.Debug ? true : false,
+        }),
+      ).promise;
+    }
     await super.add(
       experimentPlugin({
-        ...unifiedOptions?.experiment,
+        ...(typeof unifiedOptions?.experiment === 'boolean' ? {} : unifiedOptions?.experiment),
         ...sharedOptions,
         debug: sharedOptions.logLevel === LogLevel.Debug ? true : false,
       }),
