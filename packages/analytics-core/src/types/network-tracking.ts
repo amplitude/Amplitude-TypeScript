@@ -20,17 +20,17 @@ export interface NetworkTrackingOptions {
 export interface NetworkCaptureRule {
   /**
    * Hosts to allow for network capture. Supports wildcard.
-   * @defaultValue `[*]` all hosts (except amplitude)
+   * @defaultValue `["*"]` all hosts (except amplitude)
    */
   hosts?: string[];
   /**
    * Range list that defines the status codes to be captured.
-   * @defaultValue `["0", "500-599"]`
+   * @defaultValue `0,500-599`
    */
   statusCodeRange?: string[];
   /**
    * Threshold for what is classified as a slow request (in seconds).
    * @defaultValue `3`
    */
-  slowThreshold?: number;
+  // slowThreshold?: number;
 }

@@ -32,5 +32,5 @@ export interface NetworkCaptureRule {
    * Threshold for what is classified as a slow request (in seconds).
    * @defaultValue `3`
    */
-  slowThreshold?: number;
+  // slowThreshold?: number;
 }
