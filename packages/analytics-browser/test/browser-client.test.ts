@@ -102,7 +102,7 @@ describe('browser-client', () => {
   describe('init', () => {
     test('should use remote config by default', async () => {
       await client.init(apiKey).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
     });
 
     test('should use remote config when fetchRemoteConfig is true', async () => {
@@ -116,7 +116,7 @@ describe('browser-client', () => {
       await client.init(apiKey, {
         fetchRemoteConfig: false,
       }).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
     });
 
     test('should initialize client', async () => {
