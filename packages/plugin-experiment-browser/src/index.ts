@@ -1,2 +1,2 @@
-export { ExperimentPlugin, experimentPlugin } from './experiment';
-export { ExperimentConfig, Client as IExperimentClient } from '@amplitude/experiment-js-client';
+export { ExperimentPlugin, experimentPlugin, ExperimentPluginConfig } from './experiment';
+export { Client as IExperimentClient } from '@amplitude/experiment-js-client';
