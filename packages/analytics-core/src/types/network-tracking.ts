@@ -25,7 +25,7 @@ export interface NetworkCaptureRule {
   hosts?: string[];
   /**
    * Range list that defines the status codes to be captured.
-   * @defaultValue `0,500-599`
+   * @defaultValue `500-599`
    */
   statusCodeRange?: string;
   /**

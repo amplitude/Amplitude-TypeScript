@@ -1,4 +1,6 @@
 // make a test class that implements NetworkRequestEvent
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {
   BrowserClient,
   BrowserConfig,
@@ -83,7 +85,6 @@ describe('track-network-event', () => {
     let trackSpy: jest.SpyInstance;
     let eventCallbacks: any[] = [];
     const subscribe = jest.fn((cb: NetworkEventCallback) => {
-      console.log('adding callback', cb);
       eventCallbacks.push(cb);
       return () => {
         eventCallbacks = [];
@@ -99,7 +100,7 @@ describe('track-network-event', () => {
       await plugin.setup?.(localConfig, client);
     });
 
-    test('should track a fetch that returns 500 status code', async () => {
+    test('should track a network request event with status=500', async () => {
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
           url: 'https://example.com/track?hello=world#hash',
@@ -136,7 +137,7 @@ describe('track-network-event', () => {
       });
     });
 
-    test('should not track a fetch that returns 200 status code', async () => {
+    test('should not track a network request even with status=200', async () => {
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
           url: 'https://example.com/track?hello=world#hash',
@@ -161,7 +162,7 @@ describe('track-network-event', () => {
     });
   });
 
-  describe('shouldTrackNetworkEvent is false', () => {
+  describe('shouldTrackNetworkEvent returns false when', () => {
     test('domain is amplitude.com', () => {
       networkEvent.url = 'https://api.amplitude.com/track';
       expect(shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions as NetworkTrackingOptions)).toBe(
@@ -233,6 +234,35 @@ describe('track-network-event', () => {
       );
       expect(result).toBe(false);
     });
+
+    test('status code is 0 and no captureRules are defined', () => {
+      networkEvent.url = 'https://notamplitude.com/track';
+      networkEvent.status = 0;
+      const result = shouldTrackNetworkEvent(
+        networkEvent,
+        localConfig.networkTrackingOptions as NetworkTrackingOptions,
+      );
+      expect(result).toBe(false);
+    });
+
+    test('host matches in captureRules but status code is not in the range', () => {
+      localConfig.networkTrackingOptions = {
+        captureRules: [
+          {
+            hosts: ['*'],
+            statusCodeRange: '200-299',
+          },
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      };
+      networkEvent.url = 'https://example.com/track';
+      networkEvent.status = 200;
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
+      expect(result).toBe(false);
+    });
   });
 
   describe('shouldTrackNetworkEvent returns true when', () => {
@@ -302,6 +332,25 @@ describe('track-network-event', () => {
         ],
       };
       networkEvent.url = 'https://example.com/track';
+      networkEvent.status = 403;
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
+      expect(result).toBe(true);
+    });
+
+    test('host does not match with second capture rule but matches with first', () => {
+      localConfig.networkTrackingOptions = {
+        captureRules: [
+          {
+            hosts: ['*.example.com'],
+            statusCodeRange: '400-499',
+          },
+          {
+            hosts: ['otherexample.com'],
+            statusCodeRange: '400-599',
+          },
+        ],
+      };
+      networkEvent.url = 'https://some.example.com/track';
       networkEvent.status = 403;
       const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);

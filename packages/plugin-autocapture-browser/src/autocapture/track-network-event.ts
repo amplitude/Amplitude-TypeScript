@@ -4,7 +4,7 @@ import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from '../autocapture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../constants';
 
-const DEFAULT_STATUS_CODE_RANGE = '0,500-599';
+const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
 // TODO: consider moving this to a shared util
 // TODO: make this match properly
@@ -37,7 +37,7 @@ function isStatusCodeInRange(statusCode: number, range: string) {
 function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?: number) {
   // check if the host is in the allowed hosts
   if (rule.hosts && !rule.hosts.find((host) => wildcardMatch(hostname, host))) {
-    return false;
+    return;
   }
 
   // check if the status code is in the allowed range
@@ -68,7 +68,7 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     return false;
   }
 
-  // false if the status code is not 0 or 500-599 and there are no captureRules
+  // false if the status code is not 500-599 and there are no captureRules
   if (
     !options.captureRules &&
     networkEvent.status !== undefined &&
@@ -77,12 +77,20 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     return false;
   }
 
-  // false if it fails all of the captureRules
-  if (
-    options.captureRules &&
-    !options.captureRules.find((rule) => isCaptureRuleMatch(rule, host, networkEvent.status))
-  ) {
-    return false;
+  if (options.captureRules) {
+    // find the first capture rule, in reverse-order,
+    // that is a match (true) or a miss (false)
+    let isMatch: boolean | undefined;
+    options.captureRules.reverse().find((rule) => {
+      isMatch = isCaptureRuleMatch(rule, host, networkEvent.status);
+      return isMatch !== undefined;
+    });
+
+    // if we found a miss (false) or no match (undefined),
+    // then do not track the event
+    if (!isMatch) {
+      return false;
+    }
   }
 
   return true;
