@@ -123,10 +123,7 @@ export function trackNetworkEvents({
   const filteredNetworkObservable = networkObservable.pipe(
     filter((event: TimestampedEvent<NetworkRequestEvent>) => {
       // Only track network events that should be tracked,
-      return shouldTrackNetworkEvent(
-        event.event as NetworkRequestEvent,
-        config.networkTrackingOptions as NetworkTrackingOptions,
-      );
+      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, config.networkTrackingOptions || {});
     }),
   );
 
