@@ -7,7 +7,7 @@ import {
 } from '@amplitude/plugin-session-replay-browser';
 import {
   IExperimentClient,
-  ExperimentConfig,
+  ExperimentPluginConfig,
   ExperimentPlugin,
   experimentPlugin,
 } from '@amplitude/plugin-experiment-browser';
@@ -20,8 +20,8 @@ export interface UnifiedSharedOptions {
 
 export type UnifiedOptions = UnifiedSharedOptions & {
   analytics?: BrowserOptions;
-  sr?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions> | boolean;
-  experiment?: Omit<ExperimentConfig, keyof UnifiedSharedOptions> | boolean;
+  sr?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
+  experiment?: Omit<ExperimentPluginConfig, keyof UnifiedSharedOptions>;
 };
 
 export interface UnifiedClient extends BrowserClient {
@@ -40,12 +40,6 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
 
   /**
    * Initialize SDKs with configuration options.
-   * Note that shared configuration in unifiedOptions will override the value in analyticsOptions.
-   *
-   * For example, the serverZone will be 'EU' for all SDKs.
-   * ```
-   * init('API_KEY', {serverZone: 'US'}, {serverZone: 'EU'});
-   * ```
    *
    * @param apiKey Amplitude API key.
    * @param analyticsOptions Analytics configuration options. Refer to {@link https://amplitude.com/docs/sdks/analytics/browser/browser-sdk-2#configure-the-sdk here} for more info.
@@ -59,20 +53,9 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
 
     await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
 
-    if (!unifiedOptions?.sr) {
-      await super.add(
-        sessionReplayPlugin({
-          ...(typeof unifiedOptions?.sr === 'boolean' ? {} : unifiedOptions?.sr),
-          ...sharedOptions,
-        }),
-      ).promise;
-    }
-    await super.add(
-      experimentPlugin({
-        ...(typeof unifiedOptions?.experiment === 'boolean' ? {} : unifiedOptions?.experiment),
-        ...sharedOptions,
-      }),
-    ).promise;
+    await super.add(sessionReplayPlugin({ ...unifiedOptions?.sr, ...sharedOptions })).promise;
+
+    await super.add(experimentPlugin({ ...unifiedOptions?.experiment, ...sharedOptions })).promise;
 
     const srPlugin = super.plugin(SessionReplayPlugin.pluginName);
     if (srPlugin === undefined) {
