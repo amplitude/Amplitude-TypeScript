@@ -6,25 +6,33 @@ import {
   initializeWithAmplitudeAnalytics,
 } from '@amplitude/experiment-js-client';
 
+/**
+ * Fallback to project API key if no experiment deployment key.
+ */
+export type ExperimentPluginConfig = ExperimentConfig & { deploymentKey?: string };
+
 export class ExperimentPlugin implements EnrichmentPlugin<BrowserClient, BrowserConfig> {
   static pluginName = '@amplitude/experiment-analytics-plugin';
   name = ExperimentPlugin.pluginName;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   experiment: IExperimentClient;
-  config?: ExperimentConfig;
+  config?: ExperimentPluginConfig;
 
-  constructor(config?: ExperimentConfig) {
+  constructor(config?: ExperimentPluginConfig) {
     this.config = config;
   }
 
   async setup(config: BrowserConfig, _client: BrowserClient) {
-    this.experiment = initializeWithAmplitudeAnalytics(config.apiKey, this.config);
+    this.experiment = initializeWithAmplitudeAnalytics(
+      this.config?.deploymentKey ? this.config.deploymentKey : config.apiKey,
+      this.config,
+    );
   }
 }
 
-export const experimentPlugin: (config?: ExperimentConfig) => EnrichmentPlugin<BrowserClient, BrowserConfig> = (
-  config?: ExperimentConfig,
+export const experimentPlugin: (config?: ExperimentPluginConfig) => EnrichmentPlugin<BrowserClient, BrowserConfig> = (
+  config?: ExperimentPluginConfig,
 ) => {
   return new ExperimentPlugin(config);
 };
