@@ -60,7 +60,6 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     options.ignoreAmplitudeRequests !== false &&
     (wildcardMatch(host, '*.amplitude.com') || wildcardMatch(host, 'amplitude.com'))
   ) {
-    ß;
     return false;
   }
 
