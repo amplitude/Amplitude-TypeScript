@@ -36,7 +36,7 @@ function isStatusCodeInRange(statusCode: number, range: string) {
 
 function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?: number) {
   // check if the host is in the allowed hosts
-  if (rule.hosts && !rule.hosts.find((host) => wildcardMatch(hostname, host))) {
+  if (rule.hosts && !rule.hosts.find((host: string) => wildcardMatch(hostname, host))) {
     return;
   }
 
@@ -60,11 +60,12 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     options.ignoreAmplitudeRequests !== false &&
     (wildcardMatch(host, '*.amplitude.com') || wildcardMatch(host, 'amplitude.com'))
   ) {
+    ß;
     return false;
   }
 
   // false if the host is in the ignore list
-  if (options.ignoreHosts?.find((ignoreHost) => wildcardMatch(host, ignoreHost))) {
+  if (options.ignoreHosts?.find((ignoreHost: string) => wildcardMatch(host, ignoreHost))) {
     return false;
   }
 
