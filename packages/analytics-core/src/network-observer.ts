@@ -74,7 +74,7 @@ export class NetworkEventCallback {
 type FetchFn = (input: any | URL, init?: any) => Promise<any>;
 
 export class NetworkObserver {
-  public readonly originalFetch?: FetchFn;
+  private originalFetch?: FetchFn;
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   private isObserving = false;
   // eslint-disable-next-line no-restricted-globals
