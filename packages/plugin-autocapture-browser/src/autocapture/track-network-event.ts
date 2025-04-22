@@ -113,7 +113,7 @@ export function trackNetworkEvents({
   const filteredNetworkObservable = networkObservable.pipe(
     filter((event: TimestampedEvent<NetworkRequestEvent>) => {
       // Only track network events that should be tracked,
-      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, config.networkTrackingOptions || {});
+      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, config.networkTrackingOptions as NetworkTrackingOptions);
     }),
   );
 
@@ -137,6 +137,7 @@ export function trackNetworkEvents({
       responseBodySize: request.responseBodySize,
     };
 
+    /* istanbul ignore next */
     amplitude?.track(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
   });
 }

@@ -79,7 +79,7 @@ describe('track-network-event', () => {
     networkEvent = new MockNetworkRequestEvent();
   });
 
-  describe.only('trackNetworkEvent()', () => {
+  describe('trackNetworkEvent()', () => {
     let client: BrowserClient;
     let trackSpy: jest.SpyInstance;
     let eventCallbacks: any[] = [];
