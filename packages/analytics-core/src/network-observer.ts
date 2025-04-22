@@ -110,7 +110,7 @@ export class NetworkObserver {
       this.isObserving = false;
     }
   }
-  
+
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
       callback.callback(event);
