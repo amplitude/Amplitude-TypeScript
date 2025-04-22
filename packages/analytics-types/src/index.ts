@@ -73,4 +73,3 @@ export {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
 } from './element-interactions';
-export { NetworkTrackingOptions, NetworkCaptureRule } from './network-tracking';
