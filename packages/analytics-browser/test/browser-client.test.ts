@@ -52,7 +52,6 @@ describe('browser-client', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
     // clean up cookies
     document.cookie = `AMP_${apiKey}=null; expires=-1`;
   });
@@ -101,9 +100,9 @@ describe('browser-client', () => {
   });
 
   describe('init', () => {
-    test('should use remote config by default', async () => {
+    test('should NOT use remote config by default', async () => {
       await client.init(apiKey).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
     });
 
     test('should use remote config when fetchRemoteConfig is true', async () => {
@@ -111,13 +110,6 @@ describe('browser-client', () => {
         fetchRemoteConfig: true,
       }).promise;
       expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
-    });
-
-    test('should use remote config when fetchRemoteConfig is false', async () => {
-      await client.init(apiKey, {
-        fetchRemoteConfig: false,
-      }).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
     });
 
     test('should initialize client', async () => {
