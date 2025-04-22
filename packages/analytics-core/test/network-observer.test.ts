@@ -1,5 +1,5 @@
-import { NetworkEventCallback, NetworkObserver, NetworkRequestEvent } from '../src/index';
-import { FormDataBrowser, getRequestBodyLength } from '../src/network-observer';
+import { NetworkEventCallback, NetworkRequestEvent } from '../src/index';
+import { FormDataBrowser, getRequestBodyLength, NetworkObserver } from '../src/network-observer';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';

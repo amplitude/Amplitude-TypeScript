@@ -2,9 +2,10 @@ import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
 export interface NetworkRequestEvent {
-  type: 'fetch';
+  type: string;
   method: string;
   url: string;
+  timestamp: number;
   status?: number;
   duration?: number;
   requestBodySize?: number;
@@ -46,7 +47,7 @@ export function getRequestBodyLength(body: FetchRequestBody | null | undefined):
     return body.byteLength;
   } else if (body instanceof FormData) {
     // Estimating only for text parts; not accurate for files
-    // TODO: get consensus before deciding if we do this
+    // TODO: get consensus before deciding if we do this or set limit formdata size
     const formData = body as FormDataBrowser;
     let total = 0;
     for (const [key, value] of formData.entries()) {
@@ -70,8 +71,10 @@ export class NetworkEventCallback {
   constructor(public readonly callback: (event: NetworkRequestEvent) => void, public readonly id: string = UUID()) {}
 }
 
+type FetchFn = (input: any | URL, init?: any) => Promise<any>;
+
 export class NetworkObserver {
-  private originalFetch?: typeof fetch;
+  public readonly originalFetch?: FetchFn;
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   private isObserving = false;
   // eslint-disable-next-line no-restricted-globals
@@ -109,7 +112,7 @@ export class NetworkObserver {
       this.isObserving = false;
     }
   }
-
+  
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
       callback.callback(event);
@@ -126,6 +129,7 @@ export class NetworkObserver {
     this.globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const requestEvent: NetworkRequestEvent = {
+        timestamp: startTime,
         startTime,
         type: 'fetch',
         method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
@@ -174,3 +178,6 @@ export class NetworkObserver {
     };
   }
 }
+
+// singleton instance of NetworkObserver
+export default new NetworkObserver();
