@@ -11,19 +11,11 @@ import {
   ExperimentPlugin,
   experimentPlugin,
 } from '@amplitude/plugin-experiment-browser';
-import { BrowserClient, BrowserOptions, LogLevel } from '@amplitude/analytics-core';
+import { BrowserClient, BrowserOptions } from '@amplitude/analytics-core';
 
 export interface UnifiedSharedOptions {
   serverZone?: 'US' | 'EU';
   instanceName?: string;
-  /**
-   * If logLevel is debug:
-   * - analytics.config.logLevel = debug
-   * - sr.config.logLevel = debug
-   * - sr.config.debugMode = true
-   * - experiment.config.debug = true
-   */
-  logLevel: LogLevel;
 }
 
 export type UnifiedOptions = UnifiedSharedOptions & {
@@ -63,7 +55,6 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
     const sharedOptions = {
       serverZone: unifiedOptions?.serverZone,
       instanceName: unifiedOptions?.instanceName,
-      logLevel: unifiedOptions?.logLevel,
     };
 
     await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
@@ -73,7 +64,6 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
         sessionReplayPlugin({
           ...(typeof unifiedOptions?.sr === 'boolean' ? {} : unifiedOptions?.sr),
           ...sharedOptions,
-          debugMode: sharedOptions.logLevel === LogLevel.Debug ? true : false,
         }),
       ).promise;
     }
@@ -81,7 +71,6 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
       experimentPlugin({
         ...(typeof unifiedOptions?.experiment === 'boolean' ? {} : unifiedOptions?.experiment),
         ...sharedOptions,
-        debug: sharedOptions.logLevel === LogLevel.Debug ? true : false,
       }),
     ).promise;
 
