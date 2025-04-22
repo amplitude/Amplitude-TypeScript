@@ -4,7 +4,6 @@ import { Transport } from '../transport';
 import { Config } from './core';
 import { PageTrackingOptions } from '../page-view-tracking';
 import { ElementInteractionsOptions } from '../element-interactions';
-import { NetworkTrackingOptions } from '../network-tracking';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -119,10 +118,6 @@ export interface DefaultTrackingOptions {
    * @defaultValue `true`
    */
   sessions?: boolean;
-  /**
-   * Enables/disables network tracking
-   */
-  networkTrackingOptions?: NetworkTrackingOptions;
 }
 
 export interface AutocaptureOptions {
@@ -156,11 +151,6 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   elementInteractions?: boolean | ElementInteractionsOptions;
-  /**
-   * Enables/disables network tracking.
-   * @defaultValue `false`
-   */
-  networkTracking?: boolean;
 }
 
 export interface TrackingOptions {
