@@ -4,6 +4,7 @@ import { Transport } from './transport';
 import { IConfig } from '../config';
 import { ElementInteractionsOptions } from './element-interactions';
 import { PageTrackingOptions } from './page-view-tracking';
+import { NetworkTrackingOptions } from './network-tracking';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -81,6 +82,11 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `true`
    */
   fetchRemoteConfig?: boolean;
+  /**
+   * Captures network requests and responses.
+   * @defaultValue `undefined`
+   */
+  networkTrackingOptions?: NetworkTrackingOptions;
 }
 
 interface InternalBrowserConfig {
