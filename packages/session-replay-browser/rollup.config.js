@@ -7,30 +7,89 @@ import typescript from '@rollup/plugin-typescript';
 import { rollup } from 'rollup';
 import path from 'node:path';
 import commonjs from '@rollup/plugin-commonjs';
+import gzip from 'rollup-plugin-gzip';
 
-iife.input = umd.input;
-iife.output.name = 'sessionReplay';
-iife.output.inlineDynamicImports = true;
-umd.output.inlineDynamicImports = true;
-
-// Update main bundle configuration to exclude console plugin
-const mainBundleConfig = {
-  ...iife,
-  external: ['@amplitude/rrweb-plugin-console-record'],
+// Configure ES module build for chunks
+const esmConfig = {
+  input: 'src/session-replay.ts',
+  output: {
+    dir: 'lib/scripts',
+    format: 'es',
+    sourcemap: true,
+    entryFileNames: 'session-replay-browser-min.js',
+    chunkFileNames: '[name]-min.js',
+    manualChunks: {
+      'console-plugin': ['@amplitude/rrweb-plugin-console-record']
+    }
+  },
   plugins: [
-    ...iife.plugins,
+    typescript({
+      tsconfig: 'tsconfig.json',
+      compilerOptions: {
+        target: 'es2015',
+        module: 'es2020',
+        moduleResolution: 'node',
+        downlevelIteration: true,
+        declaration: false,
+        declarationMap: false,
+        outDir: 'lib/scripts',
+        baseUrl: '.',
+        paths: {
+          'src/*': ['src/*']
+        }
+      }
+    }),
     resolve({
       browser: true,
-      preferBuiltins: true,
-      // Exclude the console plugin from being bundled
-      exclude: ['@amplitude/rrweb-plugin-console-record'],
     }),
-    commonjs({
-      include: /node_modules/,
-      // Exclude the console plugin from being bundled
-      exclude: ['@amplitude/rrweb-plugin-console-record'],
+    commonjs(),  
+    terser({
+      output: {
+        comments: false,
+      },
     }),
-  ],
+    gzip(),
+  ]
+};
+
+// Keep original IIFE config for legacy browsers
+const mainBundleConfig = {
+  input: 'src/session-replay.ts',
+  output: {
+    format: 'iife',
+    file: 'lib/scripts/session-replay-browser-legacy-min.js',
+    name: 'sessionReplay',
+    sourcemap: true,
+    inlineDynamicImports: true
+  },
+  plugins: [
+    typescript({
+      tsconfig: 'tsconfig.json',
+      compilerOptions: {
+        target: 'es2015',
+        module: 'es2020',
+        moduleResolution: 'node',
+        downlevelIteration: true,
+        declaration: false,
+        declarationMap: false,
+        outDir: 'lib/scripts',
+        baseUrl: '.',
+        paths: {
+          'src/*': ['src/*']
+        }
+      }
+    }),
+    resolve({
+      browser: true,
+    }),
+    commonjs(),
+    terser({
+      output: {
+        comments: false,
+      },
+    }),
+    gzip(),
+  ]
 };
 
 async function buildWebWorker() {
@@ -43,9 +102,18 @@ async function buildWebWorker() {
       }),
       typescript({
         tsconfig: 'tsconfig.json',
-        // no need to output types
-        declaration: false,
-        declarationMap: false,
+        compilerOptions: {
+          target: 'es2015',
+          module: 'es2020',
+          moduleResolution: 'node',
+          downlevelIteration: true,
+          declaration: false,
+          declarationMap: false,
+          baseUrl: '.',
+          paths: {
+            'src/*': ['src/*']
+          }
+        }
       }),
       terser(),
     ],
@@ -55,6 +123,7 @@ async function buildWebWorker() {
     format: 'iife',
     name: 'WebWorker',
     inlineDynamicImports: true,
+    sourcemap: true
   });
   const webWorkerCode = output[0].code;
 
@@ -74,9 +143,7 @@ export async function webWorkerPlugins() {
 
 export default async () => {
   const commonPlugins = await webWorkerPlugins();
-
   mainBundleConfig.plugins = [...commonPlugins, ...mainBundleConfig.plugins];
-  umd.plugins = [...commonPlugins, ...umd.plugins];
-
-  return [mainBundleConfig, umd];
+  esmConfig.plugins = [...commonPlugins, ...esmConfig.plugins];
+  return [mainBundleConfig, esmConfig];
 };
