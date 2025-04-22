@@ -57,26 +57,27 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
 
     await super.add(experimentPlugin({ ...unifiedOptions?.experiment, ...sharedOptions })).promise;
 
-    const srPlugin = super.plugin(SessionReplayPlugin.pluginName);
+    const srPlugin = this.plugin(SessionReplayPlugin.pluginName);
     if (srPlugin === undefined) {
-      this.config.loggerProvider.debug('SR plugin is not found.');
+      this.config.loggerProvider.debug(`${SessionReplayPlugin.pluginName} plugin is not found.`);
     } else {
       this.sr = (srPlugin as SessionReplayPlugin).sr;
     }
 
-    const expPlugin = super.plugin(ExperimentPlugin.pluginName);
+    const expPlugin = this.plugin(ExperimentPlugin.pluginName);
     if (expPlugin === undefined) {
-      this.config.loggerProvider.debug('Experiment plugin is not found.');
+      this.config.loggerProvider.debug(`${ExperimentPlugin.pluginName} plugin is not found.`);
     } else {
       this.experiment = (expPlugin as ExperimentPlugin).experiment;
     }
   }
 
+  /**
+   * Only analytics SDK is initialized. Use initAll() instead to initialize all blade SDKs.
+   */
+  /* istanbul ignore next */
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     const res = super.init(apiKey, userIdOrOptions, maybeOptions);
-    this.config.loggerProvider.debug(
-      'Only analytics SDK is initialized. Use initAll() instead to initialize all blade SDKs.',
-    );
     return res;
   }
 }
