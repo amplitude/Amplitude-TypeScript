@@ -1,17 +1,17 @@
-import { BrowserClient, BrowserConfig, NetworkRequestEvent } from '@amplitude/analytics-core';
-import { NetworkCaptureRule, NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
+import {
+  BrowserClient,
+  BrowserConfig,
+  NetworkRequestEvent,
+  NetworkCaptureRule,
+  NetworkTrackingOptions,
+} from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from '../autocapture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../constants';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
-// TODO: consider moving this to a shared util
-// TODO: make this match properly
 function wildcardMatch(str: string, pattern: string) {
-  // TODO: clarify how matching should work
-  //   e.g.) does api.amplitude.com match amplitude.com?
-  //   e.g.) does *amplitude.com match amplitude.com?
   // Escape all regex special characters except for *
   const escapedPattern = pattern.replace(/[-[\]{}()+?.,\\^$|#\s]/g, '\\$&');
   // Replace * with .*
