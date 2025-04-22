@@ -13,7 +13,7 @@ const esm = {
     dir: 'lib/scripts',
     format: 'es',
     sourcemap: true,
-    entryFileNames: 'session-replay-browser-min.js',
+    entryFileNames: 'plugin-session-replay-browser-min.js',
     chunkFileNames: '[name]-min.js',
     manualChunks: {
       'console-plugin': ['@amplitude/rrweb-plugin-console-record']
@@ -26,7 +26,7 @@ iife.input = 'src/index.ts';
 iife.output = {
   ...iife.output,
   format: 'iife',
-  file: 'lib/scripts/session-replay-browser-legacy-min.js',
+  file: 'lib/scripts/plugin-session-replay-browser-legacy-min.js',
   name: 'sessionReplay',
   sourcemap: true,
   inlineDynamicImports: true
