@@ -84,6 +84,7 @@ export interface ExternalBrowserConfig extends IConfig {
   fetchRemoteConfig?: boolean;
   /**
    * Captures network requests and responses.
+   * @defaultValue `undefined`
    */
   networkTrackingOptions?: NetworkTrackingOptions;
 }
