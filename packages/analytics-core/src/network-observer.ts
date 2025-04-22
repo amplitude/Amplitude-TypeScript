@@ -71,10 +71,8 @@ export class NetworkEventCallback {
   constructor(public readonly callback: (event: NetworkRequestEvent) => void, public readonly id: string = UUID()) {}
 }
 
-type FetchFn = (input: any | URL, init?: any) => Promise<any>;
-
 export class NetworkObserver {
-  private originalFetch?: FetchFn;
+  private originalFetch?: typeof fetch;
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   private isObserving = false;
   // eslint-disable-next-line no-restricted-globals
