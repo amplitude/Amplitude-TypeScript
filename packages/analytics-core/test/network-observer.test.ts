@@ -219,6 +219,13 @@ describe('NetworkObserver', () => {
     });
 
     describe('should not return the body length when', () => {
+      it('FormData has >100 entries', () => {
+        const formData = new FormData();
+        for (let i = 0; i < 101; i++) {
+          formData.append(`key${i}`, `value${i}`);
+        }
+        expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBeUndefined();
+      });
       it('body is undefined', () => {
         const body = undefined;
         expect(getRequestBodyLength(body)).toBeUndefined();

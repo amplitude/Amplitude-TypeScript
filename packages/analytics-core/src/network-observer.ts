@@ -1,6 +1,8 @@
 import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
+
+const MAXIMUM_ENTRIES = 100;
 export interface NetworkRequestEvent {
   type: string;
   method: string;
@@ -47,9 +49,10 @@ export function getRequestBodyLength(body: FetchRequestBody | null | undefined):
     return body.byteLength;
   } else if (body instanceof FormData) {
     // Estimating only for text parts; not accurate for files
-    // TODO: get consensus before deciding if we do this or set limit formdata size
     const formData = body as FormDataBrowser;
+
     let total = 0;
+    let count = 0;
     for (const [key, value] of formData.entries()) {
       total += key.length;
       if (typeof value === 'string') {
@@ -57,6 +60,11 @@ export function getRequestBodyLength(body: FetchRequestBody | null | undefined):
       } else if ((value as Blob).size) {
         // if we encounter a "File" type, we should not count it and just return undefined
         total += (value as Blob).size;
+      }
+      // terminate if we reach the maximum number of entries
+      // to avoid performance issues in case of very large FormDataß
+      if (++count >= MAXIMUM_ENTRIES) {
+        return;
       }
     }
     return total;
