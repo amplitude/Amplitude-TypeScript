@@ -137,7 +137,7 @@ describe('track-network-event', () => {
       });
     });
 
-    test('should not track a network request even with status=200', async () => {
+    test('should not track a network request event with status=200', async () => {
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
           url: 'https://example.com/track?hello=world#hash',

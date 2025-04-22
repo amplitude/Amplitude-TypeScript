@@ -81,7 +81,7 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     // find the first capture rule, in reverse-order,
     // that is a match (true) or a miss (false)
     let isMatch: boolean | undefined;
-    options.captureRules.reverse().find((rule) => {
+    [...options.captureRules].reverse().find((rule) => {
       isMatch = isCaptureRuleMatch(rule, host, networkEvent.status);
       return isMatch !== undefined;
     });
