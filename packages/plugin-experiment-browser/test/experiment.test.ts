@@ -1,4 +1,4 @@
-import { ExperimentPlugin, experimentPlugin } from '../src/experiment';
+import { ExperimentPlugin, experimentPlugin, ExperimentPluginConfig } from '../src/experiment';
 import { ExperimentClient, ExperimentConfig, initializeWithAmplitudeAnalytics } from '@amplitude/experiment-js-client';
 import { BrowserClient, BrowserConfig, ILogger, LogLevel } from '@amplitude/analytics-core';
 
@@ -63,7 +63,7 @@ describe('ExperimentPlugin', () => {
 
   describe('constructor', () => {
     test('should set config', () => {
-      const experimentConfig: ExperimentConfig = {
+      const experimentConfig: ExperimentPluginConfig = {
         debug: true,
       };
       const plugin = new ExperimentPlugin(experimentConfig);
@@ -74,15 +74,31 @@ describe('ExperimentPlugin', () => {
   });
 
   describe('setup', () => {
-    test('should initialize experiment client with config and set it on plugin', async () => {
-      const experimentConfig: ExperimentConfig = {
+    test.each([
+      {
         debug: true,
-      };
+      },
+      undefined,
+    ])('should initialize experiment client with API key and set it on plugin', async (config) => {
+      const experimentConfig: ExperimentPluginConfig | undefined = config;
       const mockExperimentClient = {} as unknown as ExperimentClient;
       (initializeWithAmplitudeAnalytics as jest.Mock).mockReturnValue(mockExperimentClient);
       const plugin = new ExperimentPlugin(experimentConfig);
       await plugin.setup(mockConfig, mockAmplitude);
       expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(mockConfig.apiKey, experimentConfig);
+      expect(plugin.experiment).toBe(mockExperimentClient);
+    });
+
+    test('should initialize experiment client with deployment key and set it on plugin', async () => {
+      const experimentConfig: ExperimentPluginConfig = {
+        debug: true,
+        deploymentKey: 'test-deployment-key',
+      };
+      const mockExperimentClient = {} as unknown as ExperimentClient;
+      (initializeWithAmplitudeAnalytics as jest.Mock).mockReturnValue(mockExperimentClient);
+      const plugin = new ExperimentPlugin(experimentConfig);
+      await plugin.setup(mockConfig, mockAmplitude);
+      expect(initializeWithAmplitudeAnalytics).toHaveBeenCalledWith(experimentConfig.deploymentKey, experimentConfig);
       expect(plugin.experiment).toBe(mockExperimentClient);
     });
   });
