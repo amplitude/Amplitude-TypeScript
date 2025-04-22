@@ -56,8 +56,10 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
   const host = url.hostname;
 
   // false if is amplitude request and not configured to track amplitude requests
-  if (options.ignoreAmplitudeRequests !== false &&
-    (wildcardMatch(host, '*.amplitude.com') || wildcardMatch(host, 'amplitude.com'))) {
+  if (
+    options.ignoreAmplitudeRequests !== false &&
+    (wildcardMatch(host, '*.amplitude.com') || wildcardMatch(host, 'amplitude.com'))
+  ) {
     return false;
   }
 
@@ -97,7 +99,7 @@ export type NetworkAnalyticsEvent = {
   duration?: number; // completionTime - startTime
   requestBodySize?: number;
   responseBodySize?: number;
- };
+};
 
 export function trackNetworkEvents({
   allObservables,
@@ -113,13 +115,16 @@ export function trackNetworkEvents({
   const filteredNetworkObservable = networkObservable.pipe(
     filter((event: TimestampedEvent<NetworkRequestEvent>) => {
       // Only track network events that should be tracked,
-      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, config.networkTrackingOptions as NetworkTrackingOptions);
+      return shouldTrackNetworkEvent(
+        event.event as NetworkRequestEvent,
+        config.networkTrackingOptions as NetworkTrackingOptions,
+      );
     }),
   );
 
   return filteredNetworkObservable.subscribe((networkEvent) => {
     const request = networkEvent.event as NetworkRequestEvent;
-    
+
     // convert to NetworkAnalyticsEvent
     const url = new URL(request.url);
     const urlQuery = url.searchParams.toString();

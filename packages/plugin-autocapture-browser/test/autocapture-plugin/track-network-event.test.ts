@@ -16,7 +16,6 @@ import { AmplitudeBrowser } from '@amplitude/analytics-browser';
 import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
 
-
 class MockNetworkRequestEvent implements NetworkRequestEvent {
   constructor(
     public url: string = 'https://example.com',
@@ -83,7 +82,7 @@ describe('track-network-event', () => {
     let client: BrowserClient;
     let trackSpy: jest.SpyInstance;
     let eventCallbacks: any[] = [];
-    let subscribe = jest.fn((cb: NetworkEventCallback) => {
+    const subscribe = jest.fn((cb: NetworkEventCallback) => {
       console.log('adding callback', cb);
       eventCallbacks.push(cb);
       return () => {
@@ -133,10 +132,10 @@ describe('track-network-event', () => {
         completionTime: expect.any(Number),
         duration: expect.any(Number),
         requestBodySize: 100,
-        responseBodySize: 100, 
+        responseBodySize: 100,
       });
     });
-    
+
     test('should not track a fetch that returns 200 status code', async () => {
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
@@ -154,12 +153,10 @@ describe('track-network-event', () => {
           timestamp: Date.now(),
           endTime: Date.now() + 100,
         });
-      }
-      );
+      });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
         return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
-      }
-      );
+      });
       expect(networkEventCall).toBeUndefined();
     });
   });
@@ -181,10 +178,7 @@ describe('track-network-event', () => {
     test('domain matches a wildcard in ignoreHosts', () => {
       localConfig.networkTrackingOptions = { ignoreHosts: ['*.example.com', 'dummy.url'] };
       networkEvent.url = 'https://sub.example.com/track';
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(false);
     });
 
@@ -197,10 +191,7 @@ describe('track-network-event', () => {
         ],
       };
       networkEvent.url = 'https://otherexample.com/apicall';
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(false);
     });
 
@@ -215,10 +206,7 @@ describe('track-network-event', () => {
       };
       networkEvent.url = 'https://example.com/track';
       networkEvent.status = 403;
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(false);
     });
 
@@ -232,10 +220,7 @@ describe('track-network-event', () => {
       };
       networkEvent.url = 'https://example.com/track';
       networkEvent.status = 400;
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(false);
     });
 
@@ -255,10 +240,7 @@ describe('track-network-event', () => {
       localConfig.networkTrackingOptions = { ignoreAmplitudeRequests: false };
       networkEvent.url = 'https://api.amplitude.com/track';
       networkEvent.status = 500;
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);
     });
 
@@ -266,10 +248,7 @@ describe('track-network-event', () => {
       localConfig.networkTrackingOptions = { ignoreAmplitudeRequests: false };
       networkEvent.url = 'https://amplitude.com/track';
       networkEvent.status = 500;
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);
     });
 
@@ -294,10 +273,7 @@ describe('track-network-event', () => {
           },
         ],
       };
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);
     });
 
@@ -312,10 +288,7 @@ describe('track-network-event', () => {
       };
       networkEvent.url = 'https://example.com/track';
       networkEvent.status = 200;
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);
     });
 
@@ -330,10 +303,7 @@ describe('track-network-event', () => {
       };
       networkEvent.url = 'https://example.com/track';
       networkEvent.status = 403;
-      const result = shouldTrackNetworkEvent(
-        networkEvent,
-        localConfig.networkTrackingOptions ,
-      );
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);
     });
   });
