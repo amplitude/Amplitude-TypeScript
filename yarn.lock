@@ -30,6 +30,24 @@
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-1.3.4.tgz#9142a893313cc28a9c7a7a3e3360c33636fc9b7d"
   integrity sha512-tR70gzqFkEzX9QpxvWYMfLCledT7vMhgd3d4/bkp3nnGXTOORaVUOCcSgOyxyuFdSx84T61aP/eZPKIcZcaP+A==
 
+"@amplitude/experiment-core@^0.11.0":
+  version "0.11.0"
+  resolved "https://registry.yarnpkg.com/@amplitude/experiment-core/-/experiment-core-0.11.0.tgz#a4aa408b0f2f087dbaaa0452eb8e91591f03a5a1"
+  integrity sha512-egqb/eWFUU+gn6w3t9/L8PHpivAZrIVOX6dTk0NUVNfG3jeN4VuB77BOvu51xxfNF3Hvs6J49do9hRtE/LdvSw==
+  dependencies:
+    js-base64 "^3.7.5"
+
+"@amplitude/experiment-js-client@^1.15.5":
+  version "1.15.5"
+  resolved "https://registry.yarnpkg.com/@amplitude/experiment-js-client/-/experiment-js-client-1.15.5.tgz#a1d72510c1ea08bd56fd09cfa5ca157e7c2fc5e4"
+  integrity sha512-8mw7I6BAl+knrekBD5rU142+tTdLUhbp6K05kPdybQTVpGFS8GrjU1DHr865GzRM+arnMrLYfjErMG6+ZgA7RA==
+  dependencies:
+    "@amplitude/analytics-connector" "^1.6.4"
+    "@amplitude/experiment-core" "^0.11.0"
+    "@amplitude/ua-parser-js" "^0.7.31"
+    base64-js "1.5.1"
+    unfetch "4.1.0"
+
 "@amplitude/rrdom@^2.0.0-alpha.29":
   version "2.0.0-alpha.29"
   resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.29.tgz#890206e0aceabf9830c469b022042bef6091684d"
@@ -5689,7 +5707,7 @@ base64-arraybuffer@^1.0.1:
   resolved "https://registry.yarnpkg.com/base64-arraybuffer/-/base64-arraybuffer-1.0.2.tgz#1c37589a7c4b0746e34bd1feb951da2df01c1bdc"
   integrity sha512-I3yl4r9QB5ZRY3XuJVEPfc2XhZO6YweFPI+UovAzn+8/hb3oJ6lnysaFcjVpkCPfVWFUDvoZ8kmVDP7WyRtYtQ==
 
-base64-js@^1.1.2, base64-js@^1.3.1, base64-js@^1.5.1:
+base64-js@1.5.1, base64-js@^1.1.2, base64-js@^1.3.1, base64-js@^1.5.1:
   version "1.5.1"
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
@@ -9245,6 +9263,11 @@ joi@^17.2.1:
     "@sideway/address" "^4.1.3"
     "@sideway/formula" "^3.0.0"
     "@sideway/pinpoint" "^2.0.0"
+
+js-base64@^3.7.5:
+  version "3.7.7"
+  resolved "https://registry.yarnpkg.com/js-base64/-/js-base64-3.7.7.tgz#e51b84bf78fbf5702b9541e2cb7bfcb893b43e79"
+  integrity sha512-7rCnleh0z2CkXhH67J8K1Ytz0b2Y+yxTPL+/KOJoa20hfnVQ/3/T6W/KflYI4bRHRagNeXeU2bkNGI3v1oS/lw==
 
 js-sdsl@^4.1.4:
   version "4.2.0"
@@ -13560,6 +13583,11 @@ unc-path-regex@^0.1.2:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/unc-path-regex/-/unc-path-regex-0.1.2.tgz#e73dd3d7b0d7c5ed86fbac6b0ae7d8c6a69d50fa"
   integrity sha512-eXL4nmJT7oCpkZsHZUOJo8hcX3GbsiDOa0Qu9F646fi8dT3XuSVopVqAcEiVzSKKH7UoDti23wNX3qGFxcW5Qg==
+
+unfetch@4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/unfetch/-/unfetch-4.1.0.tgz#6ec2dd0de887e58a4dee83a050ded80ffc4137db"
+  integrity sha512-crP/n3eAPUJxZXM9T80/yv0YhkTEx2K1D3h7D1AJM6fzsWZrxdyRuLN0JH/dkZh1LNH8LxCnBzoPFCPbb2iGpg==
 
 unicode-canonical-property-names-ecmascript@^2.0.0:
   version "2.0.0"

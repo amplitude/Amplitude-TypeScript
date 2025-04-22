@@ -1,2 +1,2 @@
 export { sessionReplayPlugin as plugin, sessionReplayPlugin, SessionReplayPlugin } from './session-replay';
-export { AmplitudeSessionReplay } from '@amplitude/session-replay-browser';
+export { AmplitudeSessionReplay, SessionReplayOptions } from '@amplitude/session-replay-browser';
