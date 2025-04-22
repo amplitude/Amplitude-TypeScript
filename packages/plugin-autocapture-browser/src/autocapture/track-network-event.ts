@@ -51,7 +51,7 @@ function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?:
   return true;
 }
 
-export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions) {
+export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
   const url = new URL(networkEvent.url);
   const host = url.hostname;
 
@@ -97,16 +97,16 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
 }
 
 export type NetworkAnalyticsEvent = {
-  url: string;
-  urlQuery?: string;
-  urlFragment?: string;
-  method: string;
-  statusCode?: number;
-  startTime?: number; // unix timestamp
-  completionTime?: number; // unix timestamp
-  duration?: number; // completionTime - startTime
-  requestBodySize?: number;
-  responseBodySize?: number;
+  ['[Amplitude] URL']: string;
+  ['[Amplitude] URL Query']?: string;
+  ['[Amplitude] URL Fragment']?: string;
+  ['[Amplitude] Request Method']: string;
+  ['[Amplitude] Status Code']?: number;
+  ['[Amplitude] Start Time']?: number; // unix timestamp
+  ['[Amplitude] Completion Time']?: number; // unix timestamp
+  ['[Amplitude] Duration']?: number; // completionTime - startTime
+  ['[Amplitude] Request Body Size']?: number;
+  ['[Amplitude] Response Body Size']?: number;
 };
 
 export function trackNetworkEvents({
@@ -123,7 +123,7 @@ export function trackNetworkEvents({
   const filteredNetworkObservable = networkObservable.pipe(
     filter((event: TimestampedEvent<NetworkRequestEvent>) => {
       // Only track network events that should be tracked,
-      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, config.networkTrackingOptions || {});
+      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, config.networkTrackingOptions);
     }),
   );
 
@@ -131,20 +131,27 @@ export function trackNetworkEvents({
     const request = networkEvent.event as NetworkRequestEvent;
 
     // convert to NetworkAnalyticsEvent
-    const url = new URL(request.url);
-    const urlQuery = url.searchParams.toString();
-    const urlFragment = url.hash;
+    let url, urlQuery, urlFragment;
+    try {
+      url = new URL(request.url);
+      urlQuery = url.searchParams.toString();
+      urlFragment = url.hash.replace('#', '');
+    } catch (e) {
+      // if the URL failed to parse, just use the original URL
+      // and do not include the query or fragment
+    }
+
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
-      url: request.url,
-      urlQuery,
-      urlFragment,
-      method: request.method,
-      statusCode: request.status,
-      startTime: request.startTime,
-      completionTime: request.endTime,
-      duration: request.duration,
-      requestBodySize: request.requestBodySize,
-      responseBodySize: request.responseBodySize,
+      ['[Amplitude] URL']: request.url,
+      ['[Amplitude] URL Query']: urlQuery,
+      ['[Amplitude] URL Fragment']: urlFragment,
+      ['[Amplitude] Request Method']: request.method,
+      ['[Amplitude] Status Code']: request.status,
+      ['[Amplitude] Start Time']: request.startTime,
+      ['[Amplitude] Completion Time']: request.endTime,
+      ['[Amplitude] Duration']: request.duration,
+      ['[Amplitude] Request Body Size']: request.requestBodySize,
+      ['[Amplitude] Response Body Size']: request.responseBodySize,
     };
 
     /* istanbul ignore next */

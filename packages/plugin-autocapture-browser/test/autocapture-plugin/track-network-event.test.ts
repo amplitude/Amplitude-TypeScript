@@ -124,16 +124,16 @@ describe('track-network-event', () => {
       const [eventName, eventProperties] = networkEventCall;
       expect(eventName).toBe(AMPLITUDE_NETWORK_REQUEST_EVENT);
       expect(eventProperties).toEqual({
-        url: 'https://example.com/track?hello=world#hash',
-        urlQuery: 'hello=world',
-        urlFragment: '#hash',
-        method: 'POST',
-        statusCode: 500,
-        startTime: expect.any(Number),
-        completionTime: expect.any(Number),
-        duration: expect.any(Number),
-        requestBodySize: 100,
-        responseBodySize: 100,
+        '[Amplitude] URL': 'https://example.com/track?hello=world#hash',
+        '[Amplitude] URL Query': 'hello=world',
+        '[Amplitude] URL Fragment': 'hash',
+        '[Amplitude] Request Method': 'POST',
+        '[Amplitude] Status Code': 500,
+        '[Amplitude] Start Time': expect.any(Number),
+        '[Amplitude] Completion Time': expect.any(Number),
+        '[Amplitude] Duration': expect.any(Number),
+        '[Amplitude] Request Body Size': 100,
+        '[Amplitude] Response Body Size': 100,
       });
     });
 
@@ -165,9 +165,7 @@ describe('track-network-event', () => {
   describe('shouldTrackNetworkEvent returns false when', () => {
     test('domain is amplitude.com', () => {
       networkEvent.url = 'https://api.amplitude.com/track';
-      expect(shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions as NetworkTrackingOptions)).toBe(
-        false,
-      );
+      expect(shouldTrackNetworkEvent(networkEvent)).toBe(false);
     });
 
     test('domain is in ignoreHosts', () => {
