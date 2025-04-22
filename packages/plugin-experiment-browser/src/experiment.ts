@@ -24,10 +24,7 @@ export class ExperimentPlugin implements EnrichmentPlugin<BrowserClient, Browser
   }
 
   async setup(config: BrowserConfig, _client: BrowserClient) {
-    this.experiment = initializeWithAmplitudeAnalytics(
-      this.config?.deploymentKey ? this.config.deploymentKey : config.apiKey,
-      this.config,
-    );
+    this.experiment = initializeWithAmplitudeAnalytics(this.config?.deploymentKey || config.apiKey, this.config);
   }
 }
 
