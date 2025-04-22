@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-autocapture-browser",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -39,12 +39,12 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^2.10.0",
+    "@amplitude/analytics-core": "^2.10.1",
     "rxjs": "^7.8.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.15.0",
+    "@amplitude/analytics-browser": "^2.16.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
