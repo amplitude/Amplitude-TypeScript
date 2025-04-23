@@ -102,8 +102,8 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] URL Fragment']?: string;
   ['[Amplitude] Request Method']: string;
   ['[Amplitude] Status Code']?: number;
-  ['[Amplitude] Start Time']?: number; // unix timestamp
-  ['[Amplitude] Completion Time']?: number; // unix timestamp
+  ['[Amplitude] Start Time']?: Date; // unix timestamp
+  ['[Amplitude] Completion Time']?: Date; // unix timestamp
   ['[Amplitude] Duration']?: number; // completionTime - startTime
   ['[Amplitude] Request Body Size']?: number;
   ['[Amplitude] Response Body Size']?: number;
@@ -141,14 +141,16 @@ export function trackNetworkEvents({
       // and do not include the query or fragment
     }
 
+    const startTimeAsDate = request.startTime ? new Date(request.startTime) : undefined;
+    const endTimeAsDate = request.endTime ? new Date(request.endTime) : undefined;
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
       ['[Amplitude] URL']: request.url,
       ['[Amplitude] URL Query']: urlQuery,
       ['[Amplitude] URL Fragment']: urlFragment,
       ['[Amplitude] Request Method']: request.method,
       ['[Amplitude] Status Code']: request.status,
-      ['[Amplitude] Start Time']: request.startTime,
-      ['[Amplitude] Completion Time']: request.endTime,
+      ['[Amplitude] Start Time']: startTimeAsDate,
+      ['[Amplitude] Completion Time']: endTimeAsDate,
       ['[Amplitude] Duration']: request.duration,
       ['[Amplitude] Request Body Size']: request.requestBodySize,
       ['[Amplitude] Response Body Size']: request.responseBodySize,
