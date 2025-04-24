@@ -9,7 +9,7 @@ import {
   Logger,
   LogLevel,
   NetworkEventCallback,
-  NetworkObserver,
+  networkObserver,
   NetworkRequestEvent,
 } from '@amplitude/analytics-core';
 import { shouldTrackNetworkEvent } from '../../src/autocapture/track-network-event';
@@ -95,7 +95,7 @@ describe('track-network-event', () => {
       client = new AmplitudeBrowser();
       trackSpy = jest.spyOn(client, 'track');
       client.init('<FAKE_API_KEY>', undefined, localConfig);
-      jest.spyOn(NetworkObserver, 'subscribe').mockImplementation(subscribe);
+      jest.spyOn(networkObserver, 'subscribe').mockImplementation(subscribe);
       const plugin = autocapturePlugin();
       await plugin.setup?.(localConfig, client);
     });
@@ -134,6 +134,41 @@ describe('track-network-event', () => {
         '[Amplitude] Duration': expect.any(Number),
         '[Amplitude] Request Body Size': 100,
         '[Amplitude] Response Body Size': 100,
+      });
+
+      
+    });
+
+    test('should track a network request event with status=500 and network request missing attributes', async () => {
+      eventCallbacks.forEach((cb: NetworkEventCallback) => {
+        cb.callback({
+          url: 'https://example.com/track?hello=world#hash',
+          type: 'fetch',
+          method: 'POST',
+          status: 500,
+          duration: 100,
+          requestHeaders: {
+            'Content-Type': 'application/json',
+          },
+          timestamp: Date.now(),
+        });
+      });
+      const networkEventCall = trackSpy.mock.calls.find((call) => {
+        return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
+      });
+      const [eventName, eventProperties] = networkEventCall;
+      expect(eventName).toBe(AMPLITUDE_NETWORK_REQUEST_EVENT);
+      expect(eventProperties).toEqual({
+        '[Amplitude] URL': 'https://example.com/track?hello=world#hash',
+        '[Amplitude] URL Query': 'hello=world',
+        '[Amplitude] URL Fragment': 'hash',
+        '[Amplitude] Request Method': 'POST',
+        '[Amplitude] Status Code': 500,
+        '[Amplitude] Start Time': undefined,
+        '[Amplitude] Completion Time': undefined,
+        '[Amplitude] Duration': expect.any(Number),
+        '[Amplitude] Request Body Size': undefined,
+        '[Amplitude] Response Body Size': undefined,
       });
     });
 
