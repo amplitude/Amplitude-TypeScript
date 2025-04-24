@@ -1,5 +1,6 @@
-import { NetworkEventCallback, NetworkObserver, NetworkRequestEvent } from '../src/index';
-import { FormDataBrowser, getRequestBodyLength } from '../src/network-observer';
+import { NetworkEventCallback, NetworkRequestEvent } from '../src/index';
+import { FormDataBrowser, getRequestBodyLength, NetworkObserver } from '../src/network-observer';
+import { networkObserver } from '../src/';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
@@ -219,6 +220,13 @@ describe('NetworkObserver', () => {
     });
 
     describe('should not return the body length when', () => {
+      it('FormData has >100 entries', () => {
+        const formData = new FormData();
+        for (let i = 0; i < 101; i++) {
+          formData.append(`key${i}`, `value${i}`);
+        }
+        expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBeUndefined();
+      });
       it('body is undefined', () => {
         const body = undefined;
         expect(getRequestBodyLength(body)).toBeUndefined();
@@ -339,5 +347,11 @@ describe('NetworkObserver', () => {
       networkObserver.testNotifyEvent(mockEvent);
       expect(mockCallback).toHaveBeenCalledTimes(1); // Still only called once
     });
+  });
+});
+
+describe('networkObserver', () => {
+  test('should be an instance of NetworkObserver', () => {
+    expect(networkObserver).toBeInstanceOf(NetworkObserver);
   });
 });
