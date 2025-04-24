@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.21.1...@amplitude/session-replay-browser@1.22.0) (2025-04-22)
+
+
+### Features
+
+* **plugin-session-replay-browser:** add an sr instance property ([#1034](https://github.com/amplitude/Amplitude-TypeScript/issues/1034)) ([7159658](https://github.com/amplitude/Amplitude-TypeScript/commit/7159658916008faec6cefacab615cb535dd2562b))
+
+
+
+
+
 ## [1.21.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.21.0...@amplitude/session-replay-browser@1.21.1) (2025-04-17)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.10.0...@amplitude/analytics-core@2.10.1) (2025-04-22)
+
+
+### Bug Fixes
+
+* **analytics-core:** add missing analytics-connector dependency ([#1031](https://github.com/amplitude/Amplitude-TypeScript/issues/1031)) ([820a761](https://github.com/amplitude/Amplitude-TypeScript/commit/820a7614cba3ce58c5e42cdf0f61880619196750))
+
+
+
+
+
 # [2.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.9.0...@amplitude/analytics-core@2.10.0) (2025-04-17)
 
 

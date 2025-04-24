@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.15.0...@amplitude/analytics-browser@2.16.0) (2025-04-22)
+
+
+### Bug Fixes
+
+* **analytics-browser:** default values for config were not being used for fetchRemoteConfig ([#1037](https://github.com/amplitude/Amplitude-TypeScript/issues/1037)) ([9310364](https://github.com/amplitude/Amplitude-TypeScript/commit/9310364a3b022fdc891b44d84c5161c92bd4fc6d))
+
+
+### Features
+
+* **analytics-browser:** allow initialization of remote config property pageUrlAllowlistRegex ([#1021](https://github.com/amplitude/Amplitude-TypeScript/issues/1021)) ([7bdb80b](https://github.com/amplitude/Amplitude-TypeScript/commit/7bdb80b5397288cfda0f657a337cde0aa901db2b))
+
+
+
+
+
 # [2.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.14.0...@amplitude/analytics-browser@2.15.0) (2025-04-17)
 
 
