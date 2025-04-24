@@ -135,8 +135,6 @@ describe('track-network-event', () => {
         '[Amplitude] Request Body Size': 100,
         '[Amplitude] Response Body Size': 100,
       });
-
-      
     });
 
     test('should track a network request event with status=500 and network request missing attributes', async () => {

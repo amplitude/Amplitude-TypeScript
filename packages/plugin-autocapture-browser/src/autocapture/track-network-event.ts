@@ -141,8 +141,8 @@ export function trackNetworkEvents({
       // and do not include the query or fragment
     }
 
-    const startTimeAsDate = request.startTime ? (new Date(request.startTime)).toISOString() : undefined;
-    const endTimeAsDate = request.endTime ? (new Date(request.endTime)).toISOString() : undefined;
+    const startTimeAsDate = request.startTime ? new Date(request.startTime).toISOString() : undefined;
+    const endTimeAsDate = request.endTime ? new Date(request.endTime).toISOString() : undefined;
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
       ['[Amplitude] URL']: request.url,
       ['[Amplitude] URL Query']: urlQuery,
