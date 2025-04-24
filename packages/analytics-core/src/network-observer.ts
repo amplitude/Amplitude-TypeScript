@@ -186,4 +186,4 @@ export class NetworkObserver {
 }
 
 // singleton instance of NetworkObserver
-export default new NetworkObserver();
+export const networkObserver = new NetworkObserver();

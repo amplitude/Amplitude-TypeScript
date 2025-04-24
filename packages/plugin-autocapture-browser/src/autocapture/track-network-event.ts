@@ -102,9 +102,9 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] URL Fragment']?: string;
   ['[Amplitude] Request Method']: string;
   ['[Amplitude] Status Code']?: number;
-  ['[Amplitude] Start Time']?: Date; // unix timestamp
-  ['[Amplitude] Completion Time']?: Date; // unix timestamp
-  ['[Amplitude] Duration']?: number; // completionTime - startTime
+  ['[Amplitude] Start Time']?: string; // ISO 8601
+  ['[Amplitude] Completion Time']?: string; // ISO 8601
+  ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
   ['[Amplitude] Response Body Size']?: number;
 };
@@ -141,8 +141,8 @@ export function trackNetworkEvents({
       // and do not include the query or fragment
     }
 
-    const startTimeAsDate = request.startTime ? new Date(request.startTime) : undefined;
-    const endTimeAsDate = request.endTime ? new Date(request.endTime) : undefined;
+    const startTimeAsDate = request.startTime ? (new Date(request.startTime)).toISOString() : undefined;
+    const endTimeAsDate = request.endTime ? (new Date(request.endTime)).toISOString() : undefined;
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
       ['[Amplitude] URL']: request.url,
       ['[Amplitude] URL Query']: urlQuery,

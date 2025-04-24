@@ -9,7 +9,7 @@ import {
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   ActionType,
   NetworkRequestEvent,
-  NetworkObserver,
+  networkObserver,
   NetworkEventCallback,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
@@ -176,9 +176,9 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
         const eventWithProperties = addAdditionalEventProperties(event, 'network');
         observer.next(eventWithProperties);
       });
-      NetworkObserver.subscribe(callback);
+      networkObserver.subscribe(callback);
       return () => {
-        NetworkObserver.unsubscribe(callback);
+        networkObserver.unsubscribe(callback);
       };
     });
 
