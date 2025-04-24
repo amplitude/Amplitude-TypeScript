@@ -1,5 +1,6 @@
 import { NetworkEventCallback, NetworkRequestEvent } from '../src/index';
 import { FormDataBrowser, getRequestBodyLength, NetworkObserver } from '../src/network-observer';
+import { networkObserver } from '../src/';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
@@ -346,5 +347,11 @@ describe('NetworkObserver', () => {
       networkObserver.testNotifyEvent(mockEvent);
       expect(mockCallback).toHaveBeenCalledTimes(1); // Still only called once
     });
+  });
+});
+
+describe('networkObserver', () => {
+  test('should be an instance of NetworkObserver', () => {
+    expect(networkObserver).toBeInstanceOf(NetworkObserver);
   });
 });
