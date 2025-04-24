@@ -1,5 +1,7 @@
 export const PLUGIN_NAME = '@amplitude/plugin-autocapture-browser';
 
+export const AMPLITUDE_NETWORK_REQUEST_EVENT = '[Amplitude] Network Request';
+
 export const AMPLITUDE_ELEMENT_CLICKED_EVENT = '[Amplitude] Element Clicked';
 export const AMPLITUDE_ELEMENT_CHANGED_EVENT = '[Amplitude] Element Changed';
 
