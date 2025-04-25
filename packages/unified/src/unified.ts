@@ -12,6 +12,7 @@ import {
   experimentPlugin,
 } from '@amplitude/plugin-experiment-browser';
 import { BrowserClient, BrowserOptions } from '@amplitude/analytics-core';
+import { libraryPlugin } from './library';
 
 export interface UnifiedSharedOptions {
   serverZone?: 'US' | 'EU';
@@ -52,6 +53,7 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
     };
 
     await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
+    super.add(libraryPlugin());
 
     await super.add(sessionReplayPlugin({ ...unifiedOptions?.sr, ...sharedOptions })).promise;
 

@@ -2,6 +2,7 @@ import { AmplitudeUnified } from '../src/unified';
 import { ILogger } from '@amplitude/analytics-core';
 import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
 import { ExperimentPlugin } from '@amplitude/plugin-experiment-browser';
+import * as libraryModule from '../src/library';
 
 type MockedLogger = jest.Mocked<ILogger>;
 
@@ -75,6 +76,15 @@ describe('AmplitudeUnified', () => {
       expect(client.sr).toBeDefined();
       expect(client.experiment).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(`${ExperimentPlugin.pluginName} plugin is not found.`);
+    });
+
+    test('should add library plugin', async () => {
+      const spy = jest.spyOn(libraryModule, 'libraryPlugin');
+      const client = new AmplitudeUnified();
+
+      await client.initAll('test-api-key');
+
+      expect(spy).toHaveBeenCalled();
     });
   });
 
