@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.11.0-networkautocapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.10.1...@amplitude/analytics-core@2.11.0-networkautocapture.0) (2025-04-25)
+
+
+### Features
+
+* **analytics-browser:** autocapture Network Events ([#1035](https://github.com/amplitude/Amplitude-TypeScript/issues/1035)) ([025a0ec](https://github.com/amplitude/Amplitude-TypeScript/commit/025a0ecdea17d7e353deb8b6e9741f2fe1dcfe5c))
+
+
+
+
+
 ## [2.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.10.0...@amplitude/analytics-core@2.10.1) (2025-04-22)
 
 
