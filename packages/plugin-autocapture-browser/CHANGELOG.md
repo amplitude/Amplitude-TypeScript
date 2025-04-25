@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0-networkautocapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.1.9...@amplitude/plugin-autocapture-browser@1.2.0-networkautocapture.0) (2025-04-25)
+
+
+### Features
+
+* **analytics-browser:** autocapture Network Events ([#1035](https://github.com/amplitude/Amplitude-TypeScript/issues/1035)) ([025a0ec](https://github.com/amplitude/Amplitude-TypeScript/commit/025a0ecdea17d7e353deb8b6e9741f2fe1dcfe5c))
+
+
+
+
+
 ## [1.1.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.1.8...@amplitude/plugin-autocapture-browser@1.1.9) (2025-04-22)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
