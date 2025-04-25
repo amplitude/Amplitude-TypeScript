@@ -33,7 +33,7 @@ jobs:
       contents: write
     strategy:
       matrix:
-        node-version: [18.15.x]
+        node-version: [18.17.x]
 
     steps:
       - name: Get branch name
