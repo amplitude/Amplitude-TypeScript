@@ -85,8 +85,9 @@ jobs:
 
       # Converted to all lowercase and stripped of non-letter characters
       - name: Transform feature branch name
+        # TODO: Do not merge the '-1' suffix to main
         run: |
-          echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}' | tr -cd '[:lower:]')" >> $GITHUB_ENV
+          echo "PREID=$(echo '${{ steps.branch-name.outputs.current_branch }}-1' | tr -cd '[:lower:]')" >> $GITHUB_ENV
 
       # Use --no-push to prevent pushing to remote
       # Example:
