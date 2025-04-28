@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0-fixtypedefinition.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.2.0-networkautocapture.0...@amplitude/plugin-autocapture-browser@1.2.0-fixtypedefinition.0) (2025-04-28)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
 # [1.2.0-networkautocapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.1.9...@amplitude/plugin-autocapture-browser@1.2.0-networkautocapture.0) (2025-04-25)
 
 

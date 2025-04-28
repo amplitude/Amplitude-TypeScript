@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.17.0-fixtypedefinition.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.0-networkautocapture.0...@amplitude/analytics-browser@2.17.0-fixtypedefinition.0) (2025-04-28)
+
+
+### Bug Fixes
+
+* **analytics-browser:** make Identify and SpecialEvenType types instead of const ([bfddf5b](https://github.com/amplitude/Amplitude-TypeScript/commit/bfddf5b8aa9851f9fd62fd4817170f91a7d67689))
+
+
+
+
+
 # [2.17.0-networkautocapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.16.0...@amplitude/analytics-browser@2.17.0-networkautocapture.0) (2025-04-25)
 
 
