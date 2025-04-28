@@ -191,6 +191,13 @@ describe('Web attribution', () => {
           })
           .reply(200, success);
 
+        nock(httpEndPoint)
+          .post(path, (body: Record<string, any>) => {
+            payload = body;
+            return true;
+          })
+          .reply(200, success);
+
         await client.init(apiKey, 'user1@amplitude.com', {
           deviceId: UUID(),
           defaultTracking,
@@ -201,6 +208,8 @@ describe('Web attribution', () => {
         // refresh during the session.
         const directUrl = 'https://www.example.com/home';
         navigateTo(directUrl);
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         await client.init(apiKey, 'user1@amplitude.com', {
           deviceId: UUID(),
@@ -242,6 +251,13 @@ describe('Web attribution', () => {
           })
           .reply(200, success);
 
+        nock(httpEndPoint)
+          .post(path, (body: Record<string, any>) => {
+            payload = body;
+            return true;
+          })
+          .reply(200, success);
+
         await client.init(apiKey, 'user1@amplitude.com', {
           deviceId: UUID(),
           defaultTracking,
@@ -252,6 +268,8 @@ describe('Web attribution', () => {
         // mock refresh during the session with updated campaign change.
         const newCampaignURL = 'https://www.example.com/?utm_source=second_utm_source&utm_content=test_utm_content';
         navigateTo(newCampaignURL);
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         await client.init(apiKey, 'user1@amplitude.com', {
           deviceId: UUID(),
