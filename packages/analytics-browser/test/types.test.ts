@@ -4,11 +4,11 @@ describe('Type Exports', () => {
   test('IdentifyOperation should be an enum', () => {
     expect(amplitude.Types.IdentifyOperation.ADD).toBe('$add');
   });
-  
+
   test('SpecialEventType should be an enum', () => {
     expect(amplitude.Types.SpecialEventType.IDENTIFY).toBe('$identify');
   });
-  
+
   test('exported enums are proper enums', () => {
     const enumTypes = ['RevenueProperty', 'LogLevel', 'ServerZone'];
     enumTypes.forEach((enumType) => {
@@ -17,11 +17,11 @@ describe('Type Exports', () => {
       expect(Object.keys((amplitude.Types as any)[enumType]).length).toBeGreaterThan(0);
     });
   });
-  
+
   test('exported null to be null', () => {
     expect(amplitude.Types.OfflineDisabled).toBe(null);
   });
-  
+
   test('exported arrays are proper arrays', () => {
     const arrTypes = ['DEFAULT_CSS_SELECTOR_ALLOWLIST', 'DEFAULT_ACTION_CLICK_ALLOWLIST'];
     arrTypes.forEach((arrType) => {
