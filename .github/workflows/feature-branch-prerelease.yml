@@ -96,16 +96,16 @@ jobs:
       - name: Dry run pre-release version
         if: ${{ github.event.inputs.releaseType == 'dry-run' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }}-1 --allow-branch ${{ steps.branch-name.outputs.current_branch }} --no-changelog --no-push
 
       - name: Pre-release version
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }} --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --preid ${{ env.PREID }}-1 --allow-branch ${{ steps.branch-name.outputs.current_branch }} --create-release github
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         if: ${{ github.event.inputs.releaseType == 'prerelease' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --ignore-scripts --pre-dist-tag ${{ env.PREID }}-1
 
