@@ -1950,6 +1950,7 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
+        console.log('logger.debug.mock.calls', logger.debug.mock.calls);
         expect(logger.debug).toHaveBeenCalledTimes(4);
         /* eslint-disable */
         const debugContext = JSON.parse(logger.debug.mock.calls[3]);
