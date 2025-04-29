@@ -62,4 +62,3 @@ export { BrowserClient } from './types/browser-client';
 
 export { NetworkRequestEvent, NetworkEventCallback, networkObserver } from './network-observer';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
-console.log('trying something');
