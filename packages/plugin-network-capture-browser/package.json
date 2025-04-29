@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-network-capture-browser",
-  "version": "1.1.9",
+  "version": "1.0.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
