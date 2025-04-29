@@ -7,12 +7,12 @@ import {
   NetworkRequestEvent,
   networkObserver,
   NetworkEventCallback,
+  NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { Observable, Subscription } from 'rxjs';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
 import { trackNetworkEvents } from './track-network-event';
-import { NetworkTrackingOptions } from '@amplitude/analytics-core';
 
 declare global {
   interface Window {
@@ -28,11 +28,6 @@ export type AutoCaptureOptionsWithDefaults = Required<
   ElementInteractionsOptions;
 
 export enum ObservablesEnum {
-  ClickObservable = 'clickObservable',
-  ChangeObservable = 'changeObservable',
-  // ErrorObservable = 'errorObservable',
-  NavigateObservable = 'navigateObservable',
-  MutationObservable = 'mutationObservable',
   NetworkObservable = 'networkObservable',
 }
 
