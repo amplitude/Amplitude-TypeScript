@@ -32,7 +32,7 @@ import {
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
-  isNetworkTrackingEnabled,
+  //isNetworkTrackingEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
