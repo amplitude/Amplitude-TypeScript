@@ -1913,7 +1913,7 @@ describe('integration', () => {
     });
 
     describe('debug mode', () => {
-      test.only('should enable debug mode for track', async () => {
+      test('should enable debug mode for track', async () => {
         const scope = nock(url).post(path).reply(200, success);
 
         const logger = {
@@ -1924,11 +1924,14 @@ describe('integration', () => {
           warn: jest.fn(),
           error: jest.fn(),
         };
-        await client.init(apiKey, {
+        console.log('!!!1: calling init');
+        const promise = client.init(apiKey, {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
-        }).promise;
+        });
+        await promise;
+        console.log('!!!2: done calling init');
 
         const response = await client.track('test event').promise;
         expect(response.event).toEqual({

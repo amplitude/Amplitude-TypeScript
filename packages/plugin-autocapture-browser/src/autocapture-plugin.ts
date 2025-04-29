@@ -257,8 +257,8 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       return;
     }
 
-    let isElementTrackingEnabled = true; // TODO: make these false again
-    let isNetworkTrackingEnabled = true; // TODO: make these false again
+    let isElementTrackingEnabled = false; // TODO: make these false again
+    let isNetworkTrackingEnabled = false; // TODO: make these false again
     if (config.autocapture === true) {
       isElementTrackingEnabled = true;
       isNetworkTrackingEnabled = true;
