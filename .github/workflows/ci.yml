@@ -37,6 +37,10 @@ jobs:
         run: |
           yarn install --frozen-lockfile
 
+      - name: List dependencies (temp do not merge)
+        run: |
+          yarn list --pattern @amplitude
+
       - name: Build all packages
         run: |
           yarn build
