@@ -1,1 +1,1 @@
-export { networkCapturePlugin as plugin, networkCapturePlugin as autocapturePlugin } from './network-capture-plugin';
+export { networkCapturePlugin as plugin, networkCapturePlugin } from './network-capture-plugin';
