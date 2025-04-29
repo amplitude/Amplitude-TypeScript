@@ -54,7 +54,7 @@
     as.integrity = 'sha384-27841km6V1nFErSQB7/p0+ThHpj7kGmfzEPx9cnIbH9oVk4H9WQSWUDNUSCCyMev';
     as.crossOrigin = 'anonymous';
     as.async = false;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.17.0-networkautocapture-1.0-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.17.0-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');

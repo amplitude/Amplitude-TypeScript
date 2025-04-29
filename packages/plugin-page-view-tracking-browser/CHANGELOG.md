@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [2.3.20-networkautocapture-1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.19...@amplitude/plugin-page-view-tracking-browser@2.3.20-networkautocapture-1.0) (2025-04-28)
+## [2.3.20](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.19...@amplitude/plugin-page-view-tracking-browser@2.3.20) (2025-04-28)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
 
