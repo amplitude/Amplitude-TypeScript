@@ -1913,7 +1913,7 @@ describe('integration', () => {
     });
 
     describe('debug mode', () => {
-      test('should enable debug mode for track', async () => {
+      test.only('should enable debug mode for track', async () => {
         const scope = nock(url).post(path).reply(200, success);
 
         const logger = {
