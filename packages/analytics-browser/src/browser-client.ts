@@ -154,8 +154,6 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
     }
 
-    // TODO: add isNetworkTrackingEnabled here and then use network plugin
-
     this.initializing = false;
 
     // Step 6: Run queued dispatch functions

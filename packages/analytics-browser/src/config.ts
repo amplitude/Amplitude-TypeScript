@@ -34,7 +34,6 @@ import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
-import { NetworkTrackingOptions } from '@amplitude/analytics-core';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -93,7 +92,6 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     userId?: string,
     pageCounter?: number,
     debugLogsEnabled?: boolean,
-    public networkTrackingOptions?: NetworkTrackingOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -305,7 +303,6 @@ export const useBrowserConfig = async (
     userId,
     pageCounter,
     debugLogsEnabled,
-    options.networkTrackingOptions,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {
