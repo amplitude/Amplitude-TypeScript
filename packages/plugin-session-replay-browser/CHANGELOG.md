@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-## [1.16.1-networkautocapture-1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.0...@amplitude/plugin-session-replay-browser@1.16.1-networkautocapture-1.0) (2025-04-28)
+## [1.16.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.0...@amplitude/plugin-session-replay-browser@1.16.1) (2025-04-28)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser
 

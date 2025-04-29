@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [2.17.0-networkautocapture-1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.16.0...@amplitude/analytics-browser@2.17.0-networkautocapture-1.0) (2025-04-28)
+# [2.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.16.0...@amplitude/analytics-browser@2.17.0) (2025-04-28)
 
 
 ### Bug Fixes

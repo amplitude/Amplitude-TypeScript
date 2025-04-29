@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
-# [2.11.0-networkautocapture-1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.10.1...@amplitude/analytics-core@2.11.0-networkautocapture-1.0) (2025-04-28)
+# [2.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.10.1...@amplitude/analytics-core@2.11.0) (2025-04-28)
 
 
 ### Features
