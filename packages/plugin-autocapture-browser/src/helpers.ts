@@ -177,6 +177,7 @@ export const getNearestLabel = (element: Element): string => {
   try {
     labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
   } catch (error) {
+    /* istanbul ignore next */
     labelElement = null;
   }
   if (labelElement) {
