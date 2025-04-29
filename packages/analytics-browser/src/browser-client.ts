@@ -60,6 +60,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   webAttribution: WebAttribution | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
+    console.log('@@@@inside init');
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
     console.log('@@@@calling init');

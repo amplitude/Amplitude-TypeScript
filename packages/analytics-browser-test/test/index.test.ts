@@ -1924,14 +1924,15 @@ describe('integration', () => {
           warn: jest.fn(),
           error: jest.fn(),
         };
-        console.log('!!!1: calling init');
+        console.log('!!!1: calling init', client.init);
         const promise = client.init(apiKey, {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
-        });
+        }).promise;
         await promise;
         console.log('!!!2: done calling init');
+        console.log('logger.debug.mock.calls', logger.debug.mock.calls);
 
         const response = await client.track('test event').promise;
         expect(response.event).toEqual({
@@ -1953,7 +1954,6 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        console.log('logger.debug.mock.calls', logger.debug.mock.calls);
         expect(logger.debug).toHaveBeenCalledTimes(4);
         /* eslint-disable */
         const debugContext = JSON.parse(logger.debug.mock.calls[3]);

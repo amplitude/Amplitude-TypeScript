@@ -3,6 +3,7 @@ import { AmplitudeBrowser } from './browser-client';
 
 export const createInstance = (): BrowserClient => {
   const client = new AmplitudeBrowser();
+  console.log('created client instance');
   return {
     init: debugWrapper(
       client.init.bind(client),
