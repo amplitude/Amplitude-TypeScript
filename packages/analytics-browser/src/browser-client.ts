@@ -62,6 +62,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
+    console.log('@@@@calling init');
 
     if (arguments.length > 2) {
       userId = userIdOrOptions as string | undefined;
@@ -78,6 +79,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
   protected async _init(options: BrowserOptions & { apiKey: string }) {
+    console.log('@@@@calling _init');
     // Step 1: Block concurrent initialization
     if (this.initializing) {
       return;
@@ -86,6 +88,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
+    console.log('!!!!creating browser config?', browserOptions.fetchRemoteConfig);
     if (browserOptions.fetchRemoteConfig) {
       console.log('!!!!joining config generator');
       const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
