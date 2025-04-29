@@ -257,6 +257,16 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       return;
     }
 
+    let isElementTrackingEnabled = false;
+    let isNetworkTrackingEnabled = false;
+    if (config.autocapture === true) {
+      isElementTrackingEnabled = true;
+      isNetworkTrackingEnabled = true;
+    } else if (typeof config.autocapture === 'object') {
+      isElementTrackingEnabled = !!config.autocapture.elementInteractions;
+      isNetworkTrackingEnabled = !!config.autocapture.networkTracking;
+    }
+
     // Create should track event functions the different allowlists
     const shouldTrackEvent = createShouldTrackEvent(
       options,
@@ -271,38 +281,42 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     const allObservables = createObservables();
 
     // Create subscriptions
-    const clickTrackingSubscription = trackClicks({
-      allObservables,
-      options: options as AutoCaptureOptionsWithDefaults,
-      amplitude,
-      shouldTrackEvent: shouldTrackEvent,
-    });
-    subscriptions.push(clickTrackingSubscription);
+    if (isElementTrackingEnabled) {
+      const clickTrackingSubscription = trackClicks({
+        allObservables,
+        options: options as AutoCaptureOptionsWithDefaults,
+        amplitude,
+        shouldTrackEvent: shouldTrackEvent,
+      });
+      subscriptions.push(clickTrackingSubscription);
 
-    const changeSubscription = trackChange({
-      allObservables,
-      getEventProperties,
-      amplitude,
-      shouldTrackEvent: shouldTrackEvent,
-    });
-    subscriptions.push(changeSubscription);
+      const changeSubscription = trackChange({
+        allObservables,
+        getEventProperties,
+        amplitude,
+        shouldTrackEvent: shouldTrackEvent,
+      });
+      subscriptions.push(changeSubscription);
 
-    const actionClickSubscription = trackActionClick({
-      allObservables,
-      options: options as AutoCaptureOptionsWithDefaults,
-      getEventProperties,
-      amplitude,
-      shouldTrackEvent,
-      shouldTrackActionClick: shouldTrackActionClick,
-    });
-    subscriptions.push(actionClickSubscription);
+      const actionClickSubscription = trackActionClick({
+        allObservables,
+        options: options as AutoCaptureOptionsWithDefaults,
+        getEventProperties,
+        amplitude,
+        shouldTrackEvent,
+        shouldTrackActionClick: shouldTrackActionClick,
+      });
+      subscriptions.push(actionClickSubscription);
+    }
 
-    const networkRequestSubscription = trackNetworkEvents({
-      allObservables,
-      config,
-      amplitude,
-    });
-    subscriptions.push(networkRequestSubscription);
+    if (isNetworkTrackingEnabled) {
+      const networkRequestSubscription = trackNetworkEvents({
+        allObservables,
+        config,
+        amplitude,
+      });
+      subscriptions.push(networkRequestSubscription);
+    }
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);

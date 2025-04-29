@@ -51,6 +51,7 @@ describe('action clicks:', () => {
     const config: Partial<BrowserConfig> = {
       defaultTracking: false,
       loggerProvider: loggerProvider as ILogger,
+      autocapture: true,
     };
 
     beforeEach(async () => {
