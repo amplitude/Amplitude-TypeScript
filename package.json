@@ -9,7 +9,7 @@
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
     "deploy:publish": "lerna publish",
-    "dev": "concurrently \"npm run watch\" \"vite dev\"",
+    "dev": "concurrently \"npm run watch\" \"vite dev --open\"",
     "docs": "typedoc",
     "docs:check": "typedoc --emit none",
     "fix": "lerna run fix --stream",
