@@ -157,7 +157,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
     }
 
-    if (isNetworkTrackingEnabled(this.config.autocapture)) {
+    // TODO: do we accept it with or without "this.config.networkTrackingOptions"
+    if (isNetworkTrackingEnabled(this.config.autocapture) && !!this.config.networkTrackingOptions) {
       this.config.loggerProvider.debug('Adding network tracking plugin');
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }

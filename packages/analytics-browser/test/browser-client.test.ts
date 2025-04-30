@@ -13,6 +13,7 @@ import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
+import * as networkCapturePlugin from '@amplitude/plugin-network-capture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
 import * as RemoteConfig from '../src/config/joined-config';
@@ -397,6 +398,15 @@ describe('browser-client', () => {
         autocapture: option,
       }).promise;
       expect(autocapturePlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should use network tracking plugin', async () => {
+      const networkTrackingPlugin = jest.spyOn(networkCapturePlugin, 'plugin');
+      await client.init(apiKey, userId, {
+        autocapture: true,
+        networkTrackingOptions: {}, // TODO: may not need this in the future?
+      }).promise;
+      expect(networkTrackingPlugin).toHaveBeenCalledTimes(1);
     });
 
     test('should listen for network change to online', async () => {
