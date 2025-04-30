@@ -5,9 +5,11 @@
   ],
   "scripts": {
     "build": "lerna run build --stream",
+    "watch": "lerna run watch --parallel",
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
     "deploy:publish": "lerna publish",
+    "dev": "concurrently \"npm run watch\" \"vite dev\"",
     "docs": "typedoc",
     "docs:check": "typedoc --emit none",
     "fix": "lerna run fix --stream",
@@ -29,6 +31,7 @@
     "@typescript-eslint/parser": "^5.46.1",
     "babel-core": "^6.26.3",
     "babel-preset-env": "^1.7.0",
+    "concurrently": "^9.1.2",
     "eslint": "^8.29.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-jest": "^27.1.6",
@@ -43,6 +46,7 @@
     "ts-jest": "^29.0.3",
     "typedoc": "^0.23.22",
     "typescript": "^4.9.4",
+    "vite": "^6.3.4",
     "yargs": "^17.7.1"
   },
   "lint-staged": {
