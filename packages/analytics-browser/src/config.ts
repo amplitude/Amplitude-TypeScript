@@ -24,6 +24,7 @@ import {
   TrackingOptions,
   AutocaptureOptions,
   CookieOptions,
+  NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -92,6 +93,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     userId?: string,
     pageCounter?: number,
     debugLogsEnabled?: boolean,
+    public networkTrackingOptions?: NetworkTrackingOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -104,6 +106,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.userId = userId;
     this.debugLogsEnabled = debugLogsEnabled;
     this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
+    this.networkTrackingOptions = networkTrackingOptions;
   }
 
   get cookieStorage() {
@@ -303,6 +306,7 @@ export const useBrowserConfig = async (
     userId,
     pageCounter,
     debugLogsEnabled,
+    options.networkTrackingOptions,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

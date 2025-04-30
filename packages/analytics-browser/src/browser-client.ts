@@ -26,12 +26,14 @@ import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
+  getNetworkTrackingConfig,
   isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
+  isNetworkTrackingEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -44,6 +46,7 @@ import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
 import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
+import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { WebAttribution } from './attribution/web-attribution';
 
 /**
@@ -152,6 +155,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isElementInteractionsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
+    }
+
+    if (isNetworkTrackingEnabled(this.config.defaultTracking)) {
+      this.config.loggerProvider.debug('Adding network tracking plugin');
+      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
 
     this.initializing = false;
