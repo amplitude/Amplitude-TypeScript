@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.18.0-usenetworkcaptureinanalyticsbrowser-1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.0-networkautocapture-1.0...@amplitude/analytics-browser@2.18.0-usenetworkcaptureinanalyticsbrowser-1.0) (2025-04-30)
+
+
+### Bug Fixes
+
+* unit test coverage fix ([c78f166](https://github.com/amplitude/Amplitude-TypeScript/commit/c78f166c7214fa6341eb942693cd8cffe529994c))
+
+
+### Features
+
+* add networkTracking plugin to analytics-browser ([d0505a6](https://github.com/amplitude/Amplitude-TypeScript/commit/d0505a6629212d1cd6cd181410c937bd8667ec37))
+
+
+
+
+
 # [2.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.16.0...@amplitude/analytics-browser@2.17.0) (2025-04-28)
 
 

@@ -55,10 +55,10 @@
     amplitude.invoked = true;
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-27841km6V1nFErSQB7/p0+ThHpj7kGmfzEPx9cnIbH9oVk4H9WQSWUDNUSCCyMev';
+    as.integrity = 'sha384-1hiTTQuUvN1ASj60yAscYiQe5NwBlKH/7WYrf+FPbF+wM8Sur5f9ZWtM6kVMv4Qt';
     as.crossOrigin = 'anonymous';
     as.async = true;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.17.0-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.18.0-usenetworkcaptureinanalyticsbrowser-1.0-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');

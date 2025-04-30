@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.52-usenetworkcaptureinanalyticsbrowser-1.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.51-networkautocapture-1.0...@amplitude/plugin-global-user-properties@1.2.52-usenetworkcaptureinanalyticsbrowser-1.0) (2025-04-30)
+
+**Note:** Version bump only for package @amplitude/plugin-global-user-properties
+
+
+
+
+
 ## [1.2.51](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.50...@amplitude/plugin-global-user-properties@1.2.51) (2025-04-28)
 
 **Note:** Version bump only for package @amplitude/plugin-global-user-properties
