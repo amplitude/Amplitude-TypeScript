@@ -23,6 +23,7 @@ const amplitudeAliases = fs.readdirSync(packagesDir).reduce((aliases, pkgName) =
 }, {});
 
 export default defineConfig({
+  envDir: path.resolve(__dirname),
   root: testServerDir,
   resolve: {
     alias: amplitudeAliases
