@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-web-attribution-browser",
-  "version": "2.1.45-usenetworkcaptureinanalyticsbrowser-1.0",
+  "version": "2.1.44",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -36,13 +36,13 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.3.19-usenetworkcaptureinanalyticsbrowser-1.0",
-    "@amplitude/analytics-core": "^2.12.0-usenetworkcaptureinanalyticsbrowser-1.0",
+    "@amplitude/analytics-client-common": "^2.3.18",
+    "@amplitude/analytics-core": "^2.11.0",
     "@amplitude/analytics-types": "^2.9.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.18.0-usenetworkcaptureinanalyticsbrowser-1.0",
+    "@amplitude/analytics-browser": "^2.17.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
