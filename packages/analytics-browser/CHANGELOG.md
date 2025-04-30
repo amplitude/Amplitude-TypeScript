@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.16.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.16.0...@amplitude/analytics-browser@2.16.1) (2025-04-30)
+
+
+### Bug Fixes
+
+* **analytics-browser:** fix TS2742 by re-exporting types ([#1049](https://github.com/amplitude/Amplitude-TypeScript/issues/1049)) ([c2bffac](https://github.com/amplitude/Amplitude-TypeScript/commit/c2bffac7fc06e19b6c227c89635836c635d0385b))
+* **analytics-browser:** reapply fix for default config values not being used for fetchRemoteConfig ([#1048](https://github.com/amplitude/Amplitude-TypeScript/issues/1048)) ([95bf251](https://github.com/amplitude/Amplitude-TypeScript/commit/95bf2519d8dd6c24a6d79b369cffc0fdf41f2f2d))
+
+
+
+
+
 # [2.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.15.0...@amplitude/analytics-browser@2.16.0) (2025-04-22)
 
 
