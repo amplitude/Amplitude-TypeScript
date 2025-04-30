@@ -77,7 +77,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         options = userIdOrOptions;
       }
     }
-    console.log('@@@Lets make another change 1:51pm!!!');
+    console.log('@@@Lets make another change 2:09pm!!!');
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
   protected async _init(options: BrowserOptions & { apiKey: string }) {

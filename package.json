@@ -16,6 +16,7 @@
     "lint": "lerna run lint --stream",
     "lint:staged": "lint-staged",
     "postinstall": "husky install",
+    "start": "vite build && vite preview",
     "test": "lerna run test --stream",
     "test:examples": "jest --env=jsdom --coverage=false examples --setupFiles ./jest.setup.examples.js",
     "test:unit": "lerna run test --stream --ignore @amplitude/analytics-*-test",

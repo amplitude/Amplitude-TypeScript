@@ -11,6 +11,23 @@ const ignorePkg = (pkgName) => {
     pkgName === 'analytics-browser-test' ||
     pkgName === 'analytics-node-test';
 }
+function htmlEntriesPlugin(pattern = '**/*.html', { cwd }) {
+  return {
+    name: 'vite-html-entries',
+    config: () => ({
+      build: {
+        rollupOptions: {
+          input: Object.fromEntries(
+            require('fast-glob').sync(pattern, { cwd }).map(f => [
+              f.replace(/\.html$/, ''),              // key without “.html”
+              require('path').join(cwd, f)           // absolute file path
+            ])
+          )
+        }
+      }
+    })
+  };
+}
 
 const amplitudeAliases = fs.readdirSync(packagesDir).reduce((aliases, pkgName) => {
   const fullPath = path.join(packagesDir, pkgName);
@@ -41,6 +58,7 @@ export default defineConfig({
       ignored: ['**/node_modules/**', '**/dist/**'],
     },
   },
-  optimizeDeps: {
-  },
+  plugins: [
+    htmlEntriesPlugin('**/*.html', { cwd: path.resolve(__dirname, 'test-server') })
+  ],
 });
