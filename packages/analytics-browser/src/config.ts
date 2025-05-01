@@ -24,6 +24,7 @@ import {
   TrackingOptions,
   AutocaptureOptions,
   CookieOptions,
+  NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
@@ -34,7 +35,6 @@ import { parseLegacyCookies } from './cookie-migration';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
 import { VERSION } from './version';
-import { NetworkTrackingOptions } from '@amplitude/analytics-core';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
@@ -106,6 +106,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.userId = userId;
     this.debugLogsEnabled = debugLogsEnabled;
     this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
+    this.networkTrackingOptions = networkTrackingOptions;
   }
 
   get cookieStorage() {
