@@ -1924,11 +1924,15 @@ describe('integration', () => {
           warn: jest.fn(),
           error: jest.fn(),
         };
-        await client.init(apiKey, {
+        console.log('!!!1: calling init', client.init);
+        const promise = client.init(apiKey, {
           defaultTracking,
           loggerProvider: logger,
           logLevel: LogLevel.Debug,
         }).promise;
+        await promise;
+        console.log('!!!2: done calling init');
+        console.log('logger.debug.mock.calls', logger.debug.mock.calls);
 
         const response = await client.track('test event').promise;
         expect(response.event).toEqual({

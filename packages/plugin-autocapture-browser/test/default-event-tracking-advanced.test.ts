@@ -66,6 +66,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider as ILogger,
+        autocapture: true,
       };
       const amplitude: Partial<BrowserClient> = {};
       await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
@@ -90,6 +91,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider as ILogger,
+        autocapture: true,
       };
       const amplitude: Partial<BrowserClient> = {};
       await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
@@ -155,6 +157,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -214,6 +217,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -272,6 +276,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -340,6 +345,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -403,6 +409,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -469,6 +476,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -536,6 +544,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -568,6 +577,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -604,6 +614,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider as ILogger,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -646,6 +657,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider as ILogger,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -678,6 +690,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -728,6 +741,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -763,6 +777,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -832,6 +847,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -852,6 +868,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -876,6 +893,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -902,6 +920,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider as ILogger,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -927,6 +946,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider as ILogger,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -947,6 +967,7 @@ describe('autoTrackingPlugin', () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
         loggerProvider: loggerProvider as ILogger,
+        autocapture: true,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -993,6 +1014,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -1049,6 +1071,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -1101,6 +1124,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -1154,6 +1178,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -1203,6 +1228,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -1224,6 +1250,7 @@ describe('autoTrackingPlugin', () => {
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
           loggerProvider: loggerProvider,
+          autocapture: true,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 

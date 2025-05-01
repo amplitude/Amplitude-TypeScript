@@ -8,6 +8,7 @@ import {
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
   isElementInteractionsEnabled,
+  isNetworkTrackingEnabled,
 } from '../src/default-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
@@ -163,6 +164,32 @@ describe('isAttributionTrackingEnabled', () => {
     expect(
       isAttributionTrackingEnabled({
         attribution: false,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('isNetworkTrackingEnabled', () => {
+  test('should return true with true parameter', () => {
+    expect(isNetworkTrackingEnabled(true)).toBe(true);
+  });
+  test('should return false with undefined parameter', () => {
+    expect(isNetworkTrackingEnabled(undefined)).toBe(false);
+  });
+  test('should return false with false parameter', () => {
+    expect(isNetworkTrackingEnabled(false)).toBe(false);
+  });
+  test('should return true with object parameter', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: true,
+      }),
+    ).toBe(true);
+  });
+  test('should return false with object parameter', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: false,
       }),
     ).toBe(false);
   });

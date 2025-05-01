@@ -61,6 +61,16 @@ export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | b
   return false;
 };
 
+export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+  if (typeof autocapture === 'object' && autocapture.networkTracking) {
+    return true;
+  }
+  return false;
+};
+
 export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
   if (
     isElementInteractionsEnabled(config.autocapture) &&

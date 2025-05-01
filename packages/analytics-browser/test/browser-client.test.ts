@@ -1306,7 +1306,7 @@ describe('browser-client', () => {
       }).promise;
 
       expect(loggerProvider.enable).toHaveBeenCalledWith(LogLevel.Debug);
-      console.log(loggerProvider.enable.mock.calls);
+      console.log('@@@@@', loggerProvider.enable.mock.calls);
       expect(loggerProvider.enable).toHaveBeenCalledTimes(1);
     });
 

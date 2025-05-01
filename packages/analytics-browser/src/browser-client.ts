@@ -32,6 +32,7 @@ import {
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
+  //isNetworkTrackingEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -59,8 +60,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   webAttribution: WebAttribution | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
+    console.log('@@@@inside init');
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
+    console.log('@@@@calling init');
 
     if (arguments.length > 2) {
       userId = userIdOrOptions as string | undefined;
@@ -77,6 +80,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
   }
   protected async _init(options: BrowserOptions & { apiKey: string }) {
+    console.log('@@@@calling _init');
     // Step 1: Block concurrent initialization
     if (this.initializing) {
       return;
@@ -85,9 +89,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
+    console.log('!!!!creating browser config?', browserOptions.fetchRemoteConfig);
     if (browserOptions.fetchRemoteConfig) {
+      console.log('!!!!joining config generator');
       const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
       browserOptions = await joinedConfigGenerator.generateJoinedConfig();
+      console.log('!!!!done joining config');
     }
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
@@ -149,7 +156,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
     }
 
-    if (isElementInteractionsEnabled(this.config.autocapture)) {
+    if (
+      isElementInteractionsEnabled(this.config.autocapture)
+      //|| isNetworkTrackingEnabled(this.config.autocapture)
+    ) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
     }
