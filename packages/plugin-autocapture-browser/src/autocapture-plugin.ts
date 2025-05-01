@@ -8,9 +8,6 @@ import {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   ActionType,
-  NetworkRequestEvent,
-  networkObserver,
-  NetworkEventCallback,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
@@ -28,7 +25,6 @@ import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
-import { trackNetworkEvents } from './autocapture/track-network-event';
 
 declare global {
   interface Window {
@@ -74,14 +70,13 @@ export enum ObservablesEnum {
   // ErrorObservable = 'errorObservable',
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
-  NetworkObservable = 'networkObservable',
 }
 
 // Base TimestampedEvent type
 type BaseTimestampedEvent<T> = {
   event: T;
   timestamp: number;
-  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation' | 'network';
+  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
 };
 
 // Specific types for events with targetElementProperties
@@ -102,7 +97,6 @@ export interface AllWindowObservables {
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
-  [ObservablesEnum.NetworkObservable]: Observable<TimestampedEvent<NetworkRequestEvent>>;
 }
 
 // Type predicate
@@ -171,16 +165,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       map((mutation) => addAdditionalEventProperties(mutation, 'mutation')),
       share(),
     );
-    const networkObservable = new Observable<TimestampedEvent<NetworkRequestEvent>>((observer) => {
-      const callback = new NetworkEventCallback((event) => {
-        const eventWithProperties = addAdditionalEventProperties(event, 'network');
-        observer.next(eventWithProperties);
-      });
-      networkObserver.subscribe(callback);
-      return () => {
-        networkObserver.unsubscribe(callback);
-      };
-    });
 
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
@@ -188,7 +172,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       // [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
-      [ObservablesEnum.NetworkObservable]: networkObservable,
     };
   };
 
@@ -296,13 +279,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       shouldTrackActionClick: shouldTrackActionClick,
     });
     subscriptions.push(actionClickSubscription);
-
-    const networkRequestSubscription = trackNetworkEvents({
-      allObservables,
-      config,
-      amplitude,
-    });
-    subscriptions.push(networkRequestSubscription);
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);

@@ -1,13 +1,12 @@
 import {
   BrowserClient,
-  BrowserConfig,
   NetworkRequestEvent,
   NetworkCaptureRule,
   NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
-import { AllWindowObservables, TimestampedEvent } from '../autocapture-plugin';
-import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../constants';
+import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
+import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -111,11 +110,11 @@ export type NetworkAnalyticsEvent = {
 
 export function trackNetworkEvents({
   allObservables,
-  config,
+  networkTrackingOptions,
   amplitude,
 }: {
   allObservables: AllWindowObservables;
-  config: BrowserConfig;
+  networkTrackingOptions: NetworkTrackingOptions;
   amplitude: BrowserClient;
 }) {
   const { networkObservable } = allObservables;
@@ -123,7 +122,7 @@ export function trackNetworkEvents({
   const filteredNetworkObservable = networkObservable.pipe(
     filter((event: TimestampedEvent<NetworkRequestEvent>) => {
       // Only track network events that should be tracked,
-      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, config.networkTrackingOptions);
+      return shouldTrackNetworkEvent(event.event as NetworkRequestEvent, networkTrackingOptions);
     }),
   );
 

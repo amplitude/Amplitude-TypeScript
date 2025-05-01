@@ -12,11 +12,12 @@ import {
   networkObserver,
   NetworkRequestEvent,
 } from '@amplitude/analytics-core';
-import { shouldTrackNetworkEvent } from '../../src/autocapture/track-network-event';
+import { shouldTrackNetworkEvent } from '../../src/track-network-event';
 import { NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 import { AmplitudeBrowser } from '@amplitude/analytics-browser';
-import { autocapturePlugin } from '../../src/autocapture-plugin';
+import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
+import { VERSION } from '../../src/version';
 
 class MockNetworkRequestEvent implements NetworkRequestEvent {
   constructor(
@@ -91,13 +92,19 @@ describe('track-network-event', () => {
       };
     });
 
+    let plugin: BrowserEnrichmentPlugin;
+
     beforeEach(async () => {
       client = new AmplitudeBrowser();
       trackSpy = jest.spyOn(client, 'track');
       client.init('<FAKE_API_KEY>', undefined, localConfig);
       jest.spyOn(networkObserver, 'subscribe').mockImplementation(subscribe);
-      const plugin = autocapturePlugin();
+      plugin = networkCapturePlugin();
       await plugin.setup?.(localConfig, client);
+    });
+
+    afterEach(async () => {
+      await plugin?.teardown?.();
     });
 
     test('should track a network request event with status=500', async () => {
@@ -386,5 +393,11 @@ describe('track-network-event', () => {
       const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);
     });
+  });
+});
+
+describe('version', () => {
+  test('should return the plugin version', () => {
+    expect(VERSION != null).toBe(true);
   });
 });
