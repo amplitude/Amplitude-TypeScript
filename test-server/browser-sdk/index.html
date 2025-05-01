@@ -18,7 +18,14 @@
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
           autocapture: true,
-          networkTrackingOptions: {},
+          networkTrackingOptions: {
+            ignoreAmplitudeRequests: false,
+            ignoreHosts: [],
+            captureRules: [
+              {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
+              {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
+            ],
+          },
         }
       );
     </script>

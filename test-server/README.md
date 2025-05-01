@@ -11,3 +11,7 @@ To run this in 'dev' mode, from the root of this project, run `yarn dev`. This w
 ## PROD
 
 To run this in 'prod' mode, run `yarn build` and then run `yarn start`. This will build the assets and serve the statically. This mode currently has no use-case, but could be used in the future to run end-to-end tests. This will likely never be served in production as a web page because it's only for testing.
+
+## TIPS
+* You can enable a "Workspace" in Chrome on this site, which allows you to edit the files from inside the browser
+* 
