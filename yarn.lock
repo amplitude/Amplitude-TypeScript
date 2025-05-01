@@ -2,6 +2,17 @@
 # yarn lockfile v1
 
 
+"@amplitude/analytics-browser@^2.16.1":
+  version "2.16.1"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-browser/-/analytics-browser-2.16.1.tgz#3ddf13ef77da7ebdc4f23d9803b8696893dd5f12"
+  integrity sha512-ssd5MPff6tm8BmzHq2j1HJ0/5KmupFX9ztlrVq0Kj5T3vJhDNgEOIyBZkdjsJAyEPyQITZ790wLZNVm6uJBKfg==
+  dependencies:
+    "@amplitude/analytics-core" "^2.10.1"
+    "@amplitude/analytics-remote-config" "^0.4.0"
+    "@amplitude/plugin-autocapture-browser" "^1.1.10"
+    "@amplitude/plugin-page-view-tracking-browser" "^2.3.20"
+    tslib "^2.4.1"
+
 "@amplitude/analytics-connector@^1.4.8", "@amplitude/analytics-connector@^1.6.4":
   version "1.6.4"
   resolved "https://registry.yarnpkg.com/@amplitude/analytics-connector/-/analytics-connector-1.6.4.tgz#8a811ff5c8ee46bdfea0e8f61c7578769b5778ed"
@@ -13,6 +24,12 @@
   integrity sha512-SM9jdQ+l2q+hy+DdCQm5vtfOTiI+53c+alSSc7fwiuFnTExllXHf9RUK6kKhw3ky+N2o6yqbo+0OGoepLhNf6w==
   dependencies:
     "@amplitude/analytics-types" "^1.3.5"
+    tslib "^2.4.1"
+
+"@amplitude/analytics-core@^2.11.0":
+  version "2.10.1"
+  dependencies:
+    "@amplitude/analytics-connector" "^1.6.4"
     tslib "^2.4.1"
 
 "@amplitude/analytics-remote-config@^0.4.0":
