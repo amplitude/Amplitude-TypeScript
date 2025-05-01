@@ -1,13 +1,10 @@
 import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
-
-const MAXIMUM_ENTRIES = 100;
 export interface NetworkRequestEvent {
-  type: string;
+  type: 'fetch';
   method: string;
   url: string;
-  timestamp: number;
   status?: number;
   duration?: number;
   requestBodySize?: number;
@@ -49,10 +46,9 @@ export function getRequestBodyLength(body: FetchRequestBody | null | undefined):
     return body.byteLength;
   } else if (body instanceof FormData) {
     // Estimating only for text parts; not accurate for files
+    // TODO: get consensus before deciding if we do this
     const formData = body as FormDataBrowser;
-
     let total = 0;
-    let count = 0;
     for (const [key, value] of formData.entries()) {
       total += key.length;
       if (typeof value === 'string') {
@@ -60,11 +56,6 @@ export function getRequestBodyLength(body: FetchRequestBody | null | undefined):
       } else if ((value as Blob).size) {
         // if we encounter a "File" type, we should not count it and just return undefined
         total += (value as Blob).size;
-      }
-      // terminate if we reach the maximum number of entries
-      // to avoid performance issues in case of very large FormDataß
-      if (++count >= MAXIMUM_ENTRIES) {
-        return;
       }
     }
     return total;
@@ -135,7 +126,6 @@ export class NetworkObserver {
     this.globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const requestEvent: NetworkRequestEvent = {
-        timestamp: startTime,
         startTime,
         type: 'fetch',
         method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
@@ -184,6 +174,3 @@ export class NetworkObserver {
     };
   }
 }
-
-// singleton instance of NetworkObserver
-export const networkObserver = new NetworkObserver();
