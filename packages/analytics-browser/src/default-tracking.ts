@@ -6,6 +6,7 @@ import {
   BrowserOptions,
   AutocaptureOptions,
   AttributionOptions,
+  NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 
 /**
@@ -39,6 +40,9 @@ export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | bool
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'sessions');
 
+export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
+  isTrackingEnabled(autocapture, 'networkTracking');
+
 /**
  * Returns true if
  * 1. autocapture === true
@@ -70,6 +74,13 @@ export const getElementInteractionsConfig = (config: BrowserOptions): ElementInt
     return config.autocapture.elementInteractions;
   }
   return undefined;
+};
+
+export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackingOptions | undefined => {
+  if (isNetworkTrackingEnabled(config.autocapture) && config.networkTrackingOptions) {
+    return config.networkTrackingOptions;
+  }
+  return;
 };
 
 export const getPageViewTrackingConfig = (config: BrowserOptions): PageTrackingOptions => {

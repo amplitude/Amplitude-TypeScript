@@ -1,11 +1,7 @@
 {
-  "name": "@amplitude/analytics-browser",
-  "version": "2.16.1",
-  "description": "Official Amplitude SDK for Web",
-  "keywords": [
-    "analytics",
-    "amplitude"
-  ],
+  "name": "@amplitude/plugin-network-capture-browser",
+  "version": "1.0.0",
+  "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "license": "MIT",
@@ -15,7 +11,7 @@
   "sideEffects": false,
   "publishConfig": {
     "access": "public",
-    "tag": "latest"
+    "tag": "beta"
   },
   "repository": {
     "type": "git",
@@ -33,33 +29,26 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "playground:html": "cp lib/scripts/amplitude-min.js playground/html/amplitude.js && http-server ./playground/html",
-    "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && yarn install && yarn start",
     "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
-    "version": "yarn version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
+    "version": "yarn version-file && yarn build",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/plugin-network-capture-browser": "^1.0.0",
     "@amplitude/analytics-core": "^2.10.1",
-    "@amplitude/analytics-remote-config": "^0.4.0",
-    "@amplitude/plugin-autocapture-browser": "^1.1.10",
-    "@amplitude/plugin-page-view-tracking-browser": "^2.3.20",
+    "rxjs": "^7.8.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.229.0",
+    "@amplitude/analytics-browser": "^2.16.0",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",
-    "fake-indexeddb": "4.0.2",
-    "http-server": "^14.1.1",
-    "isomorphic-fetch": "^3.0.0",
+    "css.escape": "^1.5.1",
     "rollup": "^2.79.1",
     "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.1.0",

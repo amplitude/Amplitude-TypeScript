@@ -8,6 +8,7 @@ import {
   isPageViewTrackingEnabled,
   isSessionTrackingEnabled,
   isElementInteractionsEnabled,
+  getNetworkTrackingConfig,
 } from '../src/default-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
@@ -290,6 +291,40 @@ describe('getAttributionTrackingConfig', () => {
       initialEmptyValue: 'EMPTY',
       resetSessionOnNewCampaign: true,
     });
+  });
+});
+
+describe('getNetworkTrackingConfig', () => {
+  test('should return undefined when networkTracking is not defined', () => {
+    const config = getNetworkTrackingConfig({
+      networkTrackingOptions: undefined,
+    });
+
+    expect(config).toBeUndefined();
+  });
+
+  test('should return default config when networkTracking is true', () => {
+    const config = getNetworkTrackingConfig({
+      networkTrackingOptions: {
+        ignoreAmplitudeRequests: false,
+        ignoreHosts: ['example.com'],
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      },
+    });
+
+    expect(config?.ignoreAmplitudeRequests).toBe(false);
+    expect(config?.ignoreHosts).toEqual(['example.com']);
+    expect(config?.captureRules).toEqual([
+      {
+        hosts: ['example.com'],
+        statusCodeRange: '500-599',
+      },
+    ]);
   });
 });
 
