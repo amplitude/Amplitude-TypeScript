@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.1...@amplitude/plugin-network-capture-browser@1.1.2) (2025-05-02)
+
+
+### Bug Fixes
+
+* change Network Request startTime and completionTime to Unix Epoch to match with iOS ([#1059](https://github.com/amplitude/Amplitude-TypeScript/issues/1059)) ([9cf0246](https://github.com/amplitude/Amplitude-TypeScript/commit/9cf02463d95e1d2d067d801e09cfed41864bd571))
+
+
+
+
+
 ## [1.1.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.0...@amplitude/plugin-network-capture-browser@1.1.1) (2025-05-02)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

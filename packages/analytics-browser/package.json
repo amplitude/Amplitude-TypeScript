@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.17.1",
+  "version": "2.17.2",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -48,9 +48,9 @@
   "dependencies": {
     "@amplitude/analytics-core": "^2.11.1",
     "@amplitude/analytics-remote-config": "^0.4.0",
-    "@amplitude/plugin-autocapture-browser": "^1.2.1",
-    "@amplitude/plugin-network-capture-browser": "^1.1.1",
-    "@amplitude/plugin-page-view-tracking-browser": "^2.3.22",
+    "@amplitude/plugin-autocapture-browser": "^1.2.2",
+    "@amplitude/plugin-network-capture-browser": "^1.1.2",
+    "@amplitude/plugin-page-view-tracking-browser": "^2.3.23",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
