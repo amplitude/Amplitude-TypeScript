@@ -37,6 +37,16 @@ Check our guidelines for repo contributions on [CONTRIBUTING.md](https://github.
   * [@amplitude/analytics-react-native](https://github.com/amplitude/Amplitude-TypeScript/tree/main/packages/analytics-react-native)
   * [Installation and Quick Start](https://www.docs.developers.amplitude.com/data/sdks/typescript-react-native/)
 
+## Testing Locally
+
+To test the SDK locally, you can run our test server.
+
+Before running the test server for the first time, copy ".env.example" as ".env" and replace the variables in '.env' with your own variables.
+
+Run `yarn dev` to run the test server. It will open up to the home page automatically in your default browser.
+
+For more details visit the [Test Server README.md](/test-server/README.md)
+
 ## Documentation
 
 See our [Typescript SDK](https://amplitude.github.io/Amplitude-TypeScript/) Reference for a list and description of all available SDK methods.
