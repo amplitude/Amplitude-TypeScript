@@ -37,7 +37,7 @@ To use this plugin, you need to install `@amplitude/analytics-browser` version `
 
 ```typescript
 import * as amplitude from '@amplitude/analytics-browser';
-import { autocapturePlugin } from '@amplitude/plugin-network-capture-browser';
+import { networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 ```
 
 ### 2. Instantiate the plugin
@@ -45,32 +45,15 @@ import { autocapturePlugin } from '@amplitude/plugin-network-capture-browser';
 The plugin accepts 1 optional parameter, which is an `Object` to configure the allowed tracking options.
 
 ```typescript
-const plugin = autocapturePlugin({
-  cssSelectorAllowlist: [
-    '.amp-tracking',
-    '[amp-tracking]'
-  ],
-  pageUrlAllowlist: [
-    'https://amplitude.com',
-    new RegExp('https://amplitude.com/blog/*')
+const plugin = networkCapturePlugin({
+  ignoreHosts: ['host.com', 'host2.com'], // hosts to ignore; default []
+  ignoreAmplitudeRequests: true, // ignore requests to amplitude.com; default "true",
+  captureRules: [
+    {hosts: ['host3.com', 'host4.com'], statusCodeRange: '400-499'},
+    {hosts: ['example.com'], statusCodeRange: '403,500-599'},
   ],
 });
 ```
-
-Examples:
-- The above `cssSelectorAllowlist` will only allow tracking elements like:
-    - `<button amp-tracking>Click</button>`
-    - `<a class="amp-tracking">Link</a>`
-- The above `pageUrlAllowlist` will only allow the elements on URL "https://amplitude.com" or any URL matching the "https://amplitude.com/blog/*" to be tracked
-
-#### Options
-
-|Name|Type|Default|Description|
-|-|-|-|-|
-|`cssSelectorAllowlist`|`string[]`|`['a', 'button', 'input', 'select', 'textarea', 'label', '[data-amp-default-track]', '.amp-default-track']`| When provided, only allow elements matching any selector to be tracked. |
-|`pageUrlAllowlist`|`(string\|RegExp)[]`|`undefined`| When provided, only allow elements matching URLs to be tracked. |
-|`shouldTrackEventResolver`|`(actionType: ActionType, element: Element) => boolean`|`undefined`| When provided, overwrite all other allowlists and configurations. |
-|`dataAttributePrefix`|`string`|`'data-amp-track-'`| Allow data attributes to be collected in event property. |
 
 ### 3. Install plugin to Amplitude SDK
 
