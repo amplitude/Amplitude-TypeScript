@@ -14,4 +14,4 @@ To run this in 'prod' mode, run `yarn build` and then run `yarn start`. This wil
 
 ## TIPS
 * You can enable a "Workspace" in Chrome on this site, which allows you to edit the files from inside the browser
-* 
+* Use the Vite dev server's hot reload feature to see changes instantly without refreshing the page
