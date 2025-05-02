@@ -5,6 +5,9 @@ import {
   getGlobalScope,
   ILogger,
   LogLevel,
+  networkObserver,
+  NetworkRequestEvent,
+  NetworkEventCallback,
 } from '@amplitude/analytics-core';
 import { record } from '@amplitude/rrweb';
 import { scrollCallback } from '@amplitude/rrweb-types';
@@ -38,7 +41,6 @@ import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
 import { getRecordConsolePlugin } from '@amplitude/rrweb-plugin-console-record';
 import { SafeLoggerProvider } from './logger';
-import { NetworkObservers, NetworkRequestEvent } from './observers';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -47,6 +49,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   config: SessionReplayJoinedConfig | undefined;
   joinedConfigGenerator: SessionReplayJoinedConfigGenerator | undefined;
   identifiers: ISessionIdentifiers | undefined;
+  networkEventCallback?: NetworkEventCallback;
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
   recordCancelCallback: ReturnType<typeof record> | null = null;
@@ -56,7 +59,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Visible for testing
   pageLeaveFns: PageLeaveFn[] = [];
   private scrollHook?: scrollCallback;
-  private networkObservers?: NetworkObservers;
+  private networkObserver?: typeof networkObserver;
 
   constructor() {
     this.loggerProvider = new SafeLoggerProvider(new Logger());
@@ -155,7 +158,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Initialize network observers if logging is enabled
     if (this.config.loggingConfig?.network?.enabled) {
-      this.networkObservers = new NetworkObservers();
+      this.networkObserver = networkObserver;
     }
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
@@ -360,9 +363,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
-    this.networkObservers?.start((event: NetworkRequestEvent) => {
+    this.networkEventCallback = new NetworkEventCallback((event: NetworkRequestEvent) => {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });
+    this.networkObserver?.subscribe(this.networkEventCallback);
     const { privacyConfig, interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
@@ -472,7 +476,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
-      this.networkObservers?.stop();
+      if (this.networkEventCallback) {
+        this.networkObserver?.unsubscribe(this.networkEventCallback);
+      }
     } catch (error) {
       const typedError = error as Error;
       this.loggerProvider.warn(`Error occurred while stopping replay capture: ${typedError.toString()}`);
