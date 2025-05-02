@@ -133,7 +133,7 @@ export class NetworkObserver {
     const originalFetch = this.globalScope.fetch;
 
     this.globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-      const startTime = Date.now();
+      const startTime = performance.now();
       const requestEvent: NetworkRequestEvent = {
         timestamp: startTime,
         startTime,
@@ -146,7 +146,7 @@ export class NetworkObserver {
 
       try {
         const response = await originalFetch(input, init);
-        const endTime = Date.now();
+        const endTime = performance.now();
 
         requestEvent.status = response.status;
         requestEvent.duration = endTime - startTime;

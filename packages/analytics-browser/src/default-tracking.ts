@@ -13,32 +13,38 @@ import {
  * Returns false if autocapture === false or if autocapture[event],
  * otherwise returns true
  */
-const isTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined, event: keyof AutocaptureOptions) => {
+const isTrackingEnabled = (
+  autocapture: AutocaptureOptions | boolean | undefined,
+  event: keyof AutocaptureOptions,
+  defaultValue = false,
+) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
 
   if (autocapture?.[event] === false) {
     return false;
+  } else if (autocapture && !autocapture?.[event]) {
+    return defaultValue;
   }
 
   return true;
 };
 
 export const isAttributionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'attribution');
+  isTrackingEnabled(autocapture, 'attribution', true);
 
 export const isFileDownloadTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'fileDownloads');
+  isTrackingEnabled(autocapture, 'fileDownloads', true);
 
 export const isFormInteractionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'formInteractions');
+  isTrackingEnabled(autocapture, 'formInteractions', true);
 
 export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'pageViews');
+  isTrackingEnabled(autocapture, 'pageViews', true);
 
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'sessions');
+  isTrackingEnabled(autocapture, 'sessions', true);
 
 export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'networkTracking');
