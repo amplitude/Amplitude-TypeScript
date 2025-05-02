@@ -22,10 +22,12 @@ const isTrackingEnabled = (
     return autocapture;
   }
 
-  if (autocapture?.[event] === false) {
-    return false;
-  } else if (autocapture && !autocapture?.[event]) {
-    return defaultValue;
+  if (typeof autocapture === 'object') {
+    if (autocapture[event] === false) {
+      return false;
+    } else if (!autocapture[event]) {
+      return defaultValue;
+    }
   }
 
   return true;
