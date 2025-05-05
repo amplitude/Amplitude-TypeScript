@@ -10,22 +10,23 @@ import {
 } from '@amplitude/analytics-core';
 
 /**
- * Returns false if autocapture === false or if autocapture[event],
+ * Returns autocapture[event] if it is defined
+ * returns defaultValue if autocapture[event] is undefined
  * otherwise returns true
  */
 const isTrackingEnabled = (
   autocapture: AutocaptureOptions | boolean | undefined,
   event: keyof AutocaptureOptions,
-  defaultValue = false,
+  defaultValue: boolean,
 ) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
 
-  if (typeof autocapture === 'object') {
+  if (autocapture !== null && typeof autocapture === 'object') {
     if (autocapture[event] === false) {
       return false;
-    } else if (!autocapture[event]) {
+    } else if (autocapture[event] === undefined) {
       return defaultValue;
     }
   }
@@ -49,7 +50,7 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
   isTrackingEnabled(autocapture, 'sessions', true);
 
 export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'networkTracking');
+  isTrackingEnabled(autocapture, 'networkTracking', false);
 
 /**
  * Returns true if
