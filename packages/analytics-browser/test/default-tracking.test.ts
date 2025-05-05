@@ -299,7 +299,26 @@ describe('getNetworkTrackingConfig', () => {
     const config = getNetworkTrackingConfig({
       networkTrackingOptions: undefined,
     });
+    expect(config).toBeUndefined();
+  });
 
+  test('should return undefined when autocapture.networkTracking is undefined', () => {
+    const config = getNetworkTrackingConfig({
+      autocapture: {
+        elementInteractions: true,
+        sessions: true,
+      },
+      networkTrackingOptions: {
+        ignoreAmplitudeRequests: true,
+        ignoreHosts: ['example.com'],
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      },
+    });
     expect(config).toBeUndefined();
   });
 
