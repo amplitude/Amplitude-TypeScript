@@ -12,6 +12,14 @@ To run this in 'dev' mode, from the root of this project, run `yarn dev`. This w
 
 To run this in 'prod' mode, run `yarn build` and then run `yarn start`. This will build the assets and serve the statically. This mode currently has no use-case, but could be used in the future to run end-to-end tests. This will likely never be served in production as a web page because it's only for testing.
 
+# HTTPS
+
+To run the server as HTTPS follow these steps
+
+1. add "local.website.com" to `/etc/hosts`
+2. generate the certificates using the script "npm run generate-signed-cert"
+3. add the cert.pem (at ~/certs/local-website/cert.pem) to the macOS keychain so that it's trusted by your browser
+4. run `yarn dev:ssh` and it will open the website at https://local.website.com
+
 ## TIPS
 * You can enable a "Workspace" in Chrome on this site, which allows you to edit the files from inside the browser
-* Use the Vite dev server's hot reload feature to see changes instantly without refreshing the page
