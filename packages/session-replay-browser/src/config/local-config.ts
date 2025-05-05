@@ -7,6 +7,7 @@ import {
   PrivacyConfig,
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
+  UGCFilterRule,
 } from './types';
 import { SafeLoggerProvider } from '../logger';
 
@@ -30,6 +31,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
   experimental?: { useWebWorker: boolean };
+  ugcFilterRules?: UGCFilterRule[];
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -53,6 +55,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.version = options.version;
     this.performanceConfig = options.performanceConfig;
     this.storeType = options.storeType ?? 'idb';
+    this.ugcFilterRules = options.ugcFilterRules;
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;

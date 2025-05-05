@@ -1,5 +1,5 @@
-import { getGlobalScope, ServerZone } from '@amplitude/analytics-core';
-import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
+import { getGlobalScope, ILogger, ServerZone } from '@amplitude/analytics-core';
+import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig, UGCFilterRule } from './config/types';
 import {
   KB_SIZE,
   MASK_TEXT_CLASS,
@@ -141,6 +141,54 @@ export const getServerUrl = (serverZone?: keyof typeof ServerZone, trackServerUr
   }
 
   return SESSION_REPLAY_SERVER_URL;
+};
+
+const globToRegex = (glob: string): RegExp => {
+  // Escape special regex characters, then convert globs
+  const escaped = glob
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex specials
+    .replace(/\*/g, '.*') // Convert * to .*
+    .replace(/\?/g, '.'); // Convert ? to .
+
+  return new RegExp(`^${escaped}$`);
+};
+
+export const getPageUrl = (logger: ILogger, pageUrl: string, ugcFilterRules?: UGCFilterRule[]) => {
+  if (!ugcFilterRules) {
+    return pageUrl;
+  }
+
+  // validate ugcFilterRules
+  if (!ugcFilterRules.every((rule) => typeof rule.selector === 'string' && typeof rule.replacement === 'string')) {
+    logger.error('ugcFilterRules must be an array of objects with selector and replacement properties');
+    return pageUrl;
+  }
+
+  // validate ugcFilterRules are valid globs
+  if (
+    !ugcFilterRules.every((rule) => {
+      try {
+        new RegExp(rule.selector);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    })
+  ) {
+    logger.error('ugcFilterRules must be an array of objects with valid globs');
+    return pageUrl;
+  }
+
+  // apply ugcFilterRules, order is important, first rule wins
+  for (const rule of ugcFilterRules) {
+    const regex = globToRegex(rule.selector);
+
+    if (regex.test(pageUrl)) {
+      return pageUrl.replace(regex, rule.replacement);
+    }
+  }
+
+  return pageUrl;
 };
 
 export const getStorageSize = async (): Promise<StorageData> => {

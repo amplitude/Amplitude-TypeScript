@@ -5,9 +5,21 @@ import { BeaconTransport } from '../../src/beacon-transport';
 import { ScrollEventPayload, ScrollWatcher } from '../../src/hooks/scroll';
 import { utils } from '@amplitude/rrweb';
 import { randomUUID } from 'crypto';
+import { ILogger } from '@amplitude/analytics-core';
 
 jest.mock('@amplitude/rrweb');
 jest.mock('../../src/beacon-transport');
+
+type MockedLogger = jest.Mocked<ILogger>;
+
+const mockLoggerProvider: MockedLogger = {
+  error: jest.fn(),
+  log: jest.fn(),
+  disable: jest.fn(),
+  enable: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn(),
+};
 
 describe('scroll', () => {
   const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {
@@ -46,12 +58,15 @@ describe('scroll', () => {
       mockWindowHeight();
       mockGlobalScope({
         location: {
-          href: 'http://localhost',
+          href: 'http://localhost/user/123',
         } as any,
       });
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       mockTransportInstance = new mockTransport({} as any, {} as any);
-      scrollWatcher = new ScrollWatcher(mockTransportInstance);
+      scrollWatcher = new ScrollWatcher(mockTransportInstance, {
+        loggerProvider: mockLoggerProvider,
+        ugcFilterRules: [],
+      });
     });
 
     afterEach(() => {
@@ -96,7 +111,36 @@ describe('scroll', () => {
 
               viewportHeight: 0,
               viewportWidth: 0,
-              pageUrl: 'http://localhost',
+              pageUrl: 'http://localhost/user/123',
+              timestamp: expect.any(Number),
+              type: 'scroll',
+            },
+          ],
+        });
+      });
+
+      test('sends scroll event with UGC filter rules', () => {
+        scrollWatcher = new ScrollWatcher(mockTransportInstance, {
+          loggerProvider: mockLoggerProvider,
+          ugcFilterRules: [{ selector: 'http://localhost/user/*', replacement: 'http://localhost/user/user_id' }],
+        });
+        scrollWatcher.hook({ id: 1, x: 3, y: 5 });
+        const deviceId = randomUUID().toString();
+        scrollWatcher.send(() => deviceId)({} as Event);
+
+        expect(mockTransport.prototype.send.mock.calls[0][0]).toStrictEqual(deviceId);
+        expect(mockTransport.prototype.send.mock.calls[0][1]).toStrictEqual({
+          version: 1,
+          events: [
+            {
+              maxScrollX: 3,
+              maxScrollY: 5,
+              maxScrollWidth: 3,
+              maxScrollHeight: 5,
+
+              viewportHeight: 0,
+              viewportWidth: 0,
+              pageUrl: 'http://localhost/user/user_id',
               timestamp: expect.any(Number),
               type: 'scroll',
             },
@@ -145,7 +189,10 @@ describe('scroll', () => {
 
       test('new max scroll width', () => {
         mockWindowWidth(42);
-        scrollWatcher = new ScrollWatcher(mockTransportInstance);
+        scrollWatcher = new ScrollWatcher(mockTransportInstance, {
+          loggerProvider: mockLoggerProvider,
+          ugcFilterRules: [],
+        });
         scrollWatcher.update({ id: 1, x: 3, y: 4 });
         scrollWatcher.update({ id: 1, x: 5, y: 4 });
         expectMaxScrolls({ maxScrollX: 5, maxScrollWidth: 42 + 5 });
@@ -153,7 +200,10 @@ describe('scroll', () => {
 
       test('new max scroll height', () => {
         mockWindowHeight(24);
-        scrollWatcher = new ScrollWatcher(mockTransportInstance);
+        scrollWatcher = new ScrollWatcher(mockTransportInstance, {
+          loggerProvider: mockLoggerProvider,
+          ugcFilterRules: [],
+        });
         scrollWatcher.update({ id: 1, x: 3, y: 4 });
         scrollWatcher.update({ id: 1, x: 5, y: 6 });
         expectMaxScrolls({ maxScrollY: 6, maxScrollHeight: 24 + 6 });
