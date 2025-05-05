@@ -9,6 +9,8 @@ import {
 import { ServerZone } from '@amplitude/analytics-core';
 import { generateHashCode, getServerUrl, getStorageSize, isSessionInSample, maskFn } from '../src/helpers';
 import * as AnalyticsCore from '@amplitude/analytics-core';
+import { getPageUrl } from '../src/helpers';
+import { UGCFilterRule } from '../src/config/types';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
@@ -267,6 +269,106 @@ describe('SessionReplayPlugin helpers', () => {
       } as unknown as typeof globalThis);
       const storageSize = await getStorageSize();
       expect(storageSize).toEqual({ totalStorageSize: 0, percentOfQuota: 0, usageDetails: '{"indexedDB":10}' });
+    });
+  });
+
+  describe('getPageUrl', () => {
+    const mockLogger = {
+      error: jest.fn(),
+      log: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      disable: jest.fn(),
+      enable: jest.fn(),
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test('should return original URL when no filter rules are provided', () => {
+      const url = 'https://example.com/page';
+      const result = getPageUrl(mockLogger, url);
+      expect(result).toBe(url);
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    test('should return original URL when filter rules have invalid format', () => {
+      const url = 'https://example.com/page';
+      const invalidRules = [
+        { selector: 123, replacement: 'replacement' },
+        { selector: 'pattern', replacement: 456 },
+      ] as unknown as UGCFilterRule[];
+      const result = getPageUrl(mockLogger, url, invalidRules);
+      expect(result).toBe(url);
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'ugcFilterRules must be an array of objects with selector and replacement properties',
+      );
+    });
+
+    test('should return original URL when filter rules contain invalid glob patterns', () => {
+      const url = 'https://example.com/page';
+      const invalidRules: UGCFilterRule[] = [{ selector: 'invalid[pattern', replacement: 'replacement' }];
+      const result = getPageUrl(mockLogger, url, invalidRules);
+      expect(result).toBe(url);
+      expect(mockLogger.error).toHaveBeenCalledWith('ugcFilterRules must be an array of objects with valid globs');
+    });
+
+    test('should apply single filter rule correctly', () => {
+      const url = 'https://example.com/user/123';
+      const rules: UGCFilterRule[] = [
+        { selector: 'https://example.com/user/*', replacement: 'https://example.com/user/user_id' },
+      ];
+      const result = getPageUrl(mockLogger, url, rules);
+      expect(result).toBe('https://example.com/user/user_id');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    test('should apply multiple first matching rule in order', () => {
+      const url = 'https://example.com/user/123/profile';
+      const rules: UGCFilterRule[] = [
+        { selector: 'https://example.com/user/*/*', replacement: 'https://example.com/user/user_id/space_name' },
+        {
+          selector: 'https://example.com/user/*/profile',
+          replacement: 'https://example.com/user/user_id/profile_page',
+        },
+      ];
+      const result = getPageUrl(mockLogger, url, rules);
+      expect(result).toBe('https://example.com/user/user_id/space_name');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    test('should handle complex glob patterns', () => {
+      const url = 'https://example.com/products/electronics/123';
+      const rules: UGCFilterRule[] = [
+        {
+          selector: 'https://example.com/products/*/*',
+          replacement: 'https://example.com/products/category_id/item_id',
+        },
+      ];
+      const result = getPageUrl(mockLogger, url, rules);
+      expect(result).toBe('https://example.com/products/category_id/item_id');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    test('should handle wildcard in glob patterns', () => {
+      const url = 'https://example.com/project/123';
+      const rules: UGCFilterRule[] = [
+        { selector: 'https://*.com/*/*', replacement: 'https://company_name.com/category_id/item_id' },
+      ];
+      const result = getPageUrl(mockLogger, url, rules);
+      expect(result).toBe('https://company_name.com/category_id/item_id');
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
+    test('should handle question mark in glob patterns', () => {
+      const url = 'https://example.com/p?ge';
+      const rules: UGCFilterRule[] = [
+        { selector: 'https://example.com/p?ge', replacement: 'https://example.com/page' },
+      ];
+      const result = getPageUrl(mockLogger, url, rules);
+      expect(result).toBe('https://example.com/page');
+      expect(mockLogger.error).not.toHaveBeenCalled();
     });
   });
 });
