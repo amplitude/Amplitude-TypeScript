@@ -214,6 +214,38 @@ describe('click', () => {
         type: 'click',
       });
     });
+
+    test('add event on click event with scroll with UGC filter rules', () => {
+      const hookWithUGCFilterRules = clickHook(mockLoggerProvider, {
+        deviceIdFn: () => deviceId,
+        eventsManager: mockEventsManager,
+        sessionId: sessionId,
+        ugcFilterRules: [{ selector: 'http://localhost/user/*', replacement: 'http://localhost/user/user_id' }],
+      });
+      mockGlobalScope({
+        innerHeight: 768,
+        innerWidth: 1024,
+        location: {
+          href: 'http://localhost/user/123123',
+        } as any,
+      });
+      hookWithUGCFilterRules({
+        id: 1234,
+        type: MouseInteractions.Click,
+        x: 3,
+        y: 3,
+      });
+      expect(jest.spyOn(mockEventsManager, 'addEvent')).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(mockEventsManager.addEvent.mock.calls[0][0].event.data)).toStrictEqual({
+        x: 3,
+        y: 3,
+        viewportHeight: 768,
+        viewportWidth: 1024,
+        pageUrl: 'http://localhost/user/user_id',
+        timestamp: expect.any(Number),
+        type: 'click',
+      });
+    });
   });
 
   describe('clickBatcher', () => {
