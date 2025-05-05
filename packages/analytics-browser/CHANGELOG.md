@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.17.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.2...@amplitude/analytics-browser@2.17.3) (2025-05-05)
+
+
+### Bug Fixes
+
+* **analytics-browser:** use performance.now in network capture ([#1060](https://github.com/amplitude/Amplitude-TypeScript/issues/1060)) ([70917e2](https://github.com/amplitude/Amplitude-TypeScript/commit/70917e26369d27adf62e6b9a44a39599a312b3ef))
+
+
+
+
+
 ## [2.17.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.1...@amplitude/analytics-browser@2.17.2) (2025-05-02)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
