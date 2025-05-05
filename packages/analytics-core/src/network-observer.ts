@@ -149,7 +149,7 @@ export class NetworkObserver {
         const response = await originalFetch(input, init);
 
         requestEvent.status = response.status;
-        requestEvent.duration = performance.now() - durationStart;
+        requestEvent.duration = Math.floor(performance.now() - durationStart);
         requestEvent.startTime = startTime;
         requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
 
