@@ -161,7 +161,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    this.initialize(true);
+    void this.initialize(true);
   }
 
   setSessionId(sessionId: string | number, deviceId?: string) {
@@ -256,20 +256,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.eventsManager.sendCurrentSequenceEvents({ sessionId: sessionIdToSend, deviceId });
   }
 
-  initialize(shouldSendStoredEvents = false) {
+  async initialize(shouldSendStoredEvents = false) {
     if (!this.identifiers?.sessionId) {
       this.loggerProvider.log(`Session is not being recorded due to lack of session id.`);
-      return;
+      return Promise.resolve();
     }
 
     const deviceId = this.getDeviceId();
     if (!deviceId) {
       this.loggerProvider.log(`Session is not being recorded due to lack of device id.`);
-      return;
+      return Promise.resolve();
     }
     this.eventsManager && shouldSendStoredEvents && void this.eventsManager.sendStoredEvents({ deviceId });
 
-    void this.recordEvents();
+    return this.recordEvents();
   }
 
   shouldOptOut() {
