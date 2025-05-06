@@ -255,7 +255,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.log(`Session is not being recorded due to lack of device id.`);
       return;
     }
-    this.eventsManager && shouldSendStoredEvents && this.eventsManager.sendStoredEvents({ deviceId });
+    this.eventsManager && shouldSendStoredEvents && void this.eventsManager.sendStoredEvents({ deviceId });
 
     void this.recordEvents();
   }
