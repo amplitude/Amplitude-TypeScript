@@ -509,6 +509,15 @@ describe('SessionReplay', () => {
         expect(sessionReplay.config?.flushMaxRetries).toBe(0);
       });
     });
+
+    test('should terminate previous eventCompressor on re-initialization', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      // Spy on terminate of the first eventCompressor
+      const terminateSpy = jest.spyOn(sessionReplay.eventCompressor!, 'terminate');
+      // Call init again to trigger terminate
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(terminateSpy).toHaveBeenCalled();
+    });
   });
 
   describe('setSessionId', () => {
@@ -790,6 +799,14 @@ describe('SessionReplay', () => {
       }).promise;
       await sessionReplay.initialize(true);
       expect(sessionReplay.pageLeaveFns).toHaveLength(expectedLength);
+    });
+
+    test('should call recordEvents when called without params', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      await sessionReplay.initialize();
+      expect(recordEventsSpy).toHaveBeenCalled();
     });
   });
 
@@ -1099,6 +1116,16 @@ describe('SessionReplay', () => {
       expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
       expect(recordArg?.hooks?.scroll).toBeDefined();
     });
+
+    test('should warn if record throws during recordEvents', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      (RRWeb.record as unknown as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('record failed');
+      });
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+      await sessionReplay.recordEvents();
+      expect(warnSpy).toHaveBeenCalledWith('Failed to initialize session replay:', expect.any(Error));
+    });
   });
 
   describe('getDeviceId', () => {
@@ -1361,7 +1388,7 @@ describe('SessionReplay', () => {
           levels: [],
         },
       };
-      expect(sessionReplay.getRecordingPlugins(loggingConfig)).toBeUndefined();
+      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toBeUndefined();
     });
     test('enabled console logging', async () => {
       const loggingConfig: LoggingConfig = {
@@ -1370,7 +1397,24 @@ describe('SessionReplay', () => {
           levels: ['warn', 'error'],
         },
       };
-      expect(sessionReplay.getRecordingPlugins(loggingConfig)).toHaveLength(1);
+      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toHaveLength(1);
+    });
+    test('should warn if loading console plugin fails', async () => {
+      const loggingConfig: LoggingConfig = {
+        console: {
+          enabled: true,
+          levels: ['warn', 'error'],
+        },
+      };
+      // Mock the dynamic import to throw for this test only
+      jest.resetModules();
+      jest.doMock('@amplitude/rrweb-plugin-console-record', () => {
+        throw new Error('Import failed');
+      });
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+      await sessionReplay.getRecordingPlugins(loggingConfig);
+      expect(warnSpy).toHaveBeenCalledWith('Failed to load console plugin:', expect.any(Error));
+      jest.dontMock('@amplitude/rrweb-plugin-console-record');
     });
   });
 
