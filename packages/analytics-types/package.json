@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-types",
-  "version": "2.9.0",
+  "version": "2.9.2",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -21,6 +21,7 @@
     "build": "yarn build:es5 & yarn build:esm",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "watch": "tsc -p ./tsconfig.esm.json --watch",
     "clean": "rimraf lib",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",

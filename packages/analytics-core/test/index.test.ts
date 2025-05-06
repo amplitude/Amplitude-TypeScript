@@ -5,6 +5,7 @@ import {
   Destination,
   Config,
   Logger,
+  LogLevel,
   AMPLITUDE_PREFIX,
   STORAGE_PREFIX,
   returnWrapper,
@@ -15,6 +16,30 @@ import {
   MemoryStorage,
   createIdentifyEvent,
   RequestMetadata,
+  getGlobalScope,
+  getAnalyticsConnector,
+  setConnectorDeviceId,
+  setConnectorUserId,
+  isNewSession,
+  getQueryParams,
+  getCookieName,
+  getOldCookieName,
+  getLanguage,
+  IdentityEventSender,
+  CookieStorage,
+  FetchTransport,
+  Identify,
+  Revenue,
+  getStorageKey,
+  OfflineDisabled,
+  Status,
+  DEFAULT_ACTION_CLICK_ALLOWLIST,
+  DEFAULT_CSS_SELECTOR_ALLOWLIST,
+  DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  RevenueProperty,
+  IdentifyOperation,
+  SpecialEventType,
+  ServerZone,
 } from '../src/index';
 
 describe('index', () => {
@@ -30,11 +55,14 @@ describe('index', () => {
     expect(typeof client.revenue).toBe('function');
     expect(typeof client.add).toBe('function');
     expect(typeof client.remove).toBe('function');
+    expect(typeof Identify).toBe('function');
+    expect(typeof Revenue).toBe('function');
     expect(typeof BaseTransport).toBe('function');
     expect(typeof Destination).toBe('function');
     expect(typeof Config).toBe('function');
     expect(typeof RequestMetadata).toEqual('function');
     expect(typeof Logger).toBe('function');
+    expect(typeof LogLevel).toBe('object');
     expect(typeof returnWrapper).toBe('function');
     expect(typeof debugWrapper).toBe('function');
     expect(typeof getClientLogConfig).toBe('function');
@@ -44,5 +72,31 @@ describe('index', () => {
     expect(typeof createIdentifyEvent).toBe('function');
     expect(AMPLITUDE_PREFIX).toBe('AMP');
     expect(STORAGE_PREFIX).toBe('AMP_unsent');
+    expect(typeof getStorageKey).toBe('function');
+    expect(typeof getGlobalScope).toBe('function');
+    expect(typeof getAnalyticsConnector).toBe('function');
+    expect(typeof setConnectorDeviceId).toBe('function');
+    expect(typeof setConnectorUserId).toBe('function');
+    expect(typeof isNewSession).toBe('function');
+    expect(typeof getQueryParams).toBe('function');
+    expect(typeof getCookieName).toBe('function');
+    expect(typeof getOldCookieName).toBe('function');
+    expect(typeof getLanguage).toBe('function');
+    expect(typeof IdentityEventSender).toBe('function');
+    expect(() => new IdentityEventSender()).not.toThrow();
+    expect(typeof CookieStorage).toBe('function');
+    expect(() => new CookieStorage()).not.toThrow();
+    expect(typeof FetchTransport).toBe('function');
+    expect(() => new FetchTransport()).not.toThrow();
+    expect(OfflineDisabled).toBe(null);
+    expect(typeof OfflineDisabled).toBe('object');
+    expect(typeof Status).toBe('object');
+    expect(typeof DEFAULT_ACTION_CLICK_ALLOWLIST).toBe('object');
+    expect(typeof DEFAULT_CSS_SELECTOR_ALLOWLIST).toBe('object');
+    expect(typeof DEFAULT_DATA_ATTRIBUTE_PREFIX).toBe('string');
+    expect(typeof RevenueProperty).toBe('object');
+    expect(typeof IdentifyOperation).toBe('object');
+    expect(typeof SpecialEventType).toBe('object');
+    expect(typeof ServerZone).toBe('object');
   });
 });

@@ -29,7 +29,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     environment: Jira
     name: SDK Bot Jira Issue Creation
     steps:
@@ -46,6 +46,20 @@ jobs:
         with:
           string: ${{ inputs.label }}
 
+      - name: Truncate Issue Title
+        id: truncate
+        run: |
+          # Calculate max length for title (255 - length of prefix - length of ellipsis - space)
+          PREFIX="[SDK - ${{ inputs.label }}] "
+          ELLIPSIS="..."
+          MAX_TITLE_LENGTH=$((255 - ${#PREFIX} - ${#ELLIPSIS} - 1))
+          # Process and truncate title if needed
+          TITLE=$(echo "${{ github.event.issue.title }}" | tr '\n' ' ' | sed 's/"/\\"/g')
+          if [ ${#TITLE} -gt $MAX_TITLE_LENGTH ]; then
+            TITLE="${TITLE:0:$MAX_TITLE_LENGTH}..."
+          fi
+          echo "truncated_title=$TITLE" >> $GITHUB_OUTPUT
+
       - name: Create issue
         id: create
         uses: atlassian/gajira-create@master
@@ -53,7 +67,7 @@ jobs:
           project: ${{ secrets.JIRA_PROJECT }}
           issuetype: Task
           summary: |
-            [SDK - ${{ inputs.label }}] ${{ github.event.issue.title }}
+            [SDK - ${{ inputs.label }}] ${{ steps.truncate.outputs.truncated_title }}
           description: |
             ${{ github.event.issue.html_url }}
           fields: '{

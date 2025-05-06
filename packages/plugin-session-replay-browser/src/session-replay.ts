@@ -1,22 +1,34 @@
-import { BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-core';
 import * as sessionReplay from '@amplitude/session-replay-browser';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
+import { AmplitudeSessionReplay } from '@amplitude/session-replay-browser';
 
-export class SessionReplayPlugin implements EnrichmentPlugin {
-  name = '@amplitude/plugin-session-replay-browser';
+export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, BrowserConfig> {
+  static pluginName = '@amplitude/plugin-session-replay-browser';
+  name = SessionReplayPlugin.pluginName;
   type = 'enrichment' as const;
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: BrowserConfig;
   options: SessionReplayOptions;
+  srInitOptions: sessionReplay.SessionReplayOptions;
+  sr: AmplitudeSessionReplay = {
+    flush: sessionReplay.flush,
+    getSessionId: sessionReplay.getSessionId,
+    getSessionReplayProperties: sessionReplay.getSessionReplayProperties,
+    init: sessionReplay.init,
+    setSessionId: sessionReplay.setSessionId,
+    shutdown: sessionReplay.shutdown,
+  };
 
   constructor(options?: SessionReplayOptions) {
     this.options = { forceSessionTracking: false, ...options };
+    this.srInitOptions = this.options;
   }
 
-  async setup(config: BrowserConfig) {
+  async setup(config: BrowserConfig, _client: BrowserClient) {
     try {
       /* istanbul ignore next */
       config?.loggerProvider.log(`Installing @amplitude/plugin-session-replay, version ${VERSION}.`);
@@ -41,7 +53,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         }
       }
 
-      await sessionReplay.init(config.apiKey, {
+      this.srInitOptions = {
         instanceName: this.config.instanceName,
         deviceId: this.options.deviceId ?? this.config.deviceId,
         optOut: this.config.optOut,
@@ -65,10 +77,34 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
         experimental: this.options.experimental,
-      }).promise;
+      };
+
+      await this.sr.init(config.apiKey, this.srInitOptions).promise;
     } catch (error) {
       /* istanbul ignore next */
       config?.loggerProvider.error(`Session Replay: Failed to initialize due to ${(error as Error).message}`);
+    }
+  }
+
+  async onSessionIdChanged(sessionId: number): Promise<void> {
+    this.config.loggerProvider.debug(
+      `Analytics session id is changed to ${sessionId}, SR session id is ${String(this.sr.getSessionId())}.`,
+    );
+    await this.sr.setSessionId(sessionId).promise;
+  }
+
+  async onOptOutChanged(optOut: boolean): Promise<void> {
+    this.config.loggerProvider.debug(
+      `optOut is changed to ${String(optOut)}, calling ${
+        optOut ? 'sessionReplay.shutdown()' : 'sessionReplay.init()'
+      }.`,
+    );
+    // TODO: compare optOut with this.sr.getOptOut().
+    // Need to add getOptOut() to the interface AmplitudeSessionReplay first.
+    if (optOut) {
+      this.sr.shutdown();
+    } else {
+      await this.sr.init(this.config.apiKey, this.srInitOptions).promise;
     }
   }
 
@@ -79,11 +115,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         if (sessionId) {
           // On event, synchronize the session id to the custom session id from the event. This may
           // suffer from offline/delayed events messing up the state stored
-          if (sessionId !== sessionReplay.getSessionId()) {
-            await sessionReplay.setSessionId(sessionId).promise;
+          if (sessionId !== this.sr.getSessionId()) {
+            await this.sr.setSessionId(sessionId).promise;
           }
 
-          const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+          const sessionRecordingProperties = this.sr.getSessionReplayProperties();
           event.event_properties = {
             ...event.event_properties,
             ...sessionRecordingProperties,
@@ -94,14 +130,14 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
         // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
         // in SR.
         const sessionId: string | number | undefined = this.config.sessionId;
-        if (sessionId && sessionId !== sessionReplay.getSessionId()) {
-          await sessionReplay.setSessionId(sessionId).promise;
+        if (sessionId && sessionId !== this.sr.getSessionId()) {
+          await this.sr.setSessionId(sessionId).promise;
         }
 
         // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
         // event is not of the current session (offline/late events). In that case, don't tag the events
         if (sessionId && sessionId === event.session_id) {
-          const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
+          const sessionRecordingProperties = this.sr.getSessionReplayProperties();
           event.event_properties = {
             ...event.event_properties,
             ...sessionRecordingProperties,
@@ -119,7 +155,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
 
   async teardown(): Promise<void> {
     try {
-      sessionReplay.shutdown();
+      this.sr.shutdown();
       // the following are initialized in setup() which will always be called first
       // here we reset them to null to prevent memory leaks
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -132,7 +168,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin {
   }
 
   getSessionReplayProperties() {
-    return sessionReplay.getSessionReplayProperties();
+    return this.sr.getSessionReplayProperties();
   }
 }
 

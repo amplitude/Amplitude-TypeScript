@@ -784,6 +784,8 @@ describe('integration', () => {
       rev.setRevenueType('t');
       rev.setCurrency('USD');
       rev.setRevenue(200);
+      rev.setReceipt('receipt');
+      rev.setReceiptSig('receipt sig');
       const response = await client.revenue(rev).promise;
       expect(response.event).toEqual({
         device_id: uuid,
@@ -795,6 +797,8 @@ describe('integration', () => {
           $revenue: 200,
           $revenueType: 't',
           $currency: 'USD',
+          $receipt: 'receipt',
+          $receiptSig: 'receipt sig',
         },
         event_type: 'revenue_amount',
         insert_id: uuid,
@@ -1946,9 +1950,9 @@ describe('integration', () => {
         expect(response.message).toBe(SUCCESS_MESSAGE);
         scope.done();
 
-        expect(logger.debug).toHaveBeenCalledTimes(3);
+        expect(logger.debug).toHaveBeenCalledTimes(4);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[2]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[3]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('track');
         expect(debugContext.args).toBeDefined();
@@ -1974,9 +1978,9 @@ describe('integration', () => {
         }).promise;
         client.setOptOut(true);
 
-        expect(logger.debug).toHaveBeenCalledTimes(3);
+        expect(logger.debug).toHaveBeenCalledTimes(4);
         /* eslint-disable */
-        const debugContext = JSON.parse(logger.debug.mock.calls[2]);
+        const debugContext = JSON.parse(logger.debug.mock.calls[3]);
         expect(debugContext.type).toBeDefined();
         expect(debugContext.name).toEqual('setOptOut');
         expect(debugContext.args).toBeDefined();

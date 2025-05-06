@@ -19,6 +19,7 @@ import { SessionReplayPlugin } from '@amplitude/plugin-session-replay-react-nati
 const config: SessionReplayConfig = {
     enableRemoteConfig: true, // default true
     sampleRate: 1, // default 0
+    logLevel: LogLevel.Warn, // default LogLevel.Warn
 };
 await init('YOUR_API_KEY').promise;
 await add(new SessionReplayPlugin(config)).promise;

@@ -5,7 +5,7 @@ import {
   ObservablesEnum,
 } from 'src/autocapture-plugin';
 import { filter, map, merge, switchMap, take, timeout, EMPTY } from 'rxjs';
-import { BrowserClient, ActionType } from '@amplitude/analytics-types';
+import { BrowserClient, ActionType } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, getClosestElement, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
@@ -75,9 +75,6 @@ export function trackActionClick({
     amplitude?.track(
       AMPLITUDE_ELEMENT_CLICKED_EVENT,
       getEventProperties('click', (actionClick as ElementBasedTimestampedEvent<MouseEvent>).closestTrackedAncestor),
-      {
-        time: actionClick.timestamp,
-      },
     );
   });
 }

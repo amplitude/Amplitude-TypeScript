@@ -1,4 +1,4 @@
-import { Storage as AmplitudeStorage } from '@amplitude/analytics-types';
+import { Storage as AmplitudeStorage } from '@amplitude/analytics-core';
 
 export class BrowserStorage<T> implements AmplitudeStorage<T> {
   constructor(private storage?: Storage) {}

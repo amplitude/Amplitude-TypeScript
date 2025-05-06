@@ -32,7 +32,7 @@ describe('formInteractionTracking', () => {
     document.querySelector('form#my-form-id')?.remove();
   });
 
-  test('should not track form_start event when window load event was not triggered', async () => {
+  test('should track form_start event when the plugin is added after window load', async () => {
     // setup
     const config = createConfigurationMock();
     const plugin = formInteractionTracking();
@@ -42,7 +42,34 @@ describe('formInteractionTracking', () => {
     document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
 
     // assert first event was tracked
-    expect(amplitude.track).toHaveBeenCalledTimes(0);
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+  });
+
+  test('should track form_start event when the plugin is added before window load', async () => {
+    const originalReadyState = document.readyState;
+    Object.defineProperty(document, 'readyState', {
+      value: 'loading',
+      writable: true,
+      configurable: true,
+    });
+
+    // setup
+    const config = createConfigurationMock();
+    const plugin = formInteractionTracking();
+    await plugin.setup?.(config, amplitude);
+
+    // trigger change event
+    window.dispatchEvent(new Event('load'));
+    document.getElementById('my-form-id')?.dispatchEvent(new Event('change'));
+
+    // assert first event was tracked
+    expect(amplitude.track).toHaveBeenCalledTimes(1);
+
+    // Restore the original value after each test
+    Object.defineProperty(document, 'readyState', {
+      value: originalReadyState,
+      writable: true,
+    });
   });
 
   test('should track form_start event', async () => {

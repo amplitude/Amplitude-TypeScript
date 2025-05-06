@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-session-replay-browser",
-  "version": "1.13.4",
+  "version": "1.16.5",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -21,6 +21,7 @@
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "watch": "tsc -p ./tsconfig.esm.json --watch",
     "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
@@ -38,15 +39,13 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": ">=1 <2",
-    "@amplitude/analytics-core": ">=1 <2",
-    "@amplitude/analytics-types": ">=1 <2",
-    "@amplitude/session-replay-browser": "^1.19.3",
+    "@amplitude/analytics-core": "^2.11.2",
+    "@amplitude/session-replay-browser": "^1.22.3",
     "idb-keyval": "^6.2.1",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.11.13",
+    "@amplitude/analytics-browser": "^2.17.3",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

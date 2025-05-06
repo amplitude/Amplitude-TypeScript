@@ -1,5 +1,5 @@
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
-import { LogLevel, Logger, ServerZone } from '@amplitude/analytics-types';
+import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import {
   SessionReplayJoinedConfigGenerator,
@@ -10,7 +10,7 @@ import { SessionReplayLocalConfig } from '../../src/config/local-config';
 import { PrivacyConfig, SessionReplayRemoteConfig } from '../../src/config/types';
 import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 const samplingConfig = {
   sample_rate: 0.4,
   capture_enabled: true,

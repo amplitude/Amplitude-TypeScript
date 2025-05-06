@@ -3,6 +3,47 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.3.1...@amplitude/plugin-session-replay-react-native@0.3.2) (2025-04-03)
+
+
+### Bug Fixes
+
+* **SessionReplay-RN:** inherit ServerZone from Amplitude-RN ([#1015](https://github.com/amplitude/Amplitude-TypeScript/issues/1015)) ([f7ca1b4](https://github.com/amplitude/Amplitude-TypeScript/commit/f7ca1b4e5c49f7f2d17b3ff383d37804ef4ca352))
+
+
+
+
+
+## [0.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.3.0...@amplitude/plugin-session-replay-react-native@0.3.1) (2025-04-02)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-react-native
+
+
+
+
+
+# [0.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.9...@amplitude/plugin-session-replay-react-native@0.3.0) (2025-03-21)
+
+
+### Features
+
+* **session replay rn:** add log level config to session replay rn plugin ([#1002](https://github.com/amplitude/Amplitude-TypeScript/issues/1002)) ([46d2854](https://github.com/amplitude/Amplitude-TypeScript/commit/46d2854cb8126ca0d67d7345c060ce3060a1d322))
+
+
+
+
+
+## [0.2.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.2.8...@amplitude/plugin-session-replay-react-native@0.2.9) (2025-03-17)
+
+
+### Bug Fixes
+
+* add start and stop functions and fix lateinit crash on Android ([#995](https://github.com/amplitude/Amplitude-TypeScript/issues/995)) ([84c1084](https://github.com/amplitude/Amplitude-TypeScript/commit/84c1084fb38b2bedd5ccf344a7d0fa44a011bc29))
+
+
+
+
+
 ## 0.2.8 (2025-02-28)
 
 

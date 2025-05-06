@@ -1,5 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { STORAGE_PREFIX } from '@amplitude/analytics-core';
+import { STORAGE_PREFIX, getGlobalScope } from '@amplitude/analytics-core';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 import { STORAGE_FAILURE } from '../messages';
 import { EventType, Events, SendingSequencesReturn } from '../typings/session-replay';

@@ -1,15 +1,19 @@
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
 import {
   CookieStorage,
   FetchTransport,
   getAnalyticsConnector,
   getCookieName,
-} from '@amplitude/analytics-client-common';
-import { WebAttribution } from '@amplitude/analytics-client-common/src';
+  LogLevel,
+  OfflineDisabled,
+  Status,
+  UserSession,
+  AutocaptureOptions,
+} from '@amplitude/analytics-core';
+import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
-import { AutocaptureOptions, LogLevel, OfflineDisabled, Status, UserSession } from '@amplitude/analytics-types';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
+import * as networkCapturePlugin from '@amplitude/plugin-network-capture-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
 import * as RemoteConfig from '../src/config/joined-config';
@@ -49,14 +53,58 @@ describe('browser-client', () => {
   });
 
   afterEach(() => {
+    jest.clearAllMocks();
     // clean up cookies
     document.cookie = `AMP_${apiKey}=null; expires=-1`;
   });
 
+  describe('plugin', () => {
+    test('should return plugin by name', async () => {
+      const fileDownloadTrackingPlugin = jest.spyOn(fileDownloadTracking, 'fileDownloadTracking');
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking: {
+          ...defaultTracking,
+          fileDownloads: true,
+        },
+      }).promise;
+      const result = client.plugin('@amplitude/plugin-file-download-tracking-browser');
+      // result should be fileDownloadTrackingPlugin
+      // comparing with the first call to the spy
+      expect(result).toBe(fileDownloadTrackingPlugin.mock.results[0].value);
+    });
+
+    test('should return undefined when name doesn not exist', async () => {
+      const loggerProvider = {
+        log: jest.fn(),
+        debug: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        enable: jest.fn(),
+        disable: jest.fn(),
+      };
+      await client.init(apiKey, userId, {
+        optOut: false,
+        defaultTracking: {
+          ...defaultTracking,
+          fileDownloads: true,
+        },
+        loggerProvider: loggerProvider,
+      }).promise;
+      const result = client.plugin('plugin-file-download-tracking-browser');
+      // result should be fileDownloadTrackingPlugin
+      // comparing with the first call to the spy
+      expect(result).toBe(undefined);
+      expect(loggerProvider.debug).toHaveBeenCalledWith(
+        'Cannot find plugin with name plugin-file-download-tracking-browser',
+      );
+    });
+  });
+
   describe('init', () => {
-    test('should NOT use remote config by default', async () => {
+    test('should use remote config by default', async () => {
       await client.init(apiKey).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
     });
 
     test('should use remote config when fetchRemoteConfig is true', async () => {
@@ -64,6 +112,13 @@ describe('browser-client', () => {
         fetchRemoteConfig: true,
       }).promise;
       expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
+    });
+
+    test('should use remote config when fetchRemoteConfig is false', async () => {
+      await client.init(apiKey, {
+        fetchRemoteConfig: false,
+      }).promise;
+      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
     });
 
     test('should initialize client', async () => {
@@ -345,6 +400,15 @@ describe('browser-client', () => {
       expect(autocapturePlugin).toHaveBeenCalledTimes(0);
     });
 
+    test('should use network tracking plugin when autocapture is on', async () => {
+      const networkTrackingPlugin = jest.spyOn(networkCapturePlugin, 'plugin');
+      await client.init(apiKey, userId, {
+        autocapture: true,
+        networkTrackingOptions: {}, // TODO: may not need this in the future?
+      }).promise;
+      expect(networkTrackingPlugin).toHaveBeenCalledTimes(1);
+    });
+
     test('should listen for network change to online', async () => {
       jest.useFakeTimers();
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
@@ -406,7 +470,7 @@ describe('browser-client', () => {
     });
 
     test('should not support offline mode if global scope returns undefined', async () => {
-      const getGlobalScopeMock = jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValueOnce(undefined);
+      const getGlobalScopeMock = jest.spyOn(core, 'getGlobalScope').mockReturnValueOnce(undefined);
       const addEventListenerMock = jest.spyOn(window, 'addEventListener');
 
       await client.init(apiKey, {
@@ -1169,7 +1233,7 @@ describe('browser-client', () => {
 
       client.webAttribution = new WebAttribution({}, { ...client.config, lastEventTime: undefined });
       client.webAttribution.shouldTrackNewCampaign = true;
-      jest.spyOn(AnalyticsClientCommon, 'isNewSession').mockReturnValueOnce(false);
+      jest.spyOn(core, 'isNewSession').mockReturnValueOnce(false);
       await client.process({
         event_type: 'event',
       });

@@ -51,10 +51,10 @@
     s.parentNode.insertBefore(autoTrackingPluginScript, s);
     var as = document.createElement('script');
     as.type = 'text/javascript';
-    as.integrity = 'sha384-Gp3U9FccXZdynaf6nB7JC4UsNvxaQtTQxipmBPgneRzqjcvAUa/7+oAfy+7NJpsb';
+    as.integrity = 'sha384-IMX5waynS1OHm4LTfbUEyTrhmN73w5ZrtK1jinr2o/Wq8WtlmRWMa9XESzgq/t3n';
     as.crossOrigin = 'anonymous';
     as.async = false;
-    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.11.13-min.js.gz';
+    as.src = 'https://cdn.amplitude.com/libs/analytics-browser-2.17.3-min.js.gz';
     as.onload = function () {
       if (!window.amplitude.runQueuedFunctions) {
         console.log('[Amplitude] Error: could not load SDK');
@@ -87,7 +87,7 @@
       this._q = [];
       return this;
     };
-    var revenueFuncs = ['getEventProperties', 'setProductId', 'setQuantity', 'setPrice', 'setRevenue', 'setRevenueType', 'setEventProperties'];
+    var revenueFuncs = ['getEventProperties', 'setProductId', 'setQuantity', 'setPrice', 'setRevenue', 'setRevenueType', 'setReceipt', 'setReceiptSig', 'setCurrency', 'setEventProperties'];
     for (var j = 0; j < revenueFuncs.length; j++) {
       proxy(Revenue, revenueFuncs[j]);
     }

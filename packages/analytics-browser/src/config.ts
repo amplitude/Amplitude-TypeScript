@@ -1,35 +1,44 @@
 import {
+  Config,
+  Logger,
+  ILogger,
+  LogLevel,
   Event,
+  Storage,
+  IngestionMetadata,
+  ServerZoneType,
+  OfflineDisabled,
+  Plan,
+  IdentityStorageType,
+  TransportType,
+  MemoryStorage,
+  UUID,
+  CookieStorage,
+  getCookieName,
+  FetchTransport,
+  getQueryParams,
+  UserSession,
   BrowserOptions,
   BrowserConfig as IBrowserConfig,
   DefaultTrackingOptions,
-  Storage,
   TrackingOptions,
-  TransportType,
-  UserSession,
-  Logger as ILogger,
-  LogLevel,
-  Plan,
-  IngestionMetadata,
-  IdentityStorageType,
-  ServerZoneType,
-  OfflineDisabled,
   AutocaptureOptions,
-} from '@amplitude/analytics-types';
-import { Config, Logger, MemoryStorage, UUID } from '@amplitude/analytics-core';
-import { CookieStorage, getCookieName, FetchTransport, getQueryParams } from '@amplitude/analytics-client-common';
+  CookieOptions,
+  NetworkTrackingOptions,
+} from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
 import { SessionStorage } from './storage/session-storage';
 import { XHRTransport } from './transports/xhr';
 import { SendBeaconTransport } from './transports/send-beacon';
 import { parseLegacyCookies } from './cookie-migration';
-import { CookieOptions } from '@amplitude/analytics-types/lib/esm/config/browser';
 import { DEFAULT_IDENTITY_STORAGE, DEFAULT_SERVER_ZONE } from './constants';
 import { AmplitudeBrowser } from './browser-client';
+import { VERSION } from './version';
 
 // Exported for testing purposes only. Do not expose to public interface.
 export class BrowserConfig extends Config implements IBrowserConfig {
+  public readonly version = VERSION;
   protected _cookieStorage: Storage<UserSession>;
   protected _deviceId?: string;
   protected _lastEventId?: number;
@@ -80,10 +89,11 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     },
     public transport: 'fetch' | 'xhr' | 'beacon' = 'fetch',
     public useBatch: boolean = false,
-    public fetchRemoteConfig: boolean = false,
+    public fetchRemoteConfig: boolean = true,
     userId?: string,
     pageCounter?: number,
     debugLogsEnabled?: boolean,
+    public networkTrackingOptions?: NetworkTrackingOptions,
   ) {
     super({ apiKey, storageProvider, transportProvider: createTransport(transport) });
     this._cookieStorage = cookieStorage;
@@ -96,6 +106,7 @@ export class BrowserConfig extends Config implements IBrowserConfig {
     this.userId = userId;
     this.debugLogsEnabled = debugLogsEnabled;
     this.loggerProvider.enable(debugLogsEnabled ? LogLevel.Debug : this.logLevel);
+    this.networkTrackingOptions = networkTrackingOptions;
   }
 
   get cookieStorage() {
@@ -295,6 +306,7 @@ export const useBrowserConfig = async (
     userId,
     pageCounter,
     debugLogsEnabled,
+    options.networkTrackingOptions,
   );
 
   if (!(await browserConfig.storageProvider.isEnabled())) {

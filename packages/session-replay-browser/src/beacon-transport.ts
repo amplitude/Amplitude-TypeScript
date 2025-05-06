@@ -1,4 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { getGlobalScope } from '@amplitude/analytics-core';
 import { SessionReplayJoinedConfig } from './config/types';
 import { SessionReplayDestinationSessionMetadata } from './typings/session-replay';
 import { getServerUrl } from './helpers';

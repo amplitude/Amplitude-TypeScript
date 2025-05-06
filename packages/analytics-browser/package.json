@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.11.13",
+  "version": "2.17.3",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -26,6 +26,7 @@
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "watch": "tsc -p ./tsconfig.esm.json --watch",
     "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
@@ -45,12 +46,11 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.3.8",
-    "@amplitude/analytics-core": "^2.5.6",
+    "@amplitude/analytics-core": "^2.11.2",
     "@amplitude/analytics-remote-config": "^0.4.0",
-    "@amplitude/analytics-types": "^2.9.0",
-    "@amplitude/plugin-autocapture-browser": "^1.0.5",
-    "@amplitude/plugin-page-view-tracking-browser": "^2.3.9",
+    "@amplitude/plugin-autocapture-browser": "^1.2.3",
+    "@amplitude/plugin-network-capture-browser": "^1.1.3",
+    "@amplitude/plugin-page-view-tracking-browser": "^2.3.24",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

@@ -1,0 +1,61 @@
+{
+  "name": "@amplitude/plugin-network-capture-browser",
+  "version": "1.1.3",
+  "description": "",
+  "author": "Amplitude Inc",
+  "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
+  "license": "MIT",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "types": "lib/esm/index.d.ts",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
+  },
+  "scripts": {
+    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
+    "bundle": "rollup --config rollup.config.js",
+    "build:es5": "tsc -p ./tsconfig.es5.json",
+    "build:esm": "tsc -p ./tsconfig.esm.json",
+    "watch": "tsc -p ./tsconfig.esm.json --watch",
+    "clean": "rimraf node_modules lib coverage",
+    "fix": "yarn fix:eslint & yarn fix:prettier",
+    "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
+    "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
+    "lint": "yarn lint:eslint & yarn lint:prettier",
+    "lint:eslint": "eslint '{src,test}/**/*.ts'",
+    "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
+    "publish": "node ../../scripts/publish/upload-to-s3.js",
+    "test": "jest",
+    "typecheck": "tsc -p ./tsconfig.json",
+    "version": "yarn version-file && yarn build",
+    "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
+  },
+  "bugs": {
+    "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
+  },
+  "dependencies": {
+    "@amplitude/analytics-core": "^2.11.2",
+    "rxjs": "^7.8.1",
+    "tslib": "^2.4.1"
+  },
+  "devDependencies": {
+    "@amplitude/analytics-browser": "^2.17.3",
+    "@rollup/plugin-commonjs": "^23.0.4",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^10.0.1",
+    "css.escape": "^1.5.1",
+    "rollup": "^2.79.1",
+    "rollup-plugin-execute": "^1.1.1",
+    "rollup-plugin-gzip": "^3.1.0",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "files": [
+    "lib"
+  ]
+}

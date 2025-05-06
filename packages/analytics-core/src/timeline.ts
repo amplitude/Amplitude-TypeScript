@@ -1,14 +1,9 @@
-import {
-  BeforePlugin,
-  Config,
-  CoreClient,
-  DestinationPlugin,
-  EnrichmentPlugin,
-  Event,
-  EventCallback,
-  Plugin,
-  Result,
-} from '@amplitude/analytics-types';
+import { AnalyticsIdentity, BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './types/plugin';
+import { CoreClient } from './core-client';
+import { IConfig } from './config';
+import { EventCallback } from './types/event-callback';
+import { Event } from './types/event/event';
+import { Result } from './types/result';
 import { buildResult } from './utils/result-builder';
 import { UUID } from './utils/uuid';
 
@@ -22,7 +17,7 @@ export class Timeline {
 
   constructor(private client: CoreClient) {}
 
-  async register(plugin: Plugin, config: Config) {
+  async register(plugin: Plugin, config: IConfig) {
     if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       config.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
@@ -41,7 +36,7 @@ export class Timeline {
     this.plugins.push(plugin);
   }
 
-  async deregister(pluginName: string, config: Config) {
+  async deregister(pluginName: string, config: IConfig) {
     const index = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (index === -1) {
       config.loggerProvider.warn(`Plugin with name ${pluginName} does not exist, skipping deregistration`);
@@ -159,5 +154,35 @@ export class Timeline {
     });
 
     await Promise.all(executeDestinations);
+  }
+
+  onIdentityChanged(identity: AnalyticsIdentity) {
+    this.plugins.forEach((plugin) => {
+      // Intentionally to not await plugin.onIdentityChanged() for non-blocking.
+      // Ignore optional channing next line for test coverage.
+      // If the plugin doesn't implement it, it won't be called.
+      /* istanbul ignore next */
+      void plugin.onIdentityChanged?.(identity);
+    });
+  }
+
+  onSessionIdChanged(sessionId: number) {
+    this.plugins.forEach((plugin) => {
+      // Intentionally to not await plugin.onSessionIdChanged() for non-blocking.
+      // Ignore optional channing next line for test coverage.
+      // If the plugin doesn't implement it, it won't be called.
+      /* istanbul ignore next */
+      void plugin.onSessionIdChanged?.(sessionId);
+    });
+  }
+
+  onOptOutChanged(optOut: boolean) {
+    this.plugins.forEach((plugin) => {
+      // Intentionally to not await plugin.onOptOutChanged() for non-blocking.
+      // Ignore optional channing next line for test coverage.
+      // If the plugin doesn't implement it, it won't be called.
+      /* istanbul ignore next */
+      void plugin.onOptOutChanged?.(optOut);
+    });
   }
 }

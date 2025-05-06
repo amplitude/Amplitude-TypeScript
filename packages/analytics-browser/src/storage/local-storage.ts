@@ -1,17 +1,24 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
 import { BrowserStorage } from './browser-storage';
-import { Logger } from '@amplitude/analytics-types';
 
 const MAX_ARRAY_LENGTH = 1000;
 
 interface LocalStorageOptions {
-  loggerProvider?: Logger;
+  loggerProvider?: ILogger;
 }
 export class LocalStorage<T> extends BrowserStorage<T> {
-  loggerProvider?: Logger;
+  loggerProvider?: ILogger;
 
   constructor(config?: LocalStorageOptions) {
-    super(getGlobalScope()?.localStorage);
+    let localStorage;
+
+    try {
+      localStorage = getGlobalScope()?.localStorage;
+    } catch (e) {
+      config?.loggerProvider?.debug(`Failed to access localStorage. error=${JSON.stringify(e)}`);
+      localStorage = undefined;
+    }
+    super(localStorage);
     this.loggerProvider = config?.loggerProvider;
   }
 

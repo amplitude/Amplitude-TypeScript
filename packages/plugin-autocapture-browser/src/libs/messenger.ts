@@ -6,7 +6,7 @@ import {
   AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
 } from '../constants';
 import { asyncLoadScript, generateUniqueId, getEventTagProps } from '../helpers';
-import { Logger, Messenger, ActionType } from '@amplitude/analytics-types';
+import { ILogger, Messenger, ActionType } from '@amplitude/analytics-core';
 
 export type Action =
   | 'ping'
@@ -27,7 +27,6 @@ interface ElementSelectedData {
   '[Amplitude] Element Hierarchy'?: string;
   '[Amplitude] Element Tag'?: string;
   '[Amplitude] Element Text'?: string;
-  '[Amplitude] Element Selector'?: string;
   '[Amplitude] Page URL'?: string;
   elementScreenshot?: Blob;
 }
@@ -74,7 +73,7 @@ type MessageResponse = {
 // TODO: use MessageChannel instead of window.postMessage
 export class WindowMessenger implements Messenger {
   endpoint = AMPLITUDE_ORIGIN;
-  logger?: Logger;
+  logger?: ILogger;
   requestCallbacks: {
     [id: string]: {
       resolve: (data: any) => void;
@@ -138,7 +137,7 @@ export class WindowMessenger implements Messenger {
     cssSelectorAllowlist,
     actionClickAllowlist,
   }: {
-    logger?: Logger;
+    logger?: ILogger;
     endpoint?: string;
     isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
     cssSelectorAllowlist?: string[];

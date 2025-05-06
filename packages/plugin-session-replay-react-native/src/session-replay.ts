@@ -8,6 +8,7 @@ import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } fr
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';
 import { SessionReplayConfig, getDefaultConfig } from './session-replay-config';
+import { LogLevel } from '@amplitude/analytics-types';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
   name = '@amplitude/plugin-session-replay-react-native';
@@ -16,6 +17,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
 
   // @ts-ignore
   config: ReactNativeConfig;
+  isInitialized = false;
 
   sessionReplayConfig: SessionReplayConfig;
 
@@ -34,12 +36,19 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       config.apiKey,
       config.deviceId,
       config.sessionId,
+      config.serverZone,
       this.sessionReplayConfig.sampleRate ?? 1,
       this.sessionReplayConfig.enableRemoteConfig ?? true,
+      this.sessionReplayConfig.logLevel ?? LogLevel.Warn,
     );
+    this.isInitialized = true;
   }
 
   async execute(event: Event): Promise<Event | null> {
+    if (!this.isInitialized) {
+      return Promise.resolve(event);
+    }
+
     // On event, synchronize the session id to the what's on the browserConfig (source of truth)
     // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
     // in SR.
@@ -58,16 +67,34 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     return Promise.resolve(event);
   }
 
+  async start(): Promise<void> {
+    if (this.isInitialized) {
+      await PluginSessionReplayReactNative.start();
+    }
+  }
+
+  async stop(): Promise<void> {
+    if (this.isInitialized) {
+      await PluginSessionReplayReactNative.stop();
+    }
+  }
+
   async teardown(): Promise<void> {
-    await PluginSessionReplayReactNative.teardown();
+    if (this.isInitialized) {
+      await PluginSessionReplayReactNative.teardown();
+    }
     // the following are initialized in setup() which will always be called first
     // here we reset them to null to prevent memory leaks
 
     // @ts-ignore
     this.config = null;
+    this.isInitialized = false;
   }
 
   async getSessionReplayProperties() {
+    if (!this.isInitialized) {
+      return {};
+    }
     return PluginSessionReplayReactNative.getSessionReplayProperties();
   }
 }

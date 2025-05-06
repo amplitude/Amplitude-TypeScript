@@ -1,5 +1,5 @@
-import { UNSET_VALUE } from '../src/constants';
-import { IdentifyOperation } from '@amplitude/analytics-types';
+import { UNSET_VALUE } from '../src/types/constants';
+import { IdentifyOperation } from '../src/types/event/event';
 import { Identify } from '../src/index';
 
 describe('Identify class', () => {

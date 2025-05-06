@@ -1,6 +1,7 @@
 #import "AppDelegate.h"
 
 #import <React/RCTBundleURLProvider.h>
+#import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
 
 @implementation AppDelegate
 
@@ -9,6 +10,11 @@
   self.moduleName = @"example";
   // You can add your custom initial props in the dictionary below.
   // They will be passed down to the ViewController used by React Native.
+
+  // patch for crash on RN 0.77
+  // https://github.com/facebook/react-native/issues/49323#issuecomment-2759127287
+  self.dependencyProvider = [[RCTAppDependencyProvider alloc] init];
+
   self.initialProps = @{};
 
   return [super application:application didFinishLaunchingWithOptions:launchOptions];

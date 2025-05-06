@@ -1,5 +1,4 @@
-import { AMPLITUDE_PREFIX } from '@amplitude/analytics-core';
-import { ServerZone } from '@amplitude/analytics-types';
+import { AMPLITUDE_PREFIX, ServerZone } from '@amplitude/analytics-core';
 
 export const DEFAULT_EVENT_PROPERTY_PREFIX = '[Amplitude]';
 
@@ -25,8 +24,10 @@ export const MIN_INTERVAL = 500; // 500 ms
 export const MAX_INTERVAL = 10 * 1000; // 10 seconds
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 3; // 3 days
 export const KB_SIZE = 1024;
+export const MAX_URL_LENGTH = 1000;
 
 export enum CustomRRwebEvent {
   GET_SR_PROPS = 'get-sr-props',
   DEBUG_INFO = 'debug-info',
+  FETCH_REQUEST = 'fetch-request',
 }

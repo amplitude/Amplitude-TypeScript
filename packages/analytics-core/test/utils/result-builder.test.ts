@@ -1,4 +1,4 @@
-import { Status } from '@amplitude/analytics-types';
+import { Status } from '../../src/types/status';
 import { buildResult } from '../../src/utils/result-builder';
 
 describe('buildResult', () => {

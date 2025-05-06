@@ -3,6 +3,180 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.17.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.2...@amplitude/analytics-browser@2.17.3) (2025-05-05)
+
+
+### Bug Fixes
+
+* **analytics-browser:** use performance.now in network capture ([#1060](https://github.com/amplitude/Amplitude-TypeScript/issues/1060)) ([70917e2](https://github.com/amplitude/Amplitude-TypeScript/commit/70917e26369d27adf62e6b9a44a39599a312b3ef))
+
+
+
+
+
+## [2.17.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.1...@amplitude/analytics-browser@2.17.2) (2025-05-02)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.17.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.0...@amplitude/analytics-browser@2.17.1) (2025-05-02)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+# [2.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.16.1...@amplitude/analytics-browser@2.17.0) (2025-05-02)
+
+
+### Features
+
+* **analytics-browser:** autocapture network errors ([#1050](https://github.com/amplitude/Amplitude-TypeScript/issues/1050)) ([104350f](https://github.com/amplitude/Amplitude-TypeScript/commit/104350ffe8b1bd1a7090482ac3bf24d85672bd43))
+
+
+
+
+
+## [2.16.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.16.0...@amplitude/analytics-browser@2.16.1) (2025-04-30)
+
+
+### Bug Fixes
+
+* **analytics-browser:** fix TS2742 by re-exporting types ([#1049](https://github.com/amplitude/Amplitude-TypeScript/issues/1049)) ([c2bffac](https://github.com/amplitude/Amplitude-TypeScript/commit/c2bffac7fc06e19b6c227c89635836c635d0385b))
+* **analytics-browser:** reapply fix for default config values not being used for fetchRemoteConfig ([#1048](https://github.com/amplitude/Amplitude-TypeScript/issues/1048)) ([95bf251](https://github.com/amplitude/Amplitude-TypeScript/commit/95bf2519d8dd6c24a6d79b369cffc0fdf41f2f2d))
+
+
+
+
+
+# [2.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.15.0...@amplitude/analytics-browser@2.16.0) (2025-04-22)
+
+
+### Bug Fixes
+
+* **analytics-browser:** default values for config were not being used for fetchRemoteConfig ([#1037](https://github.com/amplitude/Amplitude-TypeScript/issues/1037)) ([9310364](https://github.com/amplitude/Amplitude-TypeScript/commit/9310364a3b022fdc891b44d84c5161c92bd4fc6d))
+
+
+### Features
+
+* **analytics-browser:** allow initialization of remote config property pageUrlAllowlistRegex ([#1021](https://github.com/amplitude/Amplitude-TypeScript/issues/1021)) ([7bdb80b](https://github.com/amplitude/Amplitude-TypeScript/commit/7bdb80b5397288cfda0f657a337cde0aa901db2b))
+
+
+
+
+
+# [2.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.14.0...@amplitude/analytics-browser@2.15.0) (2025-04-17)
+
+
+### Bug Fixes
+
+* **analytics-core:** add support for experiment plugin ([#1033](https://github.com/amplitude/Amplitude-TypeScript/issues/1033)) ([69a20c7](https://github.com/amplitude/Amplitude-TypeScript/commit/69a20c7a895eb4bb4668583ea3371d0ca2df18d2))
+
+
+### Features
+
+* **analytics-core:** new plugin interfaces onXXXchanged() ([#1025](https://github.com/amplitude/Amplitude-TypeScript/issues/1025)) ([e6fd23b](https://github.com/amplitude/Amplitude-TypeScript/commit/e6fd23b17809d0c7d94e7627636b200166d41a0f))
+
+
+
+
+
+# [2.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.13.3...@amplitude/analytics-browser@2.14.0) (2025-04-15)
+
+
+### Features
+
+* **analytics-browser:** plugin host ([#1013](https://github.com/amplitude/Amplitude-TypeScript/issues/1013)) ([a4af4c7](https://github.com/amplitude/Amplitude-TypeScript/commit/a4af4c7490384e749132f84d0385db5583c2b742))
+
+
+
+
+
+## [2.13.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.13.2...@amplitude/analytics-browser@2.13.3) (2025-04-10)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.13.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.13.1...@amplitude/analytics-browser@2.13.2) (2025-04-07)
+
+
+### Bug Fixes
+
+* remove log statements ([#1019](https://github.com/amplitude/Amplitude-TypeScript/issues/1019)) ([c6dd24e](https://github.com/amplitude/Amplitude-TypeScript/commit/c6dd24e18751cc3f02b94fcfc7677c2cc9025293))
+
+
+
+
+
+## [2.13.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.13.0...@amplitude/analytics-browser@2.13.1) (2025-04-07)
+
+
+### Bug Fixes
+
+* **analytics-browser:** add try/catch when accessing localStorage ([#1017](https://github.com/amplitude/Amplitude-TypeScript/issues/1017)) ([7c8a9dd](https://github.com/amplitude/Amplitude-TypeScript/commit/7c8a9ddd329a8a780328396966544080313574cb))
+
+
+
+
+
+# [2.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.12.2...@amplitude/analytics-browser@2.13.0) (2025-04-02)
+
+
+### Bug Fixes
+
+* **analytics-browser:** export more types ([#1011](https://github.com/amplitude/Amplitude-TypeScript/issues/1011)) ([561afc2](https://github.com/amplitude/Amplitude-TypeScript/commit/561afc2538da25867db02646829b2eb81693abcd))
+
+
+### Features
+
+* **analytics-browser:** set default for fetchRemoteConfig option to true ([#1008](https://github.com/amplitude/Amplitude-TypeScript/issues/1008)) ([5138cd1](https://github.com/amplitude/Amplitude-TypeScript/commit/5138cd16be1ff3bb57c38ec0eae5098a1b7933fc))
+
+
+
+
+
+## [2.12.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.12.1...@amplitude/analytics-browser@2.12.2) (2025-03-24)
+
+
+### Bug Fixes
+
+* **analytics-browser:** re-export enums from analytics-types ([#1005](https://github.com/amplitude/Amplitude-TypeScript/issues/1005)) ([01a497e](https://github.com/amplitude/Amplitude-TypeScript/commit/01a497ea79513c9995db5852e38f8661f28edb77))
+* **analytics-browser:** should track file download and form interaction when plugins are installed after page loads ([#1003](https://github.com/amplitude/Amplitude-TypeScript/issues/1003)) ([6066677](https://github.com/amplitude/Amplitude-TypeScript/commit/6066677f65aefbe67d4b3efbfb96ba5a95264230))
+
+
+
+
+
+## [2.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.12.0...@amplitude/analytics-browser@2.12.1) (2025-03-21)
+
+
+### Bug Fixes
+
+* **analytics-browser:** replace analytics-types with analytics-core ([#993](https://github.com/amplitude/Amplitude-TypeScript/issues/993)) ([f180f05](https://github.com/amplitude/Amplitude-TypeScript/commit/f180f05854393bf18d94f1753d284778ba3b5377))
+
+
+
+
+
+# [2.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.13...@amplitude/analytics-browser@2.12.0) (2025-03-14)
+
+
+### Features
+
+* **analytics-core:** merge analytics-client-common  ([#977](https://github.com/amplitude/Amplitude-TypeScript/issues/977)) ([1746ae5](https://github.com/amplitude/Amplitude-TypeScript/commit/1746ae5efb1ecd0e7586bc22ff8a704a6928c26a))
+* **analytics-core:** merge analytics-types ([#989](https://github.com/amplitude/Amplitude-TypeScript/issues/989)) ([9f7ed68](https://github.com/amplitude/Amplitude-TypeScript/commit/9f7ed68e8ec468f5c597ce427c70ffd855dde629))
+
+
+
+
+
 ## [2.11.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.11.12...@amplitude/analytics-browser@2.11.13) (2025-02-28)
 
 

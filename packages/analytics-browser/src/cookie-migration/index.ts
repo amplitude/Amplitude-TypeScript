@@ -1,5 +1,4 @@
-import { Storage, UserSession } from '@amplitude/analytics-types';
-import { getOldCookieName } from '@amplitude/analytics-client-common';
+import { getOldCookieName, Storage, UserSession } from '@amplitude/analytics-core';
 
 export const parseLegacyCookies = async (
   apiKey: string,

@@ -1,5 +1,4 @@
-import { BaseTransport } from '@amplitude/analytics-core';
-import { Logger as ILogger, Status } from '@amplitude/analytics-types';
+import { BaseTransport, ILogger, Status } from '@amplitude/analytics-core';
 import { getCurrentUrl, getServerUrl } from './helpers';
 import {
   MAX_RETRIES_EXCEEDED_MESSAGE,
@@ -14,7 +13,7 @@ import {
   SessionReplayDestinationContext,
 } from './typings/session-replay';
 import { VERSION } from './version';
-import { KB_SIZE } from './constants';
+import { MAX_URL_LENGTH, KB_SIZE } from './constants';
 
 export type PayloadBatcher = ({ version, events }: { version: number; events: string[] }) => {
   version: number;
@@ -139,7 +138,7 @@ export class SessionReplayTrackDestination implements AmplitudeSessionReplayTrac
           Authorization: `Bearer ${apiKey}`,
           'X-Client-Version': version,
           'X-Client-Library': sessionReplayLibrary,
-          'X-Client-Url': url,
+          'X-Client-Url': url.substring(0, MAX_URL_LENGTH), // limit url length to 1000 characters to avoid ELB 400 error
           'X-Client-Sample-Rate': `${sampleRate}`,
         },
         body: JSON.stringify(payload),

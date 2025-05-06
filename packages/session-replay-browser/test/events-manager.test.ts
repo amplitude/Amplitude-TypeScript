@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Logger } from '@amplitude/analytics-types';
+import { ILogger } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import * as SessionReplayIDB from '../src/events/events-idb-store';
 import { createEventsManager } from '../src/events/events-manager';
@@ -11,7 +11,7 @@ import * as helpers from '../src/helpers';
 jest.mock('idb-keyval');
 jest.mock('../src/track-destination');
 
-type MockedLogger = jest.Mocked<Logger>;
+type MockedLogger = jest.Mocked<ILogger>;
 
 const mockEvent = {
   type: 4,

@@ -1,6 +1,6 @@
 import { BrowserStorage } from '../../src/storage/browser-storage';
-import * as AnalyticsClientCommon from '@amplitude/analytics-client-common';
-import { getGlobalScope } from '@amplitude/analytics-client-common';
+import * as AnalyticsCore from '@amplitude/analytics-core';
+import { getGlobalScope } from '@amplitude/analytics-core';
 
 describe('browser-storage', () => {
   describe('isEnabled', () => {
@@ -58,7 +58,7 @@ describe('browser-storage', () => {
 
     test('should handle when GlobalScope is not defined', async () => {
       const sessionStorage = new BrowserStorage<number[]>(undefined);
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
       await sessionStorage.set('1', [1]);
       expect(await sessionStorage.get('1')).toEqual(undefined);
       await sessionStorage.remove('1');
@@ -79,7 +79,7 @@ describe('browser-storage', () => {
 
     test('should handle when GlobalScope is not defined', async () => {
       const sessionStorage = new BrowserStorage<number[]>(undefined);
-      jest.spyOn(AnalyticsClientCommon, 'getGlobalScope').mockReturnValue(undefined);
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
       await sessionStorage.set('1', [1]);
       expect(await sessionStorage.get('1')).toEqual(undefined);
       await sessionStorage.reset();

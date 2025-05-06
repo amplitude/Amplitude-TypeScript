@@ -1,4 +1,4 @@
-import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-types';
+import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayJoinedConfig, SessionReplayLocalConfig, SessionReplayVersion } from '../config/types';
 
 export type StorageData = {
@@ -75,7 +75,13 @@ export interface EventsStore<KeyType> {
   cleanUpSessionEventsStore(sessionId: string | number, sequenceId?: KeyType): Promise<void>;
 }
 export interface SessionIdentifiers {
+  /**
+   * Sets an identifier for the device running your application.
+   */
   deviceId?: string;
+  /**
+   * Sets an identifier for the users current session. The value must be in milliseconds since epoch (Unix Timestamp).
+   */
   sessionId?: string | number;
   sessionReplayId?: string;
 }

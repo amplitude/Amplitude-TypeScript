@@ -3,8 +3,7 @@ import { record, utils } from '@amplitude/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '../libs/finder';
-import { getGlobalScope } from '@amplitude/analytics-client-common';
-import type { Logger } from '@amplitude/analytics-types';
+import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
 
 // exported for testing
 export type ClickEvent = {
@@ -68,7 +67,7 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
   return { version, events: Object.values(reduced) };
 };
 
-export const clickHook: (logger: Logger, options: Options) => mouseInteractionCallBack =
+export const clickHook: (logger: ILogger, options: Options) => mouseInteractionCallBack =
   (logger, { eventsManager, sessionId, deviceIdFn }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {

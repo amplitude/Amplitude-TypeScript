@@ -1,5 +1,5 @@
 import { XHRTransport } from '../../src/transports/xhr';
-import { Status } from '@amplitude/analytics-types';
+import { Status } from '@amplitude/analytics-core';
 
 describe('xhr', () => {
   describe('send', () => {

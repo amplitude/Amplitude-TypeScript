@@ -1,6 +1,5 @@
 import { createRevenueEvent } from '../src/utils/event-builder';
-import { Revenue } from '../src/index';
-import { RevenueProperty } from '@amplitude/analytics-types';
+import { Revenue, RevenueProperty } from '../src/revenue';
 
 const defaultRevenueProperty = {
   [RevenueProperty.REVENUE_PRODUCT_ID]: '',
@@ -79,6 +78,27 @@ describe('Revenue class', () => {
 
     const expectedProperties = { ...defaultRevenueProperty, [RevenueProperty.REVENUE]: revenueAmount };
 
+    expect(event.event_properties).toEqual(expectedProperties);
+  });
+
+  test('setReceipt', () => {
+    const receipt = 'test receipt';
+    const revenue = new Revenue();
+    revenue.setReceipt(receipt);
+    const event = createRevenueEvent(revenue);
+
+    const expectedProperties = { ...defaultRevenueProperty, [RevenueProperty.RECEIPT]: receipt };
+
+    expect(event.event_properties).toEqual(expectedProperties);
+  });
+
+  test('setReceiptSig', () => {
+    const receiptSig = 'test receiptSig';
+    const revenue = new Revenue();
+    revenue.setReceiptSig(receiptSig);
+    const event = createRevenueEvent(revenue);
+
+    const expectedProperties = { ...defaultRevenueProperty, [RevenueProperty.RECEIPT_SIG]: receiptSig };
     expect(event.event_properties).toEqual(expectedProperties);
   });
 

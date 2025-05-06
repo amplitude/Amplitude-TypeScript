@@ -3,7 +3,6 @@ import {
   isTextNode,
   isNonSensitiveElement,
   getText,
-  getSelector,
   isPageUrlAllowed,
   getAttributesWithPrefix,
   isEmpty,
@@ -17,7 +16,6 @@ import {
   createShouldTrackEvent,
 } from '../src/helpers';
 import { mockWindowLocationFromURL } from './utils';
-import { Logger } from '@amplitude/analytics-types';
 
 describe('autocapture-plugin helpers', () => {
   afterEach(() => {
@@ -200,76 +198,6 @@ describe('autocapture-plugin helpers', () => {
     test('should return true when url is matching an item in the allow list with regex wildcard', () => {
       const result = isPageUrlAllowed(url, [new RegExp('http.?://amplitude.*'), new RegExp('http.?://test.*')]);
       expect(result).toEqual(true);
-    });
-  });
-
-  describe('getSelector', () => {
-    test('should return the selector with finder', () => {
-      document.getElementsByTagName('body')[0].innerHTML = `
-        <div id="container">
-        </div>
-      `;
-      const inner = document.createElement('div');
-      const container = document.getElementById('container');
-      container?.appendChild(inner);
-      expect(getSelector(inner)).toEqual('#container > div');
-    });
-
-    test('should use fallback logic with element id to get selector when finder has error', () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const container = document.createElement('container');
-      container.innerHTML = `<div id="inner"></div>`;
-      const inner = container.querySelector('#inner');
-
-      // This is a floating element, so finder will throw error as it cannot find it in the document tree.
-      // This case might happen as some of the element might be removed from the DOM tree before the selector is retrieved.
-      const result = getSelector(inner as HTMLElement, loggerProvider as Logger);
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.warn).toHaveBeenCalledWith(
-        `Failed to get selector with finder, use fallback strategy instead: Error: Can't select any node with this selector: #inner`,
-      );
-      expect(result).toEqual('#inner');
-    });
-
-    test('should use fallback logic with class to get selector when finder has error', () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const container = document.createElement('container');
-      container.innerHTML = `<div class="inner"></div>`;
-      const inner = container.querySelector('.inner');
-
-      // This is a floating element, so finder will throw error as it cannot find it in the document tree.
-      // This case might happen as some of the element might be removed from the DOM tree before the selector is retrieved.
-      const result = getSelector(inner as HTMLElement, loggerProvider as Logger);
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.warn).toHaveBeenCalledWith(
-        `Failed to get selector with finder, use fallback strategy instead: Error: Can't select any node with this selector: .inner`,
-      );
-      expect(result).toEqual('div.inner');
-    });
-
-    test('should use fallback logic with tag to get selector when finder has error', () => {
-      const loggerProvider: Partial<Logger> = {
-        log: jest.fn(),
-        warn: jest.fn(),
-      };
-      const container = document.createElement('container');
-      container.innerHTML = `<div class="amp-visual-tagging-selector-highlight"></div>`;
-      const inner = container.querySelector('.amp-visual-tagging-selector-highlight');
-
-      // This is a floating element, so finder will throw error as it cannot find it in the document tree.
-      // This case might happen as some of the element might be removed from the DOM tree before the selector is retrieved.
-      const result = getSelector(inner as HTMLElement, loggerProvider as Logger);
-      expect(loggerProvider.warn).toHaveBeenCalledTimes(1);
-      expect(loggerProvider.warn).toHaveBeenCalledWith(
-        `Failed to get selector with finder, use fallback strategy instead: Error: Can't select any node with this selector: div`,
-      );
-      expect(result).toEqual('div');
     });
   });
 
@@ -519,7 +447,6 @@ describe('autocapture-plugin helpers', () => {
 
       const inner = document.getElementById('inner');
       expect(getEventTagProps(inner as HTMLElement)).toEqual({
-        '[Amplitude] Element Selector': '#inner',
         '[Amplitude] Element Tag': 'div',
         '[Amplitude] Element Text': ' xxx ',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
@@ -541,7 +468,6 @@ describe('autocapture-plugin helpers', () => {
 
       const inner = document.getElementsByClassName('amp-visual-tagging-selector-highlight')[0];
       expect(getEventTagProps(inner as HTMLElement)).toEqual({
-        '[Amplitude] Element Selector': '#container > div',
         '[Amplitude] Element Tag': 'div',
         '[Amplitude] Element Text': ' xxx ',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',

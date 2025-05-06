@@ -1,5 +1,7 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, Logger } from '@amplitude/analytics-types';
+import * as hierarchyModule from '../src/hierarchy';
+
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createInstance } from '@amplitude/analytics-browser';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
@@ -57,13 +59,13 @@ describe('autoTrackingPlugin', () => {
 
   describe('setup', () => {
     test('should setup successfully', async () => {
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       const amplitude: Partial<BrowserClient> = {};
       await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
@@ -81,13 +83,13 @@ describe('autoTrackingPlugin', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         visualTaggingOptions: { enabled: true, messenger: messengerMock as any },
       });
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       const amplitude: Partial<BrowserClient> = {};
       await plugin?.setup?.(config as BrowserConfig, amplitude as BrowserClient);
@@ -114,7 +116,7 @@ describe('autoTrackingPlugin', () => {
 
     let instance = createInstance();
     let track: jest.SpyInstance;
-    let loggerProvider: Logger;
+    let loggerProvider: ILogger;
 
     beforeEach(async () => {
       loggerProvider = {
@@ -122,7 +124,7 @@ describe('autoTrackingPlugin', () => {
         warn: jest.fn(),
         error: jest.fn(),
         debug: jest.fn(),
-      } as unknown as Logger;
+      } as unknown as ILogger;
       plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
       instance = createInstance();
       await instance.init(API_KEY, USER_ID).promise;
@@ -162,11 +164,72 @@ describe('autoTrackingPlugin', () => {
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
       expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
+        '[Amplitude] Element Class': 'my-link-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            attrs: {
+              'aria-label': 'my-link',
+              href: 'https://www.amplitude.com/click-link',
+            },
+            classes: ['my-link-class'],
+            id: 'my-link-id',
+            index: 0,
+            indexOfType: 0,
+            tag: 'a',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+        ],
+        '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
+        '[Amplitude] Element ID': 'my-link-id',
+        '[Amplitude] Element Position Left': 0,
+        '[Amplitude] Element Position Top': 0,
+        '[Amplitude] Element Tag': 'a',
+        '[Amplitude] Element Text': 'my-link-text',
+        '[Amplitude] Element Aria Label': 'my-link',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+        '[Amplitude] Viewport Height': 768,
+        '[Amplitude] Viewport Width': 1024,
+      });
+
+      // stop observer and listeners
+      await plugin?.teardown?.();
+
+      // trigger click event
+      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      // assert no additional event was tracked
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should only collect element hierarchy once', async () => {
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // add spy to getHierarchy
+      jest.spyOn(hierarchyModule, 'getHierarchy');
+
+      // trigger click event
+      document.getElementById('my-link-id')?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(1);
       expect(track).toHaveBeenNthCalledWith(
         1,
         '[Amplitude] Element Clicked',
-        {
-          '[Amplitude] Element Class': 'my-link-class',
+        expect.objectContaining({
           '[Amplitude] Element Hierarchy': [
             {
               attrs: {
@@ -186,20 +249,7 @@ describe('autoTrackingPlugin', () => {
               tag: 'body',
             },
           ],
-          '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
-          '[Amplitude] Element ID': 'my-link-id',
-          '[Amplitude] Element Position Left': 0,
-          '[Amplitude] Element Position Top': 0,
-          '[Amplitude] Element Tag': 'a',
-          '[Amplitude] Element Text': 'my-link-text',
-          '[Amplitude] Element Aria Label': 'my-link',
-          '[Amplitude] Element Selector': '#my-link-id',
-          '[Amplitude] Element Parent Label': 'my-h2-text',
-          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-          '[Amplitude] Viewport Height': 768,
-          '[Amplitude] Viewport Width': 1024,
-        },
-        { time: expect.any(Number) as number },
+        }),
       );
 
       // stop observer and listeners
@@ -210,8 +260,8 @@ describe('autoTrackingPlugin', () => {
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
-      // assert no additional event was tracked
-      expect(track).toHaveBeenCalledTimes(1);
+      // assert getHierarchy was only called once since it is expensive
+      expect(hierarchyModule.getHierarchy).toHaveBeenCalledTimes(1);
     });
 
     // In the browser, this would happen in form elements due to named property accessors
@@ -272,7 +322,6 @@ describe('autoTrackingPlugin', () => {
             { index: 1, indexOfType: 0, prevSib: 'head', tag: 'body' },
           ],
         }),
-        { time: expect.any(Number) as number },
       );
 
       // stop observer and listeners
@@ -304,45 +353,39 @@ describe('autoTrackingPlugin', () => {
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(
-        1,
-        '[Amplitude] Element Clicked',
-        {
-          '[Amplitude] Element Class': 'my-link-class',
-          '[Amplitude] Element Hierarchy': [
-            {
-              attrs: {
-                'aria-label': 'my-link',
-                href: 'https://www.amplitude.com/click-link',
-              },
-              classes: ['my-link-class'],
-              id: 'my-link-id',
-              index: 0,
-              indexOfType: 0,
-              tag: 'a',
+      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
+        '[Amplitude] Element Class': 'my-link-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            attrs: {
+              'aria-label': 'my-link',
+              href: 'https://www.amplitude.com/click-link',
             },
-            {
-              index: 1,
-              indexOfType: 0,
-              prevSib: 'head',
-              tag: 'body',
-            },
-          ],
-          '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
-          '[Amplitude] Element ID': 'my-link-id',
-          '[Amplitude] Element Position Left': 0,
-          '[Amplitude] Element Position Top': 0,
-          '[Amplitude] Element Tag': 'a',
-          '[Amplitude] Element Text': 'my-link-text',
-          '[Amplitude] Element Aria Label': 'my-link',
-          '[Amplitude] Element Selector': '#my-link-id',
-          '[Amplitude] Element Parent Label': 'my-h2-text',
-          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-          '[Amplitude] Viewport Height': 768,
-          '[Amplitude] Viewport Width': 1024,
-        },
-        { time: expect.any(Number) as number },
-      );
+            classes: ['my-link-class'],
+            id: 'my-link-id',
+            index: 0,
+            indexOfType: 0,
+            tag: 'a',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+        ],
+        '[Amplitude] Element Href': 'https://www.amplitude.com/click-link',
+        '[Amplitude] Element ID': 'my-link-id',
+        '[Amplitude] Element Position Left': 0,
+        '[Amplitude] Element Position Top': 0,
+        '[Amplitude] Element Tag': 'a',
+        '[Amplitude] Element Text': 'my-link-text',
+        '[Amplitude] Element Aria Label': 'my-link',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+        '[Amplitude] Viewport Height': 768,
+        '[Amplitude] Viewport Width': 1024,
+      });
 
       // stop observer and listeners
       await plugin?.teardown?.();
@@ -376,44 +419,38 @@ describe('autoTrackingPlugin', () => {
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(
-        1,
-        '[Amplitude] Element Clicked',
-        {
-          '[Amplitude] Element Class': 'my-button-class',
-          '[Amplitude] Element Hierarchy': [
-            {
-              attrs: {
-                'aria-label': 'my-button',
-              },
-              classes: ['my-button-class'],
-              id: 'my-button-id',
-              index: 2,
-              indexOfType: 0,
-              prevSib: 'h2',
-              tag: 'button',
+      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
+        '[Amplitude] Element Class': 'my-button-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            attrs: {
+              'aria-label': 'my-button',
             },
-            {
-              index: 1,
-              indexOfType: 0,
-              prevSib: 'head',
-              tag: 'body',
-            },
-          ],
-          '[Amplitude] Element ID': 'my-button-id',
-          '[Amplitude] Element Position Left': 0,
-          '[Amplitude] Element Position Top': 0,
-          '[Amplitude] Element Tag': 'button',
-          '[Amplitude] Element Text': 'submit',
-          '[Amplitude] Element Aria Label': 'my-button',
-          '[Amplitude] Element Selector': '#my-button-id',
-          '[Amplitude] Element Parent Label': 'my-h2-text',
-          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-          '[Amplitude] Viewport Height': 768,
-          '[Amplitude] Viewport Width': 1024,
-        },
-        { time: expect.any(Number) as number },
-      );
+            classes: ['my-button-class'],
+            id: 'my-button-id',
+            index: 2,
+            indexOfType: 0,
+            prevSib: 'h2',
+            tag: 'button',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+        ],
+        '[Amplitude] Element ID': 'my-button-id',
+        '[Amplitude] Element Position Left': 0,
+        '[Amplitude] Element Position Top': 0,
+        '[Amplitude] Element Tag': 'button',
+        '[Amplitude] Element Text': 'submit',
+        '[Amplitude] Element Aria Label': 'my-button',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+        '[Amplitude] Viewport Height': 768,
+        '[Amplitude] Viewport Width': 1024,
+      });
 
       // stop observer and listeners
       await plugin?.teardown?.();
@@ -453,44 +490,38 @@ describe('autoTrackingPlugin', () => {
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(
-        1,
-        '[Amplitude] Element Clicked',
-        {
-          '[Amplitude] Element Class': 'my-button-class',
-          '[Amplitude] Element Hierarchy': [
-            {
-              attrs: {
-                'aria-label': 'my-button',
-              },
-              classes: ['my-button-class'],
-              id: 'my-button-id',
-              index: 2,
-              indexOfType: 0,
-              prevSib: 'h2',
-              tag: 'button',
+      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
+        '[Amplitude] Element Class': 'my-button-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            attrs: {
+              'aria-label': 'my-button',
             },
-            {
-              index: 1,
-              indexOfType: 0,
-              prevSib: 'head',
-              tag: 'body',
-            },
-          ],
-          '[Amplitude] Element ID': 'my-button-id',
-          '[Amplitude] Element Position Left': 0,
-          '[Amplitude] Element Position Top': 0,
-          '[Amplitude] Element Tag': 'button',
-          '[Amplitude] Element Text': 'submit',
-          '[Amplitude] Element Aria Label': 'my-button',
-          '[Amplitude] Element Selector': '#my-button-id',
-          '[Amplitude] Element Parent Label': 'my-h2-text',
-          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-          '[Amplitude] Viewport Height': 768,
-          '[Amplitude] Viewport Width': 1024,
-        },
-        { time: expect.any(Number) as number },
-      );
+            classes: ['my-button-class'],
+            id: 'my-button-id',
+            index: 2,
+            indexOfType: 0,
+            prevSib: 'h2',
+            tag: 'button',
+          },
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+        ],
+        '[Amplitude] Element ID': 'my-button-id',
+        '[Amplitude] Element Position Left': 0,
+        '[Amplitude] Element Position Top': 0,
+        '[Amplitude] Element Tag': 'button',
+        '[Amplitude] Element Text': 'submit',
+        '[Amplitude] Element Aria Label': 'my-button',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+        '[Amplitude] Viewport Height': 768,
+        '[Amplitude] Viewport Width': 1024,
+      });
 
       // stop observer and listeners
       await plugin?.teardown?.();
@@ -566,13 +597,13 @@ describe('autoTrackingPlugin', () => {
 
         // Use only div in allowlist
         plugin = autocapturePlugin({ cssSelectorAllowlist: ['div'], debounceTime: TESTING_DEBOUNCE_TIME });
-        const loggerProvider: Partial<Logger> = {
+        const loggerProvider: Partial<ILogger> = {
           log: jest.fn(),
           warn: jest.fn(),
         };
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider as ILogger,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -608,13 +639,13 @@ describe('autoTrackingPlugin', () => {
         document.body.appendChild(button);
 
         plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
-        const loggerProvider: Partial<Logger> = {
+        const loggerProvider: Partial<ILogger> = {
           log: jest.fn(),
           warn: jest.fn(),
         };
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
-          loggerProvider: loggerProvider as Logger,
+          loggerProvider: loggerProvider as ILogger,
         };
         await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -740,51 +771,45 @@ describe('autoTrackingPlugin', () => {
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 
       expect(track).toHaveBeenCalledTimes(1);
-      expect(track).toHaveBeenNthCalledWith(
-        1,
-        '[Amplitude] Element Clicked',
-        {
-          '[Amplitude] Element Class': 'my-button-class',
-          '[Amplitude] Element Hierarchy': [
-            {
-              attrs: {
-                'data-amp-test-hello': 'world',
-                'data-amp-test-test': '',
-                'data-amp-test-time': 'machine',
-              },
-              classes: ['my-button-class'],
-              id: 'my-button-id',
-              index: 2,
-              indexOfType: 0,
-              prevSib: 'h2',
-              tag: 'button',
+      expect(track).toHaveBeenNthCalledWith(1, '[Amplitude] Element Clicked', {
+        '[Amplitude] Element Class': 'my-button-class',
+        '[Amplitude] Element Hierarchy': [
+          {
+            attrs: {
+              'data-amp-test-hello': 'world',
+              'data-amp-test-test': '',
+              'data-amp-test-time': 'machine',
             },
-
-            {
-              index: 1,
-              indexOfType: 0,
-              prevSib: 'head',
-              tag: 'body',
-            },
-          ],
-          '[Amplitude] Element ID': 'my-button-id',
-          '[Amplitude] Element Position Left': 0,
-          '[Amplitude] Element Position Top': 0,
-          '[Amplitude] Element Tag': 'button',
-          '[Amplitude] Element Text': 'submit',
-          '[Amplitude] Element Selector': '#my-button-id',
-          '[Amplitude] Element Parent Label': 'my-h2-text',
-          '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-          '[Amplitude] Viewport Height': 768,
-          '[Amplitude] Viewport Width': 1024,
-          '[Amplitude] Element Attributes': {
-            hello: 'world',
-            time: 'machine',
-            test: '',
+            classes: ['my-button-class'],
+            id: 'my-button-id',
+            index: 2,
+            indexOfType: 0,
+            prevSib: 'h2',
+            tag: 'button',
           },
+
+          {
+            index: 1,
+            indexOfType: 0,
+            prevSib: 'head',
+            tag: 'body',
+          },
+        ],
+        '[Amplitude] Element ID': 'my-button-id',
+        '[Amplitude] Element Position Left': 0,
+        '[Amplitude] Element Position Top': 0,
+        '[Amplitude] Element Tag': 'button',
+        '[Amplitude] Element Text': 'submit',
+        '[Amplitude] Element Parent Label': 'my-h2-text',
+        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
+        '[Amplitude] Viewport Height': 768,
+        '[Amplitude] Viewport Width': 1024,
+        '[Amplitude] Element Attributes': {
+          hello: 'world',
+          time: 'machine',
+          test: '',
         },
-        { time: expect.any(Number) as number },
-      );
+      });
     });
     test('should follow default debounceTime configuration', async () => {
       const oldFetch = global.fetch;
@@ -870,13 +895,13 @@ describe('autoTrackingPlugin', () => {
       input.type = 'password';
       document.body.appendChild(input);
 
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -895,13 +920,13 @@ describe('autoTrackingPlugin', () => {
       div.setAttribute('class', 'my-div-class');
       document.body.appendChild(div);
 
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -915,13 +940,13 @@ describe('autoTrackingPlugin', () => {
     });
 
     test('should not throw error when there is text node added to the page', async () => {
-      const loggerProvider: Partial<Logger> = {
+      const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
-        loggerProvider: loggerProvider as Logger,
+        loggerProvider: loggerProvider as ILogger,
       };
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -982,7 +1007,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'inner',
           }),
-          { time: expect.any(Number) as number },
         );
 
         // trigger click container
@@ -996,7 +1020,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container1',
           }),
-          { time: expect.any(Number) as number },
         );
       });
 
@@ -1040,7 +1063,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container1',
           }),
-          { time: expect.any(Number) as number },
         );
 
         // trigger click container
@@ -1054,7 +1076,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container1',
           }),
-          { time: expect.any(Number) as number },
         );
       });
 
@@ -1094,7 +1115,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container',
           }),
-          { time: expect.any(Number) as number },
         );
 
         // trigger click container
@@ -1108,7 +1128,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container',
           }),
-          { time: expect.any(Number) as number },
         );
       });
 
@@ -1149,7 +1168,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'inner',
           }),
-          { time: expect.any(Number) as number },
         );
 
         // trigger click container
@@ -1163,7 +1181,6 @@ describe('autoTrackingPlugin', () => {
           expect.objectContaining({
             '[Amplitude] Element ID': 'container',
           }),
-          { time: expect.any(Number) as number },
         );
       });
     });

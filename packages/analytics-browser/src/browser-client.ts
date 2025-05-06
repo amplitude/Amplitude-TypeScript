@@ -1,34 +1,40 @@
-import { AmplitudeCore, Destination, Identify, returnWrapper, Revenue, UUID } from '@amplitude/analytics-core';
 import {
+  AmplitudeCore,
+  Destination,
+  Identify,
+  returnWrapper,
+  Revenue,
+  UUID,
   getAnalyticsConnector,
+  setConnectorDeviceId,
+  setConnectorUserId,
+  isNewSession,
+  IdentityEventSender,
+  getQueryParams,
+  Event,
+  EventOptions,
+  IIdentify,
+  IRevenue,
+  TransportType,
+  OfflineDisabled,
+  Result,
+  BrowserOptions,
+  BrowserConfig,
+  BrowserClient,
+} from '@amplitude/analytics-core';
+import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
-  IdentityEventSender,
+  getNetworkTrackingConfig,
   isAttributionTrackingEnabled,
   isSessionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
   isElementInteractionsEnabled,
-  setConnectorDeviceId,
-  setConnectorUserId,
-  isNewSession,
   isPageViewTrackingEnabled,
-  WebAttribution,
-  getQueryParams,
-} from '@amplitude/analytics-client-common';
-import {
-  BrowserClient,
-  BrowserConfig,
-  BrowserOptions,
-  Event,
-  EventOptions,
-  Identify as IIdentify,
-  Revenue as IRevenue,
-  TransportType,
-  OfflineDisabled,
-  Result,
-} from '@amplitude/analytics-types';
+  isNetworkTrackingEnabled,
+} from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
 import { useBrowserConfig, createTransport } from './config';
@@ -40,7 +46,13 @@ import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
 import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
+import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
+import { WebAttribution } from './attribution/web-attribution';
 
+/**
+ * Exported for `@amplitude/unified` or integration with blade plugins.
+ * If you only use `@amplitude/analytics-browser`, use `amplitude.init()` or `amplitude.createInstance()` instead.
+ */
 export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -76,7 +88,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
-    if (options.fetchRemoteConfig) {
+    if (browserOptions.fetchRemoteConfig) {
       const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
       browserOptions = await joinedConfigGenerator.generateJoinedConfig();
     }
@@ -145,6 +157,13 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
     }
 
+    // TODO: the "this.config.networkTrackingOptions" should be taken out once we have
+    // beta tested network tracking
+    if (isNetworkTrackingEnabled(this.config.autocapture) && !!this.config.networkTrackingOptions) {
+      this.config.loggerProvider.debug('Adding network tracking plugin');
+      await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    }
+
     this.initializing = false;
 
     // Step 6: Run queued dispatch functions
@@ -168,6 +187,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.config.loggerProvider.debug('function setUserId: ', userId);
     if (userId !== this.config.userId || userId === undefined) {
       this.config.userId = userId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onIdentityChanged({ userId: userId });
       setConnectorUserId(userId, this.config.instanceName);
     }
   }
@@ -182,8 +203,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       return;
     }
     this.config.loggerProvider.debug('function setDeviceId: ', deviceId);
-    this.config.deviceId = deviceId;
-    setConnectorDeviceId(deviceId, this.config.instanceName);
+    if (deviceId !== this.config.deviceId) {
+      this.config.deviceId = deviceId;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onIdentityChanged({ deviceId: deviceId });
+      setConnectorDeviceId(deviceId, this.config.instanceName);
+    }
   }
 
   reset() {
@@ -209,6 +234,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.config.loggerProvider.debug('function setSessionId: ', sessionId);
 
     const previousSessionId = this.getSessionId();
+    if (previousSessionId !== sessionId) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      this.timeline.onSessionIdChanged(sessionId);
+    }
+
     const lastEventTime = this.config.lastEventTime;
     let lastEventId = this.config.lastEventId ?? -1;
 

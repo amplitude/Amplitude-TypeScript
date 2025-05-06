@@ -2,7 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { LogLevel, LogConfig, DebugContext } from '@amplitude/analytics-types';
+import { LogConfig, DebugContext } from '../logger';
+import { LogLevel } from '../types/loglevel';
 import { AmplitudeCore } from '../core-client';
 
 export const getStacktrace = (ignoreDepth = 0): string[] => {

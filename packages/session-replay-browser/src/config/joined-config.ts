@@ -1,5 +1,5 @@
 import { RemoteConfigFetch, createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
-import { Logger } from '@amplitude/analytics-types';
+import { ILogger } from '@amplitude/analytics-core';
 import { getDebugConfig } from '../helpers';
 import { SessionReplayOptions } from '../typings/session-replay';
 import { SessionReplayLocalConfig } from './local-config';
@@ -10,7 +10,7 @@ import {
   SessionReplayRemoteConfig,
 } from './types';
 
-export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyConfig, loggerProvider: Logger) => {
+export const removeInvalidSelectorsFromPrivacyConfig = (privacyConfig: PrivacyConfig, loggerProvider: ILogger) => {
   // This allows us to not search the DOM.
   const fragment = document.createDocumentFragment();
 

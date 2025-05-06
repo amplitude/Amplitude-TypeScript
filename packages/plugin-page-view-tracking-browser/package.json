@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-page-view-tracking-browser",
-  "version": "2.3.9",
+  "version": "2.3.24",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -22,6 +22,7 @@
     "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
+    "watch": "tsc -p ./tsconfig.esm.json --watch",
     "clean": "rimraf node_modules lib coverage",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
@@ -36,12 +37,12 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.3.8",
-    "@amplitude/analytics-types": "^2.9.0",
+    "@amplitude/analytics-client-common": "^2.3.20",
+    "@amplitude/analytics-types": "^2.9.2",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.11.13",
+    "@amplitude/analytics-browser": "^2.17.3",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

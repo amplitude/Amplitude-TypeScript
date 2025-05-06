@@ -1,28 +1,35 @@
+import { DestinationPlugin } from '../types/plugin';
+import { Event } from '../types/event/event';
+import { Result } from '../types/result';
+import { Status } from '../types/status';
 import {
-  Config,
-  DestinationContext as Context,
-  DestinationPlugin,
-  Event,
+  Response,
   InvalidResponse,
   PayloadTooLargeResponse,
   RateLimitResponse,
-  Response,
-  Result,
-  Status,
   SuccessResponse,
-} from '@amplitude/analytics-types';
+} from '../types/response';
 import {
   INVALID_API_KEY,
   MAX_RETRIES_EXCEEDED_MESSAGE,
   MISSING_API_KEY_MESSAGE,
   SUCCESS_MESSAGE,
   UNEXPECTED_ERROR_MESSAGE,
-} from '../messages';
-import { STORAGE_PREFIX } from '../constants';
+} from '../types/messages';
+import { STORAGE_PREFIX } from '../types/constants';
 import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
+import { IConfig } from '../config';
+import { EventCallback } from '../types/event-callback';
+
+export interface Context {
+  event: Event;
+  attempts: number;
+  callback: EventCallback;
+  timeout: number;
+}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -51,7 +58,7 @@ export class Destination implements DestinationPlugin {
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  config: Config;
+  config: IConfig;
   // Indicator of whether events that are scheduled (but not flushed yet).
   // When flush:
   //   1. assign `scheduleId` to `flushId`
@@ -64,7 +71,7 @@ export class Destination implements DestinationPlugin {
   flushId: ReturnType<typeof setTimeout> | null = null;
   queue: Context[] = [];
 
-  async setup(config: Config): Promise<undefined> {
+  async setup(config: IConfig): Promise<undefined> {
     this.config = config;
 
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;

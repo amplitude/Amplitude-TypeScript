@@ -8,7 +8,8 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "nuke": "yarn clean && yarn install && rm -rf node_modules/@amplitude/plugin-session-replay-react-native/node_modules"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.4.11",
@@ -16,8 +17,9 @@
     "@react-native-async-storage/async-storage": "^2.1.0",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/native-stack": "^7.2.0",
+    "deprecated-react-native-prop-types": "^5.0.0",
     "react": "18.3.1",
-    "react-native": "0.76.5",
+    "react-native": "0.77.2",
     "react-native-safe-area-context": "^5.0.0",
     "react-native-screens": "^4.4.0",
     "react-native-webview": "^13.12.5"

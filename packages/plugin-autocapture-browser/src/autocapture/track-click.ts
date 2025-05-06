@@ -1,6 +1,6 @@
 import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from 'src/autocapture-plugin';
 import { buffer, filter, map, debounceTime, merge, pairwise, delay } from 'rxjs';
-import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
@@ -60,9 +60,7 @@ export function trackClicks({
 
     for (const click of clicks) {
       /* istanbul ignore next */
-      amplitude?.track(clickType, click.targetElementProperties, {
-        time: click.timestamp,
-      });
+      amplitude?.track(clickType, click.targetElementProperties);
     }
   });
 }

@@ -165,7 +165,7 @@ export interface TrackingOptions {
    */
   language?: boolean;
   /**
-   * Enables/disables plantform tracking.
+   * Enables/disables platform tracking.
    * @defaultValue `true`
    */
   platform?: boolean;

@@ -3,6 +3,136 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.11.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.11.1...@amplitude/analytics-core@2.11.2) (2025-05-05)
+
+
+### Bug Fixes
+
+* **analytics-browser:** use performance.now in network capture ([#1060](https://github.com/amplitude/Amplitude-TypeScript/issues/1060)) ([70917e2](https://github.com/amplitude/Amplitude-TypeScript/commit/70917e26369d27adf62e6b9a44a39599a312b3ef))
+
+
+
+
+
+## [2.11.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.11.0...@amplitude/analytics-core@2.11.1) (2025-05-02)
+
+**Note:** Version bump only for package @amplitude/analytics-core
+
+
+
+
+
+# [2.11.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.10.1...@amplitude/analytics-core@2.11.0) (2025-05-02)
+
+
+### Features
+
+* **analytics-browser:** autocapture network errors ([#1050](https://github.com/amplitude/Amplitude-TypeScript/issues/1050)) ([104350f](https://github.com/amplitude/Amplitude-TypeScript/commit/104350ffe8b1bd1a7090482ac3bf24d85672bd43))
+
+
+
+
+
+## [2.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.10.0...@amplitude/analytics-core@2.10.1) (2025-04-22)
+
+
+### Bug Fixes
+
+* **analytics-core:** add missing analytics-connector dependency ([#1031](https://github.com/amplitude/Amplitude-TypeScript/issues/1031)) ([820a761](https://github.com/amplitude/Amplitude-TypeScript/commit/820a7614cba3ce58c5e42cdf0f61880619196750))
+
+
+
+
+
+# [2.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.9.0...@amplitude/analytics-core@2.10.0) (2025-04-17)
+
+
+### Bug Fixes
+
+* **analytics-core:** add support for experiment plugin ([#1033](https://github.com/amplitude/Amplitude-TypeScript/issues/1033)) ([69a20c7](https://github.com/amplitude/Amplitude-TypeScript/commit/69a20c7a895eb4bb4668583ea3371d0ca2df18d2))
+
+
+### Features
+
+* **analytics-core:** new plugin interfaces onXXXchanged() ([#1025](https://github.com/amplitude/Amplitude-TypeScript/issues/1025)) ([e6fd23b](https://github.com/amplitude/Amplitude-TypeScript/commit/e6fd23b17809d0c7d94e7627636b200166d41a0f))
+
+
+
+
+
+# [2.9.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.8.1...@amplitude/analytics-core@2.9.0) (2025-04-15)
+
+
+### Features
+
+* **session-replay-browser:** migrate to core v2.x ([#1022](https://github.com/amplitude/Amplitude-TypeScript/issues/1022)) ([7a665d5](https://github.com/amplitude/Amplitude-TypeScript/commit/7a665d55fff89092ed5f2bb94caa1eb2c7efe5b1))
+
+
+
+
+
+## [2.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.8.0...@amplitude/analytics-core@2.8.1) (2025-04-10)
+
+
+### Bug Fixes
+
+* **uuid:** set UUID's using crypto libraries instead of Math.random ([#852](https://github.com/amplitude/Amplitude-TypeScript/issues/852)) ([54b86bb](https://github.com/amplitude/Amplitude-TypeScript/commit/54b86bba518261e365a0b3ff49cb44521531491c))
+
+
+
+
+
+# [2.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.7.0...@amplitude/analytics-core@2.8.0) (2025-04-07)
+
+
+### Features
+
+* **analytics-core:** remote config client ([#997](https://github.com/amplitude/Amplitude-TypeScript/issues/997)) ([9a25350](https://github.com/amplitude/Amplitude-TypeScript/commit/9a25350802fc6326501bd31a201534d2f906985b))
+
+
+
+
+
+# [2.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.6.1...@amplitude/analytics-core@2.7.0) (2025-04-02)
+
+
+### Bug Fixes
+
+* **analytics-browser:** export more types ([#1011](https://github.com/amplitude/Amplitude-TypeScript/issues/1011)) ([561afc2](https://github.com/amplitude/Amplitude-TypeScript/commit/561afc2538da25867db02646829b2eb81693abcd))
+
+
+### Features
+
+* **analytics-browser:** set default for fetchRemoteConfig option to true ([#1008](https://github.com/amplitude/Amplitude-TypeScript/issues/1008)) ([5138cd1](https://github.com/amplitude/Amplitude-TypeScript/commit/5138cd16be1ff3bb57c38ec0eae5098a1b7933fc))
+
+
+
+
+
+## [2.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.6.0...@amplitude/analytics-core@2.6.1) (2025-03-21)
+
+
+### Bug Fixes
+
+* **analytics-browser:** replace analytics-types with analytics-core ([#993](https://github.com/amplitude/Amplitude-TypeScript/issues/993)) ([f180f05](https://github.com/amplitude/Amplitude-TypeScript/commit/f180f05854393bf18d94f1753d284778ba3b5377))
+
+
+
+
+
+# [2.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.6...@amplitude/analytics-core@2.6.0) (2025-03-14)
+
+
+### Features
+
+* **analytics-core:** add support for revenue receipt and receipt sig ([#991](https://github.com/amplitude/Amplitude-TypeScript/issues/991)) ([e736a65](https://github.com/amplitude/Amplitude-TypeScript/commit/e736a65e35f0462a6b6080e66a27ffaec9a512b5))
+* **analytics-core:** merge analytics-client-common  ([#977](https://github.com/amplitude/Amplitude-TypeScript/issues/977)) ([1746ae5](https://github.com/amplitude/Amplitude-TypeScript/commit/1746ae5efb1ecd0e7586bc22ff8a704a6928c26a))
+* **analytics-core:** merge analytics-types ([#989](https://github.com/amplitude/Amplitude-TypeScript/issues/989)) ([9f7ed68](https://github.com/amplitude/Amplitude-TypeScript/commit/9f7ed68e8ec468f5c597ce427c70ffd855dde629))
+
+
+
+
+
 ## [2.5.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.5.5...@amplitude/analytics-core@2.5.6) (2025-02-28)
 
 

@@ -1,7 +1,6 @@
 /* eslint-disable no-restricted-globals */
-import { finder } from './libs/finder';
 import * as constants from './constants';
-import { Logger, ElementInteractionsOptions, ActionType } from '@amplitude/analytics-types';
+import { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
 import { ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -125,42 +124,6 @@ export const getText = (element: Element): string => {
   return text;
 };
 
-export const getSelector = (element: Element, logger?: Logger): string => {
-  let selector = '';
-  try {
-    selector = finder(element, {
-      className: (name: string) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
-      maxNumberOfTries: 1000,
-    });
-    return selector;
-  } catch (error) {
-    if (logger) {
-      const typedError = error as Error;
-      logger.warn(`Failed to get selector with finder, use fallback strategy instead: ${typedError.toString()}`);
-    }
-  }
-  // Fall back to use tag, id, and class name, if finder fails.
-  /* istanbul ignore next */
-  const tag = element?.tagName?.toLowerCase?.();
-  if (tag) {
-    selector = tag;
-  }
-  const id = element.getAttribute('id');
-  const className = element.getAttribute('class');
-  if (id) {
-    selector = `#${id}`;
-  } else if (className) {
-    const classes = className
-      .split(' ')
-      .filter((name) => name !== constants.AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS)
-      .join('.');
-    if (classes) {
-      selector = `${selector}.${classes}`;
-    }
-  }
-  return selector;
-};
-
 export const isPageUrlAllowed = (url: string, pageUrlAllowlist: (string | RegExp)[] | undefined) => {
   if (!pageUrlAllowlist || !pageUrlAllowlist.length) {
     return true;
@@ -214,6 +177,7 @@ export const getNearestLabel = (element: Element): string => {
   try {
     labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
   } catch (error) {
+    /* istanbul ignore next */
     labelElement = null;
   }
   if (labelElement) {
@@ -254,18 +218,16 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
 };
 
 // Returns the element properties for the given element in Visual Labeling.
-export const getEventTagProps = (element: Element, logger?: Logger) => {
+export const getEventTagProps = (element: Element) => {
   if (!element) {
     return {};
   }
   /* istanbul ignore next */
   const tag = element?.tagName?.toLowerCase?.();
-  const selector = getSelector(element, logger);
 
   const properties: Record<string, JSONValue> = {
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_SELECTOR]: selector,
     [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
   };
   return removeEmptyProperties(properties);

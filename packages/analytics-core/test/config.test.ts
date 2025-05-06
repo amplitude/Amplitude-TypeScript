@@ -1,10 +1,10 @@
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '../src/types/loglevel';
 import {
   AMPLITUDE_BATCH_SERVER_URL,
   AMPLITUDE_SERVER_URL,
   EU_AMPLITUDE_BATCH_SERVER_URL,
   EU_AMPLITUDE_SERVER_URL,
-} from '../src/constants';
+} from '../src/types/constants';
 import { Config, createServerConfig, getServerUrl, RequestMetadata } from '../src/config';
 import { Logger } from '../src/logger';
 import { API_KEY, useDefaultConfig } from './helpers/default';

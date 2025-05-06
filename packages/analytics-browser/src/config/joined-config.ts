@@ -1,6 +1,26 @@
-import { BrowserConfig as IBrowserConfig, BrowserRemoteConfig } from '@amplitude/analytics-types';
 import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
-import { RequestMetadata } from '@amplitude/analytics-core';
+import {
+  RequestMetadata,
+  BrowserConfig as IBrowserConfig,
+  AutocaptureOptions,
+  type ElementInteractionsOptions,
+} from '@amplitude/analytics-core';
+
+export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
+  elementInteractions?: boolean | ElementInteractionsOptionsRemoteConfig;
+}
+export interface ElementInteractionsOptionsRemoteConfig extends ElementInteractionsOptions {
+  /**
+   * Related to pageUrlAllowlist but holds regex strings which will be initialized and appended to pageUrlAllowlist
+   */
+  pageUrlAllowlistRegex?: string[];
+}
+
+export type BrowserRemoteConfig = {
+  browserSDK: {
+    autocapture?: AutocaptureOptionsRemoteConfig | boolean;
+  };
+};
 
 export class BrowserJoinedConfigGenerator {
   // Local config before generateJoinedConfig is called
@@ -39,8 +59,37 @@ export class BrowserJoinedConfigGenerator {
         }
 
         if (typeof remoteConfig.autocapture === 'object') {
+          const transformedAutocaptureRemoteConfig = { ...remoteConfig.autocapture };
+
           if (this.config.autocapture === undefined) {
             this.config.autocapture = remoteConfig.autocapture;
+          }
+
+          // Handle Element Interactions config initialization
+          if (
+            typeof remoteConfig.autocapture.elementInteractions === 'object' &&
+            remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex?.length
+          ) {
+            transformedAutocaptureRemoteConfig.elementInteractions = {
+              ...remoteConfig.autocapture.elementInteractions,
+            };
+            const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
+
+            const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
+            // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
+            const regexList = [];
+            for (const pattern of remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex) {
+              try {
+                regexList.push(new RegExp(pattern));
+              } catch (regexError) {
+                this.config.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
+              }
+            }
+
+            const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
+
+            transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
+            delete transformedRcElementInteractions.pageUrlAllowlistRegex;
           }
 
           if (typeof this.config.autocapture === 'boolean') {
@@ -51,14 +100,14 @@ export class BrowserJoinedConfigGenerator {
               pageViews: this.config.autocapture,
               sessions: this.config.autocapture,
               elementInteractions: this.config.autocapture,
-              ...remoteConfig.autocapture,
+              ...transformedAutocaptureRemoteConfig,
             };
           }
 
           if (typeof this.config.autocapture === 'object') {
             this.config.autocapture = {
               ...this.config.autocapture,
-              ...remoteConfig.autocapture,
+              ...transformedAutocaptureRemoteConfig,
             };
           }
         }
