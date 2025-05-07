@@ -6,8 +6,8 @@ const { getName, getVersion } = require('../../../scripts/utils');
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
 const files = [
-  'session-replay-browser-min.js',  // ESM version
-  'session-replay-browser-legacy-min.js',  // IIFE version
+  'session-replay-browser-esm.js',  // ESM version
+  'session-replay-browser-min.js',  // IIFE version
   'console-plugin-min.js'  // Console plugin chunk
 ];
 
@@ -37,6 +37,7 @@ const promises = files.map((file) => {
         Bucket: bucket,
         CacheControl: 'max-age=31536000',
         ContentType: 'application/javascript',
+        ContentEncoding: 'gzip',
         Key: key,
       });
       return client
