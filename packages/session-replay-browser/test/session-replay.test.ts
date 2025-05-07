@@ -175,7 +175,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       expect(startSpy).toHaveBeenCalled();
     });
 
@@ -197,7 +197,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       expect(startSpy).not.toHaveBeenCalled();
     });
 
@@ -398,7 +398,9 @@ describe('SessionReplay', () => {
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.loggerProvider).toBeDefined();
 
-      sessionReplay.config && expectationFn(sessionReplay.config);
+      if (sessionReplay.config) {
+        await expectationFn(sessionReplay.config);
+      }
     });
 
     test.each([
@@ -443,7 +445,9 @@ describe('SessionReplay', () => {
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.loggerProvider).toBeDefined();
 
-      sessionReplay.config && expectationFn(sessionReplay.config);
+      if (sessionReplay.config) {
+        await expectationFn(sessionReplay.config);
+      }
     });
 
     test('should call initialize with shouldSendStoredEvents=true', async () => {
@@ -505,6 +509,15 @@ describe('SessionReplay', () => {
         expect(sessionReplay.config?.flushMaxRetries).toBe(0);
       });
     });
+
+    test('should terminate previous eventCompressor on re-initialization', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      // Spy on terminate of the first eventCompressor
+      const terminateSpy = jest.spyOn(sessionReplay.eventCompressor!, 'terminate');
+      // Call init again to trigger terminate
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      expect(terminateSpy).toHaveBeenCalled();
+    });
   });
 
   describe('setSessionId', () => {
@@ -533,13 +546,12 @@ describe('SessionReplay', () => {
         .spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig')
         .mockReturnValue(generateJoinedConfigPromise);
 
-      sessionReplay.setSessionId(456);
+      await sessionReplay.setSessionId(456).promise;
       expect(sessionReplay.identifiers?.sessionId).toEqual(456);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/456');
-      return generateJoinedConfigPromise.then(() => {
-        expect(record).toHaveBeenCalledTimes(1);
-        expect(sessionReplay.config).toEqual(updatedConfig);
-      });
+      await generateJoinedConfigPromise;
+      expect(record).toHaveBeenCalledTimes(1);
+      expect(sessionReplay.config).toEqual(updatedConfig);
     });
 
     test('should regenerate config', async () => {
@@ -714,7 +726,7 @@ describe('SessionReplay', () => {
       }
       sessionReplay.identifiers.sessionId = undefined;
       const sendStoredEventsSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-      sessionReplay.initialize();
+      await sessionReplay.initialize(true);
       expect(sendStoredEventsSpy).not.toHaveBeenCalled();
     });
     test('should return early if no identifiers', async () => {
@@ -724,7 +736,7 @@ describe('SessionReplay', () => {
         throw new Error('Did not call init');
       }
       const sendStoredEventsSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-      sessionReplay.initialize();
+      await sessionReplay.initialize(true);
       expect(sendStoredEventsSpy).not.toHaveBeenCalled();
     });
     test('should return early if no device id', async () => {
@@ -734,7 +746,7 @@ describe('SessionReplay', () => {
         throw new Error('Did not call init');
       }
       const sendStoredEventsSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
-      sessionReplay.initialize();
+      await sessionReplay.initialize(true);
       expect(sendStoredEventsSpy).not.toHaveBeenCalled();
     });
     test('should send stored events and record events', async () => {
@@ -745,7 +757,7 @@ describe('SessionReplay', () => {
       }
       const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
 
-      sessionReplay.initialize(true);
+      await sessionReplay.initialize(true);
       expect(eventsManagerInitSpy).toHaveBeenCalledWith({
         deviceId: mockOptions.deviceId,
       });
@@ -759,7 +771,7 @@ describe('SessionReplay', () => {
       }
       const eventsManagerInitSpy = jest.spyOn(sessionReplay.eventsManager, 'sendStoredEvents');
 
-      sessionReplay.initialize(false);
+      await sessionReplay.initialize(false);
       expect(eventsManagerInitSpy).not.toHaveBeenCalled();
       expect(record).toHaveBeenCalledTimes(1);
     });
@@ -785,8 +797,16 @@ describe('SessionReplay', () => {
         ...mockOptions,
         sampleRate: 0.5,
       }).promise;
-      await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+      await sessionReplay.initialize(true);
       expect(sessionReplay.pageLeaveFns).toHaveLength(expectedLength);
+    });
+
+    test('should call recordEvents when called without params', async () => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const recordEventsSpy = jest.spyOn(sessionReplay, 'recordEvents');
+      await sessionReplay.initialize();
+      expect(recordEventsSpy).toHaveBeenCalled();
     });
   });
 
@@ -966,7 +986,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       record.mockReset();
       sessionReplay.config = undefined;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       expect(record).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
@@ -978,14 +998,14 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       record.mockReset();
       sessionReplay.identifiers = undefined;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       expect(record).not.toHaveBeenCalled();
     });
 
     test('should return early if user opts out', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, optOut: true, privacyConfig: { blockSelector: ['#class'] } })
         .promise;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       expect(record).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
@@ -998,13 +1018,13 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       expect(stopRecordingMock).toHaveBeenCalled();
     });
 
     test('should stop recording and send events if user opts out during recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       const stopRecordingMock = jest.fn();
       sessionReplay.recordCancelCallback = stopRecordingMock;
       if (!sessionReplay.eventsManager) {
@@ -1030,7 +1050,7 @@ describe('SessionReplay', () => {
 
     test('should add an error handler', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       const recordArg = record.mock.calls[0][0];
       const errorHandlerReturn = recordArg?.errorHandler && recordArg?.errorHandler(new Error('test error'));
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -1041,7 +1061,7 @@ describe('SessionReplay', () => {
     test('should rethrow CSSStylesheet errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       const recordArg = record.mock.calls[0][0];
       const stylesheetErrorMessage =
         "Failed to execute 'insertRule' on 'CSSStyleSheet': Failed to parse the rule 'body::-ms-expand{display: none}";
@@ -1053,7 +1073,7 @@ describe('SessionReplay', () => {
     test('should rethrow external errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       const recordArg = record.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
@@ -1065,7 +1085,7 @@ describe('SessionReplay', () => {
     test('should not add hooks if interaction config is not enabled', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       const recordArg = record.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
@@ -1089,12 +1109,22 @@ describe('SessionReplay', () => {
 
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       const recordArg = record.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
       expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
       expect(recordArg?.hooks?.scroll).toBeDefined();
+    });
+
+    test('should warn if record throws during recordEvents', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      (RRWeb.record as unknown as jest.Mock).mockImplementationOnce(() => {
+        throw new Error('record failed');
+      });
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+      await sessionReplay.recordEvents();
+      expect(warnSpy).toHaveBeenCalledWith('Failed to initialize session replay:', expect.any(Error));
     });
   });
 
@@ -1358,7 +1388,7 @@ describe('SessionReplay', () => {
           levels: [],
         },
       };
-      expect(sessionReplay.getRecordingPlugins(loggingConfig)).toBeUndefined();
+      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toBeUndefined();
     });
     test('enabled console logging', async () => {
       const loggingConfig: LoggingConfig = {
@@ -1367,7 +1397,24 @@ describe('SessionReplay', () => {
           levels: ['warn', 'error'],
         },
       };
-      expect(sessionReplay.getRecordingPlugins(loggingConfig)).toHaveLength(1);
+      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toHaveLength(1);
+    });
+    test('should warn if loading console plugin fails', async () => {
+      const loggingConfig: LoggingConfig = {
+        console: {
+          enabled: true,
+          levels: ['warn', 'error'],
+        },
+      };
+      // Mock the dynamic import to throw for this test only
+      jest.resetModules();
+      jest.doMock('@amplitude/rrweb-plugin-console-record', () => {
+        throw new Error('Import failed');
+      });
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+      await sessionReplay.getRecordingPlugins(loggingConfig);
+      expect(warnSpy).toHaveBeenCalledWith('Failed to load console plugin:', expect.any(Error));
+      jest.dontMock('@amplitude/rrweb-plugin-console-record');
     });
   });
 
@@ -1404,7 +1451,7 @@ describe('SessionReplay', () => {
 
       // Get the callback that was passed to start
       const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
-      sessionReplay.recordEvents();
+      await sessionReplay.recordEvents();
       const startCallback = startSpy.mock.calls[0][0];
 
       // Call the callback with our mock event
