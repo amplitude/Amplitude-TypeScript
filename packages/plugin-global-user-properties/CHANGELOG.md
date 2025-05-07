@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.2.56](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.55...@amplitude/plugin-global-user-properties@1.2.56) (2025-05-07)
+
+**Note:** Version bump only for package @amplitude/plugin-global-user-properties
+
+
+
+
+
 ## [1.2.55](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-global-user-properties@1.2.54...@amplitude/plugin-global-user-properties@1.2.55) (2025-05-05)
 
 **Note:** Version bump only for package @amplitude/plugin-global-user-properties
