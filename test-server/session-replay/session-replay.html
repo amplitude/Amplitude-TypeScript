@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Session Replay Plugin</title>
+  </head>
+  <body>
+    <div id="app">
+      Testing the Session Replay Plugin
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { plugin as sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+      const sessionReplayTracking = sessionReplayPlugin();
+      amplitude.add(sessionReplayTracking);
+      const identify = new amplitude.Identify()
+      amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, null, {
+        // optional configuration options
+        "defaultTracking":"true",
+        "config.autocapture.attribution":"false",
+        //config.minIdLength -> Default 5 characters for identifiers such as deviceId and userId, can change here
+      });
+
+      window.amplitude = amplitude;
+    </script>
+  </body>
+</html>
