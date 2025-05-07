@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.3...@amplitude/plugin-network-capture-browser@1.1.4) (2025-05-07)
+
+
+### Bug Fixes
+
+* **plugin-network-capture:** fix bug that fails to capture relative URLs ([#1064](https://github.com/amplitude/Amplitude-TypeScript/issues/1064)) ([22ceea3](https://github.com/amplitude/Amplitude-TypeScript/commit/22ceea375a7d603f5b48d20682f93ac49f204670))
+
+
+
+
+
 ## [1.1.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.2...@amplitude/plugin-network-capture-browser@1.1.3) (2025-05-05)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

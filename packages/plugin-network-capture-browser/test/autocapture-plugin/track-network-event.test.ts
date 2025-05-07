@@ -131,7 +131,7 @@ describe('track-network-event', () => {
       const [eventName, eventProperties] = networkEventCall;
       expect(eventName).toBe(AMPLITUDE_NETWORK_REQUEST_EVENT);
       expect(eventProperties).toEqual({
-        '[Amplitude] URL': 'https://example.com/track?hello=world#hash',
+        '[Amplitude] URL': 'https://example.com/track',
         '[Amplitude] URL Query': 'hello=world',
         '[Amplitude] URL Fragment': 'hash',
         '[Amplitude] Request Method': 'POST',
@@ -164,7 +164,7 @@ describe('track-network-event', () => {
       const [eventName, eventProperties] = networkEventCall;
       expect(eventName).toBe(AMPLITUDE_NETWORK_REQUEST_EVENT);
       expect(eventProperties).toEqual({
-        '[Amplitude] URL': 'https://example.com/track?hello=world#hash',
+        '[Amplitude] URL': 'https://example.com/track',
         '[Amplitude] URL Query': 'hello=world',
         '[Amplitude] URL Fragment': 'hash',
         '[Amplitude] Request Method': 'POST',
@@ -304,6 +304,30 @@ describe('track-network-event', () => {
   });
 
   describe('shouldTrackNetworkEvent returns true when', () => {
+    const defaultHref = window.location.href;
+
+    beforeAll(() => {
+      window.location.href = 'https://example.com';
+    });
+
+    afterAll(() => {
+      window.location.href = defaultHref;
+    });
+
+    test('url omits baseURL and window.location.href is not ignored', () => {
+      networkEvent.url = '/some/url';
+      networkEvent.status = 500;
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
+      expect(result).toBe(true);
+    });
+
+    test('url is a relative URL and location.href is not ignored', () => {
+      networkEvent.url = 'relativeurl';
+      networkEvent.status = 500;
+      const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
+      expect(result).toBe(true);
+    });
+
     test('domain is api.amplitude.com and ignoreAmplitudeRequests is false', () => {
       localConfig.networkTrackingOptions = { ignoreAmplitudeRequests: false };
       networkEvent.url = 'https://api.amplitude.com/track';
