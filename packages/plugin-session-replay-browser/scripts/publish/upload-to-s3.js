@@ -6,8 +6,8 @@ const { getName, getVersion } = require('../../../../scripts/utils');
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
 const files = [
-  'session-replay-browser-esm.js',  // ESM version
-  'session-replay-browser-min.js',  // IIFE version
+  'plugin-session-replay-browser-esm.js',  // ESM version
+  'plugin-session-replay-browser-min.js',  // IIFE version
   'console-plugin-min.js'  // Console plugin chunk
 ];
 
@@ -23,6 +23,7 @@ const promises = files.map((file) => {
     Bucket: bucket,
     Key: key,
   });
+
   console.log(`[Publish to AWS S3] Checking if ${key} exists in target bucket...`);
   return client
     .send(headObject)
@@ -59,4 +60,7 @@ Promise.all(promises)
     }
     console.log('[Publish to AWS S3] END');
   })
-  .catch(console.log); 
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  }); 
