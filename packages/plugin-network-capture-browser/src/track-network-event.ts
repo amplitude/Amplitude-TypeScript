@@ -3,6 +3,7 @@ import {
   NetworkRequestEvent,
   NetworkCaptureRule,
   NetworkTrackingOptions,
+  getGlobalScope,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
@@ -50,9 +51,35 @@ function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?:
   return true;
 }
 
+function parseUrl(url: string) {
+  try {
+    /* istanbul ignore next */
+    const currentHref = getGlobalScope()?.location.href;
+    const urlObj = new URL(url, currentHref);
+    const query = urlObj.searchParams.toString();
+    const fragment = urlObj.hash.replace('#', '');
+    const href = urlObj.href;
+    const host = urlObj.host;
+    urlObj.hash = '';
+    urlObj.search = '';
+    const hrefWithoutQueryOrHash = urlObj.href;
+    return { query, fragment, href, hrefWithoutQueryOrHash, host };
+  } catch (e) {
+    /* istanbul ignore next */
+    return;
+  }
+}
+
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
-  const url = new URL(networkEvent.url);
-  const host = url.hostname;
+  const urlObj = parseUrl(networkEvent.url);
+  /* istanbul ignore if */
+  if (!urlObj) {
+    // if the URL failed to parse, do not track the event
+    // this is a probably impossible case that would only happen if the URL is malformed
+    /* istanbul ignore next */
+    return false;
+  }
+  const { host } = urlObj;
 
   // false if is amplitude request and not configured to track amplitude requests
   if (
@@ -130,20 +157,20 @@ export function trackNetworkEvents({
     const request = networkEvent.event as NetworkRequestEvent;
 
     // convert to NetworkAnalyticsEvent
-    let url, urlQuery, urlFragment;
-    try {
-      url = new URL(request.url);
-      urlQuery = url.searchParams.toString();
-      urlFragment = url.hash.replace('#', '');
-    } catch (e) {
-      // if the URL failed to parse, just use the original URL
-      // and do not include the query or fragment
+    const urlObj = parseUrl(request.url);
+    /* istanbul ignore if */
+    if (!urlObj) {
+      // if the URL failed to parse, do not track the event
+      // this is a very unlikely case, because URL() shouldn't throw an exception
+      // when the URL is a valid URL
+      /* istanbul ignore next */
+      return;
     }
 
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
-      ['[Amplitude] URL']: request.url,
-      ['[Amplitude] URL Query']: urlQuery,
-      ['[Amplitude] URL Fragment']: urlFragment,
+      ['[Amplitude] URL']: urlObj.hrefWithoutQueryOrHash,
+      ['[Amplitude] URL Query']: urlObj.query,
+      ['[Amplitude] URL Fragment']: urlObj.fragment,
       ['[Amplitude] Request Method']: request.method,
       ['[Amplitude] Status Code']: request.status,
       ['[Amplitude] Start Time']: request.startTime,
