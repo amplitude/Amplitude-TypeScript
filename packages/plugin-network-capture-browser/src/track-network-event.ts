@@ -8,13 +8,13 @@ import {
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
+export interface FormDataBrowser {
+  entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
+}
 
 export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
 // using this type instead of the DOM's ttp so that it's Node compatible
 type FormDataEntryValueBrowser = string | Blob | null;
-export interface FormDataBrowser {
-  entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
-}
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 const MAXIMUM_ENTRIES = 100;
@@ -63,7 +63,7 @@ export function getRequestBodyLength(body: FetchRequestBody | null | undefined):
     }
     return total;
   }
-  // Stream or unknown
+  // unknown type
   return;
 }
 

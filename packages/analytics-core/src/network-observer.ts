@@ -95,6 +95,12 @@ export class NetworkObserver {
         requestBody: init?.body as string | FormData | URLSearchParams | ReadableStream | null,
       };
 
+      // do not include ReadableStream in the request event. it is not serializable
+      // and downstreem consumers should not have access to it because it's mutable
+      if (requestEvent.requestBody instanceof ReadableStream) {
+        delete requestEvent.requestBody;
+      }
+
       try {
         const response = await originalFetch(input as RequestInfo | URL, init);
 
@@ -125,10 +131,6 @@ export class NetworkObserver {
         this.triggerEventCallbacks(requestEvent);
         throw error;
       }
-      /* eslint-enable @typescript-eslint/no-unsafe-assignment */
-      /* eslint-disable @typescript-eslint/no-unsafe-argument */
-      /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-      /* eslint-enable @typescript-eslint/no-unsafe-call */
     };
   }
 }
