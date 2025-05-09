@@ -85,12 +85,12 @@ export class NetworkObserver {
   private isObserving = false;
   // eslint-disable-next-line no-restricted-globals
   private globalScope?: typeof globalThis;
-
+  private logger?: ILogger;
   constructor(logger?: ILogger) {
+    this.logger = logger;
     const globalScope = getGlobalScope();
     if (!NetworkObserver.isSupported()) {
       /* istanbul ignore next */
-      logger?.error('Fetch API is not supported in this environment.');
       return;
     }
     this.globalScope = globalScope;
@@ -103,7 +103,10 @@ export class NetworkObserver {
     return !!globalScope && !!globalScope.fetch;
   }
 
-  subscribe(eventCallback: NetworkEventCallback) {
+  subscribe(eventCallback: NetworkEventCallback, logger?: ILogger) {
+    if (!this.logger) {
+      this.logger = logger;
+    }
     this.eventCallbacks.set(eventCallback.id, eventCallback);
     if (!this.isObserving) {
       this.observeFetch();
@@ -121,11 +124,12 @@ export class NetworkObserver {
 
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
-      /* eslint-disable no-empty */
       try {
         callback.callback(event);
-      } catch (err) {}
-      /* eslint-enable no-empty */
+      } catch (err) {
+        /* istanbul ignore next */
+        this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
+      }
     });
   }
 
