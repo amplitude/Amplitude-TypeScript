@@ -121,7 +121,11 @@ export class NetworkObserver {
 
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
-      callback.callback(event);
+      /* eslint-disable no-empty */
+      try {
+        callback.callback(event);
+      } catch (err) {}
+      /* eslint-enable no-empty */
     });
   }
 
