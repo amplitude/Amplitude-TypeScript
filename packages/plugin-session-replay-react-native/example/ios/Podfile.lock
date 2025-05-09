@@ -1,6 +1,6 @@
 PODS:
-  - amplitude-plugin-session-replay-react-native (0.3.0):
-    - AmplitudeSessionReplay (>= 0.1.0)
+  - amplitude-plugin-session-replay-react-native (0.3.3):
+    - AmplitudeSessionReplay (>= 0.4.0)
     - DoubleConversion
     - glog
     - hermes-engine
@@ -23,7 +23,9 @@ PODS:
     - Yoga
   - amplitude-react-native (1.4.13):
     - React-Core
-  - AmplitudeSessionReplay (0.3.0)
+  - AmplitudeCore (1.0.11)
+  - AmplitudeSessionReplay (0.4.0):
+    - AmplitudeCore (< 2.0.0, >= 1.0.10)
   - boost (1.84.0)
   - DoubleConversion (1.1.6)
   - fast_float (6.1.4)
@@ -1758,6 +1760,7 @@ DEPENDENCIES:
 
 SPEC REPOS:
   trunk:
+    - AmplitudeCore
     - AmplitudeSessionReplay
     - SocketRocket
 
@@ -1909,9 +1912,10 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
-  amplitude-plugin-session-replay-react-native: a0aaeeaf2ccd6f192c79ccf23fc27b3434350794
+  amplitude-plugin-session-replay-react-native: 8ca379c3fd0a49f18aa21f89ebda895263eca8b2
   amplitude-react-native: d0039a3ce502eb441ba818af1b8c8ba710ef16e7
-  AmplitudeSessionReplay: 8c2be80bb94950b3a79c8dcc7b099f66bad513b3
+  AmplitudeCore: 8c5929b25b531af7ad4f46474b1a71561640a015
+  AmplitudeSessionReplay: cb194a3af616f334b0262d649e30e843fabe83c1
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   fast_float: 06eeec4fe712a76acc9376682e4808b05ce978b6
@@ -1986,4 +1990,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 71a689932e49f453bd6454dd189b45915dda66a0
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2
