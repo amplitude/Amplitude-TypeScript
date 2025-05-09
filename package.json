@@ -4,7 +4,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "lerna run build --stream",
+    "build": "lerna run build --stream --include-dependencies",
     "watch": "lerna run watch --parallel",
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
@@ -58,5 +58,6 @@
   },
   "dependencies": {
     "tslib": "^2.4.1"
-  }
+  },
+  "packageManager": "yarn@1.22.19+sha512.ff4579ab459bb25aa7c0ff75b62acebe576f6084b36aa842971cf250a5d8c6cd3bc9420b22ce63c7f93a0857bc6ef29291db39c3e7a23aab5adfd5a4dd6c5d71"
 }
