@@ -82,32 +82,21 @@ export class NetworkObserver {
       return;
     }
     const originalFetch = this.globalScope.fetch;
-
-    // overwriting fetch to capture network events
-    // using args with 'any' types because "fetch" is a JS function and the user
-    // can pass in any type of data even if it's not of the proper type
-    this.globalScope.fetch = async (...args: [input?: any, init?: any]) => {
-      /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-      /* eslint-disable @typescript-eslint/no-unsafe-argument */
-      /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-      /* eslint-disable @typescript-eslint/no-unsafe-call */
-      const input = args[0];
-      const init = args[1];
+    this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const durationStart = performance.now();
-      const requestInit = init as RequestInit;
       const requestEvent: NetworkRequestEvent = {
         timestamp: startTime,
         startTime,
         type: 'fetch',
         method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
         url: input?.toString?.(),
-        requestHeaders: requestInit?.headers as Record<string, string> | Headers,
-        requestBody: requestInit?.body as string | FormData | URLSearchParams | ReadableStream | null,
+        requestHeaders: init?.headers as Record<string, string> | Headers,
+        requestBody: init?.body as string | FormData | URLSearchParams | ReadableStream | null,
       };
 
       try {
-        const response = await originalFetch(...args);
+        const response = await originalFetch(input as RequestInfo | URL, init);
 
         requestEvent.status = response.status;
         requestEvent.duration = Math.floor(performance.now() - durationStart);
@@ -130,7 +119,6 @@ export class NetworkObserver {
         };
 
         if (typedError.name === 'AbortError') {
-          requestEvent.error.name = 'AbortError';
           requestEvent.status = 0;
         }
 

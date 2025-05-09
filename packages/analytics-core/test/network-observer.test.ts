@@ -213,12 +213,13 @@ describe('NetworkObserver', () => {
       expect(globalScope.fetch).not.toBe(originalFetchMock);
 
       const fetchJunkArgs = [
-        [12345 as any],
+        [12345 as any, undefined],
         [null, null],
         [[1, 2, 3], { a: 1 }],
         [true, [1, 2, 3]],
-        [],
-        ['too', 'many', 'args'],
+        [undefined, undefined],
+        ['two', 'args'],
+        [undefined, { method: 'POST' }],
       ];
 
       // checks that the original fetch is called with the same junk data
