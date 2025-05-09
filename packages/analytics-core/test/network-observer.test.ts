@@ -79,6 +79,41 @@ describe('NetworkObserver', () => {
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
+    
+    it('should track successful fetch requests with headers (uses Headers object)', async () => {
+      // Create a simple mock response
+      const headers = new Headers();
+      headers.set('content-type', 'application/json');
+      headers.set('content-length', '20');
+      headers.set('server', 'test-server');
+      const mockResponse = {
+        status: 200,
+        headers,
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+
+      const requestHeaders = new Headers();
+      requestHeaders.set('Content-Type', 'application/json');
+      requestHeaders.set('Authorization', 'Bearer token123');
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        headers: requestHeaders,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'fetch',
+        method: 'POST',
+        url: 'https://api.example.com/data',
+        status: 200,
+        requestHeaders,
+        responseHeaders: headers,
+      });
+      expect(events[0].duration).toBeGreaterThanOrEqual(0);
+    });
 
     it('should track successful fetch requests without headers', async () => {
       const mockResponse = {
