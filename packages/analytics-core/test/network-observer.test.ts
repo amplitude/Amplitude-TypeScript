@@ -139,6 +139,24 @@ describe('NetworkObserver', () => {
         expect(events).toHaveLength(1);
         expect(events[0].responseBodySize).toBeUndefined();
       });
+
+      it('should still fetch even if eventCallback throws error', async () => {
+        const headers = new Headers();
+        headers.set('content-type', 'application/json');
+        headers.set('content-length', '20');
+        const mockResponse = {
+          status: 200,
+          headers,
+        };
+        originalFetchMock.mockResolvedValue(mockResponse);
+        const errorCallback = (event: NetworkRequestEvent) => {
+          expect(event.status).toBe(200);
+          throw new Error('Error in event callback');
+        };
+        networkObserver.subscribe(new NetworkEventCallback(errorCallback));
+        const res = await globalScope.fetch('https://api.example.com/data');
+        expect(res.status).toBe(200);
+      });
     });
   });
 
@@ -161,6 +179,28 @@ describe('NetworkObserver', () => {
           message: 'Failed to fetch',
         },
       });
+      expect(events[0].duration).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should track aborted requests', async () => {
+      const abortError = new DOMException('Aborted', 'AbortError');
+      originalFetchMock.mockRejectedValue(abortError);
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+      const controller = new AbortController();
+      const signal = controller.signal;
+      controller.abort();
+      await expect(globalScope.fetch('https://api.example.com/data', { signal })).rejects.toThrow('Aborted');
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'fetch',
+        method: 'GET',
+        url: 'https://api.example.com/data',
+        error: {
+          name: 'AbortError',
+          message: 'Aborted',
+        },
+      });
+      expect(events[0].status).toBe(0);
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
 
