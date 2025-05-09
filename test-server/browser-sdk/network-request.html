@@ -29,7 +29,7 @@
         }
       );
 
-      (async function runFetchTests() {
+      async function runFetchTests() {
         const tests = [
             {
             description: "GET 200 OK",
@@ -112,7 +112,6 @@
             description: "Stream/Blob handling",
             fetchCall: () => fetch("https://httpstat.us/200"),
             validate: async (response) => {
-                debugger;
                 const blob = await response.blob();
                 console.assert(blob instanceof Blob, "Expected a Blob object");
             }
@@ -152,7 +151,12 @@
         }
 
         console.log("All tests completed");
-        })();
+        };
+
+        setTimeout(() => {
+          console.log("Running fetch tests...");
+          runFetchTests();
+        }, 1000);
 
     </script>
   </body>
