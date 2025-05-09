@@ -380,9 +380,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.stopRecordingEvents();
     this.networkEventCallback = new NetworkEventCallback((event: NetworkRequestEvent) => {
       delete event.requestBody;
-      event.responseHeaders = SessionReplay.headerToObject(event.responseHeaders);
-      event.requestHeaders = SessionReplay.headerToObject(event.requestHeaders);
-      void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
+      void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, {
+        ...event,
+        // TODO: Queston: do we want to have to perform this computation on every event?
+        // or only send it if requestHeaders is an object?
+        responseHeaders: SessionReplay.headerToObject(event.responseHeaders),
+        requestHeaders: SessionReplay.headerToObject(event.requestHeaders),
+      });
     });
     this.networkObserver?.subscribe(this.networkEventCallback, config.loggerProvider);
     const { privacyConfig, interactionConfig, loggingConfig } = config;

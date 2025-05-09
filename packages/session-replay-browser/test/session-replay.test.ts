@@ -1441,7 +1441,7 @@ describe('SessionReplay', () => {
         method: 'GET',
         status: 200,
         requestHeaders: {},
-        responseHeaders: {},
+        responseHeaders: new Headers(),
         requestBody: '',
         responseBody: '',
       };
@@ -1454,7 +1454,10 @@ describe('SessionReplay', () => {
       // Call the callback with our mock event
       startCallback(mockNetworkEvent);
 
-      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, {
+        ...mockNetworkEvent,
+        responseHeaders: {},
+      });
     });
 
     test('should call addCustomRRWebEvent with network request events (Headers objects)', async () => {
@@ -1499,13 +1502,14 @@ describe('SessionReplay', () => {
       // Call the callback with our mock event
       startCallback(mockNetworkEvent);
 
-      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
-      const evt = addCustomRRWebEventSpy.mock.calls[1][1];
-      expect(evt?.requestHeaders).toEqual({
-        'content-type': 'application/json', 
-      });
-      expect(evt?.responseHeaders).toEqual({
-        'content-type': 'application/json',
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, {
+        ...mockNetworkEvent,
+        requestHeaders: {
+          'content-type': 'application/json',
+        },
+        responseHeaders: {
+          'content-type': 'application/json',
+        },
       });
     });
   });
