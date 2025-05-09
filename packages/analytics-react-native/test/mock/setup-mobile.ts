@@ -15,7 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 /*
  * Mock navigator. This is what the navigator looks like on mobile
  */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment, no-restricted-globals
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 window['navigator'] = { product: 'ReactNative' };
 
