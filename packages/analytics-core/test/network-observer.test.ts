@@ -1,6 +1,5 @@
-import { NetworkEventCallback, NetworkRequestEvent } from '../src/index';
-import { FormDataBrowser, getRequestBodyLength, NetworkObserver } from '../src/network-observer';
-import { networkObserver } from '../src/';
+import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
+import { NetworkObserver } from '../src/network-observer';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
@@ -76,11 +75,7 @@ describe('NetworkObserver', () => {
         url: 'https://api.example.com/data',
         status: 200,
         requestHeaders,
-        responseHeaders: {
-          'content-type': 'application/json',
-          server: 'test-server',
-        },
-        responseBodySize: 20,
+        responseHeaders: headers,
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
@@ -108,55 +103,6 @@ describe('NetworkObserver', () => {
         responseHeaders: {},
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
-    });
-
-    describe('.responseBodySize', () => {
-      it('should not be captured if content-length is not present in headers', async () => {
-        const headers = new Headers();
-        headers.set('content-type', 'application/json');
-        const mockResponse = {
-          status: 200,
-          headers,
-        };
-        originalFetchMock.mockResolvedValue(mockResponse);
-        networkObserver.subscribe(new NetworkEventCallback(callback));
-        await globalScope.fetch('https://api.example.com/data');
-        expect(events).toHaveLength(1);
-        expect(events[0].responseBodySize).toBeUndefined();
-      });
-
-      it('should not be captured if content-length is not a valid number', async () => {
-        const headers = new Headers();
-        headers.set('content-type', 'application/json');
-        headers.set('content-length', 'invalid-number');
-        const mockResponse = {
-          status: 200,
-          headers,
-        };
-        originalFetchMock.mockResolvedValue(mockResponse);
-        networkObserver.subscribe(new NetworkEventCallback(callback));
-        await globalScope.fetch('https://api.example.com/data');
-        expect(events).toHaveLength(1);
-        expect(events[0].responseBodySize).toBeUndefined();
-      });
-
-      it('should still fetch even if eventCallback throws error', async () => {
-        const headers = new Headers();
-        headers.set('content-type', 'application/json');
-        headers.set('content-length', '20');
-        const mockResponse = {
-          status: 200,
-          headers,
-        };
-        originalFetchMock.mockResolvedValue(mockResponse);
-        const errorCallback = (event: NetworkRequestEvent) => {
-          expect(event.status).toBe(200);
-          throw new Error('Error in event callback');
-        };
-        networkObserver.subscribe(new NetworkEventCallback(errorCallback));
-        const res = await globalScope.fetch('https://api.example.com/data');
-        expect(res.status).toBe(200);
-      });
     });
   });
 
@@ -219,79 +165,35 @@ describe('NetworkObserver', () => {
     });
   });
 
-  describe('getRequestBodyLength', () => {
-    describe('should return the body length when the body is of type', () => {
-      it('string', () => {
-        const body = 'Hello World!';
-        expect(getRequestBodyLength(body)).toBe(body.length);
-      });
-      it('Blob', () => {
-        const blob = new Blob(['Hello World!']);
-        expect(getRequestBodyLength(blob)).toBe(blob.size);
-      });
-      it('ArrayBuffer', () => {
-        const buffer = new ArrayBuffer(8);
-        expect(getRequestBodyLength(buffer)).toBe(buffer.byteLength);
-      });
+  describe('fetch calls with junk data', () => {
+    it('should pass junk data to originalfetch', async () => {
+      const mockResponse = {
+        status: 500,
+        headers: {
+          forEach: jest.fn(), // Mock function that does nothing
+        },
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+      expect(globalScope.fetch).not.toBe(originalFetchMock);
 
-      it('ArrayBufferView', () => {
-        const buffer = new ArrayBuffer(8);
-        const arr = new Uint8Array(buffer);
-        expect(getRequestBodyLength(arr)).toBe(arr.byteLength);
-      });
-      it('FormData', () => {
-        const formData = new FormData();
-        const val = 'value';
-        formData.append('key', val);
-        const blob = new Blob(['Hello World!']);
-        formData.append('file', blob);
-        const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
-        expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBe(expectedSize);
-      });
-      it('URLSearchParams', () => {
-        const params = new URLSearchParams();
-        const val = 'value';
-        params.append('key', val);
-        const val2 = 'value2';
-        params.append('key2', val2);
-        const expectedSize = 'key='.length + val.length + '&key2='.length + val2.length;
-        expect(getRequestBodyLength(params)).toBe(expectedSize);
-      });
-    });
+      const fetchJunkArgs = [
+        [12345 as any],
+        [null, null],
+        [[1, 2, 3], { a: 1 }],
+        [true, [1, 2, 3]],
+        [],
+        ['too', 'many', 'args'],
+      ];
 
-    describe('should not return the body length when', () => {
-      it('FormData has >100 entries', () => {
-        const formData = new FormData();
-        for (let i = 0; i < 101; i++) {
-          formData.append(`key${i}`, `value${i}`);
-        }
-        expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBeUndefined();
-      });
-      it('body is undefined', () => {
-        const body = undefined;
-        expect(getRequestBodyLength(body)).toBeUndefined();
-      });
-      it('TextEncoder is not available', () => {
-        try {
-          Object.defineProperty(globalScope, 'TextEncoder', {
-            value: undefined,
-            configurable: true,
-            writable: true,
-          });
-          expect(getRequestBodyLength('Hello World!')).toBeUndefined();
-        } finally {
-          Object.defineProperty(globalScope, 'TextEncoder', {
-            value: TextEncoder,
-            configurable: true,
-            writable: true,
-          });
-        }
-      });
-      it('globalScope is not available', () => {
-        jest.spyOn(Global, 'getGlobalScope').mockReturnValue(undefined);
-        const body = 'Hello World!';
-        expect(getRequestBodyLength(body)).toBeUndefined();
-      });
+      // checks that the original fetch is called with the same junk data
+      for (const args of fetchJunkArgs) {
+        /* eslint-disable @typescript-eslint/no-unsafe-argument */
+        const res = await globalScope.fetch(...(args as [any, any]));
+        expect(originalFetchMock).toHaveBeenCalledWith(...args);
+        expect(res).toEqual(mockResponse);
+        /* eslint-enable @typescript-eslint/no-unsafe-argument */
+      }
     });
   });
 
