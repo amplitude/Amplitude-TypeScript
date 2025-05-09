@@ -12,7 +12,7 @@ public enum LogLevelEnum: Int {
     case DEBUG
 }
 
-public class ConsoleLogger: AmplitudeSessionReplay.Logger {
+public class ConsoleLogger: CoreLogger {
     public typealias LogLevel = LogLevelEnum
 
     public var logLevel: Int

@@ -79,7 +79,7 @@ describe('NetworkObserver', () => {
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
-    
+
     it('should track successful fetch requests with headers (uses Headers object)', async () => {
       // Create a simple mock response
       const headers = new Headers();
@@ -150,16 +150,34 @@ describe('NetworkObserver', () => {
       originalFetchMock.mockResolvedValue(mockResponse);
       networkObserver.subscribe(new NetworkEventCallback(callback));
       const requestBody = new ReadableStream({
-        start(controller) { 
+        start(controller) {
           controller.enqueue('Hello, world!');
           controller.close();
-        }
+        },
       });
       await globalScope.fetch('https://api.example.com/data', {
         method: 'POST',
         body: requestBody,
       });
       expect(events[0].requestBody).toBeUndefined();
+    });
+
+    it('should still fetch even if eventCallback throws error', async () => {
+      const headers = new Headers();
+      headers.set('content-type', 'application/json');
+      headers.set('content-length', '20');
+      const mockResponse = {
+        status: 200,
+        headers,
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+      const errorCallback = (event: NetworkRequestEvent) => {
+        expect(event.status).toBe(200);
+        throw new Error('Error in event callback');
+      };
+      networkObserver.subscribe(new NetworkEventCallback(errorCallback));
+      const res = await globalScope.fetch('https://api.example.com/data');
+      expect(res.status).toBe(200);
     });
   });
 
