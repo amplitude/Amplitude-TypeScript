@@ -43,5 +43,8 @@
   "dependencies": {
     "@amplitude/analytics-core": "^2.10.0",
     "@amplitude/experiment-js-client": "^1.15.5"
+  },
+  "devDependencies": {
+    "rollup": "^2.79.1"
   }
 }
