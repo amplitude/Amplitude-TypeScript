@@ -28,28 +28,6 @@
           },
         }
       );
-
-      // Create an AbortController
-      const controller = new AbortController();
-      const signal = controller.signal;
-
-      // Initiate a fetch request with the abort signal
-      setTimeout(() => {
-        const fetchPromise = fetch('https://httpstat.us/200', { signal })
-          .then(response => console.log('Fetch succeeded:', response))
-          .catch(error => {
-            console.log('Fetch failed:', error.status);
-            if (error.name === 'AbortError') {
-              console.log('Fetch was aborted:', error.message);
-            } else {
-              console.error('Fetch failed:', error);
-            }
-          });
-
-          // Abort the request immediately
-          controller.abort();
-      }, 1000);
-
     </script>
   </body>
 </html>
