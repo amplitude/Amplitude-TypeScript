@@ -1,5 +1,5 @@
 {
-  "name": "@amplitude/segment-wrapper",
+  "name": "@amplitude/segment-session-replay-wrapper",
   "version": "0.0.0-beta.0",
   "description": "Wrapper for Segment's analytics.js library to support Amplitude's Session Replay.",
   "keywords": [
