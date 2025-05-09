@@ -139,6 +139,24 @@ describe('NetworkObserver', () => {
         expect(events).toHaveLength(1);
         expect(events[0].responseBodySize).toBeUndefined();
       });
+
+      it('should still fetch even if eventCallback throws error', async () => {
+        const headers = new Headers();
+        headers.set('content-type', 'application/json');
+        headers.set('content-length', '20');
+        const mockResponse = {
+          status: 200,
+          headers,
+        };
+        originalFetchMock.mockResolvedValue(mockResponse);
+        const errorCallback = (event: NetworkRequestEvent) => {
+          expect(event.status).toBe(200);
+          throw new Error('Error in event callback');
+        };
+        networkObserver.subscribe(new NetworkEventCallback(errorCallback));
+        const res = await globalScope.fetch('https://api.example.com/data');
+        expect(res.status).toBe(200);
+      });
     });
   });
 
