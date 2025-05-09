@@ -9,8 +9,8 @@ export interface NetworkRequestEvent {
   timestamp: number;
   status?: number;
   duration?: number;
-  requestHeaders?: HeadersInit;
-  requestBody?: BodyInit | null;
+  requestHeaders?: Record<string, string> | Headers;
+  requestBody?: string | FormData | URLSearchParams | ReadableStream | null;
   responseHeaders?: Headers;
   error?: {
     name: string;
@@ -95,14 +95,15 @@ export class NetworkObserver {
       const init = args[1];
       const startTime = Date.now();
       const durationStart = performance.now();
+      const requestInit = init as RequestInit;
       const requestEvent: NetworkRequestEvent = {
         timestamp: startTime,
         startTime,
         type: 'fetch',
         method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
         url: input?.toString?.(),
-        requestHeaders: (init as RequestInit)?.headers,
-        requestBody: (init as RequestInit)?.body,
+        requestHeaders: requestInit?.headers as Record<string, string> | Headers,
+        requestBody: requestInit?.body as string | FormData | URLSearchParams | ReadableStream | null,
       };
 
       try {
