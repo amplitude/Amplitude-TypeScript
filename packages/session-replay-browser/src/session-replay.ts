@@ -359,6 +359,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return plugins.length > 0 ? plugins : undefined;
   }
 
+  private static headerToObject(headers: Headers| Record<string, string> | undefined): Record<string, string> | undefined {
+    if (!(headers instanceof Headers)) {
+      return headers;
+    }
+    const headersObject: Record<string, string> = {};
+    headers.forEach((value, key) => {
+      headersObject[key] = value;
+    });
+    return headersObject;
+  }
+
   async recordEvents() {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
@@ -368,8 +379,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     this.networkEventCallback = new NetworkEventCallback((event: NetworkRequestEvent) => {
-      delete event.responseHeaders;
       delete event.requestBody;
+      event.responseHeaders = SessionReplay.headerToObject(event.responseHeaders);
+      event.requestHeaders = SessionReplay.headerToObject(event.requestHeaders);
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });
     this.networkObserver?.subscribe(this.networkEventCallback, config.loggerProvider);

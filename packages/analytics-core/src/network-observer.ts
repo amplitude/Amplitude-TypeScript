@@ -11,7 +11,7 @@ export interface NetworkRequestEvent {
   duration?: number;
   requestHeaders?: Record<string, string> | Headers;
   requestBody?: string | FormData | URLSearchParams | ReadableStream | null;
-  responseHeaders?: Headers;
+  responseHeaders?: Record<string, string> | Headers;
   error?: {
     name: string;
     message: string;

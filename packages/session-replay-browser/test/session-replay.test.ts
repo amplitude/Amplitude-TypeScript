@@ -1456,5 +1456,57 @@ describe('SessionReplay', () => {
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
     });
+
+    test('should call addCustomRRWebEvent with network request events (Headers objects)', async () => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
+          return {
+            network: {
+              enabled: true,
+            },
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+      const requestHeaders = new Headers();
+      requestHeaders.append('Content-Type', 'application/json');
+      const responseHeaders = new Headers();
+      responseHeaders.append('Content-Type', 'application/json');
+      const mockNetworkEvent = {
+        type: 'fetch' as const,
+        url: 'https://example.com',
+        timestamp: Date.now(),
+        method: 'GET',
+        status: 200,
+        requestHeaders,
+        responseHeaders,
+        requestBody: '',
+        responseBody: '',
+      };
+
+      // Get the callback that was passed to start
+      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
+      await sessionReplay.recordEvents();
+      const startCallback = startSpy.mock.calls[0][0].callback;
+
+      // Call the callback with our mock event
+      startCallback(mockNetworkEvent);
+
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
+      const evt = addCustomRRWebEventSpy.mock.calls[1][1];
+      expect(evt?.requestHeaders).toEqual({
+        'content-type': 'application/json', 
+      });
+      expect(evt?.responseHeaders).toEqual({
+        'content-type': 'application/json',
+      });
+    });
   });
 });
