@@ -121,11 +121,7 @@ export class NetworkObserver {
 
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
-      /* eslint-disable no-empty */
-      try {
-        callback.callback(event);
-      } catch (error) {}
-      /* eslint-enable no-empty */
+      callback.callback(event);
     });
   }
 
@@ -177,10 +173,16 @@ export class NetworkObserver {
 
         // Capture error information
         const typedError = error as Error;
+
         requestEvent.error = {
           name: typedError.name || 'UnknownError',
           message: typedError.message || 'An unknown error occurred',
         };
+
+        if (typedError.name === 'AbortError') {
+          requestEvent.error.name = 'AbortError';
+          requestEvent.status = 0;
+        }
 
         this.triggerEventCallbacks(requestEvent);
         throw error;

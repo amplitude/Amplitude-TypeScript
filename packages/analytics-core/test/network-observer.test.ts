@@ -164,6 +164,28 @@ describe('NetworkObserver', () => {
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
 
+    it('should track aborted requests', async () => {
+      const abortError = new DOMException('Aborted', 'AbortError');
+      originalFetchMock.mockRejectedValue(abortError);
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+      const controller = new AbortController();
+      const signal = controller.signal;
+      controller.abort();
+      await expect(globalScope.fetch('https://api.example.com/data', { signal })).rejects.toThrow('Aborted');
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'fetch',
+        method: 'GET',
+        url: 'https://api.example.com/data',
+        error: {
+          name: 'AbortError',
+          message: 'Aborted',
+        },
+      });
+      expect(events[0].status).toBe(0);
+      expect(events[0].duration).toBeGreaterThanOrEqual(0);
+    });
+
     it('should handle non-Error throws', async () => {
       originalFetchMock.mockRejectedValue('string error');
       const cb = new NetworkEventCallback(callback);
