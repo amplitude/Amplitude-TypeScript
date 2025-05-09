@@ -368,6 +368,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
     this.networkEventCallback = new NetworkEventCallback((event: NetworkRequestEvent) => {
+      delete event.responseHeaders;
+      delete event.requestBody;
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });
     this.networkObserver?.subscribe(this.networkEventCallback, config.loggerProvider);

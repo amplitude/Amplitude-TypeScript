@@ -72,7 +72,7 @@ export class NetworkObserver {
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
       try {
-        callback.callback(event);
+        callback.callback({...event});
       } catch (err) {
         /* istanbul ignore next */
         this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
