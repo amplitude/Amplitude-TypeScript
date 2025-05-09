@@ -139,6 +139,28 @@ describe('NetworkObserver', () => {
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
+
+    it('should ignore ReadableStream in requestBody', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: jest.fn(), // Mock function that does nothing
+        },
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+      const requestBody = new ReadableStream({
+        start(controller) { 
+          controller.enqueue('Hello, world!');
+          controller.close();
+        }
+      });
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        body: requestBody,
+      });
+      expect(events[0].requestBody).toBeUndefined();
+    });
   });
 
   describe('failed requests', () => {

@@ -95,7 +95,7 @@ export class NetworkObserver {
         requestBody: init?.body as string | FormData | URLSearchParams | ReadableStream | null,
       };
 
-      // do not include ReadableStream in the request event. it is not serializable
+      // exlude ReadableStream in the request event. it is not serializable
       // and downstreem consumers should not have access to it because it's mutable
       if (requestEvent.requestBody instanceof ReadableStream) {
         delete requestEvent.requestBody;
