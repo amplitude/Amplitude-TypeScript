@@ -359,7 +359,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return plugins.length > 0 ? plugins : undefined;
   }
 
-  private static headerToObject(headers: Headers| Record<string, string> | undefined): Record<string, string> | undefined {
+  private static headerToObject(
+    headers: Headers | Record<string, string> | undefined,
+  ): Record<string, string> | undefined {
     if (!(headers instanceof Headers)) {
       return headers;
     }
