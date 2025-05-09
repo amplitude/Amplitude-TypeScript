@@ -4,6 +4,8 @@ import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } fro
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '../libs/finder';
 import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
+import { UGCFilterRule } from 'src/config/types';
+import { getPageUrl } from '../helpers';
 
 // exported for testing
 export type ClickEvent = {
@@ -24,6 +26,7 @@ type Options = {
   sessionId: string | number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
+  ugcFilterRules?: UGCFilterRule[];
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
@@ -68,7 +71,7 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
 };
 
 export const clickHook: (logger: ILogger, options: Options) => mouseInteractionCallBack =
-  (logger, { eventsManager, sessionId, deviceIdFn }) =>
+  (logger, { eventsManager, sessionId, deviceIdFn, ugcFilterRules }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {
       return;
@@ -102,6 +105,8 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
 
     const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
 
+    const maskedPageUrl = getPageUrl(logger, location.href, ugcFilterRules);
+
     const event: ClickEvent = {
       x: x + scrollX,
       y: y + scrollY,
@@ -109,7 +114,7 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
 
       viewportHeight: innerHeight,
       viewportWidth: innerWidth,
-      pageUrl: location.href,
+      pageUrl: maskedPageUrl,
       timestamp: Date.now(),
       type: 'click',
     };

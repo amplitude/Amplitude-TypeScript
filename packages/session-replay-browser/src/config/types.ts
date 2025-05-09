@@ -50,6 +50,20 @@ export type PrivacyConfig = {
   unmaskSelector?: string[];
 };
 
+/**
+ * UGC filter rule.
+ */
+export type UGCFilterRule = {
+  /**
+   * The selector of the UGC element.
+   */
+  selector: string;
+  /**
+   * The replacement text for the UGC element.
+   */
+  replacement: string;
+};
+
 export interface SessionReplayLocalConfig extends IConfig {
   apiKey: string;
   loggerProvider: ILogger;
@@ -123,6 +137,10 @@ export interface SessionReplayLocalConfig extends IConfig {
      */
     useWebWorker: boolean;
   };
+  /**
+   * UGC filter rules.
+   */
+  ugcFilterRules?: UGCFilterRule[];
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
