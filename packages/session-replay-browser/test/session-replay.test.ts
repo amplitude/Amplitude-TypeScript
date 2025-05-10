@@ -1440,10 +1440,12 @@ describe('SessionReplay', () => {
         timestamp: Date.now(),
         method: 'GET',
         status: 200,
-        requestHeaders: {},
-        responseHeaders: new Headers(),
-        requestBody: '',
-        responseBody: '',
+        requestWrapper: {
+          headers: {'foo': 'bar'},
+        } as any,
+        responseWrapper: {
+          headers: {'hello': 'world'},
+        } as any,
       };
 
       // Get the callback that was passed to start
@@ -1456,11 +1458,11 @@ describe('SessionReplay', () => {
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, {
         ...mockNetworkEvent,
-        responseHeaders: {},
+        responseHeaders: { 'hello': 'world' },
+        requestHeaders: { 'foo': 'bar' },
       });
     });
-
-    test('should call addCustomRRWebEvent with network request events (Headers objects)', async () => {
+    test('should call addCustomRRWebEvent with network request events (no request/response)', async () => {
       getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
         if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
           return {
@@ -1478,20 +1480,12 @@ describe('SessionReplay', () => {
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
-      const requestHeaders = new Headers();
-      requestHeaders.append('Content-Type', 'application/json');
-      const responseHeaders = new Headers();
-      responseHeaders.append('Content-Type', 'application/json');
       const mockNetworkEvent = {
         type: 'fetch' as const,
         url: 'https://example.com',
         timestamp: Date.now(),
         method: 'GET',
         status: 200,
-        requestHeaders,
-        responseHeaders,
-        requestBody: '',
-        responseBody: '',
       };
 
       // Get the callback that was passed to start
@@ -1504,12 +1498,6 @@ describe('SessionReplay', () => {
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, {
         ...mockNetworkEvent,
-        requestHeaders: {
-          'content-type': 'application/json',
-        },
-        responseHeaders: {
-          'content-type': 'application/json',
-        },
       });
     });
   });

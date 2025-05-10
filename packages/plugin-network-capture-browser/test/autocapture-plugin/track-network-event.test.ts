@@ -13,12 +13,7 @@ import {
   NetworkRequestEvent,
 } from '@amplitude/analytics-core';
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import {
-  FormDataBrowser,
-  getRequestBodyLength,
-  calculateResponseBodySize,
-  shouldTrackNetworkEvent,
-} from '../../src/track-network-event';
+import { shouldTrackNetworkEvent } from '../../src/track-network-event';
 import { NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 import { AmplitudeBrowser } from '@amplitude/analytics-browser';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
@@ -136,8 +131,6 @@ describe('track-network-event', () => {
     test('should track a network request event with status=500', async () => {
       const responseHeaders = new Headers();
       responseHeaders.set('content-length', '100');
-      const requestHeaders = new Headers();
-      requestHeaders.set('content-type', 'application/json');
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
           url: 'https://example.com/track?hello=world#hash',
@@ -145,9 +138,14 @@ describe('track-network-event', () => {
           method: 'POST',
           status: 500,
           duration: 100,
-          requestHeaders,
-          requestBody: 'test body!',
-          responseHeaders,
+          requestWrapper: {
+            bodySize: 10,
+            headers: { 'content-type': 'application/json' },
+          } as any,
+          responseWrapper: {
+            bodySize: 100,
+            headers: { 'content-length': '100' },
+          } as any,
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
@@ -180,9 +178,10 @@ describe('track-network-event', () => {
           method: 'POST',
           status: 500,
           duration: 100,
-          requestHeaders: {
-            'Content-Type': 'application/json',
-          },
+          requestWrapper: {
+            bodySize: undefined,
+            headers: { 'content-type': 'application/json' },
+          } as any,
           timestamp: Date.now(),
         });
       });
@@ -213,9 +212,10 @@ describe('track-network-event', () => {
           method: 'POST',
           status: 200,
           duration: 100,
-          requestHeaders: {
-            'Content-Type': 'application/json',
-          },
+          requestWrapper: {
+            bodySize: 10,
+            headers: { 'content-type': 'application/json' },
+          } as any,
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
@@ -234,11 +234,10 @@ describe('track-network-event', () => {
           method: 'POST',
           status: 500,
           duration: 100,
-          //responseBodySize: 100,
-          //requestBodySize: 100,
-          requestHeaders: {
-            'Content-Type': 'application/json',
-          },
+          requestWrapper: {
+            bodySize: 10,
+            headers: { 'content-type': 'application/json' },
+          } as any,
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
@@ -472,107 +471,5 @@ describe('track-network-event', () => {
 describe('version', () => {
   test('should return the plugin version', () => {
     expect(VERSION != null).toBe(true);
-  });
-});
-
-describe('getRequestBodyLength', () => {
-  let amendedGlobalScope: PartialGlobal;
-  let originalFetchMock: jest.Mock;
-
-  beforeEach(async () => {
-    originalFetchMock = jest.fn();
-    amendedGlobalScope = {
-      fetch: originalFetchMock,
-      TextEncoder,
-    } as PartialGlobal;
-    // keep reference to original getGlobalScope
-    const originalGetGlobalScope = AnalyticsCore.getGlobalScope;
-    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockImplementation((): any => {
-      return {
-        ...originalGetGlobalScope(),
-        ...amendedGlobalScope,
-      };
-    });
-  });
-
-  describe('should return the body length when the body is of type', () => {
-    it('string', () => {
-      const body = 'Hello World!';
-      expect(getRequestBodyLength(body)).toBe(body.length);
-    });
-    it('Blob', () => {
-      const blob = new Blob(['Hello World!']);
-      expect(getRequestBodyLength(blob)).toBe(blob.size);
-    });
-    it('ArrayBuffer', () => {
-      const buffer = new ArrayBuffer(8);
-      expect(getRequestBodyLength(buffer)).toBe(buffer.byteLength);
-    });
-
-    it('ArrayBufferView', () => {
-      const buffer = new ArrayBuffer(8);
-      const arr = new Uint8Array(buffer);
-      expect(getRequestBodyLength(arr)).toBe(arr.byteLength);
-    });
-    it('FormData', () => {
-      const formData = new FormData();
-      const val = 'value';
-      formData.append('key', val);
-      const blob = new Blob(['Hello World!']);
-      formData.append('file', blob);
-      const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
-      expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBe(expectedSize);
-    });
-    it('URLSearchParams', () => {
-      const params = new URLSearchParams();
-      const val = 'value';
-      params.append('key', val);
-      const val2 = 'value2';
-      params.append('key2', val2);
-      const expectedSize = 'key='.length + val.length + '&key2='.length + val2.length;
-      expect(getRequestBodyLength(params)).toBe(expectedSize);
-    });
-  });
-
-  describe('should not return the body length when', () => {
-    it('FormData has >100 entries', () => {
-      const formData = new FormData();
-      for (let i = 0; i < 101; i++) {
-        formData.append(`key${i}`, `value${i}`);
-      }
-      expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBeUndefined();
-    });
-    it('body is undefined', () => {
-      const body = undefined;
-      expect(getRequestBodyLength(body)).toBeUndefined();
-    });
-    it('TextEncoder is not available', () => {
-      try {
-        Object.defineProperty(amendedGlobalScope, 'TextEncoder', {
-          value: undefined,
-          configurable: true,
-          writable: true,
-        });
-        expect(getRequestBodyLength('Hello World!')).toBeUndefined();
-      } finally {
-        Object.defineProperty(amendedGlobalScope, 'TextEncoder', {
-          value: TextEncoder,
-          configurable: true,
-          writable: true,
-        });
-      }
-    });
-    it('globalScope is not available', () => {
-      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
-      const body = 'Hello World!';
-      expect(getRequestBodyLength(body)).toBeUndefined();
-    });
-  });
-});
-
-describe('calculateResponseBodySize', () => {
-  test('should return undefined if content-length is not set', () => {
-    const headers = new Headers();
-    expect(calculateResponseBodySize(headers)).toBeUndefined();
   });
 });

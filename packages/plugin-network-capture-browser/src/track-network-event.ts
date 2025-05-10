@@ -8,64 +8,8 @@ import {
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
-export interface FormDataBrowser {
-  entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
-}
-
-export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
-// using this type instead of the DOM's ttp so that it's Node compatible
-type FormDataEntryValueBrowser = string | Blob | null;
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
-const MAXIMUM_ENTRIES = 100;
-
-export function calculateResponseBodySize(responseHeaders: Headers) {
-  const contentLength = responseHeaders.get('content-length');
-  return contentLength ? parseInt(contentLength, 10) : undefined;
-}
-
-export function getRequestBodyLength(body: FetchRequestBody | null | undefined): number | undefined {
-  const global = getGlobalScope();
-  if (!global?.TextEncoder) {
-    return;
-  }
-  const { TextEncoder } = global;
-
-  if (typeof body === 'string') {
-    return new TextEncoder().encode(body).length;
-  } else if (body instanceof Blob) {
-    return body.size;
-  } else if (body instanceof URLSearchParams) {
-    return new TextEncoder().encode(body.toString()).length;
-  } else if (body instanceof ArrayBuffer) {
-    return body.byteLength;
-  } else if (ArrayBuffer.isView(body)) {
-    return body.byteLength;
-  } else if (body instanceof FormData) {
-    // Estimating only for text parts; not accurate for files
-    const formData = body as FormDataBrowser;
-
-    let total = 0;
-    let count = 0;
-    for (const [key, value] of formData.entries()) {
-      total += key.length;
-      if (typeof value === 'string') {
-        total += new TextEncoder().encode(value).length;
-      } else if ((value as Blob).size) {
-        // if we encounter a "File" type, we should not count it and just return undefined
-        total += (value as Blob).size;
-      }
-      // terminate if we reach the maximum number of entries
-      // to avoid performance issues in case of very large FormDataß
-      if (++count >= MAXIMUM_ENTRIES) {
-        return;
-      }
-    }
-    return total;
-  }
-  // unknown type
-  return;
-}
 
 function wildcardMatch(str: string, pattern: string) {
   // Escape all regex special characters except for *
@@ -226,8 +170,9 @@ export function trackNetworkEvents({
       return;
     }
 
-    const responseBodySize = request.responseHeaders ? calculateResponseBodySize(request.responseHeaders) : undefined;
-    const requestBodySize = getRequestBodyLength(request.requestBody as FetchRequestBody);
+    const responseBodySize = request.responseWrapper?.bodySize;
+    /* istanbul ignore next */
+    const requestBodySize = request.requestWrapper?.bodySize;
 
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
       ['[Amplitude] URL']: urlObj.hrefWithoutQueryOrHash,

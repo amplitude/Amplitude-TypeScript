@@ -1,6 +1,6 @@
 import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
-import { NetworkObserver } from '../src/network-observer';
-import * as AnalyticsCore from '@amplitude/analytics-core';
+import { FetchRequestBody, NetworkObserver, RequestWrapper, ResponseWrapper } from '../src/network-observer';
+import * as AnalyticsCore from '../src/index';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
 import * as Global from '../src/global-scope';
@@ -74,10 +74,14 @@ describe('NetworkObserver', () => {
         method: 'POST',
         url: 'https://api.example.com/data',
         status: 200,
-        requestHeaders,
-        responseHeaders: headers,
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
+      expect(events[0].requestWrapper?.headers).toEqual(requestHeaders);
+      expect(events[0].responseWrapper?.headers).toEqual({
+        'content-type': 'application/json',
+        'content-length': '20',
+        server: 'test-server',
+      });
     });
 
     it('should track successful fetch requests with headers (uses Headers object)', async () => {
@@ -109,10 +113,17 @@ describe('NetworkObserver', () => {
         method: 'POST',
         url: 'https://api.example.com/data',
         status: 200,
-        requestHeaders,
-        responseHeaders: headers,
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
+      expect(events[0].requestWrapper?.headers).toEqual({
+        'content-type': 'application/json',
+        'authorization': 'Bearer token123',
+      });
+      expect(events[0].responseWrapper?.headers).toEqual({
+        'content-type': 'application/json',
+        'content-length': '20',
+        server: 'test-server',
+      });
     });
 
     it('should track successful fetch requests without headers', async () => {
@@ -134,32 +145,10 @@ describe('NetworkObserver', () => {
         method: 'GET',
         url: 'https://api.example.com/data',
         status: 200,
-        requestHeaders: undefined,
-        responseHeaders: {},
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should ignore ReadableStream in requestBody', async () => {
-      const mockResponse = {
-        status: 200,
-        headers: {
-          forEach: jest.fn(), // Mock function that does nothing
-        },
-      };
-      originalFetchMock.mockResolvedValue(mockResponse);
-      networkObserver.subscribe(new NetworkEventCallback(callback));
-      const requestBody = new ReadableStream({
-        start(controller) {
-          controller.enqueue('Hello, world!');
-          controller.close();
-        },
-      });
-      await globalScope.fetch('https://api.example.com/data', {
-        method: 'POST',
-        body: requestBody,
-      });
-      expect(events[0].requestBody).toBeUndefined();
+      expect(events[0].requestWrapper?.headers).toEqual(undefined);
+      expect(events[0].responseWrapper?.headers).toEqual({});
     });
 
     it('should still fetch even if eventCallback throws error', async () => {
@@ -364,6 +353,130 @@ describe('NetworkObserver', () => {
       networkObserver.unsubscribe(cb);
       networkObserver.testNotifyEvent(mockEvent);
       expect(mockCallback).toHaveBeenCalledTimes(1); // Still only called once
+    });
+  });
+
+  describe('RequestWrapper', () => {
+    describe('bodySize should return the body length when the body is of type', () => {
+      it('string', () => {
+        const body = 'Hello World!';
+        const requestWrapper = new RequestWrapper({
+          body,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(body.length);
+
+      });
+      it('Blob', () => {
+        const blob = new Blob(['Hello World!']);
+        const requestWrapper = new RequestWrapper({
+          body: blob,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(blob.size);
+      });
+      it('ArrayBuffer', () => {
+        const buffer = new ArrayBuffer(8);
+        const requestWrapper = new RequestWrapper({
+          body: buffer,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(buffer.byteLength);
+      });
+
+      it('ArrayBufferView', () => {
+        const buffer = new ArrayBuffer(8);
+        const arr = new Uint8Array(buffer);
+        const requestWrapper = new RequestWrapper({
+          body: arr,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(arr.byteLength);
+      });
+      it('FormData', () => {
+        const formData = new FormData();
+        const val = 'value';
+        formData.append('key', val);
+        const blob = new Blob(['Hello World!']);
+        formData.append('file', blob);
+        const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
+        const requestWrapper = new RequestWrapper({
+          body: formData as unknown as FetchRequestBody,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(expectedSize);
+      });
+      it('URLSearchParams', () => {
+        const params = new URLSearchParams();
+        const val = 'value';
+        params.append('key', val);
+        const val2 = 'value2';
+        params.append('key2', val2);
+        const expectedSize = 'key='.length + val.length + '&key2='.length + val2.length;
+        const requestWrapper = new RequestWrapper({
+          body: params,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(expectedSize);
+      });
+    });
+
+    describe('bodySize should return undefined when', () => {
+      it('FormData has >100 entries', () => {
+        const formData = new FormData();
+        for (let i = 0; i < 101; i++) {
+          formData.append(`key${i}`, `value${i}`);
+        }
+        const requestWrapper = new RequestWrapper({
+          body: formData as unknown as FetchRequestBody,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
+      });
+      it('body is undefined', () => {
+        const body = undefined;
+        const requestWrapper = new RequestWrapper({
+          body,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
+      });
+      it('globalScope is not available', () => {
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+      const body = 'Hello World!';
+      const requestWrapper = new RequestWrapper({
+        body,
+      } as RequestInit);
+      expect(requestWrapper.bodySize).toBeUndefined();
+      });
+    });
+  });
+
+  describe('responseWrapper', () => {
+    const mockResponse = {
+      body: null,
+      bodyUsed: false,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      ok: true,
+      redirected: false,
+      status: 200,
+      statusText: 'OK',
+      type: 'basic',
+      url: 'https://api.example.com/data',
+      clone: () => mockResponse,
+      arrayBuffer: async () => new ArrayBuffer(0),
+      blob: async () => new Blob(),
+      formData: async () => new FormData(),
+      json: async () => ({ message: 'Hello from mock!' }),
+      text: async () => '{"message": "Hello from mock!"}'
+    };
+    
+    test('bodySize should return undefined if content-length is not set', () => {
+      const responseWrapper = new ResponseWrapper(mockResponse as unknown as Response);
+      const bodySize = responseWrapper.bodySize;
+      expect(bodySize).toBeUndefined();
+    });
+
+    test('bodySize should return the content-length if set', () => {
+      const responseWithContentLength = {
+        ...mockResponse,
+        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+      };
+      const responseWrapper = new ResponseWrapper(responseWithContentLength as unknown as Response);
+      const bodySize = responseWrapper.bodySize;
+      expect(bodySize).toBe(1234);
     });
   });
 });
