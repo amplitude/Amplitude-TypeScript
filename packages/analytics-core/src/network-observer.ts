@@ -2,75 +2,22 @@ import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
 
-const MAXIMUM_ENTRIES = 100;
 export interface NetworkRequestEvent {
   type: string;
   method: string;
-  url: string;
+  url?: string;
   timestamp: number;
   status?: number;
   duration?: number;
-  requestBodySize?: number;
-  requestHeaders?: Record<string, string>;
-  responseBodySize?: number;
-  responseHeaders?: Record<string, string>;
+  requestHeaders?: Record<string, string> | Headers;
+  requestBody?: string | FormData | URLSearchParams | ReadableStream | null;
+  responseHeaders?: Headers;
   error?: {
     name: string;
     message: string;
   };
   startTime?: number;
   endTime?: number;
-}
-
-// using this type instead of the DOM's ttp so that it's Node compatible
-type FormDataEntryValueBrowser = string | Blob | null;
-export interface FormDataBrowser {
-  entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
-}
-
-export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
-
-export function getRequestBodyLength(body: FetchRequestBody | null | undefined): number | undefined {
-  const global = getGlobalScope();
-  if (!global?.TextEncoder) {
-    return;
-  }
-  const { TextEncoder } = global;
-
-  if (typeof body === 'string') {
-    return new TextEncoder().encode(body).length;
-  } else if (body instanceof Blob) {
-    return body.size;
-  } else if (body instanceof URLSearchParams) {
-    return new TextEncoder().encode(body.toString()).length;
-  } else if (body instanceof ArrayBuffer) {
-    return body.byteLength;
-  } else if (ArrayBuffer.isView(body)) {
-    return body.byteLength;
-  } else if (body instanceof FormData) {
-    // Estimating only for text parts; not accurate for files
-    const formData = body as FormDataBrowser;
-
-    let total = 0;
-    let count = 0;
-    for (const [key, value] of formData.entries()) {
-      total += key.length;
-      if (typeof value === 'string') {
-        total += new TextEncoder().encode(value).length;
-      } else if ((value as Blob).size) {
-        // if we encounter a "File" type, we should not count it and just return undefined
-        total += (value as Blob).size;
-      }
-      // terminate if we reach the maximum number of entries
-      // to avoid performance issues in case of very large FormDataß
-      if (++count >= MAXIMUM_ENTRIES) {
-        return;
-      }
-    }
-    return total;
-  }
-  // Stream or unknown
-  return;
 }
 
 export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
@@ -125,7 +72,7 @@ export class NetworkObserver {
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
       try {
-        callback.callback(event);
+        callback.callback({...event});
       } catch (err) {
         /* istanbul ignore next */
         this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
@@ -139,8 +86,7 @@ export class NetworkObserver {
       return;
     }
     const originalFetch = this.globalScope.fetch;
-
-    this.globalScope.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const durationStart = performance.now();
       const requestEvent: NetworkRequestEvent = {
@@ -148,30 +94,25 @@ export class NetworkObserver {
         startTime,
         type: 'fetch',
         method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
-        url: input.toString(),
-        requestHeaders: init?.headers as Record<string, string>,
-        requestBodySize: getRequestBodyLength(init?.body as FetchRequestBody),
+        url: input?.toString?.(),
+        requestHeaders: init?.headers as Record<string, string> | Headers,
+        requestBody: init?.body as string | FormData | URLSearchParams | ReadableStream | null,
       };
 
+      // exlude ReadableStream in the request event. it is not serializable
+      // and downstreem consumers should not have access to it because it's mutable
+      if (requestEvent.requestBody instanceof ReadableStream) {
+        delete requestEvent.requestBody;
+      }
+
       try {
-        const response = await originalFetch(input, init);
+        const response = await originalFetch(input as RequestInfo | URL, init);
 
         requestEvent.status = response.status;
         requestEvent.duration = Math.floor(performance.now() - durationStart);
         requestEvent.startTime = startTime;
         requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
-
-        // Convert Headers
-        const headers: Record<string, string> = {};
-        let contentLength: number | undefined = undefined;
-        response.headers.forEach((value: string, key: string) => {
-          headers[key] = value;
-          if (key === 'content-length') {
-            contentLength = parseInt(value, 10) || undefined;
-          }
-        });
-        requestEvent.responseHeaders = headers;
-        requestEvent.responseBodySize = contentLength;
+        requestEvent.responseHeaders = response.headers;
 
         this.triggerEventCallbacks(requestEvent);
         return response;
@@ -188,7 +129,6 @@ export class NetworkObserver {
         };
 
         if (typedError.name === 'AbortError') {
-          requestEvent.error.name = 'AbortError';
           requestEvent.status = 0;
         }
 
