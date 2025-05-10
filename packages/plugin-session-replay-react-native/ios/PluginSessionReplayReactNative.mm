@@ -2,7 +2,7 @@
 
 @interface RCT_EXTERN_MODULE(PluginSessionReplayReactNative, NSObject)
 
-RCT_EXTERN_METHOD(setup:(NSString)apiKey deviceId:(NSString)deviceId sessionId:(nonnull NSNumber)sessionId serverZone:(NSString)serverZone sampleRate:(float)sampleRate enableRemoteConfig:(BOOL)enableRemoteConfig logLevel:(int)logLevel resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(setup:(NSString)apiKey deviceId:(NSString)deviceId sessionId:(nonnull NSNumber)sessionId serverZone:(NSString)serverZone sampleRate:(float)sampleRate enableRemoteConfig:(BOOL)enableRemoteConfig logLevel:(int)logLevel autoStart:(BOOL)autoStart resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
 RCT_EXTERN_METHOD(setSessionId:(nonnull NSNumber)sessionId resolve:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 
