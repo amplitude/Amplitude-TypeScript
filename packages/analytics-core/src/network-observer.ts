@@ -7,8 +7,10 @@ export interface FormDataBrowser {
 }
 
 export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
+
 // using this type instead of the DOM's ttp so that it's Node compatible
 type FormDataEntryValueBrowser = string | Blob | null;
+
 export class RequestWrapper {
   constructor(private request: RequestInit) {}
   private MAXIMUM_ENTRIES = 100;
@@ -157,15 +159,9 @@ export class NetworkObserver {
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
       try {
-        // defer the callback to microtask queue to avoid blocking fetch from completing
-        try {
-          // if the callback throws an error, we should catch it
-          // to avoid breaking the fetch promise chain
-          callback.callback(event);
-        } catch (err) {
-          /* istanbul ignore next */
-          this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
-        }
+        // if the callback throws an error, we should catch it
+        // to avoid breaking the fetch promise chain
+        callback.callback(event);
       } catch (err) {
         /* istanbul ignore next */
         this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
