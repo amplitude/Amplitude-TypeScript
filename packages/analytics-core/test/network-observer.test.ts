@@ -1,10 +1,18 @@
 import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
-import { FetchRequestBody, NetworkObserver, RequestWrapper, ResponseWrapper } from '../src/network-observer';
+import {
+  FetchRequestBody,
+  NetworkObserver,
+  RequestWrapper,
+  ResponseWrapper,
+  serializeNetworkRequestEvent,
+} from '../src/network-observer';
 import * as AnalyticsCore from '../src/index';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
 import * as Global from '../src/global-scope';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
+
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 // Test subclass to access protected methods
 class TestNetworkObserver extends NetworkObserver {
@@ -77,11 +85,14 @@ describe('NetworkObserver', () => {
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
       expect(events[0].requestWrapper?.headers).toEqual(requestHeaders);
-      expect(events[0].responseWrapper?.headers).toEqual({
+      expect(events[0].requestWrapper?.headers).toEqual(requestHeaders); // 2x to check that it's cached
+      const expectedResponseHeaders = {
         'content-type': 'application/json',
         'content-length': '20',
         server: 'test-server',
-      });
+      };
+      expect(events[0].responseWrapper?.headers).toEqual(expectedResponseHeaders);
+      expect(events[0].responseWrapper?.headers).toEqual(expectedResponseHeaders);
     });
 
     it('should track successful fetch requests with headers (uses Headers object)', async () => {
@@ -117,7 +128,7 @@ describe('NetworkObserver', () => {
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
       expect(events[0].requestWrapper?.headers).toEqual({
         'content-type': 'application/json',
-        'authorization': 'Bearer token123',
+        authorization: 'Bearer token123',
       });
       expect(events[0].responseWrapper?.headers).toEqual({
         'content-type': 'application/json',
@@ -180,7 +191,9 @@ describe('NetworkObserver', () => {
       await expect(globalScope.fetch('https://api.example.com/data')).rejects.toThrow('Failed to fetch');
 
       expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
+      const networkRequestEvent = events[0];
+      console.log(networkRequestEvent.toSerializable().endTime);
+      expect(networkRequestEvent.toSerializable()).toEqual({
         type: 'fetch',
         method: 'GET',
         url: 'https://api.example.com/data',
@@ -188,8 +201,16 @@ describe('NetworkObserver', () => {
           name: 'TypeError',
           message: 'Failed to fetch',
         },
+        duration: networkRequestEvent.duration,
+        status: networkRequestEvent.status,
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        timestamp: expect.any(Number),
+        requestHeaders: networkRequestEvent.requestWrapper?.headers,
+        requestBodySize: networkRequestEvent.requestWrapper?.bodySize,
+        responseHeaders: networkRequestEvent.responseWrapper?.headers,
+        responseBodySize: networkRequestEvent.responseWrapper?.bodySize,
       });
-      expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
 
     it('should track aborted requests', async () => {
@@ -340,6 +361,7 @@ describe('NetworkObserver', () => {
         type: 'fetch' as const,
         method: 'GET',
         url: 'https://api.example.com/data',
+        toSerializable: () => ({ ...mockEvent }),
       };
 
       // Test with callback
@@ -364,7 +386,7 @@ describe('NetworkObserver', () => {
           body,
         } as RequestInit);
         expect(requestWrapper.bodySize).toBe(body.length);
-
+        expect(requestWrapper.bodySize).toBe(body.length); // do it again to make sure it's cached
       });
       it('Blob', () => {
         const blob = new Blob(['Hello World!']);
@@ -434,12 +456,12 @@ describe('NetworkObserver', () => {
         expect(requestWrapper.bodySize).toBeUndefined();
       });
       it('globalScope is not available', () => {
-      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
-      const body = 'Hello World!';
-      const requestWrapper = new RequestWrapper({
-        body,
-      } as RequestInit);
-      expect(requestWrapper.bodySize).toBeUndefined();
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+        const body = 'Hello World!';
+        const requestWrapper = new RequestWrapper({
+          body,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
       });
     });
   });
@@ -460,9 +482,9 @@ describe('NetworkObserver', () => {
       blob: async () => new Blob(),
       formData: async () => new FormData(),
       json: async () => ({ message: 'Hello from mock!' }),
-      text: async () => '{"message": "Hello from mock!"}'
+      text: async () => '{"message": "Hello from mock!"}',
     };
-    
+
     test('bodySize should return undefined if content-length is not set', () => {
       const responseWrapper = new ResponseWrapper(mockResponse as unknown as Response);
       const bodySize = responseWrapper.bodySize;
@@ -475,8 +497,54 @@ describe('NetworkObserver', () => {
         headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
       };
       const responseWrapper = new ResponseWrapper(responseWithContentLength as unknown as Response);
-      const bodySize = responseWrapper.bodySize;
-      expect(bodySize).toBe(1234);
+      expect(responseWrapper.bodySize).toBe(1234);
+      expect(responseWrapper.bodySize).toBe(1234); // 2x to check that it's cached
+    });
+  });
+});
+
+describe('serializeNetworkRequestEvent', () => {
+  it('should serialize a NetworkRequestEvent', () => {
+    const event = {
+      type: 'fetch',
+      method: 'GET',
+      url: 'https://api.example.com/data',
+      status: 200,
+      duration: 100,
+      startTime: 100,
+      endTime: 200,
+      timestamp: 100,
+      requestWrapper: {
+        bodySize: 100,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+      responseWrapper: {
+        bodySize: 100,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    } as unknown as NetworkRequestEvent;
+    const serialized = serializeNetworkRequestEvent(event);
+    expect(serialized).toEqual({
+      type: 'fetch',
+      method: 'GET',
+      url: 'https://api.example.com/data',
+      status: 200,
+      duration: 100,
+      startTime: 100,
+      endTime: 200,
+      timestamp: 100,
+      requestBodySize: 100,
+      requestHeaders: {
+        'Content-Type': 'application/json',
+      },
+      responseBodySize: 100,
+      responseHeaders: {
+        'Content-Type': 'application/json',
+      },
     });
   });
 });

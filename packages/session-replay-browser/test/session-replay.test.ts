@@ -1441,11 +1441,20 @@ describe('SessionReplay', () => {
         method: 'GET',
         status: 200,
         requestWrapper: {
-          headers: {'foo': 'bar'},
+          headers: { foo: 'bar' },
+          bodySize: 100,
         } as any,
         responseWrapper: {
-          headers: {'hello': 'world'},
+          headers: { hello: 'world' },
+          bodySize: 200,
         } as any,
+        toSerializable: () => ({
+          ...mockNetworkEvent,
+          requestHeaders: mockNetworkEvent.requestWrapper.headers,
+          responseHeaders: mockNetworkEvent.responseWrapper.headers,
+          requestBodySize: mockNetworkEvent.requestWrapper.bodySize,
+          responseBodySize: mockNetworkEvent.responseWrapper.bodySize,
+        }),
       };
 
       // Get the callback that was passed to start
@@ -1458,8 +1467,10 @@ describe('SessionReplay', () => {
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, {
         ...mockNetworkEvent,
-        responseHeaders: { 'hello': 'world' },
-        requestHeaders: { 'foo': 'bar' },
+        responseHeaders: { hello: 'world' },
+        requestHeaders: { foo: 'bar' },
+        requestBodySize: 100,
+        responseBodySize: 200,
       });
     });
     test('should call addCustomRRWebEvent with network request events (no request/response)', async () => {
@@ -1486,6 +1497,7 @@ describe('SessionReplay', () => {
         timestamp: Date.now(),
         method: 'GET',
         status: 200,
+        toSerializable: () => mockNetworkEvent,
       };
 
       // Get the callback that was passed to start

@@ -12,22 +12,28 @@ export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | U
 type FormDataEntryValueBrowser = string | Blob | null;
 
 export class RequestWrapper {
-  constructor(private request: RequestInit) {}
   private MAXIMUM_ENTRIES = 100;
+  private _headers: Record<string, string> | undefined;
+  private _bodySize: number | undefined;
+  constructor(private request: RequestInit) {}
 
   get headers(): Record<string, string> {
+    if (this._headers) return this._headers;
     if (!(this.request.headers instanceof Headers)) {
-      return this.request.headers as Record<string, string>;
+      this._headers = this.request.headers as Record<string, string>;
+      return this._headers;
     }
 
     const headers: Record<string, string> = {};
     this.request.headers.forEach((value, key) => {
       headers[key] = value;
     });
+    this._headers = headers;
     return headers;
   }
 
   get bodySize(): number | undefined {
+    if (typeof this._bodySize === 'number') return this._bodySize;
     const global = getGlobalScope();
 
     /* istanbul ignore if */
@@ -35,22 +41,23 @@ export class RequestWrapper {
       return;
     }
     const { TextEncoder } = global;
-    const body = this.request.body as FetchRequestBody
-  
+    const body = this.request.body as FetchRequestBody;
+
+    let bodySize: number | undefined;
     if (typeof body === 'string') {
-      return new TextEncoder().encode(body).length;
+      bodySize = new TextEncoder().encode(body).length;
     } else if (body instanceof Blob) {
-      return body.size;
+      bodySize = body.size;
     } else if (body instanceof URLSearchParams) {
-      return new TextEncoder().encode(body.toString()).length;
+      bodySize = new TextEncoder().encode(body.toString()).length;
     } else if (body instanceof ArrayBuffer) {
-      return body.byteLength;
+      bodySize = body.byteLength;
     } else if (ArrayBuffer.isView(body)) {
-      return body.byteLength;
+      bodySize = body.byteLength;
     } else if (body instanceof FormData) {
       // Estimating only for text parts; not accurate for files
       const formData = body as FormDataBrowser;
-  
+
       let total = 0;
       let count = 0;
       for (const [key, value] of formData.entries()) {
@@ -64,29 +71,38 @@ export class RequestWrapper {
         // terminate if we reach the maximum number of entries
         // to avoid performance issues in case of very large FormDataß
         if (++count >= this.MAXIMUM_ENTRIES) {
+          this._bodySize = undefined;
           return;
         }
       }
-      return total;
+      bodySize = total;
     }
-    // unknown type
-    return;
+    this._bodySize = bodySize;
+    return bodySize;
   }
 }
+
 export class ResponseWrapper {
+  private _headers: Record<string, string> | undefined;
+  private _bodySize: number | undefined;
   constructor(private response: Response) {}
 
   get headers(): Record<string, string> {
+    if (this._headers) return this._headers;
     const headers: Record<string, string> = {};
     this.response.headers.forEach((value, key) => {
       headers[key] = value;
     });
+    this._headers = headers;
     return headers;
   }
 
   get bodySize(): number | undefined {
+    if (this._bodySize !== undefined) return this._bodySize;
     const contentLength = this.response.headers.get('content-length');
-    return contentLength ? parseInt(contentLength, 10) : undefined;
+    const bodySize = contentLength ? parseInt(contentLength, 10) : undefined;
+    this._bodySize = bodySize;
+    return bodySize;
   }
 }
 
@@ -105,7 +121,33 @@ export interface NetworkRequestEvent {
   };
   startTime?: number;
   endTime?: number;
+  toSerializable(): Record<string, any>;
 }
+
+export const serializeNetworkRequestEvent = (event: NetworkRequestEvent): Record<string, any> => {
+  const serialized: Record<string, any> = {
+    type: event.type,
+    method: event.method,
+    url: event.url,
+    timestamp: event.timestamp,
+    status: event.status,
+    duration: event.duration,
+    error: event.error,
+    startTime: event.startTime,
+    endTime: event.endTime,
+    requestHeaders: event.requestWrapper?.headers,
+    requestBodySize: event.requestWrapper?.bodySize,
+    responseHeaders: event.responseWrapper?.headers,
+    responseBodySize: event.responseWrapper?.bodySize,
+  };
+
+  Object.keys(serialized).forEach((key) => {
+    if (serialized[key] === undefined) {
+      delete serialized[key];
+    }
+  });
+  return serialized;
+};
 
 export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
 
@@ -161,7 +203,7 @@ export class NetworkObserver {
       try {
         // if the callback throws an error, we should catch it
         // to avoid breaking the fetch promise chain
-        callback.callback(event);
+        callback.callback({ ...event });
       } catch (err) {
         /* istanbul ignore next */
         this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
@@ -185,6 +227,7 @@ export class NetworkObserver {
         method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
         url: input?.toString?.(),
         requestWrapper: init !== undefined ? new RequestWrapper(init) : undefined,
+        toSerializable: () => serializeNetworkRequestEvent(requestEvent),
       };
 
       try {
@@ -199,8 +242,8 @@ export class NetworkObserver {
         this.triggerEventCallbacks(requestEvent);
         return response;
       } catch (error) {
-        const endTime = Date.now();
-        requestEvent.duration = endTime - startTime;
+        requestEvent.duration = Math.floor(performance.now() - durationStart);
+        requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
 
         // Capture error information
         const typedError = error as Error;

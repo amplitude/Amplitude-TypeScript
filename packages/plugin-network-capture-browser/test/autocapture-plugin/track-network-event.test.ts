@@ -30,16 +30,33 @@ class MockNetworkRequestEvent implements NetworkRequestEvent {
     public method: string = 'GET',
     public status: number = 200,
     public duration: number = 100,
-    public responseBodySize: number = 100,
-    public requestBodySize: number = 100,
-    public requestHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-    },
+    public responseWrapper = {
+      bodySize: 100,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    } as any,
+    public requestWrapper = {
+      bodySize: 100,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    } as any,
     public startTime: number = Date.now(),
     public timestamp: number = Date.now(),
     public endTime: number = Date.now() + 100,
   ) {
     this.type = 'fetch';
+  }
+
+  toSerializable(): Record<string, any> {
+    return {
+      ...this,
+      responseBodySize: this.responseWrapper.bodySize,
+      requestBodySize: this.requestWrapper.bodySize,
+      requestHeaders: this.requestWrapper.headers,
+      responseHeaders: this.responseWrapper.headers,
+    };
   }
 }
 
@@ -149,6 +166,7 @@ describe('track-network-event', () => {
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
+          toSerializable: () => networkEvent.toSerializable(),
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
@@ -183,6 +201,7 @@ describe('track-network-event', () => {
             headers: { 'content-type': 'application/json' },
           } as any,
           timestamp: Date.now(),
+          toSerializable: () => networkEvent.toSerializable(),
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
@@ -219,6 +238,7 @@ describe('track-network-event', () => {
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
+          toSerializable: () => networkEvent.toSerializable(),
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
@@ -229,7 +249,7 @@ describe('track-network-event', () => {
 
     test('should not track event if request event is missing URL', () => {
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
-        cb.callback({
+        const event = {
           type: 'fetch',
           method: 'POST',
           status: 500,
@@ -241,6 +261,10 @@ describe('track-network-event', () => {
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
+        };
+        cb.callback({
+          ...event,
+          toSerializable: () => event,
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
