@@ -10,6 +10,12 @@ on:
           - release
           - prerelease
           - graduate
+      lernaDeployType:
+        type: choice
+        description: Lerna Deploy Type
+        options:
+          - from-git
+          - from-package
 
 jobs:
   authorize:
@@ -105,12 +111,16 @@ jobs:
       # NOTE: You probably want this
       - name: Create release version
         if: ${{ env.RELEASE_TYPE == 'release'}}
+        env:
+          LERNA_DEPLOY_TYPE: ${{ github.event.inputs.lernaDeployType }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- $LERNA_DEPLOY_TYPE -y --no-private --create-release github
+          
 
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish --  -y --pre-dist-tag beta
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish --  -y --dist-tag latest
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
