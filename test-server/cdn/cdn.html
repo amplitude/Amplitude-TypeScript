@@ -4,30 +4,31 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Browser SDK Test</title>
+    <script src="https://cdn.amplitude.com/libs/analytics-browser-2.6.2-min.js.gz"></script>
+    <title>CDN Test</title>
   </head>
   <body>
     <div id="app">
       Basic test page for the Amplitude Browser SDK
     </div>
     <script type="module">
-      import * as amplitude from '@amplitude/analytics-browser';
-      window.amplitude = amplitude;
       amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
-          autocapture: true,
+          defaultTracking: true,
           logLevel: 'DEBUG',
-          flushIntervalMillis: 1000,
-          networkTrackingOptions: {
-            ignoreAmplitudeRequests: false,
-            ignoreHosts: [],
-            captureRules: [
-              {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
-              {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
-            ],
-          },
+          // autocapture: true,
+          // logLevel: 'DEBUG',
+          // flushIntervalMillis: 1000,
+          // networkTrackingOptions: {
+          //   ignoreAmplitudeRequests: false,
+          //   ignoreHosts: [],
+          //   captureRules: [
+          //     {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
+          //     {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
+          //   ],
+          // },
         }
       );
     </script>
