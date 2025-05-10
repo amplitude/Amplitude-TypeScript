@@ -220,12 +220,24 @@ export class NetworkObserver {
     this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const durationStart = performance.now();
+      let url: string | undefined;
+      let method: string;
+      const isRequestObject = typeof input === 'object' && input !== null && 'url' in input;
+
+      if (isRequestObject) {
+        url = (input as any).url;
+        method = (input as any).method;
+      } else {
+        url = input?.toString?.();
+        method = init?.method || 'GET';
+      }
+
       const requestEvent: NetworkRequestEvent = {
         timestamp: startTime,
         startTime,
         type: 'fetch',
-        method: init?.method || 'GET', // Fetch API defaulted to GET when no method is provided
-        url: input?.toString?.(),
+        method,
+        url,
         requestWrapper: init !== undefined ? new RequestWrapper(init) : undefined,
         toSerializable: () => serializeNetworkRequestEvent(requestEvent),
       };

@@ -179,6 +179,36 @@ describe('NetworkObserver', () => {
       const res = await globalScope.fetch('https://api.example.com/data');
       expect(res.status).toBe(200);
     });
+
+    it('should track successful fetch requests formed with request object', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: jest.fn(), // Mock function that does nothing
+        },
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+
+      const req = {
+        url: 'https://api.example.com/data',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: '{"message": "Hello from mock!"}',
+      } as any;
+      await globalScope.fetch(req);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'fetch',
+        method: 'POST',
+        url: 'https://api.example.com/data',
+        status: 200,
+      });
+    });
   });
 
   describe('failed requests', () => {
