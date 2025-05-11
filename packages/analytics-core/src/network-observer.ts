@@ -8,7 +8,7 @@ export interface FormDataBrowser {
   entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
 }
 
-export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
+export type FetchRequestBody = string | Blob | ReadableStream | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
 
 
 /**
@@ -36,7 +36,7 @@ export class RequestWrapper {
     }
 
     if (!(this.request.headers instanceof Headers)) {
-      this._headers = this.request.headers as Record<string, string>;
+      this._headers = {...this.request.headers} as Record<string, string>;
       return this._headers;
     }
 
@@ -66,9 +66,9 @@ export class RequestWrapper {
       bodySize = body.size;
     } else if (body instanceof URLSearchParams) {
       bodySize = new TextEncoder().encode(body.toString()).length;
-    } else if (body instanceof ArrayBuffer) {
-      bodySize = body.byteLength;
     } else if (ArrayBuffer.isView(body)) {
+      bodySize = body.byteLength;
+    } else if (body instanceof ArrayBuffer) {
       bodySize = body.byteLength;
     } else if (body instanceof FormData) {
       // Estimating only for text parts; not accurate for files
@@ -80,11 +80,8 @@ export class RequestWrapper {
         total += key.length;
         if (typeof value === 'string') {
           total += new TextEncoder().encode(value).length;
-        } else if ((value as Blob).size) {
-          // if we encounter a "File" type, we should not count it and just return undefined
-          // because calculating the size of a file is not reliable or performant
-          this._bodySize = undefined;
-          return;
+        } else if (value instanceof Blob) {
+          total += value.size;
         }
         // terminate if we reach the maximum number of entries
         // to avoid performance issues in case of very large FormData

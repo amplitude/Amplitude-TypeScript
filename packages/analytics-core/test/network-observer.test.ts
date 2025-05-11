@@ -417,7 +417,6 @@ describe('NetworkObserver', () => {
         } as RequestInit);
         expect(requestWrapper.bodySize).toBe(buffer.byteLength);
       });
-
       it('ArrayBufferView', () => {
         const buffer = new ArrayBuffer(8);
         const arr = new Uint8Array(buffer);
@@ -494,6 +493,14 @@ describe('NetworkObserver', () => {
         });
       });
     });
+
+    test('RequestWrapper interface changed. Make sure you know what you are doing.', () => {
+      const props = Object.getOwnPropertyNames(RequestWrapper.prototype);
+      const expectedProps = ['headers', 'bodySize'];
+      expectedProps.forEach((prop) => {
+        expect(props).toContain(prop);
+      });
+    });
   });
 
   describe('responseWrapper', () => {
@@ -529,6 +536,14 @@ describe('NetworkObserver', () => {
       const responseWrapper = new ResponseWrapper(responseWithContentLength as unknown as Response);
       expect(responseWrapper.bodySize).toBe(1234);
       expect(responseWrapper.bodySize).toBe(1234); // 2x to check that it's cached
+    });
+
+    test('ResponseWrapper interface changed. Make sure you know what you are doing.', () => {
+      const props = Object.getOwnPropertyNames(ResponseWrapper.prototype);
+      const expectedProps = ['headers', 'bodySize'];
+      expectedProps.forEach((prop) => {
+        expect(props).toContain(prop);
+      });
     });
   });
 });
