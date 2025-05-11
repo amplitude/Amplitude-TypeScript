@@ -253,6 +253,10 @@ export class NetworkObserver {
       let typedError;
       const startTime = Date.now();
       const durationStart = performance.now();
+
+      // Adding "no-unsafe-finally" so that the return and throw statements from the original
+      // fetch function are preserved. Never remove this!
+      /*eslint no-unsafe-finally: "error"*/
       try {
         response = await originalFetch(input as RequestInfo | URL, init);
         return response;
