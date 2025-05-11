@@ -69,7 +69,7 @@ export class RequestWrapper {
           total += (value as Blob).size;
         }
         // terminate if we reach the maximum number of entries
-        // to avoid performance issues in case of very large FormDataß
+        // to avoid performance issues in case of very large FormData
         if (++count >= this.MAXIMUM_ENTRIES) {
           this._bodySize = undefined;
           return;
@@ -170,8 +170,6 @@ export class NetworkObserver {
       return;
     }
     this.globalScope = globalScope;
-    /* istanbul ignore next */
-    this.originalFetch = this.globalScope?.fetch;
   }
 
   static isSupported(): boolean {
@@ -185,6 +183,8 @@ export class NetworkObserver {
     }
     this.eventCallbacks.set(eventCallback.id, eventCallback);
     if (!this.isObserving) {
+      /* istanbul ignore next */
+      this.originalFetch = this.globalScope?.fetch;
       this.observeFetch();
       this.isObserving = true;
     }
@@ -220,17 +220,18 @@ export class NetworkObserver {
     this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const durationStart = performance.now();
-      let url: string | undefined;
-      let method: string;
-      const isRequestObject = typeof input === 'object' && input !== null && 'url' in input;
 
+      // parse the URL and method
+      let url: string | undefined;
+      let method = 'GET';
+      const isRequestObject = typeof input === 'object' && input !== null && 'url' in input;
       if (isRequestObject) {
-        url = (input as any).url;
-        method = (input as any).method;
+        url = input['url'];
+        method = input['method'];
       } else {
         url = input?.toString?.();
-        method = init?.method || 'GET';
       }
+      method = init?.method || method;
 
       const requestEvent: NetworkRequestEvent = {
         timestamp: startTime,
