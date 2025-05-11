@@ -243,6 +243,54 @@ export class NetworkObserver {
     });
   }
 
+  constructNetworkRequestEvent(
+    startTime: number,
+    durationStart: number,
+    input?: RequestInfo | URL,
+    init?: RequestInit,
+    response?: Response,
+    error?: Error,
+  ): NetworkRequestEvent {
+    // parse the URL and Method
+    let url: string | undefined;
+    let method = 'GET';
+    if (isRequest(input)) {
+      url = input['url'];
+      method = input['method'];
+    } else {
+      url = input?.toString?.();
+    }
+    method = init?.method || method;
+
+    const requestEvent: NetworkRequestEvent = {
+      timestamp: startTime,
+      startTime,
+      type: 'fetch',
+      method,
+      url,
+      requestWrapper: init !== undefined ? new RequestWrapper(init) : undefined,
+      toSerializable: () => serializeNetworkRequestEvent(requestEvent),
+    };
+
+    if (response) {
+      requestEvent.status = response.status;
+      requestEvent.responseWrapper = new ResponseWrapper(response);
+    }
+
+    if (error) {
+      requestEvent.error = {
+        name: error.name || 'UnknownError',
+        message: error.message || 'An unknown error occurred',
+      };
+      if (error.name === 'AbortError') {
+        requestEvent.status = 0;
+      }
+    }
+    requestEvent.duration = Math.floor(performance.now() - durationStart);
+    requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
+    return requestEvent;
+  }
+
   private observeFetch(originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
     /* istanbul ignore next */
     if (!this.globalScope || !originalFetch) {
@@ -266,47 +314,19 @@ export class NetworkObserver {
         throw error;
       } finally {
         try {
-          // parse the URL and Method
-          let url: string | undefined;
-          let method = 'GET';
-          if (isRequest(input)) {
-            url = input['url'];
-            method = input['method'];
-          } else {
-            url = input?.toString?.();
-          }
-          method = init?.method || method;
-
-          const requestEvent: NetworkRequestEvent = {
-            timestamp: startTime,
+          const requestEvent = this.constructNetworkRequestEvent(
             startTime,
-            type: 'fetch',
-            method,
-            url,
-            requestWrapper: init !== undefined ? new RequestWrapper(init) : undefined,
-            toSerializable: () => serializeNetworkRequestEvent(requestEvent),
-          };
-
-          if (response) {
-            requestEvent.status = response.status;
-            requestEvent.responseWrapper = new ResponseWrapper(response);
-          }
-
-          if (typedError) {
-            requestEvent.error = {
-              name: typedError.name || 'UnknownError',
-              message: typedError.message || 'An unknown error occurred',
-            };
-            if (typedError.name === 'AbortError') {
-              requestEvent.status = 0;
-            }
-          }
-          requestEvent.duration = Math.floor(performance.now() - durationStart);
-          requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
+            durationStart,
+            input,
+            init,
+            response,
+            typedError,
+          );
           this.triggerEventCallbacks(requestEvent);
         } catch (err) {
-          // this catch shouldn't be reachable, but keep it here for safety
-          // because we're overriding the fetch function
+          // this catch should never be reachable, but keep it here for safety
+          // because we're overriding the fetch function and don't want an
+          // exception inside finally to replace the original exception
           /* istanbul ignore next */
           this.logger?.debug('an unexpected error occurred while observing fetch', err);
         }
