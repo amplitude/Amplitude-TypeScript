@@ -81,14 +81,20 @@ export class NetworkObserver {
    * @param durationStart - The duration start time of the fetch call
    * @returns A NetworkRequestEvent object
    */
-  private constructNetworkRequestEvent(
+  private handleNetworkRequestEvent(
     input: RequestInfo | URL | undefined,
     init: RequestInit | undefined,
     response: Response | undefined,
     typedError: Error | undefined,
-    startTime: number,
-    durationStart: number,
-  ): NetworkRequestEvent {
+    startTime?: number,
+    durationStart?: number,
+  ) {
+    /* istanbul ignore next */
+    if (startTime === undefined || durationStart === undefined) {
+      // if we reach this point, it means that the performance API is not supported
+      // so we can't construct a NetworkRequestEvent
+      return;
+    }
     // parse the URL and Method
     let url: string | undefined;
     let method = 'GET';
@@ -112,15 +118,13 @@ export class NetworkObserver {
         message: typedError.message || 'An unknown error occurred',
       };
 
-      if (typedError.name === 'AbortError') {
-        status = 0;
-      }
+      status = 0;
     }
 
     const duration = Math.floor(performance.now() - durationStart);
     const endTime = Math.floor(startTime + duration);
 
-    return new NetworkRequestEvent(
+    const requestEvent = new NetworkRequestEvent(
       'fetch',
       method,
       startTime,
@@ -133,6 +137,16 @@ export class NetworkObserver {
       error,
       endTime,
     );
+
+    this.triggerEventCallbacks(requestEvent);
+  }
+
+  getTimestamps() {
+    /* istanbul ignore next */
+    return {
+      startTime: Date.now?.(),
+      durationStart: performance?.now?.(),
+    };
   }
 
   private observeFetch(originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
@@ -141,10 +155,13 @@ export class NetworkObserver {
       return;
     }
     this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
-      let response;
-      let typedError;
-      const startTime = Date.now();
-      const durationStart = performance.now();
+      let response, typedError, timestamps;
+      try {
+        timestamps = this.getTimestamps();
+      } catch (error) {
+        /* istanbul ignore next */
+        this.logger?.debug('an unexpected error occurred while observing fetch', error);
+      }
 
       // Adding "no-unsafe-finally" so that the return and throw statements from the original
       // fetch function are preserved. Never remove this!
@@ -158,15 +175,16 @@ export class NetworkObserver {
         throw error;
       } finally {
         try {
-          const requestEvent = this.constructNetworkRequestEvent(
+          this.handleNetworkRequestEvent(
             input,
             init,
             response,
             typedError,
-            startTime,
-            durationStart,
+            /* istanbul ignore next */
+            timestamps?.startTime,
+            /* istanbul ignore next */
+            timestamps?.durationStart,
           );
-          this.triggerEventCallbacks(requestEvent);
         } catch (err) {
           // this catch shouldn't be reachable, but keep it here for safety
           // because we're overriding the fetch function
