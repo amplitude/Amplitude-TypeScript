@@ -303,6 +303,7 @@ export class NetworkObserver {
         } catch (err) {
           // this catch shouldn't be reachable, but keep it here for safety
           // because we're overriding the fetch function
+          /* istanbul ignore next */
           this.logger?.debug('an unexpected error occurred while observing fetch', err);
         }
       }
