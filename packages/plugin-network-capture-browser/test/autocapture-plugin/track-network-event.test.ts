@@ -201,6 +201,8 @@ describe('track-network-event', () => {
             headers: { 'content-type': 'application/json' },
           } as any,
           timestamp: Date.now(),
+          startTime: Date.now(),
+          endTime: Date.now() + 100,
           toSerializable: () => networkEvent.toSerializable(),
         });
       });
@@ -215,8 +217,8 @@ describe('track-network-event', () => {
         '[Amplitude] URL Fragment': 'hash',
         '[Amplitude] Request Method': 'POST',
         '[Amplitude] Status Code': 500,
-        '[Amplitude] Start Time': undefined,
-        '[Amplitude] Completion Time': undefined,
+        '[Amplitude] Start Time': expect.any(Number),
+        '[Amplitude] Completion Time': expect.any(Number),
         '[Amplitude] Duration': expect.any(Number),
         '[Amplitude] Request Body Size': undefined,
         '[Amplitude] Response Body Size': undefined,
