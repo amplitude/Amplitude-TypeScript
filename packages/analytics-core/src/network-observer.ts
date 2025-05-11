@@ -136,49 +136,50 @@ export class ResponseWrapper {
 }
 
 /**
- * This function checks if an input is a Request object.
+ * Typeguard function checks if an input is a Request object.
  */
 function isRequest(input: any): input is Request {
   return typeof input === 'object' && input !== null && 'url' in input && 'method' in input;
 }
 
-export interface NetworkRequestEvent {
-  type: string;
-  method: string;
-  url?: string;
-  timestamp: number;
-  status?: number;
-  duration?: number;
-  requestWrapper?: RequestWrapper;
-  responseWrapper?: ResponseWrapper;
-  error?: {
-    name: string;
-    message: string;
-  };
-  startTime?: number;
-  endTime?: number;
-  toSerializable(): Record<string, any>;
+export class NetworkRequestEvent {
+  constructor(
+    public readonly type: string,
+    public readonly method: string,
+    public readonly timestamp: number,
+    public readonly startTime: number,
+    public readonly url?: string,
+    public readonly requestWrapper?: RequestWrapper,
+    public readonly status?: number,
+    public readonly duration?: number,
+    public readonly responseWrapper?: ResponseWrapper,
+    public readonly error?: {
+      name: string;
+      message: string;
+    },
+    public readonly endTime?: number,
+  ) {}
+
+  toSerializable(): Record<string, any> {
+    const serialized: Record<string, any> = {
+      type: this.type,
+      method: this.method,
+      url: this.url,
+      timestamp: this.timestamp,
+      status: this.status,
+      duration: this.duration,
+      error: this.error,
+      startTime: this.startTime,
+      endTime: this.endTime,
+      requestHeaders: this.requestWrapper?.headers,
+      requestBodySize: this.requestWrapper?.bodySize,
+      responseHeaders: this.responseWrapper?.headers,
+      responseBodySize: this.responseWrapper?.bodySize,
+    };
+
+    return Object.fromEntries(Object.entries(serialized).filter(([_, v]) => v !== undefined));
+  }
 }
-
-export const serializeNetworkRequestEvent = (event: NetworkRequestEvent): Record<string, any> => {
-  const serialized: Record<string, any> = {
-    type: event.type,
-    method: event.method,
-    url: event.url,
-    timestamp: event.timestamp,
-    status: event.status,
-    duration: event.duration,
-    error: event.error,
-    startTime: event.startTime,
-    endTime: event.endTime,
-    requestHeaders: event.requestWrapper?.headers,
-    requestBodySize: event.requestWrapper?.bodySize,
-    responseHeaders: event.responseWrapper?.headers,
-    responseBodySize: event.responseWrapper?.bodySize,
-  };
-
-  return Object.fromEntries(Object.entries(serialized).filter(([_, v]) => v !== undefined));
-};
 
 export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
 
@@ -232,8 +233,7 @@ export class NetworkObserver {
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
       try {
-        const eventCopy = { ...event }; // defensive copy to avoid mutating the original event
-        callback.callback(eventCopy);
+        callback.callback(event);
       } catch (err) {
         // if the callback throws an error, we should catch it
         // to avoid breaking the fetch promise chain
@@ -244,12 +244,12 @@ export class NetworkObserver {
   }
 
   private constructNetworkRequestEvent(
+    input: RequestInfo | URL | undefined,
+    init: RequestInit | undefined,
+    response: Response | undefined,
+    typedError: Error | undefined,
     startTime: number,
-    durationStart: number,
-    input?: RequestInfo | URL,
-    init?: RequestInit,
-    response?: Response,
-    error?: Error,
+    durationStart: number
   ): NetworkRequestEvent {
     // parse the URL and Method
     let url: string | undefined;
@@ -262,33 +262,39 @@ export class NetworkObserver {
     }
     method = init?.method || method;
 
-    const requestEvent: NetworkRequestEvent = {
-      timestamp: startTime,
-      startTime,
-      type: 'fetch',
-      method,
-      url,
-      requestWrapper: init !== undefined ? new RequestWrapper(init) : undefined,
-      toSerializable: () => serializeNetworkRequestEvent(requestEvent),
-    };
-
+    let status, responseWrapper, error;
     if (response) {
-      requestEvent.status = response.status;
-      requestEvent.responseWrapper = new ResponseWrapper(response);
+      status = response.status;
+      responseWrapper = new ResponseWrapper(response);
     }
 
-    if (error) {
-      requestEvent.error = {
-        name: error.name || 'UnknownError',
-        message: error.message || 'An unknown error occurred',
+    if (typedError) {
+      error = {
+        name: typedError.name || 'UnknownError',
+        message: typedError.message || 'An unknown error occurred',
       };
-      if (error.name === 'AbortError') {
-        requestEvent.status = 0;
+
+      if (typedError.name === 'AbortError') {
+        status = 0;
       }
     }
-    requestEvent.duration = Math.floor(performance.now() - durationStart);
-    requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
-    return requestEvent;
+
+    let duration = Math.floor(performance.now() - durationStart);
+    let endTime = Math.floor(startTime + duration);
+
+    return new NetworkRequestEvent(
+      'fetch',
+      method,
+      startTime,
+      startTime,
+      url,
+      init !== undefined ? new RequestWrapper(init) : undefined,
+      status,
+      duration,
+      responseWrapper,
+      error,
+      endTime
+    );
   }
 
   private observeFetch(originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
@@ -315,18 +321,17 @@ export class NetworkObserver {
       } finally {
         try {
           const requestEvent = this.constructNetworkRequestEvent(
-            startTime,
-            durationStart,
             input,
             init,
             response,
             typedError,
+            startTime,
+            durationStart
           );
           this.triggerEventCallbacks(requestEvent);
         } catch (err) {
-          // this catch should never be reachable, but keep it here for safety
-          // because we're overriding the fetch function and don't want an
-          // exception inside finally to replace the original exception
+          // this catch shouldn't be reachable, but keep it here for safety
+          // because we're overriding the fetch function
           /* istanbul ignore next */
           this.logger?.debug('an unexpected error occurred while observing fetch', err);
         }

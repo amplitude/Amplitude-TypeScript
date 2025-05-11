@@ -4,7 +4,6 @@ import {
   NetworkObserver,
   RequestWrapper,
   ResponseWrapper,
-  serializeNetworkRequestEvent,
 } from '../src/network-observer';
 import * as AnalyticsCore from '../src/index';
 import { TextEncoder } from 'util';
@@ -233,7 +232,6 @@ describe('NetworkObserver', () => {
 
       expect(events).toHaveLength(1);
       const networkRequestEvent = events[0];
-      console.log(networkRequestEvent.toSerializable().endTime);
       expect(networkRequestEvent.toSerializable()).toEqual({
         type: 'fetch',
         method: 'GET',
@@ -376,6 +374,7 @@ describe('NetworkObserver', () => {
         type: 'fetch' as const,
         method: 'GET',
         url: 'https://api.example.com/data',
+        startTime: Date.now(),
         toSerializable: () => ({ ...mockEvent }),
       };
 
@@ -572,7 +571,8 @@ describe('serializeNetworkRequestEvent', () => {
         },
       },
     } as unknown as NetworkRequestEvent;
-    const serialized = serializeNetworkRequestEvent(event);
+    event.toSerializable = NetworkRequestEvent.prototype.toSerializable;
+    const serialized = event.toSerializable();
     expect(serialized).toEqual({
       type: 'fetch',
       method: 'GET',
