@@ -243,7 +243,7 @@ export class NetworkObserver {
     });
   }
 
-  constructNetworkRequestEvent(
+  private constructNetworkRequestEvent(
     startTime: number,
     durationStart: number,
     input?: RequestInfo | URL,
