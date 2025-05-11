@@ -1,184 +1,12 @@
 import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
-
-// adding types to make this compile in NodeJS
-type FormDataEntryValueBrowser = string | Blob | null;
-export interface FormDataBrowser {
-  entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
-}
-
-export type FetchRequestBody =
-  | string
-  | Blob
-  | ReadableStream
-  | ArrayBuffer
-  | FormDataBrowser
-  | URLSearchParams
-  | null
-  | undefined;
-
-/**
- * This class encapsulates the Request object so that the consumer can
- * only get access to the headers and body size.
- *
- * This is to prevent consumers from directly accessing the Request object
- * and mutating it or running costly operations on it.
- */
-export class RequestWrapper {
-  private MAXIMUM_ENTRIES = 100;
-  private _headers: Record<string, string> | undefined;
-  private _bodySize: number | undefined;
-  constructor(private request: RequestInit) {}
-
-  get headers(): Record<string, string> {
-    if (this._headers) return this._headers;
-
-    if (Array.isArray(this.request.headers)) {
-      this._headers = this.request.headers.reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
-      return this._headers;
-    }
-
-    if (!(this.request.headers instanceof Headers)) {
-      this._headers = { ...this.request.headers } as Record<string, string>;
-      return this._headers;
-    }
-
-    const headers: Record<string, string> = {};
-    this.request.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    this._headers = headers;
-    return headers;
-  }
-
-  get bodySize(): number | undefined {
-    if (typeof this._bodySize === 'number') return this._bodySize;
-    const global = getGlobalScope();
-
-    /* istanbul ignore if */
-    if (!global?.TextEncoder) {
-      return;
-    }
-    const { TextEncoder } = global;
-    const body = this.request.body as FetchRequestBody;
-
-    let bodySize: number | undefined;
-    if (typeof body === 'string') {
-      bodySize = new TextEncoder().encode(body).length;
-    } else if (body instanceof Blob) {
-      bodySize = body.size;
-    } else if (body instanceof URLSearchParams) {
-      bodySize = new TextEncoder().encode(body.toString()).length;
-    } else if (ArrayBuffer.isView(body)) {
-      bodySize = body.byteLength;
-    } else if (body instanceof ArrayBuffer) {
-      bodySize = body.byteLength;
-    } else if (body instanceof FormData) {
-      // Estimating only for text parts; not accurate for files
-      const formData = body as FormDataBrowser;
-
-      let total = 0;
-      let count = 0;
-      for (const [key, value] of formData.entries()) {
-        total += key.length;
-        if (typeof value === 'string') {
-          total += new TextEncoder().encode(value).length;
-        } else if (value instanceof Blob) {
-          total += value.size;
-        }
-        // terminate if we reach the maximum number of entries
-        // to avoid performance issues in case of very large FormData
-        if (++count >= this.MAXIMUM_ENTRIES) {
-          this._bodySize = undefined;
-          return;
-        }
-      }
-      bodySize = total;
-    }
-    this._bodySize = bodySize;
-    return bodySize;
-  }
-}
-
-/**
- * This class encapsulates the Response object so that the consumer can
- * only get access to the headers and body size.
- *
- * This is to prevent consumers from directly accessing the Response object
- * and mutating it or running costly operations on it.
- */
-export class ResponseWrapper {
-  private _headers: Record<string, string> | undefined;
-  private _bodySize: number | undefined;
-  constructor(private response: Response) {}
-
-  get headers(): Record<string, string> {
-    if (this._headers) return this._headers;
-    const headers: Record<string, string> = {};
-    this.response.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    this._headers = headers;
-    return headers;
-  }
-
-  get bodySize(): number | undefined {
-    if (this._bodySize !== undefined) return this._bodySize;
-    const contentLength = this.response.headers.get('content-length');
-    const bodySize = contentLength ? parseInt(contentLength, 10) : undefined;
-    this._bodySize = bodySize;
-    return bodySize;
-  }
-}
-
+import { NetworkRequestEvent, RequestWrapper, ResponseWrapper } from './network-request-event';
 /**
  * Typeguard function checks if an input is a Request object.
  */
 function isRequest(input: any): input is Request {
   return typeof input === 'object' && input !== null && 'url' in input && 'method' in input;
-}
-
-export class NetworkRequestEvent {
-  constructor(
-    public readonly type: string,
-    public readonly method: string,
-    public readonly timestamp: number,
-    public readonly startTime: number,
-    public readonly url?: string,
-    public readonly requestWrapper?: RequestWrapper,
-    public readonly status?: number,
-    public readonly duration?: number,
-    public readonly responseWrapper?: ResponseWrapper,
-    public readonly error?: {
-      name: string;
-      message: string;
-    },
-    public readonly endTime?: number,
-  ) {}
-
-  toSerializable(): Record<string, any> {
-    const serialized: Record<string, any> = {
-      type: this.type,
-      method: this.method,
-      url: this.url,
-      timestamp: this.timestamp,
-      status: this.status,
-      duration: this.duration,
-      error: this.error,
-      startTime: this.startTime,
-      endTime: this.endTime,
-      requestHeaders: this.requestWrapper?.headers,
-      requestBodySize: this.requestWrapper?.bodySize,
-      responseHeaders: this.responseWrapper?.headers,
-      responseBodySize: this.responseWrapper?.bodySize,
-    };
-
-    return Object.fromEntries(Object.entries(serialized).filter(([_, v]) => v !== undefined));
-  }
 }
 
 export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
@@ -249,7 +77,7 @@ export class NetworkObserver {
     response: Response | undefined,
     typedError: Error | undefined,
     startTime: number,
-    durationStart: number
+    durationStart: number,
   ): NetworkRequestEvent {
     // parse the URL and Method
     let url: string | undefined;
@@ -279,8 +107,8 @@ export class NetworkObserver {
       }
     }
 
-    let duration = Math.floor(performance.now() - durationStart);
-    let endTime = Math.floor(startTime + duration);
+    const duration = Math.floor(performance.now() - durationStart);
+    const endTime = Math.floor(startTime + duration);
 
     return new NetworkRequestEvent(
       'fetch',
@@ -293,7 +121,7 @@ export class NetworkObserver {
       duration,
       responseWrapper,
       error,
-      endTime
+      endTime,
     );
   }
 
@@ -326,7 +154,7 @@ export class NetworkObserver {
             response,
             typedError,
             startTime,
-            durationStart
+            durationStart,
           );
           this.triggerEventCallbacks(requestEvent);
         } catch (err) {

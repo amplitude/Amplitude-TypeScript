@@ -1,10 +1,6 @@
 import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
-import {
-  FetchRequestBody,
-  NetworkObserver,
-  RequestWrapper,
-  ResponseWrapper,
-} from '../src/network-observer';
+import { NetworkObserver } from '../src/network-observer';
+import { FetchRequestBody, RequestWrapper, ResponseWrapper } from '../src/network-request-event';
 import * as AnalyticsCore from '../src/index';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
@@ -571,6 +567,7 @@ describe('serializeNetworkRequestEvent', () => {
         },
       },
     } as unknown as NetworkRequestEvent;
+    /* eslint-disable @typescript-eslint/unbound-method */
     event.toSerializable = NetworkRequestEvent.prototype.toSerializable;
     const serialized = event.toSerializable();
     expect(serialized).toEqual({
