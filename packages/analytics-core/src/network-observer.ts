@@ -144,9 +144,7 @@ export const serializeNetworkRequestEvent = (event: NetworkRequestEvent): Record
     responseBodySize: event.responseWrapper?.bodySize,
   };
 
-  return Object.fromEntries(
-    Object.entries(serialized).filter(([_, v]) => v !== undefined)
-  );
+  return Object.fromEntries(Object.entries(serialized).filter(([_, v]) => v !== undefined));
 };
 
 export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
