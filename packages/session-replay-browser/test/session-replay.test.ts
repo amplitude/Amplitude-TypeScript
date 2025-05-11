@@ -174,7 +174,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
-      await sessionReplay.recordEvents();
+      sessionReplay.recordEvents();
       expect(startSpy).toHaveBeenCalled();
     });
 
@@ -196,7 +196,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.init(apiKey, mockOptions).promise;
       const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
-      await sessionReplay.recordEvents();
+      sessionReplay.recordEvents();
       expect(startSpy).not.toHaveBeenCalled();
     });
 
@@ -1448,7 +1448,7 @@ describe('SessionReplay', () => {
 
       // Get the callback that was passed to start
       const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
-      await sessionReplay.recordEvents();
+      sessionReplay.recordEvents();
       const startCallback = startSpy.mock.calls[0][0].callback;
 
       // Call the callback with our mock event
