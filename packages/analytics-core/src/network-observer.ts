@@ -2,15 +2,22 @@ import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
 
+// adding types to make this compile in NodeJS
+type FormDataEntryValueBrowser = string | Blob | null;
 export interface FormDataBrowser {
   entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
 }
 
 export type FetchRequestBody = string | Blob | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
 
-// using this type instead of the DOM's ttp so that it's Node compatible
-type FormDataEntryValueBrowser = string | Blob | null;
 
+/**
+ * This class encapsulates the Request object so that the consumer can
+ * only get access to the headers and body size.
+ * 
+ * This is to prevent consumers from directly accessing the Request object
+ * and mutating it or running costly operations on it.
+ */
 export class RequestWrapper {
   private MAXIMUM_ENTRIES = 100;
   private _headers: Record<string, string> | undefined;
@@ -93,9 +100,13 @@ export class RequestWrapper {
   }
 }
 
-function isRequest(input: any): input is Request {
-  return typeof input === 'object' && input !== null && 'url' in input && 'method' in input;
-}
+/**
+ * This class encapsulates the Response object so that the consumer can
+ * only get access to the headers and body size.
+ * 
+ * This is to prevent consumers from directly accessing the Response object
+ * and mutating it or running costly operations on it.
+ */
 export class ResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
@@ -118,6 +129,13 @@ export class ResponseWrapper {
     this._bodySize = bodySize;
     return bodySize;
   }
+}
+
+/**
+ * This function checks if an input is a Request object.
+ */
+function isRequest(input: any): input is Request {
+  return typeof input === 'object' && input !== null && 'url' in input && 'method' in input;
 }
 
 export interface NetworkRequestEvent {
@@ -210,10 +228,11 @@ export class NetworkObserver {
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
     this.eventCallbacks.forEach((callback) => {
       try {
+        const eventCopy = { ...event }; // defensive copy to avoid mutating the original event
+        callback.callback(eventCopy);
+      } catch (err) {
         // if the callback throws an error, we should catch it
         // to avoid breaking the fetch promise chain
-        callback.callback({ ...event });
-      } catch (err) {
         /* istanbul ignore next */
         this.logger?.debug('an unexpected error occurred while triggering event callbacks', err);
       }
@@ -229,7 +248,7 @@ export class NetworkObserver {
       const startTime = Date.now();
       const durationStart = performance.now();
 
-      // parse the URL and method
+      // parse the URL and Method
       let url: string | undefined;
       let method = 'GET';
       if (isRequest(input)) {
