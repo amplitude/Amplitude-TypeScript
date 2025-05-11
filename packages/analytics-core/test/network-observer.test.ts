@@ -27,6 +27,16 @@ describe('NetworkObserver', () => {
   let events: NetworkRequestEvent[] = [];
   let globalScope: PartialGlobal;
 
+  let originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+  beforeAll(() => {
+    originalFetch = globalThis.fetch;
+  });
+
+  afterAll(() => {
+    globalThis.fetch = originalFetch;
+  });
+
   beforeEach(() => {
     jest.useFakeTimers();
     events = [];
@@ -327,32 +337,6 @@ describe('NetworkObserver', () => {
         log: jest.fn(),
       };
       new NetworkObserver(localLogger);
-    });
-
-    it('should only restore globalScope.fetch when all subscriptions are unsubscribed', async () => {
-      const cb1 = new NetworkEventCallback(callback);
-      const cb2 = new NetworkEventCallback(callback);
-      networkObserver.subscribe(cb1);
-      networkObserver.subscribe(cb2);
-      networkObserver.unsubscribe(cb1);
-
-      // cb1 unsubscribed, but cb2 is still subscribed so fetch should be overridden
-      expect(globalScope.fetch).not.toBe(originalFetchMock);
-
-      // cb1 and cb2 unsubscribed, fetch should be restored
-      networkObserver.unsubscribe(cb2);
-      expect(globalScope.fetch).toBe(originalFetchMock);
-    });
-
-    it('should stop tracking when no event subscriptions are left', async () => {
-      const cb = new NetworkEventCallback(callback);
-      networkObserver.subscribe(cb);
-      networkObserver.unsubscribe(cb);
-
-      expect(globalScope.fetch).toBe(originalFetchMock);
-
-      await originalFetchMock('https://api.example.com/data');
-      expect(events).toHaveLength(0);
     });
 
     it('should handle missing global scope', () => {

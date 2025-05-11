@@ -82,6 +82,9 @@ export class RequestWrapper {
   }
 }
 
+function isRequest(input: any): input is Request {
+  return typeof input === 'object' && input !== null && 'url' in input && 'method' in input;
+}
 export class ResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
@@ -141,12 +144,9 @@ export const serializeNetworkRequestEvent = (event: NetworkRequestEvent): Record
     responseBodySize: event.responseWrapper?.bodySize,
   };
 
-  Object.keys(serialized).forEach((key) => {
-    if (serialized[key] === undefined) {
-      delete serialized[key];
-    }
-  });
-  return serialized;
+  return Object.fromEntries(
+    Object.entries(serialized).filter(([_, v]) => v !== undefined)
+  );
 };
 
 export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
@@ -156,12 +156,11 @@ export class NetworkEventCallback {
 }
 
 export class NetworkObserver {
-  private originalFetch?: typeof fetch;
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
-  private isObserving = false;
   // eslint-disable-next-line no-restricted-globals
   private globalScope?: typeof globalThis;
   private logger?: ILogger;
+  private isObserving = false;
   constructor(logger?: ILogger) {
     this.logger = logger;
     const globalScope = getGlobalScope();
@@ -184,18 +183,19 @@ export class NetworkObserver {
     this.eventCallbacks.set(eventCallback.id, eventCallback);
     if (!this.isObserving) {
       /* istanbul ignore next */
-      this.originalFetch = this.globalScope?.fetch;
-      this.observeFetch();
+      const originalFetch = this.globalScope?.fetch;
+      /* istanbul ignore next */
+      if (!originalFetch) {
+        return;
+      }
+      /* istanbul ignore next */
+      this.observeFetch(originalFetch);
       this.isObserving = true;
     }
   }
 
   unsubscribe(eventCallback: NetworkEventCallback) {
     this.eventCallbacks.delete(eventCallback.id);
-    if (this.originalFetch && this.globalScope && this.eventCallbacks.size === 0 && this.isObserving) {
-      this.globalScope.fetch = this.originalFetch;
-      this.isObserving = false;
-    }
   }
 
   protected triggerEventCallbacks(event: NetworkRequestEvent) {
@@ -211,12 +211,11 @@ export class NetworkObserver {
     });
   }
 
-  private observeFetch() {
+  private observeFetch(originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
     /* istanbul ignore next */
-    if (!this.globalScope || !this.originalFetch) {
+    if (!this.globalScope || !originalFetch) {
       return;
     }
-    const originalFetch = this.globalScope.fetch;
     this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
       const startTime = Date.now();
       const durationStart = performance.now();
@@ -224,8 +223,8 @@ export class NetworkObserver {
       // parse the URL and method
       let url: string | undefined;
       let method = 'GET';
-      const isRequestObject = typeof input === 'object' && input !== null && 'url' in input;
-      if (isRequestObject) {
+      //const isRequestObject = typeof input === 'object' && input !== null && 'url' in input;
+      if (isRequest(input)) {
         url = input['url'];
         method = input['method'];
       } else {
