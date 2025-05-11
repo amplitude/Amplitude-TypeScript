@@ -2,6 +2,7 @@ import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
 import { NetworkRequestEvent, RequestWrapper, ResponseWrapper } from './network-request-event';
+
 /**
  * Typeguard function checks if an input is a Request object.
  */
@@ -73,6 +74,7 @@ export class NetworkObserver {
 
   /**
    * Constructs a NetworkRequestEvent object from the fetch input parameters
+   * and triggers the event callbacks.
    * @param input - The input to the fetch call
    * @param init - The init to the fetch call
    * @param response - The response to the fetch call
@@ -127,7 +129,7 @@ export class NetworkObserver {
     const requestEvent = new NetworkRequestEvent(
       'fetch',
       method,
-      startTime,
+      startTime, // timestamp and startTime are aliases
       startTime,
       url,
       init !== undefined ? new RequestWrapper(init) : undefined,
@@ -154,43 +156,56 @@ export class NetworkObserver {
     if (!this.globalScope || !originalFetch) {
       return;
     }
+    /**
+     * IMPORTANT: This overrides window.fetch in browsers.
+     * You probably never need to make changes to this function.
+     * If you do, please be careful to preserve the original functionality of fetch
+     * and make sure another developer who is an expert reviews this change throughly
+     */
     this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
-      let response, typedError, timestamps;
+      // 1: capture the start time and duration start time before the fetch call
+      let timestamps;
       try {
         timestamps = this.getTimestamps();
       } catch (error) {
         /* istanbul ignore next */
-        this.logger?.debug('an unexpected error occurred while observing fetch', error);
+        this.logger?.debug('an unexpected error occurred while retrieving timestamps', error);
       }
 
-      // Adding "no-unsafe-finally" so that the return and throw statements from the original
-      // fetch function are preserved. Never remove this!
-      /*eslint no-unsafe-finally: "error"*/
+      // 2. make the call to the original fetch and preserve the response or error
+      let originalResponse, originalError;
       try {
-        response = await originalFetch(input as RequestInfo | URL, init);
-        return response;
-      } catch (error) {
+        originalResponse = await originalFetch(input as RequestInfo | URL, init);
+      } catch (err) {
         // Capture error information
-        typedError = error as Error;
-        throw error;
-      } finally {
-        try {
-          this.handleNetworkRequestEvent(
-            input,
-            init,
-            response,
-            typedError,
-            /* istanbul ignore next */
-            timestamps?.startTime,
-            /* istanbul ignore next */
-            timestamps?.durationStart,
-          );
-        } catch (err) {
-          // this catch shouldn't be reachable, but keep it here for safety
-          // because we're overriding the fetch function
+        originalError = err;
+      }
+
+      // 3. call the handler after the fetch call is done
+      try {
+        this.handleNetworkRequestEvent(
+          input,
+          init,
+          originalResponse,
+          originalError as Error,
           /* istanbul ignore next */
-          this.logger?.debug('an unexpected error occurred while observing fetch', err);
-        }
+          timestamps?.startTime,
+          /* istanbul ignore next */
+          timestamps?.durationStart,
+        );
+      } catch (err) {
+        // this catch shouldn't be reachable, but keep it here for safety
+        // because we're overriding the fetch function and better to be safe than sorry
+        /* istanbul ignore next */
+        this.logger?.debug('an unexpected error occurred while handling fetch', err);
+      }
+
+      // 4. return the original response or throw the original error
+      if (originalResponse) {
+        // if the response is not undefined, return it
+        return originalResponse;
+      } else {
+        throw originalError;
       }
     };
   }
