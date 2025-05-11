@@ -1443,21 +1443,10 @@ describe('SessionReplay', () => {
         timestamp: Date.now(),
         method: 'GET',
         status: 200,
-        requestWrapper: {
-          headers: { foo: 'bar' },
-          bodySize: 100,
-        } as any,
-        responseWrapper: {
-          headers: { hello: 'world' },
-          bodySize: 200,
-        } as any,
-        toSerializable: () => ({
-          ...mockNetworkEvent,
-          requestHeaders: mockNetworkEvent.requestWrapper.headers,
-          responseHeaders: mockNetworkEvent.responseWrapper.headers,
-          requestBodySize: mockNetworkEvent.requestWrapper.bodySize,
-          responseBodySize: mockNetworkEvent.responseWrapper.bodySize,
-        }),
+        requestHeaders: {},
+        responseHeaders: {},
+        requestBody: '',
+        responseBody: '',
       };
 
       // Get the callback that was passed to start
@@ -1468,52 +1457,7 @@ describe('SessionReplay', () => {
       // Call the callback with our mock event
       startCallback(mockNetworkEvent);
 
-      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, {
-        ...mockNetworkEvent,
-        responseHeaders: { hello: 'world' },
-        requestHeaders: { foo: 'bar' },
-        requestBodySize: 100,
-        responseBodySize: 200,
-      });
-    });
-    test('should call addCustomRRWebEvent with network request events (no request/response)', async () => {
-      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
-        if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
-          return {
-            network: {
-              enabled: true,
-            },
-          };
-        }
-        return;
-      });
-      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
-        getRemoteConfig: getRemoteConfigMock,
-        metrics: {},
-      });
-
-      await sessionReplay.init(apiKey, mockOptions).promise;
-      const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
-      const mockNetworkEvent = {
-        type: 'fetch' as const,
-        url: 'https://example.com',
-        timestamp: Date.now(),
-        method: 'GET',
-        status: 200,
-        toSerializable: () => mockNetworkEvent,
-      };
-
-      // Get the callback that was passed to start
-      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
-      await sessionReplay.recordEvents();
-      const startCallback = startSpy.mock.calls[0][0].callback;
-
-      // Call the callback with our mock event
-      startCallback(mockNetworkEvent);
-
-      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, {
-        ...mockNetworkEvent,
-      });
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
     });
   });
 });
