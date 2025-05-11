@@ -8,6 +8,7 @@ import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
 import * as RRWeb from '@amplitude/rrweb';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
+import { NetworkObservers } from '../src/observers';
 
 import { IDBFactory } from 'fake-indexeddb';
 import {
@@ -173,8 +174,8 @@ describe('SessionReplay', () => {
       });
 
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
-      sessionReplay.recordEvents();
+      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      await sessionReplay.recordEvents();
       expect(startSpy).toHaveBeenCalled();
     });
 
@@ -195,8 +196,8 @@ describe('SessionReplay', () => {
       });
 
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
-      sessionReplay.recordEvents();
+      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      await sessionReplay.recordEvents();
       expect(startSpy).not.toHaveBeenCalled();
     });
 
@@ -397,7 +398,9 @@ describe('SessionReplay', () => {
       expect(sessionReplay.config?.logLevel).toBe(0);
       expect(sessionReplay.loggerProvider).toBeDefined();
 
-      sessionReplay.config && (await expectationFn(sessionReplay.config));
+      if (sessionReplay.config) {
+        await expectationFn(sessionReplay.config);
+      }
     });
 
     test.each([
@@ -1447,9 +1450,9 @@ describe('SessionReplay', () => {
       };
 
       // Get the callback that was passed to start
-      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
-      sessionReplay.recordEvents();
-      const startCallback = startSpy.mock.calls[0][0].callback;
+      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      await sessionReplay.recordEvents();
+      const startCallback = startSpy.mock.calls[0][0];
 
       // Call the callback with our mock event
       startCallback(mockNetworkEvent);
