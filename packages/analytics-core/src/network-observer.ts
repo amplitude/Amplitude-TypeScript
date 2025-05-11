@@ -71,6 +71,16 @@ export class NetworkObserver {
     });
   }
 
+  /**
+   * Constructs a NetworkRequestEvent object from the fetch input parameters
+   * @param input - The input to the fetch call
+   * @param init - The init to the fetch call
+   * @param response - The response to the fetch call
+   * @param typedError - The error to the fetch call
+   * @param startTime - The start time of the fetch call
+   * @param durationStart - The duration start time of the fetch call
+   * @returns A NetworkRequestEvent object
+   */
   private constructNetworkRequestEvent(
     input: RequestInfo | URL | undefined,
     init: RequestInit | undefined,
