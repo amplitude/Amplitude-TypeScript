@@ -19,6 +19,15 @@ export class RequestWrapper {
 
   get headers(): Record<string, string> {
     if (this._headers) return this._headers;
+
+    if (Array.isArray(this.request.headers)) {
+      this._headers = this.request.headers.reduce((acc, [key, value]) => {
+        acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>);
+      return this._headers;
+    }
+
     if (!(this.request.headers instanceof Headers)) {
       this._headers = this.request.headers as Record<string, string>;
       return this._headers;
@@ -66,7 +75,9 @@ export class RequestWrapper {
           total += new TextEncoder().encode(value).length;
         } else if ((value as Blob).size) {
           // if we encounter a "File" type, we should not count it and just return undefined
-          total += (value as Blob).size;
+          // because calculating the size of a file is not reliable or performant
+          this._bodySize = undefined;
+          return;
         }
         // terminate if we reach the maximum number of entries
         // to avoid performance issues in case of very large FormData
@@ -187,8 +198,8 @@ export class NetworkObserver {
         return;
       }
       /* istanbul ignore next */
-      this.observeFetch(originalFetch);
       this.isObserving = true;
+      this.observeFetch(originalFetch);
     }
   }
 
@@ -221,7 +232,6 @@ export class NetworkObserver {
       // parse the URL and method
       let url: string | undefined;
       let method = 'GET';
-      //const isRequestObject = typeof input === 'object' && input !== null && 'url' in input;
       if (isRequest(input)) {
         url = input['url'];
         method = input['method'];

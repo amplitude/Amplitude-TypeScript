@@ -13,6 +13,7 @@ import * as Global from '../src/global-scope';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 // Test subclass to access protected methods
 class TestNetworkObserver extends NetworkObserver {
@@ -476,6 +477,21 @@ describe('NetworkObserver', () => {
           body,
         } as RequestInit);
         expect(requestWrapper.bodySize).toBeUndefined();
+      });
+    });
+
+    describe('headers should return an object', () => {
+      it('when headers is an array', () => {
+        const requestWrapper = new RequestWrapper({
+          headers: [
+            ['Content-Type', 'application/fake'],
+            ['Content-Length', '1234'],
+          ],
+        } as RequestInit);
+        expect(requestWrapper.headers).toEqual({
+          'Content-Type': 'application/fake',
+          'Content-Length': '1234',
+        });
       });
     });
   });
