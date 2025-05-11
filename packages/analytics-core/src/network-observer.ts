@@ -8,13 +8,20 @@ export interface FormDataBrowser {
   entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
 }
 
-export type FetchRequestBody = string | Blob | ReadableStream | ArrayBuffer | FormDataBrowser | URLSearchParams | null | undefined;
-
+export type FetchRequestBody =
+  | string
+  | Blob
+  | ReadableStream
+  | ArrayBuffer
+  | FormDataBrowser
+  | URLSearchParams
+  | null
+  | undefined;
 
 /**
  * This class encapsulates the Request object so that the consumer can
  * only get access to the headers and body size.
- * 
+ *
  * This is to prevent consumers from directly accessing the Request object
  * and mutating it or running costly operations on it.
  */
@@ -36,7 +43,7 @@ export class RequestWrapper {
     }
 
     if (!(this.request.headers instanceof Headers)) {
-      this._headers = {...this.request.headers} as Record<string, string>;
+      this._headers = { ...this.request.headers } as Record<string, string>;
       return this._headers;
     }
 
@@ -100,7 +107,7 @@ export class RequestWrapper {
 /**
  * This class encapsulates the Response object so that the consumer can
  * only get access to the headers and body size.
- * 
+ *
  * This is to prevent consumers from directly accessing the Response object
  * and mutating it or running costly operations on it.
  */
@@ -242,59 +249,62 @@ export class NetworkObserver {
       return;
     }
     this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
+      let response;
+      let typedError;
       const startTime = Date.now();
       const durationStart = performance.now();
-
-      // parse the URL and Method
-      let url: string | undefined;
-      let method = 'GET';
-      if (isRequest(input)) {
-        url = input['url'];
-        method = input['method'];
-      } else {
-        url = input?.toString?.();
-      }
-      method = init?.method || method;
-
-      const requestEvent: NetworkRequestEvent = {
-        timestamp: startTime,
-        startTime,
-        type: 'fetch',
-        method,
-        url,
-        requestWrapper: init !== undefined ? new RequestWrapper(init) : undefined,
-        toSerializable: () => serializeNetworkRequestEvent(requestEvent),
-      };
-
       try {
-        const response = await originalFetch(input as RequestInfo | URL, init);
-
-        requestEvent.status = response.status;
-        requestEvent.duration = Math.floor(performance.now() - durationStart);
-        requestEvent.startTime = startTime;
-        requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
-        requestEvent.responseWrapper = new ResponseWrapper(response);
-
-        this.triggerEventCallbacks(requestEvent);
+        response = await originalFetch(input as RequestInfo | URL, init);
         return response;
       } catch (error) {
-        requestEvent.duration = Math.floor(performance.now() - durationStart);
-        requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
-
         // Capture error information
-        const typedError = error as Error;
-
-        requestEvent.error = {
-          name: typedError.name || 'UnknownError',
-          message: typedError.message || 'An unknown error occurred',
-        };
-
-        if (typedError.name === 'AbortError') {
-          requestEvent.status = 0;
-        }
-
-        this.triggerEventCallbacks(requestEvent);
+        typedError = error as Error;
         throw error;
+      } finally {
+        try {
+          // parse the URL and Method
+          let url: string | undefined;
+          let method = 'GET';
+          if (isRequest(input)) {
+            url = input['url'];
+            method = input['method'];
+          } else {
+            url = input?.toString?.();
+          }
+          method = init?.method || method;
+
+          const requestEvent: NetworkRequestEvent = {
+            timestamp: startTime,
+            startTime,
+            type: 'fetch',
+            method,
+            url,
+            requestWrapper: init !== undefined ? new RequestWrapper(init) : undefined,
+            toSerializable: () => serializeNetworkRequestEvent(requestEvent),
+          };
+
+          if (response) {
+            requestEvent.status = response.status;
+            requestEvent.responseWrapper = new ResponseWrapper(response);
+          }
+
+          if (typedError) {
+            requestEvent.error = {
+              name: typedError.name || 'UnknownError',
+              message: typedError.message || 'An unknown error occurred',
+            };
+            if (typedError.name === 'AbortError') {
+              requestEvent.status = 0;
+            }
+          }
+          requestEvent.duration = Math.floor(performance.now() - durationStart);
+          requestEvent.endTime = Math.floor(startTime + requestEvent.duration);
+          this.triggerEventCallbacks(requestEvent);
+        } catch (err) {
+          // this catch shouldn't be reachable, but keep it here for safety
+          // because we're overriding the fetch function
+          this.logger?.debug('an unexpected error occurred while observing fetch', err);
+        }
       }
     };
   }
