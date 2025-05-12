@@ -138,7 +138,8 @@ export class ResponseWrapper {
   get headers(): Record<string, string> {
     if (this._headers) return this._headers;
     const headers: Record<string, string> = {};
-    this.response.headers.forEach((value, key) => {
+    /* istanbul ignore next */
+    this.response.headers?.forEach?.((value, key) => {
       headers[key] = value;
     });
     this._headers = headers;
@@ -147,7 +148,8 @@ export class ResponseWrapper {
 
   get bodySize(): number | undefined {
     if (this._bodySize !== undefined) return this._bodySize;
-    const contentLength = this.response.headers.get('content-length');
+    /* istanbul ignore next */
+    const contentLength = this.response.headers?.get?.('content-length');
     const bodySize = contentLength ? parseInt(contentLength, 10) : undefined;
     this._bodySize = bodySize;
     return bodySize;
