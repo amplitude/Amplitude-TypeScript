@@ -84,7 +84,86 @@ export interface ElementInteractionsOptions {
    * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
    */
   actionClickAllowlist?: string[];
+
+  /**
+   * Remote config for page actions
+   */
+  // TODO fix type
+  pageActionsConfig?: {
+    triggers: Trigger[];
+    labeledEvents: Record<string, LabeledEvent>;
+    actionSet: Record<string, ActionSet>;
+  };
 }
+
+export type ActionSet = {
+  id: string;
+  name: string;
+  actions: PageAction[];
+};
+
+type MatchingCondition =
+  | {
+      type: 'LABELED_EVENT';
+      match: {
+        eventId: string;
+      };
+    }
+  | {
+      type: 'ELEMENT_PRESENCE';
+      match: {
+        cssSelector: string;
+      };
+    };
+
+export type Trigger = {
+  id: string; // Unique identifier for the trigger
+  name: string; // Name of the trigger
+  type: 'ELEMENT_EVENT' | 'PAGE_EVENT'; // When the trigger's condition should be evaluated
+  conditions: MatchingCondition[]; // Configures when the actions should be executed; AND
+  actions: Array<PageAction | string>; // Actions to execute if conditions are met
+};
+
+export type PageAction = {
+  id: string;
+  actionType: 'ATTACH_EVENT_PROPERTY';
+  dataSource: DataSource; // Defines where and how to get the data
+  destinationKey: string; // Key name for the data (e.g., data layer key, event property name, user property name)
+};
+
+export type DataSource = {
+  sourceType: 'DOM_ELEMENT' | 'URL' | 'PAGE_CONTEXT';
+} & (
+  | {
+      sourceType: 'DOM_ELEMENT';
+      selector?: string; // For DOM_ELEMENT: CSS selector for the target element
+      elementExtractType: 'TEXT' | 'ATTRIBUTE';
+      attribute?: string; // For DOM_ELEMENT: Attribute name to extract (null/empty for text content)
+      scope?: string; // CSS selector for the scope of the element, document by default
+    }
+  | { sourceType: 'URL'; urlComponent: 'QUERY_PARAM' | 'HASH' | 'PATH'; paramOrSegmentName?: string }
+  | {
+      sourceType: 'PAGE_CONTEXT';
+      propertyPath: string; // For PAGE_CONTEXT: e.g., 'document.title'
+    }
+);
+
+export type EventSubpropKey = '[Amplitude] Element Text' | '[Amplitude] Element Hierarchy';
+
+export type Filter = {
+  subprop_key: EventSubpropKey;
+  subprop_op: string;
+  subprop_value: string[];
+};
+
+// TODO: Change LabeledEvent so that it is generic and can be used for a generic condition trigger
+export type LabeledEvent = {
+  id: string;
+  definition: {
+    event_type: 'click' | 'change'; // [Amplitude] Element Clicked | [Amplitude] Element Changed
+    filters: Filter[];
+  }[];
+};
 
 export interface Messenger {
   logger?: ILogger;

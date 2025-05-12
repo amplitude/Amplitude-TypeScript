@@ -26,6 +26,14 @@ import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
 
+import {
+  createLabeledEventToTriggerMap,
+  groupLabeledEventIdsByEventType,
+  matchEventToLabeledEvents,
+  matchLabeledEventsToTriggers,
+} from './pageActions/triggers';
+import { executeActions } from './pageActions/actions';
+
 declare global {
   interface Window {
     navigation: HasEventTargetAddRemove<Event>;
@@ -234,11 +242,49 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     return baseEvent;
   };
 
+  // Group labeled events by event type (eg. click, change)
+  const groupedLabeledEvents = groupLabeledEventIdsByEventType(
+    Object.values(options.pageActionsConfig?.labeledEvents ?? {}),
+  );
+
+  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActionsConfig?.triggers ?? []);
+
+  //
+  const evaluateTriggers = (
+    event: ElementBasedTimestampedEvent<MouseEvent>,
+  ): ElementBasedTimestampedEvent<MouseEvent> => {
+    // If there is no pageActionsConfig, return the event as is
+    const { pageActionsConfig } = options;
+    if (!pageActionsConfig) {
+      return event;
+    }
+
+    // Find matching labeled events
+    const matchingLabeledEvents = matchEventToLabeledEvents(
+      event,
+      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActionsConfig.labeledEvents[id]),
+    );
+    // Find matching conditions
+    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
+    for (const trigger of matchingTriggers) {
+      executeActions(trigger.actions, event);
+    }
+
+    return event;
+  };
+
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
     }
+
+    // Fetch pageActions from remote config
+    // const remoteConfig = await getFakeRemoteConfig();
+    // TODO: revert this as local shouldn't override remote
+    // if (!options.pageActionsConfig) {
+    // options.pageActionsConfig = remoteConfig;
+    // }
 
     // Create should track event functions the different allowlists
     const shouldTrackEvent = createShouldTrackEvent(
@@ -259,6 +305,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
+      evaluateTriggers,
     });
     subscriptions.push(clickTrackingSubscription);
 
