@@ -108,7 +108,6 @@ export class NetworkObserver {
         name: typedError.name || 'UnknownError',
         message: typedError.message || 'An unknown error occurred',
       };
-
       status = 0;
     }
 

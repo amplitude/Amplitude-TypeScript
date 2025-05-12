@@ -105,8 +105,8 @@ export class RequestWrapper {
     return bodySize;
   }
 
-  get method(): string {
-    return this.request.method || 'GET';
+  get method(): string|undefined {
+    return this.request.method;
   }
 }
 
