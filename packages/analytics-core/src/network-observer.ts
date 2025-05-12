@@ -86,7 +86,7 @@ export class NetworkObserver {
       // so we can't construct a NetworkRequestEvent
       return;
     }
-    
+
     // parse the URL and Method
     let url: string | undefined;
     let method = 'GET';
@@ -140,7 +140,9 @@ export class NetworkObserver {
     };
   }
 
-  private observeFetch(originalFetch: (requestInfo: RequestInfo | URL, requestInit?: RequestInit) => Promise<Response>) {
+  private observeFetch(
+    originalFetch: (requestInfo: RequestInfo | URL, requestInit?: RequestInit) => Promise<Response>,
+  ) {
     /* istanbul ignore next */
     if (!this.globalScope || !originalFetch) {
       return;

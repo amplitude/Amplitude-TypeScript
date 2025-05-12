@@ -18,10 +18,14 @@ export type FetchRequestBody =
 
 /**
  * This class encapsulates the Request object so that the consumer can
- * only get access to the headers and body size.
+ * only get access to the headers, method and body size.
  *
  * This is to prevent consumers from directly accessing the Request object
  * and mutating it or running costly operations on it.
+ *
+ * IMPORTANT: Do not make changes to this class without careful consideration
+ * of performance implications, memory usage and potential to mutate the customer's
+ * request.
  */
 export class RequestWrapper {
   private MAXIMUM_ENTRIES = 100;
@@ -112,6 +116,14 @@ export class RequestWrapper {
  *
  * This is to prevent consumers from directly accessing the Response object
  * and mutating it or running costly operations on it.
+ *
+ * IMPORTANT:
+ *   * Do not make changes to this class without careful consideration
+ *     of performance implications, memory usage and potential to mutate the customer's
+ *     response.
+ *   * NEVER .clone the response object. This 2x's the memory overhead of the response
+ *   * NEVER consume the body's stream. This will cause the response to be consumed
+ *     meaning the body will be empty when the customer tries to access it.
  */
 export class ResponseWrapper {
   private _headers: Record<string, string> | undefined;
