@@ -115,6 +115,12 @@ export class RequestWrapper {
   }
 }
 
+type ResponseXhr = {
+  status: number;
+  body: string | Blob | ArrayBuffer | null;
+  headers: string;
+}
+
 /**
  * This class encapsulates the Response object so that the consumer can
  * only get access to the headers and body size.
@@ -133,20 +139,31 @@ export class RequestWrapper {
 export class ResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
-  constructor(private response: Response) {}
+  constructor(private response: Response | ResponseXhr) {}
 
-  get headers(): Record<string, string> {
+  get headers(): Record<string, string> | undefined {
     if (this._headers) return this._headers;
     const headers: Record<string, string> = {};
-    this.response.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    this._headers = headers;
-    return headers;
+
+    if (this.response.headers instanceof Headers) {
+      this.response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+      this._headers = headers;
+      return headers;
+    } else if (typeof this.response.headers === 'string') {
+      // TODO: parse the headers string
+      return {};
+    }
+
+    return;
   }
 
   get bodySize(): number | undefined {
     if (this._bodySize !== undefined) return this._bodySize;
+    if (!(this.response instanceof Response)) {
+      return;
+    }
     const contentLength = this.response.headers.get('content-length');
     const bodySize = contentLength ? parseInt(contentLength, 10) : undefined;
     this._bodySize = bodySize;
@@ -160,20 +177,21 @@ export class ResponseWrapper {
 
 export class NetworkRequestEvent {
   constructor(
-    public readonly type: string,
-    public readonly method: string,
-    public readonly timestamp: number,
-    public readonly startTime: number,
-    public readonly url?: string,
-    public readonly requestWrapper?: RequestWrapper,
-    public readonly status?: number,
-    public readonly duration?: number,
-    public readonly responseWrapper?: ResponseWrapper,
-    public readonly error?: {
+    private readonly type: string,
+    private readonly method: string,
+    private readonly timestamp: number,
+    private readonly startTime: number,
+    private readonly url?: string,
+    private readonly requestWrapper?: RequestWrapper,
+    private readonly status?: number,
+    private readonly duration?: number,
+    private readonly responseWrapper?: ResponseWrapper,
+    private readonly error?: {
       name: string;
       message: string;
     },
-    public readonly endTime?: number,
+    private readonly endTime?: number,
+    private readonly bodySize? : number,
   ) {}
 
   toSerializable(): Record<string, any> {
@@ -190,7 +208,7 @@ export class NetworkRequestEvent {
       requestHeaders: this.requestWrapper?.headers,
       requestBodySize: this.requestWrapper?.bodySize,
       responseHeaders: this.responseWrapper?.headers,
-      responseBodySize: this.responseWrapper?.bodySize,
+      responseBodySize: this.bodySize !== undefined ? this.bodySize : this.responseWrapper?.bodySize,
     };
 
     return Object.fromEntries(Object.entries(serialized).filter(([_, v]) => v !== undefined));

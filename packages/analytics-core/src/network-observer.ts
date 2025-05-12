@@ -16,6 +16,11 @@ export class NetworkEventCallback {
   constructor(public readonly callback: (event: NetworkRequestEvent) => void, public readonly id: string = UUID()) {}
 }
 
+type RequestUrlAndMethod = {
+  url: string | undefined;
+  method: string | undefined;
+};
+
 export class NetworkObserver {
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   // eslint-disable-next-line no-restricted-globals
@@ -37,6 +42,7 @@ export class NetworkObserver {
     return !!globalScope && !!globalScope.fetch;
   }
 
+  // TODO: turn second arg into options { logger, instrumentXhr }
   subscribe(eventCallback: NetworkEventCallback, logger?: ILogger) {
     if (!this.logger) {
       this.logger = logger;
@@ -52,6 +58,10 @@ export class NetworkObserver {
       /* istanbul ignore next */
       this.isObserving = true;
       this.observeFetch(originalFetch);
+
+      const originalXhrOpen = this.globalScope?.XMLHttpRequest?.prototype?.open;
+      const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
+      this.observeXhr(originalXhrOpen, originalXhrSend);
     }
   }
 
@@ -73,12 +83,14 @@ export class NetworkObserver {
   }
 
   private handleNetworkRequestEvent(
-    requestInfo: RequestInfo | URL | undefined,
+    requestType: 'fetch' | 'xhr',
+    requestInfo: RequestInfo | URL | RequestUrlAndMethod | undefined,
     requestWrapper: RequestWrapper | undefined,
     responseWrapper: ResponseWrapper | undefined,
     typedError: Error | undefined,
     startTime?: number,
     durationStart?: number,
+    responseBodySize?: number,
   ) {
     /* istanbul ignore next */
     if (startTime === undefined || durationStart === undefined) {
@@ -115,7 +127,7 @@ export class NetworkObserver {
     const endTime = Math.floor(startTime + duration);
 
     const requestEvent = new NetworkRequestEvent(
-      'fetch',
+      requestType,
       method,
       startTime, // timestamp and startTime are aliases
       startTime,
@@ -126,6 +138,7 @@ export class NetworkObserver {
       responseWrapper,
       error,
       endTime,
+      responseBodySize,
     );
 
     this.triggerEventCallbacks(requestEvent);
@@ -174,6 +187,7 @@ export class NetworkObserver {
       // 3. call the handler after the fetch call is done
       try {
         this.handleNetworkRequestEvent(
+          'fetch',
           requestInfo,
           requestInit ? new RequestWrapper(requestInit) : undefined,
           originalResponse ? new ResponseWrapper(originalResponse) : undefined,
@@ -197,6 +211,86 @@ export class NetworkObserver {
       } else {
         throw originalError;
       }
+    };
+  }
+
+  private observeXhr(
+    originalXhrOpen: ((method: string, url: string | URL, async?: boolean, username?: string | null, password?: string | null) => void) | undefined,
+    originalXhrSend: ((body?: Document | XMLHttpRequestBodyInit | null) => void) | undefined
+  ) {
+    if (!this.globalScope || !originalXhrOpen || !originalXhrSend) {
+      return;
+    }
+
+    const xhrProto = this.globalScope.XMLHttpRequest.prototype;
+
+    const networkObserverContext = this;
+
+    xhrProto.open = function (...args: any[]) {
+      const [method, url] = args as [string, string | URL];
+      const xhr = this as XMLHttpRequest;
+      try {
+        (xhr as any).$$AmplitudeAnalyticsEvent = {
+          method,
+          url: url.toString(),
+          startTime: Date.now(),
+          durationStart: performance.now(),
+        };
+      } catch (err) {
+        /* istanbul ignore next */
+        networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err);
+      }
+      return originalXhrOpen.apply(xhr, args as any);
+    };
+
+    xhrProto.send = function (...args: any[]) {
+      const xhr = this as XMLHttpRequest;
+      const body = args[0];
+      
+      // Calculate body size if present
+      debugger;
+      // let bodySize: number | undefined;
+      // if (body) {
+      //   if (typeof body === 'string') {
+      //     bodySize = body.length;
+      //   } else if (body instanceof Blob) {
+      //     bodySize = body.size;
+      //   } else if (body instanceof ArrayBuffer) {
+      //     bodySize = body.byteLength;
+      //   } else if (body instanceof FormData) {
+      //     // FormData size calculation is complex, so we'll skip it
+      //     bodySize = undefined;
+      //   } else if (body instanceof URLSearchParams) {
+      //     bodySize = body.toString().length;
+      //   }
+      // }
+
+      // Store body size in the analytics event
+      const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent;
+      
+      xhr.addEventListener('loadend', function () {
+        debugger;
+        const responseHeaders = xhr.getAllResponseHeaders();
+        const responseBodySize = xhr.getResponseHeader('content-length');
+        const responseWrapper = new ResponseWrapper({
+          status: xhr.status,
+          headers: responseHeaders,
+          body,
+        });
+        requestEvent.status = xhr.status;
+        networkObserverContext.handleNetworkRequestEvent(
+          'xhr',
+          { url: requestEvent.url, method: requestEvent.method },
+          requestEvent.bodySize ? new RequestWrapper({ bodySize: requestEvent.bodySize } as RequestInit) : undefined,
+          responseWrapper,
+          undefined, // TODO: Error goes here
+          requestEvent.startTime,
+          requestEvent.durationStart,
+          responseBodySize ? parseInt(responseBodySize, 10) : undefined,
+        );
+      });
+      const res = originalXhrSend.apply(xhr, args as any);
+      return res;
     };
   }
 }
