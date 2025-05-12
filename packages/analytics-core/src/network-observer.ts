@@ -1,7 +1,7 @@
 import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
-import { NetworkRequestEvent, RequestWrapper, ResponseWrapper } from './network-request-event';
+import { IRequestWrapper, NetworkRequestEvent, RequestWrapper, ResponseWrapper, getBodySize, MAXIMUM_ENTRIES, RequestWrapperXhr } from './network-request-event';
 
 /**
  * Typeguard function checks if an input is a Request object.
@@ -85,12 +85,11 @@ export class NetworkObserver {
   private handleNetworkRequestEvent(
     requestType: 'fetch' | 'xhr',
     requestInfo: RequestInfo | URL | RequestUrlAndMethod | undefined,
-    requestWrapper: RequestWrapper | undefined,
+    requestWrapper: IRequestWrapper | undefined,
     responseWrapper: ResponseWrapper | undefined,
     typedError: Error | undefined,
     startTime?: number,
     durationStart?: number,
-    responseBodySize?: number,
   ) {
     /* istanbul ignore next */
     if (startTime === undefined || durationStart === undefined) {
@@ -138,7 +137,6 @@ export class NetworkObserver {
       responseWrapper,
       error,
       endTime,
-      responseBodySize,
     );
 
     this.triggerEventCallbacks(requestEvent);
@@ -247,46 +245,27 @@ export class NetworkObserver {
       const xhr = this as XMLHttpRequest;
       const body = args[0];
       
-      // Calculate body size if present
-      debugger;
-      // let bodySize: number | undefined;
-      // if (body) {
-      //   if (typeof body === 'string') {
-      //     bodySize = body.length;
-      //   } else if (body instanceof Blob) {
-      //     bodySize = body.size;
-      //   } else if (body instanceof ArrayBuffer) {
-      //     bodySize = body.byteLength;
-      //   } else if (body instanceof FormData) {
-      //     // FormData size calculation is complex, so we'll skip it
-      //     bodySize = undefined;
-      //   } else if (body instanceof URLSearchParams) {
-      //     bodySize = body.toString().length;
-      //   }
-      // }
-
       // Store body size in the analytics event
       const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent;
       
       xhr.addEventListener('loadend', function () {
-        debugger;
         const responseHeaders = xhr.getAllResponseHeaders();
         const responseBodySize = xhr.getResponseHeader('content-length');
         const responseWrapper = new ResponseWrapper({
           status: xhr.status,
           headers: responseHeaders,
-          body,
+          size: responseBodySize ? parseInt(responseBodySize, 10) : undefined,
         });
         requestEvent.status = xhr.status;
+        debugger;
         networkObserverContext.handleNetworkRequestEvent(
           'xhr',
           { url: requestEvent.url, method: requestEvent.method },
-          requestEvent.bodySize ? new RequestWrapper({ bodySize: requestEvent.bodySize } as RequestInit) : undefined,
+          new RequestWrapperXhr(body),
           responseWrapper,
           undefined, // TODO: Error goes here
           requestEvent.startTime,
           requestEvent.durationStart,
-          responseBodySize ? parseInt(responseBodySize, 10) : undefined,
         );
       });
       const res = originalXhrSend.apply(xhr, args as any);

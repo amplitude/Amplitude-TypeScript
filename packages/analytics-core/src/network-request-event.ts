@@ -13,8 +13,19 @@ export type FetchRequestBody =
   | ArrayBuffer
   | FormDataBrowser
   | URLSearchParams
+  | Document
+  | ArrayBufferView
   | null
   | undefined;
+
+export interface IRequestWrapper {
+  headers?: Record<string, string>;
+  bodySize?: number;
+  method?: string;
+  body?: FetchRequestBody | Document | XMLHttpRequestBodyInit | null;
+}
+
+export const MAXIMUM_ENTRIES = 100;
 
 /**
  * This class encapsulates the Request object so that the consumer can
@@ -27,8 +38,7 @@ export type FetchRequestBody =
  * of performance implications, memory usage and potential to mutate the customer's
  * request.
  */
-export class RequestWrapper {
-  private MAXIMUM_ENTRIES = 100;
+export class RequestWrapper implements IRequestWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
   constructor(private request: RequestInit) {}
@@ -65,49 +75,9 @@ export class RequestWrapper {
     if (!global?.TextEncoder) {
       return;
     }
-    const { TextEncoder } = global;
     const body = this.request.body as FetchRequestBody;
-
-    let bodySize: number | undefined;
-    if (typeof body === 'string') {
-      bodySize = new TextEncoder().encode(body).length;
-    } else if (body instanceof Blob) {
-      bodySize = body.size;
-    } else if (body instanceof URLSearchParams) {
-      bodySize = new TextEncoder().encode(body.toString()).length;
-    } else if (ArrayBuffer.isView(body)) {
-      bodySize = body.byteLength;
-    } else if (body instanceof ArrayBuffer) {
-      bodySize = body.byteLength;
-    } else if (body instanceof FormData) {
-      // Estimating only for text parts; not accurate for files
-      const formData = body as FormDataBrowser;
-
-      let total = 0;
-      let count = 0;
-      for (const [key, value] of formData.entries()) {
-        total += key.length;
-        if (typeof value === 'string') {
-          total += new TextEncoder().encode(value).length;
-        } else if (value instanceof Blob) {
-          total += value.size;
-        } else {
-          // encountered another unknown type
-          // we can't estimate the size of this entry
-          this._bodySize = undefined;
-          return;
-        }
-        // terminate if we reach the maximum number of entries
-        // to avoid performance issues in case of very large FormData
-        if (++count >= this.MAXIMUM_ENTRIES) {
-          this._bodySize = undefined;
-          return;
-        }
-      }
-      bodySize = total;
-    }
-    this._bodySize = bodySize;
-    return bodySize;
+    this._bodySize = getBodySize(body, MAXIMUM_ENTRIES);
+    return this._bodySize;
   }
 
   get method(): string | undefined {
@@ -115,10 +85,65 @@ export class RequestWrapper {
   }
 }
 
+export class RequestWrapperXhr implements IRequestWrapper {
+  constructor(readonly body: Document | XMLHttpRequestBodyInit | null) {}
+
+  get bodySize(): number | undefined {
+    return getBodySize((this.body as FetchRequestBody), MAXIMUM_ENTRIES);
+  }
+}
+
+function getBodySize(body: FetchRequestBody, maxEntries: number): number | undefined {
+  let bodySize: number | undefined;
+  const global = getGlobalScope();
+  const TextEncoder = global?.TextEncoder;
+  if (!TextEncoder) {
+    return;
+  }
+  if (typeof body === 'string') {
+    bodySize = new TextEncoder().encode(body).length;
+  } else if (body instanceof Blob) {
+    bodySize = body.size;
+  } else if (body instanceof URLSearchParams) {
+    bodySize = new TextEncoder().encode(body.toString()).length;
+  } else if (ArrayBuffer.isView(body)) {
+    bodySize = body.byteLength;
+  } else if (body instanceof ArrayBuffer) {
+    bodySize = body.byteLength;
+  } else if (body instanceof FormData) {
+    // Estimating only for text parts; not accurate for files
+    const formData = body as FormDataBrowser;
+
+    let total = 0;
+    let count = 0;
+    for (const [key, value] of formData.entries()) {
+      total += key.length;
+      if (typeof value === 'string') {
+        total += new TextEncoder().encode(value).length;
+      } else if (value instanceof Blob) {
+        total += value.size;
+      } else {
+        // encountered another unknown type
+        // we can't estimate the size of this entry
+        return;
+      }
+      // terminate if we reach the maximum number of entries
+      // to avoid performance issues in case of very large FormData
+      if (++count >= maxEntries) {
+        return;
+      }
+    }
+    // TODO: handle the other XHR specific types
+    bodySize = total;
+  }
+
+  return bodySize;
+}
+
 type ResponseXhr = {
   status: number;
-  body: string | Blob | ArrayBuffer | null;
   headers: string;
+  size?: number;
 }
 
 /**
@@ -162,7 +187,7 @@ export class ResponseWrapper {
   get bodySize(): number | undefined {
     if (this._bodySize !== undefined) return this._bodySize;
     if (!(this.response instanceof Response)) {
-      return;
+      return this.response.size;
     }
     const contentLength = this.response.headers.get('content-length');
     const bodySize = contentLength ? parseInt(contentLength, 10) : undefined;
@@ -182,7 +207,7 @@ export class NetworkRequestEvent {
     private readonly timestamp: number,
     private readonly startTime: number,
     private readonly url?: string,
-    private readonly requestWrapper?: RequestWrapper,
+    private readonly requestWrapper?: IRequestWrapper,
     private readonly status?: number,
     private readonly duration?: number,
     private readonly responseWrapper?: ResponseWrapper,

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.js"></script>
+    <title>Browser SDK Test</title>
+  </head>
+  <body>
+    <div id="app">
+      Basic test page for the Amplitude Browser SDK
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      window.amplitude = amplitude;
+      
+      // Configure Axios to not throw on error status codes
+      axios.defaults.validateStatus = () => true;
+      
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: true,
+          networkTrackingOptions: {
+            ignoreAmplitudeRequests: false,
+            ignoreHosts: [],
+            captureRules: [
+              {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
+              {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
+            ],
+          },
+        }
+      );
+
+      setTimeout(async () => {
+        let res;
+        // String body
+        res = await axios.post('https://httpstat.us/500', 'Hello, this is a test body');
+        console.log('String body response:', res);
+
+        // JSON object body
+        res = await axios.post('https://httpstat.us/501', { message: 'Hello', count: 42 });
+        console.log('JSON object body response:', res);
+
+        // FormData body
+        const formData = new FormData();
+        formData.append('text', 'Hello from FormData');
+        formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
+        res = await axios.post('https://httpstat.us/503', formData);
+        console.log('FormData body response:', res);
+
+        // URLSearchParams body
+        const params = new URLSearchParams();
+        params.append('param1', 'value1');
+        params.append('param2', 'value2');
+        res = await axios.post('https://httpstat.us/503', params);
+        console.log('URLSearchParams body response:', res);
+
+        // ArrayBuffer body
+        const buffer = new ArrayBuffer(8);
+        const view = new Uint8Array(buffer);
+        view[0] = 1;
+        view[1] = 2;
+        res = await axios.post('https://httpstat.us/503', buffer);
+        console.log('ArrayBuffer body response:', res);
+
+        // Blob body
+        const blob = new Blob(['Hello from Blob'], { type: 'text/plain' });
+        res = await axios.post('https://httpstat.us/503', blob);
+        console.log('Blob body response:', res);
+
+        // Stream body (ReadableStream)
+        const stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue('Hello from Stream');
+            controller.close();
+          }
+        });
+        res = await axios.post('https://httpstat.us/503', stream);
+        console.log('Stream body response:', res);
+
+        // GET requests for comparison
+        res = await axios.get('https://httpstat.us/500');
+        console.log('GET 500 response:', res);
+        res = await axios.get('https://httpstat.us/200');
+        console.log('GET 200 response:', res);
+      }, 1000);
+    </script>
+</html>
