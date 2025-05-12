@@ -91,6 +91,11 @@ export class RequestWrapper {
           total += new TextEncoder().encode(value).length;
         } else if (value instanceof Blob) {
           total += value.size;
+        } else {
+          // encountered another unknown type
+          // we can't estimate the size of this entry
+          this._bodySize = undefined;
+          return;
         }
         // terminate if we reach the maximum number of entries
         // to avoid performance issues in case of very large FormData
@@ -105,7 +110,7 @@ export class RequestWrapper {
     return bodySize;
   }
 
-  get method(): string|undefined {
+  get method(): string | undefined {
     return this.request.method;
   }
 }

@@ -447,6 +447,26 @@ describe('NetworkObserver', () => {
     });
 
     describe('bodySize should return undefined when', () => {
+      it('FormData has an unexpected type', () => {
+        // hack FormData to include an entry with an unexpected type
+        // (this test )
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        const HackedFormData = function () {};
+        HackedFormData.prototype = Object.create(FormData.prototype);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        HackedFormData.prototype.entries = function () {
+          return [
+            ['key', 'value'],
+            ['unknown', new ArrayBuffer(8)],
+          ];
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        const formData = new (HackedFormData as any)();
+        const requestWrapper = new RequestWrapper({
+          body: formData as unknown as FetchRequestBody,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
+      });
       it('FormData has >100 entries', () => {
         const formData = new FormData();
         for (let i = 0; i < 101; i++) {
