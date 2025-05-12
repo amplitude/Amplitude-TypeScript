@@ -6,8 +6,8 @@ import { NetworkRequestEvent, RequestWrapper, ResponseWrapper } from './network-
 /**
  * Typeguard function checks if an input is a Request object.
  */
-function isRequest(input: any): input is Request {
-  return typeof input === 'object' && input !== null && 'url' in input && 'method' in input;
+function isRequest(requestInfo: any): requestInfo is Request {
+  return typeof requestInfo === 'object' && requestInfo !== null && 'url' in requestInfo && 'method' in requestInfo;
 }
 
 export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
@@ -72,21 +72,10 @@ export class NetworkObserver {
     });
   }
 
-  /**
-   * Constructs a NetworkRequestEvent object from the fetch input parameters
-   * and triggers the event callbacks.
-   * @param input - The input to the fetch call
-   * @param init - The init to the fetch call
-   * @param response - The response to the fetch call
-   * @param typedError - The error to the fetch call
-   * @param startTime - The start time of the fetch call
-   * @param durationStart - The duration start time of the fetch call
-   * @returns A NetworkRequestEvent object
-   */
   private handleNetworkRequestEvent(
-    input: RequestInfo | URL | undefined,
-    init: RequestInit | undefined,
-    response: Response | undefined,
+    requestInfo: RequestInfo | URL | undefined,
+    requestWrapper: RequestWrapper | undefined,
+    responseWrapper: ResponseWrapper | undefined,
     typedError: Error | undefined,
     startTime?: number,
     durationStart?: number,
@@ -97,21 +86,21 @@ export class NetworkObserver {
       // so we can't construct a NetworkRequestEvent
       return;
     }
+    
     // parse the URL and Method
     let url: string | undefined;
     let method = 'GET';
-    if (isRequest(input)) {
-      url = input['url'];
-      method = input['method'];
+    if (isRequest(requestInfo)) {
+      url = requestInfo['url'];
+      method = requestInfo['method'];
     } else {
-      url = input?.toString?.();
+      url = requestInfo?.toString?.();
     }
-    method = init?.method || method;
+    method = requestWrapper?.method || method;
 
-    let status, responseWrapper, error;
-    if (response) {
-      status = response.status;
-      responseWrapper = new ResponseWrapper(response);
+    let status, error;
+    if (responseWrapper) {
+      status = responseWrapper.status;
     }
 
     if (typedError) {
@@ -132,7 +121,7 @@ export class NetworkObserver {
       startTime, // timestamp and startTime are aliases
       startTime,
       url,
-      init !== undefined ? new RequestWrapper(init) : undefined,
+      requestWrapper,
       status,
       duration,
       responseWrapper,
@@ -151,7 +140,7 @@ export class NetworkObserver {
     };
   }
 
-  private observeFetch(originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
+  private observeFetch(originalFetch: (requestInfo: RequestInfo | URL, requestInit?: RequestInit) => Promise<Response>) {
     /* istanbul ignore next */
     if (!this.globalScope || !originalFetch) {
       return;
@@ -162,7 +151,7 @@ export class NetworkObserver {
      * If you do, please be careful to preserve the original functionality of fetch
      * and make sure another developer who is an expert reviews this change throughly
      */
-    this.globalScope.fetch = async (input?: RequestInfo | URL, init?: RequestInit) => {
+    this.globalScope.fetch = async (requestInfo?: RequestInfo | URL, requestInit?: RequestInit) => {
       // 1: capture the start time and duration start time before the fetch call
       let timestamps;
       try {
@@ -175,7 +164,7 @@ export class NetworkObserver {
       // 2. make the call to the original fetch and preserve the response or error
       let originalResponse, originalError;
       try {
-        originalResponse = await originalFetch(input as RequestInfo | URL, init);
+        originalResponse = await originalFetch(requestInfo as RequestInfo | URL, requestInit);
       } catch (err) {
         // Capture error information
         originalError = err;
@@ -184,9 +173,9 @@ export class NetworkObserver {
       // 3. call the handler after the fetch call is done
       try {
         this.handleNetworkRequestEvent(
-          input,
-          init,
-          originalResponse,
+          requestInfo,
+          requestInit ? new RequestWrapper(requestInit) : undefined,
+          originalResponse ? new ResponseWrapper(originalResponse) : undefined,
           originalError as Error,
           /* istanbul ignore next */
           timestamps?.startTime,

@@ -100,6 +100,10 @@ export class RequestWrapper {
     this._bodySize = bodySize;
     return bodySize;
   }
+
+  get method(): string {
+    return this.request.method || 'GET';
+  }
 }
 
 /**
@@ -130,6 +134,10 @@ export class ResponseWrapper {
     const bodySize = contentLength ? parseInt(contentLength, 10) : undefined;
     this._bodySize = bodySize;
     return bodySize;
+  }
+
+  get status(): number {
+    return this.response.status;
   }
 }
 
