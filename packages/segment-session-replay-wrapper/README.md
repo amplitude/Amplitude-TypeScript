@@ -7,11 +7,6 @@
 
 # @amplitude/segment-session-replay-wrapper
 
-For integrating Amplitude Session Replay with Segment, please follow this guide:
-👉 [Session Replay Integration with Segment](https://amplitude.com/docs/session-replay/session-replay-integration-with-segment)**
-
----
-
 This package is a wrapper to facilitate integration between Segment and [Amplitude's Session Replay SDK](https://amplitude.com/docs/session-replay/session-replay-standalone-sdk). This package currently only supports the [Segment Amplitude (Actions) destination](https://segment.com/docs/connections/destinations/catalog/actions-amplitude/).
 
 ## Installation
