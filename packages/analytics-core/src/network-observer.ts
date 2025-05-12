@@ -1,7 +1,7 @@
 import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
-import { IRequestWrapper, NetworkRequestEvent, RequestWrapper, ResponseWrapper, getBodySize, MAXIMUM_ENTRIES, RequestWrapperXhr } from './network-request-event';
+import { IRequestWrapper, NetworkRequestEvent, RequestWrapper, ResponseWrapper, getBodySize, MAXIMUM_ENTRIES, RequestWrapperXhr, ResponseWrapperXhr, IResponseWrapper } from './network-request-event';
 
 /**
  * Typeguard function checks if an input is a Request object.
@@ -86,7 +86,7 @@ export class NetworkObserver {
     requestType: 'fetch' | 'xhr',
     requestInfo: RequestInfo | URL | RequestUrlAndMethod | undefined,
     requestWrapper: IRequestWrapper | undefined,
-    responseWrapper: ResponseWrapper | undefined,
+    responseWrapper: IResponseWrapper | undefined,
     typedError: Error | undefined,
     startTime?: number,
     durationStart?: number,
@@ -231,8 +231,7 @@ export class NetworkObserver {
         (xhr as any).$$AmplitudeAnalyticsEvent = {
           method,
           url: url.toString(),
-          startTime: Date.now(),
-          durationStart: performance.now(),
+          ...networkObserverContext.getTimestamps(),
         };
       } catch (err) {
         /* istanbul ignore next */
@@ -249,24 +248,29 @@ export class NetworkObserver {
       const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent;
       
       xhr.addEventListener('loadend', function () {
-        const responseHeaders = xhr.getAllResponseHeaders();
-        const responseBodySize = xhr.getResponseHeader('content-length');
-        const responseWrapper = new ResponseWrapper({
-          status: xhr.status,
-          headers: responseHeaders,
-          size: responseBodySize ? parseInt(responseBodySize, 10) : undefined,
-        });
-        requestEvent.status = xhr.status;
-        debugger;
-        networkObserverContext.handleNetworkRequestEvent(
-          'xhr',
-          { url: requestEvent.url, method: requestEvent.method },
-          new RequestWrapperXhr(body),
-          responseWrapper,
-          undefined, // TODO: Error goes here
-          requestEvent.startTime,
-          requestEvent.durationStart,
-        );
+        try {
+          const responseHeaders = xhr.getAllResponseHeaders();
+          const responseBodySize = xhr.getResponseHeader('content-length');
+          const responseWrapper = new ResponseWrapperXhr(
+            xhr.status,
+            responseHeaders,
+            responseBodySize ? parseInt(responseBodySize, 10) : undefined,
+          );
+          const requestWrapper = new RequestWrapperXhr(body);
+          requestEvent.status = xhr.status;
+          networkObserverContext.handleNetworkRequestEvent(
+            'xhr',
+            { url: requestEvent.url, method: requestEvent.method },
+            requestWrapper,
+            responseWrapper,
+            undefined, // TODO: Error goes here
+            requestEvent.startTime,
+            requestEvent.durationStart,
+          );
+        } catch (err) {
+          /* istanbul ignore next */
+          networkObserverContext.logger?.debug('an unexpected error occurred while handling xhr send', err);
+        }
       });
       const res = originalXhrSend.apply(xhr, args as any);
       return res;

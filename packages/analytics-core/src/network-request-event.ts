@@ -140,10 +140,11 @@ function getBodySize(body: FetchRequestBody, maxEntries: number): number | undef
   return bodySize;
 }
 
-type ResponseXhr = {
-  status: number;
-  headers: string;
-  size?: number;
+export interface IResponseWrapper {
+  headers?: Record<string, string>;
+  bodySize?: number;
+  status?: number;
+  body?: string | Blob | ReadableStream | ArrayBuffer | FormDataBrowser | URLSearchParams | Document | ArrayBufferView | null;
 }
 
 /**
@@ -161,10 +162,10 @@ type ResponseXhr = {
  *   * NEVER consume the body's stream. This will cause the response to be consumed
  *     meaning the body will be empty when the customer tries to access it.
  */
-export class ResponseWrapper {
+export class ResponseWrapper implements IResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
-  constructor(private response: Response | ResponseXhr) {}
+  constructor(private response: Response) {}
 
   get headers(): Record<string, string> | undefined {
     if (this._headers) return this._headers;
@@ -186,9 +187,6 @@ export class ResponseWrapper {
 
   get bodySize(): number | undefined {
     if (this._bodySize !== undefined) return this._bodySize;
-    if (!(this.response instanceof Response)) {
-      return this.response.size;
-    }
     const contentLength = this.response.headers.get('content-length');
     const bodySize = contentLength ? parseInt(contentLength, 10) : undefined;
     this._bodySize = bodySize;
@@ -198,6 +196,34 @@ export class ResponseWrapper {
   get status(): number {
     return this.response.status;
   }
+}
+
+export class ResponseWrapperXhr implements IResponseWrapper {
+  constructor(
+    readonly statusCode: number,
+    readonly headersString: string,
+    readonly size: number | undefined,
+  ) {}
+
+  get bodySize(): number | undefined {
+    return this.size;
+  }
+
+  get status(): number {
+    return this.statusCode;
+  }
+
+  // get headers(): Record<string, string> {
+  //   const headers: Record<string, string> = {};
+  //   const headerLines = this.headers.split('\r\n');
+  //   for (const line of headerLines) {
+  //     const [key, value] = line.split(': ');
+  //     if (key && value) {
+  //       headers[key] = value;
+  //     }
+  //   }
+  //   return headers;
+  // }
 }
 
 export class NetworkRequestEvent {

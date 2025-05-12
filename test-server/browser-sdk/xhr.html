@@ -48,7 +48,7 @@
         const formData = new FormData();
         formData.append('text', 'Hello from FormData');
         formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
-        res = await axios.post('https://httpstat.us/503', formData);
+        res = await axios.post('https://httpstat.us/502', formData);
         console.log('FormData body response:', res);
 
         // URLSearchParams body
@@ -63,12 +63,12 @@
         const view = new Uint8Array(buffer);
         view[0] = 1;
         view[1] = 2;
-        res = await axios.post('https://httpstat.us/503', buffer);
+        res = await axios.post('https://httpstat.us/504', buffer);
         console.log('ArrayBuffer body response:', res);
 
         // Blob body
         const blob = new Blob(['Hello from Blob'], { type: 'text/plain' });
-        res = await axios.post('https://httpstat.us/503', blob);
+        res = await axios.post('https://httpstat.us/505', blob);
         console.log('Blob body response:', res);
 
         // Stream body (ReadableStream)
@@ -78,11 +78,11 @@
             controller.close();
           }
         });
-        res = await axios.post('https://httpstat.us/503', stream);
+        res = await axios.post('https://httpstat.us/506', stream);
         console.log('Stream body response:', res);
 
         // GET requests for comparison
-        res = await axios.get('https://httpstat.us/500');
+        res = await axios.get('https://httpstat.us/507');
         console.log('GET 500 response:', res);
         res = await axios.get('https://httpstat.us/200');
         console.log('GET 200 response:', res);
