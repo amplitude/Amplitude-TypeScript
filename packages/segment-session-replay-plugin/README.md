@@ -5,7 +5,7 @@
   <br />
 </p>
 
-# @amplitude/segment-session-replay-wrapper
+# @amplitude/segment-session-replay-plugin
 
 This package is a wrapper to facilitate integration between Segment and [Amplitude's Session Replay SDK](https://amplitude.com/docs/session-replay/session-replay-standalone-sdk). This package currently only supports the [Segment Amplitude (Actions) destination](https://segment.com/docs/connections/destinations/catalog/actions-amplitude/).
 
@@ -16,17 +16,17 @@ Replay SDK is included in this package, and does not need to be installed separa
 
 ```sh
 # npm
-npm install @amplitude/segment-session-replay-wrapper" --save
+npm install @amplitude/segment-session-replay-plugin" --save
 
 # yarn
-yarn add @amplitude/segment-session-replay-wrapper"
+yarn add @amplitude/segment-session-replay-plugin"
 ```
 
 ## Usage
 
 ```typescript
 import { AnalyticsBrowser } from '@segment/analytics-next';
-import { createSegmentActionsPlugin } from '@amplitude/segment-session-replay-wrapper';
+import { createSegmentActionsPlugin } from '@amplitude/segment-session-replay-plugin';
 
 export const SegmentAnalytics = AnalyticsBrowser.load({
   writeKey: SEGMENT_API_KEY,
