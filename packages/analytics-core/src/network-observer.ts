@@ -4,12 +4,22 @@ import { ILogger } from '.';
 import {
   IRequestWrapper,
   NetworkRequestEvent,
-  RequestWrapper,
-  ResponseWrapper,
+  RequestWrapperFetch,
+  ResponseWrapperFetch,
   RequestWrapperXhr,
   ResponseWrapperXhr,
   IResponseWrapper,
+  RequestInitSafe,
+  XMLHttpRequestBodyInitSafe,
 } from './network-request-event';
+
+type $$AmplitudeAnalyticsEvent = {
+  method: string;
+  url: string | URL;
+  startTime: number;
+  durationStart: number;
+  status?: number;
+};
 
 /**
  * Typeguard function checks if an input is a Request object.
@@ -25,7 +35,7 @@ export class NetworkEventCallback {
 }
 
 type RequestUrlAndMethod = {
-  url: string | undefined;
+  url: string | URL | undefined;
   method: string | undefined;
 };
 
@@ -58,8 +68,10 @@ export class NetworkObserver {
     this.eventCallbacks.set(eventCallback.id, eventCallback);
     if (!this.isObserving) {
       /* istanbul ignore next */
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalXhrOpen = this.globalScope?.XMLHttpRequest?.prototype?.open;
       /* istanbul ignore next */
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
       if (originalXhrOpen && originalXhrSend) {
         this.observeXhr(originalXhrOpen, originalXhrSend);
@@ -199,8 +211,8 @@ export class NetworkObserver {
         this.handleNetworkRequestEvent(
           'fetch',
           requestInfo,
-          requestInit ? new RequestWrapper(requestInit) : undefined,
-          originalResponse ? new ResponseWrapper(originalResponse) : undefined,
+          requestInit ? new RequestWrapperFetch(requestInit as RequestInitSafe) : undefined,
+          originalResponse ? new ResponseWrapperFetch(originalResponse) : undefined,
           originalError as Error,
           /* istanbul ignore next */
           timestamps?.startTime,
@@ -243,6 +255,7 @@ export class NetworkObserver {
 
     const xhrProto = this.globalScope.XMLHttpRequest.prototype;
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const networkObserverContext = this;
 
     /**
@@ -253,18 +266,21 @@ export class NetworkObserver {
      */
     xhrProto.open = function (...args: any[]) {
       const [method, url] = args as [string, string | URL];
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
       const xhr = this;
       try {
         /* istanbul ignore next */
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (xhr as any).$$AmplitudeAnalyticsEvent = {
           method,
           url: url?.toString?.(),
           ...networkObserverContext.getTimestamps(),
-        };
+        } as $$AmplitudeAnalyticsEvent;
       } catch (err) {
         /* istanbul ignore next */
         networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err);
       }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return originalXhrOpen.apply(xhr, args as any);
     };
 
@@ -274,11 +290,15 @@ export class NetworkObserver {
      * If you do, please be careful to preserve the original functionality of xhr.send
      * and make sure another developer who is an expert reviews this change throughly
      */
+    // allow "any" type for args to reflect how it's used in the browser
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
     xhrProto.send = function (...args: any[]) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
       const xhr = this;
-      const body = args[0];
+      const body = args[0] as XMLHttpRequestBodyInitSafe;
 
-      const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent as $$AmplitudeAnalyticsEvent;
 
       xhr.addEventListener('loadend', function () {
         try {
@@ -306,6 +326,7 @@ export class NetworkObserver {
           networkObserverContext.logger?.debug('an unexpected error occurred while handling xhr send', err);
         }
       });
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       const res = originalXhrSend.apply(xhr, args as any);
       return res;
     };

@@ -1,20 +1,64 @@
 import { getGlobalScope } from './global-scope';
 
-// adding types to make this compile in NodeJS
-type FormDataEntryValueBrowser = string | Blob | null;
-export interface FormDataBrowser {
-  entries(): IterableIterator<[string, FormDataEntryValueBrowser]>;
-}
+/* SAFE TYPE DEFINITIONS
+  These type definitions expose limited properties of the original types
+  to prevent the consumer from mutating them or consuming them. 
+  Trying to access dangerous properties will result in a TypeScript compilation failure.
+*/
+type BlobSafe = {
+  size: number;
+};
 
-export type FetchRequestBody =
+type ArrayBufferSafe = {
+  byteLength: number;
+};
+
+type ArrayBufferViewSafe = {
+  byteLength: number;
+};
+
+type URLSearchParamsSafe = {
+  toString(): string;
+};
+
+// no method on readablestream is safe to call
+type ReadableStreamSafe = {};
+
+type FormDataEntryValueSafe = string | BlobSafe | null;
+
+type BodyInitSafe =
   | string
   | Blob
-  | ReadableStream
-  | ArrayBuffer
-  | FormDataBrowser
-  | URLSearchParams
-  | Document
-  | ArrayBufferView
+  | ArrayBufferSafe
+  | FormDataSafe
+  | URLSearchParamsSafe
+  | ArrayBufferViewSafe
+  | null
+  | undefined;
+
+type HeadersSafe = {
+  entries(): IterableIterator<[string, string]>;
+};
+
+type HeadersInitSafe = HeadersSafe | Record<string, string> | string[][];
+
+export type RequestInitSafe = {
+  method?: string;
+  headers?: HeadersInitSafe;
+  body?: BodyInitSafe;
+};
+export interface FormDataSafe {
+  entries(): IterableIterator<[string, FormDataEntryValueSafe]>;
+}
+export type XMLHttpRequestBodyInitSafe = BlobSafe | FormDataSafe | URLSearchParamsSafe | string;
+
+export type FetchRequestBodySafe =
+  | string
+  | BlobSafe
+  | ArrayBufferSafe
+  | FormDataSafe
+  | URLSearchParamsSafe
+  | ArrayBufferViewSafe
   | null
   | undefined;
 
@@ -22,26 +66,33 @@ export interface IRequestWrapper {
   headers?: Record<string, string>;
   bodySize?: number;
   method?: string;
-  body?: FetchRequestBody | Document | XMLHttpRequestBodyInit | null;
+  body?: FetchRequestBodySafe | XMLHttpRequestBodyInitSafe | null;
 }
 
 export const MAXIMUM_ENTRIES = 100;
 
 /**
- * This class encapsulates the Request object so that the consumer can
- * only get access to the headers, method and body size.
+ * This class encapsulates the RequestInit (https://developer.mozilla.org/en-US/docs/Web/API/RequestInit)
+ * object so that the consumer can only get access to the headers, method and body size.
  *
  * This is to prevent consumers from directly accessing the Request object
  * and mutating it or running costly operations on it.
  *
- * IMPORTANT: Do not make changes to this class without careful consideration
- * of performance implications, memory usage and potential to mutate the customer's
- * request.
+ * IMPORTANT:
+ *    * Do not make changes to this class without careful consideration
+ *      of performance implications, memory usage and potential to mutate the customer's
+ *      request.
+ *   * NEVER .clone() the RequestInit object. This will 2x's the memory overhead of the request
+ *   * NEVER: call .arrayBuffer(), text(), json() or any other method on the body that
+ *   * NEVER consume the body's stream. This will cause the response to be consumed
+ *     meaning the body will be empty when the customer tries to access it.
+ *     (ie: if the body is an instanceof https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
+ *      never call any of the methods on it)
  */
-export class RequestWrapper implements IRequestWrapper {
+export class RequestWrapperFetch implements IRequestWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
-  constructor(private request: RequestInit) {}
+  constructor(private request: RequestInitSafe) {}
 
   get headers(): Record<string, string> {
     if (this._headers) return this._headers;
@@ -75,7 +126,7 @@ export class RequestWrapper implements IRequestWrapper {
     if (!global?.TextEncoder) {
       return;
     }
-    const body = this.request.body as FetchRequestBody;
+    const body = this.request.body as FetchRequestBodySafe;
     this._bodySize = getBodySize(body, MAXIMUM_ENTRIES);
     return this._bodySize;
   }
@@ -86,14 +137,14 @@ export class RequestWrapper implements IRequestWrapper {
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
-  constructor(readonly body: Document | XMLHttpRequestBodyInit | null) {}
+  constructor(readonly body: XMLHttpRequestBodyInitSafe | null) {}
 
   get bodySize(): number | undefined {
-    return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
+    return getBodySize(this.body as FetchRequestBodySafe, MAXIMUM_ENTRIES);
   }
 }
 
-function getBodySize(body: FetchRequestBody, maxEntries: number): number | undefined {
+function getBodySize(bodyUnsafe: FetchRequestBodySafe, maxEntries: number): number | undefined {
   let bodySize: number | undefined;
   const global = getGlobalScope();
   /* istanbul ignore next */
@@ -102,19 +153,25 @@ function getBodySize(body: FetchRequestBody, maxEntries: number): number | undef
   if (!TextEncoder) {
     return;
   }
-  if (typeof body === 'string') {
+  let body;
+  if (typeof bodyUnsafe === 'string') {
+    body = bodyUnsafe;
     bodySize = new TextEncoder().encode(body).length;
-  } else if (body instanceof Blob) {
-    bodySize = body.size;
-  } else if (body instanceof URLSearchParams) {
-    bodySize = new TextEncoder().encode(body.toString()).length;
-  } else if (ArrayBuffer.isView(body)) {
+  } else if (bodyUnsafe instanceof Blob) {
+    body = bodyUnsafe as BlobSafe;
+    bodySize = bodyUnsafe.size;
+  } else if (bodyUnsafe instanceof URLSearchParams) {
+    body = bodyUnsafe as URLSearchParamsSafe;
+    bodySize = new TextEncoder().encode(bodyUnsafe.toString()).length;
+  } else if (ArrayBuffer.isView(bodyUnsafe)) {
+    body = bodyUnsafe as ArrayBufferViewSafe;
     bodySize = body.byteLength;
-  } else if (body instanceof ArrayBuffer) {
-    bodySize = body.byteLength;
-  } else if (body instanceof FormData) {
+  } else if (bodyUnsafe instanceof ArrayBuffer) {
+    const bodySafe = bodyUnsafe as ArrayBufferSafe;
+    bodySize = bodySafe.byteLength;
+  } else if (bodyUnsafe instanceof FormData) {
     // Estimating only for text parts; not accurate for files
-    const formData = body as FormDataBrowser;
+    const formData = bodyUnsafe as unknown as FormDataSafe;
 
     let total = 0;
     let count = 0;
@@ -125,7 +182,7 @@ function getBodySize(body: FetchRequestBody, maxEntries: number): number | undef
       } else if (value instanceof Blob) {
         total += value.size;
       } else {
-        // encountered another unknown type
+        // encountered an unknown type
         // we can't estimate the size of this entry
         return;
       }
@@ -137,6 +194,13 @@ function getBodySize(body: FetchRequestBody, maxEntries: number): number | undef
     }
     // TODO: handle the other XHR specific types
     bodySize = total;
+  } else if (bodyUnsafe instanceof ReadableStream) {
+    // If bodyUnsafe is an instanceof ReadableStream, we can't determine the size
+    // without consuming it, so we return undefined.
+    // Never ever consume ReadableStream! DO NOT DO IT!!!
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    body = bodyUnsafe as ReadableStreamSafe;
+    return;
   }
   return bodySize;
 }
@@ -145,20 +209,12 @@ export interface IResponseWrapper {
   headers?: Record<string, string>;
   bodySize?: number;
   status?: number;
-  body?:
-    | string
-    | Blob
-    | ReadableStream
-    | ArrayBuffer
-    | FormDataBrowser
-    | URLSearchParams
-    | Document
-    | ArrayBufferView
-    | null;
+  body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
 }
 
 /**
- * This class encapsulates the Response object so that the consumer can
+ * This class encapsulates the Fetch API Response object
+ * (https://developer.mozilla.org/en-US/docs/Web/API/Response) so that the consumer can
  * only get access to the headers and body size.
  *
  * This is to prevent consumers from directly accessing the Response object
@@ -168,11 +224,13 @@ export interface IResponseWrapper {
  *   * Do not make changes to this class without careful consideration
  *     of performance implications, memory usage and potential to mutate the customer's
  *     response.
- *   * NEVER .clone the response object. This 2x's the memory overhead of the response
+ *   * NEVER .clone() the Response object. This will 2x's the memory overhead of the response
  *   * NEVER consume the body's stream. This will cause the response to be consumed
  *     meaning the body will be empty when the customer tries to access it.
+ *     (ie: if the body is an instanceof https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
+ *      never call any of the methods on it)
  */
-export class ResponseWrapper implements IResponseWrapper {
+export class ResponseWrapperFetch implements IResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
   constructor(private response: Response) {}
