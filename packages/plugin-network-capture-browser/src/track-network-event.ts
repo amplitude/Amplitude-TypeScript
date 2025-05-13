@@ -51,7 +51,10 @@ function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?:
   return true;
 }
 
-function parseUrl(url: string) {
+function parseUrl(url: string | undefined) {
+  if (!url) {
+    return;
+  }
   try {
     /* istanbul ignore next */
     const currentHref = getGlobalScope()?.location.href;
@@ -154,7 +157,7 @@ export function trackNetworkEvents({
   );
 
   return filteredNetworkObservable.subscribe((networkEvent) => {
-    const request = networkEvent.event as NetworkRequestEvent;
+    const request = networkEvent.event;
 
     // convert to NetworkAnalyticsEvent
     const urlObj = parseUrl(request.url);
@@ -167,6 +170,10 @@ export function trackNetworkEvents({
       return;
     }
 
+    const responseBodySize = request.responseWrapper?.bodySize;
+    /* istanbul ignore next */
+    const requestBodySize = request.requestWrapper?.bodySize;
+
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
       ['[Amplitude] URL']: urlObj.hrefWithoutQueryOrHash,
       ['[Amplitude] URL Query']: urlObj.query,
@@ -176,8 +183,8 @@ export function trackNetworkEvents({
       ['[Amplitude] Start Time']: request.startTime,
       ['[Amplitude] Completion Time']: request.endTime,
       ['[Amplitude] Duration']: request.duration,
-      ['[Amplitude] Request Body Size']: request.requestBodySize,
-      ['[Amplitude] Response Body Size']: request.responseBodySize,
+      ['[Amplitude] Request Body Size']: requestBodySize,
+      ['[Amplitude] Response Body Size']: responseBodySize,
     };
 
     /* istanbul ignore next */

@@ -1,11 +1,14 @@
-import { NetworkEventCallback, NetworkRequestEvent } from '../src/index';
-import { FormDataBrowser, getRequestBodyLength, NetworkObserver } from '../src/network-observer';
-import { networkObserver } from '../src/';
-import * as AnalyticsCore from '@amplitude/analytics-core';
+import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
+import { NetworkObserver } from '../src/network-observer';
+import { FetchRequestBody, RequestWrapper, ResponseWrapper } from '../src/network-request-event';
+import * as AnalyticsCore from '../src/index';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
 import * as Global from '../src/global-scope';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
+
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 
 // Test subclass to access protected methods
 class TestNetworkObserver extends NetworkObserver {
@@ -19,6 +22,16 @@ describe('NetworkObserver', () => {
   let originalFetchMock: jest.Mock;
   let events: NetworkRequestEvent[] = [];
   let globalScope: PartialGlobal;
+
+  let originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+
+  beforeAll(() => {
+    originalFetch = globalThis.fetch;
+  });
+
+  afterAll(() => {
+    globalThis.fetch = originalFetch;
+  });
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -75,14 +88,59 @@ describe('NetworkObserver', () => {
         method: 'POST',
         url: 'https://api.example.com/data',
         status: 200,
-        requestHeaders,
-        responseHeaders: {
-          'content-type': 'application/json',
-          server: 'test-server',
-        },
-        responseBodySize: 20,
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
+      expect(events[0].requestWrapper?.headers).toEqual(requestHeaders);
+      expect(events[0].requestWrapper?.headers).toEqual(requestHeaders); // 2x to check that it's cached
+      const expectedResponseHeaders = {
+        'content-type': 'application/json',
+        'content-length': '20',
+        server: 'test-server',
+      };
+      expect(events[0].responseWrapper?.headers).toEqual(expectedResponseHeaders);
+      expect(events[0].responseWrapper?.headers).toEqual(expectedResponseHeaders);
+    });
+
+    it('should track successful fetch requests with headers (uses Headers object)', async () => {
+      // Create a simple mock response
+      const headers = new Headers();
+      headers.set('content-type', 'application/json');
+      headers.set('content-length', '20');
+      headers.set('server', 'test-server');
+      const mockResponse = {
+        status: 200,
+        headers,
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+
+      const requestHeaders = new Headers();
+      requestHeaders.set('Content-Type', 'application/json');
+      requestHeaders.set('Authorization', 'Bearer token123');
+
+      await globalScope.fetch('https://api.example.com/data', {
+        method: 'POST',
+        headers: requestHeaders,
+      });
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'fetch',
+        method: 'POST',
+        url: 'https://api.example.com/data',
+        status: 200,
+      });
+      expect(events[0].duration).toBeGreaterThanOrEqual(0);
+      expect(events[0].requestWrapper?.headers).toEqual({
+        'content-type': 'application/json',
+        authorization: 'Bearer token123',
+      });
+      expect(events[0].responseWrapper?.headers).toEqual({
+        'content-type': 'application/json',
+        'content-length': '20',
+        server: 'test-server',
+      });
     });
 
     it('should track successful fetch requests without headers', async () => {
@@ -104,58 +162,57 @@ describe('NetworkObserver', () => {
         method: 'GET',
         url: 'https://api.example.com/data',
         status: 200,
-        requestHeaders: undefined,
-        responseHeaders: {},
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
+      expect(events[0].requestWrapper?.headers).toEqual(undefined);
+      expect(events[0].responseWrapper?.headers).toEqual({});
     });
 
-    describe('.responseBodySize', () => {
-      it('should not be captured if content-length is not present in headers', async () => {
-        const headers = new Headers();
-        headers.set('content-type', 'application/json');
-        const mockResponse = {
-          status: 200,
-          headers,
-        };
-        originalFetchMock.mockResolvedValue(mockResponse);
-        networkObserver.subscribe(new NetworkEventCallback(callback));
-        await globalScope.fetch('https://api.example.com/data');
-        expect(events).toHaveLength(1);
-        expect(events[0].responseBodySize).toBeUndefined();
-      });
+    it('should still fetch even if eventCallback throws error', async () => {
+      const headers = new Headers();
+      headers.set('content-type', 'application/json');
+      headers.set('content-length', '20');
+      const mockResponse = {
+        status: 200,
+        headers,
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+      const errorCallback = (event: NetworkRequestEvent) => {
+        expect(event.status).toBe(200);
+        throw new Error('Error in event callback');
+      };
+      networkObserver.subscribe(new NetworkEventCallback(errorCallback));
+      const res = await globalScope.fetch('https://api.example.com/data');
+      expect(res.status).toBe(200);
+    });
 
-      it('should not be captured if content-length is not a valid number', async () => {
-        const headers = new Headers();
-        headers.set('content-type', 'application/json');
-        headers.set('content-length', 'invalid-number');
-        const mockResponse = {
-          status: 200,
-          headers,
-        };
-        originalFetchMock.mockResolvedValue(mockResponse);
-        networkObserver.subscribe(new NetworkEventCallback(callback));
-        await globalScope.fetch('https://api.example.com/data');
-        expect(events).toHaveLength(1);
-        expect(events[0].responseBodySize).toBeUndefined();
-      });
+    it('should track successful fetch requests formed with request object', async () => {
+      const mockResponse = {
+        status: 200,
+        headers: {
+          forEach: jest.fn(), // Mock function that does nothing
+        },
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
 
-      it('should still fetch even if eventCallback throws error', async () => {
-        const headers = new Headers();
-        headers.set('content-type', 'application/json');
-        headers.set('content-length', '20');
-        const mockResponse = {
-          status: 200,
-          headers,
-        };
-        originalFetchMock.mockResolvedValue(mockResponse);
-        const errorCallback = (event: NetworkRequestEvent) => {
-          expect(event.status).toBe(200);
-          throw new Error('Error in event callback');
-        };
-        networkObserver.subscribe(new NetworkEventCallback(errorCallback));
-        const res = await globalScope.fetch('https://api.example.com/data');
-        expect(res.status).toBe(200);
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+
+      const req = {
+        url: 'https://api.example.com/data',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: '{"message": "Hello from mock!"}',
+      } as any;
+      await globalScope.fetch(req);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        type: 'fetch',
+        method: 'POST',
+        url: 'https://api.example.com/data',
+        status: 200,
       });
     });
   });
@@ -170,7 +227,8 @@ describe('NetworkObserver', () => {
       await expect(globalScope.fetch('https://api.example.com/data')).rejects.toThrow('Failed to fetch');
 
       expect(events).toHaveLength(1);
-      expect(events[0]).toMatchObject({
+      const networkRequestEvent = events[0];
+      expect(networkRequestEvent.toSerializable()).toEqual({
         type: 'fetch',
         method: 'GET',
         url: 'https://api.example.com/data',
@@ -178,8 +236,16 @@ describe('NetworkObserver', () => {
           name: 'TypeError',
           message: 'Failed to fetch',
         },
+        duration: networkRequestEvent.duration,
+        status: networkRequestEvent.status,
+        startTime: expect.any(Number),
+        endTime: expect.any(Number),
+        timestamp: expect.any(Number),
+        requestHeaders: networkRequestEvent.requestWrapper?.headers,
+        requestBodySize: networkRequestEvent.requestWrapper?.bodySize,
+        responseHeaders: networkRequestEvent.responseWrapper?.headers,
+        responseBodySize: networkRequestEvent.responseWrapper?.bodySize,
       });
-      expect(events[0].duration).toBeGreaterThanOrEqual(0);
     });
 
     it('should track aborted requests', async () => {
@@ -219,79 +285,36 @@ describe('NetworkObserver', () => {
     });
   });
 
-  describe('getRequestBodyLength', () => {
-    describe('should return the body length when the body is of type', () => {
-      it('string', () => {
-        const body = 'Hello World!';
-        expect(getRequestBodyLength(body)).toBe(body.length);
-      });
-      it('Blob', () => {
-        const blob = new Blob(['Hello World!']);
-        expect(getRequestBodyLength(blob)).toBe(blob.size);
-      });
-      it('ArrayBuffer', () => {
-        const buffer = new ArrayBuffer(8);
-        expect(getRequestBodyLength(buffer)).toBe(buffer.byteLength);
-      });
+  describe('fetch calls with junk data', () => {
+    it('should pass junk data to originalfetch', async () => {
+      const mockResponse = {
+        status: 500,
+        headers: {
+          forEach: jest.fn(), // Mock function that does nothing
+        },
+      };
+      originalFetchMock.mockResolvedValue(mockResponse);
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+      expect(globalScope.fetch).not.toBe(originalFetchMock);
 
-      it('ArrayBufferView', () => {
-        const buffer = new ArrayBuffer(8);
-        const arr = new Uint8Array(buffer);
-        expect(getRequestBodyLength(arr)).toBe(arr.byteLength);
-      });
-      it('FormData', () => {
-        const formData = new FormData();
-        const val = 'value';
-        formData.append('key', val);
-        const blob = new Blob(['Hello World!']);
-        formData.append('file', blob);
-        const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
-        expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBe(expectedSize);
-      });
-      it('URLSearchParams', () => {
-        const params = new URLSearchParams();
-        const val = 'value';
-        params.append('key', val);
-        const val2 = 'value2';
-        params.append('key2', val2);
-        const expectedSize = 'key='.length + val.length + '&key2='.length + val2.length;
-        expect(getRequestBodyLength(params)).toBe(expectedSize);
-      });
-    });
+      const fetchJunkArgs = [
+        [12345 as any, undefined],
+        [null, null],
+        [[1, 2, 3], { a: 1 }],
+        [true, [1, 2, 3]],
+        [undefined, undefined],
+        ['two', 'args'],
+        [undefined, { method: 'POST' }],
+      ];
 
-    describe('should not return the body length when', () => {
-      it('FormData has >100 entries', () => {
-        const formData = new FormData();
-        for (let i = 0; i < 101; i++) {
-          formData.append(`key${i}`, `value${i}`);
-        }
-        expect(getRequestBodyLength(formData as unknown as FormDataBrowser)).toBeUndefined();
-      });
-      it('body is undefined', () => {
-        const body = undefined;
-        expect(getRequestBodyLength(body)).toBeUndefined();
-      });
-      it('TextEncoder is not available', () => {
-        try {
-          Object.defineProperty(globalScope, 'TextEncoder', {
-            value: undefined,
-            configurable: true,
-            writable: true,
-          });
-          expect(getRequestBodyLength('Hello World!')).toBeUndefined();
-        } finally {
-          Object.defineProperty(globalScope, 'TextEncoder', {
-            value: TextEncoder,
-            configurable: true,
-            writable: true,
-          });
-        }
-      });
-      it('globalScope is not available', () => {
-        jest.spyOn(Global, 'getGlobalScope').mockReturnValue(undefined);
-        const body = 'Hello World!';
-        expect(getRequestBodyLength(body)).toBeUndefined();
-      });
+      // checks that the original fetch is called with the same junk data
+      for (const args of fetchJunkArgs) {
+        /* eslint-disable @typescript-eslint/no-unsafe-argument */
+        const res = await globalScope.fetch(...(args as [any, any]));
+        expect(originalFetchMock).toHaveBeenCalledWith(...args);
+        expect(res).toEqual(mockResponse);
+        /* eslint-enable @typescript-eslint/no-unsafe-argument */
+      }
     });
   });
 
@@ -309,32 +332,6 @@ describe('NetworkObserver', () => {
         log: jest.fn(),
       };
       new NetworkObserver(localLogger);
-    });
-
-    it('should only restore globalScope.fetch when all subscriptions are unsubscribed', async () => {
-      const cb1 = new NetworkEventCallback(callback);
-      const cb2 = new NetworkEventCallback(callback);
-      networkObserver.subscribe(cb1);
-      networkObserver.subscribe(cb2);
-      networkObserver.unsubscribe(cb1);
-
-      // cb1 unsubscribed, but cb2 is still subscribed so fetch should be overridden
-      expect(globalScope.fetch).not.toBe(originalFetchMock);
-
-      // cb1 and cb2 unsubscribed, fetch should be restored
-      networkObserver.unsubscribe(cb2);
-      expect(globalScope.fetch).toBe(originalFetchMock);
-    });
-
-    it('should stop tracking when no event subscriptions are left', async () => {
-      const cb = new NetworkEventCallback(callback);
-      networkObserver.subscribe(cb);
-      networkObserver.unsubscribe(cb);
-
-      expect(globalScope.fetch).toBe(originalFetchMock);
-
-      await originalFetchMock('https://api.example.com/data');
-      expect(events).toHaveLength(0);
     });
 
     it('should handle missing global scope', () => {
@@ -373,6 +370,8 @@ describe('NetworkObserver', () => {
         type: 'fetch' as const,
         method: 'GET',
         url: 'https://api.example.com/data',
+        startTime: Date.now(),
+        toSerializable: () => ({ ...mockEvent }),
       };
 
       // Test with callback
@@ -386,6 +385,228 @@ describe('NetworkObserver', () => {
       networkObserver.unsubscribe(cb);
       networkObserver.testNotifyEvent(mockEvent);
       expect(mockCallback).toHaveBeenCalledTimes(1); // Still only called once
+    });
+  });
+
+  describe('RequestWrapper', () => {
+    describe('bodySize should return the body length when the body is of type', () => {
+      it('string', () => {
+        const body = 'Hello World!';
+        const requestWrapper = new RequestWrapper({
+          body,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(body.length);
+        expect(requestWrapper.bodySize).toBe(body.length); // do it again to make sure it's cached
+      });
+      it('Blob', () => {
+        const blob = new Blob(['Hello World!']);
+        const requestWrapper = new RequestWrapper({
+          body: blob,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(blob.size);
+      });
+      it('ArrayBuffer', () => {
+        const buffer = new ArrayBuffer(8);
+        const requestWrapper = new RequestWrapper({
+          body: buffer,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(buffer.byteLength);
+      });
+      it('ArrayBufferView', () => {
+        const buffer = new ArrayBuffer(8);
+        const arr = new Uint8Array(buffer);
+        const requestWrapper = new RequestWrapper({
+          body: arr,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(arr.byteLength);
+      });
+      it('FormData', () => {
+        const formData = new FormData();
+        const val = 'value';
+        formData.append('key', val);
+        const blob = new Blob(['Hello World!']);
+        formData.append('file', blob);
+        const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
+        const requestWrapper = new RequestWrapper({
+          body: formData as unknown as FetchRequestBody,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(expectedSize);
+      });
+      it('URLSearchParams', () => {
+        const params = new URLSearchParams();
+        const val = 'value';
+        params.append('key', val);
+        const val2 = 'value2';
+        params.append('key2', val2);
+        const expectedSize = 'key='.length + val.length + '&key2='.length + val2.length;
+        const requestWrapper = new RequestWrapper({
+          body: params,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBe(expectedSize);
+      });
+    });
+
+    describe('bodySize should return undefined when', () => {
+      it('FormData has an unexpected type', () => {
+        // hack FormData to include an entry with an unexpected type
+        // (this test )
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        const HackedFormData = function () {};
+        HackedFormData.prototype = Object.create(FormData.prototype);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        HackedFormData.prototype.entries = function () {
+          return [
+            ['key', 'value'],
+            ['unknown', new ArrayBuffer(8)],
+          ];
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        const formData = new (HackedFormData as any)();
+        const requestWrapper = new RequestWrapper({
+          body: formData as unknown as FetchRequestBody,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
+      });
+      it('FormData has >100 entries', () => {
+        const formData = new FormData();
+        for (let i = 0; i < 101; i++) {
+          formData.append(`key${i}`, `value${i}`);
+        }
+        const requestWrapper = new RequestWrapper({
+          body: formData as unknown as FetchRequestBody,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
+      });
+      it('body is undefined', () => {
+        const body = undefined;
+        const requestWrapper = new RequestWrapper({
+          body,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
+      });
+      it('globalScope is not available', () => {
+        jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
+        const body = 'Hello World!';
+        const requestWrapper = new RequestWrapper({
+          body,
+        } as RequestInit);
+        expect(requestWrapper.bodySize).toBeUndefined();
+      });
+    });
+
+    describe('headers should return an object', () => {
+      it('when headers is an array', () => {
+        const requestWrapper = new RequestWrapper({
+          headers: [
+            ['Content-Type', 'application/fake'],
+            ['Content-Length', '1234'],
+          ],
+        } as RequestInit);
+        expect(requestWrapper.headers).toEqual({
+          'Content-Type': 'application/fake',
+          'Content-Length': '1234',
+        });
+      });
+    });
+
+    test('RequestWrapper interface changed. Make sure you know what you are doing.', () => {
+      const props = Object.getOwnPropertyNames(RequestWrapper.prototype);
+      const expectedProps = ['headers', 'bodySize'];
+      expectedProps.forEach((prop) => {
+        expect(props).toContain(prop);
+      });
+    });
+  });
+
+  describe('responseWrapper', () => {
+    const mockResponse = {
+      body: null,
+      bodyUsed: false,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      ok: true,
+      redirected: false,
+      status: 200,
+      statusText: 'OK',
+      type: 'basic',
+      url: 'https://api.example.com/data',
+      clone: () => mockResponse,
+      arrayBuffer: async () => new ArrayBuffer(0),
+      blob: async () => new Blob(),
+      formData: async () => new FormData(),
+      json: async () => ({ message: 'Hello from mock!' }),
+      text: async () => '{"message": "Hello from mock!"}',
+    };
+
+    test('bodySize should return undefined if content-length is not set', () => {
+      const responseWrapper = new ResponseWrapper(mockResponse as unknown as Response);
+      const bodySize = responseWrapper.bodySize;
+      expect(bodySize).toBeUndefined();
+    });
+
+    test('bodySize should return the content-length if set', () => {
+      const responseWithContentLength = {
+        ...mockResponse,
+        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+      };
+      const responseWrapper = new ResponseWrapper(responseWithContentLength as unknown as Response);
+      expect(responseWrapper.bodySize).toBe(1234);
+      expect(responseWrapper.bodySize).toBe(1234); // 2x to check that it's cached
+    });
+
+    test('ResponseWrapper interface changed. Make sure you know what you are doing.', () => {
+      const props = Object.getOwnPropertyNames(ResponseWrapper.prototype);
+      const expectedProps = ['headers', 'bodySize'];
+      expectedProps.forEach((prop) => {
+        expect(props).toContain(prop);
+      });
+    });
+  });
+});
+
+describe('serializeNetworkRequestEvent', () => {
+  it('should serialize a NetworkRequestEvent', () => {
+    const event = {
+      type: 'fetch',
+      method: 'GET',
+      url: 'https://api.example.com/data',
+      status: 200,
+      duration: 100,
+      startTime: 100,
+      endTime: 200,
+      timestamp: 100,
+      requestWrapper: {
+        bodySize: 100,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+      responseWrapper: {
+        bodySize: 100,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      },
+    } as unknown as NetworkRequestEvent;
+    /* eslint-disable @typescript-eslint/unbound-method */
+    event.toSerializable = NetworkRequestEvent.prototype.toSerializable;
+    const serialized = event.toSerializable();
+    expect(serialized).toEqual({
+      type: 'fetch',
+      method: 'GET',
+      url: 'https://api.example.com/data',
+      status: 200,
+      duration: 100,
+      startTime: 100,
+      endTime: 200,
+      timestamp: 100,
+      requestBodySize: 100,
+      requestHeaders: {
+        'Content-Type': 'application/json',
+      },
+      responseBodySize: 100,
+      responseHeaders: {
+        'Content-Type': 'application/json',
+      },
     });
   });
 });
