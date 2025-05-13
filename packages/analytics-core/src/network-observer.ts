@@ -88,6 +88,7 @@ export class NetworkObserver {
 
       /* istanbul ignore next */
       this.isObserving = true;
+      this.observeFetch(originalFetch);
     }
   }
 
@@ -198,7 +199,7 @@ export class NetworkObserver {
         /* istanbul ignore next */
         this.logger?.debug('an unexpected error occurred while retrieving timestamps', error);
       }
-
+      
       // 2. make the call to the original fetch and preserve the response or error
       let originalResponse, originalError;
       try {

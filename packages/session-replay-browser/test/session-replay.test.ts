@@ -541,7 +541,11 @@ describe('SessionReplay', () => {
         throw new Error('Init not called');
       }
       const updatedConfig = { ...sessionReplay.config, sampleRate: 0.9 };
-      const generateJoinedConfigPromise = Promise.resolve(updatedConfig);
+      const generateJoinedConfigPromise = Promise.resolve({
+        joinedConfig: updatedConfig,
+        localConfig: updatedConfig,
+        remoteConfig: undefined,
+      });
       jest
         .spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig')
         .mockReturnValue(generateJoinedConfigPromise);
@@ -560,9 +564,14 @@ describe('SessionReplay', () => {
         throw new Error('Did not call init');
       }
       const mockUpdatedConfig = new SessionReplayLocalConfig('static_key', { ...mockOptions, sampleRate: 0.6 });
+      const mockSessionReplayConfigs = {
+        joinedConfig: mockUpdatedConfig,
+        localConfig: mockUpdatedConfig,
+        remoteConfig: undefined,
+      };
       const generateJoinedConfig = jest
         .spyOn(sessionReplay.joinedConfigGenerator, 'generateJoinedConfig')
-        .mockResolvedValue(mockUpdatedConfig);
+        .mockResolvedValue(mockSessionReplayConfigs);
       expect(sessionReplay.identifiers?.sessionId).toEqual(123);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/123');
 
@@ -1458,6 +1467,19 @@ describe('SessionReplay', () => {
       startCallback(mockNetworkEvent);
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
+    });
+  });
+
+  describe('setMetadata', () => {
+    test('should set replaySDKVersion from options.version?.version in metadata', async () => {
+      const customVersion = '1.8.7';
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        version: { version: customVersion, type: 'plugin' },
+      }).promise;
+      // Access private property for test only
+      const metadata = (sessionReplay as any).metadata;
+      expect(metadata?.replaySDKVersion).toBe(customVersion);
     });
   });
 });

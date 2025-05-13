@@ -25,6 +25,7 @@ import { AmplitudeReturn, returnWrapper } from './utils/return-wrapper';
 
 interface PluginHost {
   plugin(name: string): Plugin | undefined;
+  plugins<T extends Plugin>(pluginClass: new (...args: any[]) => T): T[];
 }
 
 export interface CoreClient {
@@ -432,5 +433,9 @@ export class AmplitudeCore implements CoreClient, PluginHost {
     }
 
     return plugin;
+  }
+
+  plugins<T extends Plugin>(pluginClass: { new (...args: any[]): T }): T[] {
+    return this.timeline.plugins.filter((plugin) => plugin instanceof pluginClass) as T[];
   }
 }
