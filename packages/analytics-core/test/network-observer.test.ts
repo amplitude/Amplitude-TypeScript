@@ -718,14 +718,14 @@ describe('observeXhr', () => {
 });
 
 describe('ResponseWrapperXhr', () => {
-  test('should return {} if headersString is empty', () => {
+  test('should return undefined if headersString is empty', () => {
     const responseWrapper = new ResponseWrapperXhr(200, '', 0);
-    expect(responseWrapper.headers).toEqual({});
+    expect(responseWrapper.headers).toEqual(undefined);
   });
 });
 
 describe('networkObserver', () => {
-  test('should be an instance of NetworkObserver', () => {
+  test('singleton should be an instance of NetworkObserver', () => {
     expect(networkObserver).toBeInstanceOf(NetworkObserver);
   });
 });

@@ -216,11 +216,11 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return this.statusCode;
   }
 
-  get headers(): Record<string, string> {
-    const headers: Record<string, string> = {};
+  get headers(): Record<string, string> | undefined {
     if (!this.headersString) {
-      return headers;
+      return;
     }
+    const headers: Record<string, string> = {};
     const headerLines = this.headersString.split('\r\n');
     for (const line of headerLines) {
       const [key, value] = line.split(': ');
