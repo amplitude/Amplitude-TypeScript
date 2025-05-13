@@ -5,7 +5,6 @@ import { IConfig } from '../config';
 import { ElementInteractionsOptions } from './element-interactions';
 import { PageTrackingOptions } from './page-view-tracking';
 import { NetworkTrackingOptions } from './network-tracking';
-import { ExperimentalOptions } from './experimental-options';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -88,10 +87,6 @@ export interface ExternalBrowserConfig extends IConfig {
    * @defaultValue `undefined`
    */
   networkTrackingOptions?: NetworkTrackingOptions;
-  /**
-   * Experimental options for advanced features.
-   */
-  experimental?: ExperimentalOptions;
 }
 
 interface InternalBrowserConfig {
