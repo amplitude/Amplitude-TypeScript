@@ -95,7 +95,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     describe('with successful sampling config fetch', () => {
       test('should use sample_rate and capture_enabled from API', async () => {
         getRemoteConfigMockImplementation({ samplingConfig });
-        const config = await joinedConfigGenerator.generateJoinedConfig(123);
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
@@ -105,7 +105,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
       test('should use sample_rate only from API', async () => {
         getRemoteConfigMockImplementation({ samplingConfig: { sample_rate: samplingConfig.sample_rate } });
-        const config = await joinedConfigGenerator.generateJoinedConfig(123);
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
@@ -115,7 +115,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
       test('should use capture_enabled only from API', async () => {
         getRemoteConfigMockImplementation({ samplingConfig: { capture_enabled: false } });
-        const config = await joinedConfigGenerator.generateJoinedConfig(123);
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
@@ -124,7 +124,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
       });
       test('should set captureEnabled to true if no values returned from API', async () => {
         getRemoteConfigMockImplementation({ samplingConfig: {} });
-        const config = await joinedConfigGenerator.generateJoinedConfig(123);
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
@@ -135,7 +135,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
     describe('with unsuccessful sampling config fetch', () => {
       test('should set captureEnabled to true', async () => {
         getRemoteConfigMock.mockRejectedValue({});
-        const config = await joinedConfigGenerator.generateJoinedConfig(123);
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
           optOut: mockLocalConfig.optOut,
@@ -159,7 +159,8 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         });
         remoteConfigFetch.getRemoteConfig = getRemoteConfigMock;
         new SessionReplayJoinedConfigGenerator(remoteConfigFetch, mockLocalConfig);
-        return configGenerator.generateJoinedConfig(123);
+        const { joinedConfig } = await configGenerator.generateJoinedConfig(123);
+        return joinedConfig;
       };
 
       test('should join string block selector from API', async () => {
@@ -264,7 +265,7 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         getRemoteConfigMockImplementation({ privacyConfig });
         mockRemoteConfigFetch.getRemoteConfig = getRemoteConfigMock;
         const configGenerator = new SessionReplayJoinedConfigGenerator(mockRemoteConfigFetch, mockLocalConfig);
-        const config = await configGenerator.generateJoinedConfig(123);
+        const { joinedConfig: config } = await configGenerator.generateJoinedConfig(123);
         expect(config).toEqual({
           ...mockLocalConfig,
           captureEnabled: true,
