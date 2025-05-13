@@ -317,7 +317,7 @@ export class NetworkObserver {
             { url: requestEvent.url, method: requestEvent.method },
             requestWrapper,
             responseWrapper,
-            undefined, // TODO: Error goes here
+            undefined,
             requestEvent.startTime,
             requestEvent.durationStart,
           );
@@ -327,8 +327,7 @@ export class NetworkObserver {
         }
       });
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
-      const res = originalXhrSend.apply(xhr, args as any);
-      return res;
+      return originalXhrSend.apply(xhr, args as any);
     };
   }
 }

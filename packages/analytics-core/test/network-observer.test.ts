@@ -416,20 +416,39 @@ describe('NetworkObserver', () => {
       });
       it('ArrayBuffer', () => {
         const buffer = new ArrayBuffer(8);
+        for (let i = 0; i < buffer.byteLength; i++) {
+          (buffer as any)[i] = i;
+        }
         const requestWrapper = new RequestWrapperFetch({
           body: buffer,
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(buffer.byteLength);
+        expect(buffer.byteLength).toBe(8);
+
+        // check that the array buffer is not modified
+        for (let i = 0; i < buffer.byteLength; i++) {
+          expect((buffer as any)[i]).toBe(i);
+        }
       });
       it('ArrayBufferView', () => {
         const buffer = new ArrayBuffer(8);
         const arr = new Uint8Array(buffer);
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = i;
+        }
         const requestWrapper = new RequestWrapperFetch({
           body: arr,
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(arr.byteLength);
+
+        // check that the array buffer is not modified
+        expect(arr.byteLength).toBe(8);
+        for (let i = 0; i < arr.length; i++) {
+          expect(arr[i]).toBe(i);
+        }
       });
       it('FormData', () => {
+        // construct FormData with 2 entries
         const formData = new FormData();
         const val = 'value';
         formData.append('key', val);
@@ -439,7 +458,23 @@ describe('NetworkObserver', () => {
         const requestWrapper = new RequestWrapperFetch({
           body: formData as unknown as FetchRequestBody,
         } as RequestInitSafe);
+
+        // spy on all methods that are not safe to call on FormData
+        const unsafeFormDataMethods = ['append', 'delete', 'set'];
+        const spies = [];
+        for (const method of unsafeFormDataMethods) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          console.log('spying on', method);
+          const spy = jest.spyOn(FormData.prototype, method as any);
+          spies.push({ spy, method });
+        }
+
+        // assert bodySize is correct and that no unsafe methods were called
         expect(requestWrapper.bodySize).toBe(expectedSize);
+        expect(spies.length).toBe(unsafeFormDataMethods.length);
+        for (const { spy } of spies) {
+          expect(spy.mock.calls.length).toBe(0);
+        }
       });
       it('URLSearchParams', () => {
         const params = new URLSearchParams();
@@ -448,10 +483,23 @@ describe('NetworkObserver', () => {
         const val2 = 'value2';
         params.append('key2', val2);
         const expectedSize = 'key='.length + val.length + '&key2='.length + val2.length;
+
+        const unsafeURLSearchParamsMethods = ['append', 'delete', 'set'];
+        const spies = [];
+        for (const method of unsafeURLSearchParamsMethods) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const spy = jest.spyOn(URLSearchParams.prototype, method as any);
+          spies.push({ spy, method });
+        }
+
         const requestWrapper = new RequestWrapperFetch({
           body: params,
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(expectedSize);
+        expect(spies.length).toBe(unsafeURLSearchParamsMethods.length);
+        for (const { spy } of spies) {
+          expect(spy.mock.calls.length).toBe(0);
+        }
       });
     });
 

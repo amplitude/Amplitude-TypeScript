@@ -4,12 +4,13 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.9.0/dist/axios.js"></script>
     <title>XHR Network Tracking Examples</title>
   </head>
   <body>
     <div id="app">
-      Basic test page for the Amplitude Browser SDK
+      Run a set of XHR requests to test networkTracking
+      (uses axios for XHR requests)
     </div>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
@@ -37,13 +38,42 @@
 
       setTimeout(async () => {
         let res;
+
+        // Aborted request
+        const controller = new AbortController();
+        const signal = controller.signal;
+        try {
+          res = axios.post('https://httpstat.us/200', 'This request will be aborted', { signal });
+          controller.abort(); // Abort immediately
+          const awaitedRes = await res;
+          if (awaitedRes.status !== 0) {
+            alert(`axios.post failed with wrong status code: ${res.status}`);
+          }
+          console.log('This should not be logged');
+        } catch (err) {
+          console.log('Aborted request error:', err);
+        }
+
+        // make sure 200's still work too
+        res = await axios.get('https://httpstat.us/200');
+        console.log('GET 200 response:', res);
+        if (res.status !== 200) {
+          alert(`axios.get failed with wrong status code: ${res.status}`);
+        }
+
         // String body
         res = await axios.post('https://httpstat.us/500', 'Hello, this is a test body');
         console.log('String body response:', res);
+        if (res.status !== 500) {
+          alert(`axios.post failed with wrong status code: ${res.status}`);
+        }
 
         // JSON object body
         res = await axios.post('https://httpstat.us/501', { message: 'Hello', count: 42 });
         console.log('JSON object body response:', res);
+        if (res.status !== 501) {
+          alert(`axios.post failed with wrong status code: ${res.status}`);
+        }
 
         // FormData body
         const formData = new FormData();
@@ -51,17 +81,8 @@
         formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
         res = await axios.post('https://httpstat.us/502', formData);
         console.log('FormData body response:', res);
-
-        // // Aborted request
-        const controller = new AbortController();
-        const signal = controller.signal;
-        try {
-          res = axios.post('https://httpstat.us/200', 'This request will be aborted', { signal });
-          controller.abort(); // Abort immediately
-          await res;
-          console.log('This should not be logged');
-        } catch (err) {
-          console.log('Aborted request error:', err);
+        if (res.status !== 502) {
+          alert(`axios.post failed with wrong status code: ${res.status}`);
         }
 
         // // URLSearchParams body
@@ -70,6 +91,9 @@
         params.append('param2', 'value2');
         res = await axios.post('https://httpstat.us/504', params);
         console.log('URLSearchParams body response:', res);
+        if (res.status !== 504) {
+          alert(`axios.post failed with wrong status code: ${res.status}`);
+        }
 
         // ArrayBuffer body
         const buffer = new ArrayBuffer(8);
@@ -78,11 +102,17 @@
         view[1] = 2;
         res = await axios.post('https://httpstat.us/505', buffer);
         console.log('ArrayBuffer body response:', res);
+        if (res.status !== 505) {
+          alert(`axios.post failed with wrong status code: ${res.status}`);
+        }
 
         // Blob body
         const blob = new Blob(['Hello from Blob'], { type: 'text/plain' });
         res = await axios.post('https://httpstat.us/506', blob);
         console.log('Blob body response:', res);
+        if (res.status !== 506) {
+          alert(`axios.post failed with wrong status code: ${res.status}`);
+        }
 
         // Stream body (ReadableStream)
         const stream = new ReadableStream({
@@ -93,12 +123,15 @@
         });
         res = await axios.post('https://httpstat.us/507', stream);
         console.log('Stream body response:', res);
+        if (res.status !== 507) {
+          alert(`axios.post failed with wrong status code: ${res.status}`);
+        }
 
-        // GET requests for comparison
         res = await axios.get('https://httpstat.us/508');
         console.log('GET 500 response:', res);
-        res = await axios.get('https://httpstat.us/200');
-        console.log('GET 200 response:', res);
+        if (res.status !== 508) {
+          alert(`axios.get failed with wrong status code: ${res.status}`);
+        }
       }, 1000);
     </script>
 </html>
