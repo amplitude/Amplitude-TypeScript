@@ -28,16 +28,31 @@ export type UnifiedOptions = UnifiedSharedOptions & {
 export interface UnifiedClient extends BrowserClient {
   initAll(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
   sr: AmplitudeSessionReplay;
-  experiment: IExperimentClient;
+  experiment: IExperimentClient | undefined;
 }
 
 export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  experiment: IExperimentClient;
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
   sr: AmplitudeSessionReplay;
+
+  get experiment(): IExperimentClient | undefined {
+    // Return when init() or initAll() is not called
+    if (this.config === undefined) {
+      return undefined;
+    }
+
+    const expPlugins = this.plugins(ExperimentPlugin);
+    if (expPlugins.length === 0) {
+      this.config.loggerProvider.debug(`${ExperimentPlugin.pluginName} plugin is not found.`);
+      return undefined;
+    } else if (expPlugins.length === 1) {
+      return expPlugins[0].experiment;
+    } else {
+      this.config.loggerProvider.debug(`Multiple instances of ${ExperimentPlugin.pluginName} are found.`);
+      return undefined;
+    }
+  }
 
   /**
    * Initialize SDKs with configuration options.
@@ -64,13 +79,6 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
       this.config.loggerProvider.debug(`${SessionReplayPlugin.pluginName} plugin is not found.`);
     } else {
       this.sr = (srPlugin as SessionReplayPlugin).sr;
-    }
-
-    const expPlugin = this.plugin(ExperimentPlugin.pluginName);
-    if (expPlugin === undefined) {
-      this.config.loggerProvider.debug(`${ExperimentPlugin.pluginName} plugin is not found.`);
-    } else {
-      this.experiment = (expPlugin as ExperimentPlugin).experiment;
     }
   }
 

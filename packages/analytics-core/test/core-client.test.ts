@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Event, IdentifyEvent, SpecialEventType, UserProperties } from '../src/types/event/event';
-import { Plugin } from '../src/types/plugin';
+import { Plugin, EnrichmentPlugin } from '../src/types/plugin';
 import { Status } from '../src/types/status';
 import { AmplitudeCore, Identify, Revenue } from '../src/index';
 import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/types/messages';
@@ -504,6 +504,40 @@ describe('core-client', () => {
 
       expect(result).toBe(undefined);
       expect(mockLoggerProvider.debug).toHaveBeenCalledWith('Cannot find plugin with name mock-plugin');
+    });
+  });
+
+  describe('plugins', () => {
+    class TestPlugin implements EnrichmentPlugin {
+      name = 'test-plugin';
+      setup = jest.fn();
+      execute = jest.fn();
+    }
+
+    test('should return plugins of a specific class', async () => {
+      const testPlugin1 = new TestPlugin();
+      const testPlugin2 = new TestPlugin();
+      const otherPlugin: Plugin = {
+        name: 'other-plugin',
+        setup: jest.fn(),
+        execute: jest.fn(),
+      };
+
+      client.timeline.plugins.push(testPlugin1, otherPlugin, testPlugin2);
+
+      const result = client.plugins(TestPlugin);
+
+      expect(result).toHaveLength(2);
+      expect(result).toContain(testPlugin1);
+      expect(result).toContain(testPlugin2);
+
+      // Clean up
+      client.timeline.plugins = [];
+    });
+
+    test('should return empty array if no plugins of the class exist', () => {
+      const result = client.plugins(TestPlugin);
+      expect(result).toEqual([]);
     });
   });
 });
