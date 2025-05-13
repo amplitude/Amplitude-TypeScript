@@ -158,6 +158,10 @@ export interface SessionReplayMetadata {
   sessionId: string | number | undefined;
   hash?: number;
   sampleRate: number;
+  replaySDKType: string;
+  replaySDKVersion: string | undefined;
+  standaloneSDKType: string;
+  standaloneSDKVersion: string | undefined;
 }
 
 export interface SessionReplayVersion {

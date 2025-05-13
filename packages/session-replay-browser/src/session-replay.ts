@@ -105,7 +105,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     );
     this.config = joinedConfig;
 
-    this.setMetadata(options.sessionId, joinedConfig, localConfig, remoteConfig);
+    this.setMetadata(options.sessionId, joinedConfig, localConfig, remoteConfig, options.version?.version, VERSION);
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -196,11 +196,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
     if (this.joinedConfigGenerator && previousSessionId) {
-      const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig(
-        this.identifiers.sessionId,
-      );
+      const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
       this.config = joinedConfig;
-      this.setMetadata(sessionId, joinedConfig, localConfig, remoteConfig);
     }
     void this.recordEvents();
   }
@@ -457,7 +454,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     } catch (error) {
       this.loggerProvider.warn('Failed to initialize session replay:', error);
     }
-
   }
 
   addCustomRRWebEvent = async (
@@ -468,7 +464,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     try {
       let debugInfo: DebugInfo | undefined = undefined;
       const config = this.config;
-      if (config && eventName === CustomRRwebEvent.DEBUG_INFO) {
+      // Only add debug info for non-metadata events
+      if (config && eventName !== CustomRRwebEvent.METADATA) {
         debugInfo = {
           config: getDebugConfig(config),
           version: VERSION,
@@ -532,14 +529,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
     joinedConfig: SessionReplayJoinedConfig,
     localConfig: SessionReplayLocalConfig,
     remoteConfig: SessionReplayRemoteConfig | undefined,
+    replaySDKVersion: string | undefined,
+    standaloneSDKVersion: string | undefined,
   ) {
+    const hash = sessionId?.toString() ? generateHashCode(sessionId.toString()) : undefined;
+
     this.metadata = {
       joinedConfig,
       localConfig,
       remoteConfig,
       sessionId,
-      hash: sessionId?.toString() ? generateHashCode(sessionId?.toString()) : undefined,
+      hash,
       sampleRate: joinedConfig.sampleRate,
+      replaySDKType: '@amplitude/plugin-session-replay-browser',
+      replaySDKVersion,
+      standaloneSDKType: '@amplitude/session-replay-browser',
+      standaloneSDKVersion,
     };
   }
 }
