@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.4...@amplitude/plugin-network-capture-browser@1.1.5) (2025-05-13)
+
+
+### Bug Fixes
+
+* **analytics-core:** make network observer event callbacks handle exceptions ([#1071](https://github.com/amplitude/Amplitude-TypeScript/issues/1071)) ([baf46e2](https://github.com/amplitude/Amplitude-TypeScript/commit/baf46e22585f58924b801e301db78c7aecda1b4a))
+
+
+
+
+
 ## [1.1.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.3...@amplitude/plugin-network-capture-browser@1.1.4) (2025-05-07)
 
 

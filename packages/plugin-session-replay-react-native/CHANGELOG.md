@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.3.3...@amplitude/plugin-session-replay-react-native@0.4.0) (2025-05-13)
+
+
+### Features
+
+* **session-replay:** add autoStart configuration option ([#1076](https://github.com/amplitude/Amplitude-TypeScript/issues/1076)) ([0865e8b](https://github.com/amplitude/Amplitude-TypeScript/commit/0865e8b760b19bc6e1d816747d220a04a6787049))
+
+
+
+
+
 ## [0.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.3.2...@amplitude/plugin-session-replay-react-native@0.3.3) (2025-05-09)
 
 

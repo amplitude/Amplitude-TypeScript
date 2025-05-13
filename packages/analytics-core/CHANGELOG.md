@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.11.2...@amplitude/analytics-core@2.12.0) (2025-05-13)
+
+
+### Bug Fixes
+
+* **analytics-core:** make network observer event callbacks handle exceptions ([#1071](https://github.com/amplitude/Amplitude-TypeScript/issues/1071)) ([baf46e2](https://github.com/amplitude/Amplitude-TypeScript/commit/baf46e22585f58924b801e301db78c7aecda1b4a))
+
+
+### Features
+
+* **analytics-core:** add plugins to look up plugin by class type ([#1079](https://github.com/amplitude/Amplitude-TypeScript/issues/1079)) ([14c73b9](https://github.com/amplitude/Amplitude-TypeScript/commit/14c73b9bffcf621b44f66febc2801582e26b7cae))
+
+
+
+
+
 ## [2.11.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.11.1...@amplitude/analytics-core@2.11.2) (2025-05-05)
 
 

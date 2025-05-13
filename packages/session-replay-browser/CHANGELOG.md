@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.22.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.5...@amplitude/session-replay-browser@1.22.6) (2025-05-13)
+
+
+### Bug Fixes
+
+* **analytics-core:** make network observer event callbacks handle exceptions ([#1071](https://github.com/amplitude/Amplitude-TypeScript/issues/1071)) ([baf46e2](https://github.com/amplitude/Amplitude-TypeScript/commit/baf46e22585f58924b801e301db78c7aecda1b4a))
+
+
+### Reverts
+
+* PR 1058 ([#1077](https://github.com/amplitude/Amplitude-TypeScript/issues/1077)) ([e72835e](https://github.com/amplitude/Amplitude-TypeScript/commit/e72835e07ec0318d564439a7ddd47f37b156c6c3))
+
+
+
+
+
 ## [1.22.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.4...@amplitude/session-replay-browser@1.22.5) (2025-05-07)
 
 **Note:** Version bump only for package @amplitude/session-replay-browser
