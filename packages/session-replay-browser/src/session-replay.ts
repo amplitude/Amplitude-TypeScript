@@ -532,14 +532,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     replaySDKVersion: string | undefined,
     standaloneSDKVersion: string | undefined,
   ) {
-    const hash = sessionId?.toString() ? generateHashCode(sessionId.toString()) : undefined;
+    const hashValue = sessionId?.toString() ? generateHashCode(sessionId.toString()) : undefined;
 
     this.metadata = {
       joinedConfig,
       localConfig,
       remoteConfig,
       sessionId,
-      hash,
+      hashValue,
       sampleRate: joinedConfig.sampleRate,
       replaySDKType: '@amplitude/plugin-session-replay-browser',
       replaySDKVersion,
