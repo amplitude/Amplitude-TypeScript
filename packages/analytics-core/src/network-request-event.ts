@@ -2,8 +2,7 @@ import { getGlobalScope } from './global-scope';
 
 /* SAFE TYPE DEFINITIONS
   These type definitions expose limited properties of the original types
-  to prevent the consumer from mutating them or consuming them. 
-  Trying to access dangerous properties will result in a TypeScript compilation failure.
+  to prevent the consumer from mutating them or consuming them.
 */
 type BlobSafe = {
   size: number;
@@ -36,11 +35,22 @@ type BodyInitSafe =
   | null
   | undefined;
 
-type HeadersSafe = {
+type HeadersRequestSafe = {
   entries(): IterableIterator<[string, string]>;
+  forEach(callbackfn: (value: string, key: string) => void): void;
 };
 
-type HeadersInitSafe = HeadersSafe | Record<string, string> | string[][];
+type HeadersResponseSafe = {
+  get(name: string): string | null;
+  forEach(callbackfn: (value: string, key: string) => void): void;
+};
+
+type HeadersInitSafe = HeadersRequestSafe | Record<string, string> | string[][];
+
+type ResponseSafe = {
+  status: number;
+  headers: HeadersResponseSafe | undefined;
+};
 
 export type RequestInitSafe = {
   method?: string;
@@ -94,28 +104,28 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private _bodySize: number | undefined;
   constructor(private request: RequestInitSafe) {}
 
-  get headers(): Record<string, string> {
+  get headers(): Record<string, string> | undefined {
     if (this._headers) return this._headers;
 
-    if (Array.isArray(this.request.headers)) {
-      this._headers = this.request.headers.reduce((acc, [key, value]) => {
+    const headersUnsafe = this.request.headers;
+    if (Array.isArray(headersUnsafe)) {
+      const headers = headersUnsafe;
+      this._headers = headers.reduce((acc, [key, value]) => {
         acc[key] = value;
         return acc;
       }, {} as Record<string, string>);
-      return this._headers;
+    } else if (headersUnsafe instanceof Headers) {
+      const headersSafe = headersUnsafe as HeadersRequestSafe;
+      const headersObj: Record<string, string> = {};
+      headersSafe.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+      this._headers = headersObj;
+    } else if (typeof headersUnsafe === 'object') {
+      this._headers = headersUnsafe as Record<string, string>;
     }
 
-    if (!(this.request.headers instanceof Headers)) {
-      this._headers = { ...this.request.headers } as Record<string, string>;
-      return this._headers;
-    }
-
-    const headers: Record<string, string> = {};
-    this.request.headers.forEach((value, key) => {
-      headers[key] = value;
-    });
-    this._headers = headers;
-    return headers;
+    return this._headers;
   }
 
   get bodySize(): number | undefined {
@@ -232,19 +242,20 @@ export interface IResponseWrapper {
 export class ResponseWrapperFetch implements IResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
-  constructor(private response: Response) {}
+  constructor(private response: ResponseSafe) {}
 
   get headers(): Record<string, string> | undefined {
     if (this._headers) return this._headers;
 
     if (this.response.headers instanceof Headers) {
-      const headers: Record<string, string> = {};
+      const headersSafe = this.response.headers as HeadersResponseSafe;
+      const headersOut: Record<string, string> = {};
       /* istanbul ignore next */
-      this.response.headers?.forEach?.((value, key) => {
-        headers[key] = value;
+      headersSafe?.forEach?.((value, key) => {
+        headersOut[key] = value;
       });
-      this._headers = headers;
-      return headers;
+      this._headers = headersOut;
+      return headersOut;
     }
 
     return;
