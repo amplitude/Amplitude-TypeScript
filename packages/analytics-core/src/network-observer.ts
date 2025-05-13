@@ -62,8 +62,7 @@ export class NetworkObserver {
     return !!globalScope && !!globalScope.fetch;
   }
 
-  // TODO: turn second arg into options { logger, instrumentXhr }
-  subscribe(eventCallback: NetworkEventCallback, logger?: ILogger) {
+  subscribe(eventCallback: NetworkEventCallback, logger?: ILogger, _instrumentXHR = false) {
     if (!this.logger) {
       this.logger = logger;
     }
@@ -75,7 +74,7 @@ export class NetworkObserver {
       /* istanbul ignore next */
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
-      if (originalXhrOpen && originalXhrSend) {
+      if (_instrumentXHR && originalXhrOpen && originalXhrSend) {
         this.observeXhr(originalXhrOpen, originalXhrSend);
       }
 

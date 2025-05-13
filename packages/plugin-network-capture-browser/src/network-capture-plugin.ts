@@ -82,7 +82,7 @@ export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): Brow
         const eventWithProperties = addAdditionalEventProperties(event, 'network');
         observer.next(eventWithProperties);
       });
-      networkObserver.subscribe(callback, logger);
+      networkObserver.subscribe(callback, logger, options._instrumentXHR);
       return () => {
         networkObserver.unsubscribe(callback);
       };
