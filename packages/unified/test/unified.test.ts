@@ -123,14 +123,18 @@ describe('AmplitudeUnified', () => {
       // Have to change name because plugin with existing name will be ignored at registration
       experimentPlugin2.name = '@amplitude/experiment-analytics-plugin-2';
 
-      await client.initAll('test-api-key');
+      await client.initAll('test-api-key', {
+        analytics: {
+          loggerProvider: mockLoggerProvider,
+        },
+      });
       await client.add(experimentPlugin2).promise;
 
       expect(client.plugin('@amplitude/experiment-analytics-plugin-2')).toBeDefined();
+      expect(client.experiment).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(
         `Multiple instances of ${ExperimentPlugin.pluginName} are found.`,
       );
-      expect(client.experiment).toBeUndefined();
     });
   });
 });
