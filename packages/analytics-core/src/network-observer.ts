@@ -1,7 +1,15 @@
 import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
-import { IRequestWrapper, NetworkRequestEvent, RequestWrapper, ResponseWrapper, getBodySize, MAXIMUM_ENTRIES, RequestWrapperXhr, ResponseWrapperXhr, IResponseWrapper } from './network-request-event';
+import {
+  IRequestWrapper,
+  NetworkRequestEvent,
+  RequestWrapper,
+  ResponseWrapper,
+  RequestWrapperXhr,
+  ResponseWrapperXhr,
+  IResponseWrapper,
+} from './network-request-event';
 
 /**
  * Typeguard function checks if an input is a Request object.
@@ -50,18 +58,22 @@ export class NetworkObserver {
     this.eventCallbacks.set(eventCallback.id, eventCallback);
     if (!this.isObserving) {
       /* istanbul ignore next */
+      const originalXhrOpen = this.globalScope?.XMLHttpRequest?.prototype?.open;
+      /* istanbul ignore next */
+      const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
+      if (originalXhrOpen && originalXhrSend) {
+        this.observeXhr(originalXhrOpen, originalXhrSend);
+      }
+
+      /* istanbul ignore next */
       const originalFetch = this.globalScope?.fetch;
       /* istanbul ignore next */
-      if (!originalFetch) {
-        return;
+      if (originalFetch) {
+        this.observeFetch(originalFetch);
       }
+
       /* istanbul ignore next */
       this.isObserving = true;
-      this.observeFetch(originalFetch);
-
-      const originalXhrOpen = this.globalScope?.XMLHttpRequest?.prototype?.open;
-      const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
-      this.observeXhr(originalXhrOpen, originalXhrSend);
     }
   }
 
@@ -213,9 +225,18 @@ export class NetworkObserver {
   }
 
   private observeXhr(
-    originalXhrOpen: ((method: string, url: string | URL, async?: boolean, username?: string | null, password?: string | null) => void) | undefined,
-    originalXhrSend: ((body?: Document | XMLHttpRequestBodyInit | null) => void) | undefined
+    originalXhrOpen:
+      | ((
+          method: string,
+          url: string | URL,
+          async?: boolean,
+          username?: string | null,
+          password?: string | null,
+        ) => void)
+      | undefined,
+    originalXhrSend: ((body?: Document | XMLHttpRequestBodyInit | null) => void) | undefined,
   ) {
+    /* istanbul ignore next */
     if (!this.globalScope || !originalXhrOpen || !originalXhrSend) {
       return;
     }
@@ -224,13 +245,20 @@ export class NetworkObserver {
 
     const networkObserverContext = this;
 
+    /**
+     * IMPORTANT: This overrides window.XMLHttpRequest.prototype.open
+     * You probably never need to make changes to this function.
+     * If you do, please be careful to preserve the original functionality of xhr.open
+     * and make sure another developer who is an expert reviews this change throughly
+     */
     xhrProto.open = function (...args: any[]) {
       const [method, url] = args as [string, string | URL];
-      const xhr = this as XMLHttpRequest;
+      const xhr = this;
       try {
+        /* istanbul ignore next */
         (xhr as any).$$AmplitudeAnalyticsEvent = {
           method,
-          url: url.toString(),
+          url: url?.toString?.(),
           ...networkObserverContext.getTimestamps(),
         };
       } catch (err) {
@@ -240,13 +268,18 @@ export class NetworkObserver {
       return originalXhrOpen.apply(xhr, args as any);
     };
 
+    /**
+     * IMPORTANT: This overrides window.XMLHttpRequest.prototype.send
+     * You probably never need to make changes to this function.
+     * If you do, please be careful to preserve the original functionality of xhr.send
+     * and make sure another developer who is an expert reviews this change throughly
+     */
     xhrProto.send = function (...args: any[]) {
-      const xhr = this as XMLHttpRequest;
+      const xhr = this;
       const body = args[0];
-      
-      // Store body size in the analytics event
+
       const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent;
-      
+
       xhr.addEventListener('loadend', function () {
         try {
           const responseHeaders = xhr.getAllResponseHeaders();
@@ -254,6 +287,7 @@ export class NetworkObserver {
           const responseWrapper = new ResponseWrapperXhr(
             xhr.status,
             responseHeaders,
+            /* istanbul ignore next */
             responseBodySize ? parseInt(responseBodySize, 10) : undefined,
           );
           const requestWrapper = new RequestWrapperXhr(body);

@@ -1,6 +1,6 @@
 import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
 import { NetworkObserver } from '../src/network-observer';
-import { FetchRequestBody, RequestWrapper, ResponseWrapper } from '../src/network-request-event';
+import { FetchRequestBody, RequestWrapper, ResponseWrapper, ResponseWrapperXhr } from '../src/network-request-event';
 import * as AnalyticsCore from '../src/index';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
@@ -165,7 +165,7 @@ describe('NetworkObserver', () => {
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
       expect(events[0].requestWrapper?.headers).toEqual(undefined);
-      expect(events[0].responseWrapper?.headers).toEqual({});
+      expect(events[0].responseWrapper?.headers).toEqual(undefined);
     });
 
     it('should still fetch even if eventCallback throws error', async () => {
@@ -608,6 +608,119 @@ describe('serializeNetworkRequestEvent', () => {
         'Content-Type': 'application/json',
       },
     });
+  });
+});
+
+describe('observeXhr', () => {
+  interface MockXHROptions {
+    readyState?: number;
+    status?: number;
+    responseText?: string;
+  }
+
+  class MockXHR {
+    readyState = 4;
+    status = 200;
+    responseText: string = JSON.stringify({ success: true });
+    onreadystatechange: (() => void) | null = null;
+    openCalled = false;
+    sendCalled = false;
+
+    constructor(options?: MockXHROptions) {
+      if (options) {
+        if (options.readyState !== undefined) this.readyState = options.readyState;
+        if (options.status !== undefined) this.status = options.status;
+        if (options.responseText !== undefined) this.responseText = options.responseText;
+      }
+    }
+
+    getAllResponseHeaders(): string {
+      return 'Content-Type: application/json\r\nContent-Length: 1234';
+    }
+
+    getResponseHeader(header: string): string | null {
+      if (header === 'content-type') {
+        return 'application/json';
+      }
+      if (header === 'content-length') {
+        return '1234';
+      }
+      return null;
+    }
+
+    addEventListener(event: string, callback: () => void): void {
+      if (event === 'loadend') {
+        this.onreadystatechange = callback;
+      }
+    }
+
+    open(): void {
+      this.openCalled = true;
+    }
+
+    send(): void {
+      this.sendCalled = true;
+      if (typeof this.onreadystatechange === 'function') {
+        this.onreadystatechange();
+      }
+    }
+
+    setRequestHeader(header: string, value: string): void {
+      (this as any)[header] = value;
+    }
+  }
+
+  let networkObserver: any, originalGlobal;
+
+  beforeAll(() => {
+    // override globalScope to include mock XHR
+    originalGlobal = AnalyticsCore.getGlobalScope();
+    networkObserver = new NetworkObserver();
+    (networkObserver as unknown as any).globalScope = {
+      ...originalGlobal,
+      XMLHttpRequest: MockXHR,
+      TextEncoder,
+    } as any;
+  });
+
+  afterAll(() => {});
+
+  describe('calls mock endpoints', () => {
+    it('should call the mock endpoint and return a successful response', (done) => {
+      const callback = (event: NetworkRequestEvent) => {
+        expect(event.status).toBe(200);
+        expect(event.type).toBe('xhr');
+        expect(event.method).toBe('GET');
+        expect(event.url).toBe('https://api.example.com/data');
+        expect(event.responseWrapper?.headers).toEqual({
+          'Content-Type': 'application/json',
+          'Content-Length': '1234',
+        });
+        expect(event.responseWrapper?.bodySize).toBe(1234);
+        expect(event.requestWrapper?.bodySize).toBeUndefined();
+        expect(event.duration).toBeGreaterThanOrEqual(0);
+        expect(event.startTime).toBeGreaterThanOrEqual(0);
+        expect(event.endTime).toBeGreaterThanOrEqual(event.startTime);
+        expect(event.timestamp).toBeGreaterThanOrEqual(event.startTime);
+        expect(xhr.openCalled).toBe(true);
+        expect(xhr.sendCalled).toBe(true);
+        done();
+      };
+      networkObserver.subscribe(new NetworkEventCallback(callback));
+      const XMLHttpRequest = (networkObserver as unknown as any).globalScope.XMLHttpRequest;
+      const xhr = new XMLHttpRequest();
+      expect(xhr.openCalled).toBe(false);
+      expect(xhr.sendCalled).toBe(false);
+      xhr.open('GET', 'https://api.example.com/data');
+      xhr.send();
+    });
+  });
+});
+
+describe('ResponseWrapperXhr', () => {
+  test('should return {} if headersString is empty', () => {
+    const responseWrapper = new ResponseWrapperXhr(200, '', 0);
+    expect(responseWrapper.headers).toEqual({});
   });
 });
 

@@ -5,7 +5,7 @@
     <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.js"></script>
-    <title>Browser SDK Test</title>
+    <title>XHR Network Tracking Examples</title>
   </head>
   <body>
     <div id="app">
@@ -28,7 +28,8 @@
             ignoreHosts: [],
             captureRules: [
               {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
-              {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
+              {hosts: ['httpstat.us'], statusCodeRange: '0,400-599'},
+              {hosts: ['*'], statusCodeRange: '0,300-599'},
             ],
           },
         }
@@ -51,11 +52,23 @@
         res = await axios.post('https://httpstat.us/502', formData);
         console.log('FormData body response:', res);
 
-        // URLSearchParams body
+        // // Aborted request
+        const controller = new AbortController();
+        const signal = controller.signal;
+        try {
+          res = axios.post('https://httpstat.us/200', 'This request will be aborted', { signal });
+          controller.abort(); // Abort immediately
+          await res;
+          console.log('This should not be logged');
+        } catch (err) {
+          console.log('Aborted request error:', err);
+        }
+
+        // // URLSearchParams body
         const params = new URLSearchParams();
         params.append('param1', 'value1');
         params.append('param2', 'value2');
-        res = await axios.post('https://httpstat.us/503', params);
+        res = await axios.post('https://httpstat.us/504', params);
         console.log('URLSearchParams body response:', res);
 
         // ArrayBuffer body
@@ -63,12 +76,12 @@
         const view = new Uint8Array(buffer);
         view[0] = 1;
         view[1] = 2;
-        res = await axios.post('https://httpstat.us/504', buffer);
+        res = await axios.post('https://httpstat.us/505', buffer);
         console.log('ArrayBuffer body response:', res);
 
         // Blob body
         const blob = new Blob(['Hello from Blob'], { type: 'text/plain' });
-        res = await axios.post('https://httpstat.us/505', blob);
+        res = await axios.post('https://httpstat.us/506', blob);
         console.log('Blob body response:', res);
 
         // Stream body (ReadableStream)
@@ -78,11 +91,11 @@
             controller.close();
           }
         });
-        res = await axios.post('https://httpstat.us/506', stream);
+        res = await axios.post('https://httpstat.us/507', stream);
         console.log('Stream body response:', res);
 
         // GET requests for comparison
-        res = await axios.get('https://httpstat.us/507');
+        res = await axios.get('https://httpstat.us/508');
         console.log('GET 500 response:', res);
         res = await axios.get('https://httpstat.us/200');
         console.log('GET 200 response:', res);

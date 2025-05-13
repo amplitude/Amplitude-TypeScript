@@ -89,14 +89,16 @@ export class RequestWrapperXhr implements IRequestWrapper {
   constructor(readonly body: Document | XMLHttpRequestBodyInit | null) {}
 
   get bodySize(): number | undefined {
-    return getBodySize((this.body as FetchRequestBody), MAXIMUM_ENTRIES);
+    return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
   }
 }
 
 function getBodySize(body: FetchRequestBody, maxEntries: number): number | undefined {
   let bodySize: number | undefined;
   const global = getGlobalScope();
+  /* istanbul ignore next */
   const TextEncoder = global?.TextEncoder;
+  /* istanbul ignore next */
   if (!TextEncoder) {
     return;
   }
@@ -136,7 +138,6 @@ function getBodySize(body: FetchRequestBody, maxEntries: number): number | undef
     // TODO: handle the other XHR specific types
     bodySize = total;
   }
-
   return bodySize;
 }
 
@@ -144,7 +145,16 @@ export interface IResponseWrapper {
   headers?: Record<string, string>;
   bodySize?: number;
   status?: number;
-  body?: string | Blob | ReadableStream | ArrayBuffer | FormDataBrowser | URLSearchParams | Document | ArrayBufferView | null;
+  body?:
+    | string
+    | Blob
+    | ReadableStream
+    | ArrayBuffer
+    | FormDataBrowser
+    | URLSearchParams
+    | Document
+    | ArrayBufferView
+    | null;
 }
 
 /**
@@ -177,9 +187,6 @@ export class ResponseWrapper implements IResponseWrapper {
       });
       this._headers = headers;
       return headers;
-    } else if (typeof this.response.headers === 'string') {
-      // TODO: parse the headers string
-      return {};
     }
 
     return;
@@ -199,11 +206,7 @@ export class ResponseWrapper implements IResponseWrapper {
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
-  constructor(
-    readonly statusCode: number,
-    readonly headersString: string,
-    readonly size: number | undefined,
-  ) {}
+  constructor(readonly statusCode: number, readonly headersString: string, readonly size: number | undefined) {}
 
   get bodySize(): number | undefined {
     return this.size;
@@ -213,36 +216,38 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return this.statusCode;
   }
 
-  // get headers(): Record<string, string> {
-  //   const headers: Record<string, string> = {};
-  //   const headerLines = this.headers.split('\r\n');
-  //   for (const line of headerLines) {
-  //     const [key, value] = line.split(': ');
-  //     if (key && value) {
-  //       headers[key] = value;
-  //     }
-  //   }
-  //   return headers;
-  // }
+  get headers(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    if (!this.headersString) {
+      return headers;
+    }
+    const headerLines = this.headersString.split('\r\n');
+    for (const line of headerLines) {
+      const [key, value] = line.split(': ');
+      if (key && value) {
+        headers[key] = value;
+      }
+    }
+    return headers;
+  }
 }
 
 export class NetworkRequestEvent {
   constructor(
-    private readonly type: string,
-    private readonly method: string,
-    private readonly timestamp: number,
-    private readonly startTime: number,
-    private readonly url?: string,
-    private readonly requestWrapper?: IRequestWrapper,
-    private readonly status?: number,
-    private readonly duration?: number,
-    private readonly responseWrapper?: ResponseWrapper,
-    private readonly error?: {
+    public readonly type: string,
+    public readonly method: string,
+    public readonly timestamp: number,
+    public readonly startTime: number,
+    public readonly url?: string,
+    public readonly requestWrapper?: IRequestWrapper,
+    public readonly status?: number,
+    public readonly duration?: number,
+    public readonly responseWrapper?: IResponseWrapper,
+    public readonly error?: {
       name: string;
       message: string;
     },
-    private readonly endTime?: number,
-    private readonly bodySize? : number,
+    public readonly endTime?: number,
   ) {}
 
   toSerializable(): Record<string, any> {
@@ -259,7 +264,7 @@ export class NetworkRequestEvent {
       requestHeaders: this.requestWrapper?.headers,
       requestBodySize: this.requestWrapper?.bodySize,
       responseHeaders: this.responseWrapper?.headers,
-      responseBodySize: this.bodySize !== undefined ? this.bodySize : this.responseWrapper?.bodySize,
+      responseBodySize: this.responseWrapper?.bodySize,
     };
 
     return Object.fromEntries(Object.entries(serialized).filter(([_, v]) => v !== undefined));
