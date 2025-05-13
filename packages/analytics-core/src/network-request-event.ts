@@ -198,7 +198,7 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
     // without consuming it, so we return undefined.
     // Never ever consume ReadableStream! DO NOT DO IT!!!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    body = bodyUnsafe as ReadableStreamSafe;
+    body = bodyUnsafe as unknown as ReadableStreamSafe;
     return;
   }
   return bodySize;
