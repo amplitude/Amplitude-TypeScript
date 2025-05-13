@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XHR Network Tracking Examples</title>
+  </head>
+  <body>
+    <div id="app">
+      Run a set of XHR requests to test networkTracking
+      (uses fetch for XHR requests)
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      window.amplitude = amplitude;
+
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: true,
+          networkTrackingOptions: {
+            ignoreAmplitudeRequests: false,
+            ignoreHosts: [],
+            captureRules: [
+              {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
+              {hosts: ['httpstat.us'], statusCodeRange: '0,400-599'},
+              {hosts: ['*'], statusCodeRange: '0,300-599'},
+            ],
+          },
+        }
+      );
+
+      const makeRequest = async (url, options) => {
+        try {
+          const res = await fetch(url, options);
+          const contentType = res.headers.get('content-type') || '';
+          let data;
+
+          if (contentType.includes('application/json')) {
+            data = await res.json();
+          } else {
+            data = await res.text();
+          }
+
+          console.log('Fetch response:', { status: res.status, data });
+          return { status: res.status, data };
+        } catch (error) {
+          console.error('Fetch error:', error);
+          return { status: 0, error };
+        }
+      };
+
+      setTimeout(async () => {
+        let res;
+
+        // Aborted request
+        const controller = new AbortController();
+        try {
+          const abortedRes = makeRequest('https://httpstat.us/200', {
+            method: 'POST',
+            body: 'This request will be aborted',
+            headers: { 'Content-Type': 'text/plain' },
+            signal: controller.signal,
+          });
+          controller.abort();
+          await abortedRes;
+        } catch (err) {
+          console.log('Aborted request error:', err);
+        }
+
+        // String body
+        res = await makeRequest('https://httpstat.us/500', {
+          method: 'POST',
+          body: 'Hello, this is a test body',
+          headers: { 'Content-Type': 'text/plain' },
+        });
+        if (res.status !== 500) alert(`fetch POST failed with wrong status code: ${res.status}`);
+
+        // JSON object body
+        res = await makeRequest('https://httpstat.us/501', {
+          method: 'POST',
+          body: JSON.stringify({ message: 'Hello', count: 42 }),
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (res.status !== 501) alert(`fetch POST failed with wrong status code: ${res.status}`);
+
+        // FormData body
+        const formData = new FormData();
+        formData.append('text', 'Hello from FormData');
+        formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
+        res = await makeRequest('https://httpstat.us/502', { method: 'POST', body: formData });
+        if (res.status !== 502) alert(`fetch POST failed with wrong status code: ${res.status}`);
+
+        // URLSearchParams body
+        const params = new URLSearchParams();
+        params.append('param1', 'value1');
+        params.append('param2', 'value2');
+        res = await makeRequest('https://httpstat.us/503', {
+          method: 'POST',
+          body: params,
+        });
+        if (res.status !== 503) alert(`fetch POST failed with wrong status code: ${res.status}`);
+
+        // ArrayBuffer body
+        const buffer = new ArrayBuffer(8);
+        res = await makeRequest('https://httpstat.us/504', {
+          method: 'POST',
+          body: buffer,
+        });
+        if (res.status !== 504) alert(`fetch POST failed with wrong status code: ${res.status}`);
+
+        // Blob body
+        const blob = new Blob(['Hello from Blob'], { type: 'text/plain' });
+        res = await makeRequest('https://httpstat.us/505', {
+          method: 'POST',
+          body: blob,
+        });
+        if (res.status !== 505) alert(`fetch POST failed with wrong status code: ${res.status}`);
+
+        // Stream body (fetch doesn’t natively support ReadableStream as body in all browsers)
+        const encoder = new TextEncoder();
+        const streamBody = encoder.encode('Hello from Stream');
+        res = await makeRequest('https://httpstat.us/506', {
+          method: 'POST',
+          body: streamBody,
+        });
+        if (res.status !== 506) alert(`fetch POST failed with wrong status code: ${res.status}`);
+
+        // GET 508
+        res = await makeRequest('https://httpstat.us/507', { method: 'GET' });
+        if (res.status !== 507) alert(`fetch GET failed with wrong status code: ${res.status}`);
+
+        // GET 200
+        res = await makeRequest('https://httpstat.us/200', { method: 'GET' });
+        if (res.status !== 200) alert(`fetch GET failed with wrong status code: ${res.status}`);
+      }, 1000);
+    </script>
+  </body>
+</html>

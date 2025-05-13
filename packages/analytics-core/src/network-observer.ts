@@ -13,7 +13,9 @@ import {
   XMLHttpRequestBodyInitSafe,
 } from './network-request-event';
 
-type $$AmplitudeAnalyticsEvent = {
+// object that is added to each XHR instance so
+// that info can be set in xhr.open and retrieved in xhr.send
+type AmplitudeAnalyticsEvent = {
   method: string;
   url: string | URL;
   startTime: number;
@@ -275,7 +277,7 @@ export class NetworkObserver {
           method,
           url: url?.toString?.(),
           ...networkObserverContext.getTimestamps(),
-        } as $$AmplitudeAnalyticsEvent;
+        } as AmplitudeAnalyticsEvent;
       } catch (err) {
         /* istanbul ignore next */
         networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err);
@@ -298,7 +300,7 @@ export class NetworkObserver {
       const body = args[0] as XMLHttpRequestBodyInitSafe;
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent as $$AmplitudeAnalyticsEvent;
+      const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent as AmplitudeAnalyticsEvent;
 
       xhr.addEventListener('loadend', function () {
         try {
