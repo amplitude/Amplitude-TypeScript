@@ -22,7 +22,7 @@ type URLSearchParamsSafe = {
 };
 
 // no method on readablestream is safe to call
-type ReadableStreamSafe = {};
+type ReadableStreamSafe = Record<string, never>;
 
 type FormDataEntryValueSafe = string | BlobSafe | null;
 
@@ -52,7 +52,7 @@ export interface FormDataSafe {
 }
 export type XMLHttpRequestBodyInitSafe = BlobSafe | FormDataSafe | URLSearchParamsSafe | string;
 
-export type FetchRequestBodySafe =
+export type FetchRequestBody =
   | string
   | BlobSafe
   | ArrayBufferSafe
@@ -66,7 +66,7 @@ export interface IRequestWrapper {
   headers?: Record<string, string>;
   bodySize?: number;
   method?: string;
-  body?: FetchRequestBodySafe | XMLHttpRequestBodyInitSafe | null;
+  body?: FetchRequestBody | XMLHttpRequestBodyInitSafe | null;
 }
 
 export const MAXIMUM_ENTRIES = 100;
@@ -126,7 +126,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
     if (!global?.TextEncoder) {
       return;
     }
-    const body = this.request.body as FetchRequestBodySafe;
+    const body = this.request.body as FetchRequestBody;
     this._bodySize = getBodySize(body, MAXIMUM_ENTRIES);
     return this._bodySize;
   }
@@ -140,11 +140,11 @@ export class RequestWrapperXhr implements IRequestWrapper {
   constructor(readonly body: XMLHttpRequestBodyInitSafe | null) {}
 
   get bodySize(): number | undefined {
-    return getBodySize(this.body as FetchRequestBodySafe, MAXIMUM_ENTRIES);
+    return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
   }
 }
 
-function getBodySize(bodyUnsafe: FetchRequestBodySafe, maxEntries: number): number | undefined {
+function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number | undefined {
   let bodySize: number | undefined;
   const global = getGlobalScope();
   /* istanbul ignore next */
@@ -192,10 +192,9 @@ function getBodySize(bodyUnsafe: FetchRequestBodySafe, maxEntries: number): numb
         return;
       }
     }
-    // TODO: handle the other XHR specific types
     bodySize = total;
   } else if (bodyUnsafe instanceof ReadableStream) {
-    // If bodyUnsafe is an instanceof ReadableStream, we can't determine the size
+    // If bodyUnsafe is an instanceof ReadableStream, we can't determine the size,
     // without consuming it, so we return undefined.
     // Never ever consume ReadableStream! DO NOT DO IT!!!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

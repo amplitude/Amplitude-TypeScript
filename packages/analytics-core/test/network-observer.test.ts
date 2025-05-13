@@ -1,7 +1,7 @@
 import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
 import { NetworkObserver } from '../src/network-observer';
 import {
-  FetchRequestBodySafe,
+  FetchRequestBody,
   RequestInitSafe,
   RequestWrapperFetch,
   ResponseWrapperFetch,
@@ -437,7 +437,7 @@ describe('NetworkObserver', () => {
         formData.append('file', blob);
         const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
         const requestWrapper = new RequestWrapperFetch({
-          body: formData as unknown as FetchRequestBodySafe,
+          body: formData as unknown as FetchRequestBody,
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(expectedSize);
       });
@@ -472,7 +472,7 @@ describe('NetworkObserver', () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         const formData = new (HackedFormData as any)();
         const requestWrapper = new RequestWrapperFetch({
-          body: formData as unknown as FetchRequestBodySafe,
+          body: formData as unknown as FetchRequestBody,
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBeUndefined();
       });
@@ -482,7 +482,7 @@ describe('NetworkObserver', () => {
           formData.append(`key${i}`, `value${i}`);
         }
         const requestWrapper = new RequestWrapperFetch({
-          body: formData as unknown as FetchRequestBodySafe,
+          body: formData as unknown as FetchRequestBody,
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBeUndefined();
       });
@@ -697,8 +697,12 @@ describe('observeXhr', () => {
   describe('calls mock endpoints', () => {
     // eslint-disable-next-line jest/no-done-callback
     it('should call the mock endpoint and return a successful response', (done) => {
+      const originalOpenSpy = jest.spyOn(MockXHR.prototype, 'open');
+      const originalSendSpy = jest.spyOn(MockXHR.prototype, 'send');
       const callback = (event: NetworkRequestEvent) => {
         try {
+          expect(originalOpenSpy).toHaveBeenCalledWith('GET', 'https://api.example.com/data');
+          expect(originalSendSpy).toHaveBeenCalledWith('hello world!');
           expect(event.status).toBe(200);
           expect(event.type).toBe('xhr');
           expect(event.method).toBe('GET');
@@ -708,7 +712,7 @@ describe('observeXhr', () => {
             'Content-Length': '1234',
           });
           expect(event.responseWrapper?.bodySize).toBe(1234);
-          expect(event.requestWrapper?.bodySize).toBeUndefined();
+          expect(event.requestWrapper?.bodySize).toBe('hello world!'.length);
           expect(event.duration).toBeGreaterThanOrEqual(0);
           expect(event.startTime).toBeGreaterThanOrEqual(0);
           expect(event.endTime).toBeGreaterThanOrEqual(event.startTime);
@@ -723,10 +727,8 @@ describe('observeXhr', () => {
       networkObserver.subscribe(new NetworkEventCallback(callback));
       const XMLHttpRequest = (networkObserver as unknown as any).globalScope.XMLHttpRequest;
       const xhr = new XMLHttpRequest();
-      expect(xhr.openCalled).toBe(false);
-      expect(xhr.sendCalled).toBe(false);
       xhr.open('GET', 'https://api.example.com/data');
-      xhr.send();
+      xhr.send('hello world!');
     });
   });
 });
