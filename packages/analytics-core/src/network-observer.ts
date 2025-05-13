@@ -88,7 +88,6 @@ export class NetworkObserver {
 
       /* istanbul ignore next */
       this.isObserving = true;
-      this.observeFetch(originalFetch);
     }
   }
 
