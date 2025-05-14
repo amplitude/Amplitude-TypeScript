@@ -537,7 +537,7 @@ describe('pageViewTrackingPlugin', () => {
       expect(history.pushState).not.toBe(originalPushState);
       await plugin.teardown?.();
       expect(history.pushState).not.toBe(originalPushState);
-      // eslint-enable @typescript-eslint/unbound-method
+      /* eslint-enable @typescript-eslint/unbound-method */
     });
   });
 
