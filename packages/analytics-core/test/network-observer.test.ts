@@ -464,7 +464,6 @@ describe('NetworkObserver', () => {
         const spies = [];
         for (const method of unsafeFormDataMethods) {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          console.log('spying on', method);
           const spy = jest.spyOn(FormData.prototype, method as any);
           spies.push({ spy, method });
         }
@@ -742,9 +741,9 @@ describe('observeXhr', () => {
 
   afterAll(() => {});
 
-  describe('calls mock endpoints', () => {
+  describe('calls mock XHR', () => {
     // eslint-disable-next-line jest/no-done-callback
-    it('should call the mock endpoint and return a successful response', (done) => {
+    it('should call mockXHR and retrieve event and still call original open/send', (done) => {
       const originalOpenSpy = jest.spyOn(MockXHR.prototype, 'open');
       const originalSendSpy = jest.spyOn(MockXHR.prototype, 'send');
       const callback = (event: NetworkRequestEvent) => {
@@ -772,7 +771,7 @@ describe('observeXhr', () => {
           done(error);
         }
       };
-      networkObserver.subscribe(new NetworkEventCallback(callback));
+      networkObserver.subscribe(new NetworkEventCallback(callback), undefined, true);
       const XMLHttpRequest = (networkObserver as unknown as any).globalScope.XMLHttpRequest;
       const xhr = new XMLHttpRequest();
       xhr.open('GET', 'https://api.example.com/data');
