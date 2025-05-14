@@ -16,10 +16,10 @@ Replay SDK is included in this package, and does not need to be installed separa
 
 ```sh
 # npm
-npm install @amplitude/segment-session-replay-plugin" --save
+npm install @amplitude/segment-session-replay-plugin --save
 
 # yarn
-yarn add @amplitude/segment-session-replay-plugin"
+yarn add @amplitude/segment-session-replay-plugin
 ```
 
 ## Usage
