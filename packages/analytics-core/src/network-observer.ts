@@ -167,7 +167,7 @@ export class NetworkObserver {
     this.triggerEventCallbacks(requestEvent);
   }
 
-  getTimestamps() {
+  private getTimestamps() {
     /* istanbul ignore next */
     return {
       startTime: Date.now?.(),
