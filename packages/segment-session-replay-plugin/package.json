@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/segment-session-replay-plugin",
-  "version": "0.0.0-beta.0",
+  "version": "0.0.0-beta.1",
   "description": "Plugin for Segment's analytics.js library to support Amplitude's Session Replay.",
   "keywords": [
     "amplitude",
