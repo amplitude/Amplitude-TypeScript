@@ -136,6 +136,7 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
   ['[Amplitude] Response Body Size']?: number;
+  ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
 
 export function trackNetworkEvents({
@@ -185,6 +186,7 @@ export function trackNetworkEvents({
       ['[Amplitude] Duration']: request.duration,
       ['[Amplitude] Request Body Size']: requestBodySize,
       ['[Amplitude] Response Body Size']: responseBodySize,
+      ['[Amplitude] Request Type']: request.type,
     };
 
     /* istanbul ignore next */

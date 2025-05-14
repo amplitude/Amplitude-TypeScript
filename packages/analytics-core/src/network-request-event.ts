@@ -94,7 +94,7 @@ export const MAXIMUM_ENTRIES = 100;
  *      request.
  *   * NEVER .clone() the RequestInit object. This will 2x's the memory overhead of the request
  *   * NEVER: call .arrayBuffer(), text(), json() or any other method on the body that
- *   * NEVER consume the body's stream. This will cause the response to be consumed
+ *     consumes the body's stream. This will cause the response to be consumed
  *     meaning the body will be empty when the customer tries to access it.
  *     (ie: if the body is an instanceof https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
  *      never call any of the methods on it)
@@ -304,7 +304,7 @@ export class ResponseWrapperXhr implements IResponseWrapper {
 
 export class NetworkRequestEvent {
   constructor(
-    public readonly type: string,
+    public readonly type: 'xhr' | 'fetch',
     public readonly method: string,
     public readonly timestamp: number,
     public readonly startTime: number,
