@@ -18,10 +18,12 @@
   "module": "lib/esm/index.js",
   "types": "lib/esm/index.d.ts",
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
-  "private": true,
   "files": [
     "lib"
   ],
