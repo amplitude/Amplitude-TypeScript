@@ -16,10 +16,10 @@ export interface NetworkTrackingOptions {
    */
   captureRules?: NetworkCaptureRule[];
   /**
-   * Set to true to enable XHR network capture.
+   * Set to true to enable XHR and fetch instrumented network capture.
    * @defaultValue `false`
    */
-  _instrumentXHR?: boolean;
+  instrumentXhrAndFetchBeta?: boolean;
 }
 
 export interface NetworkCaptureRule {

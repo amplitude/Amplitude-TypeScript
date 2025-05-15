@@ -41,6 +41,18 @@ type RequestUrlAndMethod = {
   method: string | undefined;
 };
 
+// A narrowed down [XMLHttpRequest](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest) type
+// that only includes the properties we need to access and adds the $$AmplitudeAnalyticsEvent property
+// Use great care when modifying this type, make sure you only use read-only properties and only add
+// what you need to access, nothing more.
+type AmplitudeXMLHttpRequestSafe = {
+  $$AmplitudeAnalyticsEvent: AmplitudeAnalyticsEvent;
+  status: number;
+  getAllResponseHeaders: typeof XMLHttpRequest.prototype.getAllResponseHeaders;
+  getResponseHeader: typeof XMLHttpRequest.prototype.getResponseHeader;
+  addEventListener: (type: 'loadend', listener: () => void) => void;
+};
+
 export class NetworkObserver {
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   // eslint-disable-next-line no-restricted-globals
@@ -62,7 +74,7 @@ export class NetworkObserver {
     return !!globalScope && !!globalScope.fetch;
   }
 
-  subscribe(eventCallback: NetworkEventCallback, logger?: ILogger, _instrumentXHR = false) {
+  subscribe(eventCallback: NetworkEventCallback, logger?: ILogger) {
     if (!this.logger) {
       this.logger = logger;
     }
@@ -74,7 +86,7 @@ export class NetworkObserver {
       /* istanbul ignore next */
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
-      if (_instrumentXHR && originalXhrOpen && originalXhrSend) {
+      if (originalXhrOpen && originalXhrSend) {
         this.observeXhr(originalXhrOpen, originalXhrSend);
       }
 
@@ -256,8 +268,7 @@ export class NetworkObserver {
 
     const xhrProto = this.globalScope.XMLHttpRequest.prototype;
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const networkObserverContext = this;
+    const networkObserverContext = this as NetworkObserver;
 
     /**
      * IMPORTANT: This overrides window.XMLHttpRequest.prototype.open
@@ -266,13 +277,11 @@ export class NetworkObserver {
      * and make sure another developer who is an expert reviews this change throughly
      */
     xhrProto.open = function (...args: any[]) {
+      const xhrSafe = this as unknown as AmplitudeXMLHttpRequestSafe;
       const [method, url] = args as [string, string | URL];
-      // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const xhr = this;
       try {
         /* istanbul ignore next */
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        (xhr as any).$$AmplitudeAnalyticsEvent = {
+        xhrSafe.$$AmplitudeAnalyticsEvent = {
           method,
           url: url?.toString?.(),
           ...networkObserverContext.getTimestamps(),
@@ -282,7 +291,7 @@ export class NetworkObserver {
         networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err);
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      return originalXhrOpen.apply(xhr, args as any);
+      return originalXhrOpen.apply(xhrSafe, args as any);
     };
 
     /**
@@ -295,24 +304,22 @@ export class NetworkObserver {
     /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
     xhrProto.send = function (...args: any[]) {
       // eslint-disable-next-line @typescript-eslint/no-this-alias
-      const xhr = this;
+      const xhrSafe = this as unknown as AmplitudeXMLHttpRequestSafe;
       const body = args[0] as XMLHttpRequestBodyInitSafe;
+      const requestEvent = xhrSafe.$$AmplitudeAnalyticsEvent;
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      const requestEvent = (xhr as any).$$AmplitudeAnalyticsEvent as AmplitudeAnalyticsEvent;
-
-      xhr.addEventListener('loadend', function () {
+      xhrSafe.addEventListener('loadend', function () {
         try {
-          const responseHeaders = xhr.getAllResponseHeaders();
-          const responseBodySize = xhr.getResponseHeader('content-length');
+          const responseHeaders = xhrSafe.getAllResponseHeaders();
+          const responseBodySize = xhrSafe.getResponseHeader('content-length');
           const responseWrapper = new ResponseWrapperXhr(
-            xhr.status,
+            xhrSafe.status,
             responseHeaders,
             /* istanbul ignore next */
             responseBodySize ? parseInt(responseBodySize, 10) : undefined,
           );
           const requestWrapper = new RequestWrapperXhr(body);
-          requestEvent.status = xhr.status;
+          requestEvent.status = xhrSafe.status;
           networkObserverContext.handleNetworkRequestEvent(
             'xhr',
             { url: requestEvent.url, method: requestEvent.method },
@@ -328,7 +335,7 @@ export class NetworkObserver {
         }
       });
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
-      return originalXhrSend.apply(xhr, args as any);
+      return originalXhrSend.apply(xhrSafe, args as any);
     };
   }
 }

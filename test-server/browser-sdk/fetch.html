@@ -26,6 +26,7 @@
               { hosts: ['httpstat.us'], statusCodeRange: '0,400-599' },
               { hosts: ['*'], statusCodeRange: '0,300-599' },
             ],
+            instrumentXhrAndFetchBeta: true,
           },
         }
       );
@@ -55,17 +56,21 @@
         let res;
 
         const controller = new AbortController();
+        setTimeout(() => controller.abort(), 10); // abort after 10ms
+
         try {
-          const abortedRes = makeRequest('https://httpstat.us/200', {
+          const abortedRes = await fetch('https://httpstat.us/200', {
             method: 'POST',
             body: 'This request will be aborted',
             headers: { 'Content-Type': 'text/plain' },
             signal: controller.signal,
           });
-          res = await abortedRes;
+          const result = await abortedRes.text();
+          console.log('Response:', result);
         } catch (err) {
-          console.log('Aborted request error:', err);
+          console.error('Aborted request error:', err.name);  // Should print "AbortError"
         }
+
 
         // Original test cases
         res = await makeRequest('https://httpstat.us/500', { method: 'POST', body: 'Hello', headers: { 'Content-Type': 'text/plain' } });

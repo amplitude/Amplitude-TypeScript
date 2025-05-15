@@ -159,7 +159,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
 
     // TODO: the "this.config.networkTrackingOptions" should be taken out once we have
     // beta tested network tracking
-    if (isNetworkTrackingEnabled(this.config.autocapture) && !!this.config.networkTrackingOptions) {
+    if (
+      isNetworkTrackingEnabled(this.config.autocapture) &&
+      this.config.networkTrackingOptions?.instrumentXhrAndFetchBeta
+    ) {
       this.config.loggerProvider.debug('Adding network tracking plugin');
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
