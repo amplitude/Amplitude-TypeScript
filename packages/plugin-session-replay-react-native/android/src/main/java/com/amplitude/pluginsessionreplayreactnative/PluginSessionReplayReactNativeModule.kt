@@ -109,6 +109,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   override fun invalidate() {
-    sessionReplay.shutdown()
+    if (::sessionReplay.isInitialized) {
+      sessionReplay.shutdown()
+    }
   }
 }
