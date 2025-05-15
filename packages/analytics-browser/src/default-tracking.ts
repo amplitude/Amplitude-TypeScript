@@ -86,7 +86,10 @@ export const getElementInteractionsConfig = (config: BrowserOptions): ElementInt
 };
 
 export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackingOptions | undefined => {
-  if (isNetworkTrackingEnabled(config.autocapture) && config.networkTrackingOptions) {
+  if (isNetworkTrackingEnabled(config.autocapture)) {
+    if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
+      return config.autocapture.networkTracking;
+    }
     return config.networkTrackingOptions;
   }
   return;

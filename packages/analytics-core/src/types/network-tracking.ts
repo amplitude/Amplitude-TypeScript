@@ -15,11 +15,6 @@ export interface NetworkTrackingOptions {
    * Performs matching on array in reverse order.
    */
   captureRules?: NetworkCaptureRule[];
-  /**
-   * Set to true to enable XHR and fetch instrumented network capture.
-   * @defaultValue `false`
-   */
-  instrumentXhrAndFetchBeta?: boolean;
 }
 
 export interface NetworkCaptureRule {

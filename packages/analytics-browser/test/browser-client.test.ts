@@ -404,7 +404,7 @@ describe('browser-client', () => {
       const networkTrackingPlugin = jest.spyOn(networkCapturePlugin, 'plugin');
       await client.init(apiKey, userId, {
         autocapture: true,
-        networkTrackingOptions: {}, // TODO: may not need this in the future?
+        networkTrackingOptions: {},
       }).promise;
       expect(networkTrackingPlugin).toHaveBeenCalledTimes(1);
     });
