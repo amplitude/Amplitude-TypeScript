@@ -19,6 +19,9 @@ const isTrackingEnabled = (
   event: keyof AutocaptureOptions,
   defaultValue: boolean,
 ) => {
+  if (typeof autocapture === 'undefined') {
+    return false;
+  }
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
@@ -49,8 +52,9 @@ export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | bool
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'sessions', true);
 
-export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'networkTracking', false);
+export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+  return isTrackingEnabled(autocapture, 'networkTracking', false);
+};
 
 /**
  * Returns true if
