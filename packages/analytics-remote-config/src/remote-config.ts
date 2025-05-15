@@ -28,6 +28,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   sessionTargetingMatch = false;
   configKeys: string[];
   metrics: RemoteConfigMetric = {};
+  fetchStartTime = 0;
 
   constructor({ localConfig, configKeys }: { localConfig: Config; configKeys: string[] }) {
     this.localConfig = localConfig;
@@ -40,8 +41,11 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     sessionId?: number | string,
   ): Promise<RemoteConfig[K] | undefined> => {
     const fetchStartTime = Date.now();
+    this.fetchStartTime = fetchStartTime;
     // Finally fetch via API
+    console.log('FetchTime: before await this.fetchWithTimeout(): ', Date.now() - this.fetchStartTime);
     const configAPIResponse = await this.fetchWithTimeout(sessionId);
+    console.log('FetchTime: after await this.fetchWithTimeout(): ', Date.now() - this.fetchStartTime);
     if (configAPIResponse) {
       const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
       if (remoteConfig) {
@@ -70,10 +74,12 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
   }
 
   fetchWithTimeout = async (sessionId?: number | string): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
+    console.log('FetchTime: start fetchWithTimeout(): ', Date.now() - this.fetchStartTime);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     const remoteConfig = await this.fetchRemoteConfig(controller.signal, sessionId);
     clearTimeout(timeoutId);
+    console.log('FetchTime: end fetchWithTimeout(): ', Date.now() - this.fetchStartTime);
     return remoteConfig;
   };
 
@@ -81,6 +87,7 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     signal: AbortController['signal'],
     sessionId?: number | string,
   ): Promise<RemoteConfigAPIResponse<RemoteConfig> | void> => {
+    console.log('FetchTime: start fetchRemoteConfig(): ', Date.now() - this.fetchStartTime);
     if (sessionId === this.lastFetchedSessionId && this.attempts >= this.localConfig.flushMaxRetries) {
       return this.completeRequest({ err: MAX_RETRIES_EXCEEDED_MESSAGE });
     } else if (signal.aborted) {
@@ -108,7 +115,31 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       };
       const serverUrl = `${this.getServerUrl()}?${urlParams.toString()}`;
       this.attempts += 1;
+
+      // Save original fetch
+      // eslint-disable-next-line no-restricted-globals
+      const originalFetch = window.fetch;
+
+      // eslint-disable-next-line no-restricted-globals
+      window.fetch = async (...args) => {
+        const start = performance.now(); // much more precise than Date.now()
+        try {
+          const response = await originalFetch(...args);
+          const end = performance.now();
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          console.log(`FetchTime URL: ${args[0]} | duration: ${(end - start).toFixed(2)} ms`);
+          return response;
+        } catch (error) {
+          const end = performance.now();
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+          console.log(`FetchTime URL: ${args[0]} | FAILED | duration: ${(end - start).toFixed(2)} ms`);
+          throw error;
+        }
+      };
+
+      console.log('FetchTime: before fetch() in fetchRemoteConfig(): ', Date.now() - this.fetchStartTime);
       const res = await fetch(serverUrl, { ...options, signal: signal });
+      console.log('FetchTime: after fetch() in fetchRemoteConfig(): ', Date.now() - this.fetchStartTime);
       if (res === null) {
         return this.completeRequest({ err: UNEXPECTED_ERROR_MESSAGE });
       }
