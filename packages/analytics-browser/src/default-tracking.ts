@@ -9,11 +9,31 @@ import {
   NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 
+interface AutocaptureOptionsDefaultTracking {
+  attribution?: boolean | AttributionOptions;
+  fileDownloads?: boolean;
+  formInteractions?: boolean;
+  pageViews?: boolean | PageTrackingOptions;
+  sessions?: boolean;
+}
+
 /**
  * Returns false if autocapture === false or if autocapture[event],
  * otherwise returns true
+ *
+ * This is for the following events:
+ * 1. attribution
+ * 2. fileDownloads
+ * 3. formInteractions
+ * 4. pageViews
+ * 5. sessions
+ *
+ * All other events should be handled by isAutocaptureEventEnabled
  */
-const isTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined, event: keyof AutocaptureOptions) => {
+const isTrackingEnabled = (
+  autocapture: AutocaptureOptionsDefaultTracking | boolean | undefined,
+  event: keyof AutocaptureOptionsDefaultTracking,
+) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
@@ -40,6 +60,26 @@ export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | bool
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
   isTrackingEnabled(autocapture, 'sessions');
 
+type AutocaptureOptionsNonDefault = Omit<AutocaptureOptions, keyof AutocaptureOptionsDefaultTracking>;
+
+/**
+ * Returns true if
+ */
+const isAutocaptureEventEnabled = (
+  autocapture: AutocaptureOptionsNonDefault | boolean | undefined,
+  event: keyof AutocaptureOptionsNonDefault,
+) => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (typeof autocapture === 'object' && (autocapture[event] === true || typeof autocapture[event] === 'object')) {
+    return true;
+  }
+
+  return false;
+};
+
 /**
  * Returns true if
  * 1. autocapture === true
@@ -48,18 +88,7 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
  * otherwise returns false
  */
 export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
-  if (typeof autocapture === 'boolean') {
-    return autocapture;
-  }
-
-  if (
-    typeof autocapture === 'object' &&
-    (autocapture.networkTracking === true || typeof autocapture.networkTracking === 'object')
-  ) {
-    return true;
-  }
-
-  return false;
+  return isAutocaptureEventEnabled(autocapture, 'networkTracking');
 };
 
 /**
@@ -70,18 +99,7 @@ export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boole
  * otherwise returns false
  */
 export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
-  if (typeof autocapture === 'boolean') {
-    return autocapture;
-  }
-
-  if (
-    typeof autocapture === 'object' &&
-    (autocapture.elementInteractions === true || typeof autocapture.elementInteractions === 'object')
-  ) {
-    return true;
-  }
-
-  return false;
+  return isAutocaptureEventEnabled(autocapture, 'elementInteractions');
 };
 
 export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
