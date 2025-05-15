@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page View with History Push State tracking</title>
+  </head>
+  <body>
+    <h1>Page One</h1>
+    <div id="app">
+      Page View with History Push State tracking
+    </div>
+    <div>
+      When clicking on the button below, it will change the URL to /new-page,
+      without reloading the page. The page view plugin will track this change
+      and send an event to Amplitude with the new URL.
+    </div>
+    <button id="navigate">Go to /new-page</button>
+    <div style="margin-top: 20px;">
+      Clicking the button below will tear down the page view plugin. So that
+      if you visit /new-page again, it will not track the page view.
+    </div>
+    <button id="teardown">Tear down page view plugin</button>
+
+    <script>
+      document.getElementById('navigate').addEventListener('click', function() {
+        const newUrl = '/new-page';
+        
+        // Push new state to the browser history
+        history.pushState({ page: 'new-page' }, 'New Page', newUrl);
+  
+        // Optionally, update the content without reloading
+        document.querySelector('h1').innerText = 'Page 2: ' + location.pathname;
+  
+        // Dispatch a popstate event if your routing or tracking system needs it
+        const popStateEvent = new PopStateEvent('popstate', { state: { page: 'new-page' } });
+        dispatchEvent(popStateEvent);
+      });
+    </script>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { pageViewTrackingPlugin } from '@amplitude/plugin-page-view-tracking-browser';
+      window.amplitude = amplitude;
+      const pageViewPlugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'all',
+      });
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+      );
+      amplitude.add(pageViewPlugin);
+
+      document.getElementById('teardown').addEventListener('click', function() {
+        // Remove the page view plugin
+        pageViewPlugin.teardown();
+        console.log('Page view plugin removed');
+      });
+    </script>
+  </body>
+</html>

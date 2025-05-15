@@ -524,6 +524,21 @@ describe('pageViewTrackingPlugin', () => {
       await plugin.teardown?.();
       expect(removeEventListener).toHaveBeenCalledTimes(1);
     });
+
+    test('should not restore history.pushState after teardown', async () => {
+      /* eslint-disable @typescript-eslint/unbound-method */
+      const history = window.history;
+      const originalPushState = history.pushState;
+      const plugin = pageViewTrackingPlugin({
+        trackHistoryChanges: 'all',
+      });
+      expect(history.pushState).toBe(originalPushState);
+      await plugin.setup?.(mockConfig, createInstance());
+      expect(history.pushState).not.toBe(originalPushState);
+      await plugin.teardown?.();
+      expect(history.pushState).not.toBe(originalPushState);
+      /* eslint-enable @typescript-eslint/unbound-method */
+    });
   });
 
   test('shouldTrackHistoryPageView pathOnly option', () => {
