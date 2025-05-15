@@ -10,47 +10,57 @@ import {
 } from '@amplitude/analytics-core';
 
 /**
- * Returns autocapture[event] if it is defined
- * returns defaultValue if autocapture[event] is undefined
+ * Returns false if autocapture === false or if autocapture[event],
  * otherwise returns true
  */
-const isTrackingEnabled = (
-  autocapture: AutocaptureOptions | boolean | undefined,
-  event: keyof AutocaptureOptions,
-  defaultValue: boolean,
-) => {
+const isTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined, event: keyof AutocaptureOptions) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
 
-  if (autocapture !== null && typeof autocapture === 'object') {
-    if (autocapture[event] === false) {
-      return false;
-    } else if (autocapture[event] === undefined) {
-      return defaultValue;
-    }
+  if (autocapture?.[event] === false) {
+    return false;
   }
 
   return true;
 };
 
 export const isAttributionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'attribution', true);
+  isTrackingEnabled(autocapture, 'attribution');
 
 export const isFileDownloadTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'fileDownloads', true);
+  isTrackingEnabled(autocapture, 'fileDownloads');
 
 export const isFormInteractionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'formInteractions', true);
+  isTrackingEnabled(autocapture, 'formInteractions');
 
 export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'pageViews', true);
+  isTrackingEnabled(autocapture, 'pageViews');
 
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'sessions', true);
+  isTrackingEnabled(autocapture, 'sessions');
 
-export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'networkTracking', false);
+/**
+ * Returns true if
+ * 1. autocapture === true
+ * 2. if autocapture.networkTracking === true
+ * 3. if autocapture.networkTracking === object
+ * otherwise returns false
+ */
+export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.networkTracking === true || typeof autocapture.networkTracking === 'object')
+  ) {
+    return true;
+  }
+
+  return false;
+};
 
 /**
  * Returns true if
