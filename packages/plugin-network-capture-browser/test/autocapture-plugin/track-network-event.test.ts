@@ -23,10 +23,12 @@ import * as streams from 'stream/web';
 import { TextEncoder } from 'util';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 
+type ResourceType = 'fetch' | 'xhr';
+
 class MockNetworkRequestEvent implements NetworkRequestEvent {
   constructor(
     public url: string = 'https://example.com',
-    public type: string = 'fetch',
+    public type: ResourceType = 'fetch',
     public method: string = 'GET',
     public status: number = 200,
     public duration: number = 100,
@@ -185,6 +187,7 @@ describe('track-network-event', () => {
         '[Amplitude] Duration': expect.any(Number),
         '[Amplitude] Request Body Size': 10,
         '[Amplitude] Response Body Size': 100,
+        '[Amplitude] Request Type': 'fetch',
       });
     });
 
@@ -192,7 +195,7 @@ describe('track-network-event', () => {
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
           url: 'https://example.com/track?hello=world#hash',
-          type: 'fetch',
+          type: 'xhr',
           method: 'POST',
           status: 500,
           duration: 100,
@@ -222,6 +225,7 @@ describe('track-network-event', () => {
         '[Amplitude] Duration': expect.any(Number),
         '[Amplitude] Request Body Size': undefined,
         '[Amplitude] Response Body Size': undefined,
+        '[Amplitude] Request Type': 'xhr',
       });
     });
 
@@ -263,7 +267,7 @@ describe('track-network-event', () => {
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
-        };
+        } as NetworkRequestEvent;
         cb.callback({
           ...event,
           toSerializable: () => event,

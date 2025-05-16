@@ -1,6 +1,12 @@
 import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../src/index';
 import { NetworkObserver } from '../src/network-observer';
-import { FetchRequestBody, RequestWrapper, ResponseWrapper } from '../src/network-request-event';
+import {
+  FetchRequestBody,
+  RequestInitSafe,
+  RequestWrapperFetch,
+  ResponseWrapperFetch,
+  ResponseWrapperXhr,
+} from '../src/network-request-event';
 import * as AnalyticsCore from '../src/index';
 import { TextEncoder } from 'util';
 import * as streams from 'stream/web';
@@ -9,6 +15,9 @@ type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-empty-function */
 
 // Test subclass to access protected methods
 class TestNetworkObserver extends NetworkObserver {
@@ -165,7 +174,7 @@ describe('NetworkObserver', () => {
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
       expect(events[0].requestWrapper?.headers).toEqual(undefined);
-      expect(events[0].responseWrapper?.headers).toEqual({});
+      expect(events[0].responseWrapper?.headers).toEqual(undefined);
     });
 
     it('should still fetch even if eventCallback throws error', async () => {
@@ -392,45 +401,79 @@ describe('NetworkObserver', () => {
     describe('bodySize should return the body length when the body is of type', () => {
       it('string', () => {
         const body = 'Hello World!';
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           body,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(body.length);
         expect(requestWrapper.bodySize).toBe(body.length); // do it again to make sure it's cached
       });
       it('Blob', () => {
         const blob = new Blob(['Hello World!']);
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           body: blob,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(blob.size);
       });
       it('ArrayBuffer', () => {
         const buffer = new ArrayBuffer(8);
-        const requestWrapper = new RequestWrapper({
+        for (let i = 0; i < buffer.byteLength; i++) {
+          (buffer as any)[i] = i;
+        }
+        const requestWrapper = new RequestWrapperFetch({
           body: buffer,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(buffer.byteLength);
+        expect(buffer.byteLength).toBe(8);
+
+        // check that the array buffer is not modified
+        for (let i = 0; i < buffer.byteLength; i++) {
+          expect((buffer as any)[i]).toBe(i);
+        }
       });
       it('ArrayBufferView', () => {
         const buffer = new ArrayBuffer(8);
         const arr = new Uint8Array(buffer);
-        const requestWrapper = new RequestWrapper({
+        for (let i = 0; i < arr.length; i++) {
+          arr[i] = i;
+        }
+        const requestWrapper = new RequestWrapperFetch({
           body: arr,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(arr.byteLength);
+
+        // check that the array buffer is not modified
+        expect(arr.byteLength).toBe(8);
+        for (let i = 0; i < arr.length; i++) {
+          expect(arr[i]).toBe(i);
+        }
       });
       it('FormData', () => {
+        // construct FormData with 2 entries
         const formData = new FormData();
         const val = 'value';
         formData.append('key', val);
         const blob = new Blob(['Hello World!']);
         formData.append('file', blob);
         const expectedSize = val.length + blob.size + 'key'.length + 'file'.length;
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           body: formData as unknown as FetchRequestBody,
-        } as RequestInit);
+        } as RequestInitSafe);
+
+        // spy on all methods that are not safe to call on FormData
+        const unsafeFormDataMethods = ['append', 'delete', 'set'];
+        const spies = [];
+        for (const method of unsafeFormDataMethods) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const spy = jest.spyOn(FormData.prototype, method as any);
+          spies.push({ spy, method });
+        }
+
+        // assert bodySize is correct and that no unsafe methods were called
         expect(requestWrapper.bodySize).toBe(expectedSize);
+        expect(spies.length).toBe(unsafeFormDataMethods.length);
+        for (const { spy } of spies) {
+          expect(spy.mock.calls.length).toBe(0);
+        }
       });
       it('URLSearchParams', () => {
         const params = new URLSearchParams();
@@ -439,10 +482,23 @@ describe('NetworkObserver', () => {
         const val2 = 'value2';
         params.append('key2', val2);
         const expectedSize = 'key='.length + val.length + '&key2='.length + val2.length;
-        const requestWrapper = new RequestWrapper({
+
+        const unsafeURLSearchParamsMethods = ['append', 'delete', 'set'];
+        const spies = [];
+        for (const method of unsafeURLSearchParamsMethods) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const spy = jest.spyOn(URLSearchParams.prototype, method as any);
+          spies.push({ spy, method });
+        }
+
+        const requestWrapper = new RequestWrapperFetch({
           body: params,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(expectedSize);
+        expect(spies.length).toBe(unsafeURLSearchParamsMethods.length);
+        for (const { spy } of spies) {
+          expect(spy.mock.calls.length).toBe(0);
+        }
       });
     });
 
@@ -462,9 +518,9 @@ describe('NetworkObserver', () => {
         };
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         const formData = new (HackedFormData as any)();
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           body: formData as unknown as FetchRequestBody,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBeUndefined();
       });
       it('FormData has >100 entries', () => {
@@ -472,36 +528,36 @@ describe('NetworkObserver', () => {
         for (let i = 0; i < 101; i++) {
           formData.append(`key${i}`, `value${i}`);
         }
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           body: formData as unknown as FetchRequestBody,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBeUndefined();
       });
       it('body is undefined', () => {
         const body = undefined;
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           body,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBeUndefined();
       });
       it('globalScope is not available', () => {
         jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(undefined);
         const body = 'Hello World!';
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           body,
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBeUndefined();
       });
     });
 
     describe('headers should return an object', () => {
       it('when headers is an array', () => {
-        const requestWrapper = new RequestWrapper({
+        const requestWrapper = new RequestWrapperFetch({
           headers: [
             ['Content-Type', 'application/fake'],
             ['Content-Length', '1234'],
           ],
-        } as RequestInit);
+        } as RequestInitSafe);
         expect(requestWrapper.headers).toEqual({
           'Content-Type': 'application/fake',
           'Content-Length': '1234',
@@ -510,7 +566,7 @@ describe('NetworkObserver', () => {
     });
 
     test('RequestWrapper interface changed. Make sure you know what you are doing.', () => {
-      const props = Object.getOwnPropertyNames(RequestWrapper.prototype);
+      const props = Object.getOwnPropertyNames(RequestWrapperFetch.prototype);
       const expectedProps = ['headers', 'bodySize'];
       expectedProps.forEach((prop) => {
         expect(props).toContain(prop);
@@ -538,7 +594,7 @@ describe('NetworkObserver', () => {
     };
 
     test('bodySize should return undefined if content-length is not set', () => {
-      const responseWrapper = new ResponseWrapper(mockResponse as unknown as Response);
+      const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
       const bodySize = responseWrapper.bodySize;
       expect(bodySize).toBeUndefined();
     });
@@ -548,13 +604,13 @@ describe('NetworkObserver', () => {
         ...mockResponse,
         headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
       };
-      const responseWrapper = new ResponseWrapper(responseWithContentLength as unknown as Response);
+      const responseWrapper = new ResponseWrapperFetch(responseWithContentLength as unknown as Response);
       expect(responseWrapper.bodySize).toBe(1234);
       expect(responseWrapper.bodySize).toBe(1234); // 2x to check that it's cached
     });
 
     test('ResponseWrapper interface changed. Make sure you know what you are doing.', () => {
-      const props = Object.getOwnPropertyNames(ResponseWrapper.prototype);
+      const props = Object.getOwnPropertyNames(ResponseWrapperFetch.prototype);
       const expectedProps = ['headers', 'bodySize'];
       expectedProps.forEach((prop) => {
         expect(props).toContain(prop);
@@ -611,8 +667,168 @@ describe('serializeNetworkRequestEvent', () => {
   });
 });
 
+describe('observeXhr', () => {
+  interface MockXHROptions {
+    readyState?: number;
+    status?: number;
+    responseText?: string;
+  }
+
+  class MockXHR {
+    readyState = 4;
+    status = 200;
+    responseText: string = JSON.stringify({ success: true });
+    onreadystatechange: (() => void) | null = null;
+    openCalled = false;
+    sendCalled = false;
+
+    constructor(options?: MockXHROptions) {
+      if (options) {
+        if (options.readyState !== undefined) this.readyState = options.readyState;
+        if (options.status !== undefined) this.status = options.status;
+        if (options.responseText !== undefined) this.responseText = options.responseText;
+      }
+    }
+
+    getAllResponseHeaders(): string {
+      return 'Content-Type: application/json\r\nContent-Length: 1234';
+    }
+
+    getResponseHeader(header: string): string | null {
+      if (header === 'content-type') {
+        return 'application/json';
+      }
+      if (header === 'content-length') {
+        return '1234';
+      }
+      return null;
+    }
+
+    addEventListener(event: string, callback: () => void): void {
+      if (event === 'loadend') {
+        this.onreadystatechange = callback;
+      }
+    }
+
+    open(): void {
+      this.openCalled = true;
+    }
+
+    send(): void {
+      this.sendCalled = true;
+      if (typeof this.onreadystatechange === 'function') {
+        this.onreadystatechange();
+      }
+    }
+
+    setRequestHeader(header: string, value: string): void {
+      (this as any)[header] = value;
+    }
+  }
+
+  let networkObserver: any, originalGlobal;
+
+  beforeAll(() => {
+    // override globalScope to include mock XHR
+    originalGlobal = AnalyticsCore.getGlobalScope();
+    networkObserver = new NetworkObserver();
+    (networkObserver as unknown as any).globalScope = {
+      ...originalGlobal,
+      XMLHttpRequest: MockXHR,
+      TextEncoder,
+    } as any;
+  });
+
+  afterAll(() => {});
+
+  describe('calls mock XHR', () => {
+    // eslint-disable-next-line jest/no-done-callback
+    it('should call mockXHR and retrieve event and still call original open/send', (done) => {
+      const originalOpenSpy = jest.spyOn(MockXHR.prototype, 'open');
+      const originalSendSpy = jest.spyOn(MockXHR.prototype, 'send');
+      const callback = (event: NetworkRequestEvent) => {
+        try {
+          expect(originalOpenSpy).toHaveBeenCalledWith('GET', 'https://api.example.com/data');
+          expect(originalSendSpy).toHaveBeenCalledWith('hello world!');
+          expect(event.status).toBe(200);
+          expect(event.type).toBe('xhr');
+          expect(event.method).toBe('GET');
+          expect(event.url).toBe('https://api.example.com/data');
+          expect(event.responseWrapper?.headers).toEqual({
+            'Content-Type': 'application/json',
+            'Content-Length': '1234',
+          });
+          expect(event.responseWrapper?.bodySize).toBe(1234);
+          expect(event.requestWrapper?.bodySize).toBe('hello world!'.length);
+          expect(event.duration).toBeGreaterThanOrEqual(0);
+          expect(event.startTime).toBeGreaterThanOrEqual(0);
+          expect(event.endTime).toBeGreaterThanOrEqual(event.startTime);
+          expect(event.timestamp).toBeGreaterThanOrEqual(event.startTime);
+          expect(xhr.openCalled).toBe(true);
+          expect(xhr.sendCalled).toBe(true);
+          done();
+        } catch (error) {
+          done(error);
+        }
+      };
+      networkObserver.subscribe(new NetworkEventCallback(callback), undefined, true);
+      const XMLHttpRequest = (networkObserver as unknown as any).globalScope.XMLHttpRequest;
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', 'https://api.example.com/data');
+      xhr.send('hello world!');
+    });
+  });
+});
+
+describe('ResponseWrapperXhr', () => {
+  test('should return undefined if headersString is empty', () => {
+    const responseWrapper = new ResponseWrapperXhr(200, '', 0);
+    expect(responseWrapper.headers).toEqual(undefined);
+  });
+});
+
+describe('RequestWrapperFetch', () => {
+  test(
+    `ReadableStream should always return bodySize=undefined and never be consumed. ` +
+      `If this test fails, it means that the ReadableStream is being consumed ` +
+      `and needs to be fixed. No exceptions.`,
+    () => {
+      const readableStream = new streams.ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('Hello World!'));
+          controller.close();
+        },
+      });
+
+      // spy on all of ReadableStream methods
+      const spies = [];
+      const methods = Object.getOwnPropertyNames(streams.ReadableStream.prototype);
+      for (const method of methods) {
+        if (typeof (readableStream as any)[method] === 'function') {
+          const spy = jest.spyOn(readableStream as any, method);
+          spies.push(spy);
+        }
+      }
+
+      const responseWrapper = new RequestWrapperFetch({
+        body: readableStream,
+        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+        status: 200,
+      } as unknown as RequestInitSafe);
+      const bodySize = responseWrapper.bodySize;
+      expect(bodySize).toBeUndefined();
+
+      // check that no methods were called on ReadableStream
+      expect(spies.length).toBeGreaterThan(0);
+      for (const spy of spies) {
+        expect(spy).not.toHaveBeenCalled();
+      }
+    },
+  );
+});
+
 describe('networkObserver', () => {
-  test('should be an instance of NetworkObserver', () => {
+  test('singleton should be an instance of NetworkObserver', () => {
     expect(networkObserver).toBeInstanceOf(NetworkObserver);
   });
 });

@@ -1,7 +1,27 @@
 import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from '.';
-import { NetworkRequestEvent, RequestWrapper, ResponseWrapper } from './network-request-event';
+import {
+  IRequestWrapper,
+  NetworkRequestEvent,
+  RequestWrapperFetch,
+  ResponseWrapperFetch,
+  RequestWrapperXhr,
+  ResponseWrapperXhr,
+  IResponseWrapper,
+  RequestInitSafe,
+  XMLHttpRequestBodyInitSafe,
+} from './network-request-event';
+
+// object that is added to each XHR instance so
+// that info can be set in xhr.open and retrieved in xhr.send
+type AmplitudeAnalyticsEvent = {
+  method: string;
+  url: string | URL;
+  startTime: number;
+  durationStart: number;
+  status?: number;
+};
 
 /**
  * Typeguard function checks if an input is a Request object.
@@ -15,6 +35,23 @@ export type NetworkEventCallbackFn = (event: NetworkRequestEvent) => void;
 export class NetworkEventCallback {
   constructor(public readonly callback: (event: NetworkRequestEvent) => void, public readonly id: string = UUID()) {}
 }
+
+type RequestUrlAndMethod = {
+  url: string | URL | undefined;
+  method: string | undefined;
+};
+
+// A narrowed down [XMLHttpRequest](https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest) type
+// that only includes the properties we need to access and adds the $$AmplitudeAnalyticsEvent property
+// Use great care when modifying this type, make sure you only use read-only properties and only add
+// what you need to access, nothing more.
+type AmplitudeXMLHttpRequestSafe = {
+  $$AmplitudeAnalyticsEvent: AmplitudeAnalyticsEvent;
+  status: number;
+  getAllResponseHeaders: typeof XMLHttpRequest.prototype.getAllResponseHeaders;
+  getResponseHeader: typeof XMLHttpRequest.prototype.getResponseHeader;
+  addEventListener: (type: 'loadend', listener: () => void) => void;
+};
 
 export class NetworkObserver {
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
@@ -44,14 +81,24 @@ export class NetworkObserver {
     this.eventCallbacks.set(eventCallback.id, eventCallback);
     if (!this.isObserving) {
       /* istanbul ignore next */
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalXhrOpen = this.globalScope?.XMLHttpRequest?.prototype?.open;
+      /* istanbul ignore next */
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      const originalXhrSend = this.globalScope?.XMLHttpRequest?.prototype?.send;
+      if (originalXhrOpen && originalXhrSend) {
+        this.observeXhr(originalXhrOpen, originalXhrSend);
+      }
+
+      /* istanbul ignore next */
       const originalFetch = this.globalScope?.fetch;
       /* istanbul ignore next */
-      if (!originalFetch) {
-        return;
+      if (originalFetch) {
+        this.observeFetch(originalFetch);
       }
+
       /* istanbul ignore next */
       this.isObserving = true;
-      this.observeFetch(originalFetch);
     }
   }
 
@@ -73,9 +120,10 @@ export class NetworkObserver {
   }
 
   private handleNetworkRequestEvent(
-    requestInfo: RequestInfo | URL | undefined,
-    requestWrapper: RequestWrapper | undefined,
-    responseWrapper: ResponseWrapper | undefined,
+    requestType: 'fetch' | 'xhr',
+    requestInfo: RequestInfo | URL | RequestUrlAndMethod | undefined,
+    requestWrapper: IRequestWrapper | undefined,
+    responseWrapper: IResponseWrapper | undefined,
     typedError: Error | undefined,
     startTime?: number,
     durationStart?: number,
@@ -115,7 +163,7 @@ export class NetworkObserver {
     const endTime = Math.floor(startTime + duration);
 
     const requestEvent = new NetworkRequestEvent(
-      'fetch',
+      requestType,
       method,
       startTime, // timestamp and startTime are aliases
       startTime,
@@ -131,7 +179,7 @@ export class NetworkObserver {
     this.triggerEventCallbacks(requestEvent);
   }
 
-  getTimestamps() {
+  private getTimestamps() {
     /* istanbul ignore next */
     return {
       startTime: Date.now?.(),
@@ -174,9 +222,10 @@ export class NetworkObserver {
       // 3. call the handler after the fetch call is done
       try {
         this.handleNetworkRequestEvent(
+          'fetch',
           requestInfo,
-          requestInit ? new RequestWrapper(requestInit) : undefined,
-          originalResponse ? new ResponseWrapper(originalResponse) : undefined,
+          requestInit ? new RequestWrapperFetch(requestInit as RequestInitSafe) : undefined,
+          originalResponse ? new ResponseWrapperFetch(originalResponse) : undefined,
           originalError as Error,
           /* istanbul ignore next */
           timestamps?.startTime,
@@ -197,6 +246,96 @@ export class NetworkObserver {
       } else {
         throw originalError;
       }
+    };
+  }
+
+  private observeXhr(
+    originalXhrOpen:
+      | ((
+          method: string,
+          url: string | URL,
+          async?: boolean,
+          username?: string | null,
+          password?: string | null,
+        ) => void)
+      | undefined,
+    originalXhrSend: ((body?: Document | XMLHttpRequestBodyInit | null) => void) | undefined,
+  ) {
+    /* istanbul ignore next */
+    if (!this.globalScope || !originalXhrOpen || !originalXhrSend) {
+      return;
+    }
+
+    const xhrProto = this.globalScope.XMLHttpRequest.prototype;
+
+    const networkObserverContext = this as NetworkObserver;
+
+    /**
+     * IMPORTANT: This overrides window.XMLHttpRequest.prototype.open
+     * You probably never need to make changes to this function.
+     * If you do, please be careful to preserve the original functionality of xhr.open
+     * and make sure another developer who is an expert reviews this change throughly
+     */
+    xhrProto.open = function (...args: any[]) {
+      const xhrSafe = this as unknown as AmplitudeXMLHttpRequestSafe;
+      const [method, url] = args as [string, string | URL];
+      try {
+        /* istanbul ignore next */
+        xhrSafe.$$AmplitudeAnalyticsEvent = {
+          method,
+          url: url?.toString?.(),
+          ...networkObserverContext.getTimestamps(),
+        } as AmplitudeAnalyticsEvent;
+      } catch (err) {
+        /* istanbul ignore next */
+        networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      return originalXhrOpen.apply(xhrSafe, args as any);
+    };
+
+    /**
+     * IMPORTANT: This overrides window.XMLHttpRequest.prototype.send
+     * You probably never need to make changes to this function.
+     * If you do, please be careful to preserve the original functionality of xhr.send
+     * and make sure another developer who is an expert reviews this change throughly
+     */
+    // allow "any" type for args to reflect how it's used in the browser
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
+    xhrProto.send = function (...args: any[]) {
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const xhrSafe = this as unknown as AmplitudeXMLHttpRequestSafe;
+      const body = args[0] as XMLHttpRequestBodyInitSafe;
+      const requestEvent = xhrSafe.$$AmplitudeAnalyticsEvent;
+
+      xhrSafe.addEventListener('loadend', function () {
+        try {
+          const responseHeaders = xhrSafe.getAllResponseHeaders();
+          const responseBodySize = xhrSafe.getResponseHeader('content-length');
+          const responseWrapper = new ResponseWrapperXhr(
+            xhrSafe.status,
+            responseHeaders,
+            /* istanbul ignore next */
+            responseBodySize ? parseInt(responseBodySize, 10) : undefined,
+          );
+          const requestWrapper = new RequestWrapperXhr(body);
+          requestEvent.status = xhrSafe.status;
+          networkObserverContext.handleNetworkRequestEvent(
+            'xhr',
+            { url: requestEvent.url, method: requestEvent.method },
+            requestWrapper,
+            responseWrapper,
+            undefined,
+            requestEvent.startTime,
+            requestEvent.durationStart,
+          );
+        } catch (err) {
+          /* istanbul ignore next */
+          networkObserverContext.logger?.debug('an unexpected error occurred while handling xhr send', err);
+        }
+      });
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
+      return originalXhrSend.apply(xhrSafe, args as any);
     };
   }
 }
