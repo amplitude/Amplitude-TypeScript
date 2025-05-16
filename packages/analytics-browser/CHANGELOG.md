@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.18.0-fetchhardeningxhrsupport.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.6...@amplitude/analytics-browser@2.18.0-fetchhardeningxhrsupport.0) (2025-05-16)
+
+
+### Bug Fixes
+
+* make opt-in logic for networkTracking match elementInteractions ([#1087](https://github.com/amplitude/Amplitude-TypeScript/issues/1087)) ([06e129f](https://github.com/amplitude/Amplitude-TypeScript/commit/06e129fcfa3aab6ba208c0108a8eebd835ed063c))
+
+
+### Features
+
+* **analytics-browser:** observe XHR along with "fetch" ([#1080](https://github.com/amplitude/Amplitude-TypeScript/issues/1080)) ([e6c9571](https://github.com/amplitude/Amplitude-TypeScript/commit/e6c9571be8f4bf9b9fdd2c23e7d2d6f13e394622))
+
+
+
+
+
 ## [2.17.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.5...@amplitude/analytics-browser@2.17.6) (2025-05-14)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
