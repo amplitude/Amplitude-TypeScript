@@ -163,21 +163,21 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
   if (!TextEncoder) {
     return;
   }
-  let body;
+  let bodySafe;
   if (typeof bodyUnsafe === 'string') {
-    body = bodyUnsafe;
-    bodySize = new TextEncoder().encode(body).length;
+    bodySafe = bodyUnsafe;
+    bodySize = new TextEncoder().encode(bodySafe).length;
   } else if (bodyUnsafe instanceof Blob) {
-    body = bodyUnsafe as BlobSafe;
-    bodySize = bodyUnsafe.size;
+    bodySafe = bodyUnsafe as BlobSafe;
+    bodySize = bodySafe.size;
   } else if (bodyUnsafe instanceof URLSearchParams) {
-    body = bodyUnsafe as URLSearchParamsSafe;
-    bodySize = new TextEncoder().encode(bodyUnsafe.toString()).length;
+    bodySafe = bodyUnsafe as URLSearchParamsSafe;
+    bodySize = new TextEncoder().encode(bodySafe.toString()).length;
   } else if (ArrayBuffer.isView(bodyUnsafe)) {
-    body = bodyUnsafe as ArrayBufferViewSafe;
-    bodySize = body.byteLength;
+    bodySafe = bodyUnsafe as ArrayBufferViewSafe;
+    bodySize = bodySafe.byteLength;
   } else if (bodyUnsafe instanceof ArrayBuffer) {
-    const bodySafe = bodyUnsafe as ArrayBufferSafe;
+    bodySafe = bodyUnsafe as ArrayBufferSafe;
     bodySize = bodySafe.byteLength;
   } else if (bodyUnsafe instanceof FormData) {
     // Estimating only for text parts; not accurate for files
@@ -208,7 +208,7 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
     // without consuming it, so we return undefined.
     // Never ever consume ReadableStream! DO NOT DO IT!!!
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    body = bodyUnsafe as unknown as ReadableStreamSafe;
+    bodySafe = bodyUnsafe as unknown as ReadableStreamSafe;
     return;
   }
   return bodySize;
