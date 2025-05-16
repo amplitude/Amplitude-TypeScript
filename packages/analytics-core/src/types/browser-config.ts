@@ -84,6 +84,7 @@ export interface ExternalBrowserConfig extends IConfig {
   fetchRemoteConfig?: boolean;
   /**
    * Captures network requests and responses.
+   * @deprecated This property is deprecated. Use `autocapture.networkTracking` instead.
    * @defaultValue `undefined`
    */
   networkTrackingOptions?: NetworkTrackingOptions;
@@ -160,10 +161,10 @@ export interface AutocaptureOptions {
    */
   elementInteractions?: boolean | ElementInteractionsOptions;
   /**
-   * Enables/disables network request tracking.
+   * Enables/disables network request tracking or config with detailed network tracking options.
    * @defaultValue `false`
    */
-  networkTracking?: boolean;
+  networkTracking?: boolean | NetworkTrackingOptions;
 }
 
 export interface TrackingOptions {

@@ -295,6 +295,32 @@ describe('getAttributionTrackingConfig', () => {
 });
 
 describe('getNetworkTrackingConfig', () => {
+  test('should return object when autocapture.networkTracking is set', () => {
+    const config = getNetworkTrackingConfig({
+      autocapture: {
+        networkTracking: {
+          ignoreAmplitudeRequests: true,
+          ignoreHosts: ['example.com'],
+          captureRules: [
+            {
+              hosts: ['example.com'],
+              statusCodeRange: '500-599',
+            },
+          ],
+        },
+      },
+    });
+
+    expect(config?.ignoreAmplitudeRequests).toBe(true);
+    expect(config?.ignoreHosts).toEqual(['example.com']);
+    expect(config?.captureRules).toEqual([
+      {
+        hosts: ['example.com'],
+        statusCodeRange: '500-599',
+      },
+    ]);
+  });
+
   test('should return undefined when networkTracking is not defined', () => {
     const config = getNetworkTrackingConfig({
       networkTrackingOptions: undefined,
