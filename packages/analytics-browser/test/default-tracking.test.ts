@@ -324,6 +324,9 @@ describe('getNetworkTrackingConfig', () => {
 
   test('should return default config when networkTracking is true', () => {
     const config = getNetworkTrackingConfig({
+      autocapture: {
+        networkTracking: true,
+      },
       networkTrackingOptions: {
         ignoreAmplitudeRequests: false,
         ignoreHosts: ['example.com'],
