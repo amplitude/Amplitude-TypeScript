@@ -8,7 +8,7 @@
     "watch": "lerna run watch --parallel",
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
-    "deploy:publish": "lerna publish from-package --yes",
+    "deploy:publish": "lerna publish",
     "dev": "concurrently \"npm run watch\" \"vite dev --open\"",
     "docs": "typedoc",
     "docs:check": "typedoc --emit none",
