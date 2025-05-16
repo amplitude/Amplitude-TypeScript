@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.17.7-main.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.6...@amplitude/analytics-browser@2.17.7-main.0) (2025-05-16)
+
+
+### Bug Fixes
+
+* make opt-in logic for networkTracking match elementInteractions ([#1087](https://github.com/amplitude/Amplitude-TypeScript/issues/1087)) ([06e129f](https://github.com/amplitude/Amplitude-TypeScript/commit/06e129fcfa3aab6ba208c0108a8eebd835ed063c))
+
+
+
+
+
 ## [2.17.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.5...@amplitude/analytics-browser@2.17.6) (2025-05-14)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
