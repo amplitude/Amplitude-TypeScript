@@ -9,6 +9,7 @@ import {
   isSessionTrackingEnabled,
   isElementInteractionsEnabled,
   getNetworkTrackingConfig,
+  isNetworkTrackingEnabled,
 } from '../src/default-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
@@ -164,6 +165,34 @@ describe('isAttributionTrackingEnabled', () => {
     expect(
       isAttributionTrackingEnabled({
         attribution: false,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('isNetworkTrackingEnabled', () => {
+  test('should return true when autocapture is true', () => {
+    expect(isNetworkTrackingEnabled(true)).toBe(true);
+  });
+  test('should return true when autocapture is an object with networkTracking set to true', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: true,
+      }),
+    ).toBe(true);
+  });
+  test.todo('should return true when autocapture is an object with networkTracking set to an object');
+  test('should return false when autocapture is an object with networkTracking set to false', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: false,
+      }),
+    ).toBe(false);
+  });
+  test('should return false when autocapture is an object with networkTracking set to undefined', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: undefined,
       }),
     ).toBe(false);
   });
