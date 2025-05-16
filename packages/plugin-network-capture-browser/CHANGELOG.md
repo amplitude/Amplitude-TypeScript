@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0-prereleasenetworkcapture.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.6...@amplitude/plugin-network-capture-browser@1.2.0-prereleasenetworkcapture.0) (2025-05-16)
+
+
+### Features
+
+* **analytics-browser:** observe XHR along with "fetch" ([#1080](https://github.com/amplitude/Amplitude-TypeScript/issues/1080)) ([e6c9571](https://github.com/amplitude/Amplitude-TypeScript/commit/e6c9571be8f4bf9b9fdd2c23e7d2d6f13e394622))
+
+
+
+
+
 ## [1.1.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.5...@amplitude/plugin-network-capture-browser@1.1.6) (2025-05-14)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser
