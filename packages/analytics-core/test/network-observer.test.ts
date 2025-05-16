@@ -33,13 +33,16 @@ describe('NetworkObserver', () => {
   let globalScope: PartialGlobal;
 
   let originalFetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  let originalXMLHttpRequest: typeof XMLHttpRequest;
 
   beforeAll(() => {
     originalFetch = globalThis.fetch;
+    originalXMLHttpRequest = globalThis.XMLHttpRequest;
   });
 
   afterAll(() => {
     globalThis.fetch = originalFetch;
+    globalThis.XMLHttpRequest = originalXMLHttpRequest;
   });
 
   beforeEach(() => {
@@ -48,6 +51,14 @@ describe('NetworkObserver', () => {
     originalFetchMock = jest.fn();
     globalScope = {
       fetch: originalFetchMock,
+      XMLHttpRequest: class {
+        open: jest.Mock;
+        send: jest.Mock;
+        constructor() {
+          this.open = jest.fn();
+          this.send = jest.fn();
+        }
+      },
       TextEncoder,
       ReadableStream: streams.ReadableStream,
     } as PartialGlobal;

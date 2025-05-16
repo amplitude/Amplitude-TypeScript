@@ -69,9 +69,12 @@ export class NetworkObserver {
     this.globalScope = globalScope;
   }
 
+  /* istanbul ignore next */
   static isSupported(): boolean {
     const globalScope = getGlobalScope();
-    return !!globalScope && !!globalScope.fetch;
+    const fetch = globalScope?.fetch;
+    const XMLHttpRequest = globalScope?.XMLHttpRequest;
+    return !!globalScope && !!fetch && !!XMLHttpRequest;
   }
 
   subscribe(eventCallback: NetworkEventCallback, logger?: ILogger) {
