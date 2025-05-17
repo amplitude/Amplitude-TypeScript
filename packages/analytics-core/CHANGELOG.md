@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.13.0-networkcaptureprerelease.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.12.0...@amplitude/analytics-core@2.13.0-networkcaptureprerelease.0) (2025-05-17)
+
+
+### Features
+
+* **analytics-browser:** observe XHR along with "fetch" ([#1080](https://github.com/amplitude/Amplitude-TypeScript/issues/1080)) ([e6c9571](https://github.com/amplitude/Amplitude-TypeScript/commit/e6c9571be8f4bf9b9fdd2c23e7d2d6f13e394622))
+
+
+
+
+
 # [2.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.11.2...@amplitude/analytics-core@2.12.0) (2025-05-13)
 
 

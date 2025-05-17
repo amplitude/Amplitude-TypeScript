@@ -1,1 +1,1 @@
-export const VERSION = '2.17.6';
+export const VERSION = '2.18.0-networkcaptureprerelease.0';
