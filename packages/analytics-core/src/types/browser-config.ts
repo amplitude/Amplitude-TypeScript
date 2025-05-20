@@ -84,7 +84,6 @@ export interface ExternalBrowserConfig extends IConfig {
   fetchRemoteConfig?: boolean;
   /**
    * Captures network requests and responses.
-   * @deprecated This property is deprecated. Use `autocapture.networkTracking` instead.
    * @defaultValue `undefined`
    * @deprecated use autocapture.networkTracking instead
    */
