@@ -1,1 +1,1 @@
-export const VERSION = '2.18.0-fetchhardeningxhrsupport.0';
+export const VERSION = '2.17.6';
