@@ -171,6 +171,9 @@ describe('isAttributionTrackingEnabled', () => {
 });
 
 describe('isNetworkTrackingEnabled', () => {
+  test('should return false when autocapture is undefined', () => {
+    expect(isNetworkTrackingEnabled(undefined)).toBe(false);
+  });
   test('should return true when autocapture is true', () => {
     expect(isNetworkTrackingEnabled(true)).toBe(true);
   });
