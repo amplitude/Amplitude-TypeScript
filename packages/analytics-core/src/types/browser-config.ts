@@ -85,6 +85,7 @@ export interface ExternalBrowserConfig extends IConfig {
   /**
    * Captures network requests and responses.
    * @defaultValue `undefined`
+   * @deprecated use autocapture.networkTracking instead
    */
   networkTrackingOptions?: NetworkTrackingOptions;
 }
