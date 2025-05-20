@@ -174,27 +174,40 @@ describe('isNetworkTrackingEnabled', () => {
   test('should return false when autocapture is undefined', () => {
     expect(isNetworkTrackingEnabled(undefined)).toBe(false);
   });
-  test('should return true when autocapture is true', () => {
-    expect(isNetworkTrackingEnabled(true)).toBe(true);
+
+  test('should return false when autocapture is true (explicit opt-in)', () => {
+    expect(isNetworkTrackingEnabled(true)).toBe(false);
   });
-  test('should return true when autocapture is an object with networkTracking set to true', () => {
+
+  test('should return true when autocapture.networkTracking is true', () => {
     expect(
       isNetworkTrackingEnabled({
         networkTracking: true,
       }),
     ).toBe(true);
   });
-  test.todo('should return true when autocapture is an object with networkTracking set to an object');
-  test('should return false when autocapture is an object with networkTracking set to false', () => {
+
+  test('should return true when autocapture.networkTracking is an object', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: {},
+      }),
+    ).toBe(true);
+  });
+
+  test('should return false when autocapture.networkTracking is false', () => {
     expect(
       isNetworkTrackingEnabled({
         networkTracking: false,
       }),
     ).toBe(false);
   });
-  test('should return false when autocapture is an object with networkTracking set to undefined', () => {
+
+  test('should return false when autocapture.networkTracking is undefined', () => {
     expect(
       isNetworkTrackingEnabled({
+        sessions: true,
+        pageViews: true,
         networkTracking: undefined,
       }),
     ).toBe(false);
