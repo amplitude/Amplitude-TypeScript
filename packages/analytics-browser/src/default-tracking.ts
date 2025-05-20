@@ -9,6 +9,10 @@ import {
   NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 
+/**
+ * A subset of AutocaptureOptions that includes the autocapture features that
+ * are made available to users by default (even if "config.autocapture === undefined")
+ */
 type AutocaptureOptionsDefaultAvailable = Pick<
   AutocaptureOptions,
   'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution'
@@ -16,7 +20,7 @@ type AutocaptureOptionsDefaultAvailable = Pick<
 
 /**
  * Returns false if autocapture === false or if autocapture[event],
- * otherwise returns true
+ * otherwise returns true (even if "config.autocapture === undefined")
  */
 const isTrackingEnabled = (
   autocapture: AutocaptureOptionsDefaultAvailable | boolean | undefined,
