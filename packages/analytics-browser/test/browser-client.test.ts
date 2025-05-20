@@ -400,7 +400,7 @@ describe('browser-client', () => {
       expect(autocapturePlugin).toHaveBeenCalledTimes(0);
     });
 
-    test('should use network tracking plugin when autocapture is on', async () => {
+    test('should use network tracking plugin when autocapture.networkTracking is on', async () => {
       const networkTrackingPlugin = jest.spyOn(networkCapturePlugin, 'plugin');
       await client.init(apiKey, userId, {
         autocapture: {

@@ -9,6 +9,7 @@ import {
   isSessionTrackingEnabled,
   isElementInteractionsEnabled,
   getNetworkTrackingConfig,
+  isNetworkTrackingEnabled,
 } from '../src/default-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
@@ -169,6 +170,54 @@ describe('isAttributionTrackingEnabled', () => {
   });
 });
 
+describe('isNetworkTrackingEnabled', () => {
+  test('should return false when autocapture is false', () => {
+    expect(isNetworkTrackingEnabled(false)).toBe(false);
+  });
+
+  test('should return false when autocapture is undefined', () => {
+    expect(isNetworkTrackingEnabled(undefined)).toBe(false);
+  });
+
+  test('should return false when autocapture is true (explicit opt-in)', () => {
+    expect(isNetworkTrackingEnabled(true)).toBe(false);
+  });
+
+  test('should return true when autocapture.networkTracking is true', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: true,
+      }),
+    ).toBe(true);
+  });
+
+  test('should return true when autocapture.networkTracking is an object', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: {},
+      }),
+    ).toBe(true);
+  });
+
+  test('should return false when autocapture.networkTracking is false', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: false,
+      }),
+    ).toBe(false);
+  });
+
+  test('should return false when autocapture.networkTracking is undefined', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        sessions: true,
+        pageViews: true,
+        networkTracking: undefined,
+      }),
+    ).toBe(false);
+  });
+});
+
 describe('isElementInteractionsEnabled', () => {
   test('should return true with true parameter', () => {
     expect(isElementInteractionsEnabled(true)).toBe(true);
@@ -295,35 +344,54 @@ describe('getAttributionTrackingConfig', () => {
 });
 
 describe('getNetworkTrackingConfig', () => {
-  test('should return object when autocapture.networkTracking is set', () => {
+  test('should return autocapture.networkTracking if it is an object', () => {
+    const autocapture = {
+      networkTracking: {
+        ignoreAmplitudeRequests: true,
+        ignoreHosts: ['example.com'],
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      },
+    };
     const config = getNetworkTrackingConfig({
-      autocapture: {
-        networkTracking: {
-          ignoreAmplitudeRequests: true,
-          ignoreHosts: ['example.com'],
-          captureRules: [
-            {
-              hosts: ['example.com'],
-              statusCodeRange: '500-599',
-            },
-          ],
-        },
-      },
+      autocapture,
     });
-
-    expect(config?.ignoreAmplitudeRequests).toBe(true);
-    expect(config?.ignoreHosts).toEqual(['example.com']);
-    expect(config?.captureRules).toEqual([
-      {
-        hosts: ['example.com'],
-        statusCodeRange: '500-599',
-      },
-    ]);
+    expect(typeof config).toBe('object');
+    expect(config).toEqual(autocapture.networkTracking);
   });
 
-  test('should return undefined when networkTracking is not defined', () => {
+  test('should return "networkTrackingOptions" if is defined and autocapture.networkTracking=true (deprecated)', () => {
+    const autocapture = {
+      networkTracking: true,
+    };
+    const networkTrackingOptions = {
+      ignoreAmplitudeRequests: true,
+      ignoreHosts: ['example.com'],
+      captureRules: [
+        {
+          hosts: ['example.com'],
+          statusCodeRange: '500-599',
+        },
+      ],
+    };
     const config = getNetworkTrackingConfig({
-      networkTrackingOptions: undefined,
+      autocapture,
+      networkTrackingOptions,
+    });
+    expect(typeof config).toBe('object');
+    expect(config).toEqual(networkTrackingOptions);
+  });
+
+  test('should return undefined when autocapture is not defined', () => {
+    const autocapture = undefined;
+    const networkTrackingOptions = {};
+    const config = getNetworkTrackingConfig({
+      autocapture,
+      networkTrackingOptions,
     });
     expect(config).toBeUndefined();
   });
@@ -346,33 +414,6 @@ describe('getNetworkTrackingConfig', () => {
       },
     });
     expect(config).toBeUndefined();
-  });
-
-  test('should return default config when networkTracking is true', () => {
-    const config = getNetworkTrackingConfig({
-      autocapture: {
-        networkTracking: true,
-      },
-      networkTrackingOptions: {
-        ignoreAmplitudeRequests: false,
-        ignoreHosts: ['example.com'],
-        captureRules: [
-          {
-            hosts: ['example.com'],
-            statusCodeRange: '500-599',
-          },
-        ],
-      },
-    });
-
-    expect(config?.ignoreAmplitudeRequests).toBe(false);
-    expect(config?.ignoreHosts).toEqual(['example.com']);
-    expect(config?.captureRules).toEqual([
-      {
-        hosts: ['example.com'],
-        statusCodeRange: '500-599',
-      },
-    ]);
   });
 });
 
