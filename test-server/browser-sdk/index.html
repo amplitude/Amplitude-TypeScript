@@ -17,14 +17,16 @@
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
-          autocapture: true,
-          networkTrackingOptions: {
-            ignoreAmplitudeRequests: false,
-            ignoreHosts: [],
-            captureRules: [
-              {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
-              {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
-            ],
+          autocapture: {
+            // networkTracking: true,
+            networkTracking: {
+              ignoreAmplitudeRequests: false,
+              ignoreHosts: [],
+              captureRules: [
+                {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
+                {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
+              ],
+            },
           },
         }
       );

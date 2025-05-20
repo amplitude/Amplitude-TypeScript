@@ -85,6 +85,7 @@ export interface ExternalBrowserConfig extends IConfig {
   /**
    * Captures network requests and responses.
    * @defaultValue `undefined`
+   * @deprecated use autocapture.networkTracking instead
    */
   networkTrackingOptions?: NetworkTrackingOptions;
 }
@@ -163,7 +164,7 @@ export interface AutocaptureOptions {
    * Enables/disables network request tracking.
    * @defaultValue `false`
    */
-  networkTracking?: boolean;
+  networkTracking?: boolean | NetworkTrackingOptions;
 }
 
 export interface TrackingOptions {

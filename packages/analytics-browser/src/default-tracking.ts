@@ -10,10 +10,22 @@ import {
 } from '@amplitude/analytics-core';
 
 /**
- * Returns false if autocapture === false or if autocapture[event],
- * otherwise returns true
+ * A subset of AutocaptureOptions that includes the autocapture features that
+ * are made available to users by default (even if "config.autocapture === undefined")
  */
-const isTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined, event: keyof AutocaptureOptions) => {
+type AutocaptureOptionsDefaultAvailable = Pick<
+  AutocaptureOptions,
+  'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution'
+>;
+
+/**
+ * Returns false if autocapture === false or if autocapture[event],
+ * otherwise returns true (even if "config.autocapture === undefined")
+ */
+const isTrackingEnabled = (
+  autocapture: AutocaptureOptionsDefaultAvailable | boolean | undefined,
+  event: keyof AutocaptureOptionsDefaultAvailable,
+) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
@@ -42,16 +54,11 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
 
 /**
  * Returns true if
- * 1. autocapture === true
- * 2. if autocapture.networkTracking === true
- * 3. if autocapture.networkTracking === object
+ * 1. if autocapture.networkTracking === true
+ * 2. if autocapture.networkTracking === object
  * otherwise returns false
  */
 export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
-  if (typeof autocapture === 'boolean') {
-    return autocapture;
-  }
-
   if (
     typeof autocapture === 'object' &&
     (autocapture.networkTracking === true || typeof autocapture.networkTracking === 'object')
@@ -96,8 +103,12 @@ export const getElementInteractionsConfig = (config: BrowserOptions): ElementInt
 };
 
 export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackingOptions | undefined => {
-  if (isNetworkTrackingEnabled(config.autocapture) && config.networkTrackingOptions) {
-    return config.networkTrackingOptions;
+  if (isNetworkTrackingEnabled(config.autocapture)) {
+    if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
+      return config.autocapture.networkTracking;
+    } else if (config.networkTrackingOptions) {
+      return config.networkTrackingOptions;
+    }
   }
   return;
 };
