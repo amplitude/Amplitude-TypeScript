@@ -23,7 +23,7 @@ describe('libraryPlugin', () => {
   it('should have the correct plugin type and name', () => {
     const plugin = libraryPlugin();
 
-    expect(plugin.type).toBe('before');
+    expect(plugin.type).toBe('enrichment');
     expect(plugin.name).toBe('@amplitude/unified-library-plugin');
   });
 });
