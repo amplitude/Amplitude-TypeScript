@@ -11,18 +11,17 @@ import {
 
 type AutocaptureOptionsDefaultAvailable = Pick<
   AutocaptureOptions,
-  'pageViews' |
-  'sessions' |
-  'fileDownloads' |
-  'formInteractions' |
-  'attribution'
+  'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution'
 >;
 
 /**
  * Returns false if autocapture === false or if autocapture[event],
  * otherwise returns true
  */
-const isTrackingEnabled = (autocapture: AutocaptureOptionsDefaultAvailable | boolean | undefined, event: keyof AutocaptureOptionsDefaultAvailable) => {
+const isTrackingEnabled = (
+  autocapture: AutocaptureOptionsDefaultAvailable | boolean | undefined,
+  event: keyof AutocaptureOptionsDefaultAvailable,
+) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
@@ -56,10 +55,6 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
  * otherwise returns false
  */
 export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
-  if (typeof autocapture === 'boolean') {
-    return autocapture;
-  }
-
   if (
     typeof autocapture === 'object' &&
     (autocapture.networkTracking === true || typeof autocapture.networkTracking === 'object')
@@ -104,8 +99,12 @@ export const getElementInteractionsConfig = (config: BrowserOptions): ElementInt
 };
 
 export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackingOptions | undefined => {
-  if (isNetworkTrackingEnabled(config.autocapture) && config.networkTrackingOptions) {
-    return config.networkTrackingOptions;
+  if (isNetworkTrackingEnabled(config.autocapture)) {
+    if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
+      return config.autocapture.networkTracking;
+    } else if (config.networkTrackingOptions) {
+      return config.networkTrackingOptions;
+    }
   }
   return;
 };

@@ -295,9 +295,54 @@ describe('getAttributionTrackingConfig', () => {
 });
 
 describe('getNetworkTrackingConfig', () => {
-  test('should return undefined when networkTracking is not defined', () => {
+  test('should return autocapture.networkTracking if it is an object', () => {
+    const autocapture = {
+      networkTracking: {
+        ignoreAmplitudeRequests: true,
+        ignoreHosts: ['example.com'],
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      },
+    };
     const config = getNetworkTrackingConfig({
-      networkTrackingOptions: undefined,
+      autocapture,
+    });
+    expect(typeof config).toBe('object');
+    expect(config).toEqual(autocapture.networkTracking);
+  });
+
+  test('should return "networkTrackingOptions" if is defined and autocapture.networkTracking=true (deprecated)', () => {
+    const autocapture = {
+      networkTracking: true,
+    };
+    const networkTrackingOptions = {
+      ignoreAmplitudeRequests: true,
+      ignoreHosts: ['example.com'],
+      captureRules: [
+        {
+          hosts: ['example.com'],
+          statusCodeRange: '500-599',
+        },
+      ],
+    };
+    const config = getNetworkTrackingConfig({
+      autocapture,
+      networkTrackingOptions,
+    });
+    expect(typeof config).toBe('object');
+    expect(config).toEqual(networkTrackingOptions);
+  });
+
+  test('should return undefined when autocapture is not defined', () => {
+    const autocapture = undefined;
+    const networkTrackingOptions = {};
+    const config = getNetworkTrackingConfig({
+      autocapture,
+      networkTrackingOptions,
     });
     expect(config).toBeUndefined();
   });
@@ -320,33 +365,6 @@ describe('getNetworkTrackingConfig', () => {
       },
     });
     expect(config).toBeUndefined();
-  });
-
-  test('should return default config when networkTracking is true', () => {
-    const config = getNetworkTrackingConfig({
-      autocapture: {
-        networkTracking: true,
-      },
-      networkTrackingOptions: {
-        ignoreAmplitudeRequests: false,
-        ignoreHosts: ['example.com'],
-        captureRules: [
-          {
-            hosts: ['example.com'],
-            statusCodeRange: '500-599',
-          },
-        ],
-      },
-    });
-
-    expect(config?.ignoreAmplitudeRequests).toBe(false);
-    expect(config?.ignoreHosts).toEqual(['example.com']);
-    expect(config?.captureRules).toEqual([
-      {
-        hosts: ['example.com'],
-        statusCodeRange: '500-599',
-      },
-    ]);
   });
 });
 

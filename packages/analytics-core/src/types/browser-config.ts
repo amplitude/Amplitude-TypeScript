@@ -163,7 +163,7 @@ export interface AutocaptureOptions {
    * Enables/disables network request tracking.
    * @defaultValue `false`
    */
-  networkTracking?: boolean;
+  networkTracking?: boolean | NetworkTrackingOptions;
 }
 
 export interface TrackingOptions {
