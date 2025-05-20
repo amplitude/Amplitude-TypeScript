@@ -9,11 +9,20 @@ import {
   NetworkTrackingOptions,
 } from '@amplitude/analytics-core';
 
+type AutocaptureOptionsDefaultAvailable = Pick<
+  AutocaptureOptions,
+  'pageViews' |
+  'sessions' |
+  'fileDownloads' |
+  'formInteractions' |
+  'attribution'
+>;
+
 /**
  * Returns false if autocapture === false or if autocapture[event],
  * otherwise returns true
  */
-const isTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined, event: keyof AutocaptureOptions) => {
+const isTrackingEnabled = (autocapture: AutocaptureOptionsDefaultAvailable | boolean | undefined, event: keyof AutocaptureOptionsDefaultAvailable) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
@@ -42,9 +51,8 @@ export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boole
 
 /**
  * Returns true if
- * 1. autocapture === true
- * 2. if autocapture.networkTracking === true
- * 3. if autocapture.networkTracking === object
+ * 1. if autocapture.networkTracking === true
+ * 2. if autocapture.networkTracking === object
  * otherwise returns false
  */
 export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
