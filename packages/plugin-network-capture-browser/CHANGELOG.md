@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.7-networktrackingprereleasemay.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.2.0-fetchhardeningxhrsupport.0...@amplitude/plugin-network-capture-browser@1.1.7-networktrackingprereleasemay.0) (2025-05-20)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
 ## [1.1.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.5...@amplitude/plugin-network-capture-browser@1.1.6) (2025-05-14)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

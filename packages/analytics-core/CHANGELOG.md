@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.12.1-networktrackingprereleasemay.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.13.0-fetchhardeningxhrsupport.0...@amplitude/analytics-core@2.12.1-networktrackingprereleasemay.0) (2025-05-20)
+
+
+### Bug Fixes
+
+* **analytics-browser:** support autocapture.networkTracking as object ([#1095](https://github.com/amplitude/Amplitude-TypeScript/issues/1095)) ([121abc7](https://github.com/amplitude/Amplitude-TypeScript/commit/121abc7e69a354cc704de7cbe493b8c79fa6eacd))
+
+
+
+
+
 # [2.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.11.2...@amplitude/analytics-core@2.12.0) (2025-05-13)
 
 
