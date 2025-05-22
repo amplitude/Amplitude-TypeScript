@@ -105,7 +105,15 @@ export class SessionReplay implements AmplitudeSessionReplay {
     );
     this.config = joinedConfig;
 
-    this.setMetadata(options.sessionId, joinedConfig, localConfig, remoteConfig, options.version?.version, VERSION);
+    this.setMetadata(
+      options.sessionId,
+      joinedConfig,
+      localConfig,
+      remoteConfig,
+      options.version?.version,
+      VERSION,
+      options.version?.type,
+    );
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -524,6 +532,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.sendEvents();
   }
 
+  private mapSDKType(sdkType: string | undefined) {
+    if (sdkType === 'plugin') {
+      return '@amplitude/plugin-session-replay-browser';
+    }
+
+    if (sdkType === 'segment') {
+      return '@amplitude/segment-session-replay-plugin';
+    }
+
+    return null;
+  }
+
   private setMetadata(
     sessionId: string | number | undefined,
     joinedConfig: SessionReplayJoinedConfig,
@@ -531,6 +551,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     remoteConfig: SessionReplayRemoteConfig | undefined,
     replaySDKVersion: string | undefined,
     standaloneSDKVersion: string | undefined,
+    sdkType: string | undefined,
   ) {
     const hashValue = sessionId?.toString() ? generateHashCode(sessionId.toString()) : undefined;
 
@@ -541,7 +562,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       sessionId,
       hashValue,
       sampleRate: joinedConfig.sampleRate,
-      replaySDKType: '@amplitude/plugin-session-replay-browser',
+      replaySDKType: this.mapSDKType(sdkType),
       replaySDKVersion,
       standaloneSDKType: '@amplitude/session-replay-browser',
       standaloneSDKVersion,
