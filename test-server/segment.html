@@ -23,8 +23,6 @@
     import * as amplitude from 'https://cdn.skypack.dev/@amplitude/analytics-browser';
     window.amplitude = amplitude;
 
-    //const userId = "Fanatics Test 4:45pm";
-
     amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, null, {
       autocapture: {
         pageViews: true,
@@ -42,7 +40,6 @@
       },
     });
 
-    // Optional: Send a custom event to test
     window.sendSegmentEvent = () => {
       const sessionId = amplitude.getSessionId();
       const deviceId = amplitude.getDeviceId();
@@ -66,7 +63,10 @@
 </head>
 
 <body>
-  <h1>Hello Segment + Amplitude!</h1>
+  <h1>Segment + Amplitude</h1>
+  <div>
+    This is a test page for Segment + Amplitude integration with AutoCapture.
+  </div>
   <button onclick="sendSegmentEvent();">
     Track Event
   </button>
