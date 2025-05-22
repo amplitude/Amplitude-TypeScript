@@ -1481,5 +1481,14 @@ describe('SessionReplay', () => {
       const metadata = (sessionReplay as any).metadata;
       expect(metadata?.replaySDKVersion).toBe(customVersion);
     });
+
+    test('should set replaySDKType to @amplitude/segment-session-replay-plugin if type is segment', async () => {
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        version: { version: '1.8.7', type: 'segment' },
+      }).promise;
+      const metadata = (sessionReplay as any).metadata;
+      expect(metadata?.replaySDKType).toBe('@amplitude/segment-session-replay-plugin');
+    });
   });
 });
