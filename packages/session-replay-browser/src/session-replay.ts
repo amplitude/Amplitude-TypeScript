@@ -389,7 +389,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.networkObservers?.start((event: NetworkRequestEvent) => {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });
-    const { privacyConfig, interactionConfig, loggingConfig, ugcFilterRules } = config;
+    const { privacyConfig, interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
       ? {
@@ -399,7 +399,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
               eventsManager: this.eventsManager,
               sessionId,
               deviceIdFn: this.getDeviceId.bind(this),
-              ugcFilterRules,
+              ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
             }),
           scroll: this.scrollHook,
         }

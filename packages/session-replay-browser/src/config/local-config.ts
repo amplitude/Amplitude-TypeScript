@@ -7,9 +7,9 @@ import {
   PrivacyConfig,
   SessionReplayPerformanceConfig,
   SessionReplayVersion,
-  UGCFilterRule,
 } from './types';
 import { SafeLoggerProvider } from '../logger';
+import { validateUGCFilterRules } from '../helpers';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -31,7 +31,6 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
   experimental?: { useWebWorker: boolean };
-  ugcFilterRules?: UGCFilterRule[];
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -55,10 +54,17 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.version = options.version;
     this.performanceConfig = options.performanceConfig;
     this.storeType = options.storeType ?? 'idb';
-    this.ugcFilterRules = options.ugcFilterRules;
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;
+    }
+    if (options.interactionConfig) {
+      this.interactionConfig = options.interactionConfig;
+
+      // validate ugcFilterRules, throw error if invalid - throw error at the beginning of the config
+      if (this.interactionConfig.ugcFilterRules) {
+        validateUGCFilterRules(this.interactionConfig.ugcFilterRules);
+      }
     }
     if (options.debugMode) {
       this.debugMode = options.debugMode;

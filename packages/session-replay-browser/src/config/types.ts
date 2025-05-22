@@ -10,6 +10,10 @@ export interface InteractionConfig {
   trackEveryNms?: number;
   enabled: boolean; // defaults to false
   batch: boolean; // defaults to false
+  /**
+   * UGC filter rules.
+   */
+  ugcFilterRules?: UGCFilterRule[];
 }
 
 export interface LoggingConfig {
@@ -137,10 +141,8 @@ export interface SessionReplayLocalConfig extends IConfig {
      */
     useWebWorker: boolean;
   };
-  /**
-   * UGC filter rules.
-   */
-  ugcFilterRules?: UGCFilterRule[];
+
+  interactionConfig?: InteractionConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

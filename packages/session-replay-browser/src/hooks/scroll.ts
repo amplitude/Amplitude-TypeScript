@@ -36,7 +36,7 @@ export class ScrollWatcher {
   private _maxScrollWidth: number;
   private _maxScrollHeight: number;
   private readonly transport: BeaconTransport<ScrollEventPayload>;
-  private readonly config: Pick<SessionReplayJoinedConfig, 'loggerProvider' | 'ugcFilterRules'>;
+  private readonly config: Pick<SessionReplayJoinedConfig, 'loggerProvider' | 'interactionConfig'>;
 
   static default(
     context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>,
@@ -47,7 +47,7 @@ export class ScrollWatcher {
 
   constructor(
     transport: BeaconTransport<ScrollEventPayload>,
-    config: Pick<SessionReplayJoinedConfig, 'loggerProvider' | 'ugcFilterRules'>,
+    config: Pick<SessionReplayJoinedConfig, 'loggerProvider' | 'interactionConfig'>,
   ) {
     this._maxScrollX = 0;
     this._maxScrollY = 0;
@@ -116,7 +116,7 @@ export class ScrollWatcher {
 
             viewportHeight: getWindowHeight(),
             viewportWidth: getWindowWidth(),
-            pageUrl: getPageUrl(this.config.loggerProvider, globalScope.location.href, this.config.ugcFilterRules),
+            pageUrl: getPageUrl(globalScope.location.href, this.config.interactionConfig?.ugcFilterRules ?? []),
             timestamp: this.timestamp,
             type: 'scroll',
           },

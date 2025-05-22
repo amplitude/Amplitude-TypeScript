@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { PrivacyConfig } from '../src/config/types';
 import {
   MASK_TEXT_CLASS,
@@ -11,6 +13,7 @@ import { generateHashCode, getServerUrl, getStorageSize, isSessionInSample, mask
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { getPageUrl } from '../src/helpers';
 import { UGCFilterRule } from '../src/config/types';
+import { validateUGCFilterRules } from '../src/helpers';
 
 describe('SessionReplayPlugin helpers', () => {
   describe('maskFn -- input', () => {
@@ -273,45 +276,10 @@ describe('SessionReplayPlugin helpers', () => {
   });
 
   describe('getPageUrl', () => {
-    const mockLogger = {
-      error: jest.fn(),
-      log: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
-      disable: jest.fn(),
-      enable: jest.fn(),
-    };
-
-    beforeEach(() => {
-      jest.clearAllMocks();
-    });
-
     test('should return original URL when no filter rules are provided', () => {
       const url = 'https://example.com/page';
-      const result = getPageUrl(mockLogger, url);
+      const result = getPageUrl(url, []);
       expect(result).toBe(url);
-      expect(mockLogger.error).not.toHaveBeenCalled();
-    });
-
-    test('should return original URL when filter rules have invalid format', () => {
-      const url = 'https://example.com/page';
-      const invalidRules = [
-        { selector: 123, replacement: 'replacement' },
-        { selector: 'pattern', replacement: 456 },
-      ] as unknown as UGCFilterRule[];
-      const result = getPageUrl(mockLogger, url, invalidRules);
-      expect(result).toBe(url);
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        'ugcFilterRules must be an array of objects with selector and replacement properties',
-      );
-    });
-
-    test('should return original URL when filter rules contain invalid glob patterns', () => {
-      const url = 'https://example.com/page';
-      const invalidRules: UGCFilterRule[] = [{ selector: 'invalid[pattern', replacement: 'replacement' }];
-      const result = getPageUrl(mockLogger, url, invalidRules);
-      expect(result).toBe(url);
-      expect(mockLogger.error).toHaveBeenCalledWith('ugcFilterRules must be an array of objects with valid globs');
     });
 
     test('should apply single filter rule correctly', () => {
@@ -319,9 +287,8 @@ describe('SessionReplayPlugin helpers', () => {
       const rules: UGCFilterRule[] = [
         { selector: 'https://example.com/user/*', replacement: 'https://example.com/user/user_id' },
       ];
-      const result = getPageUrl(mockLogger, url, rules);
+      const result = getPageUrl(url, rules);
       expect(result).toBe('https://example.com/user/user_id');
-      expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
     test('should apply multiple first matching rule in order', () => {
@@ -333,9 +300,8 @@ describe('SessionReplayPlugin helpers', () => {
           replacement: 'https://example.com/user/user_id/profile_page',
         },
       ];
-      const result = getPageUrl(mockLogger, url, rules);
+      const result = getPageUrl(url, rules);
       expect(result).toBe('https://example.com/user/user_id/space_name');
-      expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
     test('should handle complex glob patterns', () => {
@@ -346,9 +312,8 @@ describe('SessionReplayPlugin helpers', () => {
           replacement: 'https://example.com/products/category_id/item_id',
         },
       ];
-      const result = getPageUrl(mockLogger, url, rules);
+      const result = getPageUrl(url, rules);
       expect(result).toBe('https://example.com/products/category_id/item_id');
-      expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
     test('should handle wildcard in glob patterns', () => {
@@ -356,9 +321,8 @@ describe('SessionReplayPlugin helpers', () => {
       const rules: UGCFilterRule[] = [
         { selector: 'https://*.com/*/*', replacement: 'https://company_name.com/category_id/item_id' },
       ];
-      const result = getPageUrl(mockLogger, url, rules);
+      const result = getPageUrl(url, rules);
       expect(result).toBe('https://company_name.com/category_id/item_id');
-      expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
     test('should handle question mark in glob patterns', () => {
@@ -366,9 +330,39 @@ describe('SessionReplayPlugin helpers', () => {
       const rules: UGCFilterRule[] = [
         { selector: 'https://example.com/p?ge', replacement: 'https://example.com/page' },
       ];
-      const result = getPageUrl(mockLogger, url, rules);
+      const result = getPageUrl(url, rules);
       expect(result).toBe('https://example.com/page');
-      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('validateUGCFilterRules', () => {
+    test('should not throw for valid rules', () => {
+      const rules = [
+        { selector: 'https://example.com/user/*', replacement: 'https://example.com/user/user_id' },
+        { selector: 'https://example.com/product/*', replacement: 'https://example.com/product/product_id' },
+      ];
+      expect(() => validateUGCFilterRules(rules)).not.toThrow();
+    });
+
+    test('should throw for non-string selector', () => {
+      const rules = [{ selector: 123, replacement: 'replacement' }] as unknown as UGCFilterRule[];
+      expect(() => validateUGCFilterRules(rules)).toThrow(
+        'ugcFilterRules must be an array of objects with selector and replacement properties',
+      );
+    });
+
+    test('should throw for non-string replacement', () => {
+      const rules: any = [{ selector: 'pattern', replacement: 456 }];
+      expect(() => validateUGCFilterRules(rules)).toThrow(
+        'ugcFilterRules must be an array of objects with selector and replacement properties',
+      );
+    });
+
+    test('should throw for invalid glob pattern', () => {
+      const rules: any = [{ selector: 'invalid[pattern', replacement: 'replacement' }];
+      expect(() => validateUGCFilterRules(rules)).toThrow(
+        'ugcFilterRules must be an array of objects with valid globs',
+      );
     });
   });
 });

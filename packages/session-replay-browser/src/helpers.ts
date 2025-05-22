@@ -1,4 +1,4 @@
-import { getGlobalScope, ILogger, ServerZone } from '@amplitude/analytics-core';
+import { getGlobalScope, ServerZone } from '@amplitude/analytics-core';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig, UGCFilterRule } from './config/types';
 import {
   KB_SIZE,
@@ -153,15 +153,10 @@ const globToRegex = (glob: string): RegExp => {
   return new RegExp(`^${escaped}$`);
 };
 
-export const getPageUrl = (logger: ILogger, pageUrl: string, ugcFilterRules?: UGCFilterRule[]) => {
-  if (!ugcFilterRules) {
-    return pageUrl;
-  }
-
+export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
   // validate ugcFilterRules
   if (!ugcFilterRules.every((rule) => typeof rule.selector === 'string' && typeof rule.replacement === 'string')) {
-    logger.error('ugcFilterRules must be an array of objects with selector and replacement properties');
-    return pageUrl;
+    throw new Error('ugcFilterRules must be an array of objects with selector and replacement properties');
   }
 
   // validate ugcFilterRules are valid globs
@@ -175,10 +170,11 @@ export const getPageUrl = (logger: ILogger, pageUrl: string, ugcFilterRules?: UG
       }
     })
   ) {
-    logger.error('ugcFilterRules must be an array of objects with valid globs');
-    return pageUrl;
+    throw new Error('ugcFilterRules must be an array of objects with valid globs');
   }
+};
 
+export const getPageUrl = (pageUrl: string, ugcFilterRules: UGCFilterRule[]) => {
   // apply ugcFilterRules, order is important, first rule wins
   for (const rule of ugcFilterRules) {
     const regex = globToRegex(rule.selector);

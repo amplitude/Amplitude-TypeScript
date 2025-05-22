@@ -7,7 +7,7 @@ import {
   removeInvalidSelectorsFromPrivacyConfig,
 } from '../../src/config/joined-config';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
-import { PrivacyConfig, SessionReplayRemoteConfig } from '../../src/config/types';
+import { PrivacyConfig, SessionReplayRemoteConfig, UGCFilterRule } from '../../src/config/types';
 import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 
 type MockedLogger = jest.Mocked<ILogger>;
@@ -276,6 +276,66 @@ describe('SessionReplayJoinedConfigGenerator', () => {
             unmaskSelector: undefined,
           },
         });
+      });
+    });
+
+    describe('with interaction config', () => {
+      test('should validate UGC filter rules when provided', () => {
+        const validRules = [
+          { selector: 'https://example.com/user/*', replacement: 'https://example.com/user/user_id' },
+          { selector: 'https://example.com/product/*', replacement: 'https://example.com/product/product_id' },
+        ];
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          interactionConfig: {
+            enabled: true,
+            batch: false,
+            ugcFilterRules: validRules,
+          },
+        });
+        expect(config.interactionConfig?.ugcFilterRules).toEqual(validRules);
+      });
+
+      test('should throw error for invalid UGC filter rules with non-string selector', () => {
+        const invalidRules = [{ selector: 123, replacement: 'replacement' }] as unknown as UGCFilterRule[];
+        expect(() => {
+          new SessionReplayLocalConfig('static_key', {
+            ...mockOptions,
+            interactionConfig: {
+              enabled: true,
+              batch: false,
+              ugcFilterRules: invalidRules,
+            },
+          });
+        }).toThrow('ugcFilterRules must be an array of objects with selector and replacement properties');
+      });
+
+      test('should throw error for invalid UGC filter rules with non-string replacement', () => {
+        const invalidRules = [{ selector: 'pattern', replacement: 456 }] as unknown as UGCFilterRule[];
+        expect(() => {
+          new SessionReplayLocalConfig('static_key', {
+            ...mockOptions,
+            interactionConfig: {
+              enabled: true,
+              batch: false,
+              ugcFilterRules: invalidRules,
+            },
+          });
+        }).toThrow('ugcFilterRules must be an array of objects with selector and replacement properties');
+      });
+
+      test('should throw error for invalid UGC filter rules with invalid glob pattern', () => {
+        const invalidRules = [{ selector: 'invalid[pattern', replacement: 'replacement' }];
+        expect(() => {
+          new SessionReplayLocalConfig('static_key', {
+            ...mockOptions,
+            interactionConfig: {
+              enabled: true,
+              batch: false,
+              ugcFilterRules: invalidRules,
+            },
+          });
+        }).toThrow('ugcFilterRules must be an array of objects with valid globs');
       });
     });
   });

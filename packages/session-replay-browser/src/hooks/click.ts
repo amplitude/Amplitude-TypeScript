@@ -26,7 +26,7 @@ type Options = {
   sessionId: string | number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
-  ugcFilterRules?: UGCFilterRule[];
+  ugcFilterRules: UGCFilterRule[];
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
@@ -105,7 +105,7 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
 
     const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
 
-    const maskedPageUrl = getPageUrl(logger, location.href, ugcFilterRules);
+    const pageUrl = getPageUrl(location.href, ugcFilterRules);
 
     const event: ClickEvent = {
       x: x + scrollX,
@@ -114,7 +114,7 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
 
       viewportHeight: innerHeight,
       viewportWidth: innerWidth,
-      pageUrl: maskedPageUrl,
+      pageUrl,
       timestamp: Date.now(),
       type: 'click',
     };

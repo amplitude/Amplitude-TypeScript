@@ -1135,6 +1135,81 @@ describe('SessionReplay', () => {
       await sessionReplay.recordEvents();
       expect(warnSpy).toHaveBeenCalledWith('Failed to initialize session replay:', expect.any(Error));
     });
+
+    test('should pass empty array for ugcFilterRules when not provided', async () => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+          return {
+            enabled: true,
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
+
+      expect(mouseInteractionHook).toBeDefined();
+      expect(mouseInteractionHook).toBeInstanceOf(Function);
+    });
+
+    test('should pass provided ugcFilterRules when configured', async () => {
+      const mockUgcFilterRules = ['rule1', 'rule2'];
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+          return {
+            enabled: true,
+            ugcFilterRules: mockUgcFilterRules,
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
+
+      expect(mouseInteractionHook).toBeDefined();
+      expect(mouseInteractionHook).toBeInstanceOf(Function);
+    });
+
+    test('should pass empty array for ugcFilterRules when explicitly set to empty', async () => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+          return {
+            enabled: true,
+            ugcFilterRules: [],
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = record.mock.calls[0][0];
+      const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
+
+      expect(mouseInteractionHook).toBeDefined();
+      expect(mouseInteractionHook).toBeInstanceOf(Function);
+    });
   });
 
   describe('getDeviceId', () => {
