@@ -310,7 +310,7 @@ export class NetworkRequestEvent {
     public readonly startTime: number,
     public readonly url?: string,
     public readonly requestWrapper?: IRequestWrapper,
-    public readonly status?: number,
+    public readonly status: number = 0,
     public readonly duration?: number,
     public readonly responseWrapper?: IResponseWrapper,
     public readonly error?: {

@@ -281,6 +281,22 @@ describe('track-network-event', () => {
   });
 
   describe('shouldTrackNetworkEvent returns false when', () => {
+    test('status code is empty', () => {
+      const networkEvent = new NetworkRequestEvent(
+        'fetch',
+        'POST',
+        0,
+        0,
+        'https://example.com/track',
+        // leave status empty
+      );
+      const result = shouldTrackNetworkEvent(
+        networkEvent,
+        localConfig.networkTrackingOptions as NetworkTrackingOptions,
+      );
+      expect(result).toBe(false);
+    });
+
     test('domain is amplitude.com', () => {
       networkEvent.url = 'https://api.amplitude.com/track';
       expect(shouldTrackNetworkEvent(networkEvent)).toBe(false);
