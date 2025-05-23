@@ -281,6 +281,19 @@ describe('track-network-event', () => {
   });
 
   describe('shouldTrackNetworkEvent returns false when', () => {
+    test('network request body contains "[Amplitude] Network Request"', () => {
+      networkEvent.url = 'https://api2.amplitude.com/track';
+      const body =
+        '{"api_key":"*****","events":[{"user_id":"****","device_id":"a1c372c9-e8bb-4be2-9865-1ba97787d485","session_id":1747961537096,"time":1747963021841,"platform":"Web","language":"en-US","ip":"$remote","insert_id":"22c2c614-ca7c-4668-9ad4-1576f3372bc0","event_type":"[Amplitude] Page Viewed","event_properties":{"referrer":"http://localhost:5173/browser-sdk/fetch.html","referring_domain":"localhost:5173","[Amplitude] Page Domain":"localhost","[Amplitude] Page Location":"http://localhost:5173/browser-sdk/fetch.html","[Amplitude] Page Path":"/browser-sdk/fetch.html","[Amplitude] Page Title":"Fetch & XHR Network Tracking Test","[Amplitude] Page URL":"http://localhost:5173/browser-sdk/fetch.html","[Amplitude] Page Counter":24},"event_id":14683,"library":"amplitude-ts/2.17.6","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"},{"user_id":"daniel.graham.dev","device_id":"a1c372c9-e8bb-4be2-9865-1ba97787d485","session_id":1747961537096,"time":1747963022828,"platform":"Web","language":"en-US","ip":"$remote","insert_id":"d5c71b76-22d5-4bbf-9b44-79a8b315a47f","event_type":"[Amplitude] Network Request","event_properties":{"[Amplitude] URL":"https://httpstat.us/200","[Amplitude] URL Query":"","[Amplitude] URL Fragment":"","[Amplitude] Request Method":"POST","[Amplitude] Status Code":0,"[Amplitude] Start Time":1747963022814,"[Amplitude] Completion Time":1747963022825,"[Amplitude] Duration":11,"[Amplitude] Request Body Size":28,"[Amplitude] Request Type":"fetch"},"event_id":14684,"library":"amplitude-ts/2.17.6","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"}],"options":{},"client_upload_time":"2025-05-23T01:17:02.843Z","request_metadata":{"sdk":{"metrics":{"histogram":{"remote_config_fetch_time_API_success":6}}}}}';
+      networkEvent.requestWrapper.body = body;
+      const networkTracking = {
+        ignoreAmplitudeRequests: false,
+        captureRules: [{ hosts: ['*'], statusCodeRange: '200-299' }],
+      };
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(false);
+    });
+
     test('domain is amplitude.com', () => {
       networkEvent.url = 'https://api.amplitude.com/track';
       expect(shouldTrackNetworkEvent(networkEvent)).toBe(false);
