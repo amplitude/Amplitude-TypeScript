@@ -8,6 +8,7 @@ import {
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
+import { IRequestWrapper } from '@amplitude/analytics-core/lib/esm/network-request-event';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -73,6 +74,26 @@ function parseUrl(url: string | undefined) {
   }
 }
 
+function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWrapper): boolean {
+  if (host.includes('amplitude.com')) {
+    try {
+      const body = requestWrapper.body;
+      if (typeof body !== 'string') {
+        return false;
+      }
+      const bodyObj = JSON.parse(body) as { events: any[] };
+      const { events } = bodyObj;
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
+      if (events.find((event: any) => event.event_type === AMPLITUDE_NETWORK_REQUEST_EVENT)) {
+        return true;
+      }
+    } catch (e) {
+      // do nothing
+    }
+  }
+  return false;
+}
+
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
   const urlObj = parseUrl(networkEvent.url);
   /* istanbul ignore if */
@@ -120,6 +141,11 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     if (!isMatch) {
       return false;
     }
+  }
+
+  // skip Amplitude network requests to "[Amplitude] Network Request" to avoid infinite loop
+  if (networkEvent.requestWrapper && isAmplitudeNetworkRequestEvent(host, networkEvent.requestWrapper)) {
+    return false;
   }
 
   return true;

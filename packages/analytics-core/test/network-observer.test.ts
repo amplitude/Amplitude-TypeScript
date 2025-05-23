@@ -825,6 +825,24 @@ describe('RequestWrapperFetch', () => {
       }
     },
   );
+
+  test('should return string if request.body is a string', () => {
+    const requestWrapper = new RequestWrapperFetch({
+      body: 'Hello World!',
+      headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+      status: 200,
+    } as unknown as RequestInitSafe);
+    expect(requestWrapper.body).toBe('Hello World!');
+  });
+
+  it('should return null if request.body is not a string', () => {
+    const requestWrapper = new RequestWrapperFetch({
+      body: null,
+      headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+      status: 200,
+    } as unknown as RequestInitSafe);
+    expect(requestWrapper.body).toBe(null);
+  });
 });
 
 describe('networkObserver', () => {
