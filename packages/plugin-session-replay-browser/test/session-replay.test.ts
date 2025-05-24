@@ -191,7 +191,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
-    test('should call initalize on session replay sdk', async () => {
+    test('should call initialize on session replay sdk', async () => {
       const sessionReplay = new SessionReplayPlugin({
         sampleRate: 0.4,
         privacyConfig: {
@@ -222,7 +222,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
-    test('should call initalize on session replay sdk with custom server urls', async () => {
+    test('should call initialize on session replay sdk with custom server urls', async () => {
       const configServerUrl = 'http://localhost:3000';
       const trackServerUrl = 'http://localhost:3001';
 

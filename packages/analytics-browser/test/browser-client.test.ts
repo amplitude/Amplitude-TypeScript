@@ -138,7 +138,7 @@ describe('browser-client', () => {
       expect(client.getUserId()).toBe(undefined);
     });
 
-    test('should set initalize with undefined user id', async () => {
+    test('should set initialize with undefined user id', async () => {
       client.setOptOut(true);
       await client.init(apiKey, undefined).promise;
       expect(client.getUserId()).toBe(undefined);
