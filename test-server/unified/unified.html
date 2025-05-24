@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser SDK Test</title>
+  </head>
+  <body>
+    <div id="app">
+      Test page for Unified SDK
+    </div>
+    <script type="module">  
+      import * as amplitudeUnified from '@amplitude/unified';
+      const { initAll } = amplitudeUnified;
+      const res = await initAll(import.meta.env.VITE_AMPLITUDE_API_KEY);
+      
+    </script>
+  </body>
+</html>
