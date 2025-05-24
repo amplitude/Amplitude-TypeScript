@@ -27,12 +27,12 @@ describe('AmplitudeUnified', () => {
       undefined,
     ])('should initialize all plugins and assign sr and experiment properties', async (unifiedOptions) => {
       const client = new AmplitudeUnified();
-      expect(client.sr).toBeUndefined();
+      expect(client.sessionReplay).toBeUndefined();
       expect(client.experiment).toBeUndefined();
 
       await client.initAll('test-api-key', unifiedOptions);
 
-      expect(client.sr).toBeDefined();
+      expect(client.sessionReplay).toBeDefined();
       expect(client.experiment).toBeDefined();
     });
 
@@ -43,7 +43,7 @@ describe('AmplitudeUnified', () => {
         if (name === SessionReplayPlugin.pluginName) return undefined;
         return originalPlugin(name);
       });
-      expect(client.sr).toBeUndefined();
+      expect(client.sessionReplay).toBeUndefined();
       expect(client.experiment).toBeUndefined();
 
       await client.initAll('test-api-key', {
@@ -52,7 +52,7 @@ describe('AmplitudeUnified', () => {
         },
       });
 
-      expect(client.sr).toBeUndefined();
+      expect(client.sessionReplay).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(`${SessionReplayPlugin.pluginName} plugin is not found.`);
       expect(client.experiment).toBeDefined();
     });
@@ -62,7 +62,7 @@ describe('AmplitudeUnified', () => {
       jest.spyOn(client, 'plugins').mockImplementation((_) => {
         return [];
       });
-      expect(client.sr).toBeUndefined();
+      expect(client.sessionReplay).toBeUndefined();
       expect(client.experiment).toBeUndefined();
 
       await client.initAll('test-api-key', {
@@ -71,7 +71,7 @@ describe('AmplitudeUnified', () => {
         },
       });
 
-      expect(client.sr).toBeDefined();
+      expect(client.sessionReplay).toBeDefined();
       expect(client.experiment).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(`${ExperimentPlugin.pluginName} plugin is not found.`);
     });
@@ -81,7 +81,7 @@ describe('AmplitudeUnified', () => {
       jest.spyOn(client, 'plugins').mockImplementation((_) => {
         return [];
       });
-      expect(client.sr).toBeUndefined();
+      expect(client.sessionReplay).toBeUndefined();
       expect(client.experiment).toBeUndefined();
 
       await client.initAll('test-api-key', {
@@ -90,7 +90,7 @@ describe('AmplitudeUnified', () => {
         },
       });
 
-      expect(client.sr).toBeDefined();
+      expect(client.sessionReplay).toBeDefined();
       expect(client.experiment).toBeUndefined();
       expect(mockLoggerProviderDebug).toHaveBeenCalledWith(`${ExperimentPlugin.pluginName} plugin is not found.`);
     });

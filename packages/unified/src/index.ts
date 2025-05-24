@@ -4,7 +4,7 @@ export { createInstance } from './unified-client-factory';
 export const {
   initAll,
   experiment,
-  sr,
+  sessionReplay,
   add,
   extendSession,
   flush,
