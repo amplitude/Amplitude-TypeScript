@@ -2,6 +2,15 @@
 
 This repository uses GitHub Actions for continuous integration. Contributors should replicate the CI steps locally before opening a pull request.
 
+## Local Environment Setup
+
+Before running any tests or scripts, install dependencies and build the packages:
+
+```bash
+yarn install --frozen-lockfile
+yarn build
+```
+
 ## Testing and Linting
 
 1. Install dependencies with `yarn install --frozen-lockfile`.
