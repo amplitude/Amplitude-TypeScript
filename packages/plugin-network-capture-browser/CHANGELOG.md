@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.1.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.7-main.0...@amplitude/plugin-network-capture-browser@1.1.7) (2025-05-27)
+
+
+### Bug Fixes
+
+* **analytics-browser:** support XHR in network capture ([#1089](https://github.com/amplitude/Amplitude-TypeScript/issues/1089)) ([339d49c](https://github.com/amplitude/Amplitude-TypeScript/commit/339d49cfa7b07ffc20fe085b8548f6489a3029f3))
+
+
+### Reverts
+
+* "chore(release): publish" ([#1094](https://github.com/amplitude/Amplitude-TypeScript/issues/1094)) ([f6db1ee](https://github.com/amplitude/Amplitude-TypeScript/commit/f6db1eed32ed77c7ce626624dc55972971f3b27d))
+
+
+
+
+
 ## [1.1.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.5...@amplitude/plugin-network-capture-browser@1.1.6) (2025-05-14)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

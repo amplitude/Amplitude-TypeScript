@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-web-attribution-browser",
-  "version": "2.1.51",
+  "version": "2.1.52",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -37,13 +37,13 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.3.21",
-    "@amplitude/analytics-core": "^2.12.0",
+    "@amplitude/analytics-client-common": "^2.3.22",
+    "@amplitude/analytics-core": "^2.12.1",
     "@amplitude/analytics-types": "^2.9.2",
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@amplitude/analytics-browser": "^2.17.6",
+    "@amplitude/analytics-browser": "^2.17.7",
     "@rollup/plugin-commonjs": "^23.0.4",
     "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-typescript": "^10.0.1",

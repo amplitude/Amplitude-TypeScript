@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.17.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.7-main.0...@amplitude/analytics-browser@2.17.7) (2025-05-27)
+
+
+### Bug Fixes
+
+* **analytics-browser:** support autocapture.networkTracking as object ([#1095](https://github.com/amplitude/Amplitude-TypeScript/issues/1095)) ([121abc7](https://github.com/amplitude/Amplitude-TypeScript/commit/121abc7e69a354cc704de7cbe493b8c79fa6eacd))
+
+
+### Reverts
+
+* "chore(release): publish" ([#1094](https://github.com/amplitude/Amplitude-TypeScript/issues/1094)) ([f6db1ee](https://github.com/amplitude/Amplitude-TypeScript/commit/f6db1eed32ed77c7ce626624dc55972971f3b27d))
+
+
+
+
+
 ## [2.17.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.5...@amplitude/analytics-browser@2.17.6) (2025-05-14)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
