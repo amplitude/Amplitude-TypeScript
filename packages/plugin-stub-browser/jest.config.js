@@ -7,5 +7,6 @@ module.exports = {
   rootDir: '.',
   testEnvironment: 'jsdom',
   coveragePathIgnorePatterns: ['index.ts'],
+  setupFiles: ['./test/setup.ts'],
 };
 

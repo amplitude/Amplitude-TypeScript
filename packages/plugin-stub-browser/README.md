@@ -8,13 +8,11 @@
 # @amplitude/plugin-stub-browser (beta)
 **This plugin is in beta at the moment, naming and interface might change in the future.**
 
-A stub plugin. Copy and paste this and rename to make a new plugin.
-
-And remove the "private: true" attribute from package.json
+A stub plugin. Copy and paste this and rename to make a new plugin
 
 ## Installation
 
-This package is not published on NPM registry and is available to be installed using npm and yarn.
+This package is published on NPM registry and is available to be installed using npm and yarn.
 
 ```sh
 # npm
