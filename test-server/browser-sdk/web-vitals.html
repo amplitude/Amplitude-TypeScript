@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Vitals</title>
+  </head>
+  <body>
+    <div id="app">
+      Web Vitals Tracking Example
+      <div>
+        <button id="inp-tester">INP TESTER</button>
+        <ul id="list"></ul>
+      </div>
+    </div>
+    <script>
+        let inpDelay = 100;
+        document.querySelector('#inp-tester').addEventListener('click', () => {
+          const list = document.querySelector('#list');
+          const newChild = document.createElement('li');
+          newChild.textContent = 'Another element to trigger INP';
+          setTimeout(() => {
+            list.appendChild(newChild);
+            inpDelay += 100;
+          }, inpDelay);
+        });
+    </script>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
+      window.amplitude = amplitude;
+      const plugin = webVitalsPlugin();
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {},
+      );
+      amplitude.add(plugin);
+    </script>
+  </body>
+</html>
