@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, getGlobalScope, UUID } from '@amplitude/analytics-core';
 import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from './constants';
-import { onLCP, onINP, onCLS, onFCP, FCPMetric } from 'web-vitals';
+import { onLCP, onINP, onCLS, onFCP, FCPMetric, LCPMetric, INPMetric, CLSMetric } from 'web-vitals';
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -22,11 +22,17 @@ interface WebVitalsPayload {
   ['[Amplitude] CLS']?: WebVitalsMetric;
 }
 
-const globalScope = getGlobalScope();
+function getMetricStartTime(metric: FCPMetric | LCPMetric | INPMetric | CLSMetric) {
+  /* istanbul ignore next */
+  const startTime = metric.entries[0]?.startTime || 0;
+  const epoch = performance.timeOrigin + startTime;
+  return new Date(epoch).toISOString();
+}
 
 export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
-  let visibilityListener: ((this: Document, ev: Event) => any) | null = null;
-  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+  let visibilityListener: ((this: Document, ev: Event) => void) | null = null;
+  const setup: BrowserEnrichmentPlugin['setup'] = async (_, amplitude) => {
+    const globalScope = getGlobalScope();
     const metricId = UUID();
     let isChanged = false;
     const doc = globalScope?.document;
@@ -39,54 +45,49 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
 
     onLCP((metric) => {
       isChanged = true;
-      const timestamp = performance.timeOrigin + (metric.entries[0]?.startTime || 0);
       webVitalsPayload['[Amplitude] LCP'] = {
         value: metric.value,
         rating: metric.rating,
         delta: metric.delta,
         navigationType: metric.navigationType,
         id: metric.id,
-        timestamp: new Date(timestamp).toISOString(),
+        timestamp: getMetricStartTime(metric),
       };
     });
 
     onFCP((metric) => {
       isChanged = true;
-      const timestamp = performance.timeOrigin + (metric.entries[0]?.startTime || 0);
       webVitalsPayload['[Amplitude] FCP'] = {
         value: metric.value,
         rating: metric.rating,
         delta: metric.delta,
         navigationType: metric.navigationType,
         id: metric.id,
-        timestamp: new Date(timestamp).toISOString(),
+        timestamp: getMetricStartTime(metric),
       };
     });
 
     onINP((metric) => {
-      console.log('INP metric:', metric);
       isChanged = true;
-      const timestamp = performance.timeOrigin + (metric.entries[0]?.startTime || 0);
       webVitalsPayload['[Amplitude] INP'] = {
         value: metric.value,
         rating: metric.rating,
         delta: metric.delta,
         navigationType: metric.navigationType,
         id: metric.id,
-        timestamp: new Date(timestamp).toISOString(),
+        timestamp: getMetricStartTime(metric),
       };
     });
 
     onCLS((metric) => {
       isChanged = true;
-      const timestamp = performance.timeOrigin + (metric.entries[0]?.startTime || 0);
       webVitalsPayload['[Amplitude] CLS'] = {
         value: metric.value,
         rating: metric.rating,
         delta: metric.delta,
         navigationType: metric.navigationType,
         id: metric.id,
-        timestamp: new Date(timestamp).toISOString(),
+        timestamp: getMetricStartTime(metric),
       };
     });
 
@@ -99,13 +100,14 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
     doc.addEventListener('visibilitychange', visibilityListener);
   };
 
-  /* istanbul ignore next */
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
     return event;
   };
 
   const teardown = async () => {
     if (visibilityListener) {
+      const globalScope = getGlobalScope();
+      /* istanbul ignore next */
       globalScope?.document?.removeEventListener('visibilitychange', visibilityListener);
     }
   };
