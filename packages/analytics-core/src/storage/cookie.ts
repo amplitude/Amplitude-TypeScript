@@ -16,17 +16,17 @@ export class CookieStorage<T> implements Storage<T> {
     }
 
     CookieStorage.testValue = String(Date.now());
-    const testStrorage = new CookieStorage<string>(this.options);
+    const testStorage = new CookieStorage<string>(this.options);
     const testKey = 'AMP_TEST';
     try {
-      await testStrorage.set(testKey, CookieStorage.testValue);
-      const value = await testStrorage.get(testKey);
+      await testStorage.set(testKey, CookieStorage.testValue);
+      const value = await testStorage.get(testKey);
       return value === CookieStorage.testValue;
     } catch {
       /* istanbul ignore next */
       return false;
     } finally {
-      await testStrorage.remove(testKey);
+      await testStorage.remove(testKey);
     }
   }
 
