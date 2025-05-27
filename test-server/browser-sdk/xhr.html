@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>XHR & Axios Network Tracking Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.9.0/dist/axios.js"></script>
+  </head>
+  <body>
+    <h1>XHR Network Tracking Manual Test Suite (Axios-Based)</h1>
+    <div>
+      <p>Review the console log for results.</p>
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      window.amplitude = amplitude;
+
+      axios.defaults.validateStatus = () => true;
+
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+            networkTracking: {
+              ignoreAmplitudeRequests: false,
+              ignoreHosts: [],
+              captureRules: [
+                { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
+                { hosts: ['httpstat.us'], statusCodeRange: '0,400-599' },
+                { hosts: ['*'], statusCodeRange: '0,300-599' },
+              ],
+            },
+          }
+        }
+      );
+
+      setTimeout(async () => {
+        let res;
+
+        const controller = new AbortController();
+        const signal = controller.signal;
+        try {
+          res = axios.post('https://httpstat.us/200', 'This request will be aborted', { signal });
+          controller.abort();
+          const awaitedRes = await res;
+          console.log('Aborted request response (should not log):', awaitedRes);
+        } catch (err) {
+          console.log('Aborted request error:', err);
+        }
+
+        // Basic GET 200
+        res = await axios.get('https://httpstat.us/200');
+        console.log('GET 200 response:', res);
+
+        // String body
+        res = await axios.post('https://httpstat.us/500', 'Hello, this is a test body');
+        console.log('String body response:', res);
+
+        // JSON object body
+        res = await axios.post('https://httpstat.us/501', { message: 'Hello', count: 42 });
+        console.log('JSON object body response:', res);
+
+        // FormData body
+        const formData = new FormData();
+        formData.append('text', 'Hello from FormData');
+        formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
+        res = await axios.post('https://httpstat.us/502', formData);
+        console.log('FormData body response:', res);
+
+        // URLSearchParams body
+        const params = new URLSearchParams();
+        params.append('param1', 'value1');
+        params.append('param2', 'value2');
+        res = await axios.post('https://httpstat.us/504', params);
+        console.log('URLSearchParams body response:', res);
+
+        // ArrayBuffer body
+        const buffer = new ArrayBuffer(8);
+        res = await axios.post('https://httpstat.us/505', buffer);
+        console.log('ArrayBuffer body response:', res);
+
+        // Blob body
+        const blob = new Blob(['Hello from Blob'], { type: 'text/plain' });
+        res = await axios.post('https://httpstat.us/506', blob);
+        console.log('Blob body response:', res);
+
+        // Stream body (Not natively supported by Axios, but included to match fetch tests)
+        try {
+          const stream = new ReadableStream({
+            start(controller) {
+              controller.enqueue('Hello from Stream');
+              controller.close();
+            },
+          });
+          res = await axios.post('https://httpstat.us/507', stream);
+          console.log('Stream body response:', res);
+        } catch (err) {
+          console.log('Stream body not supported by Axios:', err);
+        }
+
+        // GET 508
+        res = await axios.get('https://httpstat.us/508');
+        console.log('GET 508 response:', res);
+
+        // Additional HTTP Methods
+        res = await axios.head('https://httpstat.us/200');
+        console.log('HEAD 200 response:', res);
+
+        res = await axios.options('https://httpstat.us/200');
+        console.log('OPTIONS 200 response:', res);
+
+        res = await axios.delete('https://httpstat.us/200');
+        console.log('DELETE 200 response:', res);
+
+        res = await axios.put('https://httpstat.us/200', { update: true });
+        console.log('PUT 200 response:', res);
+
+        // Relative URL (likely 404)
+        try {
+          res = await axios.get('/api/test');
+          console.log('Relative URL response:', res);
+        } catch (err) {
+          console.log('Relative URL error:', err);
+        }
+
+        // CORS failure simulation
+        try {
+          res = await axios.get('https://example.com/non-cors-endpoint');
+          console.log('CORS failure response:', res);
+        } catch (err) {
+          console.log('CORS failure error:', err);
+        }
+
+        // Network failure (invalid domain)
+        try {
+          res = await axios.get('https://invalid.domain.test');
+          console.log('Network failure response:', res);
+        } catch (err) {
+          console.log('Network failure error:', err);
+        }
+
+        // Delayed response
+        res = await axios.get('https://httpstat.us/200?sleep=5000');
+        console.log('Delayed GET 200 response:', res);
+
+        console.log('Manual testing complete. Review console for outputs.');
+      }, 1000);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fetch & XHR Network Tracking Test</title>
+  </head>
+  <body>
+    <h1>Network Tracking Manual Test Suite</h1>
+    <div id="app">
+      <p>Review the console log for results.</p>
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      window.amplitude = amplitude;
+
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+            networkTracking: true,
+          },
+          networkTrackingOptions: {
+            ignoreAmplitudeRequests: false,
+            ignoreHosts: [],
+            captureRules: [
+              { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
+              { hosts: ['httpstat.us'], statusCodeRange: '0,400-599' },
+              { hosts: ['*'], statusCodeRange: '0,300-599' },
+            ],
+          },
+        }
+      );
+
+      const makeRequest = async (url, options) => {
+        try {
+          console.log('fetching', url, options);
+          const res = await fetch(url, options);
+          const contentType = res.headers.get('content-type') || '';
+          let data = contentType.includes('application/json') ? await res.json() : await res.text();
+          return {res, data, url, options};
+        } catch (error) {
+          console.error('Fetch error:', error);
+          return { status: 0, error };
+        }
+      };
+
+      function assert({res}) {
+        if (!(res instanceof Response)) {
+          throw new Error(`Test failed to receive a Response object`);
+        }
+      }
+
+      setTimeout(async () => {
+        let res;
+
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 10); // abort after 10ms
+
+        try {
+          const abortedRes = await fetch('https://httpstat.us/200', {
+            method: 'POST',
+            body: 'This request will be aborted',
+            headers: { 'Content-Type': 'text/plain' },
+            signal: controller.signal,
+          });
+          const result = await abortedRes.text();
+          console.log('Response:', result);
+        } catch (err) {
+          console.error('Aborted request error:', err.name);  // Should print "AbortError"
+        }
+
+
+        // Original test cases
+        res = await makeRequest('https://httpstat.us/500', { method: 'POST', body: 'Hello', headers: { 'Content-Type': 'text/plain' } });
+        assert(res);
+        
+        res = await makeRequest('https://httpbin.org/status/501', { method: 'POST', body: JSON.stringify({ message: 'Hello', count: 42 }), headers: { 'Content-Type': 'application/json' } });
+        assert(res);
+        
+        const formData = new FormData();
+        formData.append('text', 'Hello from FormData');
+        formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
+        await makeRequest('https://httpbin.org/status/502', { method: 'POST', body: formData });
+        assert(res);
+        const params = new URLSearchParams();
+        params.append('param1', 'value1');
+        params.append('param2', 'value2');
+        await makeRequest('https://httpstat.us/503', { method: 'POST', body: params });
+        assert(res);
+        await makeRequest('https://httpstat.us/504', { method: 'POST', body: new ArrayBuffer(8) });
+        assert(res);
+        await makeRequest('https://httpstat.us/505', { method: 'POST', body: new Blob(['Hello from Blob'], { type: 'text/plain' }) });
+        assert(res);
+        const encoder = new TextEncoder();
+        await makeRequest('https://httpstat.us/506', { method: 'POST', body: encoder.encode('Hello from Stream') });
+        assert(res);
+        await makeRequest('https://httpstat.us/507', { method: 'GET' });
+        assert(res);
+        await makeRequest('https://httpstat.us/200', { method: 'GET' });
+        assert(res);
+
+        // Additional test cases
+        await makeRequest('https://httpstat.us/200', { method: 'HEAD' });
+        assert(res);
+        await makeRequest('https://httpstat.us/200', { method: 'OPTIONS' });
+        assert(res);
+        await makeRequest('https://httpstat.us/200', { method: 'DELETE' });
+        assert(res);
+        await makeRequest('https://httpstat.us/200', { method: 'PUT', body: JSON.stringify({ message: 'Update' }), headers: { 'Content-Type': 'application/json' } });
+        assert(res);
+        await makeRequest('/api/test', { method: 'GET' }); // Relative URL, expect 404 or dev server response
+        assert(res);
+        await makeRequest('https://example.com/non-cors-endpoint'); // Likely CORS failure
+        assert(res);
+        await makeRequest('https://invalid.domain.test'); // Unresolvable domain
+        assert(res);
+        await makeRequest('https://httpstat.us/200?sleep=5000'); // Slow request
+        assert(res);
+
+        console.log('Manual testing complete. Review console for outputs.');
+      }, 1000);
+    </script>
+  </body>
+</html>
