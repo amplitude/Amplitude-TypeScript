@@ -57,6 +57,16 @@ describe('cookies', () => {
       await cookies.remove('hello');
     });
 
+    test('should parse cookies without spaces', async () => {
+      const cookies = new CookieStorage();
+      const value = { b: 2 };
+      const encodedValue = btoa(encodeURIComponent(JSON.stringify(value)));
+      jest.spyOn(GlobalScopeModule, 'getGlobalScope').mockReturnValueOnce({
+        document: { cookie: `hello=${encodedValue};hello2=${encodedValue}` },
+      } as unknown as typeof globalThis);
+      expect(await cookies.get('hello2')).toEqual(value);
+    });
+
     test('should return undefined when global scope is not defined', async () => {
       const cookies = new CookieStorage<number[]>();
       await cookies.set('hello', [1]);
