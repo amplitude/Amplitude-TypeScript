@@ -282,8 +282,9 @@ describe('track-network-event', () => {
 
   describe('shouldTrackNetworkEvent returns false when', () => {
     test('status code is empty', () => {
-      const networkEvent = new NetworkRequestEvent(
+      const networkEvent = new MockNetworkRequestEvent(
         'fetch',
+        undefined,
         'POST',
         0,
         0,
