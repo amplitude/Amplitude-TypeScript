@@ -10,6 +10,7 @@ import {
   isElementInteractionsEnabled,
   getNetworkTrackingConfig,
   isNetworkTrackingEnabled,
+  isPageUrlPreviousPageEnabled,
 } from '../src/default-tracking';
 
 describe('isFileDownloadTrackingEnabled', () => {
@@ -253,6 +254,44 @@ describe('isElementInteractionsEnabled', () => {
         elementInteractions: undefined,
       }),
     ).toBe(false);
+  });
+});
+
+describe('isReferrerPageUrlTrackingEnabled', () => {
+  test('should return true with true parameter', () => {
+    expect(isPageUrlPreviousPageEnabled(true)).toBe(true);
+  });
+
+  test('should return false with undefined parameter', () => {
+    expect(isPageUrlPreviousPageEnabled(undefined)).toBe(true);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isPageUrlPreviousPageEnabled(false)).toBe(false);
+  });
+
+  test('should return true with object parameter', () => {
+    expect(
+      isPageUrlPreviousPageEnabled({
+        pageUrlPreviousPage: true,
+      }),
+    ).toBe(true);
+  });
+
+  test('should return false with object parameter', () => {
+    expect(
+      isPageUrlPreviousPageEnabled({
+        pageUrlPreviousPage: false,
+      }),
+    ).toBe(false);
+  });
+
+  test('should return false with object parameter undefined', () => {
+    expect(
+      isPageUrlPreviousPageEnabled({
+        pageUrlPreviousPage: undefined,
+      }),
+    ).toBe(true);
   });
 });
 
