@@ -29,6 +29,17 @@ function getMetricStartTime(metric: FCPMetric | LCPMetric | INPMetric | CLSMetri
   return new Date(epoch).toISOString();
 }
 
+function processMetric(metric: FCPMetric | LCPMetric | INPMetric | CLSMetric) {
+  return {
+    value: metric.value,
+    rating: metric.rating,
+    delta: metric.delta,
+    navigationType: metric.navigationType,
+    id: metric.id,
+    timestamp: getMetricStartTime(metric),
+  };
+}
+
 export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
   let visibilityListener: ((this: Document, ev: Event) => void) | null = null;
   const setup: BrowserEnrichmentPlugin['setup'] = async (_, amplitude) => {
@@ -45,50 +56,22 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
 
     onLCP((metric) => {
       isChanged = true;
-      webVitalsPayload['[Amplitude] LCP'] = {
-        value: metric.value,
-        rating: metric.rating,
-        delta: metric.delta,
-        navigationType: metric.navigationType,
-        id: metric.id,
-        timestamp: getMetricStartTime(metric),
-      };
+      webVitalsPayload['[Amplitude] LCP'] = processMetric(metric);
     });
 
     onFCP((metric) => {
       isChanged = true;
-      webVitalsPayload['[Amplitude] FCP'] = {
-        value: metric.value,
-        rating: metric.rating,
-        delta: metric.delta,
-        navigationType: metric.navigationType,
-        id: metric.id,
-        timestamp: getMetricStartTime(metric),
-      };
+      webVitalsPayload['[Amplitude] FCP'] = processMetric(metric);
     });
 
     onINP((metric) => {
       isChanged = true;
-      webVitalsPayload['[Amplitude] INP'] = {
-        value: metric.value,
-        rating: metric.rating,
-        delta: metric.delta,
-        navigationType: metric.navigationType,
-        id: metric.id,
-        timestamp: getMetricStartTime(metric),
-      };
+      webVitalsPayload['[Amplitude] INP'] = processMetric(metric);
     });
 
     onCLS((metric) => {
       isChanged = true;
-      webVitalsPayload['[Amplitude] CLS'] = {
-        value: metric.value,
-        rating: metric.rating,
-        delta: metric.delta,
-        navigationType: metric.navigationType,
-        id: metric.id,
-        timestamp: getMetricStartTime(metric),
-      };
+      webVitalsPayload['[Amplitude] CLS'] = processMetric(metric);
     });
 
     visibilityListener = () => {
