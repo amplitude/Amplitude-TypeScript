@@ -22,3 +22,5 @@ yarn-error.log*
 *.d.ts
 *.d.ts.map
 .env
+
+lerna-debug.log
