@@ -1,1 +1,0 @@
-{"version":3,"file":"version.js","sourceRoot":"","sources":["version.ts"],"names":[],"mappings":"AAAA,MAAM,CAAC,IAAM,OAAO,GAAG,eAAe,CAAC","sourcesContent":["export const VERSION = '0.0.1-alpha.1';\n"]}

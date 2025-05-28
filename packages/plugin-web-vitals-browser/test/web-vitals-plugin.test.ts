@@ -1,7 +1,7 @@
 import { BrowserClient, getGlobalScope } from '@amplitude/analytics-core';
-import { webVitalsPlugin } from './web-vitals-plugin';
-import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from './constants';
 import { onLCP, onINP, onCLS, onFCP } from 'web-vitals';
+import { webVitalsPlugin } from '../src';
+import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from '../src/constants';
 
 /* eslint-disable @typescript-eslint/unbound-method, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 
