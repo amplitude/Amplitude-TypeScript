@@ -143,6 +143,13 @@ export const getServerUrl = (serverZone?: keyof typeof ServerZone, trackServerUr
   return SESSION_REPLAY_SERVER_URL;
 };
 
+const isValidGlobUrl = (globUrl: string): boolean => {
+  if (typeof globUrl !== 'string' || globUrl.trim() === '') return false;
+  const urlPattern = /^\/|^https?:\/\/[^\s]+$/;
+  if (!urlPattern.test(globUrl)) return false;
+  return true;
+};
+
 const globToRegex = (glob: string): RegExp => {
   // Escape special regex characters, then convert globs
   const escaped = glob
@@ -163,7 +170,7 @@ export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
   if (
     !ugcFilterRules.every((rule) => {
       try {
-        new RegExp(rule.selector);
+        isValidGlobUrl(rule.selector);
         return true;
       } catch (err) {
         return false;
