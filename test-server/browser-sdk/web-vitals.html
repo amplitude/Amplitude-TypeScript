@@ -7,13 +7,6 @@
     <title>Web Vitals</title>
   </head>
   <body>
-    <div id="app">
-      Web Vitals Tracking Example
-      <div>
-        <button id="inp-tester">INP TESTER</button>
-        <ul id="list"></ul>
-      </div>
-    </div>
     <script>
         let inpDelay = 100;
         document.querySelector('#inp-tester').addEventListener('click', () => {
@@ -37,6 +30,27 @@
         {},
       );
       amplitude.add(plugin);
+    </script>
+    <h1>Simulate Interaction to Next Paint > 300ms</h1>
+    <button id="simulate-btn">Click Me</button>
+    <div id="result"></div>
+  
+    <script>
+      let timeout = 100;
+      document.getElementById('simulate-btn').addEventListener('click', () => {
+        const resultEl = document.getElementById('result');
+        resultEl.textContent = '';
+  
+        // Block main thread for ~350ms to simulate poor responsiveness
+        const start = performance.now();
+        while (performance.now() - start < timeout) {
+          // Busy-wait loop
+        }
+  
+        // Simulated paint update
+        resultEl.textContent = 'Interaction complete ' + timeout + 'ms';
+        timeout += 100;
+      });
     </script>
   </body>
 </html>
