@@ -158,7 +158,7 @@ export interface SessionReplayMetadata {
   sessionId: string | number | undefined;
   hashValue?: number;
   sampleRate: number;
-  replaySDKType: string;
+  replaySDKType: string | null;
   replaySDKVersion: string | undefined;
   standaloneSDKType: string;
   standaloneSDKVersion: string | undefined;
