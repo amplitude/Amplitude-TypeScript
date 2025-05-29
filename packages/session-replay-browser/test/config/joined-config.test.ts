@@ -338,6 +338,103 @@ describe('SessionReplayJoinedConfigGenerator', () => {
         }).toThrow('ugcFilterRules must be an array of objects with valid globs');
       });
     });
+
+    describe('with interaction config ugcFilterRules', () => {
+      let configGenerator: SessionReplayJoinedConfigGenerator;
+
+      beforeEach(async () => {
+        configGenerator = await createSessionReplayJoinedConfigGenerator('static_key', mockOptions);
+      });
+
+      test('should preserve local ugcFilterRules when remote config has no ugcFilterRules', async () => {
+        const localUgcFilterRules = [
+          { selector: 'https://example.com/local/*', replacement: 'https://example.com/local/local_id' },
+        ];
+        const remoteInteractionConfig = {
+          enabled: true,
+          batch: true,
+        };
+
+        const configGenerator = await createSessionReplayJoinedConfigGenerator('static_key', {
+          ...mockOptions,
+          interactionConfig: {
+            enabled: true,
+            batch: false,
+            ugcFilterRules: localUgcFilterRules,
+          },
+        });
+
+        getRemoteConfigMock.mockImplementation((_, key) => {
+          if (key === 'sr_interaction_config') {
+            return Promise.resolve(remoteInteractionConfig);
+          }
+          return Promise.resolve(undefined);
+        });
+
+        const { joinedConfig: config } = await configGenerator.generateJoinedConfig(123);
+        expect(config.interactionConfig).toEqual({
+          ...remoteInteractionConfig,
+          ugcFilterRules: localUgcFilterRules,
+        });
+      });
+
+      test('should use remote ugcFilterRules when local config has no ugcFilterRules', async () => {
+        const remoteUgcFilterRules = [
+          { selector: 'https://example.com/remote/*', replacement: 'https://example.com/remote/remote_id' },
+        ];
+        const remoteInteractionConfig = {
+          enabled: true,
+          batch: true,
+          ugcFilterRules: remoteUgcFilterRules,
+        };
+
+        getRemoteConfigMock.mockImplementation((_, key) => {
+          if (key === 'sr_interaction_config') {
+            return Promise.resolve(remoteInteractionConfig);
+          }
+          return Promise.resolve(undefined);
+        });
+
+        const { joinedConfig: config } = await configGenerator.generateJoinedConfig(123);
+        expect(config.interactionConfig).toEqual(remoteInteractionConfig);
+      });
+
+      test('should handle undefined interaction config', async () => {
+        getRemoteConfigMock.mockImplementation(() => Promise.resolve(undefined));
+        const { joinedConfig: config } = await configGenerator.generateJoinedConfig(123);
+        expect(config.interactionConfig).toBeUndefined();
+      });
+
+      test('should handle empty ugcFilterRules array', async () => {
+        const localUgcFilterRules: UGCFilterRule[] = [];
+        const remoteInteractionConfig = {
+          enabled: true,
+          batch: true,
+        };
+
+        const configGenerator = await createSessionReplayJoinedConfigGenerator('static_key', {
+          ...mockOptions,
+          interactionConfig: {
+            enabled: true,
+            batch: false,
+            ugcFilterRules: localUgcFilterRules,
+          },
+        });
+
+        getRemoteConfigMock.mockImplementation((_, key) => {
+          if (key === 'sr_interaction_config') {
+            return Promise.resolve(remoteInteractionConfig);
+          }
+          return Promise.resolve(undefined);
+        });
+
+        const { joinedConfig: config } = await configGenerator.generateJoinedConfig(123);
+        expect(config.interactionConfig).toEqual({
+          ...remoteInteractionConfig,
+          ugcFilterRules: localUgcFilterRules,
+        });
+      });
+    });
   });
 
   describe('removeInvalidSelectorsFromPrivacyConfig', () => {
