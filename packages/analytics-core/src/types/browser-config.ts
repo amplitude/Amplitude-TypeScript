@@ -5,6 +5,7 @@ import { IConfig } from '../config';
 import { ElementInteractionsOptions } from './element-interactions';
 import { PageTrackingOptions } from './page-view-tracking';
 import { NetworkTrackingOptions } from './network-tracking';
+import { PageUrlPreviousPageOptions } from './page-url-previous-page';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -165,6 +166,11 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   networkTracking?: boolean | NetworkTrackingOptions;
+  /**
+   * Enables/disables adding additional referrer and page url event properties.
+   * @defaultValue `true`
+   */
+  pageUrlPreviousPage?: boolean | PageUrlPreviousPageOptions;
 }
 
 export interface TrackingOptions {

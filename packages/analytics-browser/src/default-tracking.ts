@@ -69,6 +69,23 @@ export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boole
   return false;
 };
 
+export const isPageUrlPreviousPageEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.pageUrlPreviousPage === false ||
+      (typeof autocapture.pageUrlPreviousPage === 'object' &&
+        autocapture.pageUrlPreviousPage.restrictToAutocapture === false))
+  ) {
+    return false;
+  }
+
+  return true;
+};
+
 /**
  * Returns true if
  * 1. autocapture === true
@@ -162,6 +179,25 @@ export const getAttributionTrackingConfig = (config: BrowserOptions): Attributio
   ) {
     return {
       ...config.defaultTracking.attribution,
+    };
+  }
+
+  return {};
+};
+
+type PageUrlPreviousPageOptions = {
+  restrictToAutocapture?: boolean;
+};
+
+export const getPageUrlPreviousPageConfig = (config: BrowserOptions): PageUrlPreviousPageOptions => {
+  if (
+    config.autocapture &&
+    typeof config.autocapture === 'object' &&
+    config.autocapture.pageUrlPreviousPage &&
+    typeof config.autocapture.pageUrlPreviousPage === 'object'
+  ) {
+    return {
+      ...config.autocapture.pageUrlPreviousPage,
     };
   }
 
