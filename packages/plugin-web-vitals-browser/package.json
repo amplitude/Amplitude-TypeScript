@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-web-vitals-browser",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -30,7 +30,6 @@
     "lint": "yarn lint:eslint & yarn lint:prettier",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
-    "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
     "typecheck": "tsc -p ./tsconfig.json",
     "version": "yarn version-file && yarn build",
