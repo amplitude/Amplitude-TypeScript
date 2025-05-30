@@ -21,20 +21,20 @@ export interface UnifiedSharedOptions {
 
 export type UnifiedOptions = UnifiedSharedOptions & {
   analytics?: BrowserOptions;
-  sr?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
+  sessionReplay?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
   experiment?: Omit<ExperimentPluginConfig, keyof UnifiedSharedOptions>;
 };
 
 export interface UnifiedClient extends BrowserClient {
   initAll(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
-  sr: AmplitudeSessionReplay;
+  sessionReplay: AmplitudeSessionReplay;
   experiment: IExperimentClient | undefined;
 }
 
 export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  sr: AmplitudeSessionReplay;
+  sessionReplay: AmplitudeSessionReplay;
 
   get experiment(): IExperimentClient | undefined {
     // Return when init() or initAll() is not called
@@ -70,7 +70,7 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
     super.add(libraryPlugin());
     await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
 
-    await super.add(sessionReplayPlugin({ ...unifiedOptions?.sr, ...sharedOptions })).promise;
+    await super.add(sessionReplayPlugin({ ...unifiedOptions?.sessionReplay, ...sharedOptions })).promise;
 
     await super.add(experimentPlugin({ ...unifiedOptions?.experiment, ...sharedOptions })).promise;
 
@@ -78,7 +78,7 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
     if (srPlugin === undefined) {
       this.config.loggerProvider.debug(`${SessionReplayPlugin.pluginName} plugin is not found.`);
     } else {
-      this.sr = (srPlugin as SessionReplayPlugin).sr;
+      this.sessionReplay = (srPlugin as SessionReplayPlugin).sessionReplay;
     }
   }
 

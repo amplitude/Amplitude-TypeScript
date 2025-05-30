@@ -2,7 +2,7 @@ import instance from '../src/unified-client-factory';
 
 test('should create a UnifiedClient instance with expected methods', () => {
   expect(instance).toHaveProperty('experiment');
-  expect(instance).toHaveProperty('sr');
+  expect(instance).toHaveProperty('sessionReplay');
   expect(typeof instance.initAll).toBe('function');
   expect(typeof instance.init).toBe('function');
   expect(typeof instance.add).toBe('function');
