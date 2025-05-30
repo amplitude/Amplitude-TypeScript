@@ -40,7 +40,6 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "^2.12.0",
-    "rxjs": "^7.8.1",
     "tslib": "^2.4.1",
     "web-vitals": "^5.0.1"
   },

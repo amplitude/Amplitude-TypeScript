@@ -1,6 +1,5 @@
 {
-  "name": "@amplitude/plugin-stub-browser",
-  "private": true,
+  "name": "@amplitude/plugin-frustration-browser",
   "version": "0.0.1-alpha.1",
   "description": "",
   "author": "Amplitude Inc",

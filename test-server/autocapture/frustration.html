@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Frustration Analytics Test</title>
+  </head>
+  <body>
+    <div id="app">
+      <div>Placeholder to add a Rage Click test</div>
+      <div>Placeholder to add a Dead Click test</div>
+      <div>Placeholder to add a non-Dead Click test</div>
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { frustrationPlugin } from '@amplitude/plugin-frustration-browser';
+      window.amplitude = amplitude;
+      amplitude.add(frustrationPlugin());
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+          },
+        }
+      );
+    </script>
+  </body>
+</html>
