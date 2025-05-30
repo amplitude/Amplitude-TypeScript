@@ -1,35 +1,35 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, getGlobalScope, UUID } from '@amplitude/analytics-core';
 import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from './constants';
-import { onLCP, onINP, onCLS, onFCP, FCPMetric, LCPMetric, INPMetric, CLSMetric } from 'web-vitals';
+import { onLCP, onINP, onCLS, onFCP, Metric } from 'web-vitals';
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-interface WebVitalsMetric {
+type WebVitalsMetricPayload = {
   value: number;
-  rating: FCPMetric['rating'];
+  rating: Metric['rating'];
   delta: number;
-  navigationType: FCPMetric['navigationType'];
+  navigationType: Metric['navigationType'];
   id: string;
   timestamp: string; // ISO 8601 format
-}
+};
 
-interface WebVitalsPayload {
+type WebVitalsEventPayload = {
   metricId: string;
-  ['[Amplitude] LCP']?: WebVitalsMetric;
-  ['[Amplitude] FCP']?: WebVitalsMetric;
-  ['[Amplitude] INP']?: WebVitalsMetric;
-  ['[Amplitude] CLS']?: WebVitalsMetric;
-}
+  ['[Amplitude] LCP']?: WebVitalsMetricPayload;
+  ['[Amplitude] FCP']?: WebVitalsMetricPayload;
+  ['[Amplitude] INP']?: WebVitalsMetricPayload;
+  ['[Amplitude] CLS']?: WebVitalsMetricPayload;
+};
 
-function getMetricStartTime(metric: FCPMetric | LCPMetric | INPMetric | CLSMetric) {
+function getMetricStartTime(metric: Metric) {
   /* istanbul ignore next */
   const startTime = metric.entries[0]?.startTime || 0;
   const epoch = performance.timeOrigin + startTime;
   return new Date(epoch).toISOString();
 }
 
-function processMetric(metric: FCPMetric | LCPMetric | INPMetric | CLSMetric) {
+function processMetric(metric: Metric) {
   return {
     value: metric.value,
     rating: metric.rating,
@@ -50,7 +50,7 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
     if (doc === undefined) {
       return;
     }
-    const webVitalsPayload: WebVitalsPayload = {
+    const webVitalsPayload: WebVitalsEventPayload = {
       metricId,
     };
 
