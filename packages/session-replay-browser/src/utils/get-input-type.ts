@@ -1,31 +1,21 @@
+export function toLowerCase<T extends string>(str: T): Lowercase<T> {
+  return str.toLowerCase() as unknown as Lowercase<T>;
+}
+
 /**
- * Get the input type of an HTML element.
- * This is a utility function that was extracted from rrweb-snapshot
- * to reduce dependencies.
- *
- * @param element - The HTML element to get the input type from
- * @returns The input type as a string, or empty string if not applicable
+ * Get the type of an input element.
+ * This takes care of the case where a password input is changed to a text input.
+ * In this case, we continue to consider this of type password, in order to avoid leaking sensitive data
+ * where passwords should be masked.
  */
-export function getInputType(element: HTMLElement): string {
-  if (!element) {
-    return '';
-  }
+export function getInputType(element: HTMLElement): Lowercase<string> | null {
+  // when omitting the type of input element(e.g. <input />), the type is treated as text
+  const type = (element as HTMLInputElement).type;
 
-  // If it's an input element, return its type
-  if (element.tagName === 'INPUT') {
-    const inputElement = element as HTMLInputElement;
-    return inputElement.type || 'text'; // Default to 'text' if type is not specified
-  }
-
-  // For other elements that might have input-like behavior
-  if (element.tagName === 'TEXTAREA') {
-    return 'textarea';
-  }
-
-  if (element.tagName === 'SELECT') {
-    return 'select';
-  }
-
-  // Return empty string for non-input elements
-  return '';
+  return element.hasAttribute('data-rr-is-password')
+    ? 'password'
+    : type
+    ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      toLowerCase(type)
+    : null;
 }
