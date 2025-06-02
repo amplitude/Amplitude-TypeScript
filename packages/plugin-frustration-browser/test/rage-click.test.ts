@@ -78,6 +78,24 @@ describe('rage-click', () => {
     expect(mockOnRageClick).not.toHaveBeenCalled();
   });
 
+  it('should ignore clicks when elements ancestor matches ignoreSelector', () => {
+    init({
+      timeout: 3000,
+      threshold: 3,
+      ignoreSelector: '#ignore',
+      onRageClick: mockOnRageClick,
+    });
+    const ignoredElement = document.createElement('div');
+    ignoredElement.id = 'ignore';
+    const childElement = document.createElement('button');
+    ignoredElement.appendChild(childElement);
+    // Register clicks on ignored element's child
+    for (let i = 0; i < 3; i++) {
+      registerClick(childElement, mockEvent);
+    }
+    expect(mockOnRageClick).not.toHaveBeenCalled();
+  });
+
   it('should clear click events after timeout', () => {
     init({
       timeout: 3000,
