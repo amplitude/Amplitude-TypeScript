@@ -13,15 +13,16 @@
     analytics.load=function(t){var e=document.createElement("script");
     e.type="text/javascript";e.async=!0;e.src="https://cdn.segment.com/analytics.js/v1/" + t + "/analytics.min.js";
     var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)};
-    analytics.SNIPPET_VERSION="4.13.2";
-    analytics.load("<YOUR_SEGMENT_WRITE_KEY>"); // Your Segment write key
-    analytics.page();}}();
+    analytics.SNIPPET_VERSION="4.13.2";}}();
   </script>
 
   <script type="module">
     // Load Amplitude SDK and initialize with AutoCapture
     import * as amplitude from 'https://cdn.skypack.dev/@amplitude/analytics-browser';
     window.amplitude = amplitude;
+    console.log('!!!ENV:', import.meta.env);
+    analytics.load(import.meta.env.SEGMENT_API_KEY); // Your Segment write key
+    analytics.page();
 
     amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, null, {
       autocapture: {
@@ -40,11 +41,10 @@
       },
     });
 
-    window.sendSegmentEvent = () => {
+    window.sendSegmentEvent = (event) => {
       const sessionId = amplitude.getSessionId();
       const deviceId = amplitude.getDeviceId();
-      debugger;
-      analytics.track('Custom Click 5:57pm', {
+      analytics.track(event, {
         source: 'button',
       }, {
         context: {
@@ -66,6 +66,11 @@
   <h1>Segment + Amplitude</h1>
   <div>
     This is a test page for Segment + Amplitude integration with AutoCapture.
+    To make this work, you need to set the environment variables in your `.env` file:
+    <ul>
+      <li><code>VITE_AMPLITUDE_API_KEY</code> - Your Amplitude API key</li>
+      <li><code>VITE_SEGMENT_API_KEY</code> - Your Segment write key</li>
+    </ul>
   </div>
   <button onclick="sendSegmentEvent();">
     Track Event
