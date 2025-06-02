@@ -5,12 +5,10 @@
   <br />
 </p>
 
-# @amplitude/plugin-stub-browser (alpha)
-**This plugin is in alpha at the moment, naming and interface might change in the future.**
+# @amplitude/plugin-frustration-browser (beta)
+**This plugin is in beta at the moment, naming and interface might change in the future.**
 
-A stub plugin. Copy and paste this and rename to make a new plugin.
-
-And remove the "private: true" attribute from package.json
+This plugin captures frustration analytics events like "Dead Clicks" and "Rage Clicks".
 
 ## Installation
 
@@ -18,23 +16,23 @@ This package is not published on NPM registry and is available to be installed u
 
 ```sh
 # npm
-npm install @amplitude/plugin-stub-browser@alpha
+npm install @amplitude/plugin-frustration-browser@beta
 
 # yarn
-yarn add @amplitude/plugin-stub-browser@alpha
+yarn add @amplitude/plugin-frustration-browser@beta
 ```
 
 ## Usage
 
 ```typescript
 import * as amplitude from '@amplitude/analytics-browser';
-import { stubPlugin } from '@amplitude/plugin-stub-browser';
+import { frustrationPlugin } from '@amplitude/plugin-frustration-browser';
 ```
 
 ### 2. Instantiate the plugin
 
 ```typescript
-const plugin = stubPlugin();
+const plugin = frustrationPlugin();
 ```
 
 ### 3. Install plugin to Amplitude SDK
