@@ -10,7 +10,7 @@
 
 ## TODO: Re-write this README.md to match plugin-network-capture
 
-Browser SDK plugin for autocapture.
+Browser SDK plugin for network capture.
 
 ## Installation
 
@@ -26,9 +26,9 @@ yarn add @amplitude/plugin-network-capture-browser@beta
 
 ## Usage
 
-This plugin works on top of the Amplitude Browser SDK, generating auto-tracked events and sending to Amplitude.
+This plugin works on top of the Amplitude Browser SDK, and tracks network request events
 
-To use this plugin, you need to install `@amplitude/analytics-browser` version `v1.9.1` or later.
+To use this plugin, you need to install `@amplitude/plugin-network-capture-browser`
 
 ### 1. Import Amplitude packages
 
