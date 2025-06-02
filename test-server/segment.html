@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Segment + Amplitude Autocapture</title>
+  <script>
+    !function(){var analytics=window.analytics=window.analytics||[];
+    if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");
+    else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify",
+    "reset","group","track","ready","alias","debug","page","once","off","on"];
+    analytics.factory=function(t){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(t);analytics.push(e);return analytics}};
+    for(var t=0;t<analytics.methods.length;t++){var e=analytics.methods[t];analytics[e]=analytics.factory(e)}
+    analytics.load=function(t){var e=document.createElement("script");
+    e.type="text/javascript";e.async=!0;e.src="https://cdn.segment.com/analytics.js/v1/" + t + "/analytics.min.js";
+    var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(e,n)};
+    analytics.SNIPPET_VERSION="4.13.2";}}();
+  </script>
+
+  <script type="module">
+    // Load Amplitude SDK and initialize with AutoCapture
+    import * as amplitude from 'https://cdn.skypack.dev/@amplitude/analytics-browser';
+    window.amplitude = amplitude;
+    console.log('!!!ENV:', import.meta.env);
+    analytics.load(import.meta.env.SEGMENT_API_KEY); // Your Segment write key
+    analytics.page();
+
+    amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, null, {
+      autocapture: {
+        pageViews: true,
+        sessions: true,
+      },
+      logLevel: 'DEBUG',
+      flushIntervalMillis: 1000,
+      networkTrackingOptions: {
+        ignoreAmplitudeRequests: false,
+        ignoreHosts: [],
+        captureRules: [
+          { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
+          { hosts: ['httpstat.us'], statusCodeRange: '400-599' },
+        ],
+      },
+    });
+
+    window.sendSegmentEvent = (event) => {
+      const sessionId = amplitude.getSessionId();
+      const deviceId = amplitude.getDeviceId();
+      analytics.track(event, {
+        source: 'button',
+      }, {
+        context: {
+        //   device: {
+        //     id: deviceId,
+        //   },
+        },
+        integrations: {
+          Amplitude: {
+            session_id: sessionId, // session_id goes here
+          },
+        }
+      });
+    };
+  </script>
+</head>
+
+<body>
+  <h1>Segment + Amplitude</h1>
+  <div>
+    This is a test page for Segment + Amplitude integration with AutoCapture.
+    To make this work, you need to set the environment variables in your `.env` file:
+    <ul>
+      <li><code>VITE_AMPLITUDE_API_KEY</code> - Your Amplitude API key</li>
+      <li><code>VITE_SEGMENT_API_KEY</code> - Your Segment write key</li>
+    </ul>
+  </div>
+  <button onclick="sendSegmentEvent();">
+    Track Event
+  </button>
+</body>
+</html>

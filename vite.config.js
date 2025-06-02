@@ -46,6 +46,11 @@ export default defineConfig({
     alias: amplitudeAliases
   },
   server: {
+    host: process.env.SSH ? 'local.website.com' : undefined,
+    https: process.env.SSH ? {
+      key: fs.readFileSync(path.resolve(process.env.HOME, 'certs/local-website/key.pem')),
+      cert: fs.readFileSync(path.resolve(process.env.HOME, 'certs/local-website/cert.pem')),
+    } : undefined,
     fs: {
       allow: [
         packagesDir,

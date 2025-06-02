@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser SDK Test</title>
+  </head>
+  <body>
+    <div id="app">
+      Test Browser SK via loading from CDN with GTM Wrapper
+    </div>
+    <script src="https://cdn.amplitude.com/libs/analytics-browser-gtm-wrapper-3.15.0.js.br"></script>
+    <script type="module">
+        window.API_KEY = import.meta.env.VITE_AMPLITUDE_API_KEY;
+
+        // config values
+        var ampAPIkey = window.API_KEY;
+        var instanceName = 'allAmp';
+        var ampUserID = 'fake-user';
+        var ampOptions = {
+        instanceName: instanceName,
+        autocapture: {
+            attribution: {
+            resetSessionOnNewCampaign: true,
+            },
+            sessions: true,
+            pageViews: false,
+            formInteractions: false,
+            fileDownloads: false,
+            elementInteractions: false,
+        }
+        };
+    
+        // Amp init  
+        var ampGTMInstance = amplitudeGTM.createInstance(instanceName);
+        ampGTMInstance.init(ampAPIkey, ampUserID, ampOptions).promise.then(function(result){
+          console.log('Amp GTM initializated');
+          console.log("Amp sessionID: " + amplitudeGTM._iq[instanceName].getSessionId());
+          console.log("Amp getDeviceId: " + amplitudeGTM._iq[instanceName].getDeviceId());
+          console.log("Amp getUserId: " + amplitudeGTM._iq[instanceName].getUserId());
+        });
+    </script>
+  </body>
+</html>
