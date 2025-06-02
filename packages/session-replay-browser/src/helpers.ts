@@ -1,5 +1,4 @@
 import { getGlobalScope, ServerZone } from '@amplitude/analytics-core';
-import { getInputType } from '@amplitude/rrweb-snapshot';
 import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
 import {
   KB_SIZE,
@@ -10,6 +9,7 @@ import {
   UNMASK_TEXT_CLASS,
 } from './constants';
 import { StorageData } from './typings/session-replay';
+import { getInputType } from './utils/get-input-type';
 
 type ChromeStorageEstimate = {
   quota?: number;
