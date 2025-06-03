@@ -1,5 +1,5 @@
 {
-  "extends": "@nx/workspace/presets/npm.json",
+  "extends": "nx/presets/npm.json",
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "affected": {
     "defaultBase": "main"
