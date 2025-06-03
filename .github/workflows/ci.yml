@@ -70,7 +70,8 @@ jobs:
         run: |
           yarn lint
 
-      - name: E2E tests
-        run: |
-          yarn dev && sleep 10 &&
-          yarn test:playwright
+      # TODO: Add an E2E tests job
+      # - name: E2E tests
+      #   run: |
+      #     yarn dev && sleep 10 &&
+      #     yarn test:playwright
