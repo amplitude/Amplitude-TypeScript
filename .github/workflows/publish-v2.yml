@@ -27,6 +27,8 @@ jobs:
     permissions:
       id-token: write
       contents: write
+    env:
+      PUBLISH_FROM: ${{ github.event.inputs.publishFrom || 'from-git' }}
     strategy:
       matrix:
         node-version: [18.17.x]
@@ -83,7 +85,7 @@ jobs:
       # Only create release version when using from-git (default behavior)
       # from-package mode uses existing package.json versions and doesn't need git tags
       - name: Create release version
-        if: github.event.inputs.publishFrom != 'from-package'
+        if: env.PUBLISH_FROM != 'from-package'
         run: |
           echo "Running lerna version..."
           OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github 2>&1)
@@ -103,6 +105,6 @@ jobs:
       # See: https://lerna.js.org/docs/features/version-and-publish#from-package
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ github.event.inputs.publishFrom == 'from-package' && 'from-package' || 'from-git' }} -y --pre-dist-tag beta
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ env.PUBLISH_FROM }} -y --pre-dist-tag beta
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
