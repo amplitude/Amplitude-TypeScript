@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["test/**/*", "e2e/**/*"],
+  "include": ["test/**/*"],
   "compilerOptions": {
     "baseUrl": ".",
     "esModuleInterop": true,

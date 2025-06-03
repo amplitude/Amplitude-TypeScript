@@ -10,10 +10,7 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "test": "jest",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:debug": "playwright test --debug"
+    "test": "jest"
   },
   "bugs": {
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
@@ -22,7 +19,6 @@
     "@amplitude/analytics-browser": "^2.6.3-beta.0"
   },
   "devDependencies": {
-    "nock": "^13.2.4",
-    "@playwright/test": "^1.52.0"
+    "nock": "^13.2.4"
   }
 }
