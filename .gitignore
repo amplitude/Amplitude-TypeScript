@@ -30,3 +30,6 @@ lerna-debug.log
 **/playwright-report/
 **/playwright/.cache/
 **/playwright/.auth/
+
+# Nx
+.nx/cache/

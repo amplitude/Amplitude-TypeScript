@@ -70,8 +70,13 @@ jobs:
         run: |
           yarn lint
 
-      # TODO: Add an E2E tests job
-      # - name: E2E tests
-      #   run: |
-      #     yarn dev && sleep 10 &&
-      #     yarn test:playwright
+      - name: E2E tests
+        run: |
+          # Start the dev server in the background
+          yarn dev &
+          # Wait for the server to be ready
+          sleep 10
+          # Run the Playwright tests
+          yarn test:playwright:ci
+          # Kill the dev server
+          pkill -f "yarn dev"

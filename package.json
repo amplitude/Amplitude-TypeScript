@@ -26,6 +26,7 @@
     "test:playwright": "lerna run test:playwright --stream",
     "test:playwright:ui": "playwright test --ui",
     "test:playwright:debug": "playwright test --debug",
+    "test:playwright:ci": "nx affected --target=test:playwright",
     "version": "git add -A"
   },
   "devDependencies": {
@@ -55,7 +56,11 @@
     "typedoc": "^0.23.22",
     "typescript": "^4.9.4",
     "vite": "^6.3.4",
-    "yargs": "^17.7.1"
+    "yargs": "^17.7.1",
+    "nx": "^17.2.0",
+    "@nx/workspace": "^17.2.0",
+    "glob": "^10.3.10",
+    "tslib": "^2.4.1"
   },
   "lint-staged": {
     "*.ts": [
