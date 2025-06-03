@@ -111,7 +111,6 @@ jobs:
       # Use 'from git' option if `lerna version` has already been run
       - name: Publish Release to NPM
         run: |
-          git fetch --tags
           GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --pre-dist-tag beta
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
