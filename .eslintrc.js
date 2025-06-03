@@ -55,5 +55,24 @@ module.exports = {
         'no-restricted-globals': 'off',
       },
     },
+    {
+      // Root level files configuration
+      files: ['playwright.config.ts'],
+      parserOptions: {
+        project: null,
+      },
+      rules: {
+        '@typescript-eslint/await-thenable': 'off',
+        '@typescript-eslint/no-floating-promises': 'off',
+        '@typescript-eslint/no-misused-promises': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/restrict-template-expressions': 'off',
+        '@typescript-eslint/unbound-method': 'off',
+        '@typescript-eslint/no-implied-eval': 'off',
+      },
+    },
   ],
 };
