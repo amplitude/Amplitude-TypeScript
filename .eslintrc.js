@@ -56,4 +56,10 @@ module.exports = {
       },
     },
   ],
+  ignorePatterns: [
+    // TODO: Remove these once we have a better way to ignore files
+    'playwright.config.ts',
+    '**/e2e/**/*.test.ts',
+    '**/e2e/**/*.spec.ts'
+  ],
 };

@@ -23,11 +23,13 @@
     "test:examples": "jest --env=jsdom --coverage=false examples --setupFiles ./jest.setup.examples.js",
     "test:unit": "lerna run test --stream --ignore @amplitude/analytics-*-test",
     "test:e2e": "lerna run test --stream --scope @amplitude/analytics-*-test",
+    "test:playwright": "playwright test",
     "version": "git add -A"
   },
   "devDependencies": {
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
+    "@playwright/test": "^1.42.1",
     "@types/jest": "^29.2.4",
     "@types/node": "^18.11.14",
     "@typescript-eslint/eslint-plugin": "^5.46.1",

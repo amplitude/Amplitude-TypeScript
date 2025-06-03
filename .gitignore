@@ -24,3 +24,5 @@ yarn-error.log*
 .env
 
 lerna-debug.log
+test-results/
+playwright-report/
