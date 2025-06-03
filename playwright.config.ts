@@ -6,13 +6,17 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: process.env.CI ? [['html'], ['github']] : 'html',
   use: {
     baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
+    trace: process.env.CI ? 'on' : 'on-first-retry',
     actionTimeout: 30000,
     navigationTimeout: 30000,
     ignoreHTTPSErrors: true,
+    // Capture screenshot on failure
+    screenshot: 'only-on-failure',
+    // Record video for all tests in CI
+    video: process.env.CI ? 'on' : 'retain-on-failure',
   },
   projects: [
     {
