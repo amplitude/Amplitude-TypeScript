@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-session-replay-browser",
-  "version": "1.16.11",
+  "version": "1.16.12",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -40,7 +40,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "^2.12.1",
-    "@amplitude/session-replay-browser": "^1.22.8",
+    "@amplitude/session-replay-browser": "^1.22.9",
     "idb-keyval": "^6.2.1",
     "tslib": "^2.4.1"
   },
