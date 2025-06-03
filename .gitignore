@@ -33,3 +33,4 @@ lerna-debug.log
 
 # Nx
 .nx/cache/
+.nx/workspace-data/
