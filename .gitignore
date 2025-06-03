@@ -24,3 +24,9 @@ yarn-error.log*
 .env
 
 lerna-debug.log
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/playwright/.auth/
