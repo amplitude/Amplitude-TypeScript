@@ -59,7 +59,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
 
-  // Visible for testing
+  // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
   private scrollHook?: scrollCallback;
   private networkObservers?: NetworkObservers;
