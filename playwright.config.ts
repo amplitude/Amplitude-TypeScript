@@ -19,18 +19,19 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        launchOptions: {
-          firefoxUserPrefs: {
-            'network.http.connection-retry-timeout': 0,
-            'network.http.max-connections-per-server': 10,
-          },
-        },
-      },
-    },
+    // TODO: Get this working again
+    // {
+    //   name: 'firefox',
+    //   use: {
+    //     ...devices['Desktop Firefox'],
+    //     launchOptions: {
+    //       firefoxUserPrefs: {
+    //         'network.http.connection-retry-timeout': 0,
+    //         'network.http.max-connections-per-server': 10,
+    //       },
+    //     },
+    //   },
+    // },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },

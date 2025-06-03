@@ -69,3 +69,8 @@ jobs:
       - name: Lint all packages
         run: |
           yarn lint
+
+      - name: E2E tests
+        run: |
+          yarn dev && sleep 10 &&
+          yarn test:playwright
