@@ -5,9 +5,6 @@
     "module": "commonjs",
     "noEmit": false,
     "outDir": "lib/cjs",
-    "rootDir": "./src",
-    "declaration": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": false
+    "rootDir": "./src"
   }
 }

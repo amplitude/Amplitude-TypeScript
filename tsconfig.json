@@ -21,7 +21,6 @@
     "resolveJsonModule": true,
     "strict": true,
     "strictBindCallApply": true,
-    "target": "es5",
-    "types": ["jest", "node", "@playwright/test"],
+    "target": "es5"
   }
 }
