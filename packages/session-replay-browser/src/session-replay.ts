@@ -6,8 +6,9 @@ import {
   ILogger,
   LogLevel,
 } from '@amplitude/analytics-core';
-import { record } from '@amplitude/rrweb';
-import { scrollCallback } from '@amplitude/rrweb-types';
+import { record } from '@amplitude/rrweb/rrweb-record';
+// Import only specific types to avoid pulling in the entire rrweb-types package
+import type { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
@@ -44,7 +45,11 @@ import {
 import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
 import { SafeLoggerProvider } from './logger';
-import { NetworkObservers, NetworkRequestEvent } from './observers';
+// Remove static import of NetworkObservers since we're lazy-loading it
+// import { NetworkObservers, NetworkRequestEvent } from './observers';
+
+// Import only the type for NetworkRequestEvent to keep type safety
+import type { NetworkRequestEvent, NetworkObservers } from './observers';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
@@ -175,7 +180,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     // Initialize network observers if logging is enabled
     if (this.config.loggingConfig?.network?.enabled) {
-      this.networkObservers = new NetworkObservers();
+      const { NetworkObservers: NetworkObserversClass } = await import('./observers');
+      this.networkObservers = new NetworkObserversClass();
     }
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
@@ -368,6 +374,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     //   }
     if (loggingConfig?.console?.enabled) {
       try {
+        // Dynamic import keeps console plugin separate and only loads when needed
         const { getRecordConsolePlugin } = await import('@amplitude/rrweb-plugin-console-record');
         plugins.push(getRecordConsolePlugin({ level: loggingConfig.console.levels }));
       } catch (error) {
@@ -386,6 +393,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
+
+    // Lazy load network observers only when needed
+    if (config.loggingConfig?.network?.enabled && !this.networkObservers) {
+      const { NetworkObservers: NetworkObserversClass } = await import('./observers');
+      this.networkObservers = new NetworkObserversClass();
+    }
+
     this.networkObservers?.start((event: NetworkRequestEvent) => {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
     });

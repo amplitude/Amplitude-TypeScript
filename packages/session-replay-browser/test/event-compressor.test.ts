@@ -3,7 +3,7 @@ import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { EventCompressor } from '../src/events/event-compressor';
 import { createEventsManager } from '../src/events/events-manager';
 import { SessionReplayEventsManager } from '../src/typings/session-replay';
-import { eventWithTime } from '@amplitude/rrweb';
+import { eventWithTime } from '@amplitude/rrweb-types';
 
 const mockEvent = {
   type: 4,

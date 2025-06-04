@@ -3,10 +3,10 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { BeaconTransport } from '../../src/beacon-transport';
 import { ScrollEventPayload, ScrollWatcher } from '../../src/hooks/scroll';
-import { utils } from '@amplitude/rrweb';
-import { randomUUID } from 'crypto';
 
-jest.mock('@amplitude/rrweb');
+import { randomUUID } from 'crypto';
+import { getWindowHeight, getWindowScroll, getWindowWidth } from 'src/utils/rrweb';
+
 jest.mock('../../src/beacon-transport');
 
 describe('scroll', () => {
@@ -15,19 +15,19 @@ describe('scroll', () => {
   };
 
   const mockWindowScroll = (left = 0, top = 0) => {
-    (utils.getWindowScroll as jest.Mock).mockImplementation(() => {
+    (getWindowScroll as jest.Mock).mockImplementation(() => {
       return { left, top };
     }) as any;
   };
 
   const mockWindowWidth = (width = 0) => {
-    (utils.getWindowWidth as jest.Mock).mockImplementation(() => {
+    (getWindowWidth as jest.Mock).mockImplementation(() => {
       return width;
     }) as any;
   };
 
   const mockWindowHeight = (height = 0) => {
-    (utils.getWindowHeight as jest.Mock).mockImplementation(() => {
+    (getWindowHeight as jest.Mock).mockImplementation(() => {
       return height;
     }) as any;
   };

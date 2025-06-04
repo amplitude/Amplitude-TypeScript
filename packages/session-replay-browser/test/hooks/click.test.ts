@@ -7,11 +7,12 @@ import { MouseInteractions } from '@amplitude/rrweb-types';
 import { SessionReplayEventsManager } from '../../src/typings/session-replay';
 import { UUID } from '@amplitude/analytics-core';
 import { ClickEvent, ClickEventWithCount, clickBatcher, clickHook, clickNonBatcher } from '../../src/hooks/click';
-import { record, utils } from '@amplitude/rrweb';
+import { record } from '@amplitude/rrweb/rrweb-record';
 import type { ILogger } from '@amplitude/analytics-core';
 import { finder } from '../../src/libs/finder';
+import { getWindowScroll } from 'src/utils/rrweb';
 
-jest.mock('@amplitude/rrweb');
+jest.mock('@amplitude/rrweb/rrweb-record');
 jest.mock('../../src/libs/finder');
 
 describe('click', () => {
@@ -47,7 +48,7 @@ describe('click', () => {
     };
 
     const mockWindowScroll = (left = 0, top = 0) => {
-      (utils.getWindowScroll as jest.Mock).mockImplementation(() => {
+      (getWindowScroll as jest.Mock).mockImplementation(() => {
         return { left, top };
       }) as any;
     };

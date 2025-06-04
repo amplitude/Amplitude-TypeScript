@@ -1,5 +1,7 @@
-import { mouseInteractionCallBack, MouseInteractions } from '@amplitude/rrweb-types';
-import { record, utils } from '@amplitude/rrweb';
+import type { mouseInteractionCallBack } from '@amplitude/rrweb-types';
+import { MouseInteractions } from '@amplitude/rrweb-types';
+import { record } from '@amplitude/rrweb/rrweb-record';
+import { getWindowScroll } from '../utils/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '../libs/finder';
@@ -100,7 +102,7 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
       }
     }
 
-    const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
+    const { left: scrollX, top: scrollY } = getWindowScroll(globalScope as unknown as Window);
 
     const event: ClickEvent = {
       x: x + scrollX,

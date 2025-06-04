@@ -19,6 +19,7 @@
   "scripts": {
     "build": "yarn bundle && yarn build:es5 && yarn build:esm",
     "bundle": "rollup --config rollup.config.js",
+    "bundle:analyze": "ANALYZE=true rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
     "watch": "tsc -p ./tsconfig.esm.json --watch",
@@ -41,7 +42,7 @@
   "dependencies": {
     "@amplitude/analytics-core": "^2.12.2",
     "@amplitude/analytics-remote-config": "^0.6.2",
-    "@amplitude/rrweb": "2.0.0-alpha.29",
+    "@amplitude/rrweb": "file:../../../rrweb/packages/rrweb",
     "@amplitude/rrweb-packer": "2.0.0-alpha.29",
     "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.29",
     "@rollup/plugin-replace": "^6.0.1",
@@ -60,7 +61,8 @@
     "rollup": "^2.79.1",
     "rollup-plugin-execute": "^1.1.1",
     "rollup-plugin-gzip": "^3.1.0",
-    "rollup-plugin-terser": "^7.0.2"
+    "rollup-plugin-terser": "^7.0.2",
+    "rollup-plugin-visualizer": "^6.0.1"
   },
   "files": [
     "lib"
