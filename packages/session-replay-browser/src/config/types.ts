@@ -1,5 +1,6 @@
 import { IConfig, LogLevel, ILogger } from '@amplitude/analytics-core';
 import { StoreType, ConsoleLogLevel } from '../typings/session-replay';
+import { TargetingFlag } from '@amplitude/targeting';
 
 export interface SamplingConfig {
   sample_rate: number;
@@ -26,11 +27,14 @@ export interface LoggingConfig {
   };
 }
 
+export type TargetingConfig = TargetingFlag;
+
 export type SessionReplayRemoteConfig = {
   sr_sampling_config?: SamplingConfig;
   sr_privacy_config?: PrivacyConfig;
   sr_interaction_config?: InteractionConfig;
   sr_logging_config?: LoggingConfig;
+  sr_targeting_config?: TargetingConfig;
 };
 
 export interface SessionReplayRemoteConfigAPIResponse {
@@ -141,6 +145,7 @@ export interface SessionReplayLocalConfig extends IConfig {
      */
     useWebWorker: boolean;
   };
+  userProperties?: { [key: string]: any };
 
   /**
    * Remove certain parts of the DOM from being captured. These are typically ignored when blocking by selectors.
@@ -168,6 +173,7 @@ export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
   captureEnabled?: boolean;
   interactionConfig?: InteractionConfig;
   loggingConfig?: LoggingConfig;
+  targetingConfig?: TargetingConfig;
 }
 
 export interface SessionReplayRemoteConfigFetch {
