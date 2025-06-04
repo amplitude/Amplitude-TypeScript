@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Amplitude SDK - Cookie Consent Example</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      
+      .section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+      
+      .section h3 {
+        margin-top: 0;
+        color: #555;
+      }
+      
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 5px;
+        font-size: 14px;
+      }
+      
+      button:hover {
+        background-color: #0056b3;
+      }
+      
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+      
+      .status {
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+        font-weight: bold;
+      }
+      
+      .status.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      
+      .status.warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+      
+      .status.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      
+      /* Cookie Consent Banner */
+      .cookie-banner {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #333;
+        color: white;
+        padding: 20px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+        z-index: 1000;
+        display: none;
+      }
+      
+      .cookie-banner.show {
+        display: block;
+      }
+      
+      .cookie-banner-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+      
+      .cookie-banner-text {
+        flex: 1;
+        min-width: 300px;
+      }
+      
+      .cookie-banner-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      
+      .cookie-banner button {
+        background-color: #28a745;
+        padding: 8px 16px;
+        font-size: 14px;
+      }
+      
+      .cookie-banner button.decline {
+        background-color: #dc3545;
+      }
+      
+      .cookie-banner button:hover {
+        opacity: 0.8;
+      }
+      
+      .event-log {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin: 10px 0;
+        max-height: 300px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      
+      .event-log .event {
+        margin: 5px 0;
+        padding: 5px;
+        border-left: 3px solid #007bff;
+        background-color: white;
+      }
+      
+      .event-log .event.error {
+        border-left-color: #dc3545;
+        background-color: #fff5f5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Amplitude SDK - Cookie Consent Example</h1>
+      
+      <div class="section">
+        <h3>Cookie Consent Status</h3>
+        <div id="consent-status" class="status warning">
+          Cookie consent not given yet
+        </div>
+        <div id="sdk-status" class="status warning">
+          Amplitude SDK not initialized
+        </div>
+      </div>
+      
+      <div class="section">
+        <h3>Test Actions</h3>
+        <button id="track-before-consent-btn">Track Event "before cookie consent"</button>
+      </div>
+      
+      <div class="section">
+        <h3>Event Log</h3>
+        <div id="event-log" class="event-log">
+          <div class="event">Page loaded - waiting for cookie consent...</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Cookie Consent Banner -->
+    <div id="cookie-banner" class="cookie-banner">
+      <div class="cookie-banner-content">
+        <div class="cookie-banner-text">
+          <strong>Cookie Consent</strong><br>
+          We use cookies and similar technologies to improve your experience and analyze site usage. 
+          By clicking "Accept", you consent to the use of cookies for analytics and tracking purposes.
+        </div>
+        <div class="cookie-banner-buttons">
+          <button id="accept-cookies-btn">Accept</button>
+          <button id="decline-cookies-btn" class="decline">Decline</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { stubPlugin } from '@amplitude/plugin-stub-browser';
+      
+      // Global state
+      let isConsentGiven = false;
+      let isSDKInitialized = false;
+      
+      // DOM elements
+      const consentStatus = document.getElementById('consent-status');
+      const sdkStatus = document.getElementById('sdk-status');
+      const eventLog = document.getElementById('event-log');
+      const cookieBanner = document.getElementById('cookie-banner');
+      const trackBeforeConsentBtn = document.getElementById('track-before-consent-btn');
+      const acceptCookiesBtn = document.getElementById('accept-cookies-btn');
+      const declineCookiesBtn = document.getElementById('decline-cookies-btn');
+      
+      // Utility functions
+      function logEvent(message, isError = false) {
+        const eventDiv = document.createElement('div');
+        eventDiv.className = `event ${isError ? 'error' : ''}`;
+        eventDiv.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        eventLog.appendChild(eventDiv);
+        eventLog.scrollTop = eventLog.scrollHeight;
+        console.log(message);
+      }
+      
+      function updateStatus() {
+        // Update consent status
+        if (isConsentGiven) {
+          consentStatus.textContent = 'Cookie consent given ✓';
+          consentStatus.className = 'status success';
+        } else {
+          consentStatus.textContent = 'Cookie consent not given yet';
+          consentStatus.className = 'status warning';
+        }
+        
+        // Update SDK status
+        if (isSDKInitialized) {
+          sdkStatus.textContent = 'Amplitude SDK initialized ✓';
+          sdkStatus.className = 'status success';
+        } else {
+          sdkStatus.textContent = 'Amplitude SDK not initialized';
+          sdkStatus.className = 'status warning';
+        }
+      }
+      
+      function showCookieBanner() {
+        cookieBanner.classList.add('show');
+        logEvent('Cookie consent banner displayed');
+      }
+      
+      function hideCookieBanner() {
+        cookieBanner.classList.remove('show');
+      }
+      
+      async function initializeAmplitudeSDK() {
+        try {
+          
+          // Initialize Amplitude SDK
+          await amplitude.init(
+            import.meta.env.VITE_AMPLITUDE_API_KEY || 'test-api-key',
+            import.meta.env.VITE_AMPLITUDE_USER_ID || 'test-user-cookie-consent',
+            {
+              autocapture: false,
+              logLevel: 'debug'
+            }
+          );
+          
+          isSDKInitialized = true;
+          logEvent('Amplitude SDK initialized successfully');
+          updateStatus();
+          
+          // Track an initialization event
+          amplitude.track('SDK Initialized After Consent', {
+            consent_method: 'cookie_banner',
+            timestamp: new Date().toISOString()
+          });
+          
+          logEvent('Tracked "SDK Initialized After Consent" event');
+          
+        } catch (error) {
+          logEvent(`Error initializing Amplitude SDK: ${error.message}`, true);
+        }
+      }
+      
+      // Event handlers
+      trackBeforeConsentBtn.addEventListener('click', () => {
+        try {
+          // This will fail gracefully since SDK is not initialized
+          amplitude.track('before cookie consent', {
+            page: 'cookie-consent-demo',
+            timestamp: new Date().toISOString(),
+            consent_status: 'not_given'
+          });
+          
+          logEvent('Attempted to track "before cookie consent" event (SDK not initialized)');
+        } catch (error) {
+          logEvent(`Error tracking event before consent: ${error.message}`, true);
+        }
+      });
+      
+      acceptCookiesBtn.addEventListener('click', async () => {
+        isConsentGiven = true;
+        hideCookieBanner();
+        logEvent('Cookie consent accepted by user');
+        updateStatus();
+        
+        // Initialize Amplitude SDK after consent
+        await initializeAmplitudeSDK();
+      });
+      
+      declineCookiesBtn.addEventListener('click', () => {
+        hideCookieBanner();
+        logEvent('Cookie consent declined by user');
+        logEvent('Amplitude SDK will not be initialized');
+      });
+      
+      // Initialize page
+      window.addEventListener('load', () => {
+        updateStatus();
+        logEvent('Page loaded - Amplitude SDK not initialized yet');
+        
+        // Show cookie banner after a short delay
+        setTimeout(() => {
+          showCookieBanner();
+        }, 1000);
+      });
+      
+      // Make amplitude available globally for debugging
+      window.amplitude = amplitude;
+      window.debugInfo = {
+        isConsentGiven: () => isConsentGiven,
+        isSDKInitialized: () => isSDKInitialized,
+        forceInitialize: initializeAmplitudeSDK
+      };
+    </script>
+  </body>
+</html> 
