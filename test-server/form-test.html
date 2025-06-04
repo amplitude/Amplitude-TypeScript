@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Test with Performance Tracking</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+        #performance-metrics {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Form Test with Performance Tracking</h1>
+    
+    <form id="testForm">
+        <div class="form-container-wrapper">
+            <div class="form-section-primary">
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="text">Text Input:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <input type="text" id="text" name="text" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="email">Email:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="number">Number:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <input type="number" id="number" name="number" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section-secondary">
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="date">Date:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <input type="date" id="date" name="date">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="color">Color:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <input type="color" id="color" name="color">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="range">Range:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <input type="range" id="range" name="range" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section-tertiary">
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="select">Select:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <select id="select" name="select">
+                                <option value="">Choose an option</option>
+                                <option value="1">Option 1</option>
+                                <option value="2">Option 2</option>
+                                <option value="3">Option 3</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label for="textarea">Textarea:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <textarea id="textarea" name="textarea" rows="4"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section-quaternary">
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label>Checkboxes:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="checkbox1" name="checkbox1">
+                                    <label for="checkbox1">Option 1</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="checkbox2" name="checkbox2">
+                                    <label for="checkbox2">Option 2</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group-container">
+                    <div class="form-field-wrapper">
+                        <div class="input-label-container">
+                            <label>Radio Buttons:</label>
+                        </div>
+                        <div class="input-element-wrapper">
+                            <div class="radio-group">
+                                <div class="radio-item">
+                                    <input type="radio" id="radio1" name="radio" value="1">
+                                    <label for="radio1">Option 1</label>
+                                </div>
+                                <div class="radio-item">
+                                    <input type="radio" id="radio2" name="radio" value="2">
+                                    <label for="radio2">Option 2</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-submit-container">
+                <button type="submit">Submit Form</button>
+            </div>
+        </div>
+    </form>
+
+    <div id="result"></div>
+    <div id="performance-metrics"></div>
+    
+    <div style="margin-top: 20px;">
+        <button type="button" id="blockButton" style="background-color: #f44336;">Block for 3 Seconds</button>
+    </div>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+        import { stubPlugin } from '@amplitude/plugin-stub-browser';
+
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const skipAutocapture = urlParams.get('skipAutocapture') === 'true';
+
+        // Initialize Amplitude
+        window.amplitude = amplitude;
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+        amplitude.add(stubPlugin());
+        amplitude.init(apiKey, 'test-user', {
+            autocapture: !skipAutocapture,
+        });
+
+        // Display autocapture status
+        const metricsDiv = document.getElementById('performance-metrics');
+        metricsDiv.innerHTML = `
+            <h3>Configuration:</h3>
+            <p>Autocapture: ${!skipAutocapture ? 'Enabled' : 'Disabled'}</p>
+        `;
+
+        // Performance tracking
+        let startTime;
+        let tbt = 0;
+        let longTasks = [];
+
+        // Set up PerformanceObserver for long tasks
+        const longTaskObserver = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+                console.log('Long task', entry);
+                longTasks.push(entry);
+            }
+        });
+        longTaskObserver.observe({ entryTypes: ['longtask'] });
+
+        // Function to calculate Total Blocking Time
+        function calculateTBT() {
+            return longTasks.reduce((total, entry) => total + entry.duration, 0);
+        }
+
+        // Function to block the main thread
+        function blockThread(duration) {
+            const start = performance.now();
+            while (performance.now() - start < duration) {
+                // Busy loop to block the thread
+            }
+        }
+
+        // Add click handler for block button
+        document.getElementById('blockButton').addEventListener('click', () => {
+            blockThread(3000); // Block for 3 seconds
+        });
+
+        // Start performance tracking when the page loads
+        window.addEventListener('load', () => {
+            startTime = performance.now();
+        });
+
+        // Handle form submission
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Calculate final TBT
+            tbt = calculateTBT();
+            
+            // Show submission result
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<h3>Form Submitted Successfully!</h3>';
+            
+            // Display performance metrics
+            const metricsDiv = document.getElementById('performance-metrics');
+            metricsDiv.innerHTML = `
+                <h3>Performance Metrics:</h3>
+                <p>Total Blocking Time (TBT): <span id="tbt">${tbt.toFixed(2)}</span>ms</p>
+                <p>Number of Long Tasks: ${longTasks.length}</p>
+            `;
+
+            // Track form submission with Amplitude
+            amplitude.track('Form Submitted', {
+                tbt: tbt.toFixed(2),
+                longTaskCount: longTasks.length
+            });
+        });
+    </script>
+</body>
+</html> 
