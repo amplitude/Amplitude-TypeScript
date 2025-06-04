@@ -191,7 +191,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    await this.evaluateTargetingAndCapture({ userProperties: options.userProperties });
+    await this.evaluateTargetingAndCapture({ userProperties: options.userProperties }, true);
   }
 
   setSessionId(sessionId: string | number, deviceId?: string) {
@@ -384,12 +384,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
         this.loggerProvider.log(
           `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`,
         );
-        return true;
+        return false;
       }
       this.loggerProvider.log(
         `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`,
       );
-      return false;
     } else {
       const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
       if (!isInSample) {
@@ -397,6 +396,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
       return isInSample;
     }
+
+    return true;
   }
 
   getBlockSelectors(): string | string[] | undefined {
