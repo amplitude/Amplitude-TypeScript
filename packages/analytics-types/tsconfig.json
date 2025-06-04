@@ -6,6 +6,6 @@
     "noEmit": true,
     "rootDir": ".",
     "types": [],
-    "lib": ["dom", "es6"]
+    "lib": ["dom", "es6"],
   }
 }
