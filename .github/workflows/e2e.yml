@@ -48,9 +48,14 @@ jobs:
 
       - name: Start dev server
         run: |
+          # Kill any process using port 5173
+          lsof -ti:5173 | xargs kill -9 2>/dev/null || true
+          # Start the dev server
           yarn dev &
           # Wait for the server to be ready
           sleep 10
+          # Verify the server is running
+          curl -f http://localhost:5173 || exit 1
 
       - name: Run Playwright tests
         run: |
