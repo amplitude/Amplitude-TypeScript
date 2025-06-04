@@ -17,5 +17,6 @@ module.exports = {
     }
   },
   verbose: true,
-  modulePathIgnorePatterns: ['<rootDir>/lib']
+  modulePathIgnorePatterns: ['<rootDir>/lib'],
+  testPathIgnorePatterns: ['/e2e/']
 };
