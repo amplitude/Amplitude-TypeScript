@@ -1,3 +1,3 @@
 // Re-export all observer types and classes
-export * from './network';
-export type { NetworkRequestEvent } from './network';
+export * from '../observers';
+export type { NetworkRequestEvent } from '../observers';
