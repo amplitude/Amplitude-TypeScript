@@ -1,0 +1,115 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Commit and Pull Request Guidelines
+
+This document outlines the commit message standards and pull request guidelines for the Amplitude TypeScript SDK.
+
+## Commit Message Standards
+
+Follow the [Conventional Commits](mdc:https:/www.conventionalcommits.org) specification as outlined in [CONTRIBUTING.md](mdc:CONTRIBUTING.md).
+
+### Commit Types
+- **feat**: New features (triggers minor release)
+- **fix**: Bug fixes (triggers patch release)  
+- **docs**: Documentation updates
+- **style**: Code style changes (formatting, missing semi-colons, etc.)
+- **refactor**: Code changes that neither fix bugs nor add features
+- **perf**: Performance improvements
+- **test**: Adding or updating tests
+- **build**: Changes to build system or dependencies
+- **ci**: Changes to CI configuration
+- **chore**: Other changes that don't modify src or test files
+- **revert**: Revert previous commits
+
+### Breaking Changes
+- Any commit with `BREAKING CHANGE` in the body triggers a major release
+- Use `!` after the type/scope for breaking changes: `feat!: remove deprecated API`
+- Clearly document migration path in commit body
+
+### Scope Guidelines
+Use package names as scopes when changes are package-specific:
+- `feat(analytics-browser): add new tracking method`
+- `fix(analytics-node): resolve memory leak issue`
+- `docs(session-replay): update installation guide`
+
+### Examples of Good Commit Messages
+
+```
+feat(analytics-browser): add support for custom user properties
+
+This change allows users to set custom properties that persist
+across all events in a session.
+
+BREAKING CHANGE: The setUserProperties method now requires
+an explicit flush parameter. Use setUserProperties(props, true)
+to maintain previous behavior.
+
+Closes #123
+```
+
+```
+fix(analytics-core): prevent duplicate event submission
+
+Added deduplication logic to prevent the same event from being
+sent multiple times when network issues cause retries.
+
+Fixes #456
+```
+
+```
+docs: update installation instructions for v2
+
+- Added Node.js version requirements
+- Updated package installation commands
+- Added migration guide from v1
+```
+
+## Pull Request Guidelines
+
+### PR Title Standards
+- Use the same format as commit messages
+- Title should be descriptive and concise
+- Include scope when PR affects specific package
+- Examples:
+  - `feat(analytics-browser): implement session tracking`
+  - `fix: resolve TypeScript compilation errors`
+  - `docs: update API documentation examples`
+
+### PR Description Template
+Include the following sections in your PR description:
+
+```markdown
+## Summary
+Brief description of what this PR accomplishes.
+
+## Changes
+- List of specific changes made
+- New features added
+- Bugs fixed
+- Dependencies updated
+
+## Testing
+- [ ] Unit tests added/updated
+- [ ] Integration tests pass
+- [ ] Manual testing completed
+- [ ] Browser compatibility verified (if applicable)
+
+## Breaking Changes
+Describe any breaking changes and migration steps required.
+
+## Related Issues
+- Closes #123
+- Related to #456
+
+## Checklist
+- [ ] Code follows project style guidelines
+- [ ] Self-review of code completed
+- [ ] Documentation updated
+- [ ] Tests added for new functionality
+- [ ] All tests pass
+- [ ] No new ESLint warnings
+```
+
