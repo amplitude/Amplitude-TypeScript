@@ -3,8 +3,7 @@
   "include": ["src/**/*"],
   "compilerOptions": {
     "baseUrl": ".",
-    "declaration": true,
-    "declarationMap": true,
+    "noEmit": true,
     "rootDir": ".",
     "types": [],
     "lib": ["dom", "es6"]

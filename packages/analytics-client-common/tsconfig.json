@@ -5,8 +5,7 @@
     "baseUrl": ".",
     "esModuleInterop": true,
     "lib": ["dom"],
-    "declaration": true,
-    "declarationMap": true,
+    "noEmit": true,
     "rootDir": "."
   }
 }

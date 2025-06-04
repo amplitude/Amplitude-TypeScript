@@ -5,8 +5,6 @@
     "module": "es6",
     "noEmit": false,
     "outDir": "lib/esm",
-    "rootDir": "./src",
-    "declaration": true,
-    "declarationMap": true
+    "rootDir": "./src"
   }
 }
