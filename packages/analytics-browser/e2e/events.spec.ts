@@ -139,6 +139,7 @@ test.describe('Events Page', () => {
     });
 
     // Verify localStorage is cleared after sending
+    await page.waitForTimeout(1000);
     const finalStorage = await page.context().storageState() as StorageState;
     const remainingItems = finalStorage.origins[0].localStorage
       .filter(item => item.name.startsWith('AMP_unsent_'));
