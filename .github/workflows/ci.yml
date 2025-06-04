@@ -72,6 +72,7 @@ jobs:
 
       - name: E2E tests
         run: |
+          git fetch origin main
           # Start the dev server in the background
           yarn dev &
           # Wait for the server to be ready
