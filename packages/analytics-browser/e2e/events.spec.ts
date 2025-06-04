@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 interface StorageState {
   origins: Array<{
@@ -8,6 +8,18 @@ interface StorageState {
       value: string;
     }>;
   }>;
+}
+
+async function getUnsentEvents(page: Page): Promise<any[]> {
+  const storage = await page.context().storageState() as StorageState;
+  const unsentItems = storage.origins[0].localStorage
+    .filter(item => item.name.startsWith('AMP_unsent_'));
+  
+  if (unsentItems.length === 0) {
+    return [];
+  }
+  
+  return JSON.parse(unsentItems[0].value);
 }
 
 test.describe('Events Page', () => {
@@ -100,16 +112,14 @@ test.describe('Events Page', () => {
     });
 
     // Check localStorage for queued events
-    const storage = await page.context().storageState() as StorageState;
-    
-    // Find all unsent event keys
-    const unsentItems = storage.origins[0].localStorage
-      .filter(item => item.name.startsWith('AMP_unsent_'));
-    let unsentValues: any[] = JSON.parse(unsentItems[0].value);
+    const unsentValues = await getUnsentEvents(page);
     expect(unsentValues.length).toBe(4);
     
     // Parse the stored events
     const storedEvents: any[][] = [];
+    const storage = await page.context().storageState() as StorageState;
+    const unsentItems = storage.origins[0].localStorage
+      .filter(item => item.name.startsWith('AMP_unsent_'));
     for (const item of unsentItems) {
       storedEvents.push(JSON.parse(item.value));
     }
@@ -140,10 +150,7 @@ test.describe('Events Page', () => {
 
     // Verify localStorage is cleared after sending
     await page.waitForTimeout(1000);
-    const finalStorage = await page.context().storageState() as StorageState;
-    const remainingItems = finalStorage.origins[0].localStorage
-      .filter(item => item.name.startsWith('AMP_unsent_'));
-    unsentValues = JSON.parse(remainingItems[0].value);
-    expect(unsentValues.length).toBe(0);
+    const finalUnsentValues = await getUnsentEvents(page);
+    expect(finalUnsentValues.length).toBe(0);
   });
 }); 
