@@ -21,11 +21,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Mark repo as safe
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Fetch main branch explicitly
-        run: git fetch origin main:refs/remotes/origin/main
+      - name: Setup git for nx
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch origin
+          git branch -f main origin/main
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -54,7 +54,6 @@ jobs:
 
       - name: Run Playwright tests
         run: |
-          git fetch origin main
           yarn test:playwright:ci
 
       - name: Upload Playwright Report
