@@ -24,6 +24,9 @@ jobs:
       - name: Mark repo as safe
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Fetch main branch explicitly
+        run: git fetch origin main:refs/remotes/origin/main
+
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -51,6 +54,7 @@ jobs:
 
       - name: Run Playwright tests
         run: |
+          git fetch origin main
           yarn test:playwright:ci
 
       - name: Upload Playwright Report
