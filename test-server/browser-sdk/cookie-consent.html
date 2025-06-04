@@ -267,8 +267,8 @@
           
           // Initialize Amplitude SDK
           await amplitude.init(
-            import.meta.env.VITE_AMPLITUDE_API_KEY || 'test-api-key',
-            import.meta.env.VITE_AMPLITUDE_USER_ID || 'test-user-cookie-consent',
+            import.meta.env.VITE_AMPLITUDE_API_KEY,
+            'test-user-cookie-consent',
             {
               autocapture: false,
               logLevel: 'debug'
