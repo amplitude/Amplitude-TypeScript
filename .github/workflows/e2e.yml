@@ -46,6 +46,7 @@ jobs:
 
       - name: Run Playwright tests
         run: |
+          git fetch origin main:main
           yarn test:playwright:ci
 
       - name: Upload Playwright Report
