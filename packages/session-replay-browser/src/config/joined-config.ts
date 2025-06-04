@@ -88,7 +88,7 @@ export class SessionReplayJoinedConfigGenerator {
         sessionId,
       );
 
-      if (samplingConfig || privacyConfig) {
+      if (samplingConfig || privacyConfig || targetingConfig) {
         remoteConfig = {};
         if (samplingConfig) {
           remoteConfig.sr_sampling_config = samplingConfig;
