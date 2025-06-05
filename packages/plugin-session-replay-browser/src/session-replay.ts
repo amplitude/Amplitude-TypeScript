@@ -1,5 +1,7 @@
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-core';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, SpecialEventType } from '@amplitude/analytics-core';
 import * as sessionReplay from '@amplitude/session-replay-browser';
+import { getAnalyticsConnector } from '@amplitude/analytics-client-common';
+import { parseUserProperties } from './helpers';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
 import { AmplitudeSessionReplay } from '@amplitude/session-replay-browser';
@@ -21,6 +23,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
     init: sessionReplay.init,
     setSessionId: sessionReplay.setSessionId,
     shutdown: sessionReplay.shutdown,
+    evaluateTargetingAndCapture: sessionReplay.evaluateTargetingAndCapture,
   };
 
   constructor(options?: SessionReplayOptions) {
@@ -52,6 +55,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
           };
         }
       }
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      const userProperties = identityStore.getIdentity().userProperties;
 
       this.srInitOptions = {
         instanceName: this.config.instanceName,
@@ -77,6 +82,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
         experimental: this.options.experimental,
+        userProperties: userProperties,
       };
 
       await this.sr.init(config.apiKey, this.srInitOptions).promise;
@@ -137,6 +143,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
         // event is not of the current session (offline/late events). In that case, don't tag the events
         if (sessionId && sessionId === event.session_id) {
+          let userProperties;
+          if (event.event_type === SpecialEventType.IDENTIFY) {
+            userProperties = parseUserProperties(event);
+          }
+          await this.sr.evaluateTargetingAndCapture({ event, userProperties });
           const sessionRecordingProperties = this.sr.getSessionReplayProperties();
           event.event_properties = {
             ...event.event_properties,
