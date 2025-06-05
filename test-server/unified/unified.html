@@ -13,7 +13,7 @@
     <script type="module">  
       import * as amplitudeUnified from '@amplitude/unified';
       const { initAll } = amplitudeUnified;
-      const res = await initAll(import.meta.env.VITE_AMPLITUDE_API_KEY);
+      initAll(import.meta.env.VITE_AMPLITUDE_API_KEY);
       
     </script>
   </body>
