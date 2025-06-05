@@ -8,7 +8,8 @@ const location = path.join(process.cwd(), 'lib', 'scripts');
 const files = [
   'session-replay-browser-esm.js',  // ESM version
   'session-replay-browser-min.js',  // IIFE version
-  'console-plugin-min.js'  // Console plugin chunk
+  'console-plugin-min.js',  // Console plugin chunk
+  'targeting-min.js'  // Targeting chunk
 ];
 
 let deployedCount = 0;
