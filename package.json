@@ -26,7 +26,7 @@
     "test:playwright": "lerna run test:playwright --stream",
     "test:playwright:ui": "playwright test --ui",
     "test:playwright:debug": "playwright test --debug",
-    "test:playwright:ci": "nx affected --target=test:playwright --base=main --head=HEAD",
+    "test:playwright:ci": "playwright test",
     "version": "git add -A"
   },
   "devDependencies": {
