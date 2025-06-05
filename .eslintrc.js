@@ -7,7 +7,7 @@ module.exports = {
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 2018,
-    project: 'packages/*/tsconfig.json',
+    project: ['packages/*/tsconfig.json', 'packages/*/tsconfig.e2e.json'],
     sourceType: 'module',
     tsconfigRootDir: __dirname,
   },
@@ -50,7 +50,7 @@ module.exports = {
   overrides: [
     {
       // Allow test files to access globals
-      files: '*.test.ts',
+      files: ['*.test.ts', 'e2e/**/*.spec.ts'],
       rules: {
         'no-restricted-globals': 'off',
       },
