@@ -5,7 +5,7 @@ export const createInstance = (): UnifiedClient => {
   const client = new AmplitudeUnified();
   return {
     experiment: client.experiment,
-    sr: client.sr,
+    sessionReplay: client.sessionReplay,
     initAll: debugWrapper(
       client.initAll.bind(client),
       'initAll',
