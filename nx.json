@@ -18,17 +18,7 @@
     }
   },
   "targetDefaults": {
-    "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["production", "^production"]
-    },
-    "test": {
-      "dependsOn": ["build"]
-    },
-    "test:playwright": {},
-    "lint": {
-      "inputs": ["default", "{workspaceRoot}/.eslintrc.js"]
-    }
+    "test:playwright": {}
   },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
