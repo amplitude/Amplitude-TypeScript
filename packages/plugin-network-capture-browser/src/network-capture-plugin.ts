@@ -3,7 +3,6 @@ import {
   BrowserClient,
   BrowserConfig,
   EnrichmentPlugin,
-  ElementInteractionsOptions,
   NetworkRequestEvent,
   networkObserver,
   NetworkEventCallback,
@@ -22,11 +21,6 @@ declare global {
 }
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
-
-export type AutoCaptureOptionsWithDefaults = Required<
-  Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
-> &
-  ElementInteractionsOptions;
 
 export enum ObservablesEnum {
   NetworkObservable = 'networkObservable',
