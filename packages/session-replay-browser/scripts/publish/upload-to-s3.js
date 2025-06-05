@@ -9,7 +9,8 @@ const files = [
   'session-replay-browser-esm.js.gz',  // ESM version
   'session-replay-browser-min.js.gz',  // IIFE version
   'console-plugin-min.js.gz',  // Console plugin chunk
-  'rrweb-record-min.js.gz'  // RRWeb record chunk
+  'rrweb-record-min.js.gz',  // RRWeb record chunk
+  'targeting-min.js.gz'  // Targeting chunk
 ];
 
 let deployedCount = 0;

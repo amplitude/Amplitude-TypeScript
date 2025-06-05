@@ -6,7 +6,7 @@
     "downlevelIteration": true,
     "inlineSources": true,
     "importHelpers": true,
-    "lib": ["es6", "dom"],
+    "lib": ["es2021", "dom"],
     "module": "es2020",
     "moduleResolution": "node",
     "noEmitHelpers": true,
