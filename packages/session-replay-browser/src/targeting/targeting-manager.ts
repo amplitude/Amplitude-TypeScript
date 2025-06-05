@@ -1,4 +1,4 @@
-import { TargetingParameters, evaluateTargeting as evaluateTargetingPackage } from '@amplitude/targeting';
+import type { TargetingParameters } from '@amplitude/targeting';
 import { TargetingConfig } from '../config/types';
 import { Logger } from '@amplitude/analytics-types';
 import { targetingIDBStore } from './targeting-idb-store';
@@ -36,6 +36,9 @@ export const evaluateTargetingAndStore = async ({
   // so all users match targeting
   let sessionTargetingMatch = true;
   try {
+    // Dynamic import of the targeting package
+    const { evaluateTargeting: evaluateTargetingPackage } = await import('@amplitude/targeting');
+
     const targetingResult = await evaluateTargetingPackage({
       ...targetingParams,
       flag: targetingConfig,
