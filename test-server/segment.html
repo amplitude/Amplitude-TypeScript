@@ -20,7 +20,6 @@
     // Load Amplitude SDK and initialize with AutoCapture
     import * as amplitude from 'https://cdn.skypack.dev/@amplitude/analytics-browser';
     window.amplitude = amplitude;
-    console.log('!!!ENV:', import.meta.env);
     analytics.load(import.meta.env.SEGMENT_API_KEY); // Your Segment write key
     analytics.page();
 
