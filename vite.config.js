@@ -40,6 +40,7 @@ function fileListingPlugin() {
           const files = await glob('**/*.html', {
             cwd: testServerDir,
             absolute: false,
+            ignore: ['**/dist/**']
           });
           
           const fileList = files.map(file => ({
@@ -72,6 +73,7 @@ const amplitudeAliases = fs.readdirSync(packagesDir).reduce((aliases, pkgName) =
 export default defineConfig({
   envDir: path.resolve(__dirname),
   root: testServerDir,
+  publicDir: path.resolve(packagesDir, 'analytics-browser/generated'),
   resolve: {
     alias: amplitudeAliases
   },
