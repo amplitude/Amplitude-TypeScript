@@ -21,11 +21,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup git for nx
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git fetch origin
-          git branch -f main origin/main
+      # - name: Setup git for nx
+      #   run: |
+      #     git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      #     git fetch origin
+      #       git branch -f main origin/main
+      #     fi
 
       - name: Cache dependencies
         uses: actions/cache@v3
