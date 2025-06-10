@@ -7,6 +7,7 @@ import {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
   ActionType,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
@@ -24,6 +25,7 @@ import { getHierarchy } from './hierarchy';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
+import { trackDeadClick } from './autocapture/track-dead-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
 
 declare global {
@@ -60,7 +62,10 @@ interface NavigateEvent extends Event {
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
 export type AutoCaptureOptionsWithDefaults = Required<
-  Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
+  Pick<
+    ElementInteractionsOptions,
+    'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist' | 'deadClickAllowlist'
+  >
 > &
   ElementInteractionsOptions;
 
@@ -115,6 +120,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
+  options.deadClickAllowlist = options.deadClickAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
 
   const name = constants.PLUGIN_NAME;
@@ -126,7 +132,9 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
     const clickObservable = fromEvent<MouseEvent>(document, 'click', { capture: true }).pipe(
-      map((click) => addAdditionalEventProperties(click, 'click')),
+      map((click) => {
+        return addAdditionalEventProperties(click, 'click');
+      }),
       share(),
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
@@ -148,10 +156,13 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
         share(),
       );
     }
+    // TODO: handle page unload event as well so that we don't lose events
+    // as the page is unloading.
 
     // Track DOM Mutations
     const mutationObservable = new Observable<MutationRecord[]>((observer) => {
       const mutationObserver = new MutationObserver((mutations) => {
+        console.log('mutationObserver', mutations);
         observer.next(mutations);
       });
       mutationObserver.observe(document.body, {
@@ -160,7 +171,9 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
         characterData: true,
         subtree: true,
       });
-      return () => mutationObserver.disconnect();
+      return () => {
+        mutationObserver.disconnect();
+      };
     }).pipe(
       map((mutation) => addAdditionalEventProperties(mutation, 'mutation')),
       share(),
@@ -249,6 +262,10 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       options,
       (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist,
     );
+    const shouldTrackDeadClick = createShouldTrackEvent(
+      options,
+      (options as AutoCaptureOptionsWithDefaults).deadClickAllowlist,
+    );
 
     // Create observables for events on the window
     const allObservables = createObservables();
@@ -279,6 +296,15 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       shouldTrackActionClick: shouldTrackActionClick,
     });
     subscriptions.push(actionClickSubscription);
+
+    const deadClickSubscription = trackDeadClick({
+      amplitude,
+      allObservables,
+      options: options as AutoCaptureOptionsWithDefaults,
+      getEventProperties,
+      shouldTrackDeadClick,
+    });
+    subscriptions.push(deadClickSubscription);
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);

@@ -35,6 +35,12 @@ export const DEFAULT_DATA_ATTRIBUTE_PREFIX = 'data-amp-track-';
  */
 export const DEFAULT_ACTION_CLICK_ALLOWLIST = ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
+/**
+ * Default list of elements on the page should be tracked when the page changes.
+ */
+// TODO: this should default to something once it's ready to be used by customers
+export const DEFAULT_DEAD_CLICK_ALLOWLIST = [];
+
 export interface ElementInteractionsOptions {
   /**
    * List of CSS selectors to allow auto tracking on.
@@ -84,6 +90,12 @@ export interface ElementInteractionsOptions {
    * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
    */
   actionClickAllowlist?: string[];
+
+  /**
+   * CSS selector allowlist for tracking dead clicks (clicks that don't result in any DOM changes)
+   * on elements not already allowed by the cssSelectorAllowlist
+   */
+  deadClickAllowlist?: string[];
 }
 
 export interface Messenger {

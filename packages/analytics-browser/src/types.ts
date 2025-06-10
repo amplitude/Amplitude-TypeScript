@@ -36,6 +36,7 @@ export {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
 } from '@amplitude/analytics-core';
 
 export { Campaign, CampaignParser, ClickIdParameters, ReferrerParameters, UTMParameters } from './attribution/campaign';
