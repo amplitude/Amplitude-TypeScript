@@ -74,7 +74,6 @@ describe('page actions', () => {
     {
       id: 'trig1',
       name: 'Attach Event',
-      type: 'ELEMENT_EVENT',
       conditions: [
         {
           type: 'LABELED_EVENT',
@@ -167,10 +166,9 @@ describe('page actions', () => {
 
     test('should attach properties from the closest matching scope', async () => {
       const autocaptureConfig: ElementInteractionsOptions = {
-        pageActionsConfig: {
+        pageActions: {
           labeledEvents: labeledEvents,
           triggers: triggers,
-          actionSet: {},
         },
       };
       const config: Partial<BrowserConfig> = {

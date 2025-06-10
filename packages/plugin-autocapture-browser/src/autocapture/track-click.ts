@@ -2,6 +2,7 @@ import {
   AllWindowObservables,
   AutoCaptureOptionsWithDefaults,
   type ElementBasedTimestampedEvent,
+  type evaluateTriggersFn,
 } from 'src/autocapture-plugin';
 import { buffer, filter, map, debounceTime, merge, pairwise, delay } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
@@ -9,11 +10,6 @@ import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
 const RAGE_CLICK_THRESHOLD = 5;
-
-// Define the type for the evaluateTriggers function
-export type evaluateTriggersFn = (
-  event: ElementBasedTimestampedEvent<MouseEvent>,
-) => ElementBasedTimestampedEvent<MouseEvent>;
 
 export function trackClicks({
   amplitude,
@@ -61,7 +57,7 @@ export function trackClicks({
       // Only track clicks on elements that should be tracked,
       return shouldTrackEvent('click', click.closestTrackedAncestor);
     }),
-    map((click) => evaluateTriggers(click as ElementBasedTimestampedEvent<MouseEvent>)),
+    map((click) => evaluateTriggers(click)),
     buffer(triggers),
   );
 

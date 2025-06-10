@@ -96,6 +96,10 @@ export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
   targetElementProperties: Record<string, any>;
 };
 
+export type evaluateTriggersFn = <T extends ElementBasedEvent>(
+  event: ElementBasedTimestampedEvent<T>,
+) => ElementBasedTimestampedEvent<T>;
+
 // Union type for all possible TimestampedEvents
 export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
 
@@ -243,26 +247,24 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   };
 
   // Group labeled events by event type (eg. click, change)
-  const groupedLabeledEvents = groupLabeledEventIdsByEventType(
-    Object.values(options.pageActionsConfig?.labeledEvents ?? {}),
-  );
+  const groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
 
-  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActionsConfig?.triggers ?? []);
+  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
 
   //
-  const evaluateTriggers = (
-    event: ElementBasedTimestampedEvent<MouseEvent>,
-  ): ElementBasedTimestampedEvent<MouseEvent> => {
-    // If there is no pageActionsConfig, return the event as is
-    const { pageActionsConfig } = options;
-    if (!pageActionsConfig) {
+  const evaluateTriggers = <T extends ElementBasedEvent>(
+    event: ElementBasedTimestampedEvent<T>,
+  ): ElementBasedTimestampedEvent<T> => {
+    // If there is no pageActions, return the event as is
+    const { pageActions } = options;
+    if (!pageActions) {
       return event;
     }
 
     // Find matching labeled events
     const matchingLabeledEvents = matchEventToLabeledEvents(
       event,
-      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActionsConfig.labeledEvents[id]),
+      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
     );
     // Find matching conditions
     const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
@@ -278,13 +280,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     if (typeof document === 'undefined') {
       return;
     }
-
-    // Fetch pageActions from remote config
-    // const remoteConfig = await getFakeRemoteConfig();
-    // TODO: revert this as local shouldn't override remote
-    // if (!options.pageActionsConfig) {
-    // options.pageActionsConfig = remoteConfig;
-    // }
 
     // Create should track event functions the different allowlists
     const shouldTrackEvent = createShouldTrackEvent(
@@ -314,6 +309,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       getEventProperties,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
+      evaluateTriggers,
     });
     subscriptions.push(changeSubscription);
 

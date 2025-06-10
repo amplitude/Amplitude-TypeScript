@@ -58,10 +58,7 @@ export const createLabeledEventToTriggerMap = (triggers: Trigger[]) => {
  * @param labeledEvents - Array of labeled events to match against
  * @returns Array of matching labeled events
  */
-export const matchEventToLabeledEvents = (
-  event: ElementBasedTimestampedEvent<MouseEvent>,
-  labeledEvents: LabeledEvent[],
-) => {
+export const matchEventToLabeledEvents = (event: ElementBasedTimestampedEvent<T>, labeledEvents: LabeledEvent[]) => {
   return labeledEvents.filter((le) => {
     return le.definition.some((def) => {
       return def.event_type === event.type && def.filters.every((filter) => matchEventToFilter(event, filter));

@@ -218,13 +218,6 @@ describe('matchEventToFilter', () => {
         subprop_op: 'autotrack css match',
         subprop_value: ['invalid>>><<<selector'],
       };
-      // .closest() with an invalid selector throws a DOMException.
-      // The function should handle this gracefully or we should test that it does.
-      // For now, assuming it might not match or might error internally, leading to false.
-      // If your actual code has error handling for this, the test should reflect that.
-      // If not, .closest() throwing would make the test fail, which is also informative.
-      // For this example, we'll assume it results in 'false' because no element is found.
-      // In a real scenario, you might want to wrap the call in a try/catch if errors are expected.
       expect(matchEventToFilter(event, filter)).toBe(false);
     });
   });
