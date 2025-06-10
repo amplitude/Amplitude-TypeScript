@@ -88,38 +88,22 @@ export interface ElementInteractionsOptions {
   /**
    * Remote config for page actions
    */
-  // TODO fix type
-  pageActionsConfig?: {
+  pageActions?: {
     triggers: Trigger[];
     labeledEvents: Record<string, LabeledEvent>;
-    actionSet: Record<string, ActionSet>;
   };
 }
 
-export type ActionSet = {
-  id: string;
-  name: string;
-  actions: PageAction[];
+type MatchingCondition = {
+  type: 'LABELED_EVENT';
+  match: {
+    eventId: string;
+  };
 };
 
-type MatchingCondition =
-  | {
-      type: 'LABELED_EVENT';
-      match: {
-        eventId: string;
-      };
-    }
-  | {
-      type: 'ELEMENT_PRESENCE';
-      match: {
-        cssSelector: string;
-      };
-    };
-
 export type Trigger = {
-  id: string; // Unique identifier for the trigger
-  name: string; // Name of the trigger
-  type: 'ELEMENT_EVENT' | 'PAGE_EVENT'; // When the trigger's condition should be evaluated
+  id: string;
+  name: string; // Human friendly name for the trigger
   conditions: MatchingCondition[]; // Configures when the actions should be executed; AND
   actions: Array<PageAction | string>; // Actions to execute if conditions are met
 };
@@ -128,11 +112,11 @@ export type PageAction = {
   id: string;
   actionType: 'ATTACH_EVENT_PROPERTY';
   dataSource: DataSource; // Defines where and how to get the data
-  destinationKey: string; // Key name for the data (e.g., data layer key, event property name, user property name)
+  destinationKey: string; // Property key name for the data (e.g. event property name, data layer key, user property name)
 };
 
 export type DataSource = {
-  sourceType: 'DOM_ELEMENT' | 'URL' | 'PAGE_CONTEXT';
+  sourceType: 'DOM_ELEMENT' | 'PAGE_CONTEXT'; // | 'URL' ;
 } & (
   | {
       sourceType: 'DOM_ELEMENT';
@@ -141,7 +125,6 @@ export type DataSource = {
       attribute?: string; // For DOM_ELEMENT: Attribute name to extract (null/empty for text content)
       scope?: string; // CSS selector for the scope of the element, document by default
     }
-  | { sourceType: 'URL'; urlComponent: 'QUERY_PARAM' | 'HASH' | 'PATH'; paramOrSegmentName?: string }
   | {
       sourceType: 'PAGE_CONTEXT';
       propertyPath: string; // For PAGE_CONTEXT: e.g., 'document.title'
@@ -152,11 +135,10 @@ export type EventSubpropKey = '[Amplitude] Element Text' | '[Amplitude] Element 
 
 export type Filter = {
   subprop_key: EventSubpropKey;
-  subprop_op: string;
+  subprop_op: string; // exact, autotrack css match
   subprop_value: string[];
 };
 
-// TODO: Change LabeledEvent so that it is generic and can be used for a generic condition trigger
 export type LabeledEvent = {
   id: string;
   definition: {
