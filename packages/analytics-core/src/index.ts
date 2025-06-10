@@ -27,7 +27,14 @@ export { FetchTransport } from './transports/fetch';
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
 export { Storage, IdentityStorageType } from './types/storage';
-export { Event, IdentifyOperation, SpecialEventType, IdentifyEvent, GroupIdentifyEvent } from './types/event/event';
+export {
+  Event,
+  IdentifyOperation,
+  SpecialEventType,
+  IdentifyEvent,
+  GroupIdentifyEvent,
+  IdentifyUserProperties,
+} from './types/event/event';
 export { EventOptions, BaseEvent } from './types/event/base-event';
 export { IngestionMetadata } from './types/event/ingestion-metadata';
 export { ServerZoneType, ServerZone } from './types/server-zone';
