@@ -1,7 +1,13 @@
-import { Logger, UUID } from '@amplitude/analytics-core';
-import { BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import {
+  Logger,
+  UUID,
+  CookieStorage,
+  FetchTransport,
+  BrowserClient,
+  BrowserConfig,
+  LogLevel,
+} from '@amplitude/analytics-core';
 import { defaultPageViewEvent, pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
-import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
 
 // Mock BrowserClient implementation
 const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {

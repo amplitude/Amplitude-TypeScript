@@ -7,9 +7,9 @@ import {
   IdentifyOperation,
   IdentifyUserProperties,
   ILogger,
+  CampaignParser,
+  BASE_CAMPAIGN,
 } from '@amplitude/analytics-core';
-import { CampaignParser } from '@amplitude/analytics-client-common';
-import { BASE_CAMPAIGN } from '@amplitude/analytics-client-common';
 import { CreatePageViewTrackingPlugin, Options } from './typings/page-view-tracking';
 import { omitUndefined } from './utils';
 

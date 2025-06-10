@@ -1,6 +1,6 @@
 import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import { CampaignParser } from '../../src/attribution/campaign-parser';
-import * as queryParams from '@amplitude/analytics-core';
+import * as queryParams from '../../src/query-params';
 
 beforeAll(() => {
   Object.defineProperty(window, 'location', {
