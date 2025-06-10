@@ -1,5 +1,5 @@
 import { createInstance } from '@amplitude/analytics-browser';
-import { EnrichmentPlugin } from '@amplitude/analytics-types';
+import { EnrichmentPlugin } from '@amplitude/analytics-core';
 
 /**
  * This is an example plugin that enriches events with event_type "Page View" by adding
@@ -13,7 +13,8 @@ export const pageViewTrackingEnrichment = (): EnrichmentPlugin => {
     type: 'enrichment',
     setup: async () => undefined,
     execute: async (event) => {
-      if (event.event_type !== '[Amplitude] Page Viewed') {  // event name format if using Autocapture Pageviews 
+      if (event.event_type !== '[Amplitude] Page Viewed') {
+        // event name format if using Autocapture Pageviews
         return event;
       }
       event.event_properties = {

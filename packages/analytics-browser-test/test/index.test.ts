@@ -6,8 +6,7 @@ import { default as nock } from 'nock';
 import { success } from './responses';
 import 'isomorphic-fetch';
 import { path, url, SUCCESS_MESSAGE, uuidPattern } from './constants';
-import { LogLevel } from '@amplitude/analytics-types';
-import { UUID } from '@amplitude/analytics-core';
+import { UUID, LogLevel } from '@amplitude/analytics-core';
 
 describe('integration', () => {
   const uuid: string = expect.stringMatching(uuidPattern) as string;
