@@ -1,8 +1,7 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import * as hierarchyModule from '../src/hierarchy';
 
-import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
-import { BrowserClient } from '@amplitude/analytics-types';
+import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient } from '@amplitude/analytics-core';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
 import { createMockBrowserClient } from './mock-browser-client';
