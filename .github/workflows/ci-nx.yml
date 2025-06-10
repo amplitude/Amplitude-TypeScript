@@ -44,13 +44,6 @@ jobs:
           # Ensure we have the main branch reference for NX affected commands
           git fetch origin main:main --depth=1 || git fetch origin main --depth=1
 
-      - name: Build affected packages
-        run: |
-          yarn build:nx-affected
-        env:
-          NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
-          NX_HEAD: ${{ github.sha }}
-
       # https://github.com/amplitude/Amplitude-TypeScript/issues/281
       - name: Check module dependencies
         run: |
