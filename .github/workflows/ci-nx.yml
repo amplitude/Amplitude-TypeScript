@@ -17,9 +17,6 @@ jobs:
         node-version: [18.17.x, 20.x, 22.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
-      NX_HEAD: ${{ github.sha }}
 
     steps:
       - name: Check out git repository
@@ -47,6 +44,13 @@ jobs:
           # Ensure we have the main branch reference for NX affected commands
           git fetch origin main:main --depth=1 || git fetch origin main --depth=1
 
+      - name: Build affected packages
+        run: |
+          yarn build:nx-affected
+        env:
+          NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
+          NX_HEAD: ${{ github.sha }}
+
       # https://github.com/amplitude/Amplitude-TypeScript/issues/281
       - name: Check module dependencies
         run: |
@@ -64,9 +68,12 @@ jobs:
         run: |
           yarn docs:check
 
-      - name: Build & Test affected packages
+      - name: Test affected packages
         run: |
           yarn test:nx-affected
+        env:
+          NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
+          NX_HEAD: ${{ github.sha }}
 
       - name: Test all examples
         run: |
@@ -75,3 +82,6 @@ jobs:
       - name: Lint affected packages
         run: |
           yarn lint:nx-affected
+        env:
+          NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
+          NX_HEAD: ${{ github.sha }}
