@@ -1,8 +1,46 @@
-import { createInstance } from '@amplitude/analytics-browser';
 import { Logger, UUID } from '@amplitude/analytics-core';
-import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import { BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import { defaultPageViewEvent, pageViewTrackingPlugin, shouldTrackHistoryPageView } from '../src/page-view-tracking';
 import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
+
+// Mock BrowserClient implementation
+const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
+  const mockClient = {
+    init: jest.fn(),
+    add: jest.fn(),
+    remove: jest.fn(),
+    track: jest.fn(),
+    logEvent: jest.fn(),
+    identify: jest.fn(),
+    groupIdentify: jest.fn(),
+    setGroup: jest.fn(),
+    revenue: jest.fn(),
+    flush: jest.fn(),
+    getUserId: jest.fn(),
+    setUserId: jest.fn(),
+    getDeviceId: jest.fn(),
+    setDeviceId: jest.fn(),
+    getSessionId: jest.fn(),
+    setSessionId: jest.fn(),
+    extendSession: jest.fn(),
+    reset: jest.fn(),
+    setOptOut: jest.fn(),
+    setTransport: jest.fn(),
+  } as jest.Mocked<BrowserClient>;
+
+  // Set up default return values for methods that return promises
+  mockClient.track.mockReturnValue({
+    promise: Promise.resolve({
+      code: 200,
+      message: '',
+      event: {
+        event_type: '[Amplitude] Page Viewed',
+      },
+    }),
+  });
+
+  return mockClient;
+};
 
 describe('pageViewTrackingPlugin', () => {
   const mockConfig: BrowserConfig = {
@@ -63,7 +101,7 @@ describe('pageViewTrackingPlugin', () => {
     ])('should track dynamic page view', async (options) => {
       mockConfig.pageCounter = 0;
 
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const track = jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
           code: 200,
@@ -112,7 +150,7 @@ describe('pageViewTrackingPlugin', () => {
       },
     ])('should track initial page view', async (options) => {
       mockConfig.pageCounter = 0;
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const search = 'utm_source=google&utm_medium=cpc&utm_campaign=brand&utm_term=keyword&utm_content=adcopy';
       const hostname = 'www.example.com';
       const pathname = '/path/to/page';
@@ -155,7 +193,7 @@ describe('pageViewTrackingPlugin', () => {
         trackOn: () => false,
       },
     ])('should not track initial page view', async (options) => {
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const track = jest.spyOn(amplitude, 'track');
       const plugin = pageViewTrackingPlugin(options);
       await plugin.setup?.(mockConfig, amplitude);
@@ -170,7 +208,7 @@ describe('pageViewTrackingPlugin', () => {
         },
       },
     ])('should not track dynamic page view', async (options) => {
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const track = jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
           code: 200,
@@ -201,7 +239,7 @@ describe('pageViewTrackingPlugin', () => {
     test('should track dynamic page view with decoded URI location info', async () => {
       mockConfig.pageCounter = 0;
 
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const track = jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
           code: 200,
@@ -254,7 +292,7 @@ describe('pageViewTrackingPlugin', () => {
     test('should track dynamic page view with malformed location info', async () => {
       mockConfig.pageCounter = 0;
 
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const track = jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
           code: 200,
@@ -309,7 +347,7 @@ describe('pageViewTrackingPlugin', () => {
     test('should track dynamic page view with regular location info', async () => {
       mockConfig.pageCounter = 0;
 
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const track = jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
           code: 200,
@@ -362,7 +400,7 @@ describe('pageViewTrackingPlugin', () => {
 
   describe('execute', () => {
     test('should track page view on attribution', async () => {
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const plugin = pageViewTrackingPlugin({
         trackOn: 'attribution',
       });
@@ -458,7 +496,7 @@ describe('pageViewTrackingPlugin', () => {
     test('should set the pageCounter', async () => {
       const config = { ...mockConfig };
       config.pageCounter = 0;
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
           code: 200,
@@ -481,7 +519,7 @@ describe('pageViewTrackingPlugin', () => {
     test('should not set the pageCounter', async () => {
       const config = { ...mockConfig };
       config.pageCounter = 0;
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       jest.spyOn(amplitude, 'track').mockReturnValue({
         promise: Promise.resolve({
           code: 200,
@@ -501,7 +539,7 @@ describe('pageViewTrackingPlugin', () => {
 
   describe('teardown', () => {
     test('should call remove listeners', async () => {
-      const amplitude = createInstance();
+      const amplitude = createMockBrowserClient();
       const removeEventListener = jest.spyOn(window, 'removeEventListener');
       jest.spyOn(amplitude, 'track').mockReturnValueOnce({
         promise: Promise.resolve({
@@ -533,7 +571,7 @@ describe('pageViewTrackingPlugin', () => {
         trackHistoryChanges: 'all',
       });
       expect(history.pushState).toBe(originalPushState);
-      await plugin.setup?.(mockConfig, createInstance());
+      await plugin.setup?.(mockConfig, createMockBrowserClient());
       expect(history.pushState).not.toBe(originalPushState);
       await plugin.teardown?.();
       expect(history.pushState).not.toBe(originalPushState);

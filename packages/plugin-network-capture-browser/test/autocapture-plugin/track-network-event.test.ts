@@ -15,10 +15,10 @@ import {
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import { shouldTrackNetworkEvent } from '../../src/track-network-event';
 import { NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
-import { AmplitudeBrowser } from '@amplitude/analytics-browser';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
 import { VERSION } from '../../src/version';
+import { createMockBrowserClient } from '../mock-browser-client';
 import * as streams from 'stream/web';
 import { TextEncoder } from 'util';
 type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
@@ -135,7 +135,7 @@ describe('track-network-event', () => {
         };
       });
 
-      client = new AmplitudeBrowser();
+      client = createMockBrowserClient();
       trackSpy = jest.spyOn(client, 'track');
       client.init('<FAKE_API_KEY>', undefined, localConfig);
       jest.spyOn(networkObserver, 'subscribe').mockImplementation(subscribe);
