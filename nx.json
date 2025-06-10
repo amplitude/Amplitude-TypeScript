@@ -1,0 +1,50 @@
+{
+  "extends": "nx/presets/npm.json",
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "affected": {
+    "defaultBase": "main"
+  },
+  "pluginsConfig": {
+    "@nx/js": {
+      "analyzeSourceFiles": false
+    }
+  },
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["test:playwright", "build", "test", "lint", "typecheck"]
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    },
+    "test": {
+      "dependsOn": ["build"]
+    },
+    "test:playwright": {},
+    "lint": {
+      "inputs": ["default", "{workspaceRoot}/.eslintrc.js"]
+    },
+    "typecheck": {
+      "inputs": ["default", "^production"]
+    }
+  },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json",
+      "!{projectRoot}/jest.config.[jt]s",
+      "!{projectRoot}/**/*.test.[jt]s?(x)",
+      "!{projectRoot}/test/**/*",
+      "!{projectRoot}/lib/**/*",
+      "!{projectRoot}/coverage/**/*"
+    ],
+    "sharedGlobals": ["{workspaceRoot}/nx.json"]
+  }
+} 

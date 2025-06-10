@@ -1,6 +1,6 @@
-import { getGlobalScope } from './';
+import { getGlobalScope } from './global-scope';
 import { UUID } from './utils/uuid';
-import { ILogger } from '.';
+import { ILogger } from './logger';
 import {
   IRequestWrapper,
   NetworkRequestEvent,

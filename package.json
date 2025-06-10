@@ -5,6 +5,8 @@
   ],
   "scripts": {
     "build": "lerna run build --stream --include-dependencies",
+    "build:nx-cache": "nx run-many --target=build --all",
+    "build:nx-affected": "nx affected --target=build",
     "watch": "lerna run watch --parallel",
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
@@ -16,10 +18,14 @@
     "fix": "lerna run fix --stream",
     "generate-signed-cert": "sh ./scripts/dev/generate-signed-cert.sh",
     "lint": "lerna run lint --stream",
+    "lint:nx-cache": "nx run-many --target=lint --all",
+    "lint:nx-affected": "nx affected --target=lint",
     "lint:staged": "lint-staged",
     "postinstall": "husky install",
     "start": "vite build && vite preview",
     "test": "lerna run test --stream",
+    "test:nx-cache": "nx run-many --target=test --all",
+    "test:nx-affected": "nx affected --target=test",
     "test:examples": "jest --env=jsdom --coverage=false examples --setupFiles ./jest.setup.examples.js",
     "test:unit": "lerna run test --stream --ignore @amplitude/analytics-*-test",
     "test:e2e": "lerna run test --stream --scope @amplitude/analytics-*-test",
@@ -27,6 +33,7 @@
     "test:playwright:ui": "playwright test --ui",
     "test:playwright:debug": "playwright test --debug",
     "test:playwright:ci": "playwright test",
+    "graph": "nx graph",
     "version": "git add -A"
   },
   "devDependencies": {
