@@ -405,6 +405,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
       : {};
 
+    const ugcFilterRules =
+      interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
+
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
@@ -418,9 +421,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
           }
 
           if (event.type === RRWebEventType.Meta) {
-            if (this.config?.interactionConfig?.enabled && this.config.interactionConfig.ugcFilterRules) {
-              event.data.href = getPageUrl(event.data.href, this.config.interactionConfig.ugcFilterRules);
-            }
+            event.data.href = getPageUrl(event.data.href, ugcFilterRules);
           }
 
           if (this.eventCompressor) {

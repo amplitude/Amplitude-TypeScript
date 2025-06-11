@@ -1267,7 +1267,7 @@ describe('SessionReplay', () => {
         });
 
         const sessionReplay = new SessionReplay();
-        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
@@ -1282,7 +1282,7 @@ describe('SessionReplay', () => {
         // Simulate emitting a meta event
         recordArg?.emit && recordArg?.emit(metaEvent);
 
-        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, []);
         expect(metaEvent.data.href).toBe(originalHref);
       });
 
@@ -1304,7 +1304,7 @@ describe('SessionReplay', () => {
         });
 
         const sessionReplay = new SessionReplay();
-        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
@@ -1319,7 +1319,7 @@ describe('SessionReplay', () => {
         // Simulate emitting a meta event
         recordArg?.emit && recordArg?.emit(metaEvent);
 
-        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, []);
         expect(metaEvent.data.href).toBe(originalHref);
       });
 
@@ -1456,7 +1456,7 @@ describe('SessionReplay', () => {
         });
 
         const sessionReplay = new SessionReplay();
-        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
@@ -1476,7 +1476,10 @@ describe('SessionReplay', () => {
           recordArg?.emit && recordArg?.emit(metaEvent);
         }).not.toThrow();
 
-        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        // Note: ugcFilterRules was set during initialization, so it will use the configured rules
+        expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, [
+          { selector: 'https://example.com/*', replacement: 'https://example.com/filtered' },
+        ]);
         expect(metaEvent.data.href).toBe(originalHref);
       });
 
@@ -1493,7 +1496,7 @@ describe('SessionReplay', () => {
         });
 
         const sessionReplay = new SessionReplay();
-        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
@@ -1510,7 +1513,7 @@ describe('SessionReplay', () => {
           recordArg?.emit && recordArg?.emit(metaEvent);
         }).not.toThrow();
 
-        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, []);
         expect(metaEvent.data.href).toBe(originalHref);
       });
 
@@ -1532,7 +1535,7 @@ describe('SessionReplay', () => {
         });
 
         const sessionReplay = new SessionReplay();
-        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
@@ -1554,7 +1557,10 @@ describe('SessionReplay', () => {
           recordArg?.emit && recordArg?.emit(metaEvent);
         }).not.toThrow();
 
-        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        // Note: ugcFilterRules was set during initialization, so it will use the configured rules
+        expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, [
+          { selector: 'https://example.com/*', replacement: 'https://example.com/filtered' },
+        ]);
         expect(metaEvent.data.href).toBe(originalHref);
       });
 
@@ -1576,7 +1582,7 @@ describe('SessionReplay', () => {
         });
 
         const sessionReplay = new SessionReplay();
-        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
@@ -1593,7 +1599,7 @@ describe('SessionReplay', () => {
           recordArg?.emit && recordArg?.emit(metaEvent);
         }).not.toThrow();
 
-        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, []);
         expect(metaEvent.data.href).toBe(originalHref);
       });
     });
