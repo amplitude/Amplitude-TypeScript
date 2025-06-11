@@ -1,5 +1,3 @@
-import { BASE_CAMPAIGN } from '../../src/attribution/constants';
-import { CampaignParser } from '../../src/attribution/campaign-parser';
 import { WebAttribution } from '../../src/attribution/web-attribution';
 import {
   FetchTransport,
@@ -9,6 +7,8 @@ import {
   AttributionOptions,
   BrowserConfig,
   LogLevel,
+  BASE_CAMPAIGN,
+  CampaignParser,
 } from '@amplitude/analytics-core';
 
 describe('shouldTrackNewCampaign', () => {

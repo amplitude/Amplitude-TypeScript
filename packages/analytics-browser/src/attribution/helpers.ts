@@ -1,6 +1,4 @@
-import { createIdentifyEvent, Identify, ILogger } from '@amplitude/analytics-core';
-import { Campaign } from './campaign';
-import { BASE_CAMPAIGN } from './constants';
+import { createIdentifyEvent, Identify, ILogger, Campaign, BASE_CAMPAIGN } from '@amplitude/analytics-core';
 
 export interface Options {
   excludeReferrers?: (string | RegExp)[];

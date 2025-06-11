@@ -37,8 +37,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.3.23",
-    "@amplitude/analytics-types": "^2.9.2",
+    "@amplitude/analytics-core": "^2.12.2",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

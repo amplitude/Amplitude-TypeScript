@@ -8,7 +8,8 @@ import { CLIENT_NOT_INITIALIZED, OPT_OUT_MESSAGE } from '../src/types/messages';
 import { useDefaultConfig } from './helpers/default';
 import { IdentifyOperation } from '../src/identify';
 import { UNSET_VALUE } from '../src/types/constants';
-import { BrowserConfig, LogLevel } from '@amplitude/analytics-types';
+import { BrowserConfig } from '../src/types/browser-config';
+import { LogLevel } from '../src/types/loglevel';
 
 async function runScheduleTimers() {
   // eslint-disable-next-line @typescript-eslint/unbound-method

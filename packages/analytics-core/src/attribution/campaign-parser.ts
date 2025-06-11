@@ -1,4 +1,4 @@
-import { getQueryParams } from '@amplitude/analytics-core';
+import { getQueryParams } from '../query-params';
 import {
   UTM_CAMPAIGN,
   UTM_CONTENT,
