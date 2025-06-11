@@ -6,7 +6,7 @@ const { getName, getVersion } = require('../../../../scripts/utils');
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
 const files = [
-  'segment-session-replay-wrapper-esm.js', // ESM version
+  'segment-session-replay-wrapper-esm.js.gz', // ESM version
 ];
 
 let deployedCount = 0;

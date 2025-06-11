@@ -6,9 +6,9 @@ const { getName, getVersion } = require('../../../../scripts/utils');
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
 const files = [
-  'session-replay-browser-esm.js',  // ESM version
-  'session-replay-browser-min.js',  // IIFE version
-  'console-plugin-min.js'  // Console plugin chunk
+  'session-replay-browser-esm.js.gz',  // ESM version
+  'session-replay-browser-min.js.gz',  // IIFE version
+  'console-plugin-min.js.gz'  // Console plugin chunk
 ];
 
 let deployedCount = 0;
