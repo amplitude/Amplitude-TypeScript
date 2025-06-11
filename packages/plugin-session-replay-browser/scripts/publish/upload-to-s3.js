@@ -16,7 +16,7 @@ let deployedCount = 0;
 console.log('[Publish Session Replay Browser to AWS S3] START');
 const promises = files.map((file) => {
   const body = fs.readFileSync(path.join(location, file));
-  const key = `libs/${file.replace('session-replay-browser', `${getName()}-${getVersion()}`)}`;
+  const key = `libs/${file.replace('plugin-session-replay-browser', `${getName()}-${getVersion()}`)}`;
   const client = new S3Client();
 
   const headObject = new HeadObjectCommand({
