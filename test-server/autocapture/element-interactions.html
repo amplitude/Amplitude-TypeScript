@@ -53,13 +53,16 @@
 
       <div class="interactive-section">
         <h2>Form Elements</h2>
-        <input type="text" placeholder="Text input" />
-        <input type="email" placeholder="Email input" />
-        <select>
-          <option value="">Select an option</option>
-          <option value="1">Option 1</option>
-          <option value="2">Option 2</option>
-        </select>
+        <form id="test-form">
+          <input type="text" placeholder="Text input" />
+          <input type="email" placeholder="Email input" />
+          <select>
+            <option value="">Select an option</option>
+            <option value="1">Option 1</option>
+            <option value="2">Option 2</option>
+          </select>
+          <button type="submit">Submit Form</button>
+        </form>
       </div>
 
       <div class="interactive-section">
@@ -86,7 +89,7 @@
           autocapture: {
             elementInteractions: {
               // TODO: this should eventually default to same as cssSelectorAllowlist
-              deadClickAllowlist: ['input', 'select', 'textarea', 'button'],
+              // deadClickAllowlist: ['input', 'select', 'textarea', 'button'],
             },
             networkTracking: {
               ignoreAmplitudeRequests: false,
@@ -106,6 +109,12 @@
           const content = document.getElementById('dynamic-content');
           content.style.display = content.style.display === 'none' ? 'block' : 'none';
         }, 100);
+      });
+
+      // Prevent form submission from refreshing the page
+      document.getElementById('test-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        console.log('Form submitted');
       });
     </script>
   </body>

@@ -27,6 +27,7 @@ import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+import { trackRageClicks } from './autocapture/track-rage-click';
 
 declare global {
   interface Window {
@@ -278,6 +279,13 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       shouldTrackEvent: shouldTrackEvent,
     });
     subscriptions.push(clickTrackingSubscription);
+
+    const rageClickSubscription = trackRageClicks({
+      allObservables,
+      amplitude,
+      shouldTrackEvent: shouldTrackEvent,
+    });
+    subscriptions.push(rageClickSubscription);
 
     const changeSubscription = trackChange({
       allObservables,
