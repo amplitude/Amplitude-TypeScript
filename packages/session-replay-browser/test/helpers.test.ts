@@ -364,5 +364,26 @@ describe('SessionReplayPlugin helpers', () => {
         'ugcFilterRules must be an array of objects with valid globs',
       );
     });
+
+    test('should throw for empty string selector', () => {
+      const rules = [{ selector: '', replacement: 'replacement' }];
+      expect(() => validateUGCFilterRules(rules)).toThrow(
+        'ugcFilterRules must be an array of objects with valid globs',
+      );
+    });
+
+    test('should throw for whitespace-only selector', () => {
+      const rules = [{ selector: '   ', replacement: 'replacement' }];
+      expect(() => validateUGCFilterRules(rules)).toThrow(
+        'ugcFilterRules must be an array of objects with valid globs',
+      );
+    });
+
+    test('should throw for tab and newline whitespace selector', () => {
+      const rules = [{ selector: '\t\n\r ', replacement: 'replacement' }];
+      expect(() => validateUGCFilterRules(rules)).toThrow(
+        'ugcFilterRules must be an array of objects with valid globs',
+      );
+    });
   });
 });

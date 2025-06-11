@@ -167,16 +167,7 @@ export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
   }
 
   // validate ugcFilterRules are valid globs
-  if (
-    !ugcFilterRules.every((rule) => {
-      try {
-        isValidGlobUrl(rule.selector);
-        return true;
-      } catch (err) {
-        return false;
-      }
-    })
-  ) {
+  if (!ugcFilterRules.every((rule) => isValidGlobUrl(rule.selector))) {
     throw new Error('ugcFilterRules must be an array of objects with valid globs');
   }
 };

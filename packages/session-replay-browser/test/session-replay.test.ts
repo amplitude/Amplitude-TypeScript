@@ -1210,6 +1210,393 @@ describe('SessionReplay', () => {
       expect(mouseInteractionHook).toBeDefined();
       expect(mouseInteractionHook).toBeInstanceOf(Function);
     });
+
+    describe('emit callback - meta event URL filtering', () => {
+      test('should apply UGC filter rules to meta event href when interaction config is enabled and ugcFilterRules exist', async () => {
+        const mockUgcFilterRules = [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }];
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                ugcFilterRules: mockUgcFilterRules,
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const metaEvent = {
+          type: 4,
+          data: { href: 'https://example.com/sensitive-page' },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event
+        recordArg?.emit && recordArg?.emit(metaEvent);
+
+        expect(getPageUrlSpy).toHaveBeenCalledWith('https://example.com/sensitive-page', mockUgcFilterRules);
+        expect(metaEvent.data.href).toBe('https://example.com/filtered');
+      });
+
+      test('should not apply UGC filter rules to meta event when interaction config is disabled', async () => {
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: false,
+                ugcFilterRules: [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }],
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const metaEvent = {
+          type: 4,
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event
+        recordArg?.emit && recordArg?.emit(metaEvent);
+
+        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(metaEvent.data.href).toBe(originalHref);
+      });
+
+      test('should not apply UGC filter rules to meta event when ugcFilterRules is undefined', async () => {
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                // ugcFilterRules is undefined
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const metaEvent = {
+          type: 4,
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event
+        recordArg?.emit && recordArg?.emit(metaEvent);
+
+        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(metaEvent.data.href).toBe(originalHref);
+      });
+
+      test('should call getPageUrl with empty array when ugcFilterRules is empty array', async () => {
+        const emptyUgcFilterRules: any[] = [];
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                ugcFilterRules: emptyUgcFilterRules,
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl').mockReturnValue('https://example.com/sensitive-page');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const metaEvent = {
+          type: 4,
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event
+        recordArg?.emit && recordArg?.emit(metaEvent);
+
+        // Empty array is truthy, so getPageUrl should be called
+        expect(getPageUrlSpy).toHaveBeenCalledWith(originalHref, emptyUgcFilterRules);
+        expect(metaEvent.data.href).toBe(originalHref); // Since we mocked the return value to be the same
+      });
+
+      test('should not apply UGC filter rules to non-meta events', async () => {
+        const mockUgcFilterRules = [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }];
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                ugcFilterRules: mockUgcFilterRules,
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const nonMetaEvent = {
+          type: 2, // Not a meta event (type 4)
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a non-meta event
+        recordArg?.emit && recordArg?.emit(nonMetaEvent);
+
+        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(nonMetaEvent.data.href).toBe(originalHref);
+      });
+
+      test('should handle meta event without href data', async () => {
+        const mockUgcFilterRules = [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }];
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                ugcFilterRules: mockUgcFilterRules,
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const metaEvent = {
+          type: 4,
+          data: { width: 1728, height: 154 }, // No href property
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event without href
+        expect(() => {
+          recordArg?.emit && recordArg?.emit(metaEvent);
+        }).not.toThrow();
+
+        expect(getPageUrlSpy).toHaveBeenCalledWith(undefined, mockUgcFilterRules);
+      });
+
+      test('should not apply UGC filter rules when config is undefined', async () => {
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                ugcFilterRules: [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }],
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        // Set config to undefined to test optional chaining
+        sessionReplay.config = undefined;
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const metaEvent = {
+          type: 4,
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event when config is undefined
+        expect(() => {
+          recordArg?.emit && recordArg?.emit(metaEvent);
+        }).not.toThrow();
+
+        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(metaEvent.data.href).toBe(originalHref);
+      });
+
+      test('should not apply UGC filter rules when interactionConfig is undefined', async () => {
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((_namespace: string, _key: keyof SessionReplayRemoteConfig) => {
+            // Return no interaction config to make it undefined
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const metaEvent = {
+          type: 4,
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event when interactionConfig is undefined
+        expect(() => {
+          recordArg?.emit && recordArg?.emit(metaEvent);
+        }).not.toThrow();
+
+        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(metaEvent.data.href).toBe(originalHref);
+      });
+
+      test('should not apply UGC filter rules when config exists but interactionConfig is null', async () => {
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                ugcFilterRules: [{ selector: 'https://example.com/*', replacement: 'https://example.com/filtered' }],
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        // Manually set interactionConfig to null to test optional chaining
+        if (sessionReplay.config) {
+          (sessionReplay.config as any).interactionConfig = null;
+        }
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const metaEvent = {
+          type: 4,
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event when interactionConfig is null
+        expect(() => {
+          recordArg?.emit && recordArg?.emit(metaEvent);
+        }).not.toThrow();
+
+        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(metaEvent.data.href).toBe(originalHref);
+      });
+
+      test('should not apply UGC filter rules when ugcFilterRules is explicitly null', async () => {
+        getRemoteConfigMock = jest
+          .fn()
+          .mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+            if (namespace === 'sessionReplay' && key === 'sr_interaction_config') {
+              return {
+                enabled: true,
+                ugcFilterRules: null, // Explicitly set to null
+              };
+            }
+            return;
+          });
+        jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+          getRemoteConfig: getRemoteConfigMock,
+          metrics: {},
+        });
+
+        const sessionReplay = new SessionReplay();
+        const getPageUrlSpy = jest.spyOn(Helpers, 'getPageUrl');
+        await sessionReplay.init(apiKey, mockOptions).promise;
+        await sessionReplay.recordEvents();
+
+        const recordArg = record.mock.calls[0][0];
+        const originalHref = 'https://example.com/sensitive-page';
+        const metaEvent = {
+          type: 4,
+          data: { href: originalHref },
+          timestamp: Date.now(),
+        };
+
+        // Simulate emitting a meta event when ugcFilterRules is null
+        expect(() => {
+          recordArg?.emit && recordArg?.emit(metaEvent);
+        }).not.toThrow();
+
+        expect(getPageUrlSpy).not.toHaveBeenCalled();
+        expect(metaEvent.data.href).toBe(originalHref);
+      });
+    });
   });
 
   describe('getDeviceId', () => {
