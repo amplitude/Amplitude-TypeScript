@@ -165,6 +165,11 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   networkTracking?: boolean | NetworkTrackingOptions;
+  /**
+   * Enables/disables adding additional referrer and page url event properties.
+   * @defaultValue `false`
+   */
+  pageUrlPreviousPage?: boolean;
 }
 
 export interface TrackingOptions {
