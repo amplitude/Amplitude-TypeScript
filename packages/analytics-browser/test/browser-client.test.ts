@@ -24,6 +24,7 @@ import * as CookieMigration from '../src/cookie-migration';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
+import * as pageUrlPreviousPage from '../src/plugins/page-url-previous-page';
 import * as SnippetHelper from '../src/utils/snippet-helper';
 
 jest.mock('../src/config/joined-config', () => ({
@@ -518,6 +519,34 @@ describe('browser-client', () => {
 
       getGlobalScopeMock.mockRestore();
       addEventListenerMock.mockRestore();
+    });
+
+    test('should add page url previous page plugin if pageUrlPreviousPage is true', async () => {
+      const pageUrlPreviousPagePlugin = jest.spyOn(pageUrlPreviousPage, 'pageUrlPreviousPagePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          pageUrlPreviousPage: true,
+        },
+      }).promise;
+      expect(pageUrlPreviousPagePlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should NOT add page url previous page plugin if pageUrlPreviousPage is false', async () => {
+      const pageUrlPreviousPagePlugin = jest.spyOn(pageUrlPreviousPage, 'pageUrlPreviousPagePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          pageUrlPreviousPage: false,
+        },
+      }).promise;
+      expect(pageUrlPreviousPagePlugin).toHaveBeenCalledTimes(0);
+    });
+
+    test('should NOT add page url previous page plugin if pageUrlPreviousPage is undefined', async () => {
+      const pageUrlPreviousPagePlugin = jest.spyOn(pageUrlPreviousPage, 'pageUrlPreviousPagePlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {},
+      }).promise;
+      expect(pageUrlPreviousPagePlugin).toHaveBeenCalledTimes(0);
     });
 
     test.each([[url], [new URL(`https://www.example.com?deviceId=${testDeviceId}`)]])(
