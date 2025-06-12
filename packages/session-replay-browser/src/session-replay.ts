@@ -428,6 +428,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         blockClass: BLOCK_CLASS,
         // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
         blockSelector: this.getBlockSelectors() as string | undefined,
+        applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
         maskInputFn: maskFn('input', privacyConfig),
         maskTextFn: maskFn('text', privacyConfig),
         // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.

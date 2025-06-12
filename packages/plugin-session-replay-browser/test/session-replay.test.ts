@@ -260,6 +260,57 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
+    test.each([
+      {
+        description: 'should call init with applyBackgroundColorToBlockedElements=true when provided value is true',
+        options: { applyBackgroundColorToBlockedElements: true },
+        expectedValue: true,
+      },
+      {
+        description:
+          'should call init with applyBackgroundColorToBlockedElements=false when provided value is undefined',
+        options: { applyBackgroundColorToBlockedElements: undefined },
+        expectedValue: false,
+      },
+      {
+        description: 'should default applyBackgroundColorToBlockedElements=false when not provided',
+        options: {},
+        expectedValue: false,
+      },
+      {
+        description: 'should call init with applyBackgroundColorToBlockedElements=false when provided value is false',
+        options: { applyBackgroundColorToBlockedElements: false },
+        expectedValue: false,
+      },
+    ])('$description', async ({ options, expectedValue }) => {
+      const sessionReplay = new SessionReplayPlugin({
+        ...options,
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][0]).toEqual(mockConfig.apiKey);
+      expect(init.mock.calls[0][1]).toEqual({
+        deviceId: mockConfig.deviceId,
+        flushMaxRetries: mockConfig.flushMaxRetries,
+        logLevel: mockConfig.logLevel,
+        loggerProvider: mockConfig.loggerProvider,
+        optOut: mockConfig.optOut,
+        sampleRate: 0.4,
+        serverZone: mockConfig.serverZone,
+        sessionId: mockConfig.sessionId,
+        privacyConfig: {
+          blockSelector: ['#id'],
+        },
+        version: {
+          type: 'plugin',
+          version: VERSION,
+        },
+        applyBackgroundColorToBlockedElements: expectedValue,
+      });
+    });
+
     // eslint-disable-next-line jest/expect-expect
     test('should fail gracefully', async () => {
       expect(async () => {

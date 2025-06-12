@@ -30,6 +30,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
   storeType: StoreType;
   performanceConfig?: SessionReplayPerformanceConfig;
   experimental?: { useWebWorker: boolean };
+  applyBackgroundColorToBlockedElements?: boolean;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -53,6 +54,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.version = options.version;
     this.performanceConfig = options.performanceConfig;
     this.storeType = options.storeType ?? 'idb';
+    this.applyBackgroundColorToBlockedElements = options.applyBackgroundColorToBlockedElements ?? false;
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;
