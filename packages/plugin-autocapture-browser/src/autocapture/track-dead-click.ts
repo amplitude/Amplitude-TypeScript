@@ -1,10 +1,5 @@
-import {
-  AllWindowObservables,
-  AutoCaptureOptionsWithDefaults,
-  ElementBasedTimestampedEvent,
-  ObservablesEnum,
-} from 'src/autocapture-plugin';
-import { filter, map, merge, take, mergeMap, race, Observable, Subscriber } from 'rxjs';
+import { AllWindowObservables, ElementBasedTimestampedEvent, ObservablesEnum } from 'src/autocapture-plugin';
+import { filter, map, merge, take, mergeMap, race, Observable, Subscriber, throttleTime } from 'rxjs';
 import { BrowserClient, ActionType } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
@@ -14,13 +9,11 @@ const DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
 export function trackDeadClick({
   amplitude,
   allObservables,
-  options,
   getEventProperties,
   shouldTrackDeadClick,
 }: {
   amplitude: BrowserClient;
   allObservables: AllWindowObservables;
-  options: AutoCaptureOptionsWithDefaults;
   getEventProperties: (actionType: ActionType, element: Element) => Record<string, any>;
   shouldTrackDeadClick: shouldTrackEvent;
 }) {
@@ -51,8 +44,6 @@ export function trackDeadClick({
       });
 
       // Race between the timer and any mutations/navigation
-      // TODO: throttle the dead click to 1 per 3 seconds + include click properties
-      // of other dead clicks in the sequence
       return race(
         timer,
         mutationOrNavigate.pipe(
@@ -64,13 +55,15 @@ export function trackDeadClick({
         filter((value): value is ElementBasedTimestampedEvent<MouseEvent> => value !== null),
       );
     }),
+    // Only allow one dead click event every 3 seconds
+    throttleTime(DEAD_CLICK_TIMEOUT),
   );
 
   return actionClicks.subscribe((actionClick) => {
     /* istanbul ignore next */
-    amplitude?.track(AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT, {
-      ...getEventProperties('click', actionClick.closestTrackedAncestor),
-      isDeadClick: true,
-    });
+    amplitude?.track(
+      AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
+      getEventProperties('click', actionClick.closestTrackedAncestor),
+    );
   });
 }

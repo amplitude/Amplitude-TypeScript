@@ -90,12 +90,6 @@ export interface ElementInteractionsOptions {
    * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
    */
   actionClickAllowlist?: string[];
-
-  /**
-   * CSS selector allowlist for tracking dead clicks (clicks that don't result in any DOM changes)
-   * on elements not already allowed by the cssSelectorAllowlist
-   */
-  deadClickAllowlist?: string[];
 }
 
 export interface Messenger {

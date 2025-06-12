@@ -10,11 +10,11 @@ const RAGE_CLICK_WINDOW_MS = 3000; // 3 seconds
 export function trackRageClicks({
   amplitude,
   allObservables,
-  shouldTrackEvent,
+  shouldTrackRageClick,
 }: {
   amplitude: BrowserClient;
   allObservables: AllWindowObservables;
-  shouldTrackEvent: shouldTrackEvent;
+  shouldTrackRageClick: shouldTrackEvent;
 }) {
   const { clickObservable } = allObservables;
 
@@ -22,7 +22,7 @@ export function trackRageClicks({
   const rageClickObservable = clickObservable.pipe(
     filter(filterOutNonTrackableEvents),
     filter((click) => {
-      return shouldTrackEvent('click', click.closestTrackedAncestor);
+      return shouldTrackRageClick('click', click.closestTrackedAncestor);
     }),
     bufferTime(RAGE_CLICK_WINDOW_MS),
     filter((clicks) => {
