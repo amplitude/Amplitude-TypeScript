@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.11...@amplitude/session-replay-browser@1.23.0) (2025-06-12)
+
+
+### Features
+
+* **session-replay-browser:** ugc removal poc ([#1062](https://github.com/amplitude/Amplitude-TypeScript/issues/1062)) ([c63fafd](https://github.com/amplitude/Amplitude-TypeScript/commit/c63fafdaea2507a273cd23d8ef56dbe43c5aa1c3))
+
+
+
+
+
 ## [1.22.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.10...@amplitude/session-replay-browser@1.22.11) (2025-06-11)
 
 
