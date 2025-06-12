@@ -104,7 +104,7 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   };
 
   const plugin: EnrichmentPlugin = {
-    name: '@amplitude/plugin-referral-page-url-browser',
+    name: '@amplitude/plugin-page-url-previous-page-browser',
     type: 'enrichment',
 
     setup: async (config: BrowserConfig, _: BrowserClient) => {
