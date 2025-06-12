@@ -1,6 +1,5 @@
 import type { mouseInteractionCallBack } from '@amplitude/rrweb-types';
 import { MouseInteractions } from '@amplitude/rrweb-types';
-import { record } from '@amplitude/rrweb/rrweb-record';
 import { getWindowScroll } from '../utils/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
@@ -26,6 +25,7 @@ type Options = {
   sessionId: string | number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
+  record: any;
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
@@ -70,7 +70,7 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
 };
 
 export const clickHook: (logger: ILogger, options: Options) => mouseInteractionCallBack =
-  (logger, { eventsManager, sessionId, deviceIdFn }) =>
+  (logger, { eventsManager, sessionId, deviceIdFn, record }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {
       return;

@@ -8,7 +8,6 @@ import { rollup } from 'rollup';
 import path from 'node:path';
 import commonjs from '@rollup/plugin-commonjs';
 import gzip from 'rollup-plugin-gzip';
-import { visualizer } from 'rollup-plugin-visualizer';
 
 // Configure ES module build for chunks
 const esmConfig = {
@@ -20,25 +19,8 @@ const esmConfig = {
     entryFileNames: 'session-replay-browser-esm.js',
     chunkFileNames: '[name]-min.js',
     manualChunks: {
-      'console-plugin': ['@amplitude/rrweb-plugin-console-record'],
-      'rrweb-core': ['@amplitude/rrweb/rrweb-record'],
-      'rrweb-utils': ['@amplitude/rrweb-types', '@amplitude/rrweb-utils'],
-      'analytics-core': ['@amplitude/analytics-core'],
-      'compression': ['@amplitude/rrweb-packer']
+      'console-plugin': ['@amplitude/rrweb-plugin-console-record']
     }
-  },
-  external: (id) => {
-    // Mark these as external for better tree shaking if they're not critical
-    if (id.includes('@amplitude/rrweb-plugin-console-record')) {
-      return false; // Keep this as a chunk for dynamic import
-    }
-    return false;
-  },
-  treeshake: {
-    // Enhanced tree shaking options
-    moduleSideEffects: false,
-    propertyReadSideEffects: false,
-    unknownGlobalSideEffects: false
   },
   plugins: [
     typescript({
@@ -59,30 +41,14 @@ const esmConfig = {
     }),
     resolve({
       browser: true,
-      preferBuiltins: false,
-      // Improve tree shaking
-      exportConditions: ['import', 'module', 'default']
     }),
-    commonjs({
-      // Improve tree shaking for CJS modules
-      ignoreDynamicRequires: false
-    }),  
+    commonjs(),  
     terser({
       output: {
         comments: false,
       },
-      // Enhanced minification for smaller bundles
-      module: true,
-      toplevel: true,
     }),
     gzip(),
-    // Add bundle analyzer for development
-    ...(process.env.ANALYZE ? [visualizer({
-      filename: 'bundle-analysis.html',
-      open: true,
-      gzipSize: true,
-      brotliSize: true
-    })] : [])
   ]
 };
 

@@ -6,7 +6,8 @@ import {
   ILogger,
   LogLevel,
 } from '@amplitude/analytics-core';
-import { record } from '@amplitude/rrweb/rrweb-record';
+// Remove static import of record - will be dynamically imported
+// import { record } from '@amplitude/rrweb-record';
 // Import only specific types to avoid pulling in the entire rrweb-types package
 import type { scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
@@ -60,7 +61,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   identifiers: ISessionIdentifiers | undefined;
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
-  recordCancelCallback: ReturnType<typeof record> | null = null;
+  recordCancelCallback: any | null = null; // Changed from ReturnType<typeof record> since record is now dynamic
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
 
@@ -69,6 +70,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private scrollHook?: scrollCallback;
   private networkObservers?: NetworkObservers;
   private metadata: SessionReplayMetadata | undefined;
+  
+  // Cache the dynamically imported record function
+  private recordFunction: any = null;
 
   constructor() {
     this.loggerProvider = new SafeLoggerProvider(new Logger());
@@ -394,6 +398,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
 
+    // Dynamically import record function if not already cached
+    if (!this.recordFunction) {
+      try {
+        const { record } = await import('@amplitude/rrweb-record');
+        this.recordFunction = record;
+      } catch (error) {
+        this.loggerProvider.warn('Failed to load rrweb-record module:', error);
+        return;
+      }
+    }
+
     // Lazy load network observers only when needed
     if (config.loggingConfig?.network?.enabled && !this.networkObservers) {
       const { NetworkObservers: NetworkObserversClass } = await import('./observers');
@@ -413,6 +428,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
               eventsManager: this.eventsManager,
               sessionId,
               deviceIdFn: this.getDeviceId.bind(this),
+              record: this.recordFunction, // Pass the record function to clickHook
             }),
           scroll: this.scrollHook,
         }
@@ -421,8 +437,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
-      this.recordCancelCallback = record({
-        emit: (event) => {
+      this.recordCancelCallback = this.recordFunction({
+        emit: (event: any) => {
           if (this.shouldOptOut()) {
             this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
             this.stopRecordingEvents();
@@ -447,7 +463,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
-        errorHandler: (error) => {
+        errorHandler: (error: any) => {
           const typedError = error as Error & { _external_?: boolean };
 
           // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
@@ -502,7 +518,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
       // Check first to ensure we are recording
       if (this.recordCancelCallback) {
-        record.addCustomEvent(eventName, {
+        this.recordFunction.addCustomEvent(eventName, {
           ...eventData,
           ...debugInfo,
         });

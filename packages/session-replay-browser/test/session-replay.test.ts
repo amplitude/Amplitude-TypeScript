@@ -6,7 +6,7 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
-import * as RRWeb from '@amplitude/rrweb/rrweb-record';
+import * as RRWeb from '@amplitude/rrweb-record';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { NetworkObservers } from '../src/observers';
 
@@ -24,8 +24,8 @@ import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
 
-jest.mock('@amplitude/rrweb/rrweb-record');
-type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb/rrweb-record')>;
+jest.mock('@amplitude/rrweb-record');
+type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb-record')>;
 
 type MockedLogger = jest.Mocked<ILogger>;
 
