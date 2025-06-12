@@ -7,7 +7,7 @@
     "build": "lerna run build --stream --include-dependencies",
     "build:nx-cache": "nx run-many --target=build --all",
     "build:nx-affected": "nx affected --target=build",
-    "watch": "lerna run watch --parallel",
+    "watch": "nx run-many --target=watch --all --parallel 9999 --output-style=stream --maxParallel=0",
     "clean": "lerna run clean --stream && rimraf node_modules docs",
     "deploy:version": "lerna version",
     "deploy:publish": "lerna publish",

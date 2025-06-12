@@ -11,22 +11,27 @@ type WebVitalsMetricPayload = {
   delta: number;
   navigationType: Metric['navigationType'];
   id: string;
-  timestamp: string; // ISO 8601 format
+  timestamp: number;
+  navigationStart: number;
 };
 
 type WebVitalsEventPayload = {
-  metricId: string;
+  '[Amplitude] Metric ID': string;
   ['[Amplitude] LCP']?: WebVitalsMetricPayload;
   ['[Amplitude] FCP']?: WebVitalsMetricPayload;
   ['[Amplitude] INP']?: WebVitalsMetricPayload;
   ['[Amplitude] CLS']?: WebVitalsMetricPayload;
+  '[Amplitude] Page Domain'?: string;
+  '[Amplitude] Page Location'?: string;
+  '[Amplitude] Page Path'?: string;
+  '[Amplitude] Page Title'?: string;
+  '[Amplitude] Page URL'?: string;
 };
 
 function getMetricStartTime(metric: Metric) {
   /* istanbul ignore next */
   const startTime = metric.entries[0]?.startTime || 0;
-  const epoch = performance.timeOrigin + startTime;
-  return new Date(epoch).toISOString();
+  return performance.timeOrigin + startTime;
 }
 
 function processMetric(metric: Metric) {
@@ -36,22 +41,46 @@ function processMetric(metric: Metric) {
     delta: metric.delta,
     navigationType: metric.navigationType,
     id: metric.id,
-    timestamp: getMetricStartTime(metric),
+    timestamp: Math.floor(getMetricStartTime(metric)),
+    navigationStart: Math.floor(performance.timeOrigin),
   };
 }
 
 export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
   let visibilityListener: ((this: Document, ev: Event) => void) | null = null;
-  const setup: BrowserEnrichmentPlugin['setup'] = async (_, amplitude) => {
-    const globalScope = getGlobalScope();
+  const globalScope = getGlobalScope();
+  const doc = globalScope?.document;
+  const location = globalScope?.location;
+  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    const getDecodeURI = (locationStr?: string): string => {
+      /* istanbul ignore next */
+      if (!locationStr) {
+        return '';
+      }
+      let decodedLocationStr = locationStr;
+      try {
+        decodedLocationStr = decodeURI(locationStr);
+      } catch (e) {
+        /* istanbul ignore next */
+        config.loggerProvider?.error('Malformed URI sequence: ', e);
+      }
+
+      return decodedLocationStr;
+    };
+
     const metricId = UUID();
     let isChanged = false;
-    const doc = globalScope?.document;
     if (doc === undefined) {
       return;
     }
+    const locationHref = getDecodeURI(/* istanbul ignore next */ location?.href);
     const webVitalsPayload: WebVitalsEventPayload = {
-      metricId,
+      '[Amplitude] Metric ID': metricId,
+      '[Amplitude] Page Domain': /* istanbul ignore next */ location?.hostname || '',
+      '[Amplitude] Page Location': locationHref,
+      '[Amplitude] Page Path': getDecodeURI(/* istanbul ignore next */ location?.pathname),
+      '[Amplitude] Page Title': /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+      '[Amplitude] Page URL': locationHref.split('?')[0],
     };
 
     onLCP((metric) => {
@@ -89,9 +118,8 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
 
   const teardown = async () => {
     if (visibilityListener) {
-      const globalScope = getGlobalScope();
       /* istanbul ignore next */
-      globalScope?.document?.removeEventListener('visibilitychange', visibilityListener);
+      doc?.removeEventListener('visibilitychange', visibilityListener);
     }
   };
 

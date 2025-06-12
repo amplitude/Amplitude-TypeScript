@@ -45,6 +45,9 @@ describe('webVitalsPlugin', () => {
     mockGlobalScope = {
       document: mockDocument,
       performance: mockPerformance,
+      location: {
+        href: 'https://www.example.com/path/to?query=value#hash',
+      },
     } as unknown as typeof globalThis;
 
     // Mock getGlobalScope function to return our mock global scope
