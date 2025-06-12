@@ -7,7 +7,7 @@ import {
   LogLevel,
 } from '@amplitude/analytics-core';
 import { record } from '@amplitude/rrweb';
-import { scrollCallback } from '@amplitude/rrweb-types';
+import { EventType as RRWebEventType, scrollCallback } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
@@ -28,7 +28,7 @@ import {
 } from './constants';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, getDebugConfig, getStorageSize, isSessionInSample, maskFn } from './helpers';
+import { generateHashCode, getDebugConfig, getPageUrl, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -399,10 +399,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
               eventsManager: this.eventsManager,
               sessionId,
               deviceIdFn: this.getDeviceId.bind(this),
+              ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
             }),
           scroll: this.scrollHook,
         }
       : {};
+
+    const ugcFilterRules =
+      interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
 
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
@@ -414,6 +418,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
             this.stopRecordingEvents();
             this.sendEvents();
             return;
+          }
+
+          if (event.type === RRWebEventType.Meta) {
+            event.data.href = getPageUrl(event.data.href, ugcFilterRules);
           }
 
           if (this.eventCompressor) {
