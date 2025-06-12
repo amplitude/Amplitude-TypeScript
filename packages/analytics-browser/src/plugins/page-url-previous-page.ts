@@ -126,7 +126,6 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
         globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
           apply: (target, thisArg, [state, unused, url]) => {
             target.apply(thisArg, [state, unused, url]);
-            console.log('pushState');
             void trackURLChange();
           },
         });
@@ -134,8 +133,8 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
     },
     execute: async (event: Event) => {
       event.event_properties = {
-        ...event.event_properties,
-        ...getAdditionalEventProperties(),
+        ...(event.event_properties || {}),
+        ...(getAdditionalEventProperties() || {}),
       };
 
       return event;
