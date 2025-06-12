@@ -13,7 +13,7 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
   let eventListeners: EventListener[] = [];
 
   const addNetworkListener = (type: 'online' | 'offline', handler: () => void) => {
-    if (globalScope) {
+    if (globalScope && 'addEventListener' in globalScope && typeof globalScope.addEventListener === 'function') {
       globalScope.addEventListener(type, handler);
       eventListeners.push({
         type,
@@ -24,7 +24,11 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
 
   const removeNetworkListeners = () => {
     eventListeners.forEach(({ type, handler }) => {
-      if (globalScope) {
+      if (
+        globalScope &&
+        'removeEventListener' in globalScope &&
+        typeof globalScope.removeEventListener === 'function'
+      ) {
         globalScope.removeEventListener(type, handler);
       }
     });
