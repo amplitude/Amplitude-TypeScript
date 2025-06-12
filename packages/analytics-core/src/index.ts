@@ -46,8 +46,12 @@ export {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
-  DEFAULT_DEAD_CLICK_ALLOWLIST,
 } from './types/element-interactions';
+export {
+  FrustrationInteractionsOptions,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
+} from './types/frustration-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
 export { Status } from './types/status';
 export {

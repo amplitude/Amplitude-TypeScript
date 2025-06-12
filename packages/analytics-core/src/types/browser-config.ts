@@ -5,6 +5,7 @@ import { IConfig } from '../config';
 import { ElementInteractionsOptions } from './element-interactions';
 import { PageTrackingOptions } from './page-view-tracking';
 import { NetworkTrackingOptions } from './network-tracking';
+import { FrustrationInteractionsOptions } from './frustration-interactions';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
@@ -165,6 +166,11 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   networkTracking?: boolean | NetworkTrackingOptions;
+  /**
+   * Enables/disables frustration interactions tracking (dead clicks and rage clicks).
+   * @defaultValue `false`
+   */
+  frustrationInteractions?: boolean | FrustrationInteractionsOptions;
 }
 
 export interface TrackingOptions {

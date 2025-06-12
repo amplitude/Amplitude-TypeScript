@@ -7,7 +7,9 @@ import {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  FrustrationInteractionsOptions,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
   ActionType,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
@@ -63,10 +65,7 @@ interface NavigateEvent extends Event {
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
 export type AutoCaptureOptionsWithDefaults = Required<
-  Pick<
-    ElementInteractionsOptions,
-    'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist' | 'deadClickAllowlist'
-  >
+  Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
 > &
   ElementInteractionsOptions;
 
@@ -110,8 +109,10 @@ export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is
   return event.type === 'click' || event.type === 'change';
 }
 
-/* TODO: Add a FrustrationInteractionsOptions object */
-export const autocapturePlugin = (options: ElementInteractionsOptions = {}): BrowserEnrichmentPlugin => {
+export const autocapturePlugin = (
+  options: ElementInteractionsOptions = {},
+  frustrationInteractionsOptions: FrustrationInteractionsOptions = {},
+): BrowserEnrichmentPlugin => {
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {
@@ -122,10 +123,10 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
-  // TODO: replace deadClickAllowlist with FrustrationInteractionsOptions.deadClicks.cssSelectorAllowlist
-  //       and replace rageClickAllowlist with FrustrationInteractionsOptions.rageClicks.cssSelectorAllowlist
-  const deadClickAllowlist = options.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
-  const rageClickAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
+  const deadClickAllowlist =
+    frustrationInteractionsOptions.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+  const rageClickAllowlist =
+    frustrationInteractionsOptions.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
 
   const name = constants.PLUGIN_NAME;

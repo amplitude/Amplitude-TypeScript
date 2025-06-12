@@ -78,10 +78,14 @@
 
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
-      import { stubPlugin } from '@amplitude/plugin-stub-browser';
+      import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
       
       window.amplitude = amplitude;
-      amplitude.add(stubPlugin());
+      const frustrationInteractions = {
+        deadClicks: true,
+        rageClicks: true,
+      };
+      amplitude.add(autocapturePlugin({}, frustrationInteractions));
       amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
