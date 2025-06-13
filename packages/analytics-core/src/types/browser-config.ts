@@ -170,7 +170,8 @@ export interface AutocaptureOptions {
    * Enables/disables frustration interactions tracking (dead clicks and rage clicks).
    * @defaultValue `false`
    */
-  frustrationInteractions?: boolean | FrustrationInteractionsOptions;
+  // TODO: enable this once it's ready to be used by customers
+  // frustrationInteractions?: boolean | FrustrationInteractionsOptions;
 }
 
 export interface TrackingOptions {
