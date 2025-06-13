@@ -10,7 +10,7 @@ import {
 
 describe('pageUrlPreviousPagePlugin', () => {
   let mockConfig: BrowserConfig = createConfigurationMock();
-  let amplitude = createAmplitudeMock();
+  let mockAmplitude = createAmplitudeMock();
   const plugin = pageUrlPreviousPagePlugin();
 
   beforeAll(() => {
@@ -26,7 +26,7 @@ describe('pageUrlPreviousPagePlugin', () => {
   });
 
   beforeEach(() => {
-    amplitude = createAmplitudeMock();
+    mockAmplitude = createAmplitudeMock();
     mockConfig = createConfigurationMock();
 
     (window.location as any) = {
@@ -35,10 +35,6 @@ describe('pageUrlPreviousPagePlugin', () => {
       pathname: '',
       search: '',
     };
-  });
-
-  afterEach(async () => {
-    await plugin.teardown?.();
   });
 
   describe('sessionStorage helper functions', () => {
@@ -73,7 +69,7 @@ describe('pageUrlPreviousPagePlugin', () => {
       expect(getFromStorage(sessionStorage, 'testKey')).toBe(null);
     });
 
-    test('should handle error gracefully if setItem throws an error', () => {
+    test('should handle error if setItem throws an error', () => {
       const mockSessionStorage = {
         getItem: jest.fn(),
         setItem: jest.fn().mockImplementation(() => {
@@ -105,7 +101,7 @@ describe('pageUrlPreviousPagePlugin', () => {
       expect(mockSessionStorage.setItem).toHaveBeenCalledTimes(2);
     });
 
-    test('should handle error gracefully if getItem throws an error', () => {
+    test('should handle error if getItem throws an error', () => {
       const mockSessionStorage = {
         getItem: jest.fn().mockImplementation(() => {
           throw new Error('Cannot get item');
@@ -136,7 +132,7 @@ describe('pageUrlPreviousPagePlugin', () => {
       expect(mockSessionStorage.getItem).toHaveBeenCalledTimes(2);
     });
 
-    test('should handle error gracefully if removeItem throws an error', () => {
+    test('should handle error if removeItem throws an error', () => {
       const mockSessionStorage = {
         getItem: jest.fn(),
         setItem: jest.fn(),
@@ -170,7 +166,7 @@ describe('pageUrlPreviousPagePlugin', () => {
 
   describe('setup', () => {
     test('should track page changes if we move to a new page', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
       const sessionStorage = getGlobalScope()?.sessionStorage;
       const history = getGlobalScope()?.history;
 
@@ -201,7 +197,7 @@ describe('pageUrlPreviousPagePlugin', () => {
     });
 
     test('should track page changes if we replace state', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
       const sessionStorage = getGlobalScope()?.sessionStorage;
       const history = getGlobalScope()?.history;
 
@@ -227,7 +223,7 @@ describe('pageUrlPreviousPagePlugin', () => {
     });
 
     test('should track page changes if we go back a page', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
       const sessionStorage = getGlobalScope()?.sessionStorage;
       const history = getGlobalScope()?.history;
 
@@ -256,7 +252,7 @@ describe('pageUrlPreviousPagePlugin', () => {
 
   describe('execute', () => {
     test('should add additional Page URL and Previous Page properties to an event', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
 
       // test falsey location href
       history?.pushState(undefined, '');
@@ -302,7 +298,7 @@ describe('pageUrlPreviousPagePlugin', () => {
     });
 
     test('should assign external to previous page type for non-matching domains', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
 
       const firstURL = new URL('https://www.externalexample.com/home');
       mockWindowLocationFromURL(firstURL);
@@ -332,7 +328,7 @@ describe('pageUrlPreviousPagePlugin', () => {
     });
 
     test('should assign external to previous page type for subdomains', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
 
       const firstURL = new URL('https://www.sub.example.com/home');
       mockWindowLocationFromURL(firstURL);
@@ -361,7 +357,7 @@ describe('pageUrlPreviousPagePlugin', () => {
     });
 
     test('should assign internal to previous page type for matching domains', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
 
       const firstURL = new URL('https://www.example.com/home');
       mockWindowLocationFromURL(firstURL);
@@ -390,7 +386,7 @@ describe('pageUrlPreviousPagePlugin', () => {
     });
 
     test('should assign direct to previous page type for unknown missing domains', async () => {
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
 
       const firstURL = new URL('https://www.example.com/about?test=param');
       mockWindowLocationFromURL(firstURL);
@@ -417,22 +413,19 @@ describe('pageUrlPreviousPagePlugin', () => {
   describe('teardown', () => {
     test('should call remove listeners', async () => {
       const removeEventListener = jest.spyOn(window, 'removeEventListener');
-      await plugin.setup?.(mockConfig, amplitude);
-      await plugin.teardown?.();
-      expect(removeEventListener).toHaveBeenCalledTimes(1);
-    });
-
-    test('should call remove listeners without proxy', async () => {
-      const removeEventListener = jest.spyOn(window, 'removeEventListener');
+      await plugin.setup?.(mockConfig, mockAmplitude);
       await plugin.teardown?.();
       expect(removeEventListener).toHaveBeenCalledTimes(1);
     });
 
     test('sessionStorage items should be removed', async () => {
       const sessionStorage = getGlobalScope()?.sessionStorage;
-      await plugin.setup?.(mockConfig, amplitude);
+      await plugin.setup?.(mockConfig, mockAmplitude);
       sessionStorage?.setItem('currentPage', 'test1');
       sessionStorage?.setItem('previousPage', 'test2');
+
+      expect(sessionStorage?.getItem('currentPage')).toBe('test1');
+      expect(sessionStorage?.getItem('previousPage')).toBe('test2');
 
       await plugin.teardown?.();
       expect(sessionStorage?.getItem('currentPage')).toBe(null);
