@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.23.0...@amplitude/session-replay-browser@1.24.0) (2025-06-13)
+
+
+### Features
+
+* **session-replay:** support background colors on blocked elements ([#1153](https://github.com/amplitude/Amplitude-TypeScript/issues/1153)) ([36fcd40](https://github.com/amplitude/Amplitude-TypeScript/commit/36fcd409b996c3c898bedd04ed77c9057ebbf994))
+
+
+
+
+
 # [1.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.11...@amplitude/session-replay-browser@1.23.0) (2025-06-12)
 
 
