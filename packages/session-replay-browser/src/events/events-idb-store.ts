@@ -45,6 +45,9 @@ export const keyValDatabaseExists = function (): Promise<IDBDatabase | void> {
       request.onsuccess = function () {
         resolve(request.result);
       };
+      request.onerror = function () {
+        reject(request.error);
+      };
     } catch (e) {
       reject(e);
     }
