@@ -99,6 +99,10 @@ export interface SessionReplayOptions {
   experimental?: {
     useWebWorker: boolean;
   };
+  /**
+   * If true, applies a background color to blocked elements for visual masking. Defaults to false.
+   */
+  applyBackgroundColorToBlockedElements?: boolean;
 
   interactionConfig?: SessionReplayInteractionConfig;
 }

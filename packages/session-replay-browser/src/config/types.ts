@@ -142,6 +142,11 @@ export interface SessionReplayLocalConfig extends IConfig {
     useWebWorker: boolean;
   };
 
+  /**
+   * If true, applies a background color to blocked elements in the replay.
+   * This helps visualize which elements are blocked from being captured.
+   */
+  applyBackgroundColorToBlockedElements?: boolean;
   interactionConfig?: InteractionConfig;
 }
 

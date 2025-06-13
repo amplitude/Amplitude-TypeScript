@@ -518,6 +518,39 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       expect(terminateSpy).toHaveBeenCalled();
     });
+
+    test.each([
+      {
+        description: 'should call rrweb with applyBackgroundColorToBlockedElements=true when option is true',
+        options: { applyBackgroundColorToBlockedElements: true },
+        expectedValue: true,
+      },
+      {
+        description: 'should call rrweb with applyBackgroundColorToBlockedElements=false when option is false',
+        options: { applyBackgroundColorToBlockedElements: false },
+        expectedValue: false,
+      },
+      {
+        description: 'should call rrweb with applyBackgroundColorToBlockedElements=false when option is undefined',
+        options: { applyBackgroundColorToBlockedElements: undefined },
+        expectedValue: false,
+      },
+      {
+        description: 'should call rrweb with applyBackgroundColorToBlockedElements=false when option is not provided',
+        options: {},
+        expectedValue: false,
+      },
+    ])('$description', async ({ options, expectedValue }) => {
+      const sessionReplay = new SessionReplay();
+      await sessionReplay.init(apiKey, {
+        ...mockOptions,
+        ...options,
+      }).promise;
+      await sessionReplay.recordEvents();
+
+      const recordArg = record.mock.calls[0][0];
+      expect(recordArg?.applyBackgroundColorToBlockedElements).toBe(expectedValue);
+    });
   });
 
   describe('setSessionId', () => {
