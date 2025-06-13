@@ -11,6 +11,7 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
   let pushState: undefined | ((data: any, unused: string, url?: string | URL | null) => void);
+  let replaceState: undefined | ((data: any, unused: string, url?: string | URL | null) => void);
 
   const getDecodeURI = (locationStr: string): string => {
     let decodedLocationStr = locationStr;
@@ -25,7 +26,7 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   };
 
   const getPrevPageType = (previousPage: string) => {
-    const currentDomain = getDecodeURI((typeof location !== 'undefined' && location.hostname) || '');
+    const currentDomain = (typeof location !== 'undefined' && location.hostname) || '';
     const previousPageDomain = previousPage ? new URL(previousPage).hostname : undefined;
 
     switch (previousPageDomain) {
@@ -39,7 +40,6 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   };
 
   const trackURLChange = () => {
-    const globalScope = getGlobalScope();
     if (globalScope) {
       const sessionStorage = globalScope.sessionStorage;
       if (sessionStorage) {
@@ -53,7 +53,6 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   };
 
   const removeFromSessionStorage = () => {
-    const globalScope = getGlobalScope();
     if (globalScope) {
       const sessionStorage = globalScope.sessionStorage;
       if (sessionStorage) {
@@ -69,21 +68,31 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
 
     setup: async (config: BrowserConfig, _: BrowserClient) => {
       loggerProvider = config.loggerProvider;
-      loggerProvider.log('Installing @amplitude/plugin-previous-page-page-url-browser');
+      loggerProvider.log('Installing @amplitude/plugin-page-url-previous-page-browser');
 
       if (globalScope) {
         globalScope.addEventListener('popstate', trackURLChange);
 
-        // Save reference to original push state, to be used in teardown
+        // Save reference to original pushState and replaceState, to be used in teardown
         // eslint-disable-next-line @typescript-eslint/unbound-method
         pushState = globalScope.history.pushState;
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        replaceState = globalScope.history.replaceState;
 
         /* istanbul ignore next */
         // There is no global browser listener for changes to history, so we have
-        // to modify pushState directly.
+        // to modify pushState and replaceState directly.
         // https://stackoverflow.com/a/64927639
         // eslint-disable-next-line @typescript-eslint/unbound-method
         globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
+          apply: (target, thisArg, [state, unused, url]) => {
+            target.apply(thisArg, [state, unused, url]);
+            void trackURLChange();
+          },
+        });
+
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        globalScope.history.replaceState = new Proxy(globalScope.history.replaceState, {
           apply: (target, thisArg, [state, unused, url]) => {
             target.apply(thisArg, [state, unused, url]);
             void trackURLChange();
@@ -128,6 +137,9 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
         globalScope.removeEventListener('popstate', trackURLChange);
         if (pushState) {
           globalScope.history.pushState = pushState;
+        }
+        if (replaceState) {
+          globalScope.history.replaceState = replaceState;
         }
         removeFromSessionStorage();
       }
