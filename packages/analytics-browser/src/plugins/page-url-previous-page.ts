@@ -10,8 +10,8 @@ enum PreviousPageType {
 export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
-  let pushState: undefined | ((data: any, unused: string, url?: string | URL | null) => void);
-  let replaceState: undefined | ((data: any, unused: string, url?: string | URL | null) => void);
+  let isProxied = false;
+  let isTracking = false;
 
   const getDecodeURI = (locationStr: string): string => {
     let decodedLocationStr = locationStr;
@@ -45,14 +45,14 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
       if (sessionStorage) {
         const previousURL = getFromStorage(sessionStorage, 'currentPage', loggerProvider) || '';
         const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
-
+        console.log('trackURLChange', previousURL, currentURL);
         setInStorage(sessionStorage, 'previousPage', previousURL, loggerProvider);
         setInStorage(sessionStorage, 'currentPage', currentURL, loggerProvider);
       }
     }
   };
 
-  const removeFromSessionStorage = () => {
+  const removeUrlsFromSessionStorage = () => {
     if (globalScope) {
       const sessionStorage = globalScope.sessionStorage;
       if (sessionStorage) {
@@ -70,34 +70,38 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
       loggerProvider = config.loggerProvider;
       loggerProvider.log('Installing @amplitude/plugin-page-url-previous-page-browser');
 
+      isTracking = true;
+
       if (globalScope) {
         globalScope.addEventListener('popstate', trackURLChange);
 
-        // Save reference to original pushState and replaceState, to be used in teardown
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        pushState = globalScope.history.pushState;
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        replaceState = globalScope.history.replaceState;
+        if (!isProxied) {
+          /* istanbul ignore next */
+          // There is no global browser listener for changes to history, so we have
+          // to modify pushState and replaceState directly.
+          // https://stackoverflow.com/a/64927639
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
+            apply: (target, thisArg, [state, unused, url]) => {
+              target.apply(thisArg, [state, unused, url]);
+              if (isTracking) {
+                void trackURLChange();
+              }
+            },
+          });
 
-        /* istanbul ignore next */
-        // There is no global browser listener for changes to history, so we have
-        // to modify pushState and replaceState directly.
-        // https://stackoverflow.com/a/64927639
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        globalScope.history.pushState = new Proxy(globalScope.history.pushState, {
-          apply: (target, thisArg, [state, unused, url]) => {
-            target.apply(thisArg, [state, unused, url]);
-            void trackURLChange();
-          },
-        });
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          globalScope.history.replaceState = new Proxy(globalScope.history.replaceState, {
+            apply: (target, thisArg, [state, unused, url]) => {
+              target.apply(thisArg, [state, unused, url]);
+              if (isTracking) {
+                void trackURLChange();
+              }
+            },
+          });
 
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        globalScope.history.replaceState = new Proxy(globalScope.history.replaceState, {
-          apply: (target, thisArg, [state, unused, url]) => {
-            target.apply(thisArg, [state, unused, url]);
-            void trackURLChange();
-          },
-        });
+          isProxied = true;
+        }
       }
     },
     execute: async (event: Event) => {
@@ -135,13 +139,10 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
     teardown: async () => {
       if (globalScope) {
         globalScope.removeEventListener('popstate', trackURLChange);
-        if (pushState) {
-          globalScope.history.pushState = pushState;
-        }
-        if (replaceState) {
-          globalScope.history.replaceState = replaceState;
-        }
-        removeFromSessionStorage();
+
+        isTracking = false;
+
+        removeUrlsFromSessionStorage();
       }
     },
   };
