@@ -274,7 +274,7 @@ export class SessionReplayEventsIDBStore extends BaseEventsStore<number> {
             const eventAddPromises: Promise<SendingSequencesReturn<number> | undefined>[] = sequence.events.map(
               async (event) => this.addEventToCurrentSequence(numericSessionId, event),
             );
-            promisesToBatch.concat(eventAddPromises);
+            promisesToBatch.push(...eventAddPromises);
           } else if (sequence.status !== RecordingStatus.SENT) {
             promisesToBatch.push(this.storeSendingEvents(numericSessionId, sequence.events));
           }
