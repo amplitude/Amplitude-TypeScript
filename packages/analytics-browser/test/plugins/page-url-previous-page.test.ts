@@ -200,6 +200,32 @@ describe('pageUrlPreviousPagePlugin', () => {
       await plugin.teardown?.();
     });
 
+    test('should track page changes if we replace state', async () => {
+      await plugin.setup?.(mockConfig, amplitude);
+      const sessionStorage = getGlobalScope()?.sessionStorage;
+      const history = getGlobalScope()?.history;
+
+      const firstURL = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstURL);
+      history?.pushState(undefined, firstURL.href);
+      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/home');
+      expect(sessionStorage?.getItem('previousPage')).toBe('');
+
+      const secondURL = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(secondURL);
+      history?.replaceState(undefined, secondURL.href);
+      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/about');
+      expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/home');
+
+      const thirdURL = new URL('https://www.example.com/contact');
+      mockWindowLocationFromURL(thirdURL);
+      history?.pushState(undefined, thirdURL.href);
+      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/contact');
+      expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/about');
+
+      await plugin.teardown?.();
+    });
+
     test('should track page changes if we go back a page', async () => {
       await plugin.setup?.(mockConfig, amplitude);
       const sessionStorage = getGlobalScope()?.sessionStorage;
