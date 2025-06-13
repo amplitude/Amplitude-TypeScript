@@ -68,6 +68,7 @@ describe('click', () => {
       deviceIdFn: () => deviceId,
       eventsManager: mockEventsManager,
       sessionId: sessionId,
+      ugcFilterRules: [],
     });
 
     test('do nothing on non click event', () => {
@@ -94,6 +95,7 @@ describe('click', () => {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
+        ugcFilterRules: [],
       });
       hook({
         id: 1234,
@@ -111,6 +113,7 @@ describe('click', () => {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
+        ugcFilterRules: [],
       });
       hook({
         id: 1234,
@@ -196,6 +199,7 @@ describe('click', () => {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
+        ugcFilterRules: [],
       });
       hook({
         id: 1234,

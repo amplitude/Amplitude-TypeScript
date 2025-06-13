@@ -9,6 +9,7 @@ import {
   SessionReplayVersion,
 } from './types';
 import { SafeLoggerProvider } from '../logger';
+import { validateUGCFilterRules } from '../helpers';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 2,
@@ -58,6 +59,14 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;
+    }
+    if (options.interactionConfig) {
+      this.interactionConfig = options.interactionConfig;
+
+      // validate ugcFilterRules, throw error if invalid - throw error at the beginning of the config
+      if (this.interactionConfig.ugcFilterRules) {
+        validateUGCFilterRules(this.interactionConfig.ugcFilterRules);
+      }
     }
     if (options.debugMode) {
       this.debugMode = options.debugMode;
