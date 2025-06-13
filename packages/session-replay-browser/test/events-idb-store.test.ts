@@ -455,6 +455,29 @@ describe('SessionReplayEventsIDBStore', () => {
       await expect(EventsIDBStore.keyValDatabaseExists()).rejects.toThrow('Test error');
     });
 
+    test('should reject when indexedDB.open request errors', async () => {
+      const request = {
+        onupgradeneeded: null,
+        onsuccess: null,
+        onerror: null,
+        result: {} as IDBDatabase,
+        error: new Error('Open error'),
+      } as unknown as IDBOpenDBRequest;
+
+      const mockGlobalScope = {
+        indexedDB: {
+          open: jest.fn().mockReturnValue(request),
+        },
+      } as unknown as typeof globalThis;
+
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+      const promise = EventsIDBStore.keyValDatabaseExists();
+      request.onerror?.call(request, new Event('error'));
+
+      await expect(promise).rejects.toBe(request.error);
+    });
+
     test('should add current session events to new idb sessionCurrentSequence', async () => {
       const db = await createKeyValDB();
       await db.put('keyval', mockKeyValStore, 'AMP_unsent_static_key');
