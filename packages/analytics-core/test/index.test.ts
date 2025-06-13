@@ -34,6 +34,7 @@ import {
   OfflineDisabled,
   Status,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   RevenueProperty,
@@ -93,6 +94,7 @@ describe('index', () => {
     expect(typeof Status).toBe('object');
     expect(typeof DEFAULT_ACTION_CLICK_ALLOWLIST).toBe('object');
     expect(typeof DEFAULT_CSS_SELECTOR_ALLOWLIST).toBe('object');
+    expect(typeof DEFAULT_DEAD_CLICK_ALLOWLIST).toBe('object');
     expect(typeof DEFAULT_DATA_ATTRIBUTE_PREFIX).toBe('string');
     expect(typeof RevenueProperty).toBe('object');
     expect(typeof IdentifyOperation).toBe('object');

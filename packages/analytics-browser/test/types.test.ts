@@ -23,7 +23,11 @@ describe('Type Exports', () => {
   });
 
   test('exported arrays are proper arrays', () => {
-    const arrTypes = ['DEFAULT_CSS_SELECTOR_ALLOWLIST', 'DEFAULT_ACTION_CLICK_ALLOWLIST'];
+    const arrTypes = [
+      'DEFAULT_CSS_SELECTOR_ALLOWLIST',
+      'DEFAULT_ACTION_CLICK_ALLOWLIST',
+      'DEFAULT_DEAD_CLICK_ALLOWLIST',
+    ];
     arrTypes.forEach((arrType) => {
       expect((amplitude.Types as any)[arrType]).toBeDefined();
       expect(Array.isArray((amplitude.Types as any)[arrType])).toBe(true);

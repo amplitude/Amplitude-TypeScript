@@ -152,6 +152,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(pageViewTrackingPlugin(getPageViewTrackingConfig(this.config))).promise;
     }
 
+    // TODO: add "isFrustrationInteractionsEnabled" here too once it's ready to be used by customers
     if (isElementInteractionsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;

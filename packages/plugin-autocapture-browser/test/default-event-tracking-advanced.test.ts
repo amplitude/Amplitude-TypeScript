@@ -292,7 +292,6 @@ describe('autoTrackingPlugin', () => {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       formEl.className = input1 as unknown as string;
-      console.log(formEl.classList);
 
       const submitButton = document.createElement('button');
       submitButton.setAttribute('type', 'submit');

@@ -1,6 +1,8 @@
 export const PLUGIN_NAME = '@amplitude/plugin-autocapture-browser';
 
 export const AMPLITUDE_ELEMENT_CLICKED_EVENT = '[Amplitude] Element Clicked';
+export const AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT = '[Amplitude] Element Dead Clicked';
+export const AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT = '[Amplitude] Element Rage Clicked';
 export const AMPLITUDE_ELEMENT_CHANGED_EVENT = '[Amplitude] Element Changed';
 
 export const AMPLITUDE_EVENT_PROP_ELEMENT_ID = '[Amplitude] Element ID';

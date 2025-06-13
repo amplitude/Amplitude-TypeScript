@@ -7,6 +7,9 @@ import {
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  FrustrationInteractionsOptions,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
   ActionType,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
@@ -24,7 +27,9 @@ import { getHierarchy } from './hierarchy';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
+import { trackDeadClick } from './autocapture/track-dead-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+import { trackRageClicks } from './autocapture/track-rage-click';
 
 declare global {
   interface Window {
@@ -104,7 +109,10 @@ export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is
   return event.type === 'click' || event.type === 'change';
 }
 
-export const autocapturePlugin = (options: ElementInteractionsOptions = {}): BrowserEnrichmentPlugin => {
+export const autocapturePlugin = (
+  options: ElementInteractionsOptions = {},
+  frustrationInteractionsOptions: FrustrationInteractionsOptions = {},
+): BrowserEnrichmentPlugin => {
   const {
     dataAttributePrefix = DEFAULT_DATA_ATTRIBUTE_PREFIX,
     visualTaggingOptions = {
@@ -115,6 +123,10 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
+  const deadClickAllowlist =
+    frustrationInteractionsOptions.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+  const rageClickAllowlist =
+    frustrationInteractionsOptions.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
 
   const name = constants.PLUGIN_NAME;
@@ -126,7 +138,9 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
     const clickObservable = fromEvent<MouseEvent>(document, 'click', { capture: true }).pipe(
-      map((click) => addAdditionalEventProperties(click, 'click')),
+      map((click) => {
+        return addAdditionalEventProperties(click, 'click');
+      }),
       share(),
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
@@ -148,6 +162,8 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
         share(),
       );
     }
+    // TODO: handle page unload event as well so that we don't lose events
+    // as the page is unloading.
 
     // Track DOM Mutations
     const mutationObservable = new Observable<MutationRecord[]>((observer) => {
@@ -160,7 +176,9 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
         characterData: true,
         subtree: true,
       });
-      return () => mutationObserver.disconnect();
+      return () => {
+        mutationObserver.disconnect();
+      };
     }).pipe(
       map((mutation) => addAdditionalEventProperties(mutation, 'mutation')),
       share(),
@@ -245,10 +263,12 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       options,
       (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
     );
+    const shouldTrackRageClick = createShouldTrackEvent(options, rageClickAllowlist);
     const shouldTrackActionClick = createShouldTrackEvent(
       options,
       (options as AutoCaptureOptionsWithDefaults).actionClickAllowlist,
     );
+    const shouldTrackDeadClick = createShouldTrackEvent(options, deadClickAllowlist);
 
     // Create observables for events on the window
     const allObservables = createObservables();
@@ -261,6 +281,13 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       shouldTrackEvent: shouldTrackEvent,
     });
     subscriptions.push(clickTrackingSubscription);
+
+    const rageClickSubscription = trackRageClicks({
+      allObservables,
+      amplitude,
+      shouldTrackRageClick,
+    });
+    subscriptions.push(rageClickSubscription);
 
     const changeSubscription = trackChange({
       allObservables,
@@ -279,6 +306,14 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       shouldTrackActionClick: shouldTrackActionClick,
     });
     subscriptions.push(actionClickSubscription);
+
+    const deadClickSubscription = trackDeadClick({
+      amplitude,
+      allObservables,
+      getEventProperties,
+      shouldTrackDeadClick,
+    });
+    subscriptions.push(deadClickSubscription);
 
     /* istanbul ignore next */
     config?.loggerProvider?.log(`${name} has been successfully added.`);
