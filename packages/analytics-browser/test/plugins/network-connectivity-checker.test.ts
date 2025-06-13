@@ -69,4 +69,11 @@ describe('networkConnectivityCheckerPlugin', () => {
 
     getGlobalScopeMock.mockRestore();
   });
+
+  test('should not throw if globalScope.addEventListener is not available', async () => {
+    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as unknown as typeof globalThis);
+    const plugin = networkConnectivityCheckerPlugin();
+
+    await expect(plugin.setup?.(config, amplitude)).resolves.not.toThrow();
+  });
 });
