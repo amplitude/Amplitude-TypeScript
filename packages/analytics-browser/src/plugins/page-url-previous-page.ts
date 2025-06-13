@@ -7,16 +7,6 @@ enum PreviousPageType {
   External = 'external', // for different domains
 }
 
-type AdditionalEventProperties = {
-  '[Amplitude] Page Domain': string;
-  '[Amplitude] Page Location': string;
-  '[Amplitude] Page Path': string;
-  '[Amplitude] Page Title': string;
-  '[Amplitude] Page URL': string;
-  '[Amplitude] Previous Page Location': string;
-  '[Amplitude] Previous Page Type': PreviousPageType;
-};
-
 export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
   let loggerProvider: Logger | undefined = undefined;
@@ -48,57 +38,27 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
     }
   };
 
-  const getAdditionalEventProperties = (): AdditionalEventProperties | void => {
-    const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
-
-    if (globalScope) {
-      const sessionStorage = globalScope.sessionStorage;
-      if (sessionStorage) {
-        const previousPage = sessionStorage.getItem('previousPage') || document.referrer || '';
-
-        // set currentPage if it doesn't exist yet
-        if (!sessionStorage.getItem('currentPage')) {
-          sessionStorage.setItem('currentPage', locationHREF);
-        }
-
-        return {
-          '[Amplitude] Page Domain':
-            /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-          '[Amplitude] Page Location': locationHREF,
-          '[Amplitude] Page Path':
-            /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-          '[Amplitude] Page Title':
-            /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-          '[Amplitude] Page URL': locationHREF.split('?')[0],
-          '[Amplitude] Previous Page Location': previousPage,
-          '[Amplitude] Previous Page Type': getPrevPageType(previousPage),
-        };
-      }
-    }
-  };
-
   const trackURLChange = () => {
     const globalScope = getGlobalScope();
     if (globalScope) {
       const sessionStorage = globalScope.sessionStorage;
       if (sessionStorage) {
-        const previousURL = sessionStorage.getItem('currentPage') || '';
+        const previousURL = getFromStorage(sessionStorage, 'currentPage', loggerProvider) || '';
         const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
-        sessionStorage.setItem('previousPage', previousURL);
-        sessionStorage.setItem('currentPage', currentURL);
+        setInStorage(sessionStorage, 'previousPage', previousURL, loggerProvider);
+        setInStorage(sessionStorage, 'currentPage', currentURL, loggerProvider);
       }
     }
   };
 
   const removeFromSessionStorage = () => {
     const globalScope = getGlobalScope();
-
     if (globalScope) {
       const sessionStorage = globalScope.sessionStorage;
       if (sessionStorage) {
-        sessionStorage.removeItem('previousPage');
-        sessionStorage.removeItem('currentPage');
+        removeFromStorage(sessionStorage, 'previousPage', loggerProvider);
+        removeFromStorage(sessionStorage, 'currentPage', loggerProvider);
       }
     }
   };
@@ -132,10 +92,34 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
       }
     },
     execute: async (event: Event) => {
-      event.event_properties = {
-        ...(event.event_properties || {}),
-        ...(getAdditionalEventProperties() || {}),
-      };
+      const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
+
+      if (globalScope) {
+        const sessionStorage = globalScope.sessionStorage;
+        let previousPage = '';
+
+        if (sessionStorage) {
+          previousPage = getFromStorage(sessionStorage, 'previousPage', loggerProvider) || document.referrer || '';
+
+          if (!getFromStorage(sessionStorage, 'currentPage', loggerProvider)) {
+            setInStorage(sessionStorage, 'currentPage', locationHREF, loggerProvider);
+          }
+
+          event.event_properties = {
+            ...(event.event_properties || {}),
+            '[Amplitude] Page Domain':
+              /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+            '[Amplitude] Page Location': locationHREF,
+            '[Amplitude] Page Path':
+              /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
+            '[Amplitude] Page Title':
+              /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+            '[Amplitude] Page URL': locationHREF.split('?')[0],
+            '[Amplitude] Previous Page Location': previousPage,
+            '[Amplitude] Previous Page Type': getPrevPageType(previousPage),
+          };
+        }
+      }
 
       return event;
     },
@@ -151,4 +135,31 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   };
 
   return plugin;
+};
+
+export const setInStorage = (storage: Storage, key: string, value: string, loggerProvider?: Logger) => {
+  try {
+    storage.setItem(key, value);
+  } catch (e) {
+    loggerProvider?.error('Could not set into storage:', e);
+  }
+};
+
+export const getFromStorage = (storage: Storage, key: string, loggerProvider?: Logger) => {
+  let value = null;
+  try {
+    value = storage.getItem(key);
+  } catch (e) {
+    loggerProvider?.error('Could not get from storage:', e);
+  }
+
+  return value;
+};
+
+export const removeFromStorage = (storage: Storage, key: string, loggerProvider?: Logger) => {
+  try {
+    storage.removeItem(key);
+  } catch (e) {
+    loggerProvider?.error('Could not remove from storage:', e);
+  }
 };

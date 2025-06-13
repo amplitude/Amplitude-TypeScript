@@ -1,7 +1,12 @@
 import { createAmplitudeMock, createConfigurationMock } from '../helpers/mock';
 import { getGlobalScope } from '@amplitude/analytics-core';
 import { BrowserConfig } from '@amplitude/analytics-types/';
-import { pageUrlPreviousPagePlugin } from '../../src/plugins/page-url-previous-page';
+import {
+  pageUrlPreviousPagePlugin,
+  setInStorage,
+  getFromStorage,
+  removeFromStorage,
+} from '../../src/plugins/page-url-previous-page';
 
 describe('pageUrlPreviousPagePlugin', () => {
   let mockConfig: BrowserConfig = createConfigurationMock();
@@ -34,6 +39,133 @@ describe('pageUrlPreviousPagePlugin', () => {
 
   afterEach(async () => {
     await plugin.teardown?.();
+  });
+
+  describe('sessionStorage helper functions', () => {
+    test('should set item in sessionStorage if it exists', () => {
+      const sessionStorage = getGlobalScope()?.sessionStorage;
+      if (!sessionStorage) {
+        return;
+      }
+
+      setInStorage(sessionStorage, 'testKey', 'testValue');
+      expect(sessionStorage?.getItem('testKey')).toBe('testValue');
+    });
+
+    test('should get item from sessionStorage', () => {
+      const sessionStorage = getGlobalScope()?.sessionStorage;
+      if (!sessionStorage) {
+        return;
+      }
+
+      setInStorage(sessionStorage, 'testKey', 'testValue');
+      expect(getFromStorage(sessionStorage, 'testKey')).toBe('testValue');
+    });
+
+    test('should remove item from sessionStorage', () => {
+      const sessionStorage = getGlobalScope()?.sessionStorage;
+      if (!sessionStorage) {
+        return;
+      }
+
+      setInStorage(sessionStorage, 'testKey', 'testValue');
+      removeFromStorage(sessionStorage, 'testKey');
+      expect(getFromStorage(sessionStorage, 'testKey')).toBe(null);
+    });
+
+    test('should handle error gracefully if setItem throws an error', () => {
+      const mockSessionStorage = {
+        getItem: jest.fn(),
+        setItem: jest.fn().mockImplementation(() => {
+          throw new Error('Cannot set item');
+        }),
+        removeItem: jest.fn(),
+        clear: jest.fn(),
+        key: jest.fn(),
+        length: 0,
+      };
+
+      const mockLoggerProvider = {
+        disable: jest.fn(),
+        enable: jest.fn(),
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+      };
+
+      const result = setInStorage(mockSessionStorage, 'testKey', 'testValue', mockLoggerProvider);
+      expect(result).toBe(undefined);
+      expect(mockSessionStorage.setItem).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+
+      // test no logger provider
+      const result2 = setInStorage(mockSessionStorage, 'testKey', 'testValue', undefined);
+      expect(result2).toBe(undefined);
+      expect(mockSessionStorage.setItem).toHaveBeenCalledTimes(2);
+    });
+
+    test('should handle error gracefully if getItem throws an error', () => {
+      const mockSessionStorage = {
+        getItem: jest.fn().mockImplementation(() => {
+          throw new Error('Cannot get item');
+        }),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn(),
+        key: jest.fn(),
+        length: 0,
+      };
+
+      const mockLoggerProvider = {
+        disable: jest.fn(),
+        enable: jest.fn(),
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+      };
+
+      getFromStorage(mockSessionStorage, 'testKey', mockLoggerProvider);
+      expect(mockSessionStorage.getItem).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+
+      // test no logger provider
+      const result2 = getFromStorage(mockSessionStorage, 'testKey', undefined);
+      expect(result2).toBe(null);
+      expect(mockSessionStorage.getItem).toHaveBeenCalledTimes(2);
+    });
+
+    test('should handle error gracefully if removeItem throws an error', () => {
+      const mockSessionStorage = {
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn().mockImplementation(() => {
+          throw new Error('Cannot remove item');
+        }),
+        clear: jest.fn(),
+        key: jest.fn(),
+        length: 0,
+      };
+
+      const mockLoggerProvider = {
+        disable: jest.fn(),
+        enable: jest.fn(),
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+      };
+
+      removeFromStorage(mockSessionStorage, 'testKey', mockLoggerProvider);
+      expect(mockSessionStorage.removeItem).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
+
+      // test no logger provider
+      const result2 = removeFromStorage(mockSessionStorage, 'testKey', undefined);
+      expect(result2).toBe(undefined);
+      expect(mockSessionStorage.removeItem).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('setup', () => {
@@ -106,7 +238,7 @@ describe('pageUrlPreviousPagePlugin', () => {
         event_type: 'test_event_1',
       });
 
-      expect(event_1?.event_properties).toMatchObject({
+      expect(event_1?.event_properties).toStrictEqual({
         '[Amplitude] Page Domain': '',
         '[Amplitude] Page Location': '',
         '[Amplitude] Page Path': '',
@@ -130,7 +262,7 @@ describe('pageUrlPreviousPagePlugin', () => {
         event_type: 'test_event_2',
       });
 
-      expect(event_2?.event_properties).toMatchObject({
+      expect(event_2?.event_properties).toStrictEqual({
         '[Amplitude] Page Domain': 'www.example.com',
         '[Amplitude] Page Location': 'https://www.example.com/about?test=param',
         '[Amplitude] Page Path': '/about',
@@ -160,7 +292,7 @@ describe('pageUrlPreviousPagePlugin', () => {
         event_type: 'test_event',
       });
 
-      expect(event?.event_properties).toMatchObject({
+      expect(event?.event_properties).toStrictEqual({
         '[Amplitude] Page Domain': 'www.example.com',
         '[Amplitude] Page Location': 'https://www.example.com/about?test=param',
         '[Amplitude] Page Path': '/about',
@@ -189,7 +321,7 @@ describe('pageUrlPreviousPagePlugin', () => {
         event_type: 'test_event',
       });
 
-      expect(event?.event_properties).toMatchObject({
+      expect(event?.event_properties).toStrictEqual({
         '[Amplitude] Page Domain': 'www.example.com',
         '[Amplitude] Page Location': 'https://www.example.com/about?test=param',
         '[Amplitude] Page Path': '/about',
@@ -218,7 +350,7 @@ describe('pageUrlPreviousPagePlugin', () => {
         event_type: 'test_event',
       });
 
-      expect(event?.event_properties).toMatchObject({
+      expect(event?.event_properties).toStrictEqual({
         '[Amplitude] Page Domain': 'www.example.com',
         '[Amplitude] Page Location': 'https://www.example.com/about?test=param',
         '[Amplitude] Page Path': '/about',
@@ -242,7 +374,7 @@ describe('pageUrlPreviousPagePlugin', () => {
         event_type: 'test_event',
       });
 
-      expect(event?.event_properties).toMatchObject({
+      expect(event?.event_properties).toStrictEqual({
         '[Amplitude] Page Domain': 'www.example.com',
         '[Amplitude] Page Location': 'https://www.example.com/about?test=param',
         '[Amplitude] Page Path': '/about',
