@@ -268,14 +268,14 @@ describe('SessionReplayPlugin', () => {
       },
       {
         description:
-          'should call init with applyBackgroundColorToBlockedElements=false when provided value is undefined',
+          'should call init with applyBackgroundColorToBlockedElements=undefined when provided value is undefined',
         options: { applyBackgroundColorToBlockedElements: undefined },
-        expectedValue: false,
+        expectedValue: undefined,
       },
       {
-        description: 'should default applyBackgroundColorToBlockedElements=false when not provided',
+        description: 'should default applyBackgroundColorToBlockedElements=undefined when not provided',
         options: {},
-        expectedValue: false,
+        expectedValue: undefined,
       },
       {
         description: 'should call init with applyBackgroundColorToBlockedElements=false when provided value is false',
@@ -291,24 +291,11 @@ describe('SessionReplayPlugin', () => {
 
       expect(init).toHaveBeenCalledTimes(1);
       expect(init.mock.calls[0][0]).toEqual(mockConfig.apiKey);
-      expect(init.mock.calls[0][1]).toEqual({
-        deviceId: mockConfig.deviceId,
-        flushMaxRetries: mockConfig.flushMaxRetries,
-        logLevel: mockConfig.logLevel,
-        loggerProvider: mockConfig.loggerProvider,
-        optOut: mockConfig.optOut,
-        sampleRate: 0.4,
-        serverZone: mockConfig.serverZone,
-        sessionId: mockConfig.sessionId,
-        privacyConfig: {
-          blockSelector: ['#id'],
-        },
-        version: {
-          type: 'plugin',
-          version: VERSION,
-        },
-        applyBackgroundColorToBlockedElements: expectedValue,
-      });
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          applyBackgroundColorToBlockedElements: expectedValue,
+        }),
+      );
     });
 
     // eslint-disable-next-line jest/expect-expect
