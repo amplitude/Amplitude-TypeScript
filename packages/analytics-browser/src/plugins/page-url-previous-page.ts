@@ -45,7 +45,6 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
       if (sessionStorage) {
         const previousURL = getFromStorage(sessionStorage, 'currentPage', loggerProvider) || '';
         const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
-        console.log('trackURLChange', previousURL, currentURL);
         setInStorage(sessionStorage, 'previousPage', previousURL, loggerProvider);
         setInStorage(sessionStorage, 'currentPage', currentURL, loggerProvider);
       }
