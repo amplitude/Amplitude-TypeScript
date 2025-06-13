@@ -6,7 +6,6 @@
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
-import * as RRWeb from '@amplitude/rrweb-record';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
 import { NetworkObservers } from '../src/observers';
 
@@ -24,9 +23,6 @@ import * as Helpers from '../src/helpers';
 import { SessionReplay } from '../src/session-replay';
 import { SessionReplayOptions } from '../src/typings/session-replay';
 
-jest.mock('@amplitude/rrweb-record');
-type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb-record')>;
-
 type MockedLogger = jest.Mocked<ILogger>;
 
 const mockEvent = {
@@ -42,7 +38,6 @@ const samplingConfig = {
 };
 
 describe('SessionReplay', () => {
-  const { record } = RRWeb as MockedRRWeb;
   let originalFetch: typeof global.fetch;
   let deferEvents: typeof global.requestIdleCallback;
   let globalSpy: jest.SpyInstance;
@@ -110,6 +105,7 @@ describe('SessionReplay', () => {
   let sessionReplay: SessionReplay;
   let getRemoteConfigMock: jest.Mock;
   let initialize: jest.SpyInstance;
+  let mockRecordFunction: jest.Mock & { addCustomEvent: jest.Mock; mirror: { getNode: jest.Mock } };
   beforeEach(() => {
     getRemoteConfigMock = jest.fn().mockResolvedValue(samplingConfig);
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
@@ -133,6 +129,19 @@ describe('SessionReplay', () => {
       }, (options?.timeout as number) || 0);
     });
     globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+    // Create mock record function with addCustomEvent method and mirror property
+    mockRecordFunction = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
+      addCustomEvent: jest.Mock;
+      mirror: { getNode: jest.Mock };
+    };
+    mockRecordFunction.addCustomEvent = jest.fn();
+    mockRecordFunction.mirror = {
+      getNode: jest.fn().mockReturnValue(null),
+    };
+
+    // Mock the getRecordFunction method instead of mocking RRWeb directly
+    jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValue(mockRecordFunction);
   });
   afterEach(() => {
     jest.resetAllMocks();
@@ -534,7 +543,7 @@ describe('SessionReplay', () => {
 
     test('should update the session id and start recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
+      mockRecordFunction.mockReset();
       expect(sessionReplay.identifiers?.sessionId).toEqual(123);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/123');
       if (!sessionReplay.eventsManager || !sessionReplay.joinedConfigGenerator || !sessionReplay.config) {
@@ -554,7 +563,7 @@ describe('SessionReplay', () => {
       expect(sessionReplay.identifiers?.sessionId).toEqual(456);
       expect(sessionReplay.identifiers?.sessionReplayId).toEqual('1a2b3c/456');
       await generateJoinedConfigPromise;
-      expect(record).toHaveBeenCalledTimes(1);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
       expect(sessionReplay.config).toEqual(updatedConfig);
     });
 
@@ -584,7 +593,7 @@ describe('SessionReplay', () => {
     test('should not record if no config', async () => {
       await sessionReplay.setSessionId(456).promise;
 
-      expect(record).not.toHaveBeenCalled();
+      expect(mockRecordFunction).not.toHaveBeenCalled();
     });
 
     test('should update the device id if passed', async () => {
@@ -760,7 +769,7 @@ describe('SessionReplay', () => {
     });
     test('should send stored events and record events', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
+      mockRecordFunction.mockReset();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
@@ -770,11 +779,11 @@ describe('SessionReplay', () => {
       expect(eventsManagerInitSpy).toHaveBeenCalledWith({
         deviceId: mockOptions.deviceId,
       });
-      expect(record).toHaveBeenCalledTimes(1);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
     });
     test('should not send stored events if shouldSendStoredEvents is false', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
+      mockRecordFunction.mockReset();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
@@ -782,7 +791,7 @@ describe('SessionReplay', () => {
 
       await sessionReplay.initialize(false);
       expect(eventsManagerInitSpy).not.toHaveBeenCalled();
-      expect(record).toHaveBeenCalledTimes(1);
+      expect(mockRecordFunction).toHaveBeenCalledTimes(1);
     });
 
     test.each([
@@ -993,10 +1002,10 @@ describe('SessionReplay', () => {
 
     test('should return early if no config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
+      mockRecordFunction.mockReset();
       sessionReplay.config = undefined;
       await sessionReplay.recordEvents();
-      expect(record).not.toHaveBeenCalled();
+      expect(mockRecordFunction).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
@@ -1005,17 +1014,17 @@ describe('SessionReplay', () => {
     });
     test('should return early if no identifiers', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      record.mockReset();
+      mockRecordFunction.mockReset();
       sessionReplay.identifiers = undefined;
       await sessionReplay.recordEvents();
-      expect(record).not.toHaveBeenCalled();
+      expect(mockRecordFunction).not.toHaveBeenCalled();
     });
 
     test('should return early if user opts out', async () => {
       await sessionReplay.init(apiKey, { ...mockOptions, optOut: true, privacyConfig: { blockSelector: ['#class'] } })
         .promise;
       await sessionReplay.recordEvents();
-      expect(record).not.toHaveBeenCalled();
+      expect(mockRecordFunction).not.toHaveBeenCalled();
       if (!sessionReplay.eventsManager) {
         throw new Error('Did not call init');
       }
@@ -1044,7 +1053,7 @@ describe('SessionReplay', () => {
       await createEventsIDBStoreInstance.addEventToCurrentSequence(123, mockEventString); // Add one event to list to trigger sending in sendEvents
       const sendEventsMock = jest.spyOn(sessionReplay.eventsManager, 'sendCurrentSequenceEvents');
       sessionReplay.shouldOptOut = () => true;
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       recordArg?.emit && recordArg?.emit(mockEvent);
       expect(sendEventsMock).toHaveBeenCalledTimes(1);
       expect(sendEventsMock).toHaveBeenCalledWith({
@@ -1060,7 +1069,7 @@ describe('SessionReplay', () => {
     test('should add an error handler', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const errorHandlerReturn = recordArg?.errorHandler && recordArg?.errorHandler(new Error('test error'));
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(mockLoggerProvider.warn).toHaveBeenCalled();
@@ -1071,7 +1080,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const stylesheetErrorMessage =
         "Failed to execute 'insertRule' on 'CSSStyleSheet': Failed to parse the rule 'body::-ms-expand{display: none}";
       expect(() => {
@@ -1083,7 +1092,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
       expect(() => {
@@ -1095,7 +1104,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
       expect(recordArg?.hooks).toStrictEqual({});
@@ -1119,7 +1128,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const error = new Error('test') as Error & { _external_?: boolean };
       error._external_ = true;
       expect(recordArg?.hooks?.mouseInteraction).toBeDefined();
@@ -1128,7 +1137,7 @@ describe('SessionReplay', () => {
 
     test('should warn if record throws during recordEvents', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      (RRWeb.record as unknown as jest.Mock).mockImplementationOnce(() => {
+      (mockRecordFunction as unknown as jest.Mock).mockImplementationOnce(() => {
         throw new Error('record failed');
       });
       const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
@@ -1306,9 +1315,9 @@ describe('SessionReplay', () => {
       sessionReplay.recordCancelCallback = () => {
         return;
       };
-      record.addCustomEvent = jest.fn();
+      mockRecordFunction.addCustomEvent = jest.fn();
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
-      expect(record.addCustomEvent).toHaveBeenCalledWith(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
+      expect(mockRecordFunction.addCustomEvent).toHaveBeenCalledWith(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
     });
 
     test('should add custom event with config and storage data', async () => {
@@ -1316,9 +1325,9 @@ describe('SessionReplay', () => {
       sessionReplay.recordCancelCallback = () => {
         return;
       };
-      record.addCustomEvent = jest.fn();
+      mockRecordFunction.addCustomEvent = jest.fn();
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
-      expect(record.addCustomEvent).toHaveBeenCalledWith(
+      expect(mockRecordFunction.addCustomEvent).toHaveBeenCalledWith(
         CustomRRwebEvent.GET_SR_PROPS,
         expect.objectContaining({
           myKey: 'data',
@@ -1337,18 +1346,18 @@ describe('SessionReplay', () => {
     test('should not add custom event if not recording', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.recordCancelCallback = undefined;
-      record.addCustomEvent = jest.fn();
+      mockRecordFunction.addCustomEvent = jest.fn();
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
-      expect(record.addCustomEvent).not.toHaveBeenCalled();
+      expect(mockRecordFunction.addCustomEvent).not.toHaveBeenCalled();
     });
     test('should add storage info if addStorageInfo is true', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       sessionReplay.recordCancelCallback = () => {
         return;
       };
-      record.addCustomEvent = jest.fn();
+      mockRecordFunction.addCustomEvent = jest.fn();
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' }, true);
-      expect(record.addCustomEvent).toHaveBeenCalledWith(
+      expect(mockRecordFunction.addCustomEvent).toHaveBeenCalledWith(
         CustomRRwebEvent.GET_SR_PROPS,
         expect.objectContaining({
           percentOfQuota: 0.01,
@@ -1364,9 +1373,9 @@ describe('SessionReplay', () => {
       sessionReplay.recordCancelCallback = () => {
         return;
       };
-      record.addCustomEvent = jest.fn();
+      mockRecordFunction.addCustomEvent = jest.fn();
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' }, false);
-      expect(record.addCustomEvent).toHaveBeenCalledWith(
+      expect(mockRecordFunction.addCustomEvent).toHaveBeenCalledWith(
         CustomRRwebEvent.GET_SR_PROPS,
         expect.not.objectContaining({
           percentOfQuota: 0.01,
@@ -1382,9 +1391,9 @@ describe('SessionReplay', () => {
       jest.spyOn(Helpers, 'getStorageSize').mockImplementation(() => {
         throw new Error();
       });
-      record.addCustomEvent = jest.fn();
+      mockRecordFunction.addCustomEvent = jest.fn();
       await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.GET_SR_PROPS, { myKey: 'data' });
-      expect(record.addCustomEvent).not.toHaveBeenCalled();
+      expect(mockRecordFunction.addCustomEvent).not.toHaveBeenCalled();
       expect(mockLoggerProvider.debug).toHaveBeenCalled();
     });
   });

@@ -5,9 +5,10 @@ import { BeaconTransport } from '../../src/beacon-transport';
 import { ScrollEventPayload, ScrollWatcher } from '../../src/hooks/scroll';
 
 import { randomUUID } from 'crypto';
-import { getWindowHeight, getWindowScroll, getWindowWidth } from 'src/utils/rrweb';
+import { getWindowHeight, getWindowScroll, getWindowWidth } from '../../src/utils/rrweb';
 
 jest.mock('../../src/beacon-transport');
+jest.mock('../../src/utils/rrweb');
 
 describe('scroll', () => {
   const mockGlobalScope = (globalScope?: Partial<typeof globalThis>) => {

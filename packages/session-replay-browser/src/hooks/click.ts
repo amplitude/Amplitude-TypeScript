@@ -1,6 +1,6 @@
 import type { mouseInteractionCallBack } from '@amplitude/rrweb-types';
 import { MouseInteractions } from '@amplitude/rrweb-types';
-import { getWindowScroll } from '../utils/rrweb';
+import { getWindowScroll, Mirror } from '../utils/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '../libs/finder';
@@ -25,7 +25,7 @@ type Options = {
   sessionId: string | number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
-  record: any;
+  mirror: Mirror;
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
@@ -70,7 +70,7 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
 };
 
 export const clickHook: (logger: ILogger, options: Options) => mouseInteractionCallBack =
-  (logger, { eventsManager, sessionId, deviceIdFn, record }) =>
+  (logger, { eventsManager, sessionId, deviceIdFn, mirror }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {
       return;
@@ -92,7 +92,7 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
       return;
     }
 
-    const node = record.mirror.getNode(e.id);
+    const node = mirror.getNode(e.id);
     let selector;
     if (node) {
       try {

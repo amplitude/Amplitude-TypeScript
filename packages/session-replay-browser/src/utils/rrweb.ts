@@ -1,5 +1,6 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
 import dom from '@amplitude/rrweb-utils';
+import type { eventWithTime, scrollCallback } from '@amplitude/rrweb-types';
 
 export function getWindowScroll(win: Window) {
   const doc = win.document;
@@ -42,3 +43,31 @@ export function getWindowWidth(): number {
     0
   );
 }
+
+// These are not exposed in rrweb package, so we define it here
+export type Mirror = {
+  getNode: (id: number) => Node | null;
+};
+
+export type RecordFunction = {
+  (options: {
+    emit: (event: eventWithTime) => void;
+    inlineStylesheet?: boolean;
+    hooks?: {
+      mouseInteraction?: any;
+      scroll?: scrollCallback;
+    };
+    maskAllInputs?: boolean;
+    maskTextClass?: string;
+    blockClass?: string;
+    blockSelector?: string;
+    maskInputFn?: (text: string, element: HTMLElement | null) => string;
+    maskTextFn?: (text: string, element: HTMLElement | null) => string;
+    maskTextSelector?: string;
+    recordCanvas?: boolean;
+    errorHandler?: (error: unknown) => boolean;
+    plugins?: any[];
+  }): (() => void) | undefined;
+  addCustomEvent: (eventName: string, eventData: any) => void;
+  mirror: Mirror;
+};

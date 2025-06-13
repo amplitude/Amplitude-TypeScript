@@ -10,10 +10,11 @@ import { ClickEvent, ClickEventWithCount, clickBatcher, clickHook, clickNonBatch
 import { record } from '@amplitude/rrweb-record';
 import type { ILogger } from '@amplitude/analytics-core';
 import { finder } from '../../src/libs/finder';
-import { getWindowScroll } from 'src/utils/rrweb';
+import { getWindowScroll } from '../../src/utils/rrweb';
 
-jest.mock('@amplitude/rrweb-record');
 jest.mock('../../src/libs/finder');
+jest.mock('../../src/utils/rrweb');
+jest.mock('@amplitude/rrweb-record');
 
 describe('click', () => {
   const mockLoggerProvider: ILogger = {
@@ -69,6 +70,7 @@ describe('click', () => {
       deviceIdFn: () => deviceId,
       eventsManager: mockEventsManager,
       sessionId: sessionId,
+      mirror: record.mirror,
     });
 
     test('do nothing on non click event', () => {
@@ -95,6 +97,7 @@ describe('click', () => {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
+        mirror: record.mirror,
       });
       hook({
         id: 1234,
@@ -112,6 +115,7 @@ describe('click', () => {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
+        mirror: record.mirror,
       });
       hook({
         id: 1234,
@@ -197,6 +201,7 @@ describe('click', () => {
         deviceIdFn: () => deviceId,
         eventsManager: mockEventsManager,
         sessionId: sessionId,
+        mirror: record.mirror,
       });
       hook({
         id: 1234,
