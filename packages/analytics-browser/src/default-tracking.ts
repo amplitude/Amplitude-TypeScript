@@ -69,6 +69,18 @@ export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boole
   return false;
 };
 
+export const isPageUrlPreviousPageEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (typeof autocapture === 'object' && autocapture.pageUrlPreviousPage === true) {
+    return true;
+  }
+
+  return false;
+};
+
 /**
  * Returns true if
  * 1. autocapture === true
