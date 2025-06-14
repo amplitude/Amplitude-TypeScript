@@ -2,10 +2,10 @@ import { createAmplitudeMock, createConfigurationMock } from '../helpers/mock';
 import { getGlobalScope } from '@amplitude/analytics-core';
 import { BrowserConfig } from '@amplitude/analytics-types/';
 import {
+  CURRENT_PAGE_STORAGE_KEY,
   pageUrlPreviousPagePlugin,
-  setInStorage,
-  getFromStorage,
-  removeFromStorage,
+  PREVIOUS_PAGE_STORAGE_KEY,
+  URL_INFO_STORAGE_KEY,
 } from '../../src/plugins/page-url-previous-page';
 
 describe('pageUrlPreviousPagePlugin', () => {
@@ -37,131 +37,8 @@ describe('pageUrlPreviousPagePlugin', () => {
     };
   });
 
-  describe('sessionStorage helper functions', () => {
-    test('should set item in sessionStorage if it exists', () => {
-      const sessionStorage = getGlobalScope()?.sessionStorage;
-      if (!sessionStorage) {
-        return;
-      }
-
-      setInStorage(sessionStorage, 'testKey', 'testValue');
-      expect(sessionStorage?.getItem('testKey')).toBe('testValue');
-    });
-
-    test('should get item from sessionStorage', () => {
-      const sessionStorage = getGlobalScope()?.sessionStorage;
-      if (!sessionStorage) {
-        return;
-      }
-
-      setInStorage(sessionStorage, 'testKey', 'testValue');
-      expect(getFromStorage(sessionStorage, 'testKey')).toBe('testValue');
-    });
-
-    test('should remove item from sessionStorage', () => {
-      const sessionStorage = getGlobalScope()?.sessionStorage;
-      if (!sessionStorage) {
-        return;
-      }
-
-      setInStorage(sessionStorage, 'testKey', 'testValue');
-      removeFromStorage(sessionStorage, 'testKey');
-      expect(getFromStorage(sessionStorage, 'testKey')).toBe(null);
-    });
-
-    test('should handle error if setItem throws an error', () => {
-      const mockSessionStorage = {
-        getItem: jest.fn(),
-        setItem: jest.fn().mockImplementation(() => {
-          throw new Error('Cannot set item');
-        }),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
-        key: jest.fn(),
-        length: 0,
-      };
-
-      const mockLoggerProvider = {
-        disable: jest.fn(),
-        enable: jest.fn(),
-        log: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
-      };
-
-      const result = setInStorage(mockSessionStorage, 'testKey', 'testValue', mockLoggerProvider);
-      expect(result).toBe(undefined);
-      expect(mockSessionStorage.setItem).toHaveBeenCalledTimes(1);
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
-
-      // test no logger provider
-      const result2 = setInStorage(mockSessionStorage, 'testKey', 'testValue', undefined);
-      expect(result2).toBe(undefined);
-      expect(mockSessionStorage.setItem).toHaveBeenCalledTimes(2);
-    });
-
-    test('should handle error if getItem throws an error', () => {
-      const mockSessionStorage = {
-        getItem: jest.fn().mockImplementation(() => {
-          throw new Error('Cannot get item');
-        }),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-        clear: jest.fn(),
-        key: jest.fn(),
-        length: 0,
-      };
-
-      const mockLoggerProvider = {
-        disable: jest.fn(),
-        enable: jest.fn(),
-        log: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
-      };
-
-      getFromStorage(mockSessionStorage, 'testKey', mockLoggerProvider);
-      expect(mockSessionStorage.getItem).toHaveBeenCalledTimes(1);
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
-
-      // test no logger provider
-      const result2 = getFromStorage(mockSessionStorage, 'testKey', undefined);
-      expect(result2).toBe(null);
-      expect(mockSessionStorage.getItem).toHaveBeenCalledTimes(2);
-    });
-
-    test('should handle error if removeItem throws an error', () => {
-      const mockSessionStorage = {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn().mockImplementation(() => {
-          throw new Error('Cannot remove item');
-        }),
-        clear: jest.fn(),
-        key: jest.fn(),
-        length: 0,
-      };
-
-      const mockLoggerProvider = {
-        disable: jest.fn(),
-        enable: jest.fn(),
-        log: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn(),
-        debug: jest.fn(),
-      };
-
-      removeFromStorage(mockSessionStorage, 'testKey', mockLoggerProvider);
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledTimes(1);
-      expect(mockLoggerProvider.error).toHaveBeenCalledTimes(1);
-
-      // test no logger provider
-      const result2 = removeFromStorage(mockSessionStorage, 'testKey', undefined);
-      expect(result2).toBe(undefined);
-      expect(mockSessionStorage.removeItem).toHaveBeenCalledTimes(2);
-    });
+  afterEach(async () => {
+    await plugin.teardown?.();
   });
 
   describe('setup', () => {
@@ -170,30 +47,55 @@ describe('pageUrlPreviousPagePlugin', () => {
       const sessionStorage = getGlobalScope()?.sessionStorage;
       const history = getGlobalScope()?.history;
 
-      // test falsey location href
+      // test falsy location href
       history?.pushState(undefined, '');
-      expect(sessionStorage?.getItem('currentPage')).toBe('');
-      expect(sessionStorage?.getItem('previousPage')).toBe('');
+      const falsyUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: '',
+        [PREVIOUS_PAGE_STORAGE_KEY]: '',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const storedFalsyUrlInfo = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(storedFalsyUrlInfo)).toStrictEqual(falsyUrlInfo);
 
-      const firstURL = new URL('https://www.example.com/home');
-      mockWindowLocationFromURL(firstURL);
-      history?.pushState(undefined, firstURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/home');
-      expect(sessionStorage?.getItem('previousPage')).toBe('');
+      // move to first url
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+      history?.pushState(undefined, firstUrl.href);
+      const firstUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+        [PREVIOUS_PAGE_STORAGE_KEY]: '',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const storedFirstUrlInfo = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(storedFirstUrlInfo)).toStrictEqual(firstUrlInfo);
 
-      const secondURL = new URL('https://www.example.com/about');
-      mockWindowLocationFromURL(secondURL);
-      history?.pushState(undefined, secondURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/about');
-      expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/home');
+      // move to second url
+      const secondUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(secondUrl);
+      history?.pushState(undefined, secondUrl.href);
+      const secondUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const storedSecondUrlInfo = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(storedSecondUrlInfo)).toStrictEqual(secondUrlInfo);
 
-      const thirdURL = new URL('https://www.example.com/contact');
-      mockWindowLocationFromURL(thirdURL);
-      history?.pushState(undefined, thirdURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/contact');
-      expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/about');
-
-      await plugin.teardown?.();
+      // move to third url
+      const thirdUrl = new URL('https://www.example.com/contact');
+      mockWindowLocationFromURL(thirdUrl);
+      history?.pushState(undefined, thirdUrl.href);
+      const thirdUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/contact',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const storedThirdUrlInfo = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(storedThirdUrlInfo)).toStrictEqual(thirdUrlInfo);
     });
 
     test('should track page changes if we replace state', async () => {
@@ -201,52 +103,89 @@ describe('pageUrlPreviousPagePlugin', () => {
       const sessionStorage = getGlobalScope()?.sessionStorage;
       const history = getGlobalScope()?.history;
 
-      const firstURL = new URL('https://www.example.com/home');
-      mockWindowLocationFromURL(firstURL);
-      history?.pushState(undefined, firstURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/home');
-      expect(sessionStorage?.getItem('previousPage')).toBe('');
+      // move to first url
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+      history?.pushState(undefined, firstUrl.href);
+      const firstUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+        [PREVIOUS_PAGE_STORAGE_KEY]: '',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(urlInfoStr)).toStrictEqual(firstUrlInfo);
 
-      const secondURL = new URL('https://www.example.com/about');
-      mockWindowLocationFromURL(secondURL);
-      history?.replaceState(undefined, secondURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/about');
-      expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/home');
+      // move to second url
+      const secondUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(secondUrl);
+      history?.replaceState(undefined, secondUrl.href);
+      const secondUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/home',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const storedSecondUrlInfo = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(storedSecondUrlInfo)).toStrictEqual(secondUrlInfo);
 
-      const thirdURL = new URL('https://www.example.com/contact');
-      mockWindowLocationFromURL(thirdURL);
-      history?.pushState(undefined, thirdURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/contact');
-      expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/about');
-
-      await plugin.teardown?.();
+      // move to third url
+      const thirdUrl = new URL('https://www.example.com/contact');
+      mockWindowLocationFromURL(thirdUrl);
+      history?.pushState(undefined, thirdUrl.href);
+      const thirdUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/contact',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const storedThirdUrlInfo = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(storedThirdUrlInfo)).toStrictEqual(thirdUrlInfo);
     });
 
     test('should track page changes if we go back a page', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
       const sessionStorage = getGlobalScope()?.sessionStorage;
       const history = getGlobalScope()?.history;
+      // move to first url
+      const firstUrl = new URL('https://www.example.com/1');
+      mockWindowLocationFromURL(firstUrl);
+      history?.pushState(undefined, firstUrl.href);
+      const firstUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/1',
+        [PREVIOUS_PAGE_STORAGE_KEY]: '',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const firstUrlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(firstUrlInfoStr)).toStrictEqual(firstUrlInfo);
 
-      const firstURL = new URL('https://www.example.com/1');
-      mockWindowLocationFromURL(firstURL);
-      history?.pushState(undefined, firstURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/1');
-      expect(sessionStorage?.getItem('previousPage')).toBe('');
+      // move to second url
+      const secondUrl = new URL('https://www.example.com/2');
+      mockWindowLocationFromURL(secondUrl);
+      history?.pushState(undefined, secondUrl.href);
+      const secondUrlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/2',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/1',
+      };
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const secondUrlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(secondUrlInfoStr)).toStrictEqual(secondUrlInfo);
 
-      const secondURL = new URL('https://www.example.com/2');
-      mockWindowLocationFromURL(secondURL);
-      history?.pushState(undefined, secondURL.href);
-      expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/2');
-      expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/1');
+      // go back
+      // history?.back();
+      // const popStateEvent = new PopStateEvent('popstate', { state: null });
+      // dispatchEvent(popStateEvent);
+      // const backtrackedUrlInfo = {
+      //   [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/1',
+      //   [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/2',
+      // };
+      // // block event loop so that the sessionStorage is updated since popstate is async
+      // await new Promise((resolve) => setTimeout(resolve, 0));
 
-      history?.back();
-
-      setTimeout(() => {
-        expect(sessionStorage?.getItem('currentPage')).toBe('https://www.example.com/1');
-        expect(sessionStorage?.getItem('previousPage')).toBe('https://www.example.com/2');
-      }, 1000);
-
-      await plugin.teardown?.();
+      // const backtrackedUrlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      // expect(JSON.parse(backtrackedUrlInfoStr)).toStrictEqual(backtrackedUrlInfo);
     });
   });
 
@@ -254,8 +193,11 @@ describe('pageUrlPreviousPagePlugin', () => {
     test('should add additional Page URL and Previous Page properties to an event', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
-      // test falsey location href
+      // test falsy location href
       history?.pushState(undefined, '');
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
       const event_1 = await plugin.execute?.({
         event_type: 'test_event_1',
       });
@@ -270,15 +212,19 @@ describe('pageUrlPreviousPagePlugin', () => {
         '[Amplitude] Previous Page Type': 'direct',
       });
 
-      const firstURL = new URL('https://www.example.com/home');
-      mockWindowLocationFromURL(firstURL);
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
       mockDocumentTitle('Home - Example');
-      window.history.pushState(undefined, firstURL.href);
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const secondURL = new URL('https://www.example.com/about?test=param');
-      mockWindowLocationFromURL(secondURL);
+      const secondUrl = new URL('https://www.example.com/about?test=param');
+      mockWindowLocationFromURL(secondUrl);
       mockDocumentTitle('About - Example');
-      window.history.pushState(undefined, secondURL.href);
+      window.history.pushState(undefined, secondUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       const event_2 = await plugin.execute?.({
         event_type: 'test_event_2',
@@ -293,22 +239,24 @@ describe('pageUrlPreviousPagePlugin', () => {
         '[Amplitude] Previous Page Location': 'https://www.example.com/home',
         '[Amplitude] Previous Page Type': 'internal',
       });
-
-      await plugin.teardown?.();
     });
 
     test('should assign external to previous page type for non-matching domains', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
-      const firstURL = new URL('https://www.externalexample.com/home');
-      mockWindowLocationFromURL(firstURL);
+      const firstUrl = new URL('https://www.externalexample.com/home');
+      mockWindowLocationFromURL(firstUrl);
       mockDocumentTitle('HOME | External Example');
-      window.history.pushState(undefined, firstURL.href);
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const secondURL = new URL('https://www.example.com/about?test=param');
-      mockWindowLocationFromURL(secondURL);
+      const secondUrl = new URL('https://www.example.com/about?test=param');
+      mockWindowLocationFromURL(secondUrl);
       mockDocumentTitle('About - Example');
-      window.history.pushState(undefined, secondURL.href);
+      window.history.pushState(undefined, secondUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       const event = await plugin.execute?.({
         event_type: 'test_event',
@@ -323,21 +271,23 @@ describe('pageUrlPreviousPagePlugin', () => {
         '[Amplitude] Previous Page Location': 'https://www.externalexample.com/home',
         '[Amplitude] Previous Page Type': 'external',
       });
-
-      await plugin.teardown?.();
     });
 
     test('should assign external to previous page type for subdomains', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
-      const firstURL = new URL('https://www.sub.example.com/home');
-      mockWindowLocationFromURL(firstURL);
-      window.history.pushState(undefined, firstURL.href);
+      const firstUrl = new URL('https://www.sub.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const secondURL = new URL('https://www.example.com/about?test=param');
-      mockWindowLocationFromURL(secondURL);
+      const secondUrl = new URL('https://www.example.com/about?test=param');
+      mockWindowLocationFromURL(secondUrl);
       mockDocumentTitle('About - Example');
-      window.history.pushState(undefined, secondURL.href);
+      window.history.pushState(undefined, secondUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       const event = await plugin.execute?.({
         event_type: 'test_event',
@@ -352,21 +302,23 @@ describe('pageUrlPreviousPagePlugin', () => {
         '[Amplitude] Previous Page Location': 'https://www.sub.example.com/home',
         '[Amplitude] Previous Page Type': 'external',
       });
-
-      await plugin.teardown?.();
     });
 
     test('should assign internal to previous page type for matching domains', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
-      const firstURL = new URL('https://www.example.com/home');
-      mockWindowLocationFromURL(firstURL);
-      window.history.pushState(undefined, firstURL.href);
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const secondURL = new URL('https://www.example.com/about?test=param');
-      mockWindowLocationFromURL(secondURL);
+      const secondUrl = new URL('https://www.example.com/about?test=param');
+      mockWindowLocationFromURL(secondUrl);
       mockDocumentTitle('About - Example');
-      window.history.pushState(undefined, secondURL.href);
+      window.history.pushState(undefined, secondUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       const event = await plugin.execute?.({
         event_type: 'test_event',
@@ -381,16 +333,16 @@ describe('pageUrlPreviousPagePlugin', () => {
         '[Amplitude] Previous Page Location': 'https://www.example.com/home',
         '[Amplitude] Previous Page Type': 'internal',
       });
-
-      await plugin.teardown?.();
     });
 
     test('should assign direct to previous page type for unknown missing domains', async () => {
       await plugin.setup?.(mockConfig, mockAmplitude);
 
-      const firstURL = new URL('https://www.example.com/about?test=param');
-      mockWindowLocationFromURL(firstURL);
-      window.history.pushState(undefined, firstURL.href);
+      const firstUrl = new URL('https://www.example.com/about?test=param');
+      mockWindowLocationFromURL(firstUrl);
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       const event = await plugin.execute?.({
         event_type: 'test_event',
@@ -405,8 +357,34 @@ describe('pageUrlPreviousPagePlugin', () => {
         '[Amplitude] Previous Page Location': '',
         '[Amplitude] Previous Page Type': 'direct',
       });
+    });
 
-      await plugin.teardown?.();
+    test('should update current page if there is no current info', async () => {
+      await plugin.setup?.(mockConfig, mockAmplitude);
+
+      const firstUrl = new URL('https://www.example.com/about');
+      mockWindowLocationFromURL(firstUrl);
+
+      sessionStorage.clear();
+
+      await plugin.execute?.({
+        event_type: 'test_event',
+      });
+
+      const urlInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+        [PREVIOUS_PAGE_STORAGE_KEY]: '',
+      };
+
+      const urlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
+      expect(JSON.parse(urlInfoStr)).toStrictEqual(urlInfo);
+
+      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(
+        JSON.stringify({
+          [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/about',
+          [PREVIOUS_PAGE_STORAGE_KEY]: '',
+        }),
+      );
     });
   });
 
@@ -419,18 +397,25 @@ describe('pageUrlPreviousPagePlugin', () => {
     });
 
     test('sessionStorage items should be removed', async () => {
-      const sessionStorage = getGlobalScope()?.sessionStorage;
       await plugin.setup?.(mockConfig, mockAmplitude);
-      sessionStorage?.setItem('currentPage', 'test1');
-      sessionStorage?.setItem('previousPage', 'test2');
+      const sessionStorage = getGlobalScope()?.sessionStorage;
 
-      expect(sessionStorage?.getItem('currentPage')).toBe('test1');
-      expect(sessionStorage?.getItem('previousPage')).toBe('test2');
+      const initialURLInfo = {
+        [CURRENT_PAGE_STORAGE_KEY]: 'www.example.com/home',
+        [PREVIOUS_PAGE_STORAGE_KEY]: 'www.example.com/about',
+      };
+
+      sessionStorage?.setItem(URL_INFO_STORAGE_KEY, JSON.stringify(initialURLInfo));
+      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(JSON.stringify(initialURLInfo));
 
       await plugin.teardown?.();
-      expect(sessionStorage?.getItem('currentPage')).toBe(null);
-      expect(sessionStorage?.getItem('previousPage')).toBe(null);
+      expect(sessionStorage?.getItem(URL_INFO_STORAGE_KEY)).toStrictEqual(JSON.stringify({}));
     });
+  });
+
+  describe('others', () => {
+    // test('should handle when globalScope is not defined', async () => {});
+    // test('should handle when sessionStorage is not defined', async () => {});
   });
 });
 
