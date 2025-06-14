@@ -1,5 +1,16 @@
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, Logger } from '@amplitude/analytics-types';
 import { getGlobalScope } from '@amplitude/analytics-client-common';
+import { BrowserStorage } from '../storage/browser-storage';
+
+export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
+export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
+
+export const URL_INFO_STORAGE_KEY = 'AMP_URL_INFO';
+
+export type URLInfo = {
+  [CURRENT_PAGE_STORAGE_KEY]?: string;
+  [PREVIOUS_PAGE_STORAGE_KEY]?: string;
+};
 
 enum PreviousPageType {
   Direct = 'direct', // for no prev page or referrer
@@ -9,7 +20,10 @@ enum PreviousPageType {
 
 export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
+  let sessionStorage: BrowserStorage<URLInfo> | undefined = undefined;
+  let isStorageEnabled = false;
   let loggerProvider: Logger | undefined = undefined;
+
   let isProxied = false;
   let isTracking = false;
 
@@ -25,9 +39,19 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
     return decodedLocationStr;
   };
 
+  const getHostname = (url: string): string | void => {
+    try {
+      const decodedUrl = getDecodeURI(url);
+      return new URL(decodedUrl).hostname;
+    } catch (e) {
+      /* istanbul ignore next */
+      loggerProvider?.error('Could not parse URL: ', e);
+    }
+  };
+
   const getPrevPageType = (previousPage: string) => {
     const currentDomain = (typeof location !== 'undefined' && location.hostname) || '';
-    const previousPageDomain = previousPage ? new URL(previousPage).hostname : undefined;
+    const previousPageDomain = previousPage ? getHostname(previousPage) : undefined;
 
     switch (previousPageDomain) {
       case undefined:
@@ -39,26 +63,21 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
     }
   };
 
-  const trackURLChange = () => {
-    if (globalScope) {
-      const sessionStorage = globalScope.sessionStorage;
-      if (sessionStorage) {
-        const previousURL = getFromStorage(sessionStorage, 'currentPage', loggerProvider) || '';
-        const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
-        setInStorage(sessionStorage, 'previousPage', previousURL, loggerProvider);
-        setInStorage(sessionStorage, 'currentPage', currentURL, loggerProvider);
-      }
+  const saveURLInfo = async () => {
+    if (sessionStorage && isStorageEnabled) {
+      const URLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
+      const previousURL = URLInfo?.[CURRENT_PAGE_STORAGE_KEY] || '';
+      const currentURL = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
+
+      await sessionStorage.set(URL_INFO_STORAGE_KEY, {
+        [CURRENT_PAGE_STORAGE_KEY]: currentURL,
+        [PREVIOUS_PAGE_STORAGE_KEY]: previousURL,
+      });
     }
   };
 
-  const removeUrlsFromSessionStorage = () => {
-    if (globalScope) {
-      const sessionStorage = globalScope.sessionStorage;
-      if (sessionStorage) {
-        removeFromStorage(sessionStorage, 'previousPage', loggerProvider);
-        removeFromStorage(sessionStorage, 'currentPage', loggerProvider);
-      }
-    }
+  const saveUrlInfoWrapper = () => {
+    void saveURLInfo();
   };
 
   const plugin: EnrichmentPlugin = {
@@ -72,7 +91,10 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
       isTracking = true;
 
       if (globalScope) {
-        globalScope.addEventListener('popstate', trackURLChange);
+        sessionStorage = new BrowserStorage<URLInfo>(globalScope.sessionStorage);
+        isStorageEnabled = await sessionStorage.isEnabled();
+
+        globalScope.addEventListener('popstate', saveUrlInfoWrapper);
 
         if (!isProxied) {
           /* istanbul ignore next */
@@ -84,7 +106,7 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
             apply: (target, thisArg, [state, unused, url]) => {
               target.apply(thisArg, [state, unused, url]);
               if (isTracking) {
-                void trackURLChange();
+                saveUrlInfoWrapper();
               }
             },
           });
@@ -94,7 +116,7 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
             apply: (target, thisArg, [state, unused, url]) => {
               target.apply(thisArg, [state, unused, url]);
               if (isTracking) {
-                void trackURLChange();
+                saveUrlInfoWrapper();
               }
             },
           });
@@ -106,72 +128,48 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
     execute: async (event: Event) => {
       const locationHREF = getDecodeURI((typeof location !== 'undefined' && location.href) || '');
 
-      if (globalScope) {
-        const sessionStorage = globalScope.sessionStorage;
-        let previousPage = '';
+      let previousPage = '';
+      if (sessionStorage && isStorageEnabled) {
+        const URLInfo = await sessionStorage.get(URL_INFO_STORAGE_KEY);
+        previousPage = URLInfo?.[PREVIOUS_PAGE_STORAGE_KEY] || document.referrer || '';
 
-        if (sessionStorage) {
-          previousPage = getFromStorage(sessionStorage, 'previousPage', loggerProvider) || document.referrer || '';
-
-          if (!getFromStorage(sessionStorage, 'currentPage', loggerProvider)) {
-            setInStorage(sessionStorage, 'currentPage', locationHREF, loggerProvider);
-          }
-
-          event.event_properties = {
-            ...(event.event_properties || {}),
-            '[Amplitude] Page Domain':
-              /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-            '[Amplitude] Page Location': locationHREF,
-            '[Amplitude] Page Path':
-              /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-            '[Amplitude] Page Title':
-              /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-            '[Amplitude] Page URL': locationHREF.split('?')[0],
-            '[Amplitude] Previous Page Location': previousPage,
-            '[Amplitude] Previous Page Type': getPrevPageType(previousPage),
-          };
+        if (!URLInfo?.[CURRENT_PAGE_STORAGE_KEY]) {
+          await sessionStorage.set(URL_INFO_STORAGE_KEY, {
+            ...(URLInfo || {}),
+            [CURRENT_PAGE_STORAGE_KEY]: locationHREF,
+            [PREVIOUS_PAGE_STORAGE_KEY]: previousPage,
+          });
         }
+
+        event.event_properties = {
+          ...(event.event_properties || {}),
+          '[Amplitude] Page Domain':
+            /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
+          '[Amplitude] Page Location': locationHREF,
+          '[Amplitude] Page Path':
+            /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
+          '[Amplitude] Page Title':
+            /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
+          '[Amplitude] Page URL': locationHREF.split('?')[0],
+          '[Amplitude] Previous Page Location': previousPage,
+          '[Amplitude] Previous Page Type': getPrevPageType(previousPage),
+        };
       }
 
       return event;
     },
     teardown: async () => {
       if (globalScope) {
-        globalScope.removeEventListener('popstate', trackURLChange);
+        globalScope.removeEventListener('popstate', saveUrlInfoWrapper);
 
         isTracking = false;
 
-        removeUrlsFromSessionStorage();
+        if (sessionStorage && isStorageEnabled) {
+          await sessionStorage.set(URL_INFO_STORAGE_KEY, {});
+        }
       }
     },
   };
 
   return plugin;
-};
-
-export const setInStorage = (storage: Storage, key: string, value: string, loggerProvider?: Logger) => {
-  try {
-    storage.setItem(key, value);
-  } catch (e) {
-    loggerProvider?.error('Could not set into storage:', e);
-  }
-};
-
-export const getFromStorage = (storage: Storage, key: string, loggerProvider?: Logger) => {
-  let value = null;
-  try {
-    value = storage.getItem(key);
-  } catch (e) {
-    loggerProvider?.error('Could not get from storage:', e);
-  }
-
-  return value;
-};
-
-export const removeFromStorage = (storage: Storage, key: string, loggerProvider?: Logger) => {
-  try {
-    storage.removeItem(key);
-  } catch (e) {
-    loggerProvider?.error('Could not remove from storage:', e);
-  }
 };
