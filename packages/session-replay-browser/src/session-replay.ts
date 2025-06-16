@@ -6,8 +6,7 @@ import {
   ILogger,
   LogLevel,
 } from '@amplitude/analytics-core';
-// Remove static import of record - will be dynamically imported
-// import { record } from '@amplitude/rrweb-record';
+
 // Import only specific types to avoid pulling in the entire rrweb-types package
 import type { scrollCallback, eventWithTime } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
@@ -46,8 +45,6 @@ import {
 import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
 import { SafeLoggerProvider } from './logger';
-// Remove static import of NetworkObservers since we're lazy-loading it
-// import { NetworkObservers, NetworkRequestEvent } from './observers';
 
 // Import only the type for NetworkRequestEvent to keep type safety
 import type { NetworkRequestEvent, NetworkObservers } from './observers';
@@ -183,11 +180,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
 
-    // Initialize network observers if logging is enabled
-    if (this.config.loggingConfig?.network?.enabled) {
-      const { NetworkObservers: NetworkObserversClass } = await import('./observers');
-      this.networkObservers = new NetworkObserversClass();
-    }
+    await this.initializeNetworkObservers();
 
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
@@ -415,15 +408,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.stopRecordingEvents();
 
     const recordFunction = await this.getRecordFunction();
+    console.log('[Duplicate test initial] 🔥 recordFunction', recordFunction);
+
+    // May be undefined if cannot import rrweb-record
     if (!recordFunction) {
       return;
     }
 
-    // Lazy load network observers only when needed
-    if (config.loggingConfig?.network?.enabled && !this.networkObservers) {
-      const { NetworkObservers: NetworkObserversClass } = await import('./observers');
-      this.networkObservers = new NetworkObserversClass();
-    }
+    await this.initializeNetworkObservers();
 
     this.networkObservers?.start((event: NetworkRequestEvent) => {
       void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
@@ -447,6 +439,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
+      console.log('[Duplicate test] 🔥 recordFunction', recordFunction);
       this.recordCancelCallback = recordFunction({
         emit: (event: eventWithTime) => {
           if (this.shouldOptOut()) {
@@ -605,5 +598,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
       standaloneSDKType: '@amplitude/session-replay-browser',
       standaloneSDKVersion,
     };
+  }
+
+  private async initializeNetworkObservers(): Promise<void> {
+    if (this.config?.loggingConfig?.network?.enabled && !this.networkObservers) {
+      const { NetworkObservers: NetworkObserversClass } = await import('./observers');
+      this.networkObservers = new NetworkObserversClass();
+    }
   }
 }
