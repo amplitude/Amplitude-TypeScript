@@ -6,6 +6,14 @@ import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
 
 const DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
 
+type EventDeadClick = {
+  '[Amplitude] Begin Time': string; // ISO-8601
+  '[Amplitude] End Time': string; // ISO-8601
+  '[Amplitude] Duration': number;
+  X: number;
+  Y: number;
+};
+
 export function trackDeadClick({
   amplitude,
   allObservables,
@@ -60,11 +68,21 @@ export function trackDeadClick({
   );
 
   return actionClicks.subscribe((actionClick) => {
+    const deadClickEvent: EventDeadClick = {
+      '[Amplitude] Begin Time': new Date(actionClick.timestamp).toISOString(),
+      '[Amplitude] End Time': new Date(actionClick.timestamp).toISOString(),
+      '[Amplitude] Duration': actionClick.timestamp - actionClick.timestamp,
+      X: (actionClick.event as MouseEvent).clientX,
+      Y: (actionClick.event as MouseEvent).clientY,
+    };
     /* istanbul ignore next */
     amplitude?.track(
       AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
       // TODO: check if the properties here are what we want for dead clicks
-      getEventProperties('click', actionClick.closestTrackedAncestor),
+      {
+        ...getEventProperties('click', actionClick.closestTrackedAncestor),
+        ...deadClickEvent,
+      },
       { time: actionClick.timestamp },
     );
   });
