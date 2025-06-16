@@ -65,6 +65,7 @@ export function trackDeadClick({
       AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
       // TODO: check if the properties here are what we want for dead clicks
       getEventProperties('click', actionClick.closestTrackedAncestor),
+      { time: actionClick.timestamp },
     );
   });
 }

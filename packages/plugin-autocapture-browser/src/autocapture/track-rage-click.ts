@@ -46,8 +46,10 @@ export function trackRageClicks({
 
   return rageClickObservable.subscribe((click) => {
     /* istanbul ignore next */
-    amplitude?.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, {
-      ...click.targetElementProperties,
-    });
+    amplitude?.track(
+      AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
+      { ...click.targetElementProperties },
+      { time: click.timestamp },
+    );
   });
 }

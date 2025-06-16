@@ -121,6 +121,8 @@ export const autocapturePlugin = (
     },
   } = options;
 
+  // TODO: frustration -- verify that enabling frustration doesn't also cause elementInteractions to be enabled too
+
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
   const deadClickAllowlist =
