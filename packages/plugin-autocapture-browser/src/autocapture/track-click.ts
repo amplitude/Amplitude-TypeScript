@@ -1,9 +1,4 @@
-import {
-  AllWindowObservables,
-  AutoCaptureOptionsWithDefaults,
-  type ElementBasedTimestampedEvent,
-  type evaluateTriggersFn,
-} from 'src/autocapture-plugin';
+import { AllWindowObservables, AutoCaptureOptionsWithDefaults, type evaluateTriggersFn } from 'src/autocapture-plugin';
 import { buffer, filter, map, debounceTime, merge, pairwise, delay } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';

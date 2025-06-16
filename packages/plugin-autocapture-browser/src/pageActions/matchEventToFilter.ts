@@ -1,5 +1,5 @@
 import type { Filter } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
+import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/autocapture-plugin';
 
 /**
  * Matches an event to a single filter
@@ -7,13 +7,13 @@ import type { ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
  * @param filter - The filter to match against
  * @returns boolean indicating if the event matches the filter
  */
-export const matchEventToFilter = (event: ElementBasedTimestampedEvent<MouseEvent>, filter: Filter) => {
+export const matchEventToFilter = (event: ElementBasedTimestampedEvent<ElementBasedEvent>, filter: Filter) => {
   try {
     if (filter.subprop_key === '[Amplitude] Element Text') {
       // TODO: add support for the other operators
       return (
         filter.subprop_op === 'exact' &&
-        filter.subprop_value.includes(event.targetElementProperties['[Amplitude] Element Text'])
+        filter.subprop_value.includes(event.targetElementProperties['[Amplitude] Element Text'] as string)
       );
     } else if (filter.subprop_key === '[Amplitude] Element Hierarchy') {
       // Check if the element ancestory matches the CSS selector, always check this last since it is the most expensive

@@ -1,7 +1,7 @@
 import { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 // Return which labeled events, if any, the element matches
 import type { LabeledEvent } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
+import type { ElementBasedEvent, ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
 import { matchEventToFilter } from './matchEventToFilter';
 
 // groups labeled events by event type
@@ -58,7 +58,10 @@ export const createLabeledEventToTriggerMap = (triggers: Trigger[]) => {
  * @param labeledEvents - Array of labeled events to match against
  * @returns Array of matching labeled events
  */
-export const matchEventToLabeledEvents = (event: ElementBasedTimestampedEvent<T>, labeledEvents: LabeledEvent[]) => {
+export const matchEventToLabeledEvents = (
+  event: ElementBasedTimestampedEvent<ElementBasedEvent>,
+  labeledEvents: LabeledEvent[],
+) => {
   return labeledEvents.filter((le) => {
     return le.definition.some((def) => {
       return def.event_type === event.type && def.filters.every((filter) => matchEventToFilter(event, filter));

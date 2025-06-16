@@ -1,5 +1,5 @@
 import type { DataSource, PageAction } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
+import type { ElementBasedEvent, ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
 
 // Get DataSource
 /**
@@ -52,7 +52,10 @@ export const extractDataFromDataSource = (dataSource: DataSource, contextElement
 };
 
 // Execute actions for a condition and attach event properties to the event if needed
-export const executeActions = (actions: (string | PageAction)[], ev: ElementBasedTimestampedEvent<MouseEvent>) => {
+export const executeActions = (
+  actions: (string | PageAction)[],
+  ev: ElementBasedTimestampedEvent<ElementBasedEvent>,
+) => {
   actions.forEach((action) => {
     // Skip if actions is string until action set is implemented
     if (typeof action === 'string') {
