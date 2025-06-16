@@ -117,28 +117,3 @@ sessionReplay.init(AMPLITUDE_API_KEY, {
   }
 })
 ```
-
-## Bundle Size Optimization
-
-The session replay browser package is optimized for minimal initial bundle size:
-
-### Main Bundle Sizes (Gzipped)
-- **ESM Bundle**: ~18KB (core functionality)
-- **RRWeb Core**: ~55KB (loaded when recording starts)  
-- **Console Plugin**: ~40KB (lazy-loaded when console logging enabled)
-
-### Loading Strategy
-```typescript
-// Core bundle loads immediately (~18KB)
-const sessionReplay = new SessionReplay();
-await sessionReplay.init(apiKey, options);
-
-// RRWeb recording engine loads when recording starts (~55KB)
-// Console plugin loads only when console logging is enabled (~40KB)
-```
-
-### Optimization Techniques Used
-- **Code splitting**: Core rrweb functionality in separate chunks
-- **Lazy loading**: Console plugin and network observers load on demand
-- **Type-only imports**: Reduced runtime dependencies from rrweb-types
-- **Tree shaking**: Enhanced configuration for better dead code elimination
