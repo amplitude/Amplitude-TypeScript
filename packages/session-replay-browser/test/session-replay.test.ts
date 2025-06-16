@@ -568,7 +568,7 @@ describe('SessionReplay', () => {
       }).promise;
       await sessionReplay.recordEvents();
 
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       expect(recordArg?.applyBackgroundColorToBlockedElements).toBe(expectedValue);
     });
   });
@@ -1248,7 +1248,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
 
       expect(mouseInteractionHook).toBeDefined();
@@ -1274,7 +1274,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
 
       expect(mouseInteractionHook).toBeDefined();
@@ -1299,7 +1299,7 @@ describe('SessionReplay', () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;
       await sessionReplay.recordEvents();
-      const recordArg = record.mock.calls[0][0];
+      const recordArg = mockRecordFunction.mock.calls[0][0];
       const mouseInteractionHook = recordArg?.hooks?.mouseInteraction;
 
       expect(mouseInteractionHook).toBeDefined();
@@ -1330,7 +1330,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const metaEvent = {
           type: 4,
           data: { href: 'https://example.com/sensitive-page' },
@@ -1366,7 +1366,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const metaEvent = {
           type: 4,
@@ -1403,7 +1403,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const metaEvent = {
           type: 4,
@@ -1441,7 +1441,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const metaEvent = {
           type: 4,
@@ -1480,7 +1480,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const nonMetaEvent = {
           type: 2, // Not a meta event (type 4)
@@ -1518,7 +1518,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const metaEvent = {
           type: 4,
           data: { width: 1728, height: 154 }, // No href property
@@ -1558,7 +1558,7 @@ describe('SessionReplay', () => {
         // Set config to undefined to test optional chaining
         sessionReplay.config = undefined;
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const metaEvent = {
           type: 4,
@@ -1595,7 +1595,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const metaEvent = {
           type: 4,
@@ -1639,7 +1639,7 @@ describe('SessionReplay', () => {
           (sessionReplay.config as any).interactionConfig = null;
         }
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const metaEvent = {
           type: 4,
@@ -1681,7 +1681,7 @@ describe('SessionReplay', () => {
         await sessionReplay.init(apiKey, mockOptions).promise;
         await sessionReplay.recordEvents();
 
-        const recordArg = record.mock.calls[0][0];
+        const recordArg = mockRecordFunction.mock.calls[0][0];
         const originalHref = 'https://example.com/sensitive-page';
         const metaEvent = {
           type: 4,
