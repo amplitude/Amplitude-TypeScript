@@ -1,6 +1,6 @@
 import { autocapturePlugin } from '../../src/autocapture-plugin';
 import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
-import { createInstance } from '@amplitude/analytics-browser';
+import { createMockBrowserClient } from '../mock-browser-client';
 
 const TESTING_DEBOUNCE_TIME = 4;
 
@@ -41,7 +41,7 @@ describe('action clicks:', () => {
     const API_KEY = 'API_KEY';
     const USER_ID = 'USER_ID';
 
-    let instance = createInstance();
+    let instance = createMockBrowserClient();
     let track: jest.SpyInstance;
 
     const loggerProvider: Partial<ILogger> = {
@@ -55,7 +55,7 @@ describe('action clicks:', () => {
 
     beforeEach(async () => {
       plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
-      instance = createInstance();
+      instance = createMockBrowserClient();
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track');
 

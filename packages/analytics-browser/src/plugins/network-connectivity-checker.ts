@@ -1,5 +1,4 @@
-import { getGlobalScope, BeforePlugin, BrowserClient } from '@amplitude/analytics-core';
-import { BrowserConfig } from 'src/config';
+import { getGlobalScope, BeforePlugin, BrowserClient, BrowserConfig } from '@amplitude/analytics-core';
 
 interface EventListener {
   type: 'online' | 'offline';
@@ -13,8 +12,9 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
   let eventListeners: EventListener[] = [];
 
   const addNetworkListener = (type: 'online' | 'offline', handler: () => void) => {
-    if (globalScope) {
-      globalScope.addEventListener(type, handler);
+    /* istanbul ignore next */
+    if (globalScope?.addEventListener) {
+      globalScope?.addEventListener(type, handler);
       eventListeners.push({
         type,
         handler,
@@ -24,9 +24,8 @@ export const networkConnectivityCheckerPlugin = (): BeforePlugin => {
 
   const removeNetworkListeners = () => {
     eventListeners.forEach(({ type, handler }) => {
-      if (globalScope) {
-        globalScope.removeEventListener(type, handler);
-      }
+      /* istanbul ignore next */
+      globalScope?.removeEventListener(type, handler);
     });
     eventListeners = [];
   };

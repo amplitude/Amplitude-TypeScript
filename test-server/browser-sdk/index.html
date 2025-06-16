@@ -9,6 +9,7 @@
   <body>
     <div id="app">
       Basic test page for the Amplitude Browser SDK
+      <button id="clearCookies" style="margin-top: 10px;">Clear Amplitude Cookies</button>
     </div>
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
@@ -32,6 +33,25 @@
           },
         }
       );
+
+      // Add cookie clearing functionality
+      document.getElementById('clearCookies').addEventListener('click', async () => {
+        try {
+          const cookies = await cookieStore.getAll();
+          const amplitudeCookies = cookies.filter(cookie => cookie.name.startsWith('AMP_'));
+          
+          await Promise.all(
+            amplitudeCookies.map(cookie => 
+              cookieStore.delete(cookie.name)
+            )
+          );
+          
+          alert('Amplitude cookies cleared!');
+        } catch (error) {
+          console.error('Error clearing cookies:', error);
+          alert('Failed to clear cookies. See console for details.');
+        }
+      });
     </script>
   </body>
 </html>

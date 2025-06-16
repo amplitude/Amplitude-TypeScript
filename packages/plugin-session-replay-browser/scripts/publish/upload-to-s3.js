@@ -6,9 +6,9 @@ const { getName, getVersion } = require('../../../../scripts/utils');
 const bucket = process.env.S3_BUCKET_NAME;
 const location = path.join(process.cwd(), 'lib', 'scripts');
 const files = [
-  'plugin-session-replay-browser-esm.js',  // ESM version
-  'plugin-session-replay-browser-min.js',  // IIFE version
-  'console-plugin-min.js'  // Console plugin chunk
+  'plugin-session-replay-browser-esm.js.gz',  // ESM version
+  'plugin-session-replay-browser-min.js.gz',  // IIFE version
+  'console-plugin-min.js.gz'  // Console plugin chunk
 ];
 
 let deployedCount = 0;
@@ -16,7 +16,7 @@ let deployedCount = 0;
 console.log('[Publish Session Replay Browser to AWS S3] START');
 const promises = files.map((file) => {
   const body = fs.readFileSync(path.join(location, file));
-  const key = `libs/${file.replace('session-replay-browser', `${getName()}-${getVersion()}`)}`;
+  const key = `libs/${file.replace('plugin-session-replay-browser', `${getName()}-${getVersion()}`)}`;
   const client = new S3Client();
 
   const headObject = new HeadObjectCommand({

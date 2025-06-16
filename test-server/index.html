@@ -2,22 +2,130 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Test Server -- Home Page</title>
+    <title>Amplitude Typescript SDK: Test Server Home Page</title>
+    <style>
+      body {
+        font-family: monospace;
+        margin: 20px;
+      }
+      a {
+        color: #0000EE;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      h1 {
+        font-size: 1.2em;
+        margin-bottom: 20px;
+      }
+      .directory {
+        margin-bottom: 10px;
+      }
+      .directory-name {
+        font-weight: bold;
+      }
+      .file {
+        margin-left: 20px;
+      }
+      .file-item, .dir-item {
+        padding: 2px 0;
+      }
+      .description {
+        margin-bottom: 20px;
+        color: #666;
+      }
+    </style>
   </head>
   <body>
-    <h1>Amplitude-Typescript Test Server</h1>
-    <p>This is the root file for the test server.</p>
+    <h1>Amplitude Typescript SDK: Test Server Home Page</h1>
+    <div class="description">
+      To add new test pages, add HTML files to the "test-server/" directory or any of its subdirectories. 
+      They will automatically appear in this listing.
+    </div>
+    <div id="fileList">
+      <!-- File list will be populated by JavaScript -->
+    </div>
 
-    <p>
-        To load a page navigate to /path/to/page.html where /path/to/page.html matches
-        a .html file in the directory "/test-server" of the Amplitude-Typescript project
-        where this server is running.
-    </p>
-    <p>
-        For example: to open "/test-server/browser-sdk/index.html" navigate to
-        <a href="/browser-sdk/index.html">/browser-sdk/index.html</a>
-    </p>
+    <script>
+      async function loadFileList() {
+        try {
+          const response = await fetch('/api/list-files');
+          const files = await response.json();
+          const fileList = document.getElementById('fileList');
+          
+          // Create a tree structure for directories and files
+          const tree = {};
+          
+          files.forEach(file => {
+            const pathParts = file.path.split('/').filter(Boolean);
+            let current = tree;
+            
+            // Build the tree structure
+            for (let i = 0; i < pathParts.length; i++) {
+              const part = pathParts[i];
+              if (i === pathParts.length - 1) {
+                // This is a file
+                if (!current.files) current.files = [];
+                current.files.push(file);
+              } else {
+                // This is a directory
+                if (!current.dirs) current.dirs = {};
+                if (!current.dirs[part]) current.dirs[part] = {};
+                current = current.dirs[part];
+              }
+            }
+          });
+
+          function renderTree(node, path = '', indent = 0) {
+            const container = document.createElement('div');
+            
+            // First render files
+            if (node.files) {
+              node.files.sort((a, b) => a.path.localeCompare(b.path));
+              node.files.forEach(file => {
+                const fileDiv = document.createElement('div');
+                fileDiv.style.marginLeft = `${indent * 20}px`;
+                fileDiv.className = 'file-item';
+                
+                const link = document.createElement('a');
+                link.href = file.path;
+                link.textContent = file.path.split('/').pop();
+                
+                fileDiv.appendChild(link);
+                container.appendChild(fileDiv);
+              });
+            }
+            
+            // Then render directories
+            if (node.dirs) {
+              const sortedDirs = Object.keys(node.dirs).sort();
+              sortedDirs.forEach(dir => {
+                const dirDiv = document.createElement('div');
+                dirDiv.style.marginLeft = `${indent * 20}px`;
+                dirDiv.className = 'dir-item';
+                
+                const dirName = document.createElement('div');
+                dirName.className = 'directory-name';
+                dirName.textContent = `${dir}/`;
+                dirDiv.appendChild(dirName);
+                
+                container.appendChild(dirDiv);
+                container.appendChild(renderTree(node.dirs[dir], path + dir + '/', indent + 1));
+              });
+            }
+            
+            return container;
+          }
+          
+          fileList.appendChild(renderTree(tree));
+        } catch (error) {
+          console.error('Error loading file list:', error);
+          document.getElementById('fileList').innerHTML = 'Error loading file list';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', loadFileList);
+    </script>
   </body>
 </html>

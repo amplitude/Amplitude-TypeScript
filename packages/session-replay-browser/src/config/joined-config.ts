@@ -68,12 +68,16 @@ export class SessionReplayJoinedConfigGenerator {
         sessionId,
       );
 
+      const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
       // This is intentionally forced to only be set through the remote config.
       config.interactionConfig = await this.remoteConfigFetch.getRemoteConfig(
         'sessionReplay',
         'sr_interaction_config',
         sessionId,
       );
+      if (config.interactionConfig && ugcFilterRules) {
+        config.interactionConfig.ugcFilterRules = ugcFilterRules;
+      }
 
       // This is intentionally forced to only be set through the remote config.
       config.loggingConfig = await this.remoteConfigFetch.getRemoteConfig(

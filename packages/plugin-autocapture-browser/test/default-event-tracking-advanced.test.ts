@@ -1,10 +1,10 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import * as hierarchyModule from '../src/hierarchy';
 
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
-import { createInstance } from '@amplitude/analytics-browser';
+import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient } from '@amplitude/analytics-core';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
+import { createMockBrowserClient } from './mock-browser-client';
 
 const TESTING_DEBOUNCE_TIME = 4;
 
@@ -114,7 +114,7 @@ describe('autoTrackingPlugin', () => {
     const API_KEY = 'API_KEY';
     const USER_ID = 'USER_ID';
 
-    let instance = createInstance();
+    let instance = createMockBrowserClient();
     let track: jest.SpyInstance;
     let loggerProvider: ILogger;
 
@@ -126,7 +126,7 @@ describe('autoTrackingPlugin', () => {
         debug: jest.fn(),
       } as unknown as ILogger;
       plugin = autocapturePlugin({ debounceTime: TESTING_DEBOUNCE_TIME });
-      instance = createInstance();
+      instance = createMockBrowserClient();
       await instance.init(API_KEY, USER_ID).promise;
       track = jest.spyOn(instance, 'track').mockImplementation(jest.fn());
 

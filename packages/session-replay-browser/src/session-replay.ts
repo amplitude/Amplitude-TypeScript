@@ -8,7 +8,7 @@ import {
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
-import type { scrollCallback, eventWithTime } from '@amplitude/rrweb-types';
+import { EventType as RRWebEventType, scrollCallback, eventWithTime } from '@amplitude/rrweb-types'; 
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
@@ -29,7 +29,7 @@ import {
 } from './constants';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, getDebugConfig, getStorageSize, isSessionInSample, maskFn } from './helpers';
+import { generateHashCode, getDebugConfig, getPageUrl, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -431,10 +431,14 @@ export class SessionReplay implements AmplitudeSessionReplay {
               sessionId,
               deviceIdFn: this.getDeviceId.bind(this),
               mirror: recordFunction.mirror,
+              ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
             }),
           scroll: this.scrollHook,
         }
       : {};
+
+    const ugcFilterRules =
+      interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
 
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
@@ -449,6 +453,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
             return;
           }
 
+          if (event.type === RRWebEventType.Meta) {
+            event.data.href = getPageUrl(event.data.href, ugcFilterRules);
+          }
+
           if (this.eventCompressor) {
             // Schedule processing during idle time if the browser supports requestIdleCallback
             this.eventCompressor.enqueueEvent(event, sessionId);
@@ -460,6 +468,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskTextClass: MASK_TEXT_CLASS,
         blockClass: BLOCK_CLASS,
         blockSelector: this.getBlockSelectors() as string | undefined,
+        applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
         maskInputFn: maskFn('input', privacyConfig),
         maskTextFn: maskFn('text', privacyConfig),
         maskTextSelector: this.getMaskTextSelectors(),

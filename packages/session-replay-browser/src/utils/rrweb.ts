@@ -67,6 +67,7 @@ export type RecordFunction = {
     recordCanvas?: boolean;
     errorHandler?: (error: unknown) => boolean;
     plugins?: any[];
+    applyBackgroundColorToBlockedElements?: boolean;
   }): (() => void) | undefined;
   addCustomEvent: (eventName: string, eventData: any) => void;
   mirror: Mirror;

@@ -71,6 +71,7 @@ describe('click', () => {
       eventsManager: mockEventsManager,
       sessionId: sessionId,
       mirror: record.mirror,
+      ugcFilterRules: [],
     });
 
     test('do nothing on non click event', () => {
@@ -98,6 +99,7 @@ describe('click', () => {
         eventsManager: mockEventsManager,
         sessionId: sessionId,
         mirror: record.mirror,
+        ugcFilterRules: [],
       });
       hook({
         id: 1234,
@@ -116,6 +118,7 @@ describe('click', () => {
         eventsManager: mockEventsManager,
         sessionId: sessionId,
         mirror: record.mirror,
+        ugcFilterRules: [],
       });
       hook({
         id: 1234,
@@ -202,6 +205,7 @@ describe('click', () => {
         eventsManager: mockEventsManager,
         sessionId: sessionId,
         mirror: record.mirror,
+        ugcFilterRules: [],
       });
       hook({
         id: 1234,

@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.0.0-beta.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.8...@amplitude/segment-session-replay-plugin@0.0.0-beta.9) (2025-06-13)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.7...@amplitude/segment-session-replay-plugin@0.0.0-beta.8) (2025-06-12)
+
+**Note:** Version bump only for package @amplitude/segment-session-replay-plugin
+
+
+
+
+
+# [0.0.0-beta.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.6...@amplitude/segment-session-replay-plugin@0.0.0-beta.7) (2025-06-11)
+
+
+### Bug Fixes
+
+* **session replay:** add gzip to cdn ([#1150](https://github.com/amplitude/Amplitude-TypeScript/issues/1150)) ([f61e38f](https://github.com/amplitude/Amplitude-TypeScript/commit/f61e38fc37d9a825a0c3f31147631eb1a16546a4))
+
+
+
+
+
 # [0.0.0-beta.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/segment-session-replay-plugin@0.0.0-beta.5...@amplitude/segment-session-replay-plugin@0.0.0-beta.6) (2025-06-03)
 
 **Note:** Version bump only for package @amplitude/segment-session-replay-plugin
