@@ -69,5 +69,4 @@ export const executeActions = (
       ev.targetElementProperties[action.destinationKey] = data;
     }
   });
-  console.log(ev.targetElementProperties);
 };

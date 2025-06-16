@@ -251,7 +251,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
   const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
 
-  //
+  // Evaluate triggers for the given event by running the actions associated with the matching triggers
   const evaluateTriggers = <T extends ElementBasedEvent>(
     event: ElementBasedTimestampedEvent<T>,
   ): ElementBasedTimestampedEvent<T> => {

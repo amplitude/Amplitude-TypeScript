@@ -345,18 +345,10 @@ describe('page actions', () => {
 
       const stringActions = ['action1', 'action2'];
 
-      // Mock console.log to verify it's called
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
       executeActions(stringActions, mockEvent as unknown as ElementBasedTimestampedEvent<MouseEvent>);
 
       // Should not add any properties since string actions are skipped
       expect(mockEvent.targetElementProperties).toEqual({});
-
-      // Console.log should still be called at the end
-      expect(consoleSpy).toHaveBeenCalledWith({});
-
-      consoleSpy.mockRestore();
     });
   });
 });
