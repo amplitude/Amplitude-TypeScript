@@ -4,8 +4,14 @@ import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
 
-const RAGE_CLICK_THRESHOLD = 5;
-const RAGE_CLICK_WINDOW_MS = 3000; // 3 seconds
+let RAGE_CLICK_THRESHOLD = 5;
+let RAGE_CLICK_WINDOW_MS = 3000; // 3 seconds
+
+// allow override of rage click config for testing only
+export function _overrideRageClickConfig(rageClickThreshold: number, rageClickWindowMs: number) {
+  RAGE_CLICK_THRESHOLD = rageClickThreshold;
+  RAGE_CLICK_WINDOW_MS = rageClickWindowMs;
+}
 
 type Click = {
   X: number;
@@ -76,6 +82,7 @@ export function trackRageClicks({
   );
 
   return rageClickObservable.subscribe(({ rageClickEvent, timestamp }) => {
+    /* istanbul ignore next */
     amplitude?.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time: timestamp });
   });
 }

@@ -4,7 +4,12 @@ import { BrowserClient, ActionType } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
 
-const DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
+let DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen
+
+// allow override of dead click config for testing only
+export function _overrideDeadClickConfig(deadClickTimeout: number) {
+  DEAD_CLICK_TIMEOUT = deadClickTimeout;
+}
 
 type EventDeadClick = {
   '[Amplitude] Begin Time': string; // ISO-8601
