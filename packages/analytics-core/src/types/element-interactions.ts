@@ -84,7 +84,68 @@ export interface ElementInteractionsOptions {
    * CSS selector allowlist for tracking clicks that result in a DOM change/navigation on elements not already allowed by the cssSelectorAllowlist
    */
   actionClickAllowlist?: string[];
+
+  /**
+   * Remote config for page actions
+   */
+  pageActions?: {
+    triggers: Trigger[];
+    labeledEvents: Record<string, LabeledEvent>;
+  };
 }
+
+type MatchingCondition = {
+  type: 'LABELED_EVENT';
+  match: {
+    eventId: string;
+  };
+};
+
+export type Trigger = {
+  id: string;
+  name: string; // Human friendly name for the trigger
+  conditions: MatchingCondition[]; // Configures when the actions should be executed; AND
+  actions: Array<PageAction | string>; // Actions to execute if conditions are met
+};
+
+export type PageAction = {
+  id: string;
+  actionType: 'ATTACH_EVENT_PROPERTY';
+  dataSource: DataSource; // Defines where and how to get the data
+  destinationKey: string; // Property key name for the data (e.g. event property name, data layer key, user property name)
+};
+
+export type DataSource = {
+  sourceType: 'DOM_ELEMENT' | 'PAGE_CONTEXT'; // | 'URL' ;
+} & (
+  | {
+      sourceType: 'DOM_ELEMENT';
+      selector?: string; // For DOM_ELEMENT: CSS selector for the target element
+      elementExtractType: 'TEXT' | 'ATTRIBUTE';
+      attribute?: string; // For DOM_ELEMENT: Attribute name to extract (null/empty for text content)
+      scope?: string; // CSS selector for the scope of the element, document by default
+    }
+  | {
+      sourceType: 'PAGE_CONTEXT';
+      propertyPath: string; // For PAGE_CONTEXT: e.g., 'document.title'
+    }
+);
+
+export type EventSubpropKey = '[Amplitude] Element Text' | '[Amplitude] Element Hierarchy';
+
+export type Filter = {
+  subprop_key: EventSubpropKey;
+  subprop_op: string; // exact, autotrack css match
+  subprop_value: string[];
+};
+
+export type LabeledEvent = {
+  id: string;
+  definition: {
+    event_type: 'click' | 'change'; // [Amplitude] Element Clicked | [Amplitude] Element Changed
+    filters: Filter[];
+  }[];
+};
 
 export interface Messenger {
   logger?: ILogger;
