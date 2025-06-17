@@ -213,7 +213,7 @@ describe('trackDeadClick', () => {
           closestTrackedAncestor: mockElement,
           targetElementProperties: { id: 'test-element' },
         });
-      }, i * 1000);
+      }, i);
     }
 
     // Wait for the dead click timeout plus some extra time for all clicks

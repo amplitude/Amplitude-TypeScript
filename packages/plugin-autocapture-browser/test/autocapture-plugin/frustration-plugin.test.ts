@@ -157,7 +157,7 @@ describe('frustrationPlugin', () => {
   });
 
   describe('observables', () => {
-    it('should create click observable with correct properties', async () => {
+    it('should create click + mutation observables with correct properties', async () => {
       plugin = frustrationPlugin({});
       await plugin?.setup?.(config as BrowserConfig, instance);
 
