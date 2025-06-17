@@ -3,13 +3,10 @@ name: Publish v2.x
 on:
   workflow_dispatch:
     inputs:
-      releaseType:
-        type: choice
-        description: Release Type
-        options:
-          - release
-          - prerelease
-          - graduate
+      publishFrom:
+        type: string
+        description: Publish source (leave empty for from-git, or enter "from-package")
+        required: false
 
 jobs:
   authorize:
@@ -31,7 +28,7 @@ jobs:
       id-token: write
       contents: write
     env:
-      RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
+      PUBLISH_FROM: ${{ github.event.inputs.publishFrom || 'from-git' }}
     strategy:
       matrix:
         node-version: [18.17.x]
@@ -85,32 +82,29 @@ jobs:
           role-to-assume: arn:aws:iam::358203115967:role/github-actions-role
           aws-region: us-west-2
 
-      # https://www.npmjs.com/package/@lerna/version#--conventional-prerelease
-      # patch: 1.0.0 -> 1.0.1-alpha.0
-      # minor: 1.0.0 -> 1.1.0-alpha.0
-      # major: 1.0.0 -> 2.0.0-alpha.0
-      - name: Create pre-release version
-        if: ${{ env.RELEASE_TYPE == 'prerelease'}}
-        run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-prerelease --create-release github
-
-      # https://www.npmjs.com/package/@lerna/version#--conventional-graduate
-      # 1.0.0-alpha.0 -> 1.0.1
-      - name: Create graduate version
-        if: ${{ env.RELEASE_TYPE == 'graduate'}}
-        run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --conventional-graduate --create-release github
-
-      # Use 'release' for the usual deployment
-      # NOTE: You probably want this
+      # Only create release version when using from-git (default behavior)
+      # from-package mode uses existing package.json versions and doesn't need git tags
       - name: Create release version
-        if: ${{ env.RELEASE_TYPE == 'release'}}
+        if: ${{ env.PUBLISH_FROM != 'from-package' }}
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github
+          echo "Running lerna version..."
+          OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github 2>&1)
+          echo "$OUTPUT"
+          
+          # Check if the output indicates no changed packages
+          if echo "$OUTPUT" | grep -q "No changed packages to version"; then
+            echo "❌ No changed packages found to version. Failing the job."
+            exit 1
+          fi
+          
+          echo "✅ Successfully created release version"
 
-      # Use 'from git' option if `lerna version` has already been run
+      # Publish to NPM using from-git or from-package:
+      # - from-git: Publishes packages tagged by 'lerna version' in the current commit (requires prior versioning)
+      # - from-package: Compares package.json versions with NPM registry, publishes any versions not present in registry
+      # See: https://lerna.js.org/docs/features/version-and-publish#from-package
       - name: Publish Release to NPM
         run: |
-          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- from-git -y --pre-dist-tag beta
+          GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:publish -- ${{ env.PUBLISH_FROM }} -y --pre-dist-tag beta
         env:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
