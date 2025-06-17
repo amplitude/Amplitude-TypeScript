@@ -133,11 +133,13 @@ describe('module level integration', () => {
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        // Wait for async initialize to complete
+        await runScheduleTimers();
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
           .results[0].value;
 
         jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
         });
@@ -171,6 +173,8 @@ describe('module level integration', () => {
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        // Wait for async initialize to complete
+        await runScheduleTimers();
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
           .results[0].value;
@@ -223,6 +227,8 @@ describe('module level integration', () => {
       test('should record session if included due to sampling', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
+        // Wait for async initialize to complete
+        await runScheduleTimers();
         const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
           .results[0].value;
         jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');

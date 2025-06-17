@@ -221,6 +221,19 @@ describe('SessionReplay', () => {
       expect(startSpy).not.toHaveBeenCalled();
     });
 
+    test('should not initialize network observers when config is undefined', async () => {
+      // Create a new SessionReplay instance without initializing
+      const sessionReplayWithoutConfig = new SessionReplay();
+
+      const networkObserversConstructorSpy = jest.spyOn(NetworkObservers.prototype, 'constructor' as any);
+
+      await (sessionReplayWithoutConfig as any).initializeNetworkObservers();
+
+      expect(networkObserversConstructorSpy).not.toHaveBeenCalled();
+
+      expect((sessionReplayWithoutConfig as any).networkObservers).toBeUndefined();
+    });
+
     test('should catch error and log a warn when initializing', async () => {
       // enable interaction config
       getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
@@ -2040,16 +2053,13 @@ describe('SessionReplay', () => {
 
       await sessionReplay.recordEvents();
 
-      // Check that start was called and get the callback
       expect(mockStart).toHaveBeenCalled();
       const startCallback = mockStart.mock.calls[0][0] as (event: NetworkRequestEvent) => void;
 
-      // Call the callback with our mock event
       startCallback(mockNetworkEvent);
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
 
-      // Clean up the mock
       jest.dontMock('../src/observers');
     });
   });
@@ -2073,6 +2083,125 @@ describe('SessionReplay', () => {
       }).promise;
       const metadata = (sessionReplay as any).metadata;
       expect(metadata?.replaySDKType).toBe('@amplitude/segment-session-replay-plugin');
+    });
+  });
+
+  describe('getRecordFunction', () => {
+    let getRecordFunctionSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      // Restore the original implementation for these tests
+      getRecordFunctionSpy = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
+      getRecordFunctionSpy.mockRestore();
+    });
+
+    afterEach(() => {
+      // Clean up any mocks we created
+      jest.dontMock('@amplitude/rrweb-record');
+    });
+
+    test('should return cached recordFunction if it already exists', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+      const mockCachedFunction = jest.fn();
+      (sessionReplay as any).recordFunction = mockCachedFunction;
+
+      const result = await (sessionReplay as any).getRecordFunction();
+
+      expect(result).toBe(mockCachedFunction);
+    });
+
+    test('should dynamically import and cache record function on first call', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      (sessionReplay as any).recordFunction = null;
+
+      const mockRecord = jest.fn();
+      jest.doMock(
+        '@amplitude/rrweb-record',
+        () => ({
+          record: mockRecord,
+        }),
+        { virtual: true },
+      );
+
+      const result = await (sessionReplay as any).getRecordFunction();
+
+      expect(result).toBe(mockRecord);
+      expect((sessionReplay as any).recordFunction).toBe(mockRecord);
+    });
+
+    test('should log warning and return null when import fails', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      (sessionReplay as any).recordFunction = null;
+
+      jest.resetModules();
+      jest.doMock('@amplitude/rrweb-record', () => {
+        throw new Error('Import failed');
+      });
+
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+
+      const result = await (sessionReplay as any).getRecordFunction();
+
+      expect(result).toBeNull();
+      expect(warnSpy).toHaveBeenCalledWith('Failed to load rrweb-record module:', expect.any(Error));
+    });
+
+    test('should return cached function on subsequent calls after successful import', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      (sessionReplay as any).recordFunction = null;
+
+      const mockRecord = jest.fn();
+      jest.doMock(
+        '@amplitude/rrweb-record',
+        () => ({
+          record: mockRecord,
+        }),
+        { virtual: true },
+      );
+
+      const firstResult = await (sessionReplay as any).getRecordFunction();
+      expect(firstResult).toBe(mockRecord);
+
+      const secondResult = await (sessionReplay as any).getRecordFunction();
+      expect(secondResult).toBe(mockRecord);
+      expect(secondResult).toBe(firstResult);
+    });
+
+    test('should return early if recordFunction is null', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Mock getRecordFunction to return null (simulating import failure)
+      const getRecordFunctionSpy = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
+      getRecordFunctionSpy.mockResolvedValue(null);
+
+      // Spy on the record function to ensure it's not called
+      mockRecordFunction.mockClear();
+
+      await sessionReplay.recordEvents();
+
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+      expect(getRecordFunctionSpy).toHaveBeenCalled();
+
+      getRecordFunctionSpy.mockRestore();
+    });
+
+    test('should return early if recordFunction is undefined', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const getRecordFunctionSpy = jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any);
+      getRecordFunctionSpy.mockResolvedValue(undefined);
+
+      mockRecordFunction.mockClear();
+
+      await sessionReplay.recordEvents();
+
+      expect(mockRecordFunction).not.toHaveBeenCalled();
+      expect(getRecordFunctionSpy).toHaveBeenCalled();
+
+      getRecordFunctionSpy.mockRestore();
     });
   });
 });

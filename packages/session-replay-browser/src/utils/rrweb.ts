@@ -2,6 +2,9 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import dom from '@amplitude/rrweb-utils';
 import type { eventWithTime, scrollCallback } from '@amplitude/rrweb-types';
 
+// These functions are not exposed in rrweb package, so we will define it here to use
+// Ignoring this function since this is copied from rrweb
+/* istanbul ignore next */
 export function getWindowScroll(win: Window) {
   const doc = win.document;
   return {
@@ -44,7 +47,6 @@ export function getWindowWidth(): number {
   );
 }
 
-// These are not exposed in rrweb package, so we define it here
 export type Mirror = {
   getNode: (id: number) => Node | null;
 };

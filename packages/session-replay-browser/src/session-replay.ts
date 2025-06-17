@@ -8,7 +8,7 @@ import {
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
-import { EventType as RRWebEventType, scrollCallback, eventWithTime } from '@amplitude/rrweb-types'; 
+import { EventType as RRWebEventType, scrollCallback, eventWithTime } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
@@ -408,7 +408,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.stopRecordingEvents();
 
     const recordFunction = await this.getRecordFunction();
-    console.log('[Duplicate test initial] 🔥 recordFunction', recordFunction);
 
     // May be undefined if cannot import rrweb-record
     if (!recordFunction) {
@@ -443,7 +442,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
-      console.log('[Duplicate test] 🔥 recordFunction', recordFunction);
       this.recordCancelCallback = recordFunction({
         emit: (event: eventWithTime) => {
           if (this.shouldOptOut()) {
