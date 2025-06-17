@@ -16,6 +16,7 @@ import {
   getEventProperties,
   ElementBasedTimestampedEvent,
   TimestampedEvent,
+  ElementBasedEvent,
 } from './helpers';
 import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
@@ -77,13 +78,6 @@ export enum ObservablesEnum {
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
 }
-
-// Specific types for events with targetElementProperties
-export type ElementBasedEvent = MouseEvent | Event;
-
-export type evaluateTriggersFn = <T extends ElementBasedEvent>(
-  event: ElementBasedTimestampedEvent<T>,
-) => ElementBasedTimestampedEvent<T>;
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;

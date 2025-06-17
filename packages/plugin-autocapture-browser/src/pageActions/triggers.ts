@@ -1,8 +1,7 @@
 import { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 // Return which labeled events, if any, the element matches
 import type { LabeledEvent } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { ElementBasedEvent } from 'src/autocapture-plugin';
-import { ElementBasedTimestampedEvent } from 'src/helpers';
+import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 import { matchEventToFilter } from './matchEventToFilter';
 
 // groups labeled events by event type

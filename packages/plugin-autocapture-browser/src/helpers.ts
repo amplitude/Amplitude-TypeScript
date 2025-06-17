@@ -359,6 +359,10 @@ export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
   targetElementProperties: Record<string, any>;
 };
 
+export type evaluateTriggersFn = <T extends ElementBasedEvent>(
+  event: ElementBasedTimestampedEvent<T>,
+) => ElementBasedTimestampedEvent<T>;
+
 // Union type for all possible TimestampedEvents
 export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
 
