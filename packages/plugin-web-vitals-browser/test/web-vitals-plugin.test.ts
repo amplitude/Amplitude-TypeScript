@@ -45,6 +45,9 @@ describe('webVitalsPlugin', () => {
     mockGlobalScope = {
       document: mockDocument,
       performance: mockPerformance,
+      location: {
+        href: 'https://www.example.com/path/to?query=value#hash',
+      },
     } as unknown as typeof globalThis;
 
     // Mock getGlobalScope function to return our mock global scope
@@ -154,26 +157,30 @@ describe('webVitalsPlugin', () => {
     expect(amplitude.track).toHaveBeenCalledWith(
       WEB_VITALS_EVENT_NAME,
       expect.objectContaining({
-        metricId: expect.any(String),
+        '[Amplitude] Metric ID': expect.any(String),
         '[Amplitude] LCP': expect.objectContaining({
           value: 100,
           rating: 'good',
-          timestamp: expect.any(String),
+          timestamp: expect.any(Number),
+          navigationStart: expect.any(Number),
         }),
         '[Amplitude] FCP': expect.objectContaining({
           value: 100,
           rating: 'good',
-          timestamp: expect.any(String),
+          timestamp: expect.any(Number),
+          navigationStart: expect.any(Number),
         }),
         '[Amplitude] INP': expect.objectContaining({
           value: 100,
           rating: 'good',
-          timestamp: expect.any(String),
+          timestamp: expect.any(Number),
+          navigationStart: expect.any(Number),
         }),
         '[Amplitude] CLS': expect.objectContaining({
           value: 100,
           rating: 'good',
-          timestamp: expect.any(String),
+          timestamp: expect.any(Number),
+          navigationStart: expect.any(Number),
         }),
       }),
     );

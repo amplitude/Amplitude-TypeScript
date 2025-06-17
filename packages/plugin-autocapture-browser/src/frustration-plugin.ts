@@ -7,16 +7,20 @@ import {
   DEFAULT_DEAD_CLICK_ALLOWLIST,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  DEFAULT_CSS_SELECTOR_ALLOWLIST,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
-import { createShouldTrackEvent } from './helpers';
+import {
+  addAdditionalEventProperties,
+  createShouldTrackEvent,
+  ElementBasedTimestampedEvent,
+  getEventProperties,
+} from './helpers';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
-import { getEventProperties } from './event-properties';
-import { addAdditionalEventProperties } from './event-enrichment';
-import { clickDelegateObservable, mutationObservable } from './observables';
-import { AllWindowObservables, ObservablesEnum, ElementBasedTimestampedEvent } from './autocapture-plugin';
+import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
+import { getGlobalClickObservable, getGlobalMutationObservable } from './observables';
 
 interface NavigateEvent extends Event {
   readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
@@ -42,10 +46,16 @@ interface NavigateEvent extends Event {
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
-  const deadClickAllowlist = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
-  const rageClickAllowlist = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
-
+export const frustrationPlugin = (
+  options: FrustrationInteractionsOptions = {
+    deadClicks: {
+      cssSelectorAllowlist: DEFAULT_DEAD_CLICK_ALLOWLIST,
+    },
+    rageClicks: {
+      cssSelectorAllowlist: DEFAULT_RAGE_CLICK_ALLOWLIST,
+    },
+  },
+): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
@@ -54,9 +64,14 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
-    const clickObservable = clickDelegateObservable.pipe(
+    const clickObservable = getGlobalClickObservable().pipe(
       map((click) => {
-        return addAdditionalEventProperties(click, 'click', rageClickAllowlist, DEFAULT_DATA_ATTRIBUTE_PREFIX);
+        return addAdditionalEventProperties(
+          click,
+          'click',
+          options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+          DEFAULT_DATA_ATTRIBUTE_PREFIX,
+        );
       }),
       share(),
     );
@@ -67,16 +82,26 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
         map((navigate) =>
-          addAdditionalEventProperties(navigate, 'navigate', rageClickAllowlist, DEFAULT_DATA_ATTRIBUTE_PREFIX),
+          addAdditionalEventProperties(
+            navigate,
+            'navigate',
+            options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+            DEFAULT_DATA_ATTRIBUTE_PREFIX,
+          ),
         ),
         share(),
       );
     }
 
     // Track DOM Mutations
-    const enrichedMutationObservable = mutationObservable.pipe(
+    const enrichedMutationObservable = getGlobalMutationObservable().pipe(
       map((mutation) =>
-        addAdditionalEventProperties(mutation, 'mutation', rageClickAllowlist, DEFAULT_DATA_ATTRIBUTE_PREFIX),
+        addAdditionalEventProperties(
+          mutation,
+          'mutation',
+          options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+          DEFAULT_DATA_ATTRIBUTE_PREFIX,
+        ),
       ),
       share(),
     );
@@ -96,8 +121,14 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
     }
 
     // Create should track event functions for the different allowlists
-    const shouldTrackRageClick = createShouldTrackEvent({}, rageClickAllowlist);
-    const shouldTrackDeadClick = createShouldTrackEvent({}, deadClickAllowlist);
+    const shouldTrackRageClick = createShouldTrackEvent(
+      options,
+      options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+    );
+    const shouldTrackDeadClick = createShouldTrackEvent(
+      options,
+      options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+    );
 
     // Create observables for events on the window
     const allObservables = createObservables();

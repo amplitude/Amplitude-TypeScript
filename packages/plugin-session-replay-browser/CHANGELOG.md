@@ -3,6 +3,44 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.18.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.18.1...@amplitude/plugin-session-replay-browser@1.18.2) (2025-06-17)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.18.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.18.0...@amplitude/plugin-session-replay-browser@1.18.1) (2025-06-16)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+# [1.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.17.0...@amplitude/plugin-session-replay-browser@1.18.0) (2025-06-13)
+
+
+### Features
+
+* **session-replay:** support background colors on blocked elements ([#1153](https://github.com/amplitude/Amplitude-TypeScript/issues/1153)) ([36fcd40](https://github.com/amplitude/Amplitude-TypeScript/commit/36fcd409b996c3c898bedd04ed77c9057ebbf994))
+
+
+
+
+
+# [1.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.15...@amplitude/plugin-session-replay-browser@1.17.0) (2025-06-12)
+
+
+### Features
+
+* **session-replay-browser:** ugc removal poc ([#1062](https://github.com/amplitude/Amplitude-TypeScript/issues/1062)) ([c63fafd](https://github.com/amplitude/Amplitude-TypeScript/commit/c63fafdaea2507a273cd23d8ef56dbe43c5aa1c3))
+
+
+
+
+
 ## [1.16.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.14...@amplitude/plugin-session-replay-browser@1.16.15) (2025-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

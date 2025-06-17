@@ -10,6 +10,10 @@ export interface InteractionConfig {
   trackEveryNms?: number;
   enabled: boolean; // defaults to false
   batch: boolean; // defaults to false
+  /**
+   * UGC filter rules.
+   */
+  ugcFilterRules?: UGCFilterRule[];
 }
 
 export interface LoggingConfig {
@@ -48,6 +52,20 @@ export type PrivacyConfig = {
   defaultMaskLevel?: MaskLevel;
   maskSelector?: string[];
   unmaskSelector?: string[];
+};
+
+/**
+ * UGC filter rule.
+ */
+export type UGCFilterRule = {
+  /**
+   * The selector of the UGC element.
+   */
+  selector: string;
+  /**
+   * The replacement text for the UGC element.
+   */
+  replacement: string;
 };
 
 export interface SessionReplayLocalConfig extends IConfig {
@@ -123,6 +141,13 @@ export interface SessionReplayLocalConfig extends IConfig {
      */
     useWebWorker: boolean;
   };
+
+  /**
+   * If true, applies a background color to blocked elements in the replay.
+   * This helps visualize which elements are blocked from being captured.
+   */
+  applyBackgroundColorToBlockedElements?: boolean;
+  interactionConfig?: InteractionConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {

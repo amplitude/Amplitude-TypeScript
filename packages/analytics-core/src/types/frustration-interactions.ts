@@ -1,3 +1,5 @@
+import { ActionType, Messenger } from './element-interactions';
+
 /**
  * Configuration options for dead clicks tracking
  */
@@ -25,6 +27,36 @@ export interface RageClickOptions {
  * This includes dead clicks and rage clicks tracking.
  */
 export interface FrustrationInteractionsOptions {
+  /**
+   * List of page URLs to allow auto tracking on.
+   * When provided, only allow tracking on these URLs.
+   * Both full URLs and regex are supported.
+   */
+  pageUrlAllowlist?: (string | RegExp)[];
+
+  /**
+   * Function to determine whether an event should be tracked.
+   * When provided, this function overwrites all other allowlists and configurations.
+   * If the function returns true, the event will be tracked.
+   * If the function returns false, the event will not be tracked.
+   * @param actionType - The type of action that triggered the event.
+   * @param element - The [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) that triggered the event.
+   */
+  shouldTrackEventResolver?: (actionType: ActionType, element: DomElement) => boolean;
+
+  /**
+   * Prefix for data attributes to allow auto collecting.
+   * Default is 'data-amp-track-'.
+   */
+  dataAttributePrefix?: string;
+
+  /**
+   * Options for integrating visual tagging selector.
+   */
+  visualTaggingOptions?: {
+    enabled?: boolean;
+    messenger?: Messenger;
+  };
   /**
    * Configuration for dead clicks tracking
    */
@@ -78,3 +110,12 @@ export const DEFAULT_RAGE_CLICK_WINDOW_MS = 3000;
  * Default threshold for rage clicks (5 clicks)
  */
 export const DEFAULT_RAGE_CLICK_THRESHOLD = 5;
+
+// DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
+// and never if it is not included
+// eslint-disable-next-line no-restricted-globals
+type DomElement = typeof globalThis extends {
+  Element: new (...args: any) => infer T;
+}
+  ? T
+  : never;

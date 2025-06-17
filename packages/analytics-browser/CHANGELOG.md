@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.17.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.9...@amplitude/analytics-browser@2.17.10) (2025-06-16)
+
+
+### Bug Fixes
+
+* guard globalScope missing "addEventListener" ([#1154](https://github.com/amplitude/Amplitude-TypeScript/issues/1154)) ([7cf775f](https://github.com/amplitude/Amplitude-TypeScript/commit/7cf775f320375b86fa15710444e101f3905b4836))
+
+
+
+
+
 ## [2.17.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.8...@amplitude/analytics-browser@2.17.9) (2025-06-11)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

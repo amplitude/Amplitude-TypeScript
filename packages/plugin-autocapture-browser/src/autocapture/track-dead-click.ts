@@ -1,7 +1,7 @@
-import { AllWindowObservables, ElementBasedTimestampedEvent, ObservablesEnum } from 'src/autocapture-plugin';
+import { AllWindowObservables, ObservablesEnum } from 'src/autocapture-plugin';
 import { filter, map, merge, take, mergeMap, race, Observable, Subscriber, throttleTime } from 'rxjs';
 import { BrowserClient, ActionType } from '@amplitude/analytics-core';
-import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
+import { ElementBasedTimestampedEvent, filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT } from '../constants';
 
 let DEAD_CLICK_TIMEOUT = 3000; // 3 seconds to wait for an activity to happen

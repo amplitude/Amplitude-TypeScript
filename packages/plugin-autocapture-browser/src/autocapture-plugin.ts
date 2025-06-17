@@ -5,20 +5,24 @@ import {
   EnrichmentPlugin,
   ElementInteractionsOptions,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
-  DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  DEFAULT_DATA_ATTRIBUTE_PREFIX,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
-import { createShouldTrackEvent } from './helpers';
+import {
+  addAdditionalEventProperties,
+  createShouldTrackEvent,
+  getEventProperties,
+  ElementBasedTimestampedEvent,
+  TimestampedEvent,
+} from './helpers';
 import { WindowMessenger } from './libs/messenger';
-import { getEventProperties } from './event-properties';
-import { addAdditionalEventProperties } from './event-enrichment';
-import { clickDelegateObservable, mutationObservable } from './observables';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+import { getGlobalMutationObservable, getGlobalClickObservable } from './observables';
 
 declare global {
   interface Window {
@@ -66,36 +70,12 @@ export enum ObservablesEnum {
   MutationObservable = 'mutationObservable',
 }
 
-// Base TimestampedEvent type
-type BaseTimestampedEvent<T> = {
-  event: T;
-  timestamp: number;
-  type: 'click' | 'change' | 'navigate' | 'mutation';
-};
-
-// Specific types for events with targetElementProperties
-export type ElementBasedEvent = MouseEvent | Event;
-export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
-  event: MouseEvent | Event;
-  type: 'click' | 'change';
-  closestTrackedAncestor: Element;
-  targetElementProperties: Record<string, any>;
-};
-
-// Union type for all possible TimestampedEvents
-export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
-
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
   [ObservablesEnum.ChangeObservable]: Observable<ElementBasedTimestampedEvent<Event>>;
   // [ObservablesEnum.ErrorObservable]: Observable<TimestampedEvent<ErrorEvent>>;
   [ObservablesEnum.NavigateObservable]: Observable<TimestampedEvent<NavigateEvent>> | undefined;
   [ObservablesEnum.MutationObservable]: Observable<TimestampedEvent<MutationRecord[]>>;
-}
-
-// Type predicate
-export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
-  return event.type === 'click' || event.type === 'change';
 }
 
 export const autocapturePlugin = (options: ElementInteractionsOptions = {}): BrowserEnrichmentPlugin => {
@@ -109,7 +89,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
   options.cssSelectorAllowlist = options.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST;
   options.actionClickAllowlist = options.actionClickAllowlist ?? DEFAULT_ACTION_CLICK_ALLOWLIST;
-  options.debounceTime = options.debounceTime ?? 0;
+  options.debounceTime = options.debounceTime ?? 0; // TODO: update this when rage clicks are added to 1000ms
 
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
@@ -119,15 +99,15 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
-    const clickObservable = clickDelegateObservable.pipe(
-      map((click) => {
-        return addAdditionalEventProperties(
+    const clickObservable = getGlobalClickObservable().pipe(
+      map((click) =>
+        addAdditionalEventProperties(
           click,
           'click',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
           dataAttributePrefix,
-        );
-      }),
+        ),
+      ),
       share(),
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
@@ -141,6 +121,11 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       ),
       share(),
     );
+
+    // Create Observable from unhandled errors
+    // const errorObservable = fromEvent<ErrorEvent>(window, 'error').pipe(
+    //   map((error) => addAdditionalEventProperties(error, 'error')),
+    // );
 
     // Create observable for URL changes
     let navigateObservable;
@@ -159,8 +144,8 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       );
     }
 
-    // Track DOM Mutations
-    const enrichedMutationObservable = mutationObservable.pipe(
+    // Track DOM Mutations using shared observable
+    const mutationObservable = getGlobalMutationObservable().pipe(
       map((mutation) =>
         addAdditionalEventProperties(
           mutation,
@@ -175,8 +160,9 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     return {
       [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
       [ObservablesEnum.ChangeObservable]: changeObservable as Observable<ElementBasedTimestampedEvent<Event>>,
+      // [ObservablesEnum.ErrorObservable]: errorObservable,
       [ObservablesEnum.NavigateObservable]: navigateObservable,
-      [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
+      [ObservablesEnum.MutationObservable]: mutationObservable,
     };
   };
 
@@ -210,7 +196,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
     const changeSubscription = trackChange({
       allObservables,
-      getEventProperties: (actionType, element) => getEventProperties(actionType, element, dataAttributePrefix),
+      getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
     });
@@ -219,7 +205,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     const actionClickSubscription = trackActionClick({
       allObservables,
       options: options as AutoCaptureOptionsWithDefaults,
-      getEventProperties: (actionType, element) => getEventProperties(actionType, element, dataAttributePrefix),
+      getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,

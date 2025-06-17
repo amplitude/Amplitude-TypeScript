@@ -1,12 +1,12 @@
-import {
-  AllWindowObservables,
-  AutoCaptureOptionsWithDefaults,
-  ElementBasedTimestampedEvent,
-  ObservablesEnum,
-} from 'src/autocapture-plugin';
+import { AllWindowObservables, AutoCaptureOptionsWithDefaults, ObservablesEnum } from 'src/autocapture-plugin';
 import { filter, map, merge, switchMap, take, timeout, EMPTY } from 'rxjs';
 import { BrowserClient, ActionType } from '@amplitude/analytics-core';
-import { filterOutNonTrackableEvents, getClosestElement, shouldTrackEvent } from '../helpers';
+import {
+  ElementBasedTimestampedEvent,
+  filterOutNonTrackableEvents,
+  getClosestElement,
+  shouldTrackEvent,
+} from '../helpers';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT } from '../constants';
 
 export function trackActionClick({

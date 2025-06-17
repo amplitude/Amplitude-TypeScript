@@ -22,6 +22,30 @@ export interface SessionReplayPerformanceConfig {
   timeout?: number;
 }
 
+/**
+ * UGC filter rule.
+ */
+export type UGCFilterRule = {
+  /**
+   * The selector of the UGC element.
+   */
+  selector: string;
+  /**
+   * The replacement text for the UGC element.
+   */
+  replacement: string;
+};
+
+export interface SessionReplayInteractionConfig {
+  trackEveryNms?: number;
+  enabled: boolean; // defaults to false
+  batch: boolean; // defaults to false
+  /**
+   * UGC filter rules.
+   */
+  ugcFilterRules?: UGCFilterRule[];
+}
+
 export interface SessionReplayOptions {
   /**
    * @see {@link StandaloneSessionReplayOptions.sampleRate}
@@ -75,4 +99,10 @@ export interface SessionReplayOptions {
   experimental?: {
     useWebWorker: boolean;
   };
+  /**
+   * If true, applies a background color to blocked elements for visual masking. Defaults to false.
+   */
+  applyBackgroundColorToBlockedElements?: boolean;
+
+  interactionConfig?: SessionReplayInteractionConfig;
 }

@@ -2,6 +2,7 @@
 
 import { createAmplitudeMock, createConfigurationMock } from '../helpers/mock';
 import { networkConnectivityCheckerPlugin } from '../../src/plugins/network-connectivity-checker';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 
 describe('networkConnectivityCheckerPlugin', () => {
   const amplitude = createAmplitudeMock();
@@ -55,5 +56,24 @@ describe('networkConnectivityCheckerPlugin', () => {
     expect(config.offline).toEqual(false);
     expect(addEventListenerSpy).not.toHaveBeenCalled();
     addEventListenerSpy.mockRestore();
+  });
+
+  test('should not throw if addEventListener is not a function', async () => {
+    const getGlobalScopeMock = jest
+      .spyOn(AnalyticsCore, 'getGlobalScope')
+      .mockReturnValue({} as unknown as typeof globalThis);
+    const plugin = networkConnectivityCheckerPlugin();
+
+    await expect(plugin.setup?.(config, amplitude)).resolves.not.toThrow();
+    await expect(plugin.teardown?.()).resolves.not.toThrow();
+
+    getGlobalScopeMock.mockRestore();
+  });
+
+  test('should not throw if globalScope.addEventListener is not available', async () => {
+    jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue({} as unknown as typeof globalThis);
+    const plugin = networkConnectivityCheckerPlugin();
+
+    await expect(plugin.setup?.(config, amplitude)).resolves.not.toThrow();
   });
 });
