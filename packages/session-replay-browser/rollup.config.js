@@ -19,7 +19,8 @@ const esmConfig = {
     entryFileNames: 'session-replay-browser-esm.js',
     chunkFileNames: '[name]-min.js',
     manualChunks: {
-      'console-plugin': ['@amplitude/rrweb-plugin-console-record']
+      'console-plugin': ['@amplitude/rrweb-plugin-console-record'],
+      'rrweb-record': ['@amplitude/rrweb-record']
     }
   },
   plugins: [

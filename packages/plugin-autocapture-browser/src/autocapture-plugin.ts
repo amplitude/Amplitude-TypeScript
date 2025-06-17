@@ -24,6 +24,14 @@ import { trackActionClick } from './autocapture/track-action-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
 import { createMutationObservable, createClickObservable } from './observables';
 
+import {
+  createLabeledEventToTriggerMap,
+  groupLabeledEventIdsByEventType,
+  matchEventToLabeledEvents,
+  matchLabeledEventsToTriggers,
+} from './pageActions/triggers';
+import { executeActions } from './pageActions/actions';
+
 declare global {
   interface Window {
     navigation: HasEventTargetAddRemove<Event>;
@@ -69,6 +77,29 @@ export enum ObservablesEnum {
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
 }
+
+// Base TimestampedEvent type
+type BaseTimestampedEvent<T> = {
+  event: T;
+  timestamp: number;
+  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
+};
+
+// Specific types for events with targetElementProperties
+export type ElementBasedEvent = MouseEvent | Event;
+export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
+  event: MouseEvent | Event;
+  type: 'click' | 'change';
+  closestTrackedAncestor: Element;
+  targetElementProperties: Record<string, any>;
+};
+
+export type evaluateTriggersFn = <T extends ElementBasedEvent>(
+  event: ElementBasedTimestampedEvent<T>,
+) => ElementBasedTimestampedEvent<T>;
+
+// Union type for all possible TimestampedEvents
+export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;
@@ -166,6 +197,35 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     };
   };
 
+  // Group labeled events by event type (eg. click, change)
+  const groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
+
+  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
+
+  // Evaluate triggers for the given event by running the actions associated with the matching triggers
+  const evaluateTriggers = <T extends ElementBasedEvent>(
+    event: ElementBasedTimestampedEvent<T>,
+  ): ElementBasedTimestampedEvent<T> => {
+    // If there is no pageActions, return the event as is
+    const { pageActions } = options;
+    if (!pageActions) {
+      return event;
+    }
+
+    // Find matching labeled events
+    const matchingLabeledEvents = matchEventToLabeledEvents(
+      event,
+      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
+    );
+    // Find matching conditions
+    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
+    for (const trigger of matchingTriggers) {
+      executeActions(trigger.actions, event);
+    }
+
+    return event;
+  };
+
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
@@ -191,6 +251,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
+      evaluateTriggers,
     });
     subscriptions.push(clickTrackingSubscription);
 
@@ -199,6 +260,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
+      evaluateTriggers,
     });
     subscriptions.push(changeSubscription);
 
