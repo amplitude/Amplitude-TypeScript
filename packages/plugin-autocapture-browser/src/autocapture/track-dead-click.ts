@@ -57,16 +57,14 @@ export function trackDeadClick({
       });
 
       // Race between the timer and any mutations/navigation
+      // if the timer wins, the click is dead so we emit it
       return race(
         timer,
         mutationOrNavigate.pipe(
           take(1),
           map(() => null),
         ),
-      ).pipe(
-        // Only emit if the timer won (meaning no mutations occurred)
-        filter((value): value is ElementBasedTimestampedEvent<MouseEvent> => value !== null),
-      );
+      ).pipe(filter((value): value is ElementBasedTimestampedEvent<MouseEvent> => value !== null));
     }),
     // Only allow one dead click event every 3 seconds
     throttleTime(DEAD_CLICK_TIMEOUT),
@@ -83,7 +81,6 @@ export function trackDeadClick({
     /* istanbul ignore next */
     amplitude?.track(
       AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
-      // TODO: check if the properties here are what we want for dead clicks
       {
         ...getEventProperties('click', actionClick.closestTrackedAncestor),
         ...deadClickEvent,

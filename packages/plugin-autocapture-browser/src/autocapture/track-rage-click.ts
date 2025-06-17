@@ -50,15 +50,16 @@ export function trackRageClicks({
         return false;
       }
 
-      // it is only a rage click if the last RAGE_CLICK_THRESHOLD clicks are on the same element
-      const lastClickTarget = clicks[clicks.length - 1].event.target;
-      const trailingClicks = clicks
-        .slice()
-        .reverse()
-        .filter((click) => click.event.target === lastClickTarget)
-        .reverse();
-
-      return trailingClicks.length >= RAGE_CLICK_THRESHOLD;
+      // checks if the last n (RAGE_CLICK_THRESHOLD) clicks are on the same element
+      let trailingClickPtr = clicks.length - 1;
+      const lastClickTarget = clicks[trailingClickPtr].event.target;
+      while (--trailingClickPtr >= 0) {
+        if (clicks[trailingClickPtr].event.target !== lastClickTarget) {
+          break;
+        }
+      }
+      const trailingClicksCount = clicks.length - trailingClickPtr - 1;
+      return trailingClicksCount >= RAGE_CLICK_THRESHOLD;
     }),
     map((clicks) => {
       const firstClick = clicks[0];
@@ -68,7 +69,7 @@ export function trackRageClicks({
       const rageClickEvent: EventRageClick = {
         '[Amplitude] Begin Time': beginTimeISO,
         '[Amplitude] End Time': endTimeISO,
-        '[Amplitude] Duration': clicks[clicks.length - 1].timestamp - firstClick.timestamp,
+        '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
         '[Amplitude] Clicks': clicks.map((click) => ({
           X: (click.event as MouseEvent).clientX,
           Y: (click.event as MouseEvent).clientY,
@@ -77,12 +78,12 @@ export function trackRageClicks({
         '[Amplitude] Click Count': clicks.length,
         ...firstClick.targetElementProperties,
       };
-      return { rageClickEvent, timestamp: firstClick.timestamp };
+      return { rageClickEvent, time: firstClick.timestamp };
     }),
   );
 
-  return rageClickObservable.subscribe(({ rageClickEvent, timestamp }) => {
+  return rageClickObservable.subscribe(({ rageClickEvent, time }) => {
     /* istanbul ignore next */
-    amplitude?.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time: timestamp });
+    amplitude?.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
   });
 }
