@@ -317,7 +317,8 @@ export type AutoCaptureOptionsWithDefaults = Required<
 export const addAdditionalEventProperties = <T>(
   event: T,
   type: TimestampedEvent<T>['type'],
-  options: ElementInteractionsOptions,
+  selectorAllowlist: string[],
+  dataAttributePrefix: string = DEFAULT_DATA_ATTRIBUTE_PREFIX,
 ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
   const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
     event,
@@ -327,16 +328,13 @@ export const addAdditionalEventProperties = <T>(
 
   if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
     // Retrieve additional event properties from the target element
-    const closestTrackedAncestor = getClosestElement(
-      baseEvent.event.target as HTMLElement,
-      (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-    );
+    const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
     if (closestTrackedAncestor) {
       baseEvent.closestTrackedAncestor = closestTrackedAncestor;
       baseEvent.targetElementProperties = getEventProperties(
         baseEvent.type,
         closestTrackedAncestor,
-        options.dataAttributePrefix || DEFAULT_DATA_ATTRIBUTE_PREFIX,
+        dataAttributePrefix,
       );
     }
     return baseEvent;

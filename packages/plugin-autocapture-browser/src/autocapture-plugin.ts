@@ -100,11 +100,25 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
     const clickObservable = getGlobalClickObservable().pipe(
-      map((click) => addAdditionalEventProperties(click, 'click', options)),
+      map((click) =>
+        addAdditionalEventProperties(
+          click,
+          'click',
+          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+          options.dataAttributePrefix,
+        ),
+      ),
       share(),
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
-      map((change) => addAdditionalEventProperties(change, 'change', options)),
+      map((change) =>
+        addAdditionalEventProperties(
+          change,
+          'change',
+          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+          options.dataAttributePrefix,
+        ),
+      ),
       share(),
     );
 
@@ -118,14 +132,28 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     /* istanbul ignore next */
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
-        map((navigate) => addAdditionalEventProperties(navigate, 'navigate', options)),
+        map((navigate) =>
+          addAdditionalEventProperties(
+            navigate,
+            'navigate',
+            (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+            options.dataAttributePrefix,
+          ),
+        ),
         share(),
       );
     }
 
     // Track DOM Mutations using shared observable
     const mutationObservable = getGlobalMutationObservable().pipe(
-      map((mutation) => addAdditionalEventProperties(mutation, 'mutation', options)),
+      map((mutation) =>
+        addAdditionalEventProperties(
+          mutation,
+          'mutation',
+          (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
+          options.dataAttributePrefix,
+        ),
+      ),
       share(),
     );
 
