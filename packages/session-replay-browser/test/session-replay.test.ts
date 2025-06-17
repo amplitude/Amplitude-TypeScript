@@ -234,6 +234,42 @@ describe('SessionReplay', () => {
       expect((sessionReplayWithoutConfig as any).networkObservers).toBeUndefined();
     });
 
+    test('should log warning when NetworkObservers import fails', async () => {
+      getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {
+        if (namespace === 'sessionReplay' && key === 'sr_logging_config') {
+          return {
+            network: {
+              enabled: true,
+            },
+          };
+        }
+        return;
+      });
+      jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
+        getRemoteConfig: getRemoteConfigMock,
+        metrics: {},
+      });
+
+      // Mock the dynamic import to throw an error
+      jest.doMock('../src/observers', () => {
+        throw new Error('Import failed');
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Call initializeNetworkObservers directly to test the catch block
+      await (sessionReplay as any).initializeNetworkObservers();
+
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        'Failed to import or instantiate NetworkObservers:',
+        expect.any(Error),
+      );
+      expect((sessionReplay as any).networkObservers).toBeUndefined();
+
+      // Clean up the mock
+      jest.dontMock('../src/observers');
+    });
+
     test('should catch error and log a warn when initializing', async () => {
       // enable interaction config
       getRemoteConfigMock = jest.fn().mockImplementation((namespace: string, key: keyof SessionReplayRemoteConfig) => {

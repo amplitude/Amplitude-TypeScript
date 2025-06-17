@@ -609,8 +609,12 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   private async initializeNetworkObservers(): Promise<void> {
     if (this.config?.loggingConfig?.network?.enabled && !this.networkObservers) {
-      const { NetworkObservers: NetworkObserversClass } = await import('./observers');
-      this.networkObservers = new NetworkObserversClass();
+      try {
+        const { NetworkObservers: NetworkObserversClass } = await import('./observers');
+        this.networkObservers = new NetworkObserversClass();
+      } catch (error) {
+        this.loggerProvider.warn('Failed to import or instantiate NetworkObservers:', error);
+      }
     }
   }
 }
