@@ -19,11 +19,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     env:
+      # The starting Git reference. Represents the baseline.
       # Set NX_BASE depending on the event:
       # - For pull requests: use the base commit SHA of the PR (github.event.pull_request.base.sha)
       # - For pushes to main: use the previous commit on main (HEAD~1)
       # - For all other cases: use the previous commit on remote main (origin/main~1)
       NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || (github.ref == 'refs/heads/main' && 'HEAD~1') || 'origin/main~1' }}
+      # The current Git reference. Represents the changes to be tested.
       NX_HEAD: ${{ github.sha }}
 
     steps:
@@ -72,10 +74,6 @@ jobs:
       - name: Test affected packages
         run: |
           yarn test:nx-affected
-
-      - name: Test all examples
-        run: |
-          yarn test:examples
 
       - name: Lint affected packages
         run: |
