@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Element Interactions Test</title>
+    <style>
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .interactive-section {
+        margin: 20px 0;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        margin: 5px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        cursor: pointer;
+      }
+      input, select {
+        margin: 5px;
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      .clickable-div {
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Element Interactions Test Page</h1>
+      <p>This page contains various interactive elements to test Amplitude's autocapture functionality.</p>
+
+      <div class="interactive-section">
+        <h2>Buttons</h2>
+        <button id="primary-button">Primary Button</button>
+        <button class="secondary-button">Secondary Button</button>
+        <button data-test-id="test-button">Test Button</button>
+      </div>
+
+      <div class="interactive-section">
+        <h2>Form Elements</h2>
+        <form id="test-form">
+          <input type="text" placeholder="Text input" />
+          <input type="email" placeholder="Email input" />
+          <select>
+            <option value="">Select an option</option>
+            <option value="1">Option 1</option>
+            <option value="2">Option 2</option>
+          </select>
+          <button type="submit">Submit Form</button>
+        </form>
+      </div>
+
+      <div class="interactive-section">
+        <h2>Clickable Elements</h2>
+        <div class="clickable-div" data-test-id="clickable-div-1" id="dynamic-div">Active Div</div>
+        <div class="clickable-div" data-test-id="clickable-div-2">Do nothing div</div>
+        <a href="#" data-test-id="test-link">Test Link</a>
+        <div id="dynamic-content" style="margin-top: 10px; padding: 10px; border: 1px solid #ccc; display: none;">
+          This content was dynamically added after clicking the div!
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      // import { frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
+
+      window.amplitude = amplitude;
+      //    const frustrationInteractions = {
+      //   deadClicks: true,
+      //   rageClicks: true,
+      // };
+      // amplitude.add(frustrationPlugin(frustrationInteractions));
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+            // TODO: this should be "frustrationInteractions"
+            elementInteractions: true,
+            networkTracking: {
+              ignoreAmplitudeRequests: false,
+              ignoreHosts: [],
+              captureRules: [
+                {hosts: ['*.amplitude.com'], statusCodeRange: '400-599'},
+                {hosts: ['httpstat.us'], statusCodeRange: '400-599'},
+              ],
+            },
+          },
+        }
+      );
+
+      // Add click handler for the first clickable div
+      document.getElementById('dynamic-div').addEventListener('click', () => {
+        setTimeout(() => {
+          const content = document.getElementById('dynamic-content');
+          content.style.display = content.style.display === 'none' ? 'block' : 'none';
+        }, 100);
+      });
+
+      // Prevent form submission from refreshing the page
+      document.getElementById('test-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        console.log('Form submitted');
+      });
+    </script>
+  </body>
+</html>

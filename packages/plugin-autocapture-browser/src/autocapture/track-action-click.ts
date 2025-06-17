@@ -33,7 +33,7 @@ export function trackActionClick({
     }),
     map((click) => {
       // overwrite the closestTrackedAncestor with the closest element that is on the actionClickAllowlist
-      const closestActionClickEl = getClosestElement(click.event.target as Element, options.actionClickAllowlist);
+      const closestActionClickEl = getClosestElement(click.event.target as HTMLElement, options.actionClickAllowlist);
       click.closestTrackedAncestor = closestActionClickEl as Element;
 
       // overwrite the targetElementProperties with the properties of the closestActionClickEl
