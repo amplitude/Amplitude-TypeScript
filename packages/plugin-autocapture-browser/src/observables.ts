@@ -1,24 +1,37 @@
 import { Observable, fromEvent } from 'rxjs';
 
+let mutationObservableInstance: Observable<MutationRecord[]> | null = null;
+let clickObservableInstance: Observable<MouseEvent> | null = null;
+
 /**
  * Creates an observable that tracks DOM mutations on the document body.
- * This observable can be shared across different plugins to avoid creating multiple mutation observers.
+ * This observable is created lazily and shared across different plugins to avoid creating multiple mutation observers.
  */
-export const globalMutationObservable = new Observable<MutationRecord[]>((observer) => {
-  const mutationObserver = new MutationObserver((mutations) => {
-    observer.next(mutations);
-  });
-  mutationObserver.observe(document.body, {
-    childList: true,
-    attributes: true,
-    characterData: true,
-    subtree: true,
-  });
-  return () => mutationObserver.disconnect();
-});
+export const getGlobalMutationObservable = (): Observable<MutationRecord[]> => {
+  if (!mutationObservableInstance) {
+    mutationObservableInstance = new Observable<MutationRecord[]>((observer) => {
+      const mutationObserver = new MutationObserver((mutations) => {
+        observer.next(mutations);
+      });
+      mutationObserver.observe(document.body, {
+        childList: true,
+        attributes: true,
+        characterData: true,
+        subtree: true,
+      });
+      return () => mutationObserver.disconnect();
+    });
+  }
+  return mutationObservableInstance;
+};
 
 /**
  * Creates an observable that tracks click events on the document.
- * This observable can be shared across different plugins to avoid creating multiple event listeners.
+ * This observable is created lazily and shared across different plugins to avoid creating multiple event listeners.
  */
-export const globalClickObservable = fromEvent<MouseEvent>(document, 'click', { capture: true });
+export const getGlobalClickObservable = (): Observable<MouseEvent> => {
+  if (!clickObservableInstance) {
+    clickObservableInstance = fromEvent<MouseEvent>(document, 'click', { capture: true });
+  }
+  return clickObservableInstance;
+};

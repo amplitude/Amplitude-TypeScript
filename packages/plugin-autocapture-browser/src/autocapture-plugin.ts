@@ -22,7 +22,7 @@ import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
-import { globalMutationObservable, globalClickObservable } from './observables';
+import { getGlobalMutationObservable, getGlobalClickObservable } from './observables';
 
 declare global {
   interface Window {
@@ -99,7 +99,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
-    const clickObservable = globalClickObservable.pipe(
+    const clickObservable = getGlobalClickObservable().pipe(
       map((click) => addAdditionalEventProperties(click, 'click', options)),
       share(),
     );
@@ -124,7 +124,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     }
 
     // Track DOM Mutations using shared observable
-    const mutationObservable = globalMutationObservable.pipe(
+    const mutationObservable = getGlobalMutationObservable().pipe(
       map((mutation) => addAdditionalEventProperties(mutation, 'mutation', options)),
       share(),
     );
