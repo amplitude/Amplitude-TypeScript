@@ -85,7 +85,7 @@ jobs:
       # Only create release version when using from-git (default behavior)
       # from-package mode uses existing package.json versions and doesn't need git tags
       - name: Create release version
-        if: env.PUBLISH_FROM != 'from-package'
+        if: ${{ env.PUBLISH_FROM != 'from-package' }}
         run: |
           echo "Running lerna version..."
           OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github 2>&1)
