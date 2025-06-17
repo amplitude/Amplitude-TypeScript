@@ -1,4 +1,4 @@
-import { ElementBasedTimestampedEvent } from './../../src/autocapture-plugin';
+import { ElementBasedTimestampedEvent } from './../../src/helpers';
 import type { LabeledEvent } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import { groupLabeledEventIdsByEventType, matchEventToLabeledEvents } from '../../src/pageActions/triggers';
 import * as matchEventToFilterModule from '../../src/pageActions/matchEventToFilter';
