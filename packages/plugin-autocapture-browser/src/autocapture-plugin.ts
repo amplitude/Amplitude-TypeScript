@@ -10,7 +10,13 @@ import {
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
-import { addAdditionalEventProperties, createShouldTrackEvent, getEventProperties } from './helpers';
+import {
+  addAdditionalEventProperties,
+  createShouldTrackEvent,
+  getEventProperties,
+  ElementBasedTimestampedEvent,
+  TimestampedEvent,
+} from './helpers';
 import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
@@ -63,25 +69,6 @@ export enum ObservablesEnum {
   NavigateObservable = 'navigateObservable',
   MutationObservable = 'mutationObservable',
 }
-
-// Base TimestampedEvent type
-type BaseTimestampedEvent<T> = {
-  event: T;
-  timestamp: number;
-  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
-};
-
-// Specific types for events with targetElementProperties
-export type ElementBasedEvent = MouseEvent | Event;
-export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
-  event: MouseEvent | Event;
-  type: 'click' | 'change';
-  closestTrackedAncestor: Element;
-  targetElementProperties: Record<string, any>;
-};
-
-// Union type for all possible TimestampedEvents
-export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
 
 export interface AllWindowObservables {
   [ObservablesEnum.ClickObservable]: Observable<ElementBasedTimestampedEvent<MouseEvent>>;

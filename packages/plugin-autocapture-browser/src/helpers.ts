@@ -1,7 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import * as constants from './constants';
 import { ElementInteractionsOptions, ActionType, DEFAULT_DATA_ATTRIBUTE_PREFIX } from '@amplitude/analytics-core';
-import { ElementBasedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './autocapture-plugin';
 import { getHierarchy } from './hierarchy';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -310,22 +309,10 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
   return removeEmptyProperties(properties);
 };
 
-// Base TimestampedEvent type
-type BaseTimestampedEvent<T> = {
-  event: T;
-  timestamp: number;
-  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
-};
-
 export type AutoCaptureOptionsWithDefaults = Required<
   Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
 > &
   ElementInteractionsOptions;
-
-// Type predicate
-export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
-  return event.type === 'click' || event.type === 'change';
-}
 
 export const addAdditionalEventProperties = <T>(
   event: T,
@@ -357,3 +344,27 @@ export const addAdditionalEventProperties = <T>(
 
   return baseEvent;
 };
+
+// Base TimestampedEvent type
+export type BaseTimestampedEvent<T> = {
+  event: T;
+  timestamp: number;
+  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
+};
+
+// Specific types for events with targetElementProperties
+export type ElementBasedEvent = MouseEvent | Event;
+export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
+  event: MouseEvent | Event;
+  type: 'click' | 'change';
+  closestTrackedAncestor: Element;
+  targetElementProperties: Record<string, any>;
+};
+
+// Union type for all possible TimestampedEvents
+export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
+
+// Type predicate
+export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
+  return event.type === 'click' || event.type === 'change';
+}
