@@ -19,14 +19,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     
     env:
-      NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
+      # Set NX_BASE depending on the event:
+      # - For pull requests: use the base commit SHA of the PR (github.event.pull_request.base.sha)
+      # - For pushes to main: use the previous commit on main (HEAD~1)
+      # - For all other cases: use the previous commit on remote main (origin/main~1)
+      NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || (github.ref == 'refs/heads/main' && 'HEAD~1') || 'origin/main~1' }}
       NX_HEAD: ${{ github.sha }}
 
     steps:
       - name: Check out git repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Required for NX affected commands
+          fetch-depth: 2  # Fetch at least 2 commits for HEAD~1 to exist
 
       - name: Cache dependencies
         uses: actions/cache@v3
