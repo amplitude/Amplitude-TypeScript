@@ -48,6 +48,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
+  // TODO: add visualTagging stuff here too
+
   const subscriptions: Subscription[] = [];
 
   // Create observables on events on the window
