@@ -1,4 +1,4 @@
-import { autocapturePlugin } from '../../src/autocapture-plugin';
+import { frustrationPlugin } from '../../src/frustration-plugin';
 import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createMockBrowserClient } from '../mock-browser-client';
 import { trackDeadClick } from '../../src/autocapture/track-dead-click';
@@ -21,7 +21,7 @@ jest.mock('../../src/autocapture/track-rage-click', () => ({
   _overrideRageClickConfig: jest.fn(),
 }));
 
-describe('autocapturePlugin', () => {
+describe('frustrationPlugin', () => {
   let plugin: EnrichmentPlugin | undefined;
   let instance: any;
 
@@ -44,14 +44,11 @@ describe('autocapturePlugin', () => {
     it('should pass custom dead click allowlist to tracking function', async () => {
       const customDeadClickAllowlist = ['button', 'a'];
 
-      plugin = autocapturePlugin(
-        {},
-        {
-          deadClicks: {
-            cssSelectorAllowlist: customDeadClickAllowlist,
-          },
+      plugin = frustrationPlugin({
+        deadClicks: {
+          cssSelectorAllowlist: customDeadClickAllowlist,
         },
-      );
+      });
 
       await plugin?.setup?.(config as BrowserConfig, instance);
 
@@ -78,14 +75,11 @@ describe('autocapturePlugin', () => {
     it('should pass custom rage click allowlist to tracking function', async () => {
       const customRageClickAllowlist = ['input', 'select'];
 
-      plugin = autocapturePlugin(
-        {},
-        {
-          rageClicks: {
-            cssSelectorAllowlist: customRageClickAllowlist,
-          },
+      plugin = frustrationPlugin({
+        rageClicks: {
+          cssSelectorAllowlist: customRageClickAllowlist,
         },
-      );
+      });
 
       await plugin?.setup?.(config as BrowserConfig, instance);
 

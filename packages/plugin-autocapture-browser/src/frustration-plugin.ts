@@ -1,0 +1,143 @@
+/* eslint-disable no-restricted-globals */
+import {
+  BrowserClient,
+  BrowserConfig,
+  EnrichmentPlugin,
+  FrustrationInteractionsOptions,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_DATA_ATTRIBUTE_PREFIX,
+} from '@amplitude/analytics-core';
+import * as constants from './constants';
+import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
+import { createShouldTrackEvent } from './helpers';
+import { trackDeadClick } from './autocapture/track-dead-click';
+import { trackRageClicks } from './autocapture/track-rage-click';
+import { getEventProperties } from './event-properties';
+import { addAdditionalEventProperties } from './event-enrichment';
+import { clickDelegateObservable, mutationObservable } from './observables';
+import { AllWindowObservables, ObservablesEnum, ElementBasedTimestampedEvent } from './autocapture-plugin';
+
+interface NavigateEvent extends Event {
+  readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
+  readonly destination: {
+    readonly url: string;
+    readonly key: string | null;
+    readonly id: string | null;
+    readonly index: number;
+    readonly sameDocument: boolean;
+    getState(): any;
+  };
+  readonly canIntercept: boolean;
+  readonly userInitiated: boolean;
+  readonly hashChange: boolean;
+  readonly signal: AbortSignal;
+  readonly formData: FormData | null;
+  readonly downloadRequest: string | null;
+  readonly info: any;
+  readonly hasUAVisualTransition: boolean;
+  readonly sourceElement: Element | null;
+  scroll(): void;
+}
+
+type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
+
+export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
+  const deadClickAllowlist = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+  const rageClickAllowlist = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
+
+  const name = constants.FRUSTRATION_PLUGIN_NAME;
+  const type = 'enrichment';
+
+  const subscriptions: Subscription[] = [];
+
+  // Create observables on events on the window
+  const createObservables = (): AllWindowObservables => {
+    // Create Observables from direct user events
+    const clickObservable = clickDelegateObservable.pipe(
+      map((click) => {
+        return addAdditionalEventProperties(click, 'click', rageClickAllowlist, DEFAULT_DATA_ATTRIBUTE_PREFIX);
+      }),
+      share(),
+    );
+
+    // Create observable for URL changes
+    let navigateObservable;
+    /* istanbul ignore next */
+    if (window.navigation) {
+      navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
+        map((navigate) =>
+          addAdditionalEventProperties(navigate, 'navigate', rageClickAllowlist, DEFAULT_DATA_ATTRIBUTE_PREFIX),
+        ),
+        share(),
+      );
+    }
+
+    // Track DOM Mutations
+    const enrichedMutationObservable = mutationObservable.pipe(
+      map((mutation) =>
+        addAdditionalEventProperties(mutation, 'mutation', rageClickAllowlist, DEFAULT_DATA_ATTRIBUTE_PREFIX),
+      ),
+      share(),
+    );
+
+    return {
+      [ObservablesEnum.ClickObservable]: clickObservable as Observable<ElementBasedTimestampedEvent<MouseEvent>>,
+      [ObservablesEnum.ChangeObservable]: new Observable<ElementBasedTimestampedEvent<Event>>(), // Empty observable since we don't need change events
+      [ObservablesEnum.NavigateObservable]: navigateObservable,
+      [ObservablesEnum.MutationObservable]: enrichedMutationObservable,
+    };
+  };
+
+  const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
+    /* istanbul ignore if */
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    // Create should track event functions for the different allowlists
+    const shouldTrackRageClick = createShouldTrackEvent({}, rageClickAllowlist);
+    const shouldTrackDeadClick = createShouldTrackEvent({}, deadClickAllowlist);
+
+    // Create observables for events on the window
+    const allObservables = createObservables();
+
+    // Create subscriptions
+    const rageClickSubscription = trackRageClicks({
+      allObservables,
+      amplitude,
+      shouldTrackRageClick,
+    });
+    subscriptions.push(rageClickSubscription);
+
+    const deadClickSubscription = trackDeadClick({
+      amplitude,
+      allObservables,
+      getEventProperties: (actionType, element) =>
+        getEventProperties(actionType, element, DEFAULT_DATA_ATTRIBUTE_PREFIX),
+      shouldTrackDeadClick,
+    });
+    subscriptions.push(deadClickSubscription);
+
+    /* istanbul ignore next */
+    config?.loggerProvider?.log(`${name} has been successfully added.`);
+  };
+
+  const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
+    return event;
+  };
+
+  const teardown = async () => {
+    for (const subscription of subscriptions) {
+      subscription.unsubscribe();
+    }
+  };
+
+  return {
+    name,
+    type,
+    setup,
+    execute,
+    teardown,
+  };
+};
