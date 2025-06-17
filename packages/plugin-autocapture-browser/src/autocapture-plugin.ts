@@ -164,8 +164,6 @@ export const autocapturePlugin = (
         share(),
       );
     }
-    // TODO: handle page unload event as well so that we don't lose events
-    // as the page is unloading.
 
     // Track DOM Mutations
     const mutationObservable = new Observable<MutationRecord[]>((observer) => {
