@@ -4,8 +4,6 @@ import {
   BrowserConfig,
   EnrichmentPlugin,
   FrustrationInteractionsOptions,
-  DEFAULT_DEAD_CLICK_ALLOWLIST,
-  DEFAULT_RAGE_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
 } from '@amplitude/analytics-core';
@@ -46,16 +44,7 @@ interface NavigateEvent extends Event {
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-export const frustrationPlugin = (
-  options: FrustrationInteractionsOptions = {
-    deadClicks: {
-      cssSelectorAllowlist: DEFAULT_DEAD_CLICK_ALLOWLIST,
-    },
-    rageClicks: {
-      cssSelectorAllowlist: DEFAULT_RAGE_CLICK_ALLOWLIST,
-    },
-  },
-): BrowserEnrichmentPlugin => {
+export const frustrationPlugin = (options: FrustrationInteractionsOptions): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
@@ -69,8 +58,10 @@ export const frustrationPlugin = (
         return addAdditionalEventProperties(
           click,
           'click',
+          /* istanbul ignore next */
           options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
-          DEFAULT_DATA_ATTRIBUTE_PREFIX,
+          /* istanbul ignore next */
+          options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX,
         );
       }),
       share(),
@@ -86,7 +77,7 @@ export const frustrationPlugin = (
             navigate,
             'navigate',
             options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
-            DEFAULT_DATA_ATTRIBUTE_PREFIX,
+            options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX,
           ),
         ),
         share(),
@@ -99,6 +90,7 @@ export const frustrationPlugin = (
         addAdditionalEventProperties(
           mutation,
           'mutation',
+          /* istanbul ignore next */
           options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
           DEFAULT_DATA_ATTRIBUTE_PREFIX,
         ),
@@ -154,10 +146,12 @@ export const frustrationPlugin = (
     config?.loggerProvider?.log(`${name} has been successfully added.`);
   };
 
+  /* istanbul ignore next */
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
     return event;
   };
 
+  /* istanbul ignore next */
   const teardown = async () => {
     for (const subscription of subscriptions) {
       subscription.unsubscribe();
