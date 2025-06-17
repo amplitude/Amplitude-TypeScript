@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.24.0...@amplitude/session-replay-browser@1.24.1) (2025-06-17)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** indexeddb open error handling ([#1155](https://github.com/amplitude/Amplitude-TypeScript/issues/1155)) ([cbbda90](https://github.com/amplitude/Amplitude-TypeScript/commit/cbbda90b94426ad9413c935e7298cd4dd1adcc38))
+
+
+
+
+
 # [1.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.23.0...@amplitude/session-replay-browser@1.24.0) (2025-06-13)
 
 
