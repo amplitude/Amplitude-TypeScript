@@ -1,12 +1,10 @@
-import { utils } from '@amplitude/rrweb';
-import { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
+import { getWindowHeight, getWindowWidth } from '../utils/rrweb';
+import type { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
 import { BeaconTransport } from '../beacon-transport';
 import { getGlobalScope } from '@amplitude/analytics-core';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { SessionReplayDestinationSessionMetadata } from '../typings/session-replay';
 import { getPageUrl } from '../helpers';
-
-const { getWindowHeight, getWindowWidth } = utils;
 
 export type ScrollEvent = {
   timestamp: number; // Timestamp the event occurred
