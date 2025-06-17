@@ -1,4 +1,5 @@
 import { Observable, fromEvent } from 'rxjs';
+import { share } from 'rxjs/operators';
 
 let mutationObservableInstance: Observable<MutationRecord[]> | null = null;
 let clickObservableInstance: Observable<MouseEvent> | null = null;
@@ -20,7 +21,7 @@ export const getGlobalMutationObservable = (): Observable<MutationRecord[]> => {
         subtree: true,
       });
       return () => mutationObserver.disconnect();
-    });
+    }).pipe(share());
   }
   return mutationObservableInstance;
 };
@@ -31,7 +32,7 @@ export const getGlobalMutationObservable = (): Observable<MutationRecord[]> => {
  */
 export const getGlobalClickObservable = (): Observable<MouseEvent> => {
   if (!clickObservableInstance) {
-    clickObservableInstance = fromEvent<MouseEvent>(document, 'click', { capture: true });
+    clickObservableInstance = fromEvent<MouseEvent>(document, 'click', { capture: true }).pipe(share());
   }
   return clickObservableInstance;
 };
