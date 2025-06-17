@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.18.2...@amplitude/plugin-session-replay-browser@1.19.0) (2025-06-17)
+
+
+### Bug Fixes
+
+* **unified:** rename sr to sessionReplay ([#1102](https://github.com/amplitude/Amplitude-TypeScript/issues/1102)) ([e1fa514](https://github.com/amplitude/Amplitude-TypeScript/commit/e1fa5148325bebfcb7054c83c38cd6d42a21ac5f))
+
+
+### Features
+
+* **session replay:** dynamically import rrweb ([#1156](https://github.com/amplitude/Amplitude-TypeScript/issues/1156)) ([510cc67](https://github.com/amplitude/Amplitude-TypeScript/commit/510cc67bf04f740940504e3351c39c05d54c5c32))
+
+
+
+
+
 ## [1.18.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.18.1...@amplitude/plugin-session-replay-browser@1.18.2) (2025-06-17)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

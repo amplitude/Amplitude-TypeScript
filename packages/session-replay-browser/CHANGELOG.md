@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.25.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.24.1...@amplitude/session-replay-browser@1.25.0) (2025-06-17)
+
+
+### Features
+
+* **session replay:** dynamically import rrweb ([#1156](https://github.com/amplitude/Amplitude-TypeScript/issues/1156)) ([510cc67](https://github.com/amplitude/Amplitude-TypeScript/commit/510cc67bf04f740940504e3351c39c05d54c5c32))
+
+
+
+
+
 ## [1.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.24.0...@amplitude/session-replay-browser@1.24.1) (2025-06-17)
 
 
