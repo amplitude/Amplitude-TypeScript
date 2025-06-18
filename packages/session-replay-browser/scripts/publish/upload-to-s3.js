@@ -8,7 +8,8 @@ const location = path.join(process.cwd(), 'lib', 'scripts');
 const files = [
   'session-replay-browser-esm.js.gz',  // ESM version
   'session-replay-browser-min.js.gz',  // IIFE version
-  'console-plugin-min.js.gz'  // Console plugin chunk
+  'console-plugin-min.js.gz',  // Console plugin chunk
+  'rrweb-record-min.js.gz'  // RRWeb record chunk
 ];
 
 let deployedCount = 0;

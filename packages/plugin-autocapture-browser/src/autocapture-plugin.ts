@@ -16,13 +16,22 @@ import {
   getEventProperties,
   ElementBasedTimestampedEvent,
   TimestampedEvent,
+  ElementBasedEvent,
 } from './helpers';
 import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
 import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
-import { getGlobalMutationObservable, getGlobalClickObservable } from './observables';
+import { createMutationObservable, createClickObservable } from './observables';
+
+import {
+  createLabeledEventToTriggerMap,
+  groupLabeledEventIdsByEventType,
+  matchEventToLabeledEvents,
+  matchLabeledEventsToTriggers,
+} from './pageActions/triggers';
+import { executeActions } from './pageActions/actions';
 
 declare global {
   interface Window {
@@ -99,13 +108,13 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
-    const clickObservable = getGlobalClickObservable().pipe(
+    const clickObservable = createClickObservable().pipe(
       map((click) =>
         addAdditionalEventProperties(
           click,
           'click',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-          options.dataAttributePrefix,
+          dataAttributePrefix,
         ),
       ),
       share(),
@@ -116,7 +125,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
           change,
           'change',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-          options.dataAttributePrefix,
+          dataAttributePrefix,
         ),
       ),
       share(),
@@ -137,7 +146,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
             navigate,
             'navigate',
             (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-            options.dataAttributePrefix,
+            dataAttributePrefix,
           ),
         ),
         share(),
@@ -145,13 +154,13 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     }
 
     // Track DOM Mutations using shared observable
-    const mutationObservable = getGlobalMutationObservable().pipe(
+    const mutationObservable = createMutationObservable().pipe(
       map((mutation) =>
         addAdditionalEventProperties(
           mutation,
           'mutation',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
-          options.dataAttributePrefix,
+          dataAttributePrefix,
         ),
       ),
       share(),
@@ -164,6 +173,35 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       [ObservablesEnum.NavigateObservable]: navigateObservable,
       [ObservablesEnum.MutationObservable]: mutationObservable,
     };
+  };
+
+  // Group labeled events by event type (eg. click, change)
+  const groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
+
+  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
+
+  // Evaluate triggers for the given event by running the actions associated with the matching triggers
+  const evaluateTriggers = <T extends ElementBasedEvent>(
+    event: ElementBasedTimestampedEvent<T>,
+  ): ElementBasedTimestampedEvent<T> => {
+    // If there is no pageActions, return the event as is
+    const { pageActions } = options;
+    if (!pageActions) {
+      return event;
+    }
+
+    // Find matching labeled events
+    const matchingLabeledEvents = matchEventToLabeledEvents(
+      event,
+      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
+    );
+    // Find matching conditions
+    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
+    for (const trigger of matchingTriggers) {
+      executeActions(trigger.actions, event);
+    }
+
+    return event;
   };
 
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
@@ -191,6 +229,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
+      evaluateTriggers,
     });
     subscriptions.push(clickTrackingSubscription);
 
@@ -199,6 +238,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
+      evaluateTriggers,
     });
     subscriptions.push(changeSubscription);
 

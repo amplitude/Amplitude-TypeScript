@@ -1,4 +1,4 @@
-import { eventWithTime } from '@amplitude/rrweb';
+import { eventWithTime } from '@amplitude/rrweb-types';
 import { compressionOnMessage } from '../../src/worker/compression';
 import { pack } from '@amplitude/rrweb-packer';
 

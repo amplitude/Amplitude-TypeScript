@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import * as constants from './constants';
-import { ElementInteractionsOptions, ActionType, DEFAULT_DATA_ATTRIBUTE_PREFIX } from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
 import { getHierarchy } from './hierarchy';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -318,7 +318,7 @@ export const addAdditionalEventProperties = <T>(
   event: T,
   type: TimestampedEvent<T>['type'],
   selectorAllowlist: string[],
-  dataAttributePrefix: string = DEFAULT_DATA_ATTRIBUTE_PREFIX,
+  dataAttributePrefix: string,
 ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
   const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
     event,
@@ -358,6 +358,10 @@ export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
   closestTrackedAncestor: Element;
   targetElementProperties: Record<string, any>;
 };
+
+export type evaluateTriggersFn = <T extends ElementBasedEvent>(
+  event: ElementBasedTimestampedEvent<T>,
+) => ElementBasedTimestampedEvent<T>;
 
 // Union type for all possible TimestampedEvents
 export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
