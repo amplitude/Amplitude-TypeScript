@@ -1,5 +1,5 @@
 import type { DataSource, PageAction } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { ElementBasedEvent, ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
+import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 
 // Get DataSource
 /**

@@ -1,4 +1,5 @@
-import { autocapturePlugin, type ElementBasedTimestampedEvent } from '../../src/autocapture-plugin';
+import { autocapturePlugin } from '../../src/autocapture-plugin';
+import { type ElementBasedTimestampedEvent } from '../../src/helpers';
 
 import { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createInstance } from '@amplitude/analytics-browser';

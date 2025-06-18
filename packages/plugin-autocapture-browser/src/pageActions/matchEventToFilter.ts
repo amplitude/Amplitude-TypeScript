@@ -1,5 +1,5 @@
 import type { Filter } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/autocapture-plugin';
+import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 
 /**
  * Matches an event to a single filter

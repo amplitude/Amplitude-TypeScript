@@ -1,4 +1,5 @@
-import { AllWindowObservables, type evaluateTriggersFn } from 'src/autocapture-plugin';
+import { AllWindowObservables } from 'src/autocapture-plugin';
+import { type evaluateTriggersFn } from 'src/helpers';
 import { filter, map } from 'rxjs';
 import { BrowserClient, ActionType } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';

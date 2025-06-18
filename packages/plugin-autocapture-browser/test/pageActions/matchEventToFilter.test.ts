@@ -1,7 +1,7 @@
 import { EventSubpropKey } from './../../../analytics-core/src/types/element-interactions';
 import type { Filter } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { ElementBasedTimestampedEvent } from 'src/autocapture-plugin';
 import { matchEventToFilter } from '../../src/pageActions/matchEventToFilter';
+import { ElementBasedTimestampedEvent } from 'src/helpers';
 
 // Helper to create a mock MouseEvent
 const createMockMouseEvent = (): MouseEvent => {
