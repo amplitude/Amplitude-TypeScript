@@ -12,9 +12,6 @@ export function _overrideDeadClickConfig(deadClickTimeout: number) {
 }
 
 type EventDeadClick = {
-  '[Amplitude] Begin Time': string; // ISO-8601
-  '[Amplitude] End Time': string; // ISO-8601
-  '[Amplitude] Duration': number;
   X: number;
   Y: number;
 };
@@ -72,9 +69,6 @@ export function trackDeadClick({
 
   return actionClicks.subscribe((actionClick) => {
     const deadClickEvent: EventDeadClick = {
-      '[Amplitude] Begin Time': new Date(actionClick.timestamp).toISOString(),
-      '[Amplitude] End Time': new Date(actionClick.timestamp).toISOString(),
-      '[Amplitude] Duration': actionClick.timestamp - actionClick.timestamp,
       X: (actionClick.event as MouseEvent).clientX,
       Y: (actionClick.event as MouseEvent).clientY,
     };

@@ -72,9 +72,6 @@ describe('trackDeadClick', () => {
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
         expect.objectContaining({
-          '[Amplitude] Begin Time': expect.any(String),
-          '[Amplitude] End Time': expect.any(String),
-          '[Amplitude] Duration': 0,
           X: 100,
           Y: 100,
           id: 'test-element',
