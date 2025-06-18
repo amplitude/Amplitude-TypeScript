@@ -68,32 +68,44 @@ export interface FrustrationInteractionsOptions {
   rageClicks?: RageClickOptions;
 }
 
+const CLICKABLE_ELEMENT_SELECTORS = [
+  'a',
+  'button',
+  '[role="button"]',
+  '[role="link"]',
+  '[role="menuitem"]',
+  '[role="menuitemcheckbox"]',
+  '[role="menuitemradio"]',
+  '[role="option"]',
+  '[role="tab"]',
+  '[role="treeitem"]',
+  '[contenteditable="true" i]',
+];
+
 /**
  * Default CSS selectors for dead clicks tracking
  */
 export const DEFAULT_DEAD_CLICK_ALLOWLIST = [
-  'a',
-  'button',
-  'input',
-  'select',
-  'textarea',
-  '[role="button"]',
-  '[role="link"]',
-  '[contenteditable="true" i]',
+  'input[type="button"]',
+  'input[type="submit"]',
+  'input[type="reset"]',
+  'input[type="image"]',
+  'input[type="file"]',
+  ...CLICKABLE_ELEMENT_SELECTORS,
 ];
 
 /**
  * Default CSS selectors for rage clicks tracking
  */
 export const DEFAULT_RAGE_CLICK_ALLOWLIST = [
-  'a',
-  'button',
   'input',
+  'label',
   'select',
+  'option',
   'textarea',
-  '[role="button"]',
-  '[role="link"]',
-  '[contenteditable="true" i]',
+  'video',
+  'audio',
+  ...CLICKABLE_ELEMENT_SELECTORS,
 ];
 
 /**
@@ -110,7 +122,6 @@ export const DEFAULT_RAGE_CLICK_WINDOW_MS = 3000;
  * Default threshold for rage clicks (5 clicks)
  */
 export const DEFAULT_RAGE_CLICK_THRESHOLD = 5;
-
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included
 // eslint-disable-next-line no-restricted-globals

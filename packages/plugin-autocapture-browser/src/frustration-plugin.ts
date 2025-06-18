@@ -5,7 +5,8 @@ import {
   EnrichmentPlugin,
   FrustrationInteractionsOptions,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
-  DEFAULT_CSS_SELECTOR_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
@@ -14,33 +15,12 @@ import {
   createShouldTrackEvent,
   ElementBasedTimestampedEvent,
   getEventProperties,
+  NavigateEvent,
 } from './helpers';
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
 import { createClickObservable, createMutationObservable } from './observables';
-
-interface NavigateEvent extends Event {
-  readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
-  readonly destination: {
-    readonly url: string;
-    readonly key: string | null;
-    readonly id: string | null;
-    readonly index: number;
-    readonly sameDocument: boolean;
-    getState(): any;
-  };
-  readonly canIntercept: boolean;
-  readonly userInitiated: boolean;
-  readonly hashChange: boolean;
-  readonly signal: AbortSignal;
-  readonly formData: FormData | null;
-  readonly downloadRequest: string | null;
-  readonly info: any;
-  readonly hasUAVisualTransition: boolean;
-  readonly sourceElement: Element | null;
-  scroll(): void;
-}
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -52,6 +32,12 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
 
   const subscriptions: Subscription[] = [];
 
+  const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
+  const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
+
+  // combine the two selector lists to determine which clicked elements should be filtered
+  const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors])];
+
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
@@ -61,9 +47,10 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
           click,
           'click',
           /* istanbul ignore next */
-          options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+          combinedCssSelectors,
           /* istanbul ignore next */
           options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX,
+          true, // capture when cursor is pointer
         );
       }),
       share(),
@@ -78,7 +65,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
           addAdditionalEventProperties(
             navigate,
             'navigate',
-            options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+            combinedCssSelectors,
             options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX,
           ),
         ),
@@ -93,7 +80,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
           mutation,
           'mutation',
           /* istanbul ignore next */
-          options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
+          combinedCssSelectors,
           DEFAULT_DATA_ATTRIBUTE_PREFIX,
         ),
       ),
@@ -115,14 +102,8 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
     }
 
     // Create should track event functions for the different allowlists
-    const shouldTrackRageClick = createShouldTrackEvent(
-      options,
-      options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
-    );
-    const shouldTrackDeadClick = createShouldTrackEvent(
-      options,
-      options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_CSS_SELECTOR_ALLOWLIST,
-    );
+    const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors, true);
+    const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors, true);
 
     // Create observables for events on the window
     const allObservables = createObservables();

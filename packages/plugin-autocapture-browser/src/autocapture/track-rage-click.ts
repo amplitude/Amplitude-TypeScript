@@ -50,23 +50,24 @@ export function trackRageClicks({
         return false;
       }
 
-      // checks if the last n (RAGE_CLICK_THRESHOLD) clicks are on the same element
-      let trailingClickPtr = clicks.length - 1;
-      const lastClickTarget = clicks[trailingClickPtr].event.target;
+      // look backwards in the buffer to see if the last n (RAGE_CLICK_THRESHOLD)
+      // clicks are on the same element
+      const lastClickTarget = clicks[clicks.length - 1].event.target;
+      let trailingClickCount = 0;
       do {
-        trailingClickPtr--;
-      } while (trailingClickPtr >= 0 && clicks[trailingClickPtr].event.target === lastClickTarget);
-      const trailingClicksCount = clicks.length - trailingClickPtr - 1;
-      return trailingClicksCount >= RAGE_CLICK_THRESHOLD;
+        trailingClickCount++;
+      } while (
+        trailingClickCount < RAGE_CLICK_THRESHOLD &&
+        clicks[clicks.length - trailingClickCount - 1].event.target === lastClickTarget
+      );
+      return trailingClickCount >= RAGE_CLICK_THRESHOLD;
     }),
     map((clicks) => {
       const firstClick = clicks[0];
       const lastClick = clicks[clicks.length - 1];
-      const beginTimeISO = new Date(firstClick.timestamp).toISOString();
-      const endTimeISO = new Date(lastClick.timestamp).toISOString();
       const rageClickEvent: EventRageClick = {
-        '[Amplitude] Begin Time': beginTimeISO,
-        '[Amplitude] End Time': endTimeISO,
+        '[Amplitude] Begin Time': new Date(firstClick.timestamp).toISOString(),
+        '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
         '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
         '[Amplitude] Clicks': clicks.map((click) => ({
           X: (click.event as MouseEvent).clientX,

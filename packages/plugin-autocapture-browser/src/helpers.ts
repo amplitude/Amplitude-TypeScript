@@ -9,9 +9,17 @@ const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
 
+export const isElementPointerCursor = (element: Element, actionType: ActionType): boolean => {
+  /* istanbul ignore next */
+  const computedStyle = window?.getComputedStyle?.(element);
+  /* istanbul ignore next */
+  return computedStyle?.getPropertyValue('cursor') === 'pointer' && actionType === 'click';
+};
+
 export const createShouldTrackEvent = (
   autocaptureOptions: ElementInteractionsOptions,
   allowlist: string[], // this can be any type of css selector allow list
+  isAlwaysCaptureCursorPointer = false,
 ): shouldTrackEvent => {
   return (actionType: ActionType, element: Element) => {
     const { pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
@@ -42,6 +50,12 @@ export const createShouldTrackEvent = (
       }
     }
 
+    const isCursorPointer = isElementPointerCursor(element, actionType);
+
+    if (isAlwaysCaptureCursorPointer && isCursorPointer) {
+      return true;
+    }
+
     /* istanbul ignore if */
     if (allowlist) {
       const hasMatchAnyAllowedSelector = allowlist.some((selector) => !!element?.matches?.(selector));
@@ -57,9 +71,8 @@ export const createShouldTrackEvent = (
         return actionType === 'change' || actionType === 'click';
       default: {
         /* istanbul ignore next */
-        const computedStyle = window?.getComputedStyle?.(element);
         /* istanbul ignore next */
-        if (computedStyle && computedStyle.getPropertyValue('cursor') === 'pointer' && actionType === 'click') {
+        if (isCursorPointer) {
           return true;
         }
         return actionType === 'click';
@@ -319,6 +332,7 @@ export const addAdditionalEventProperties = <T>(
   type: TimestampedEvent<T>['type'],
   selectorAllowlist: string[],
   dataAttributePrefix: string,
+  isCapturingCursorPointer = false,
 ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
   const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
     event,
@@ -327,6 +341,18 @@ export const addAdditionalEventProperties = <T>(
   };
 
   if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+    if (isCapturingCursorPointer) {
+      const isCursorPointer = isElementPointerCursor(baseEvent.event.target as Element, baseEvent.type);
+      if (isCursorPointer) {
+        baseEvent.closestTrackedAncestor = baseEvent.event.target as HTMLElement;
+        baseEvent.targetElementProperties = getEventProperties(
+          baseEvent.type,
+          baseEvent.closestTrackedAncestor,
+          dataAttributePrefix,
+        );
+        return baseEvent;
+      }
+    }
     // Retrieve additional event properties from the target element
     const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
     if (closestTrackedAncestor) {
