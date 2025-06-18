@@ -18,7 +18,7 @@ import {
 import { trackDeadClick } from './autocapture/track-dead-click';
 import { trackRageClicks } from './autocapture/track-rage-click';
 import { AllWindowObservables, ObservablesEnum } from './autocapture-plugin';
-import { getGlobalClickObservable, getGlobalMutationObservable } from './observables';
+import { createClickObservable, createMutationObservable } from './observables';
 
 interface NavigateEvent extends Event {
   readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
@@ -55,7 +55,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
-    const clickObservable = getGlobalClickObservable().pipe(
+    const clickObservable = createClickObservable().pipe(
       map((click) => {
         return addAdditionalEventProperties(
           click,
@@ -87,7 +87,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
     }
 
     // Track DOM Mutations
-    const enrichedMutationObservable = getGlobalMutationObservable().pipe(
+    const enrichedMutationObservable = createMutationObservable().pipe(
       map((mutation) =>
         addAdditionalEventProperties(
           mutation,

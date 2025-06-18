@@ -370,3 +370,28 @@ export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestam
 export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
   return event.type === 'click' || event.type === 'change';
 }
+
+export interface NavigateEvent extends Event {
+  readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
+  readonly destination: {
+    readonly url: string;
+    readonly key: string | null;
+    readonly id: string | null;
+    readonly index: number;
+    readonly sameDocument: boolean;
+
+    getState(): any;
+  };
+  readonly canIntercept: boolean;
+  readonly userInitiated: boolean;
+  readonly hashChange: boolean;
+  readonly signal: AbortSignal;
+  readonly formData: FormData | null;
+  readonly downloadRequest: string | null;
+  readonly info: any;
+  readonly hasUAVisualTransition: boolean;
+  /** @see https://github.com/WICG/navigation-api/pull/264 */
+  readonly sourceElement: Element | null;
+
+  scroll(): void;
+}
