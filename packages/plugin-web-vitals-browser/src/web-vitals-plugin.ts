@@ -16,11 +16,12 @@ type WebVitalsMetricPayload = {
 };
 
 type WebVitalsEventPayload = {
-  '[Amplitude] LCP'?: WebVitalsMetricPayload;
-  '[Amplitude] FCP'?: WebVitalsMetricPayload;
-  '[Amplitude] INP'?: WebVitalsMetricPayload;
-  '[Amplitude] CLS'?: WebVitalsMetricPayload;
-  '[Amplitude] TTFB'?: WebVitalsMetricPayload;
+  '[Amplitude] Metric ID': string;
+  ['[Amplitude] LCP']?: WebVitalsMetricPayload;
+  ['[Amplitude] FCP']?: WebVitalsMetricPayload;
+  ['[Amplitude] INP']?: WebVitalsMetricPayload;
+  ['[Amplitude] CLS']?: WebVitalsMetricPayload;
+  ['[Amplitude] TTFB']?: WebVitalsMetricPayload;
   '[Amplitude] Page Domain'?: string;
   '[Amplitude] Page Location'?: string;
   '[Amplitude] Page Path'?: string;
@@ -68,13 +69,14 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
       return decodedLocationStr;
     };
 
-    const insertId = UUID();
+    const metricId = UUID();
     let isChanged = false;
     if (doc === undefined) {
       return;
     }
     const locationHref = getDecodeURI(/* istanbul ignore next */ location?.href);
     const webVitalsPayload: WebVitalsEventPayload = {
+      '[Amplitude] Metric ID': metricId,
       '[Amplitude] Page Domain': /* istanbul ignore next */ location?.hostname || '',
       '[Amplitude] Page Location': locationHref,
       '[Amplitude] Page Path': getDecodeURI(/* istanbul ignore next */ location?.pathname),
@@ -109,7 +111,7 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
 
     visibilityListener = () => {
       if (doc.visibilityState === 'hidden' && isChanged) {
-        amplitude.track(WEB_VITALS_EVENT_NAME, webVitalsPayload, { insert_id: insertId });
+        amplitude.track(WEB_VITALS_EVENT_NAME, webVitalsPayload);
         isChanged = false;
       }
     };
