@@ -240,6 +240,14 @@
           This content was dynamically added after clicking the div!
         </div>
       </div>
+
+      <div class="interactive-section">
+        <h2>Content Changing Button</h2>
+        <button id="content-changer" class="btn">Change Content</button>
+        <div id="content-display" class="border padding" style="margin-top: 10px; min-height: 50px; background-color: #f9f9f9;">
+          <p>This content will change when you click the button above.</p>
+        </div>
+      </div>
     </div>
 
     <script type="module">
@@ -269,6 +277,14 @@
           const content = document.getElementById('dynamic-content');
           content.style.display = content.style.display === 'none' ? 'block' : 'none';
         }, 100);
+      });
+
+      // Add click handler for the content changer button
+      document.getElementById('content-changer').addEventListener('click', () => {
+        const display = document.getElementById('content-display');
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        display.innerHTML = `<p>Content changed at ${timeString}!</p>`;
       });
 
       // Prevent form submission from refreshing the page
