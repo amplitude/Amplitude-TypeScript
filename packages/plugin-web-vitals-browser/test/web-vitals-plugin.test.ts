@@ -178,19 +178,6 @@ describe('webVitalsPlugin', () => {
     expect(eventObject['[Amplitude] TTFB']).toMatchObject(expectedMetric);
   });
 
-  it('should not track web vitals if no changes occurred', async () => {
-    const plugin = webVitalsPlugin();
-    await plugin?.setup?.(config, amplitude);
-
-    const visibilityListener = (mockDocument.addEventListener as jest.Mock).mock.calls[0][1];
-    if (visibilityListener) {
-      Object.defineProperty(mockDocument, 'visibilityState', { value: 'hidden' });
-      visibilityListener();
-    }
-
-    expect(amplitude.track).not.toHaveBeenCalled();
-  });
-
   it('should cleanup event listeners on teardown', async () => {
     const plugin = webVitalsPlugin();
     await plugin?.setup?.(config, amplitude);
