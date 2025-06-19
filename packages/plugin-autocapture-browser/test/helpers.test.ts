@@ -14,6 +14,8 @@ import {
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
+  addAdditionalEventProperties,
+  ElementBasedTimestampedEvent,
 } from '../src/helpers';
 import { mockWindowLocationFromURL } from './utils';
 
@@ -524,6 +526,69 @@ describe('autocapture-plugin helpers', () => {
 
       expect(shouldTrackEvent('click', window as unknown as Element)).toEqual(false);
       expect(shouldTrackEvent('click', document as unknown as Element)).toEqual(false);
+    });
+
+    test('should track any element with pointer cursor when isAlwaysCaptureCursorPointer is true', () => {
+      const element = document.createElement('div');
+      const style = document.createElement('style');
+      style.textContent = '.pointer { cursor: pointer; }';
+      document.head.appendChild(style);
+      element.className = 'pointer';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlAllowlist: undefined,
+          shouldTrackEventResolver: undefined,
+        },
+        [],
+        true, // isAlwaysCaptureCursorPointer
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+      document.head.removeChild(style);
+    });
+  });
+
+  describe('addAdditionalEventProperties', () => {
+    beforeEach(() => {
+      // Mock window.location
+      mockWindowLocationFromURL(new URL('https://test.com'));
+      // Mock document.title
+      Object.defineProperty(document, 'title', {
+        value: 'Test Page',
+        writable: true,
+      });
+      // Mock window.innerHeight and innerWidth
+      Object.defineProperty(window, 'innerHeight', { value: 800 });
+      Object.defineProperty(window, 'innerWidth', { value: 1200 });
+    });
+
+    test('should add properties when isCapturingCursorPointer is true and element has pointer cursor', () => {
+      // Create a button element with pointer cursor
+      const span = document.createElement('span');
+      span.style.cursor = 'pointer';
+      span.textContent = 'Click me';
+      document.body.appendChild(span);
+
+      // Create a click event
+      const clickEvent = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        target: span,
+      };
+
+      // Call the function with isCapturingCursorPointer set to true
+      const result = addAdditionalEventProperties(
+        clickEvent,
+        'click',
+        ['.button'], // selector allowlist
+        'data-amp-', // data attribute prefix
+        true, // isCapturingCursorPointer
+      ) as ElementBasedTimestampedEvent<MouseEvent>;
+
+      // Verify the result
+      expect(result.closestTrackedAncestor).toBeDefined();
     });
   });
 });

@@ -6,36 +6,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Element Interactions Test</title>
     <style>
+      /* Layout */
       .container {
         max-width: 800px;
         margin: 0 auto;
         padding: 20px;
       }
-      .interactive-section {
-        margin: 20px 0;
-        padding: 20px;
+
+      /* Common styles */
+      .border {
         border: 1px solid #ccc;
         border-radius: 4px;
       }
-      button {
-        margin: 5px;
-        padding: 8px 16px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
-        cursor: pointer;
-      }
-      input, select {
-        margin: 5px;
+
+      .padding {
         padding: 8px;
-        border-radius: 4px;
-        border: 1px solid #ccc;
       }
-      .clickable-div {
-        padding: 10px;
-        background-color: #f0f0f0;
-        border-radius: 4px;
+
+      .padding-lg {
+        padding: 20px;
+      }
+
+      .margin {
+        margin: 5px;
+      }
+
+      .margin-lg {
+        margin: 20px 0;
+      }
+
+      /* Interactive elements */
+      .interactive-section {
+        composes: border padding-lg margin-lg;
+      }
+
+      .btn {
+        composes: border padding margin;
         cursor: pointer;
-        margin: 5px 0;
+      }
+
+      .input {
+        composes: border padding margin;
+      }
+
+      .clickable-div {
+        composes: border padding margin;
+        background-color: #f0f0f0;
+        cursor: pointer;
+      }
+
+      /* Table styles */
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      .table th,
+      .table td {
+        composes: border padding;
+      }
+
+      .table th {
+        text-align: left;
+      }
+
+      .table td.center {
+        text-align: center;
+      }
+
+      /* Role-based elements */
+      .role-element {
+        display: inline-block;
+        background: #eee;
+        padding: 4px 10px;
+        border-radius: 4px;
+      }
+
+      .role-link {
+        display: inline-block;
+        color: #1976d2;
+        text-decoration: underline;
+      }
+
+      /* Media elements */
+      .media-controls {
+        width: 60px;
       }
     </style>
   </head>
@@ -45,23 +101,133 @@
       <p>This page contains various interactive elements to test Amplitude's autocapture functionality.</p>
 
       <div class="interactive-section">
+        <h2>Clickable Elements Reference</h2>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Element/Selector</th>
+              <th class="center">Should be Clickable?</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a href="#" class="role-link">Link</a></td>
+              <td class="center">Yes</td>
+              <td>Always, unless <code>tabindex="-1"</code> or <code>disabled</code></td>
+            </tr>
+            <tr>
+              <td><button class="btn">Button</button></td>
+              <td class="center">Yes</td>
+              <td>Always</td>
+            </tr>
+            <tr>
+              <td><input type="button" value="Input Button" class="btn"></td>
+              <td class="center">Yes</td>
+              <td>Always</td>
+            </tr>
+            <tr>
+              <td><input type="submit" value="Submit" class="btn"></td>
+              <td class="center">Yes</td>
+              <td>Always</td>
+            </tr>
+            <tr>
+              <td><input type="reset" value="Reset" class="btn"></td>
+              <td class="center">Yes</td>
+              <td>Always</td>
+            </tr>
+            <tr>
+              <td><input type="image" src="https://via.placeholder.com/40x20?text=Img" alt="Input Image" class="btn"></td>
+              <td class="center">Yes</td>
+              <td>Always</td>
+            </tr>
+            <tr>
+              <td><div role="button" class="role-element">Role Button</div></td>
+              <td class="center">Yes</td>
+              <td>ARIA role, any element</td>
+            </tr>
+            <tr>
+              <td><div role="link" class="role-link">Role Link</div></td>
+              <td class="center">Yes</td>
+              <td>ARIA role, any element</td>
+            </tr>
+            <tr>
+              <td><div role="menuitem" class="role-element">Role Menuitem</div></td>
+              <td class="center">Yes</td>
+              <td>ARIA role, any element</td>
+            </tr>
+            <tr>
+              <td><div role="option" class="role-element">Role Option</div></td>
+              <td class="center">Yes</td>
+              <td>ARIA role, any element</td>
+            </tr>
+            <tr>
+              <td><div role="tab" class="role-element">Role Tab</div></td>
+              <td class="center">Yes</td>
+              <td>ARIA role, any element</td>
+            </tr>
+            <tr>
+              <td><div role="treeitem" class="role-element">Role Treeitem</div></td>
+              <td class="center">Yes</td>
+              <td>ARIA role, any element</td>
+            </tr>
+            <tr>
+              <td><div contenteditable="true" class="role-element">Editable</div></td>
+              <td class="center">Yes</td>
+              <td>Editable elements</td>
+            </tr>
+            <tr>
+              <td><div class="role-element">Div</div></td>
+              <td class="center">Sometimes</td>
+              <td>Only if it has click handler or ARIA role</td>
+            </tr>
+            <tr>
+              <td><span class="role-element">Span</span></td>
+              <td class="center">Sometimes</td>
+              <td>Only if it has click handler or ARIA role</td>
+            </tr>
+            <tr>
+              <td><label>Label</label></td>
+              <td class="center">Yes</td>
+              <td>Clickable, focuses associated input</td>
+            </tr>
+            <tr>
+              <td>
+                <video class="media-controls" controls><source src="" type="video/mp4">Video</video>
+                <audio class="media-controls" controls><source src="" type="audio/mpeg">Audio</audio>
+              </td>
+              <td class="center">Sometimes</td>
+              <td>If controls are present</td>
+            </tr>
+            <tr>
+              <td>
+                <div class="role-element" style="cursor: pointer;">Cursor Pointer</div>
+              </td>
+              <td class="center">Yes</td>
+              <td>If controls are present</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="interactive-section">
         <h2>Buttons</h2>
-        <button id="primary-button">Primary Button</button>
-        <button class="secondary-button">Secondary Button</button>
-        <button data-test-id="test-button">Test Button</button>
+        <button id="primary-button" class="btn">Primary Button</button>
+        <button class="btn secondary-button">Secondary Button</button>
+        <button class="btn" data-test-id="test-button">Test Button</button>
       </div>
 
       <div class="interactive-section">
         <h2>Form Elements</h2>
         <form id="test-form">
-          <input type="text" placeholder="Text input" />
-          <input type="email" placeholder="Email input" />
-          <select>
+          <input type="text" class="input" placeholder="Text input" />
+          <input type="email" class="input" placeholder="Email input" />
+          <select class="input">
             <option value="">Select an option</option>
             <option value="1">Option 1</option>
             <option value="2">Option 2</option>
           </select>
-          <button type="submit">Submit Form</button>
+          <button type="submit" class="btn">Submit Form</button>
         </form>
       </div>
 
@@ -69,23 +235,31 @@
         <h2>Clickable Elements</h2>
         <div class="clickable-div" data-test-id="clickable-div-1" id="dynamic-div">Active Div</div>
         <div class="clickable-div" data-test-id="clickable-div-2">Do nothing div</div>
-        <a href="#" data-test-id="test-link">Test Link</a>
-        <div id="dynamic-content" style="margin-top: 10px; padding: 10px; border: 1px solid #ccc; display: none;">
+        <a href="#" class="role-link" data-test-id="test-link">Test Link</a>
+        <div id="dynamic-content" class="border padding" style="margin-top: 10px; display: none;">
           This content was dynamically added after clicking the div!
+        </div>
+      </div>
+
+      <div class="interactive-section">
+        <h2>Content Changing Button</h2>
+        <button id="content-changer" class="btn">Change Content</button>
+        <div id="content-display" class="border padding" style="margin-top: 10px; min-height: 50px; background-color: #f9f9f9;">
+          <p>This content will change when you click the button above.</p>
         </div>
       </div>
     </div>
 
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
-      // import { frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
-
+      import { frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
+      
       window.amplitude = amplitude;
-    //    const frustrationInteractions = {
-      //   deadClicks: true,
-      //   rageClicks: true,
-      // };
-      // amplitude.add(frustrationPlugin(frustrationInteractions));
+      const frustrationInteractions = {
+        deadClicks: true,
+        rageClicks: true,
+      };
+      amplitude.add(frustrationPlugin(frustrationInteractions));
       amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
@@ -105,11 +279,30 @@
         }, 100);
       });
 
+      // Add click handler for the content changer button
+      document.getElementById('content-changer').addEventListener('click', () => {
+        const display = document.getElementById('content-display');
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        display.innerHTML = `<p>Content changed at ${timeString}!</p>`;
+      });
+
       // Prevent form submission from refreshing the page
       document.getElementById('test-form').addEventListener('submit', (event) => {
         event.preventDefault();
         console.log('Form submitted');
       });
+    </script>
+
+    <script>
+    // Remove the click handlers and background color toggle effect
+    document.addEventListener('DOMContentLoaded', function() {
+      // Keep the form submission prevention
+      document.getElementById('test-form').addEventListener('submit', (event) => {
+        event.preventDefault();
+        console.log('Form submitted');
+      });
+    });
     </script>
   </body>
 </html>
