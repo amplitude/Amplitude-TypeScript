@@ -46,21 +46,23 @@ export function trackRageClicks({
     }),
     bufferTime(RAGE_CLICK_WINDOW_MS),
     filter((clicks) => {
+      // filter if not enough clicks to be a rage click
       if (clicks.length < RAGE_CLICK_THRESHOLD) {
         return false;
       }
 
-      // look backwards in the buffer to see if the last n (RAGE_CLICK_THRESHOLD)
-      // clicks are on the same element
-      const lastClickTarget = clicks[clicks.length - 1].event.target;
-      let trailingClickCount = 1;
-      do {
-        trailingClickCount++;
-      } while (
-        trailingClickCount < RAGE_CLICK_THRESHOLD &&
-        clicks[clicks.length - trailingClickCount - 1].event.target === lastClickTarget
-      );
-      return trailingClickCount >= RAGE_CLICK_THRESHOLD;
+      // filter if the last RAGE_CLICK_THRESHOLD clicks were not all on the same element
+      let trailingIndex = clicks.length - 1;
+      const lastClickTarget = clicks[trailingIndex].event.target;
+      while (--trailingIndex > clicks.length - RAGE_CLICK_THRESHOLD) {
+        if (clicks[trailingIndex].event.target !== lastClickTarget) {
+          return false;
+        }
+      }
+
+      // if we reach here that means the last RAGE_CLICK_THRESHOLD clicks were all on the same element
+      // and thus we have a rage click
+      return true;
     }),
     map((clicks) => {
       const firstClick = clicks[0];

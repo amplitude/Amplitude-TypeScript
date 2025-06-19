@@ -35,6 +35,9 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
 
+  /* istanbul ignore next */
+  const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
+
   // combine the two selector lists to determine which clicked elements should be filtered
   const combinedCssSelectors = [...new Set([...rageCssSelectors, ...deadCssSelectors])];
 
@@ -49,7 +52,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
           /* istanbul ignore next */
           combinedCssSelectors,
           /* istanbul ignore next */
-          options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX,
+          dataAttributePrefix,
           true, // capture when cursor is pointer
         );
       }),
@@ -62,12 +65,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
         map((navigate) =>
-          addAdditionalEventProperties(
-            navigate,
-            'navigate',
-            combinedCssSelectors,
-            options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX,
-          ),
+          addAdditionalEventProperties(navigate, 'navigate', combinedCssSelectors, dataAttributePrefix),
         ),
         share(),
       );
@@ -81,7 +79,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
           'mutation',
           /* istanbul ignore next */
           combinedCssSelectors,
-          DEFAULT_DATA_ATTRIBUTE_PREFIX,
+          dataAttributePrefix,
         ),
       ),
       share(),
@@ -119,8 +117,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
     const deadClickSubscription = trackDeadClick({
       amplitude,
       allObservables,
-      getEventProperties: (actionType, element) =>
-        getEventProperties(actionType, element, DEFAULT_DATA_ATTRIBUTE_PREFIX),
+      getEventProperties: (actionType, element) => getEventProperties(actionType, element, dataAttributePrefix),
       shouldTrackDeadClick,
     });
     subscriptions.push(deadClickSubscription);
