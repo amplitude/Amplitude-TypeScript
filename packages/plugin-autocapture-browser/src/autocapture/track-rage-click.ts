@@ -54,7 +54,7 @@ export function trackRageClicks({
       // filter if the last RAGE_CLICK_THRESHOLD clicks were not all on the same element
       let trailingIndex = clicks.length - 1;
       const lastClickTarget = clicks[trailingIndex].event.target;
-      while (--trailingIndex > clicks.length - RAGE_CLICK_THRESHOLD) {
+      while (--trailingIndex >= clicks.length - RAGE_CLICK_THRESHOLD) {
         if (clicks[trailingIndex].event.target !== lastClickTarget) {
           return false;
         }
