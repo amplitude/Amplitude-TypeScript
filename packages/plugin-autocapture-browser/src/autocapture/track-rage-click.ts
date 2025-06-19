@@ -53,7 +53,7 @@ export function trackRageClicks({
       // look backwards in the buffer to see if the last n (RAGE_CLICK_THRESHOLD)
       // clicks are on the same element
       const lastClickTarget = clicks[clicks.length - 1].event.target;
-      let trailingClickCount = 0;
+      let trailingClickCount = 1;
       do {
         trailingClickCount++;
       } while (
