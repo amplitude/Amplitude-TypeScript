@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, getGlobalScope, UUID } from '@amplitude/analytics-core';
 import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from './constants';
-import { onLCP, onINP, onCLS, onFCP, Metric } from 'web-vitals';
+import { onLCP, onINP, onCLS, onFCP, onTTFB, Metric } from 'web-vitals';
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
@@ -16,11 +16,11 @@ type WebVitalsMetricPayload = {
 };
 
 type WebVitalsEventPayload = {
-  '[Amplitude] Metric ID': string;
-  ['[Amplitude] LCP']?: WebVitalsMetricPayload;
-  ['[Amplitude] FCP']?: WebVitalsMetricPayload;
-  ['[Amplitude] INP']?: WebVitalsMetricPayload;
-  ['[Amplitude] CLS']?: WebVitalsMetricPayload;
+  '[Amplitude] LCP'?: WebVitalsMetricPayload;
+  '[Amplitude] FCP'?: WebVitalsMetricPayload;
+  '[Amplitude] INP'?: WebVitalsMetricPayload;
+  '[Amplitude] CLS'?: WebVitalsMetricPayload;
+  '[Amplitude] TTFB'?: WebVitalsMetricPayload;
   '[Amplitude] Page Domain'?: string;
   '[Amplitude] Page Location'?: string;
   '[Amplitude] Page Path'?: string;
@@ -68,14 +68,13 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
       return decodedLocationStr;
     };
 
-    const metricId = UUID();
+    const insertId = UUID();
     let isChanged = false;
     if (doc === undefined) {
       return;
     }
     const locationHref = getDecodeURI(/* istanbul ignore next */ location?.href);
     const webVitalsPayload: WebVitalsEventPayload = {
-      '[Amplitude] Metric ID': metricId,
       '[Amplitude] Page Domain': /* istanbul ignore next */ location?.hostname || '',
       '[Amplitude] Page Location': locationHref,
       '[Amplitude] Page Path': getDecodeURI(/* istanbul ignore next */ location?.pathname),
@@ -103,9 +102,14 @@ export const webVitalsPlugin = (): BrowserEnrichmentPlugin => {
       webVitalsPayload['[Amplitude] CLS'] = processMetric(metric);
     });
 
+    onTTFB((metric) => {
+      isChanged = true;
+      webVitalsPayload['[Amplitude] TTFB'] = processMetric(metric);
+    });
+
     visibilityListener = () => {
       if (doc.visibilityState === 'hidden' && isChanged) {
-        amplitude.track(WEB_VITALS_EVENT_NAME, webVitalsPayload);
+        amplitude.track(WEB_VITALS_EVENT_NAME, webVitalsPayload, { insert_id: insertId });
         isChanged = false;
       }
     };
