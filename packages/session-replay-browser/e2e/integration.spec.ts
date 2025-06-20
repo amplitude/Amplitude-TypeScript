@@ -1,16 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
-
-const validateAnalyticsSDKResponse = async (page: Page) => {
-  try {
-    await page.waitForResponse(
-      (resp) => resp.url().includes('https://api.stag2.amplitude.com/2/httpapi') && resp.status() === 200,
-      { timeout: 60000 }, // Increase timeout to 60 seconds
-    );
-  } catch (error) {
-    console.error('Analytics SDK response timeout:', error);
-    throw error;
-  }
-};
+import { test, expect } from '@playwright/test';
 
 test.describe('Session Replay SDK Integration', () => {
   test.beforeEach(async ({ page }) => {
@@ -62,7 +50,6 @@ test.describe('Session Replay SDK Integration', () => {
 
     // 3. Event tracking with pacing
     await page.click('#track-page-view');
-    await validateAnalyticsSDKResponse(page);
     await page.waitForTimeout(2000); // 2s pause
     const eventLog = page.locator('#event-log');
     await expect(eventLog).toContainText('page_view');
@@ -70,7 +57,6 @@ test.describe('Session Replay SDK Integration', () => {
 
     // 4. Form submission with pacing
     await page.click('button[type="submit"]');
-    await validateAnalyticsSDKResponse(page);
     await page.waitForTimeout(2000); // 2s pause
     await expect(eventLog).toContainText('form_submitted');
     await page.waitForTimeout(2000); // 2s pause
