@@ -2,6 +2,20 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Session Replay SDK Integration', () => {
   test.beforeEach(async ({ page }) => {
+    // Add request/response logging for debugging
+    page.on('request', (request) => {
+      console.log(`🌐 REQUEST: ${request.method()} ${request.url()}`);
+    });
+
+    page.on('response', (response) => {
+      console.log(`📥 RESPONSE: ${response.status()} ${response.url()}`);
+    });
+
+    page.on('requestfailed', (request) => {
+      console.log(`❌ REQUEST FAILED: ${request.method()} ${request.url()}`);
+      console.log(`💥 FAILURE: ${request.failure()?.errorText || 'Unknown error'}`);
+    });
+
     await page.goto('/session-replay/session-replay-test.html');
     // Wait for SDKs to initialize
     await page.waitForSelector('#session-replay-status.complete');
