@@ -51,6 +51,8 @@ jobs:
         run: |
           echo "VITE_AMPLITUDE_API_KEY=${{ secrets.AMPLITUDE_API_KEY }}" > .env
           echo "VITE_AMPLITUDE_USER_ID=github-actions-sdk-user" >> .env
+          echo "VITE_SESSION_REPLAY_API_KEY=${{ secrets.SESSION_REPLAY_API_KEY }}" >> .env
+          echo "VITE_SESSION_REPLAY_USER_ID=github-actions-session-replay-user" >> .env
 
       - name: Start dev server
         run: |
