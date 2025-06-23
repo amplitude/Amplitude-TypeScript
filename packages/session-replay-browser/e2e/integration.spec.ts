@@ -2,13 +2,34 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Session Replay SDK Integration', () => {
   test.beforeEach(async ({ page }) => {
-    // Add request/response logging for debugging
-    page.on('request', (request) => {
+    // Enhanced request logging with full details
+    page.on('request', async (request) => {
       console.log(`🌐 REQUEST: ${request.method()} ${request.url()}`);
+
+      // Log the entire request object
+      const requestDetails = {
+        method: request.method(),
+        url: request.url(),
+        headers: await request.allHeaders(),
+        postData: request.postData(),
+        resourceType: request.resourceType(),
+      };
+
+      console.log('📋 FULL REQUEST DETAILS:', JSON.stringify(requestDetails, null, 2));
     });
 
-    page.on('response', (response) => {
+    page.on('response', async (response) => {
       console.log(`📥 RESPONSE: ${response.status()} ${response.url()}`);
+
+      // Log the entire response object
+      const responseDetails = {
+        status: response.status(),
+        url: response.url(),
+        headers: await response.allHeaders(),
+        body: await response.text().catch(() => 'Unable to read response body'),
+      };
+
+      console.log('📋 FULL RESPONSE DETAILS:', JSON.stringify(responseDetails, null, 2));
     });
 
     page.on('requestfailed', (request) => {
