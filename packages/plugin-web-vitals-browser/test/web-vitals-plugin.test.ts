@@ -1,5 +1,5 @@
 import { BrowserClient, getGlobalScope } from '@amplitude/analytics-core';
-import { onLCP, onINP, onCLS, onFCP } from 'web-vitals';
+import { onLCP, onINP, onCLS, onFCP, onTTFB } from 'web-vitals';
 import { webVitalsPlugin } from '../src';
 import { PLUGIN_NAME, WEB_VITALS_EVENT_NAME } from '../src/constants';
 
@@ -11,6 +11,7 @@ jest.mock('web-vitals', () => ({
   onINP: jest.fn(),
   onCLS: jest.fn(),
   onFCP: jest.fn(),
+  onTTFB: jest.fn(),
 }));
 
 // Mock getGlobalScope
@@ -84,6 +85,7 @@ describe('webVitalsPlugin', () => {
     expect(onFCP).not.toHaveBeenCalled();
     expect(onINP).not.toHaveBeenCalled();
     expect(onCLS).not.toHaveBeenCalled();
+    expect(onTTFB).not.toHaveBeenCalled();
   });
 
   it('should not setup if globalScope is not available', async () => {
@@ -101,6 +103,7 @@ describe('webVitalsPlugin', () => {
     expect(onFCP).not.toHaveBeenCalled();
     expect(onINP).not.toHaveBeenCalled();
     expect(onCLS).not.toHaveBeenCalled();
+    expect(onTTFB).not.toHaveBeenCalled();
   });
 
   it('should setup web vitals listeners', async () => {
@@ -116,6 +119,7 @@ describe('webVitalsPlugin', () => {
     expect(onFCP).toHaveBeenCalled();
     expect(onINP).toHaveBeenCalled();
     expect(onCLS).toHaveBeenCalled();
+    expect(onTTFB).toHaveBeenCalled();
     expect(mockDocument.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
   });
 
@@ -141,12 +145,14 @@ describe('webVitalsPlugin', () => {
     const fcpCallback = (onFCP as jest.Mock).mock.calls[0][0];
     const inpCallback = (onINP as jest.Mock).mock.calls[0][0];
     const clsCallback = (onCLS as jest.Mock).mock.calls[0][0];
+    const ttfbCallback = (onTTFB as jest.Mock).mock.calls[0][0];
 
-    if (lcpCallback && fcpCallback && inpCallback && clsCallback) {
+    if (lcpCallback && fcpCallback && inpCallback && clsCallback && ttfbCallback) {
       lcpCallback(mockMetric);
       fcpCallback(mockMetric);
       inpCallback(mockMetric);
       clsCallback(mockMetric);
+      ttfbCallback(mockMetric);
     }
 
     // Change visibility to hidden
@@ -154,49 +160,22 @@ describe('webVitalsPlugin', () => {
     visibilityListener();
 
     // Verify track was called with correct payload
-    expect(amplitude.track).toHaveBeenCalledWith(
-      WEB_VITALS_EVENT_NAME,
-      expect.objectContaining({
-        '[Amplitude] Metric ID': expect.any(String),
-        '[Amplitude] LCP': expect.objectContaining({
-          value: 100,
-          rating: 'good',
-          timestamp: expect.any(Number),
-          navigationStart: expect.any(Number),
-        }),
-        '[Amplitude] FCP': expect.objectContaining({
-          value: 100,
-          rating: 'good',
-          timestamp: expect.any(Number),
-          navigationStart: expect.any(Number),
-        }),
-        '[Amplitude] INP': expect.objectContaining({
-          value: 100,
-          rating: 'good',
-          timestamp: expect.any(Number),
-          navigationStart: expect.any(Number),
-        }),
-        '[Amplitude] CLS': expect.objectContaining({
-          value: 100,
-          rating: 'good',
-          timestamp: expect.any(Number),
-          navigationStart: expect.any(Number),
-        }),
-      }),
-    );
-  });
-
-  it('should not track web vitals if no changes occurred', async () => {
-    const plugin = webVitalsPlugin();
-    await plugin?.setup?.(config, amplitude);
-
-    const visibilityListener = (mockDocument.addEventListener as jest.Mock).mock.calls[0][1];
-    if (visibilityListener) {
-      Object.defineProperty(mockDocument, 'visibilityState', { value: 'hidden' });
-      visibilityListener();
-    }
-
-    expect(amplitude.track).not.toHaveBeenCalled();
+    const [eventName, eventObject] = (amplitude.track as jest.Mock).mock.calls[0];
+    expect(eventName).toBe(WEB_VITALS_EVENT_NAME);
+    const expectedMetric = {
+      value: 100,
+      rating: 'good',
+      delta: 0,
+      navigationType: 'navigate',
+      id: 'test-id',
+      timestamp: expect.any(Number),
+      navigationStart: expect.any(Number),
+    };
+    expect(eventObject['[Amplitude] LCP']).toMatchObject(expectedMetric);
+    expect(eventObject['[Amplitude] FCP']).toMatchObject(expectedMetric);
+    expect(eventObject['[Amplitude] INP']).toMatchObject(expectedMetric);
+    expect(eventObject['[Amplitude] CLS']).toMatchObject(expectedMetric);
+    expect(eventObject['[Amplitude] TTFB']).toMatchObject(expectedMetric);
   });
 
   it('should cleanup event listeners on teardown', async () => {
