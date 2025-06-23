@@ -3,6 +3,7 @@ import { IdentityStorageType, Storage } from './storage';
 import { Transport } from './transport';
 import { IConfig } from '../config';
 import { ElementInteractionsOptions } from './element-interactions';
+import { FrustrationInteractionsOptions } from './frustration-interactions';
 import { PageTrackingOptions } from './page-view-tracking';
 import { NetworkTrackingOptions } from './network-tracking';
 
@@ -160,6 +161,11 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   elementInteractions?: boolean | ElementInteractionsOptions;
+  /**
+   * Enables/disables frustration interactions tracking.
+   * @defaultValue `false`
+   */
+  frustrationInteractions?: boolean | FrustrationInteractionsOptions;
   /**
    * Enables/disables network request tracking or config with detailed network tracking options.
    * @defaultValue `false`

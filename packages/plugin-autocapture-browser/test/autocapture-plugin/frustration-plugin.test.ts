@@ -111,6 +111,12 @@ describe('frustrationPlugin', () => {
       expect(plugin.type).toBe('enrichment');
     });
 
+    it('should handle undefined configuration gracefully', () => {
+      plugin = frustrationPlugin(undefined);
+      expect(plugin.name).toBe('@amplitude/plugin-frustration-browser');
+      expect(plugin.type).toBe('enrichment');
+    });
+
     it('should setup tracking functions with default options', async () => {
       plugin = frustrationPlugin({});
       await plugin?.setup?.(config as BrowserConfig, instance);

@@ -252,20 +252,12 @@
 
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
-      import { frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
-      
-      window.amplitude = amplitude;
-      const frustrationInteractions = {
-        deadClicks: true,
-        rageClicks: true,
-      };
-      amplitude.add(frustrationPlugin(frustrationInteractions));
       amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
           autocapture: {
-            // TODO: add "frustrationInteractions" when ready
+            frustrationInteractions: true,
             elementInteractions: true,
           },
         }

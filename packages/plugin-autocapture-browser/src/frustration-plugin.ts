@@ -24,7 +24,17 @@ import { createClickObservable, createMutationObservable } from './observables';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-export const frustrationPlugin = (options: FrustrationInteractionsOptions): BrowserEnrichmentPlugin => {
+export const frustrationPlugin = (
+  options: FrustrationInteractionsOptions = {
+    deadClicks: {
+      cssSelectorAllowlist: DEFAULT_DEAD_CLICK_ALLOWLIST,
+    },
+    rageClicks: {
+      cssSelectorAllowlist: DEFAULT_RAGE_CLICK_ALLOWLIST,
+    },
+  },
+): BrowserEnrichmentPlugin => {
+  console.log('!!!options', options);
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
