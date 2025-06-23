@@ -4,32 +4,32 @@ test.describe('Session Replay SDK Integration', () => {
   test.beforeEach(async ({ page }) => {
     // Enhanced request logging with full details
     page.on('request', async (request) => {
-      console.log(`🌐 REQUEST: ${request.method()} ${request.url()}`);
+      const url = request.url();
 
-      // Log the entire request object
-      const requestDetails = {
-        method: request.method(),
-        url: request.url(),
-        headers: await request.allHeaders(),
-        postData: request.postData(),
-        resourceType: request.resourceType(),
-      };
+      // Only log full details for Amplitude API requests
+      if (url.includes('api.stag2.amplitude.com') || url.includes('api-sr.stag2.amplitude.com')) {
+        console.log(`🌐 AMPLITUDE REQUEST: ${request.method()} ${url}`);
 
-      console.log('📋 FULL REQUEST DETAILS:', JSON.stringify(requestDetails, null, 2));
-    });
+        try {
+          // Log the entire request object
+          const requestDetails = {
+            method: request.method(),
+            url: url,
+            headers: await request.allHeaders(),
+            postData: request.postData(),
+            resourceType: request.resourceType(),
+          };
 
-    page.on('response', async (response) => {
-      console.log(`📥 RESPONSE: ${response.status()} ${response.url()}`);
-
-      // Log the entire response object
-      const responseDetails = {
-        status: response.status(),
-        url: response.url(),
-        headers: await response.allHeaders(),
-        body: await response.text().catch(() => 'Unable to read response body'),
-      };
-
-      console.log('📋 FULL RESPONSE DETAILS:', JSON.stringify(responseDetails, null, 2));
+          console.log('📋 FULL AMPLITUDE REQUEST DETAILS:', JSON.stringify(requestDetails, null, 2));
+        } catch (error) {
+          console.log('❌ ERROR getting request details:', error);
+          console.log('📋 BASIC REQUEST INFO:', {
+            method: request.method(),
+            url: url,
+            resourceType: request.resourceType(),
+          });
+        }
+      }
     });
 
     page.on('requestfailed', (request) => {
