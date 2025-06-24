@@ -118,4 +118,33 @@ test.describe('Session Replay SDK Integration', () => {
     await analyticsPromise;
     await sessionReplayResponsePromise;
   });
+
+  test('should test CORS connectivity', async ({ page }) => {
+    console.log('🔍 Testing CORS...');
+
+    // Test a simple GET request first
+    try {
+      const response = await page.goto(
+        'https://api-sr.stag2.amplitude.com/config?api_key=test&config_keys=sessionReplay&session_id=123',
+      );
+      console.log('✅ GET request status:', response?.status());
+    } catch (error) {
+      console.log('❌ GET request failed:', (error as Error).message);
+    }
+
+    // Test a POST request
+    try {
+      const response = await page.evaluate(async () => {
+        const res = await fetch('https://api-sr.stag2.amplitude.com/sessions/v2/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ test: true }),
+        });
+        return res.status;
+      });
+      console.log('✅ POST request status:', response);
+    } catch (error) {
+      console.log('❌ POST request failed:', (error as Error).message);
+    }
+  });
 });
