@@ -8,6 +8,7 @@ import {
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
 } from '@amplitude/analytics-core';
+import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as constants from './constants';
 import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
 import {
@@ -28,6 +29,7 @@ import { createMutationObservable, createClickObservable } from './observables';
 
 import {
   createLabeledEventToTriggerMap,
+  generateEvaluateTriggers,
   groupLabeledEventIdsByEventType,
   matchEventToLabeledEvents,
   matchLabeledEventsToTriggers,
@@ -152,14 +154,14 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   };
 
   // Group labeled events by event type (eg. click, change)
-  const groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
+  let groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
 
-  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
+  let labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
 
   // Evaluate triggers for the given event by running the actions associated with the matching triggers
-  const evaluateTriggers = <T extends ElementBasedEvent>(
-    event: ElementBasedTimestampedEvent<T>,
-  ): ElementBasedTimestampedEvent<T> => {
+  let evaluateTriggers = (
+    event: ElementBasedTimestampedEvent<ElementBasedEvent>,
+  ): ElementBasedTimestampedEvent<ElementBasedEvent> => {
     // If there is no pageActions, return the event as is
     const { pageActions } = options;
     if (!pageActions) {
@@ -180,11 +182,48 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     return event;
   };
 
+  // Function to recalculate internal variables when remote config is updated
+  const recomputePageActionsData = (remotePageActions: ElementInteractionsOptions['pageActions']) => {
+    if (remotePageActions) {
+      // Merge remote config with local options
+      options.pageActions = {
+        ...options.pageActions,
+        ...remotePageActions,
+      };
+
+      // Recalculate internal variables
+      groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
+      labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
+
+      // Update evaluateTriggers function
+      evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    }
+  };
+
   const setup: BrowserEnrichmentPlugin['setup'] = async (config, amplitude) => {
     /* istanbul ignore if */
     if (typeof document === 'undefined') {
       return;
     }
+
+    // Fetch remote config for pageActions in a non-blocking manner
+    createRemoteConfigFetch({
+      localConfig: config,
+      configKeys: ['analyticsSDK.pageActions'],
+    })
+      .then(async (remoteConfigFetch) => {
+        try {
+          const remotePageActions = await remoteConfigFetch.getRemoteConfig('analyticsSDK', 'pageActions');
+          recomputePageActionsData(remotePageActions as ElementInteractionsOptions['pageActions']);
+        } catch (error) {
+          // Log error but don't fail the setup
+          config?.loggerProvider?.error(`Failed to fetch remote config: ${String(error)}`);
+        }
+      })
+      .catch((error) => {
+        // Log error but don't fail the setup
+        config?.loggerProvider?.error(`Failed to create remote config fetch: ${String(error)}`);
+      });
 
     // Create should track event functions the different allowlists
     const shouldTrackEvent = createShouldTrackEvent(
