@@ -105,12 +105,11 @@ jobs:
           CURRENT_VERSION=$(npm pkg get version | tr -d '"')
           echo "Current version: $CURRENT_VERSION"
           
-          # Determine version bump type based on release tag
+          # Set version bump type and determine preid based on release tag
+          BUMP_TYPE="prerelease"
           if [ "$RELEASE_TAG" = "alpha" ]; then
-            BUMP_TYPE="prerelease"
             PREID="alpha"
           else
-            BUMP_TYPE="prerelease" 
             PREID="beta"
           fi
           
@@ -168,12 +167,11 @@ jobs:
           CURRENT_VERSION=$(npm pkg get version | tr -d '"')
           echo "Current version: $CURRENT_VERSION"
           
-          # Determine version bump type based on release tag
+          # Set version bump type and determine preid based on release tag
+          BUMP_TYPE="prerelease"
           if [ "$RELEASE_TAG" = "alpha" ]; then
-            BUMP_TYPE="prerelease"
             PREID="alpha"
           else
-            BUMP_TYPE="prerelease" 
             PREID="beta"
           fi
           
