@@ -1,0 +1,244 @@
+name: Publish Single Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      packageName:
+        type: string
+        description: 'Package name (e.g., unified, analytics-browser)'
+        required: true
+      releaseTag:
+        type: choice
+        description: 'Release tag'
+        required: true
+        options:
+          - beta
+          - alpha
+      dryRun:
+        type: boolean
+        description: 'Dry run (skip changelog update and npm publish)'
+        required: true
+        default: true
+
+jobs:
+  authorize:
+    name: Authorize
+    runs-on: ubuntu-latest
+    steps:
+      - name: ${{ github.actor }} permission check to do a release
+        uses: 'lannonbr/repo-permission-check-action@2.0.2'
+        with:
+          permission: 'write'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-package:
+    name: Publish Package
+    runs-on: ubuntu-latest
+    needs: [authorize]
+    permissions:
+      id-token: write
+      contents: write
+    env:
+      PACKAGE_NAME: ${{ github.event.inputs.packageName }}
+      RELEASE_TAG: ${{ github.event.inputs.releaseTag }}
+      DRY_RUN: ${{ github.event.inputs.dryRun }}
+      PACKAGE_PATH: packages/${{ github.event.inputs.packageName }}
+    strategy:
+      matrix:
+        node-version: [18.17.x]
+
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Verify package exists
+        run: |
+          if [ ! -d "$PACKAGE_PATH" ]; then
+            echo "❌ Package directory $PACKAGE_PATH does not exist"
+            exit 1
+          fi
+          if [ ! -f "$PACKAGE_PATH/package.json" ]; then
+            echo "❌ package.json not found in $PACKAGE_PATH"
+            exit 1
+          fi
+          echo "✅ Package $PACKAGE_NAME found at $PACKAGE_PATH"
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Build package
+        run: |
+          yarn build
+
+      - name: Test package
+        run: |
+          yarn test
+
+      - name: Lint package
+        run: |
+          yarn lint
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name amplitude-sdk-bot
+          git config --global user.email amplitude-sdk-bot@users.noreply.github.com
+
+      - name: Calculate new version
+        run: |
+          cd $PACKAGE_PATH
+          # Get current version
+          CURRENT_VERSION=$(npm pkg get version | tr -d '"')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Determine version bump type based on release tag
+          if [ "$RELEASE_TAG" = "alpha" ]; then
+            BUMP_TYPE="prerelease"
+            PREID="alpha"
+          else
+            BUMP_TYPE="prerelease" 
+            PREID="beta"
+          fi
+          
+          # Calculate what the new version would be (without actually updating)
+          NEW_VERSION=$(npm version $BUMP_TYPE --preid=$PREID --no-git-tag-version --dry-run 2>/dev/null || echo "")
+          if [ -z "$NEW_VERSION" ]; then
+            # Fallback method for calculating new version
+            if echo "$CURRENT_VERSION" | grep -q "$PREID"; then
+              # Already has preid, increment prerelease number
+              NEW_VERSION=$(npm version prerelease --preid=$PREID --no-git-tag-version --dry-run 2>/dev/null || echo "")
+            else
+              # No preid, add it
+              NEW_VERSION=$(npm version $BUMP_TYPE --preid=$PREID --no-git-tag-version --dry-run 2>/dev/null || echo "")
+            fi
+          fi
+          
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "✅ New version would be: $CURRENT_VERSION → $NEW_VERSION"
+
+      - name: Dry run summary and exit
+        if: ${{ env.DRY_RUN == 'true' }}
+        run: |
+          cd $PACKAGE_PATH
+          echo "🔍 DRY RUN SUMMARY:"
+          echo "Package: $PACKAGE_NAME"
+          echo "Current version: $(npm pkg get version | tr -d '"')"
+          echo "New version would be: $NEW_VERSION"
+          echo "Release tag: $RELEASE_TAG"
+          echo "Would publish: $PACKAGE_NAME@$NEW_VERSION with tag $RELEASE_TAG"
+          echo "✅ Dry run completed successfully - exiting without making changes"
+          exit 0
+
+      - name: Configure NPM User
+        if: ${{ env.DRY_RUN == 'false' }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
+          npm whoami
+
+      - name: Change package to public
+        if: ${{ env.DRY_RUN == 'false' }}
+        run: |
+          cd $PACKAGE_PATH
+          # Backup original package.json
+          cp package.json package.json.backup
+          # Set private to false
+          npm pkg set private=false
+          echo "✅ Changed package to public"
+          cat package.json | grep '"private"'
+
+      - name: Update package version
+        if: ${{ env.DRY_RUN == 'false' }}
+        run: |
+          cd $PACKAGE_PATH
+          # Get current version
+          CURRENT_VERSION=$(npm pkg get version | tr -d '"')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Determine version bump type based on release tag
+          if [ "$RELEASE_TAG" = "alpha" ]; then
+            BUMP_TYPE="prerelease"
+            PREID="alpha"
+          else
+            BUMP_TYPE="prerelease" 
+            PREID="beta"
+          fi
+          
+          # Actually update version
+          ACTUAL_NEW_VERSION=$(npm version $BUMP_TYPE --preid=$PREID --no-git-tag-version)
+          echo "NEW_VERSION=$ACTUAL_NEW_VERSION" >> $GITHUB_ENV
+          echo "✅ Updated version from $CURRENT_VERSION to $ACTUAL_NEW_VERSION"
+
+      - name: Update changelog and publish
+        if: ${{ env.DRY_RUN == 'false' }}
+        run: |
+          cd $PACKAGE_PATH
+          
+          # Generate changelog entry
+          echo "Updating changelog for version $NEW_VERSION"
+          
+          # Check if CHANGELOG.md exists
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "# Changelog" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+          fi
+          
+          # Add new version entry to changelog
+          TEMP_FILE=$(mktemp)
+          echo "# Changelog" > $TEMP_FILE
+          echo "" >> $TEMP_FILE
+          echo "## $NEW_VERSION ($(date +%Y-%m-%d))" >> $TEMP_FILE
+          echo "" >> $TEMP_FILE
+          echo "- Release $NEW_VERSION" >> $TEMP_FILE
+          echo "" >> $TEMP_FILE
+          
+          # Append existing changelog content (skip the first "# Changelog" line)
+          if [ -f "CHANGELOG.md" ]; then
+            tail -n +2 CHANGELOG.md >> $TEMP_FILE
+          fi
+          
+          mv $TEMP_FILE CHANGELOG.md
+          echo "✅ Updated CHANGELOG.md"
+          
+          # Commit version and changelog changes
+          git add package.json CHANGELOG.md
+          git commit -m "chore(release): $PACKAGE_NAME@$NEW_VERSION"
+          git tag "$PACKAGE_NAME@$NEW_VERSION"
+          
+          # Publish to npm
+          echo "Publishing $PACKAGE_NAME@$NEW_VERSION with tag $RELEASE_TAG"
+          npm publish --tag $RELEASE_TAG
+          echo "✅ Published $PACKAGE_NAME@$NEW_VERSION to npm with tag $RELEASE_TAG"
+
+      - name: Restore package to private
+        if: ${{ env.DRY_RUN == 'false' && always() }}
+        run: |
+          cd $PACKAGE_PATH
+          if [ -f "package.json.backup" ]; then
+            mv package.json.backup package.json
+            echo "✅ Restored package.json to original state (private: true)"
+          else
+            # Fallback: manually set private back to true
+            npm pkg set private=true
+            echo "✅ Set package back to private"
+          fi
+
+      - name: Push changes
+        if: ${{ env.DRY_RUN == 'false' }}
+        run: |
+          git push origin main
+          git push origin "$PACKAGE_NAME@$NEW_VERSION"
+          echo "✅ Pushed changes and tags to repository" 
