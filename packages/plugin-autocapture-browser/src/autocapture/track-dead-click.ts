@@ -49,7 +49,7 @@ export function trackDeadClick({
   const actionClicks = filteredClickObservable.pipe(
     mergeMap((click) => {
       // Create a timer that emits after 500ms
-      let timeoutId: NodeJS.Timeout;
+      let timeoutId: ReturnType<typeof setTimeout>;
       const timer = new Observable<typeof click>((subscriber: Subscriber<typeof click>) => {
         timeoutId = setTimeout(() => subscriber.next(click), DEAD_CLICK_TIMEOUT);
 

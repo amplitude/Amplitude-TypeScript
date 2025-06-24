@@ -28,8 +28,6 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 
-  // TODO: add visualTagging stuff here too
-
   const subscriptions: Subscription[] = [];
 
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
