@@ -123,6 +123,7 @@ describe('SessionReplay', () => {
     getRemoteConfigMock = jest.fn().mockResolvedValue(samplingConfig);
     jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
       getRemoteConfig: getRemoteConfigMock,
+      getRemoteNamespaceConfig: getRemoteConfigMock,
       metrics: {},
     });
     jest.spyOn(SessionReplayIDB, 'createStore');
@@ -190,6 +191,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -212,6 +214,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -247,6 +250,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -282,6 +286,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -453,6 +458,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
       await sessionReplay.init(apiKey, {
@@ -500,6 +506,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
       await sessionReplay.init(apiKey, {
@@ -915,6 +922,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
       await sessionReplay.init(apiKey, {
@@ -1257,6 +1265,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -1291,6 +1300,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -1317,6 +1327,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -1342,6 +1353,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 
@@ -1371,6 +1383,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1407,6 +1420,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1444,6 +1458,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1482,6 +1497,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1521,6 +1537,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1559,6 +1576,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1596,6 +1614,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1636,6 +1655,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1675,6 +1695,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -1722,6 +1743,7 @@ describe('SessionReplay', () => {
           });
         jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
           getRemoteConfig: getRemoteConfigMock,
+          getRemoteNamespaceConfig: getRemoteConfigMock,
           metrics: {},
         });
 
@@ -2069,6 +2091,7 @@ describe('SessionReplay', () => {
       });
       jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
         getRemoteConfig: getRemoteConfigMock,
+        getRemoteNamespaceConfig: getRemoteConfigMock,
         metrics: {},
       });
 

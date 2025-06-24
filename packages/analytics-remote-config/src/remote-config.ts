@@ -34,11 +34,10 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
     this.configKeys = configKeys;
   }
 
-  getRemoteConfig = async <K extends keyof RemoteConfig>(
+  getRemoteNamespaceConfig = async (
     configNamespace: string,
-    key: K,
     sessionId?: number | string,
-  ): Promise<RemoteConfig[K] | undefined> => {
+  ): Promise<RemoteConfig | undefined> => {
     const fetchStartTime = Date.now();
     // Finally fetch via API
     const configAPIResponse = await this.fetchWithTimeout(sessionId);
@@ -46,11 +45,20 @@ export class RemoteConfigFetch<RemoteConfig extends { [key: string]: object }>
       const remoteConfig = configAPIResponse.configs && configAPIResponse.configs[configNamespace];
       if (remoteConfig) {
         this.metrics.fetchTimeAPISuccess = Date.now() - fetchStartTime;
-        return remoteConfig[key];
+        return remoteConfig;
       }
     }
     this.metrics.fetchTimeAPIFail = Date.now() - fetchStartTime;
     return undefined;
+  };
+
+  getRemoteConfig = async <K extends keyof RemoteConfig>(
+    configNamespace: string,
+    key: K,
+    sessionId?: number | string,
+  ): Promise<RemoteConfig[K] | undefined> => {
+    const namespaceConfig = await this.getRemoteNamespaceConfig(configNamespace, sessionId);
+    return namespaceConfig?.[key];
   };
 
   getServerUrl() {
