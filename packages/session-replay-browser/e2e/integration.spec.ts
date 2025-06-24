@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { flush } from '@amplitude/analytics-browser';
 
 test.describe('Session Replay SDK Integration', () => {
   test.beforeEach(async ({ page }) => {
@@ -15,7 +16,7 @@ test.describe('Session Replay SDK Integration', () => {
           const requestDetails = {
             method: request.method(),
             url: url,
-            headers: await request.allHeaders(),
+            headers: request.headers(),
             postData: request.postData(),
             resourceType: request.resourceType(),
           };
@@ -113,6 +114,7 @@ test.describe('Session Replay SDK Integration', () => {
     await expect(eventLog).toContainText('page_view');
     await expect(eventLog).toContainText('form_submitted');
 
+    flush();
     await analyticsPromise;
     await sessionReplayResponsePromise;
   });
