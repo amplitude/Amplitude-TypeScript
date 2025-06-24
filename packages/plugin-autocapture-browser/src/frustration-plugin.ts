@@ -33,7 +33,6 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
   const rageCssSelectors = options.rageClicks?.cssSelectorAllowlist ?? DEFAULT_RAGE_CLICK_ALLOWLIST;
   const deadCssSelectors = options.deadClicks?.cssSelectorAllowlist ?? DEFAULT_DEAD_CLICK_ALLOWLIST;
 
-  /* istanbul ignore next */
   const dataAttributePrefix = options.dataAttributePrefix ?? DEFAULT_DATA_ATTRIBUTE_PREFIX;
 
   // combine the two selector lists to determine which clicked elements should be filtered
@@ -47,9 +46,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
         return addAdditionalEventProperties(
           click,
           'click',
-          /* istanbul ignore next */
           combinedCssSelectors,
-          /* istanbul ignore next */
           dataAttributePrefix,
           true, // capture when cursor is pointer
         );
@@ -71,15 +68,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
 
     // Track DOM Mutations
     const enrichedMutationObservable = createMutationObservable().pipe(
-      map((mutation) =>
-        addAdditionalEventProperties(
-          mutation,
-          'mutation',
-          /* istanbul ignore next */
-          combinedCssSelectors,
-          dataAttributePrefix,
-        ),
-      ),
+      map((mutation) => addAdditionalEventProperties(mutation, 'mutation', combinedCssSelectors, dataAttributePrefix)),
       share(),
     );
 
@@ -124,12 +113,10 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions): Brow
     config?.loggerProvider?.log(`${name} has been successfully added.`);
   };
 
-  /* istanbul ignore next */
   const execute: BrowserEnrichmentPlugin['execute'] = async (event) => {
     return event;
   };
 
-  /* istanbul ignore next */
   const teardown = async () => {
     for (const subscription of subscriptions) {
       subscription.unsubscribe();

@@ -139,6 +139,49 @@ describe('frustrationPlugin', () => {
       expect(props).toBeDefined();
     });
 
+    it('should use custom dataAttributePrefix when provided', async () => {
+      const customDataAttributePrefix = 'data-custom-';
+
+      plugin = frustrationPlugin({
+        dataAttributePrefix: customDataAttributePrefix,
+      });
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(trackDeadClick).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amplitude: instance,
+          allObservables: expect.any(Object),
+          getEventProperties: expect.any(Function),
+          shouldTrackDeadClick: expect.any(Function),
+        }),
+      );
+
+      // Test getEventProperties function with custom prefix
+      const deadClickCall = (trackDeadClick as jest.Mock).mock.calls[0][0];
+      const getEventProperties = deadClickCall.getEventProperties;
+
+      // Create test element with custom data attributes
+      const testElement = document.createElement('button');
+      testElement.setAttribute('data-custom-click', 'custom-click-value');
+      testElement.setAttribute('data-custom-user', 'custom-user-value');
+      testElement.setAttribute('data-amplitude-ignored', 'should-be-ignored');
+      testElement.setAttribute('data-other', 'also-ignored');
+
+      // Test getEventProperties with custom prefix
+      const props = getEventProperties('click', testElement);
+      expect(props).toBeDefined();
+
+      // Verify that only attributes with the custom prefix are captured
+      expect(props['[Amplitude] Element Attributes']).toEqual({
+        click: 'custom-click-value',
+        user: 'custom-user-value',
+      });
+
+      // Verify that attributes with other prefixes are not captured
+      expect(props['[Amplitude] Element Attributes']).not.toHaveProperty('amplitude-ignored');
+      expect(props['[Amplitude] Element Attributes']).not.toHaveProperty('other');
+    });
+
     it('should unsubscribe from all subscriptions on teardown', async () => {
       const mockSubscription = {
         unsubscribe: jest.fn(),
@@ -153,6 +196,21 @@ describe('frustrationPlugin', () => {
       await plugin?.teardown?.();
 
       expect(mockSubscription.unsubscribe).toHaveBeenCalledTimes(2);
+    });
+
+    it('should execute and return the event unchanged', async () => {
+      plugin = frustrationPlugin({});
+
+      const mockEvent = {
+        event_type: 'test_event',
+        event_properties: { test: 'value' },
+        user_properties: { user: 'data' },
+      };
+
+      const result = await plugin?.execute?.(mockEvent);
+
+      expect(result).toBe(mockEvent);
+      expect(result).toEqual(mockEvent);
     });
   });
 

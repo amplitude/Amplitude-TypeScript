@@ -40,7 +40,6 @@ export function trackDeadClick({
   const changeObservables: Array<
     AllWindowObservables[ObservablesEnum.MutationObservable] | AllWindowObservables[ObservablesEnum.NavigateObservable]
   > = [mutationObservable];
-  /* istanbul ignore next */
   if (navigateObservable) {
     changeObservables.push(navigateObservable);
   }
@@ -77,8 +76,7 @@ export function trackDeadClick({
       X: (actionClick.event as MouseEvent).clientX,
       Y: (actionClick.event as MouseEvent).clientY,
     };
-    /* istanbul ignore next */
-    amplitude?.track(
+    amplitude.track(
       AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
       {
         ...getEventProperties('click', actionClick.closestTrackedAncestor),

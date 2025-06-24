@@ -84,7 +84,6 @@ export function trackRageClicks({
   );
 
   return rageClickObservable.subscribe(({ rageClickEvent, time }) => {
-    /* istanbul ignore next */
-    amplitude?.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
+    amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
   });
 }
