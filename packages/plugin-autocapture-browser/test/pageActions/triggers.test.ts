@@ -1,9 +1,20 @@
 import { ElementBasedTimestampedEvent } from './../../src/helpers';
-import type { LabeledEvent } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import { groupLabeledEventIdsByEventType, matchEventToLabeledEvents } from '../../src/pageActions/triggers';
+import type {
+  LabeledEvent,
+  Trigger,
+  ElementInteractionsOptions,
+} from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+import {
+  groupLabeledEventIdsByEventType,
+  matchEventToLabeledEvents,
+  createLabeledEventToTriggerMap,
+  generateEvaluateTriggers,
+} from '../../src/pageActions/triggers';
 import * as matchEventToFilterModule from '../../src/pageActions/matchEventToFilter';
+import * as actionsModule from '../../src/pageActions/actions';
 
 jest.mock('../../src/pageActions/matchEventToFilter');
+jest.mock('../../src/pageActions/actions');
 
 describe('groupLabeledEventIdsByEventType', () => {
   // Test 1: Handles an empty array
@@ -519,5 +530,167 @@ describe('matchEventToLabeledEvents', () => {
     const result = matchEventToLabeledEvents(mockEvent, []);
     expect(result).toEqual([]);
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe('generateEvaluateTriggers', () => {
+  const executeActionsSpy = jest.spyOn(actionsModule, 'executeActions');
+  const matchEventToFilterSpy = jest.spyOn(matchEventToFilterModule, 'matchEventToFilter');
+
+  beforeEach(() => {
+    executeActionsSpy.mockClear();
+    matchEventToFilterSpy.mockClear();
+  });
+
+  const mockMouseEvent = new MouseEvent('click');
+  const mockEvent: ElementBasedTimestampedEvent<MouseEvent> = {
+    event: mockMouseEvent,
+    type: 'click',
+    closestTrackedAncestor: document.createElement('div'),
+    targetElementProperties: {},
+    timestamp: 0,
+  };
+
+  const labeledEvents: Record<string, LabeledEvent> = {
+    'le-click': {
+      id: 'le-click',
+      definition: [
+        {
+          event_type: 'click',
+          filters: [{ subprop_key: '[Amplitude] Element Text', subprop_op: 'is', subprop_value: ['value'] }],
+        },
+      ],
+    },
+    'le-change': {
+      id: 'le-change',
+      definition: [{ event_type: 'change', filters: [] }],
+    },
+  };
+
+  const triggers: Trigger[] = [
+    {
+      id: 'trigger-1',
+      name: 'Trigger 1',
+      actions: [
+        {
+          id: 'action-1',
+          actionType: 'ATTACH_EVENT_PROPERTY',
+          destinationKey: 'prop',
+          dataSource: { sourceType: 'DOM_ELEMENT', selector: 'div', elementExtractType: 'TEXT' },
+        },
+      ],
+      conditions: [{ type: 'LABELED_EVENT', match: { eventId: 'le-click' } }],
+    },
+  ];
+
+  const options: ElementInteractionsOptions = {
+    pageActions: {
+      labeledEvents: labeledEvents,
+      triggers: triggers,
+    },
+  };
+
+  const groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(labeledEvents));
+  const labeledEventToTriggerMap = createLabeledEventToTriggerMap(triggers);
+
+  it('should return a function that does nothing if pageActions is not configured', () => {
+    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, {});
+    const result = evaluateTriggers(mockEvent);
+
+    expect(result).toBe(mockEvent);
+    expect(executeActionsSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not call executeActions if no labeled event matches', () => {
+    matchEventToFilterSpy.mockReturnValue(false); // No filter match
+
+    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    evaluateTriggers(mockEvent);
+
+    expect(executeActionsSpy).not.toHaveBeenCalled();
+  });
+
+  it('should not call executeActions if a labeled event matches but has no trigger', () => {
+    const optionsWithUntriggeredEvent: ElementInteractionsOptions = {
+      pageActions: {
+        labeledEvents: {
+          'untriggered-event': {
+            id: 'untriggered-event',
+            definition: [{ event_type: 'click', filters: [] }],
+          },
+        },
+        triggers: [], // No triggers
+      },
+    };
+
+    const grouped = groupLabeledEventIdsByEventType(
+      Object.values(optionsWithUntriggeredEvent.pageActions!.labeledEvents),
+    );
+    const triggerMap = createLabeledEventToTriggerMap(optionsWithUntriggeredEvent.pageActions!.triggers);
+
+    matchEventToFilterSpy.mockReturnValue(true); // event matches
+
+    const evaluateTriggers = generateEvaluateTriggers(grouped, triggerMap, optionsWithUntriggeredEvent);
+    evaluateTriggers(mockEvent);
+
+    expect(executeActionsSpy).not.toHaveBeenCalled();
+  });
+
+  it('should call executeActions with correct actions when a trigger is matched', () => {
+    matchEventToFilterSpy.mockReturnValue(true); // Labeled event matches
+
+    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    evaluateTriggers(mockEvent);
+
+    expect(executeActionsSpy).toHaveBeenCalledTimes(1);
+    expect(executeActionsSpy).toHaveBeenCalledWith(triggers[0].actions, mockEvent);
+  });
+
+  it('should handle multiple matching triggers for a single event', () => {
+    const multiTrigger: Trigger[] = [
+      {
+        id: 'trigger-1',
+        name: 'Trigger 1',
+        actions: [
+          {
+            id: 'action-1',
+            actionType: 'ATTACH_EVENT_PROPERTY',
+            destinationKey: 'prop1',
+            dataSource: { sourceType: 'DOM_ELEMENT', selector: 'div', elementExtractType: 'TEXT' },
+          },
+        ],
+        conditions: [{ type: 'LABELED_EVENT', match: { eventId: 'le-click' } }],
+      },
+      {
+        id: 'trigger-2',
+        name: 'Trigger 2',
+        actions: [
+          {
+            id: 'action-2',
+            actionType: 'ATTACH_EVENT_PROPERTY',
+            destinationKey: 'prop2',
+            dataSource: { sourceType: 'DOM_ELEMENT', selector: 'div', elementExtractType: 'TEXT' },
+          },
+        ],
+        conditions: [{ type: 'LABELED_EVENT', match: { eventId: 'le-click' } }],
+      },
+    ];
+
+    const multiTriggerOptions: ElementInteractionsOptions = {
+      pageActions: {
+        labeledEvents,
+        triggers: multiTrigger,
+      },
+    };
+
+    const triggerMap = createLabeledEventToTriggerMap(multiTrigger);
+    matchEventToFilterSpy.mockReturnValue(true);
+
+    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, triggerMap, multiTriggerOptions);
+    evaluateTriggers(mockEvent);
+
+    expect(executeActionsSpy).toHaveBeenCalledTimes(2);
+    expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[0].actions, mockEvent);
+    expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[1].actions, mockEvent);
   });
 });

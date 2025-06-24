@@ -1,8 +1,12 @@
 import { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 // Return which labeled events, if any, the element matches
-import type { LabeledEvent } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+import type {
+  ElementInteractionsOptions,
+  LabeledEvent,
+} from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 import { matchEventToFilter } from './matchEventToFilter';
+import { executeActions } from './actions';
 
 // groups labeled events by event type
 // skips any labeled events with malformed definitions or unexpected event_type
@@ -78,4 +82,31 @@ export const matchLabeledEventsToTriggers = (labeledEvents: LabeledEvent[], leTo
     }
   }
   return Array.from(matchingTriggers);
+};
+
+export const generateEvaluateTriggers = (
+  groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
+  labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+  options: ElementInteractionsOptions,
+) => {
+  return (event: ElementBasedTimestampedEvent<ElementBasedEvent>) => {
+    // If there is no pageActions, return the event as is
+    const { pageActions } = options;
+    if (!pageActions) {
+      return event;
+    }
+
+    // Find matching labeled events
+    const matchingLabeledEvents = matchEventToLabeledEvents(
+      event,
+      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
+    );
+    // Find matching conditions
+    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
+    for (const trigger of matchingTriggers) {
+      executeActions(trigger.actions, event);
+    }
+
+    return event;
+  };
 };
