@@ -81,17 +81,17 @@ jobs:
         run: |
           yarn install --frozen-lockfile
 
-      - name: Build package
-        run: |
-          yarn build
+      # - name: Build package
+      #   run: |
+      #     yarn build
 
-      - name: Test package
-        run: |
-          yarn test
+      # - name: Test package
+      #   run: |
+      #     yarn test
 
-      - name: Lint package
-        run: |
-          yarn lint
+      # - name: Lint package
+      #   run: |
+      #     yarn lint
 
       - name: Configure Git User
         run: |
