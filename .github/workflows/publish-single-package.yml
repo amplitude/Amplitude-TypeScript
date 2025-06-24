@@ -189,7 +189,7 @@ jobs:
           
           # Publish to npm
           echo "Publishing $PACKAGE_NAME@$NEW_VERSION with tag $RELEASE_TAG"
-          npm publish --tag $RELEASE_TAG
+          npm publish --tag $RELEASE_TAG --access public
           echo "✅ Published $PACKAGE_NAME@$NEW_VERSION to npm with tag $RELEASE_TAG"
 
       - name: Restore package to private
