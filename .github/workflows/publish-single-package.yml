@@ -135,27 +135,21 @@ jobs:
           echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_PUBLISH_TOKEN }}" > ~/.npmrc
           npm whoami
 
-      - name: Change package to public
+      - name: Update package version and make public
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
           cd $PACKAGE_PATH
           # Backup original package.json
           cp package.json package.json.backup
-          # Set private to false
-          npm pkg set private=false
-          echo "✅ Changed package to public"
-          cat package.json | grep '"private"'
-
-      - name: Update package version
-        if: ${{ env.DRY_RUN == 'false' }}
-        run: |
-          cd $PACKAGE_PATH
-          echo "Setting version to: $NEW_VERSION"
           
-          # Update package.json with the new version
-          npm pkg set version="$NEW_VERSION"
+          echo "Setting version to: $NEW_VERSION and making package public"
           
-          echo "✅ Updated package version to $NEW_VERSION"
+          # Update both version and private setting in one go
+          npm pkg set version="$NEW_VERSION" private=false
+          
+          echo "✅ Updated package version to $NEW_VERSION and made it public"
+          echo "Current package.json settings:"
+          cat package.json | grep -E '"(version|private)"'
 
       - name: Update changelog and publish
         if: ${{ env.DRY_RUN == 'false' }}
@@ -214,6 +208,9 @@ jobs:
       - name: Push changes
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
-          git push origin main
+          # Get current branch name and push to it
+          CURRENT_BRANCH=$(git branch --show-current)
+          echo "Pushing to current branch: $CURRENT_BRANCH"
+          git push origin "$CURRENT_BRANCH"
           git push origin "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
           echo "✅ Pushed changes and tags to repository" 
