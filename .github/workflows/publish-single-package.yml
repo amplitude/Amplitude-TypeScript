@@ -101,30 +101,17 @@ jobs:
       - name: Calculate new version
         run: |
           cd $PACKAGE_PATH
-          # Get current version
-          CURRENT_VERSION=$(npm pkg get version | tr -d '"')
+          # Get current version - use node to extract just the version value
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "Current version: $CURRENT_VERSION"
           
-          # Set version bump type and determine preid based on release tag
-          BUMP_TYPE="prerelease"
-          if [ "$RELEASE_TAG" = "alpha" ]; then
-            PREID="alpha"
-          else
-            PREID="beta"
-          fi
+          # Simply increment the last digit of the version
+          # Extract the last digit and increment it
+          LAST_DIGIT=$(echo "$CURRENT_VERSION" | grep -o '[0-9][0-9]*$')
+          NEW_LAST_DIGIT=$((LAST_DIGIT + 1))
           
-          # Calculate what the new version would be (without actually updating)
-          NEW_VERSION=$(npm version $BUMP_TYPE --preid=$PREID --no-git-tag-version --dry-run 2>/dev/null || echo "")
-          if [ -z "$NEW_VERSION" ]; then
-            # Fallback method for calculating new version
-            if echo "$CURRENT_VERSION" | grep -q "$PREID"; then
-              # Already has preid, increment prerelease number
-              NEW_VERSION=$(npm version prerelease --preid=$PREID --no-git-tag-version --dry-run 2>/dev/null || echo "")
-            else
-              # No preid, add it
-              NEW_VERSION=$(npm version $BUMP_TYPE --preid=$PREID --no-git-tag-version --dry-run 2>/dev/null || echo "")
-            fi
-          fi
+          # Replace the last digit with the incremented value
+          NEW_VERSION=$(echo "$CURRENT_VERSION" | sed "s/[0-9][0-9]*$/$NEW_LAST_DIGIT/")
           
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "✅ New version would be: $CURRENT_VERSION → $NEW_VERSION"
@@ -135,7 +122,7 @@ jobs:
           cd $PACKAGE_PATH
           echo "🔍 DRY RUN SUMMARY:"
           echo "Package: $PACKAGE_NAME"
-          echo "Current version: $(npm pkg get version | tr -d '"')"
+          echo "Current version: $CURRENT_VERSION"
           echo "New version would be: $NEW_VERSION"
           echo "Release tag: $RELEASE_TAG"
           echo "Would publish: $PACKAGE_NAME@$NEW_VERSION with tag $RELEASE_TAG"
@@ -163,22 +150,12 @@ jobs:
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
           cd $PACKAGE_PATH
-          # Get current version
-          CURRENT_VERSION=$(npm pkg get version | tr -d '"')
-          echo "Current version: $CURRENT_VERSION"
+          echo "Setting version to: $NEW_VERSION"
           
-          # Set version bump type and determine preid based on release tag
-          BUMP_TYPE="prerelease"
-          if [ "$RELEASE_TAG" = "alpha" ]; then
-            PREID="alpha"
-          else
-            PREID="beta"
-          fi
+          # Update package.json with the new version
+          npm pkg set version="$NEW_VERSION"
           
-          # Actually update version
-          ACTUAL_NEW_VERSION=$(npm version $BUMP_TYPE --preid=$PREID --no-git-tag-version)
-          echo "NEW_VERSION=$ACTUAL_NEW_VERSION" >> $GITHUB_ENV
-          echo "✅ Updated version from $CURRENT_VERSION to $ACTUAL_NEW_VERSION"
+          echo "✅ Updated package version to $NEW_VERSION"
 
       - name: Update changelog and publish
         if: ${{ env.DRY_RUN == 'false' }}
@@ -213,8 +190,8 @@ jobs:
           
           # Commit version and changelog changes
           git add package.json CHANGELOG.md
-          git commit -m "chore(release): $PACKAGE_NAME@$NEW_VERSION"
-          git tag "$PACKAGE_NAME@$NEW_VERSION"
+          git commit -m "chore(release): publish @amplitude/$PACKAGE_NAME@$NEW_VERSION"
+          git tag "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
           
           # Publish to npm
           echo "Publishing $PACKAGE_NAME@$NEW_VERSION with tag $RELEASE_TAG"
@@ -238,5 +215,5 @@ jobs:
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
           git push origin main
-          git push origin "$PACKAGE_NAME@$NEW_VERSION"
+          git push origin "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
           echo "✅ Pushed changes and tags to repository" 
