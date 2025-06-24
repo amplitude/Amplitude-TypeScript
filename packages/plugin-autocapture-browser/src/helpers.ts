@@ -333,7 +333,7 @@ export const addAdditionalEventProperties = <T>(
   selectorAllowlist: string[],
   dataAttributePrefix: string,
 
-  // this is used to capture the event if the cursor is a "pointer" when this element was clicked on
+  // capture the event if the cursor is a "pointer" when this element is clicked on
   // reason: a "pointer" cursor indicates that an element should be interactable
   //         regardless of the element's tag name
   isCapturingCursorPointer = false,
