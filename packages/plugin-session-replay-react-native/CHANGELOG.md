@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.1...@amplitude/plugin-session-replay-react-native@0.4.2) (2025-06-25)
+
+
+### Bug Fixes
+
+* [SR RN] LogCatLogger missing error ([#1169](https://github.com/amplitude/Amplitude-TypeScript/issues/1169)) ([48766b4](https://github.com/amplitude/Amplitude-TypeScript/commit/48766b4b1249a885b2f59fcb31e6e8ab8c15f124))
+
+
+
+
+
 ## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.0...@amplitude/plugin-session-replay-react-native@0.4.1) (2025-05-15)
 
 
