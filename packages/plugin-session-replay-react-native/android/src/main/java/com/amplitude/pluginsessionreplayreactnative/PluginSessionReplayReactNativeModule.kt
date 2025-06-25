@@ -2,7 +2,7 @@ package com.amplitude.pluginsessionreplayreactnative
 
 import com.amplitude.android.sessionreplay.SessionReplay
 import com.amplitude.common.Logger
-import com.amplitude.common.android.LogcatLogger
+import com.amplitude.android.sessionreplay.LogcatLogger
 import com.amplitude.core.ServerZone
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
