@@ -145,7 +145,8 @@ jobs:
           echo "Setting version to: $NEW_VERSION and making package public"
           
           # Update both version and private setting in package.json
-          npm pkg set version="$NEW_VERSION" private=false
+          npm pkg set version="$NEW_VERSION"
+          npm pkg set private=false --json
           
           # Update version in src/version.ts if it exists
           if [ -f "src/version.ts" ]; then
@@ -211,7 +212,7 @@ jobs:
             echo "✅ Restored package.json to original state (private: true)"
           else
             # Fallback: manually set private back to true
-            npm pkg set private=true
+            npm pkg set private=true --json
             echo "✅ Set package back to private"
           fi
 
