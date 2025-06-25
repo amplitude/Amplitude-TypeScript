@@ -1,4 +1,4 @@
-import { getDefaultConfig } from '../src/session-replay-config';
+import { getDefaultConfig } from '../src/plugin-session-replay-config';
 
 describe('Session Replay default config', () => {
   // write a test that would check the default config for session replay plugin

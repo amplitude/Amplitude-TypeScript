@@ -7,7 +7,7 @@ import type { EnrichmentPlugin, Event, ReactNativeClient, ReactNativeConfig } fr
 
 import { PluginSessionReplayReactNative } from './native-module';
 import { VERSION } from './version';
-import { SessionReplayConfig, getDefaultConfig } from './session-replay-config';
+import { SessionReplayConfig, getDefaultConfig } from './plugin-session-replay-config';
 import { LogLevel } from '@amplitude/analytics-types';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
