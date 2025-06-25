@@ -215,12 +215,12 @@ jobs:
             echo "✅ Set package back to private"
           fi
 
-      # - name: Push changes
-      #   if: ${{ env.DRY_RUN == 'false' }}
-      #   run: |
-      #     # Get current branch name and push to it
-      #     CURRENT_BRANCH=$(git branch --show-current)
-      #     echo "Pushing to current branch: $CURRENT_BRANCH"
-      #     git push origin "$CURRENT_BRANCH"
-      #     git push origin "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
-      #     echo "✅ Pushed changes and tags to repository" 
+      - name: Push changes
+        if: ${{ env.DRY_RUN == 'false' }}
+        run: |
+          # Get current branch name and push to it
+          CURRENT_BRANCH=$(git branch --show-current)
+          echo "Pushing to current branch: $CURRENT_BRANCH"
+          git push origin "$CURRENT_BRANCH"
+          git push origin "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
+          echo "✅ Pushed changes and tags to repository" 
