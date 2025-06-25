@@ -154,9 +154,6 @@ jobs:
         if: ${{ env.DRY_RUN == 'false' }}
         run: |
           cd $PACKAGE_PATH
-          # Backup original package.json
-          cp package.json package.json.backup
-          
           echo "Making package public for publishing"
           
           # Set private to false (version already updated)
@@ -206,14 +203,8 @@ jobs:
         if: ${{ env.DRY_RUN == 'false' && always() }}
         run: |
           cd $PACKAGE_PATH
-          if [ -f "package.json.backup" ]; then
-            mv package.json.backup package.json
-            echo "✅ Restored package.json to original state (private: true)"
-          else
-            # Fallback: manually set private back to true
-            npm pkg set private=true --json
-            echo "✅ Set package back to private"
-          fi
+          npm pkg set private=true --json
+          echo "✅ Set package back to private"
           
           # Update version in the restored package.json (but keep private: true)
           npm pkg set version="$NEW_VERSION"
