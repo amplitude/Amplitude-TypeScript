@@ -213,6 +213,7 @@ jobs:
           
           # Now commit the changes with the correct private setting
           echo "Committing version and changelog changes"
+          git status
           git add package.json CHANGELOG.md src/version.ts
           git commit -m "chore(release): publish @amplitude/$PACKAGE_NAME@$NEW_VERSION"
           git tag "@amplitude/$PACKAGE_NAME@$NEW_VERSION"
