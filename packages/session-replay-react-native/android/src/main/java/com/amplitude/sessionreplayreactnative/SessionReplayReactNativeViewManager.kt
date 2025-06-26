@@ -8,7 +8,7 @@ import com.facebook.react.views.view.ReactViewManager
 class SessionReplayReactNativeViewManager : ReactViewManager() {
 
     override fun getName(): String {
-        return "RCTAmpMaskView"
+        return "RCTAmpMaskComponentView"
     }
 
     @ReactProp(name = "mask")
