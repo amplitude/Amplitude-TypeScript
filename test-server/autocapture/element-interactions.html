@@ -252,8 +252,10 @@
 
     <script type="module">
       import * as amplitude from '@amplitude/analytics-browser';
+      import { DEFAULT_DEAD_CLICK_ALLOWLIST } from '@amplitude/analytics-core';
     
       window.amplitude = amplitude;
+      const allowlist = amplitude.DEFAULT_DEAD_CLICK_ALLOWLIST;
       amplitude.init(
         import.meta.env.VITE_AMPLITUDE_API_KEY,
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
@@ -262,7 +264,9 @@
             frustrationInteractions: {
               rageClicks: true,
               deadClicks: {
-                cssSelectorAllowlist: ['p'],
+                cssSelectorAllowlist: [
+                  'p', 'td', ...DEFAULT_DEAD_CLICK_ALLOWLIST,
+                ],
               }
             },
             //elementInteractions: true,
