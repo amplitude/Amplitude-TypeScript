@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-page-view-tracking-browser",
-  "version": "2.3.31",
+  "version": "2.3.32",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -37,7 +37,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.3.25",
+    "@amplitude/analytics-client-common": "^2.3.26",
     "@amplitude/analytics-types": "^2.9.2",
     "tslib": "^2.4.1"
   },
