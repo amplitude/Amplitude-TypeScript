@@ -3,9 +3,10 @@ import { filter, map, bufferTime } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
+import { DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
 
-let RAGE_CLICK_THRESHOLD = 5;
-let RAGE_CLICK_WINDOW_MS = 3000; // 3 seconds
+let RAGE_CLICK_THRESHOLD = DEFAULT_RAGE_CLICK_THRESHOLD;
+let RAGE_CLICK_WINDOW_MS = DEFAULT_RAGE_CLICK_WINDOW_MS;
 
 // allow override of rage click config for testing only
 export function _overrideRageClickConfig(rageClickThreshold: number, rageClickWindowMs: number) {

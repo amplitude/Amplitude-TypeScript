@@ -113,6 +113,7 @@ export const DEFAULT_RAGE_CLICK_WINDOW_MS = 3000;
  * Default threshold for rage clicks (5 clicks)
  */
 export const DEFAULT_RAGE_CLICK_THRESHOLD = 5;
+
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included
 // eslint-disable-next-line no-restricted-globals
