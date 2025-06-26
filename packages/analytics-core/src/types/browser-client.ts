@@ -1,6 +1,6 @@
 import { TransportType } from './transport';
 import { CoreClient } from '../core-client';
-import { Plugin } from './plugin';
+import { AnalyticsIdentity, Plugin } from './plugin';
 import { AmplitudeReturn } from '../utils/return-wrapper';
 import { BrowserConfig, BrowserOptions } from './browser-config';
 
@@ -138,4 +138,13 @@ export interface BrowserClient extends Client {
    * ```
    */
   add(plugin: Plugin<BrowserClient, BrowserConfig>): AmplitudeReturn<void>;
+
+  /**
+   * Returns the current identity.
+   *
+   * ```typescript
+   * const identity = getIdentity();
+   * ```
+   */
+  getIdentity(): AnalyticsIdentity;
 }

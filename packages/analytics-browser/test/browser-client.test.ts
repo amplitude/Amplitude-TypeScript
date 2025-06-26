@@ -8,6 +8,8 @@ import {
   Status,
   UserSession,
   AutocaptureOptions,
+  Identify,
+  SpecialEventType,
 } from '@amplitude/analytics-core';
 import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
@@ -742,6 +744,58 @@ describe('browser-client', () => {
     });
   });
 
+  describe('getIdentity', () => {
+    test('should get identity', async () => {
+      const userId = 'test-user-id';
+      const deviceId = 'test-device-id';
+
+      await client.init(apiKey, 'test-user-id', {
+        defaultTracking,
+        deviceId,
+      }).promise;
+      const identify = new Identify();
+      identify.set('test-property', 'test-value');
+      client.identify(identify);
+
+      const identity = client.getIdentity();
+
+      expect(identity).toEqual({
+        deviceId: deviceId,
+        userId: userId,
+        userProperties: {
+          'test-property': 'test-value',
+        },
+      });
+    });
+
+    test('should handle undefined', () => {
+      const identity = client.getIdentity();
+
+      expect(identity).toEqual({
+        deviceId: undefined,
+        userId: undefined,
+        userProperties: undefined,
+      });
+    });
+
+    test('should update identity after setting userId and deviceId', async () => {
+      await client.init(apiKey, { defaultTracking }).promise;
+
+      const initialIdentity = client.getIdentity();
+      expect(initialIdentity.userId).toBe(undefined);
+
+      client.setUserId(userId);
+      client.setDeviceId(deviceId);
+
+      const updatedIdentity = client.getIdentity();
+      expect(updatedIdentity).toEqual({
+        deviceId: deviceId,
+        userId: userId,
+        userProperties: client.userProperties,
+      });
+    });
+  });
+
   describe('getSessionId', () => {
     test('should get session id', async () => {
       await client.init(apiKey, {
@@ -1285,6 +1339,29 @@ describe('browser-client', () => {
       // and once on process
       expect(setSessionId).toHaveBeenCalledTimes(2);
       expect(result.code).toBe(0);
+    });
+
+    test('should set user properties', async () => {
+      await client.init(apiKey, {
+        defaultTracking,
+        optOut: true,
+      }).promise;
+      expect(client.userProperties).toBeUndefined();
+
+      await client.process({
+        event_type: SpecialEventType.IDENTIFY,
+        user_properties: {
+          $set: {
+            'test-property': 'test-value',
+          },
+        },
+      });
+
+      const identity = client.getIdentity();
+
+      expect(identity.userProperties).toEqual({
+        'test-property': 'test-value',
+      });
     });
   });
 
