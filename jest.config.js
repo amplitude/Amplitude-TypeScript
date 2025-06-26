@@ -5,7 +5,11 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   collectCoverage: true,
-  collectCoverageFrom: ['**/src/**/*.ts'],
+  collectCoverageFrom: [
+    '**/src/**/*.ts',
+    '!**/packages/analytics-react-native/**',
+    '!**/packages/analytics-node/**',
+  ],
   coverageReporters: ['lcov', 'text-summary'],
   restoreMocks: true,
   coverageThreshold: {
@@ -17,6 +21,14 @@ module.exports = {
     }
   },
   verbose: true,
-  modulePathIgnorePatterns: ['<rootDir>/lib'],
-  testPathIgnorePatterns: ['/e2e/']
+  modulePathIgnorePatterns: [
+    '<rootDir>/lib',
+    '<rootDir>/packages/analytics-react-native',
+    '<rootDir>/packages/analytics-node'
+  ],
+  testPathIgnorePatterns: [
+    '/e2e/',
+    '/packages/analytics-react-native/',
+    '/packages/analytics-node/'
+  ]
 };
