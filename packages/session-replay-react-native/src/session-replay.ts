@@ -1,12 +1,13 @@
 import { type Logger } from '@amplitude/analytics-types';
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
 import { getDefaultConfig, SessionReplayConfig } from './session-replay-config';
+import { SessionReplayLogger } from './logger';
 
 let fullConfig: Required<SessionReplayConfig> | null = null;
 let isInitialized = false;
 
 function logger(): Logger {
-  return fullConfig?.logger ?? (console as unknown as Logger);
+  return fullConfig?.logger ?? new SessionReplayLogger();
 }
 
 export async function init(config: SessionReplayConfig): Promise<void> {

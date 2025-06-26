@@ -1,4 +1,5 @@
-import { type Logger, LogLevel, type ServerZoneType } from '@amplitude/analytics-types';
+import { type Logger, LogLevel } from '@amplitude/analytics-types';
+import { SessionReplayLogger } from './logger';
 
 export enum MaskLevel {
   Light = 'light',
@@ -15,7 +16,7 @@ export interface SessionReplayConfig {
   maskLevel?: MaskLevel;
   optOut?: boolean;
   sampleRate?: number;
-  serverZone?: ServerZoneType;
+  serverZone?: 'EU' | 'US';
   sessionId?: number;
   logger?: Logger;
 }
@@ -29,9 +30,8 @@ export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey'
     maskLevel: MaskLevel.Medium,
     optOut: false,
     sampleRate: 0,
-    serverZone: 'US' as ServerZoneType,
+    serverZone: 'US',
     sessionId: -1,
-    // use logger from analytics-core
-    logger: console as unknown as Logger,
+    logger: new SessionReplayLogger(),
   };
 };

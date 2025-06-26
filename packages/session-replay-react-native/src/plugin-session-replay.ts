@@ -7,37 +7,43 @@ import {
 } from '@amplitude/analytics-types';
 
 import { VERSION } from './version';
-import { SessionReplayConfig, getDefaultConfig } from './plugin-session-replay-config';
+import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
 import { getSessionId, getSessionReplayProperties, init, setSessionId, start, stop } from './session-replay';
+import { SessionReplayLogger } from './logger';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
   name = '@amplitude/plugin-session-replay-react-native';
   type = 'enrichment' as const;
-  config!: ReactNativeConfig;
-  isInitialized = false;
 
-  sessionReplayConfig: SessionReplayConfig;
+  private config!: ReactNativeConfig;
+  private isInitialized = false;
 
-  constructor(config: SessionReplayConfig = {}) {
+  private sessionReplayConfig: SessionReplayPluginConfig;
+  private logger: SessionReplayLogger = new SessionReplayLogger();
+
+  constructor(config: SessionReplayPluginConfig = {}) {
     this.sessionReplayConfig = {
-      ...getDefaultConfig(),
+      ...getDefaultSessionReplayPluginConfig(),
       ...config,
     };
-    console.log('Initializing SessionReplayPlugin with config: ', this.sessionReplayConfig);
+
+    this.logger.enable(this.sessionReplayConfig.logLevel ?? LogLevel.Warn);
+    this.logger.log('Initializing SessionReplayPlugin with config: ', this.sessionReplayConfig);
   }
 
   async setup(config: ReactNativeConfig, _: ReactNativeClient): Promise<void> {
     this.config = config;
-    console.log(`Installing @amplitude/plugin-session-replay-react-native, version ${VERSION}.`);
+    this.logger.log(`Installing @amplitude/plugin-session-replay-react-native, version ${VERSION}.`);
     await init({
       apiKey: config.apiKey,
       deviceId: config.deviceId,
       sessionId: config.sessionId,
-      serverZone: config.serverZone,
+      serverZone: config.serverZone as 'EU' | 'US',
       sampleRate: this.sessionReplayConfig.sampleRate ?? 1,
       enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig ?? true,
       logLevel: this.sessionReplayConfig.logLevel ?? LogLevel.Warn,
       autoStart: this.sessionReplayConfig.autoStart ?? true,
+      logger: this.logger,
     });
     this.isInitialized = true;
   }
