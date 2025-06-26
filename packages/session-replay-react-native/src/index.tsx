@@ -1,5 +1,3 @@
-export { AmpMaskView } from './app-mask-view';
-
 export {
   init,
   setSessionId,
@@ -10,3 +8,5 @@ export {
   stop,
   setDeviceId,
 } from './session-replay';
+
+export { AmpMaskView } from './amp-mask-view';

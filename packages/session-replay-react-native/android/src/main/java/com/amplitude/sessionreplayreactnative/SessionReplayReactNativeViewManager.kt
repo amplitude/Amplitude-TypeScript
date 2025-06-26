@@ -1,11 +1,11 @@
-package com.amplitude.pluginsessionreplayreactnative
+package com.amplitude.sessionreplayreactnative
 
 import android.view.ViewGroup
 import com.amplitude.android.sessionreplay.SessionReplay
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.facebook.react.views.view.ReactViewManager
 
-class PluginSessionReplayViewManager : ReactViewManager() {
+class SessionReplayReactNativeViewManager : ReactViewManager() {
 
     override fun getName(): String {
         return "RCTAmpMaskView"
