@@ -4,5 +4,4 @@ interface AmpMaskViewProps extends ViewProps {
   mask: 'amp-mask' | 'amp-unmask' | 'amp-block';
 }
 
-export const AmpMaskView =
-  requireNativeComponent<AmpMaskViewProps>('RCTAmpMaskView');
+export const AmpMaskView = requireNativeComponent<AmpMaskViewProps>('RCTAmpMaskView');

@@ -9,7 +9,7 @@ export enum MaskLevel {
 export interface SessionReplayConfig {
   apiKey: string;
   autoStart?: boolean;
-  deviceId?: string;
+  deviceId?: string | null;
   enableRemoteConfig?: boolean;
   logLevel?: LogLevel;
   maskLevel?: MaskLevel;
@@ -23,14 +23,14 @@ export interface SessionReplayConfig {
 export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey'>> = () => {
   return {
     autoStart: true,
-    deviceId: '',
+    deviceId: null,
     enableRemoteConfig: true,
     logLevel: LogLevel.Warn,
     maskLevel: MaskLevel.Medium,
     optOut: false,
     sampleRate: 0,
     serverZone: 'US' as ServerZoneType,
-    sessionId: 0,
+    sessionId: -1,
     // use logger from analytics-core
     logger: console as unknown as Logger,
   };

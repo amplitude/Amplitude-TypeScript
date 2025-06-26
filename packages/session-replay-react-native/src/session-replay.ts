@@ -39,6 +39,14 @@ export async function setSessionId(sessionId: number): Promise<void> {
   await NativeSessionReplay.setSessionId(sessionId);
 }
 
+export async function setDeviceId(deviceId: string | null): Promise<void> {
+  if (!isInitialized) {
+    logger().warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.setDeviceId(deviceId);
+}
+
 export async function getSessionId(): Promise<number | null> {
   if (!isInitialized) {
     logger().warn('SessionReplay is not initialized');
@@ -51,10 +59,10 @@ export interface SessionReplayProperties {
   [key: string]: string | boolean | null;
 }
 
-export async function getSessionReplayProperties(): Promise<SessionReplayProperties | null> {
+export async function getSessionReplayProperties(): Promise<SessionReplayProperties> {
   if (!isInitialized) {
     logger().warn('SessionReplay is not initialized');
-    return null;
+    return {};
   }
   const properties = await NativeSessionReplay.getSessionReplayProperties();
   return properties as SessionReplayProperties;
@@ -68,13 +76,20 @@ export async function flush(): Promise<void> {
   await NativeSessionReplay.flush();
 }
 
-export async function shutdown(): Promise<void> {
+export async function start(): Promise<void> {
   if (!isInitialized) {
     logger().warn('SessionReplay is not initialized');
     return;
   }
-  await NativeSessionReplay.teardown();
-  isInitialized = false;
+  await NativeSessionReplay.start();
+}
+
+export async function stop(): Promise<void> {
+  if (!isInitialized) {
+    logger().warn('SessionReplay is not initialized');
+    return;
+  }
+  await NativeSessionReplay.stop();
 }
 
 function nativeConfig(config: Required<SessionReplayConfig>): NativeSessionReplayConfig {
