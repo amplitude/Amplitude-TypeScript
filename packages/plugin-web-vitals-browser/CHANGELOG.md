@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-beta.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.4...@amplitude/plugin-web-vitals-browser@0.1.0-beta.5) (2025-06-25)
+
+
+### Bug Fixes
+
+* **plugin-web-vitals-browser:** add TTFB ([#1161](https://github.com/amplitude/Amplitude-TypeScript/issues/1161)) ([f758fc8](https://github.com/amplitude/Amplitude-TypeScript/commit/f758fc81948e393b449aa6b7acc03720bc497331))
+
+
+
+
+
 # [0.1.0-beta.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.3...@amplitude/plugin-web-vitals-browser@0.1.0-beta.4) (2025-06-16)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser

@@ -97,21 +97,12 @@ export const DEFAULT_DEAD_CLICK_ALLOWLIST = [
 /**
  * Default CSS selectors for rage clicks tracking
  */
-export const DEFAULT_RAGE_CLICK_ALLOWLIST = [
-  'input',
-  'label',
-  'select',
-  'option',
-  'textarea',
-  'video',
-  'audio',
-  ...CLICKABLE_ELEMENT_SELECTORS,
-];
+export const DEFAULT_RAGE_CLICK_ALLOWLIST = ['*'];
 
 /**
- * Default time window for dead clicks (1 second)
+ * Default time window for dead clicks (3 seconds)
  */
-export const DEFAULT_DEAD_CLICK_WINDOW_MS = 3000;
+export const DEFAULT_DEAD_CLICK_WINDOW_MS = 3_000;
 
 /**
  * Default time window for rage clicks (3 seconds)

@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.2.9...@amplitude/plugin-autocapture-browser@1.3.0) (2025-06-25)
+
+
+### Features
+
+* **autocapture:** Added config to capture event properties ([#1111](https://github.com/amplitude/Amplitude-TypeScript/issues/1111)) ([109c3e2](https://github.com/amplitude/Amplitude-TypeScript/commit/109c3e220293fff92f870f8efe1a6cb4a20bebf4))
+
+
+
+
+
 ## [1.2.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.2.8...@amplitude/plugin-autocapture-browser@1.2.9) (2025-06-11)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser

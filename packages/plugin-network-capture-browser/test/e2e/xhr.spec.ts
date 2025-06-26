@@ -5,6 +5,13 @@ import { test, expect } from '@playwright/test';
 test.describe('XHR network tracking', () => {
   test('should track XHR requests', async ({ page }) => {
     // Navigate to the test page
+    await page.route('https://httpstat.us/*', async (route) => {
+      const status = route.request().url().split('/').pop();
+      await route.fulfill({
+        status: Number(status),
+        body: 'OK',
+      });
+    });
     await page.goto('http://localhost:5173/network-capture/xhr.html');
 
     // Wait for the completion indicator to be visible

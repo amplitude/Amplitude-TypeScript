@@ -332,6 +332,10 @@ export const addAdditionalEventProperties = <T>(
   type: TimestampedEvent<T>['type'],
   selectorAllowlist: string[],
   dataAttributePrefix: string,
+
+  // capture the event if the cursor is a "pointer" when this element is clicked on
+  // reason: a "pointer" cursor indicates that an element should be interactable
+  //         regardless of the element's tag name
   isCapturingCursorPointer = false,
 ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
   const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
