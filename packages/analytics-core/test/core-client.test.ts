@@ -483,6 +483,13 @@ describe('core-client', () => {
     });
   });
 
+  describe('getOptOut', () => {
+    test('should return opt out value', () => {
+      client.setOptOut(true);
+      expect(client.getOptOut()).toBe(true);
+    });
+  });
+
   describe('plugin', () => {
     test('should return plugin by name', async () => {
       const mockPlugin: Plugin = {
