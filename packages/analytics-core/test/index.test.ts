@@ -34,7 +34,12 @@ import {
   OfflineDisabled,
   Status,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_THRESHOLD,
+  DEFAULT_RAGE_CLICK_WINDOW_MS,
+  DEFAULT_DEAD_CLICK_WINDOW_MS,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   RevenueProperty,
   IdentifyOperation,
@@ -93,10 +98,15 @@ describe('index', () => {
     expect(typeof Status).toBe('object');
     expect(typeof DEFAULT_ACTION_CLICK_ALLOWLIST).toBe('object');
     expect(typeof DEFAULT_CSS_SELECTOR_ALLOWLIST).toBe('object');
+    expect(typeof DEFAULT_DEAD_CLICK_ALLOWLIST).toBe('object');
+    expect(typeof DEFAULT_RAGE_CLICK_ALLOWLIST).toBe('object');
     expect(typeof DEFAULT_DATA_ATTRIBUTE_PREFIX).toBe('string');
     expect(typeof RevenueProperty).toBe('object');
     expect(typeof IdentifyOperation).toBe('object');
     expect(typeof SpecialEventType).toBe('object');
     expect(typeof ServerZone).toBe('object');
+    expect(DEFAULT_RAGE_CLICK_THRESHOLD).toBe(5);
+    expect(DEFAULT_RAGE_CLICK_WINDOW_MS).toBe(3_000);
+    expect(DEFAULT_DEAD_CLICK_WINDOW_MS).toBe(3_000);
   });
 });

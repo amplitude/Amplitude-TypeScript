@@ -6,6 +6,18 @@ test.describe('Network Capture Plugin - Fetch Tests', () => {
   test('fetch.html page loads and runs without errors', async ({ page }) => {
     // Listen for any uncaught exceptions
     const uncaughtExceptions: string[] = [];
+    await page.route('https://httpstat.us/*', async (route) => {
+      const status = route.request().url().split('/').pop();
+      await route.fulfill({
+        status: Number(status),
+        body: JSON.stringify({
+          message: 'OK',
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    });
     page.on('pageerror', (error) => {
       uncaughtExceptions.push(error.message);
     });
