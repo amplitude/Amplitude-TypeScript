@@ -18,7 +18,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
   private config!: ReactNativeConfig;
   private isInitialized = false;
 
-  private sessionReplayConfig: SessionReplayPluginConfig;
+  private sessionReplayConfig: Required<SessionReplayPluginConfig>;
   private logger: SessionReplayLogger = new SessionReplayLogger();
 
   constructor(config: SessionReplayPluginConfig = {}) {
@@ -39,10 +39,10 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       deviceId: config.deviceId,
       sessionId: config.sessionId,
       serverZone: config.serverZone as 'EU' | 'US',
-      sampleRate: this.sessionReplayConfig.sampleRate ?? 1,
-      enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig ?? true,
-      logLevel: this.sessionReplayConfig.logLevel ?? LogLevel.Warn,
-      autoStart: this.sessionReplayConfig.autoStart ?? true,
+      sampleRate: this.sessionReplayConfig.sampleRate,
+      enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig,
+      logLevel: this.sessionReplayConfig.logLevel,
+      autoStart: this.sessionReplayConfig.autoStart,
       logger: this.logger,
     });
     this.isInitialized = true;

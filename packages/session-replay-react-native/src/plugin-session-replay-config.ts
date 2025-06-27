@@ -7,7 +7,7 @@ export interface SessionReplayPluginConfig {
   autoStart?: boolean;
 }
 
-export const getDefaultSessionReplayPluginConfig: () => SessionReplayPluginConfig = () => {
+export const getDefaultSessionReplayPluginConfig: () => Required<SessionReplayPluginConfig> = () => {
   return {
     sampleRate: 0,
     enableRemoteConfig: true,
