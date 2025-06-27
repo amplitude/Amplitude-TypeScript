@@ -19,18 +19,13 @@ test.describe('Proxy Server Integration', () => {
       const postData = request.postData();
       
       if (postData) {
-        try {
-          const data = JSON.parse(postData);
-          proxyRequests.push({
-            url: request.url(),
-            method: request.method(),
-            headers: request.headers(),
-            data: data
-          });
-          console.log('📊 Intercepted proxy request:', JSON.stringify(data, null, 2));
-        } catch (error) {
-          console.error('❌ Error parsing proxy request:', error);
-        }
+        const data = JSON.parse(postData);
+        proxyRequests.push({
+        url: request.url(),
+        method: request.method(),
+        headers: request.headers(),
+        data: data
+        });
       }
       
       // Continue the request to the actual proxy server
@@ -173,7 +168,5 @@ test.describe('Proxy Server Integration', () => {
     );
     
     expect(recoveryEvent).toBeDefined();
-    
-    console.log('✅ Successfully verified error handling and recovery');
   });
 }); 
