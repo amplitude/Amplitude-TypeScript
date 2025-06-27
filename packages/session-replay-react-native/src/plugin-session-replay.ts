@@ -1,15 +1,13 @@
 import {
-  LogLevel,
   type EnrichmentPlugin,
   type Event,
   type ReactNativeClient,
   type ReactNativeConfig,
 } from '@amplitude/analytics-types';
 
-import { VERSION } from './version';
 import { SessionReplayPluginConfig, getDefaultSessionReplayPluginConfig } from './plugin-session-replay-config';
-import { getSessionId, getSessionReplayProperties, init, setSessionId, start, stop } from './session-replay';
-import { SessionReplayLogger } from './logger';
+import { getSessionId, getSessionReplayProperties, privateInit, setSessionId, start, stop } from './session-replay';
+import { createSessionReplayLogger } from './logger';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, ReactNativeConfig> {
   name = '@amplitude/plugin-session-replay-react-native';
@@ -19,7 +17,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
   private isInitialized = false;
 
   private sessionReplayConfig: Required<SessionReplayPluginConfig>;
-  private logger: SessionReplayLogger = new SessionReplayLogger();
+  private logger = createSessionReplayLogger();
 
   constructor(config: SessionReplayPluginConfig = {}) {
     this.sessionReplayConfig = {
@@ -27,24 +25,25 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       ...config,
     };
 
-    this.logger.enable(this.sessionReplayConfig.logLevel ?? LogLevel.Warn);
-    this.logger.log('Initializing SessionReplayPlugin with config: ', this.sessionReplayConfig);
+    this.logger.setLogLevel(this.sessionReplayConfig.logLevel);
+    this.logger.log('Creating SessionReplayPlugin with config: ', this.sessionReplayConfig);
   }
 
   async setup(config: ReactNativeConfig, _: ReactNativeClient): Promise<void> {
     this.config = config;
-    this.logger.log(`Installing @amplitude/plugin-session-replay-react-native, version ${VERSION}.`);
-    await init({
-      apiKey: config.apiKey,
-      deviceId: config.deviceId,
-      sessionId: config.sessionId,
-      serverZone: config.serverZone as 'EU' | 'US',
-      sampleRate: this.sessionReplayConfig.sampleRate,
-      enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig,
-      logLevel: this.sessionReplayConfig.logLevel,
-      autoStart: this.sessionReplayConfig.autoStart,
-      logger: this.logger,
-    });
+    await privateInit(
+      {
+        apiKey: config.apiKey,
+        deviceId: config.deviceId,
+        sessionId: config.sessionId,
+        serverZone: config.serverZone as 'EU' | 'US',
+        sampleRate: this.sessionReplayConfig.sampleRate,
+        enableRemoteConfig: this.sessionReplayConfig.enableRemoteConfig,
+        logLevel: this.sessionReplayConfig.logLevel,
+        autoStart: this.sessionReplayConfig.autoStart,
+      },
+      this.logger,
+    );
     this.isInitialized = true;
   }
 

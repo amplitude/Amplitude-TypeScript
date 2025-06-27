@@ -1,47 +1,41 @@
-import { Logger, LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '@amplitude/analytics-types';
 
 const PREFIX = 'Amplitude Session Replay ';
 
-export class SessionReplayLogger implements Logger {
-  private logLevel: LogLevel = LogLevel.None;
+export const createSessionReplayLogger = () => {
+  let logLevel: LogLevel = LogLevel.Warn;
 
-  disable(): void {
-    this.logLevel = LogLevel.None;
-  }
+  return {
+    setLogLevel: function setLogLevel(level: LogLevel): void {
+      logLevel = level;
+    },
 
-  enable(logLevel: LogLevel = LogLevel.Warn): void {
-    this.logLevel = logLevel;
-  }
+    log: function log(...args: unknown[]): void {
+      if (logLevel < LogLevel.Verbose) {
+        return;
+      }
+      console.log(`${PREFIX}[Log]:`, ...args);
+    },
 
-  log(...args: any[]): void {
-    if (this.logLevel < LogLevel.Verbose) {
-      return;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    console.log(`${PREFIX}[Log]:`, ...args);
-  }
+    warn: function warn(...args: unknown[]): void {
+      if (logLevel < LogLevel.Warn) {
+        return;
+      }
+      console.warn(`${PREFIX}[Warn]:`, ...args);
+    },
 
-  warn(...args: any[]): void {
-    if (this.logLevel < LogLevel.Warn) {
-      return;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    console.warn(`${PREFIX}[Warn]:`, ...args);
-  }
+    error: function error(...args: unknown[]): void {
+      if (logLevel < LogLevel.Error) {
+        return;
+      }
+      console.error(`${PREFIX}[Error]:`, ...args);
+    },
 
-  error(...args: any[]): void {
-    if (this.logLevel < LogLevel.Error) {
-      return;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    console.error(`${PREFIX}[Error]:`, ...args);
-  }
-
-  debug(...args: any[]): void {
-    if (this.logLevel < LogLevel.Debug) {
-      return;
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    console.log(`${PREFIX}[Debug]:`, ...args);
-  }
-}
+    debug: function debug(...args: unknown[]): void {
+      if (logLevel < LogLevel.Debug) {
+        return;
+      }
+      console.log(`${PREFIX}[Debug]:`, ...args);
+    },
+  };
+};

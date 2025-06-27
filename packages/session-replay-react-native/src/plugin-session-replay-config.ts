@@ -1,5 +1,4 @@
 import { LogLevel } from '@amplitude/analytics-types';
-
 export interface SessionReplayPluginConfig {
   sampleRate?: number;
   enableRemoteConfig?: boolean;
@@ -7,7 +6,7 @@ export interface SessionReplayPluginConfig {
   autoStart?: boolean;
 }
 
-export const getDefaultSessionReplayPluginConfig: () => Required<SessionReplayPluginConfig> = () => {
+export const getDefaultSessionReplayPluginConfig: () => SessionReplayPluginConfig = () => {
   return {
     sampleRate: 0,
     enableRemoteConfig: true,

@@ -1,18 +1,23 @@
-import { type Logger } from '@amplitude/analytics-types';
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
 import { getDefaultConfig, SessionReplayConfig } from './session-replay-config';
-import { SessionReplayLogger } from './logger';
+import { createSessionReplayLogger } from './logger';
+import { VERSION } from './version';
 
 let fullConfig: Required<SessionReplayConfig> | null = null;
 let isInitialized = false;
+let logger = createSessionReplayLogger();
 
-function logger(): Logger {
-  return fullConfig?.logger ?? new SessionReplayLogger();
+export async function privateInit(
+  config: SessionReplayConfig,
+  newLogger: ReturnType<typeof createSessionReplayLogger>,
+): Promise<void> {
+  logger = newLogger;
+  return init(config);
 }
 
 export async function init(config: SessionReplayConfig): Promise<void> {
   if (isInitialized) {
-    logger().warn('SessionReplay is already initialized');
+    logger.warn('SessionReplay is already initialized');
     return;
   }
 
@@ -21,20 +26,21 @@ export async function init(config: SessionReplayConfig): Promise<void> {
     ...config,
   };
 
-  logger().log('Initializing SessionReplay with config: ', fullConfig);
+  logger.setLogLevel(fullConfig.logLevel);
+  logger.log(`initializing @amplitude/session-replay-react-native version: ${VERSION} with config: `, fullConfig);
 
   try {
     await NativeSessionReplay.setup(nativeConfig(fullConfig));
-    logger().log('SessionReplay initialized');
+    logger.log('SessionReplay initialized');
     isInitialized = true;
   } catch (error) {
-    logger().error('Error initializing SessionReplay', error);
+    logger.error('Error initializing SessionReplay', error);
   }
 }
 
 export async function setSessionId(sessionId: number): Promise<void> {
   if (!isInitialized) {
-    logger().warn('SessionReplay is not initialized');
+    logger.warn('SessionReplay is not initialized');
     return;
   }
   await NativeSessionReplay.setSessionId(sessionId);
@@ -42,7 +48,7 @@ export async function setSessionId(sessionId: number): Promise<void> {
 
 export async function setDeviceId(deviceId: string | null): Promise<void> {
   if (!isInitialized) {
-    logger().warn('SessionReplay is not initialized');
+    logger.warn('SessionReplay is not initialized');
     return;
   }
   await NativeSessionReplay.setDeviceId(deviceId);
@@ -50,7 +56,7 @@ export async function setDeviceId(deviceId: string | null): Promise<void> {
 
 export async function getSessionId(): Promise<number | null> {
   if (!isInitialized) {
-    logger().warn('SessionReplay is not initialized');
+    logger.warn('SessionReplay is not initialized');
     return null;
   }
   return await NativeSessionReplay.getSessionId();
@@ -62,7 +68,7 @@ export interface SessionReplayProperties {
 
 export async function getSessionReplayProperties(): Promise<SessionReplayProperties> {
   if (!isInitialized) {
-    logger().warn('SessionReplay is not initialized');
+    logger.warn('SessionReplay is not initialized');
     return {};
   }
   const properties = await NativeSessionReplay.getSessionReplayProperties();
@@ -71,7 +77,7 @@ export async function getSessionReplayProperties(): Promise<SessionReplayPropert
 
 export async function flush(): Promise<void> {
   if (!isInitialized) {
-    logger().warn('SessionReplay is not initialized');
+    logger.warn('SessionReplay is not initialized');
     return;
   }
   await NativeSessionReplay.flush();
@@ -79,7 +85,7 @@ export async function flush(): Promise<void> {
 
 export async function start(): Promise<void> {
   if (!isInitialized) {
-    logger().warn('SessionReplay is not initialized');
+    logger.warn('SessionReplay is not initialized');
     return;
   }
   await NativeSessionReplay.start();
@@ -87,7 +93,7 @@ export async function start(): Promise<void> {
 
 export async function stop(): Promise<void> {
   if (!isInitialized) {
-    logger().warn('SessionReplay is not initialized');
+    logger.warn('SessionReplay is not initialized');
     return;
   }
   await NativeSessionReplay.stop();

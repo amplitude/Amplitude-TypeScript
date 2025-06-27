@@ -1,12 +1,10 @@
-import { type Logger, LogLevel } from '@amplitude/analytics-types';
-import { SessionReplayLogger } from './logger';
+import { LogLevel } from '@amplitude/analytics-types';
 
 export enum MaskLevel {
   Light = 'light',
   Medium = 'medium',
   Conservative = 'conservative',
 }
-
 export interface SessionReplayConfig {
   apiKey: string;
   autoStart?: boolean;
@@ -18,7 +16,6 @@ export interface SessionReplayConfig {
   sampleRate?: number;
   serverZone?: 'EU' | 'US';
   sessionId?: number;
-  logger?: Logger;
 }
 
 export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey'>> = () => {
@@ -32,6 +29,6 @@ export const getDefaultConfig: () => Required<Omit<SessionReplayConfig, 'apiKey'
     sampleRate: 0,
     serverZone: 'US',
     sessionId: -1,
-    logger: new SessionReplayLogger(),
   };
 };
+export { LogLevel };
