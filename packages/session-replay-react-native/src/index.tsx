@@ -8,7 +8,7 @@ export {
   stop,
   setDeviceId,
 } from './session-replay';
-export type { SessionReplayConfig, MaskLevel } from './session-replay-config';
+export { type SessionReplayConfig, MaskLevel } from './session-replay-config';
 
 
 export { SessionReplayPlugin } from './plugin-session-replay';

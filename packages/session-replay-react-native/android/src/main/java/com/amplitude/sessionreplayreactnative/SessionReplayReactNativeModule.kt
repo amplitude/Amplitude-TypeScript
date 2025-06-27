@@ -1,6 +1,8 @@
 package com.amplitude.sessionreplayreactnative
 
 import com.amplitude.android.sessionreplay.SessionReplay
+import com.amplitude.android.sessionreplay.config.MaskLevel
+import com.amplitude.android.sessionreplay.config.PrivacyConfig
 import com.amplitude.common.Logger
 import com.amplitude.common.android.LogcatLogger
 import com.amplitude.core.ServerZone
@@ -31,8 +33,13 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
       val enableRemoteConfig = config.getBoolean("enableRemoteConfig")
       val logLevel = config.getInt("logLevel")
       val autoStart = config.getBoolean("autoStart")
-      val maskLevel = config.getString("maskLevel") ?: "medium"
       val optOut = config.getBoolean("optOut")
+      val maskLevel = when ((config.getString("maskLevel") ?: "medium").lowercase()) {
+        "light" -> MaskLevel.LIGHT
+        "medium" -> MaskLevel.MEDIUM
+        "conservative" -> MaskLevel.CONSERVATIVE
+        else -> MaskLevel.MEDIUM
+      }
 
       LogcatLogger.logger.logMode = when (logLevel) {
           0 -> Logger.LogMode.OFF
@@ -69,7 +76,8 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
           "EU" -> ServerZone.EU
           else -> ServerZone.US
         },
-        autoStart = autoStart
+        autoStart = autoStart,
+        privacyConfig = PrivacyConfig(maskLevel = maskLevel),
       )
       
       promise.resolve(null)
