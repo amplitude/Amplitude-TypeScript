@@ -7,9 +7,8 @@ module.exports = {
   rootDir: '.',
   preset: 'react-native',
   testEnvironment: 'jsdom',
-  modulePathIgnorePatterns: [
-    "<rootDir>/lib/"
-  ],
+  modulePathIgnorePatterns: ['<rootDir>/lib/'],
+  moduleFileExtensions: ['tsx', 'ts', 'js', 'jsx', 'json'],
   // TODO: get full coverage
   coverageThreshold: {
     global: {
@@ -17,6 +16,6 @@ module.exports = {
       functions: 0,
       lines: 0,
       statements: 0,
-    }
+    },
   },
 };

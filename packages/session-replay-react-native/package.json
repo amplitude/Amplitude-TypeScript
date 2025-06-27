@@ -31,7 +31,7 @@
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
-    "lint": "yarn lint:eslint & yarn lint:prettier",
+    "lint": "yarn lint:prettier && yarn lint:eslint",
     "lint:eslint": "eslint '{src,test}/**/*.ts'",
     "lint:prettier": "prettier --check \"{src,test}/**/*.ts\"",
     "test": "jest",

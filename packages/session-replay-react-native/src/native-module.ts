@@ -17,8 +17,6 @@ export const NativeSessionReplay = NativeModules.NativeSessionReplay
       },
     ) as NativeSessionReplaySpec);
 
-export const PluginSessionReplayReactNative = NativeSessionReplay;
-
 export interface NativeSessionReplayConfig {
   apiKey: string;
   autoStart: boolean;
