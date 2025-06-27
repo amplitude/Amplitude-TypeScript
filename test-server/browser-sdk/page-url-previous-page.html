@@ -18,6 +18,16 @@
     <div style="margin-top: 20px">This button will replace the current state with a new state.</div>
     <button id="replace-state">Replace state</button>
 
+    <div style="margin-top: 20px">This button will track a precise event.</div>
+    <button id="precise-event">Add to cart</button>
+
+    <script>
+      document.getElementById('precise-event').addEventListener('click', function () {
+        amplitude.track('Add to cart', {
+          price: 100,
+        });
+      });
+    </script>
     <script>
       let counter = 1;
       document.getElementById('navigate').addEventListener('click', function () {
