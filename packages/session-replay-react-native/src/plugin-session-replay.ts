@@ -15,7 +15,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
   name = '@amplitude/plugin-session-replay-react-native';
   type = 'enrichment' as const;
 
-  private config!: ReactNativeConfig;
+  private config: ReactNativeConfig | null = null;
   private isInitialized = false;
 
   private sessionReplayConfig: Required<SessionReplayPluginConfig>;
@@ -56,12 +56,12 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
     // On event, synchronize the session id to the what's on the browserConfig (source of truth)
     // Choosing not to read from event object here, concerned about offline/delayed events messing up the state stored
     // in SR.
-    if (this.config.sessionId && this.config.sessionId !== (await getSessionId())) {
+    if (this.config?.sessionId && this.config.sessionId !== (await getSessionId())) {
       await setSessionId(this.config.sessionId);
     }
     // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
     // event is not of the current session (offline/late events). In that case, don't tag the events
-    if (this.config.sessionId && this.config.sessionId === event.session_id) {
+    if (this.config?.sessionId && this.config.sessionId === event.session_id) {
       const sessionRecordingProperties = await getSessionReplayProperties();
       event.event_properties = {
         ...event.event_properties,
@@ -88,7 +88,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<ReactNativeClient, 
       await stop();
     }
 
-    this.config = null as unknown as ReactNativeConfig;
+    this.config = null;
     this.isInitialized = false;
   }
 

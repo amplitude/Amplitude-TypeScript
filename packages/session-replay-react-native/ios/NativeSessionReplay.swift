@@ -135,6 +135,15 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
 
 extension MaskLevel {
     static func fromString(_ input: String) -> MaskLevel {
-        .init(rawValue: Int(input) ?? 0)!
+        switch input.lowercased() {
+        case "light":
+            return .light
+        case "medium":
+            return .medium
+        case "conservative":
+            return .conservative
+        default:
+            return .medium
+        }
     }
 }
