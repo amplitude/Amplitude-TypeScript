@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.2.0-frustrationanalytics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.10...@amplitude/plugin-network-capture-browser@1.2.0-frustrationanalytics.0) (2025-06-27)
+
+
+### Features
+
+* **plugin-autocapture-browser:** add rage+dead clicks to autocapture plugin ([#1146](https://github.com/amplitude/Amplitude-TypeScript/issues/1146)) ([c850f02](https://github.com/amplitude/Amplitude-TypeScript/commit/c850f020a6b56bbd8d64e0f946acaf0eac15ccf7))
+
+
+
+
+
 ## [1.1.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.9...@amplitude/plugin-network-capture-browser@1.1.10) (2025-06-25)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

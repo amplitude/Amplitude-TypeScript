@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.3.26-frustrationanalytics.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.3.25...@amplitude/analytics-client-common@2.3.26-frustrationanalytics.0) (2025-06-27)
+
+**Note:** Version bump only for package @amplitude/analytics-client-common
+
+
+
+
+
 ## [2.3.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-client-common@2.3.24...@amplitude/analytics-client-common@2.3.25) (2025-06-25)
 
 **Note:** Version bump only for package @amplitude/analytics-client-common
