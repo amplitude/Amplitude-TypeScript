@@ -797,9 +797,13 @@ describe('browser-client', () => {
   });
 
   describe('getOptOut', () => {
-    test('should return opt out value', () => {
-      client.setOptOut(true);
-      expect(client.getOptOut()).toBe(true);
+    test.each([true, false])('should return opt out value', async (optOut) => {
+      await client.init(apiKey, {
+        defaultTracking,
+        sessionId: 1,
+        optOut,
+      }).promise;
+      expect(client.getOptOut()).toBe(optOut);
     });
   });
 
