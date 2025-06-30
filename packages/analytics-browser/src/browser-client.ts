@@ -224,6 +224,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     };
   }
 
+  getOptOut(): boolean {
+    return this.config.optOut;
+  }
+
   getSessionId() {
     return this.config?.sessionId;
   }

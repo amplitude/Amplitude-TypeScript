@@ -175,15 +175,6 @@ export interface CoreClient {
   setOptOut(optOut: boolean): void;
 
   /**
-   * Returns the current optOut config value.
-   *
-   * ```typescript
-   * const optOut = getOptOut();
-   * ```
-   */
-  getOptOut(): boolean;
-
-  /**
    * Flush all unsent events.
    *
    *```typescript
@@ -432,10 +423,6 @@ export class AmplitudeCore implements CoreClient, PluginHost {
 
   flush() {
     return returnWrapper(this.timeline.flush());
-  }
-
-  getOptOut(): boolean {
-    return this.config.optOut;
   }
 
   plugin(name: string): Plugin | undefined {

@@ -147,4 +147,13 @@ export interface BrowserClient extends Client {
    * ```
    */
   getIdentity(): AnalyticsIdentity;
+
+  /**
+   * Returns the current optOut config value.
+   *
+   * ```typescript
+   * const optOut = getOptOut();
+   * ```
+   */
+  getOptOut(): boolean;
 }

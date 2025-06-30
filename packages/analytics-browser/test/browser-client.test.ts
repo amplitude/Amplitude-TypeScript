@@ -796,6 +796,13 @@ describe('browser-client', () => {
     });
   });
 
+  describe('getOptOut', () => {
+    test('should return opt out value', () => {
+      client.setOptOut(true);
+      expect(client.getOptOut()).toBe(true);
+    });
+  });
+
   describe('getSessionId', () => {
     test('should get session id', async () => {
       await client.init(apiKey, {
