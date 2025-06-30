@@ -1,16 +1,9 @@
-import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { SessionReplay } from '../src/session-replay';
 import { getLogConfig } from '../src/session-replay-factory';
 
+jest.mock('@amplitude/analytics-remote-config');
+
 describe('session replay factory', () => {
-  let getRemoteConfigMock: jest.Mock;
-  beforeEach(() => {
-    getRemoteConfigMock = jest.fn();
-    jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
-      getRemoteConfig: getRemoteConfigMock,
-      metrics: {},
-    });
-  });
   describe('getLogConfig', () => {
     test('return the log config if config defined on session replay', async () => {
       const sessionReplay = new SessionReplay();
