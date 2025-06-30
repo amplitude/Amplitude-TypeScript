@@ -124,6 +124,18 @@ export const createInstance = (): BrowserClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    getIdentity: debugWrapper(
+      client.getIdentity.bind(client),
+      'getIdentity',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
+    getOptOut: debugWrapper(
+      client.getOptOut.bind(client),
+      'getOptOut',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
   };
 };
 
