@@ -98,6 +98,28 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           captureEnabled: samplingConfig.capture_enabled,
         });
       });
+
+      test.each([
+        { 샘플링_설정: { 캡처_활성화: true } },
+        { sr_foo: 'invalid' },
+        { sr_foo: 1 },
+        { sr_foo: false },
+        { sr_foo: undefined },
+        { sr_foo: null },
+        { sr_foo: {} },
+        { sr_foo: [] },
+      ])('should ignore improper config keys', async (inputConfig) => {
+        __setNamespaceConfig(inputConfig);
+        const { joinedConfig: config } = await joinedConfigGenerator.generateJoinedConfig(123);
+        expect(config).toStrictEqual({
+          ...mockLocalConfig,
+          captureEnabled: true,
+          optOut: mockLocalConfig.optOut,
+          interactionConfig: undefined,
+          loggingConfig: undefined,
+        });
+      });
+
       test('should use sample_rate only from API', async () => {
         __setNamespaceConfig({
           sr_sampling_config: { sample_rate: samplingConfig.sample_rate },
