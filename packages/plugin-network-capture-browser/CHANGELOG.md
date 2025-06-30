@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.2.0...@amplitude/plugin-network-capture-browser@1.3.0) (2025-06-30)
+
+
+### Features
+
+* add getOptOut() and getIdentity() ([#1174](https://github.com/amplitude/Amplitude-TypeScript/issues/1174)) ([72017c8](https://github.com/amplitude/Amplitude-TypeScript/commit/72017c8a1a54d929542e883e61d61168f214a780))
+
+
+
+
+
 # [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.1.10...@amplitude/plugin-network-capture-browser@1.2.0) (2025-06-26)
 
 
