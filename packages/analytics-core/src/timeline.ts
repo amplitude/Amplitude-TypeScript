@@ -1,6 +1,7 @@
 import { AnalyticsIdentity, BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './types/plugin';
 import { CoreClient } from './core-client';
 import { IConfig } from './config';
+import { ILogger } from './logger';
 import { EventCallback } from './types/event-callback';
 import { Event } from './types/event/event';
 import { Result } from './types/result';
@@ -14,19 +15,23 @@ export class Timeline {
   // Flag indicates whether timeline is ready to process event
   // Events collected before timeline is ready will stay in the queue to be processed later
   plugins: Plugin[] = [];
+  // loggerProvider is set by the client at _init()
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  loggerProvider: ILogger;
 
   constructor(private client: CoreClient) {}
 
   async register(plugin: Plugin, config: IConfig) {
     if (this.plugins.some((existingPlugin) => existingPlugin.name === plugin.name)) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-      config.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
+      this.loggerProvider.warn(`Plugin with name ${plugin.name} already exists, skipping registration`);
       return;
     }
 
     if (plugin.name === undefined) {
       plugin.name = UUID();
-      config.loggerProvider.warn(`Plugin name is undefined. 
+      this.loggerProvider.warn(`Plugin name is undefined. 
       Generating a random UUID for plugin name: ${plugin.name}. 
       Set a name for the plugin to prevent it from being added multiple times.`);
     }
@@ -83,6 +88,9 @@ export class Timeline {
     let [event] = item;
     const [, resolve] = item;
 
+    // Log initial event
+    this.loggerProvider.log('Timeline.apply: Initial event', event);
+
     const before = this.plugins.filter<BeforePlugin>(
       (plugin: Plugin): plugin is BeforePlugin => plugin.type === 'before',
     );
@@ -95,10 +103,20 @@ export class Timeline {
       }
       const e = await plugin.execute({ ...event });
       if (e === null) {
+        this.loggerProvider.log(
+          `Timeline.apply: Event filtered out by before plugin '${
+            plugin.name ?? 'plugin name is undefined'
+          }', event: ${JSON.stringify(event)}`,
+        );
         resolve({ event, code: 0, message: '' });
         return;
       } else {
         event = e;
+        this.loggerProvider.log(
+          `Timeline.apply: Event after before plugin '${
+            plugin.name ?? 'plugin name is undefined'
+          }', event: ${JSON.stringify(event)}`,
+        );
       }
     }
 
@@ -114,16 +132,29 @@ export class Timeline {
       }
       const e = await plugin.execute({ ...event });
       if (e === null) {
+        this.loggerProvider.log(
+          `Timeline.apply: Event filtered out by enrichment plugin '${
+            plugin.name ?? 'plugin name is undefined'
+          }', event: ${JSON.stringify(event)}`,
+        );
         resolve({ event, code: 0, message: '' });
         return;
       } else {
         event = e;
+        this.loggerProvider.log(
+          `Timeline.apply: Event after enrichment plugin '${
+            plugin.name ?? 'plugin name is undefined'
+          }', event: ${JSON.stringify(event)}`,
+        );
       }
     }
 
     const destination = this.plugins.filter<DestinationPlugin>(
       (plugin: Plugin): plugin is DestinationPlugin => plugin.type === 'destination',
     );
+
+    // Log final event before sending to destinations
+    this.loggerProvider.log(`Timeline.apply: Final event before destinations, event: ${JSON.stringify(event)}`);
 
     const executeDestinations = destination.map((plugin) => {
       const eventClone = { ...event };
