@@ -39,7 +39,7 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
 
   /**
    * Calculates the character length of a string as size approximation
-   * Note: For compressed session replay events, string length closely approximates byte size
+   * Note: String length closely approximates byte size for most content
    */
   private getStringSize(str: string): number {
     return str.length;
@@ -47,13 +47,19 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
 
   /**
    * Calculates the total character length of events array
+   * Accounts for JSON serialization overhead when sent to backend
    */
   private getEventsArraySize(events: Events): number {
     let totalSize = 0;
     for (const event of events) {
       totalSize += this.getStringSize(event);
     }
-    return totalSize;
+
+    // - Array brackets: [] = 2 characters
+    // - Commas between events: events.length - 1
+    const overhead = 2 + Math.max(0, events.length - 1);
+
+    return totalSize + overhead;
   }
 
   /**
