@@ -61,7 +61,7 @@ const sessionReplayTracking = sessionReplayPlugin({
 |`trackServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL for sending session replay data. If provided, it overrides the default server zone configuration.|
 |`shouldInlineStylesheet`|`boolean`|No|`true`|If stylesheets are inlined, the contents of the stylesheet will be stored. During replay, the stored stylesheet will be used instead of attempting to fetch it remotely. This prevents replays from appearing broken due to missing stylesheets. Note: Inlining stylesheets may not work in all cases. If this is `undefined` stylesheets will be inlined.|
 |`storeType`|`string`|No|`idb`|Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events when all events cannot be sent during capture. `memory` stores replay events only in memory, meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.|
-|`performanceConfig.enabled`|`boolean`|No|`false`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
+|`performanceConfig.enabled`|`boolean`|No|`true`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
 |`performanceConfig.timeout`|`number`|No|`undefined`|Optional timeout in milliseconds for the `requestIdleCallback` API. If specified, this value will be used to set a maximum time for the browser to wait before executing the deferred compression task, even if the browser is not idle.|
 |`experimental.useWebWorker`|`boolean`|No|`false`|If the SDK should compress the replay events using a webworker.|
 
