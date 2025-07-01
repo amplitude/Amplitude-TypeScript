@@ -104,18 +104,16 @@ export class Timeline {
       const e = await plugin.execute({ ...event });
       if (e === null) {
         this.loggerProvider.log(
-          `Timeline.apply: Event filtered out by before plugin '${
-            plugin.name ?? 'plugin name is undefined'
-          }', event: ${JSON.stringify(event)}`,
+          `Timeline.apply: Event filtered out by before plugin '${String(plugin.name)}', event: ${JSON.stringify(
+            event,
+          )}`,
         );
         resolve({ event, code: 0, message: '' });
         return;
       } else {
         event = e;
         this.loggerProvider.log(
-          `Timeline.apply: Event after before plugin '${
-            plugin.name ?? 'plugin name is undefined'
-          }', event: ${JSON.stringify(event)}`,
+          `Timeline.apply: Event after before plugin '${String(plugin.name)}', event: ${JSON.stringify(event)}`,
         );
       }
     }
@@ -133,18 +131,16 @@ export class Timeline {
       const e = await plugin.execute({ ...event });
       if (e === null) {
         this.loggerProvider.log(
-          `Timeline.apply: Event filtered out by enrichment plugin '${
-            plugin.name ?? 'plugin name is undefined'
-          }', event: ${JSON.stringify(event)}`,
+          `Timeline.apply: Event filtered out by enrichment plugin '${String(plugin.name)}', event: ${JSON.stringify(
+            event,
+          )}`,
         );
         resolve({ event, code: 0, message: '' });
         return;
       } else {
         event = e;
         this.loggerProvider.log(
-          `Timeline.apply: Event after enrichment plugin '${
-            plugin.name ?? 'plugin name is undefined'
-          }', event: ${JSON.stringify(event)}`,
+          `Timeline.apply: Event after enrichment plugin '${String(plugin.name)}', event: ${JSON.stringify(event)}`,
         );
       }
     }
