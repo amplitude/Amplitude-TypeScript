@@ -67,6 +67,10 @@ export type RecordFunction = {
     maskTextFn?: (text: string, element: HTMLElement | null) => string;
     maskTextSelector?: string;
     recordCanvas?: boolean;
+    slimDOMOptions?: {
+      script?: boolean;
+      comment?: boolean;
+    };
     errorHandler?: (error: unknown) => boolean;
     plugins?: any[];
     applyBackgroundColorToBlockedElements?: boolean;

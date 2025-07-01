@@ -77,6 +77,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
         experimental: this.options.experimental,
+        omitElementTags: this.options.omitElementTags,
         applyBackgroundColorToBlockedElements: this.options.applyBackgroundColorToBlockedElements,
         interactionConfig: this.options.interactionConfig,
       };

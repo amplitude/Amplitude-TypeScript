@@ -1178,6 +1178,13 @@ describe('SessionReplay', () => {
       expect(errorHandlerReturn).toBe(true);
     });
 
+    test('should add slim dom options', async () => {
+      await sessionReplay.init(apiKey, { ...mockOptions, omitElementTags: { script: true, comment: true } }).promise;
+      await sessionReplay.recordEvents();
+      const recordArg = mockRecordFunction.mock.calls[0][0];
+      expect(recordArg?.slimDOMOptions).toEqual({ script: true, comment: true });
+    });
+
     test('should rethrow CSSStylesheet errors', async () => {
       const sessionReplay = new SessionReplay();
       await sessionReplay.init(apiKey, mockOptions).promise;

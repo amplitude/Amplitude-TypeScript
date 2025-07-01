@@ -143,6 +143,20 @@ export interface SessionReplayLocalConfig extends IConfig {
   };
 
   /**
+   * Remove certain parts of the DOM from being captured. These are typically ignored when blocking by selectors.
+   */
+  omitElementTags?: {
+    /**
+     * If true, removes script tags from the DOM, but not noscript tags.
+     */
+    script?: boolean;
+    /**
+     * If true, removes comment tags from the DOM.
+     */
+    comment?: boolean;
+  };
+
+  /**
    * If true, applies a background color to blocked elements in the replay.
    * This helps visualize which elements are blocked from being captured.
    */
