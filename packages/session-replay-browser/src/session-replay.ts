@@ -471,6 +471,10 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskTextFn: maskFn('text', privacyConfig),
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
+        slimDOMOptions: {
+          script: config.omitElementTags?.script,
+          comment: config.omitElementTags?.comment,
+        },
         errorHandler: (error: unknown) => {
           const typedError = error as Error & { _external_?: boolean };
 

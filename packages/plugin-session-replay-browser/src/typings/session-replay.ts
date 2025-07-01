@@ -100,6 +100,13 @@ export interface SessionReplayOptions {
     useWebWorker: boolean;
   };
   /**
+   * @see {@link StandaloneSessionReplayOptions.omitElementTags}
+   */
+  omitElementTags?: {
+    script?: boolean;
+    comment?: boolean;
+  };
+  /**
    * If true, applies a background color to blocked elements for visual masking. Defaults to false.
    */
   applyBackgroundColorToBlockedElements?: boolean;
