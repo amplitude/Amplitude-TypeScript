@@ -1,6 +1,6 @@
 #import <React/RCTBridgeModule.h>
 
-@interface RCT_EXTERN_MODULE(NativeSessionReplay, NSObject)
+@interface RCT_EXTERN_MODULE(AMPNativeSessionReplay, NSObject)
 
 RCT_EXTERN_METHOD(flush:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject)
 

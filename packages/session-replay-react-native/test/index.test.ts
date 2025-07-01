@@ -28,7 +28,7 @@ import { NativeModules } from 'react-native';
 import { LogLevel } from '@amplitude/analytics-types';
 
 // Mock the getSessionReplayProperties return value for our tests
-NativeModules.NativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
+NativeModules.AMPNativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
 
 describe('Index Exports', () => {
   const testConfig: SessionReplayConfig = {
@@ -45,7 +45,7 @@ describe('Index Exports', () => {
   describe('Function Exports', () => {
     it('should export init function that initializes session replay', async () => {
       await init(testConfig);
-      expect(NativeModules.NativeSessionReplay.setup).toHaveBeenCalledWith(
+      expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
         expect.objectContaining({
           apiKey: 'test-api-key',
           serverZone: 'US',
@@ -58,46 +58,46 @@ describe('Index Exports', () => {
       const testSessionId = 54321;
       await init(testConfig); // Initialize first
       await setSessionId(testSessionId);
-      expect(NativeModules.NativeSessionReplay.setSessionId).toHaveBeenCalledWith(testSessionId);
+      expect(NativeModules.AMPNativeSessionReplay.setSessionId).toHaveBeenCalledWith(testSessionId);
     });
 
     it('should export getSessionId function that retrieves session ID', async () => {
       await init(testConfig); // Initialize first
       const sessionId = await getSessionId();
-      expect(NativeModules.NativeSessionReplay.getSessionId).toHaveBeenCalled();
+      expect(NativeModules.AMPNativeSessionReplay.getSessionId).toHaveBeenCalled();
       expect(sessionId).toBe(12345);
     });
 
     it('should export getSessionReplayProperties function', async () => {
       await init(testConfig); // Initialize first
       const properties = await getSessionReplayProperties();
-      expect(NativeModules.NativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
+      expect(NativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
       expect(properties).toEqual({ replayId: 'test-id' });
     });
 
     it('should export flush function that flushes session data', async () => {
       await init(testConfig); // Initialize first
       await flush();
-      expect(NativeModules.NativeSessionReplay.flush).toHaveBeenCalled();
+      expect(NativeModules.AMPNativeSessionReplay.flush).toHaveBeenCalled();
     });
 
     it('should export start function that starts recording', async () => {
       await init(testConfig); // Initialize first
       await start();
-      expect(NativeModules.NativeSessionReplay.start).toHaveBeenCalled();
+      expect(NativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
     });
 
     it('should export stop function that stops recording', async () => {
       await init(testConfig); // Initialize first
       await stop();
-      expect(NativeModules.NativeSessionReplay.stop).toHaveBeenCalled();
+      expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
     });
 
     it('should export setDeviceId function that updates device ID', async () => {
       const testDeviceId = 'test-device-id';
       await init(testConfig); // Initialize first
       await setDeviceId(testDeviceId);
-      expect(NativeModules.NativeSessionReplay.setDeviceId).toHaveBeenCalledWith(testDeviceId);
+      expect(NativeModules.AMPNativeSessionReplay.setDeviceId).toHaveBeenCalledWith(testDeviceId);
     });
   });
 
@@ -110,7 +110,7 @@ describe('Index Exports', () => {
     });
 
     it('should export AmpMaskView component', () => {
-      expect(AmpMaskView).toBe('RCTAmpMaskComponentView');
+      expect(AmpMaskView).toBe('AMPMaskComponentView');
     });
   });
 

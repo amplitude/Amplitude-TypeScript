@@ -1,10 +1,10 @@
 import Foundation
 import AmplitudeSessionReplay
 
-@objc(NativeSessionReplay)
+@objc(AMPNativeSessionReplay)
 class NativeSessionReplay: NSObject, RCTBridgeModule {
     static func moduleName() -> String! {
-        "NativeSessionReplay"
+        "AMPNativeSessionReplay"
     }
     
     var sessionReplay: SessionReplay!

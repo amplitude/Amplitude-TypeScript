@@ -16,7 +16,7 @@ import { LogLevel } from '@amplitude/analytics-types';
 
 // Mock the getSessionReplayProperties return value for our tests
 const mockNativeModules = NativeModules as jest.Mocked<typeof NativeModules>;
-mockNativeModules.NativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
+mockNativeModules.AMPNativeSessionReplay.getSessionReplayProperties.mockResolvedValue({ replayId: 'test-id' });
 
 describe('Session Replay Integration Tests', () => {
   beforeEach(() => {
@@ -33,7 +33,7 @@ describe('Session Replay Integration Tests', () => {
 
     // Complete workflow test
     await init(testConfig);
-    expect(mockNativeModules.NativeSessionReplay.setup).toHaveBeenCalledWith(
+    expect(mockNativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
       expect.objectContaining({
         apiKey: 'test-api-key',
         serverZone: 'US',
@@ -42,21 +42,21 @@ describe('Session Replay Integration Tests', () => {
     );
 
     await start();
-    expect(mockNativeModules.NativeSessionReplay.start).toHaveBeenCalled();
+    expect(mockNativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
 
     const sessionId = await getSessionId();
     expect(sessionId).toBe(12345);
-    expect(mockNativeModules.NativeSessionReplay.getSessionId).toHaveBeenCalled();
+    expect(mockNativeModules.AMPNativeSessionReplay.getSessionId).toHaveBeenCalled();
 
     const properties = await getSessionReplayProperties();
     expect(properties).toEqual({ replayId: 'test-id' });
-    expect(mockNativeModules.NativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
+    expect(mockNativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
 
     await stop();
-    expect(mockNativeModules.NativeSessionReplay.stop).toHaveBeenCalled();
+    expect(mockNativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
 
     // Verify calls were made in sequence
-    const calls = jest.mocked(mockNativeModules.NativeSessionReplay);
+    const calls = jest.mocked(mockNativeModules.AMPNativeSessionReplay);
     expect(calls.setup).toHaveBeenCalled();
     expect(calls.start).toHaveBeenCalled();
     expect(calls.getSessionId).toHaveBeenCalled();

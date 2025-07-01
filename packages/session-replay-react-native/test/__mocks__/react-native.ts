@@ -1,6 +1,6 @@
 // __mocks__/react-native.ts
 export const NativeModules = {
-  NativeSessionReplay: {
+  AMPNativeSessionReplay: {
     setup: jest.fn().mockResolvedValue(undefined),
     start: jest.fn().mockResolvedValue(undefined),
     stop: jest.fn().mockResolvedValue(undefined),

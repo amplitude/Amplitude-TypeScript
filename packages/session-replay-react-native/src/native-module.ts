@@ -6,8 +6,8 @@ const LINKING_ERROR =
   '- You rebuilt the app after installing the package\n' +
   '- You are not using Expo Go\n';
 
-export const NativeSessionReplay = NativeModules.NativeSessionReplay
-  ? (NativeModules.NativeSessionReplay as NativeSessionReplaySpec)
+export const NativeSessionReplay = NativeModules.AMPNativeSessionReplay
+  ? (NativeModules.AMPNativeSessionReplay as NativeSessionReplaySpec)
   : (new Proxy(
       {},
       {

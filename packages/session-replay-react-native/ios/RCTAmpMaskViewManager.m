@@ -2,12 +2,12 @@
 #import <React/RCTView.h>
 @import AmplitudeSessionReplay;
 
-@interface RCTAmpMaskComponentViewManager : RCTViewManager
+@interface AMPMaskComponentViewManager : RCTViewManager
 @end
 
-@implementation RCTAmpMaskComponentViewManager
+@implementation AMPMaskComponentViewManager
 
-RCT_EXPORT_MODULE(RCTAmpMaskComponentView)
+RCT_EXPORT_MODULE(AMPMaskComponentView)
 
 - (UIView *)view
 {

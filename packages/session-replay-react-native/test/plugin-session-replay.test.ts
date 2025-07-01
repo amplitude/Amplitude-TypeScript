@@ -70,7 +70,7 @@ describe('SessionReplayPlugin Integration', () => {
 
     // Setup with default config
     await plugin.setup(minimalConfig, mockReactNativeClient);
-    expect(NativeModules.NativeSessionReplay.setup).toHaveBeenCalledWith(
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'test-api-key', serverZone: 'US' }),
     );
   });
@@ -84,7 +84,7 @@ describe('SessionReplayPlugin Integration', () => {
     };
     const plugin = new SessionReplayPlugin(config);
     await plugin.setup({ ...minimalConfig, serverZone: 'EU' }, mockReactNativeClient);
-    expect(NativeModules.NativeSessionReplay.setup).toHaveBeenCalledWith(
+    expect(NativeModules.AMPNativeSessionReplay.setup).toHaveBeenCalledWith(
       expect.objectContaining({ apiKey: 'test-api-key', serverZone: 'EU' }),
     );
   });
@@ -93,19 +93,19 @@ describe('SessionReplayPlugin Integration', () => {
     const plugin = new SessionReplayPlugin();
     await plugin.setup(minimalConfig, mockReactNativeClient);
     await plugin.start();
-    expect(NativeModules.NativeSessionReplay.start).toHaveBeenCalled();
+    expect(NativeModules.AMPNativeSessionReplay.start).toHaveBeenCalled();
     await plugin.stop();
-    expect(NativeModules.NativeSessionReplay.stop).toHaveBeenCalled();
+    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalled();
     await plugin.teardown();
     // teardown should call stop again (idempotent)
-    expect(NativeModules.NativeSessionReplay.stop).toHaveBeenCalledTimes(2);
+    expect(NativeModules.AMPNativeSessionReplay.stop).toHaveBeenCalledTimes(2);
   });
 
   it('should call getSessionReplayProperties', async () => {
     const plugin = new SessionReplayPlugin();
     await plugin.setup(minimalConfig, mockReactNativeClient);
     const props = await plugin.getSessionReplayProperties();
-    expect(NativeModules.NativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
+    expect(NativeModules.AMPNativeSessionReplay.getSessionReplayProperties).toHaveBeenCalled();
     expect(props).toEqual({ replayId: 'test-id' });
   });
 

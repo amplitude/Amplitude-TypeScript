@@ -19,7 +19,7 @@ class SessionReplayReactNativeModule(private val reactContext: ReactApplicationC
   private lateinit var sessionReplay: SessionReplay
 
   override fun getName(): String {
-    return "NativeSessionReplay"
+    return "AMPNativeSessionReplay"
   }
 
   @ReactMethod
