@@ -1,5 +1,5 @@
 import { Config, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
-import { DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from '../constants';
+import { DEFAULT_PERFORMANCE_CONFIG, DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from '../constants';
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
@@ -57,7 +57,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.trackServerUrl = options.trackServerUrl;
     this.shouldInlineStylesheet = options.shouldInlineStylesheet;
     this.version = options.version;
-    this.performanceConfig = options.performanceConfig;
+    this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
     this.storeType = options.storeType ?? 'idb';
     this.applyBackgroundColorToBlockedElements = options.applyBackgroundColorToBlockedElements ?? false;
 
