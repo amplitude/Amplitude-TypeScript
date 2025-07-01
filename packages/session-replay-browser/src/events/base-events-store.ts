@@ -55,9 +55,11 @@ export abstract class BaseEventsStore<KeyType> implements EventsStore<KeyType> {
       totalSize += this.getStringSize(event);
     }
 
+    // Account for JSON array serialization overhead:
     // - Array brackets: [] = 2 characters
     // - Commas between events: events.length - 1
-    const overhead = 2 + Math.max(0, events.length - 1);
+    // - Double quotes around each event: events.length * 2
+    const overhead = 2 + Math.max(0, events.length - 1) + events.length * 2;
 
     return totalSize + overhead;
   }
