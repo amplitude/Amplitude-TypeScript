@@ -171,7 +171,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
           if (manager.phoneType != TelephonyManager.PHONE_TYPE_CDMA) {
             val country = manager.networkCountryIso
             if (country != null) {
-              return country.uppercase()
+              return country.uppercase(Locale.US)
             }
           }
         } catch (e: Exception) {
