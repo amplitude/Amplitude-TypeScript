@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser SDK Test</title>
+  </head>
+  <body>
+    <div id="app">
+      <div>
+        This example sets "autocapture.sessions" to true and uses a plugin
+        to ensure that user attributes are set on the session start event.
+      </div>
+      <button id="clearCookies" style="margin-top: 10px;">Clear Amplitude Cookies</button>
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      const sessionAttributionPlugin = {
+        name: 'session-attribution-plugin',
+        type: 'enrichment',
+        execute: (event) => {
+          if (event.event_type === 'session_start') {
+            event.user_properties = {
+              utm_source: 'Fake UTM Source from Test Server',
+              utm_medium: 'Fake UTM Medium from Test Server',
+              // ... more user properties or utm properties go here
+            };
+          }
+          return event;
+        }
+      }
+      amplitude.add(sessionAttributionPlugin);
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        'amplitude-typescript test user',
+        {
+          autocapture: true,
+        }
+      );
+
+      // Add cookie clearing functionality
+      document.getElementById('clearCookies').addEventListener('click', async () => {
+        try {
+          const cookies = await cookieStore.getAll();
+          const amplitudeCookies = cookies.filter(cookie => cookie.name.startsWith('AMP_'));
+          
+          await Promise.all(
+            amplitudeCookies.map(cookie => 
+              cookieStore.delete(cookie.name)
+            )
+          );
+          
+          alert('Amplitude cookies cleared!');
+        } catch (error) {
+          console.error('Error clearing cookies:', error);
+          alert('Failed to clear cookies. See console for details.');
+        }
+      });
+    </script>
+  </body>
+</html>
+
