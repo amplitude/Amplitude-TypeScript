@@ -12,8 +12,8 @@ export function _overrideDeadClickConfig(deadClickTimeout: number) {
 }
 
 type EventDeadClick = {
-  X: number;
-  Y: number;
+  '[Amplitude] X': number;
+  '[Amplitude] Y': number;
 };
 
 export function trackDeadClick({
@@ -73,8 +73,8 @@ export function trackDeadClick({
 
   return actionClicks.subscribe((actionClick) => {
     const deadClickEvent: EventDeadClick = {
-      X: (actionClick.event as MouseEvent).clientX,
-      Y: (actionClick.event as MouseEvent).clientY,
+      '[Amplitude] X': (actionClick.event as MouseEvent).clientX,
+      '[Amplitude] Y': (actionClick.event as MouseEvent).clientY,
     };
     amplitude.track(
       AMPLITUDE_ELEMENT_DEAD_CLICKED_EVENT,
