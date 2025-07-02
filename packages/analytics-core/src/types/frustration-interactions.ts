@@ -105,14 +105,14 @@ export const DEFAULT_RAGE_CLICK_ALLOWLIST = ['*'];
 export const DEFAULT_DEAD_CLICK_WINDOW_MS = 3_000;
 
 /**
- * Default time window for rage clicks (3 seconds)
+ * Default time window for rage clicks (1 second)
  */
-export const DEFAULT_RAGE_CLICK_WINDOW_MS = 3000;
+export const DEFAULT_RAGE_CLICK_WINDOW_MS = 1_000;
 
 /**
- * Default threshold for rage clicks (5 clicks)
+ * Default threshold for rage clicks (4 clicks)
  */
-export const DEFAULT_RAGE_CLICK_THRESHOLD = 5;
+export const DEFAULT_RAGE_CLICK_THRESHOLD = 4;
 
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included
