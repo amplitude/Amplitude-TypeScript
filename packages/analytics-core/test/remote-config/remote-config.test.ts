@@ -528,8 +528,7 @@ describe('RemoteConfigClient', () => {
   describe('getUrlParams', () => {
     test('should generate correct US URL', () => {
       const expectedUrl =
-        `https://sr-client-cfg.amplitude.com/config?` +
-        `api_key=test-api-key&` +
+        `https://sr-client-cfg.amplitude.com/config/test-api-key?` +
         `config_keys=analyticsSDK.browserSDK&` +
         `config_keys=sessionReplay.sr_interaction_config&` +
         `config_keys=sessionReplay.sr_logging_config&` +
@@ -543,8 +542,7 @@ describe('RemoteConfigClient', () => {
     test('should generate correct EU URL', () => {
       client = new RemoteConfigClient(mockApiKey, mockLogger, 'EU');
       const expectedUrl =
-        `https://sr-client-cfg.eu.amplitude.com/config?` +
-        `api_key=test-api-key&` +
+        `https://sr-client-cfg.eu.amplitude.com/config/test-api-key?` +
         `config_keys=analyticsSDK.browserSDK&` +
         `config_keys=sessionReplay.sr_interaction_config&` +
         `config_keys=sessionReplay.sr_logging_config&` +

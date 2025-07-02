@@ -299,13 +299,14 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   }
 
   getUrlParams(): string {
-    const urlParams = new URLSearchParams({
-      api_key: this.apiKey,
-    });
+    // URL encode the API key to handle special characters
+    const encodedApiKey = encodeURIComponent(this.apiKey);
+
+    const urlParams = new URLSearchParams();
     FETCHED_KEYS.forEach((key) => {
       urlParams.append('config_keys', key);
     });
 
-    return `${this.serverUrl}?${urlParams.toString()}`;
+    return `${this.serverUrl}/${encodedApiKey}?${urlParams.toString()}`;
   }
 }
