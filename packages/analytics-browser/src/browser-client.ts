@@ -49,7 +49,7 @@ import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
-import { createBrowserJoinedConfigGenerator } from './config/joined-config';
+import { applyRemoteConfig } from './config/joined-config';
 import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { WebAttribution } from './attribution/web-attribution';
@@ -97,27 +97,35 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.initializing = true;
 
     // Step 2: Create browser config
-
     // Get default browser config based on browser options
     let browserOptions = await useBrowserConfig(options.apiKey, options, this);
-    // Create remote config client and subscribe to analytics configs
-    this.remoteConfig = new RemoteConfigClient(
-      browserOptions.apiKey,
-      browserOptions.loggerProvider,
-      browserOptions.serverZone,
-    );
-    this.remoteConfig.subscribe(
-      'configs.analyticsSDK.browserSDK',
-      'all',
-      (res: RemoteConfig | null, source: Source, lastFetch: Date) => {
-        console.log('remoteConfig callback', { res, source, lastFetch });
-      },
-    );
 
+    // Create remote config client and subscribe to analytics configs
     if (browserOptions.fetchRemoteConfig) {
-      const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
-      browserOptions = await joinedConfigGenerator.generateJoinedConfig();
+      this.remoteConfig = new RemoteConfigClient(
+        browserOptions.apiKey,
+        browserOptions.loggerProvider,
+        browserOptions.serverZone,
+      );
+
+      // Subscribe to remote config updates and apply them
+      this.remoteConfig.subscribe(
+        'configs.analyticsSDK.browserSDK',
+        'all',
+        (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+          browserOptions.loggerProvider.debug('Remote configuration received:', JSON.stringify(remoteConfig, null, 2));
+          browserOptions.loggerProvider.debug('Remote configuration source:', source);
+          browserOptions.loggerProvider.debug('Remote configuration last fetch:', lastFetch);
+
+          if (remoteConfig) {
+            browserOptions = applyRemoteConfig(remoteConfig, browserOptions);
+            // Update the current instance config
+            this.config = browserOptions;
+          }
+        },
+      );
     }
+
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
 
