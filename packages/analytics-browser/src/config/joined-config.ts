@@ -21,12 +21,18 @@ type RemoteConfigBrowserSDK = {
 };
 
 /**
- * Applies remote configuration to the browser config, merging autocapture settings.
- * This function replicates the logic from the original generateJoinedConfig method.
+ * Updates the browser config in place by applying remote configuration settings.
+ * Primarily merges autocapture settings from the remote config into the browser config.
+ *
+ * @param remoteConfig - The remote configuration to apply, or null if none available
+ * @param browserConfig - The browser config object to update (modified in place)
  */
-export function applyRemoteConfig(remoteConfig: RemoteConfig | null, browserConfig: BrowserConfig): BrowserConfig {
+export function updateBrowserConfigWithRemoteConfig(
+  remoteConfig: RemoteConfig | null,
+  browserConfig: BrowserConfig,
+): void {
   if (!remoteConfig) {
-    return browserConfig;
+    return;
   }
 
   try {
@@ -114,10 +120,8 @@ export function applyRemoteConfig(remoteConfig: RemoteConfig | null, browserConf
       browserConfig.defaultTracking = browserConfig.autocapture;
     }
 
-    browserConfig.loggerProvider.debug('Applied remote configuration:', JSON.stringify(browserConfig, null, 2));
+    browserConfig.loggerProvider.debug('Applied remote configuration:', JSON.stringify(browserConfig));
   } catch (e) {
     browserConfig.loggerProvider.error('Failed to apply remote configuration because of error: ', e);
   }
-
-  return browserConfig;
 }

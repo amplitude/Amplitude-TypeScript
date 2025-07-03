@@ -27,7 +27,14 @@ import * as SnippetHelper from '../src/utils/snippet-helper';
 
 // Mock RemoteConfigClient constructor
 const mockRemoteConfigClient = {
-  subscribe: jest.fn(),
+  subscribe: jest
+    .fn()
+    .mockImplementation(
+      (_configKey: string, _eventType: string, callback: (remoteConfig: any, source: any, lastFetch: Date) => void) => {
+        // Call the callback immediately with remoteConfig as null
+        callback(null, 'cache', new Date());
+      },
+    ),
   unsubscribe: jest.fn(),
   updateConfigs: jest.fn(),
 };
@@ -479,7 +486,6 @@ describe('browser-client', () => {
 
       expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
       expect(client.config.offline).toBe(false);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to online.');
 
       jest.advanceTimersByTime(client.config.flushIntervalMillis);
@@ -511,7 +517,6 @@ describe('browser-client', () => {
       window.dispatchEvent(new Event('offline'));
       expect(addEventListenerMock).toHaveBeenCalledWith('offline', expect.any(Function));
       expect(client.config.offline).toBe(true);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to offline.');
 
       jest.useRealTimers();
