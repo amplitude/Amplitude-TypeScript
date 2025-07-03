@@ -42,8 +42,8 @@ jest.mock('@amplitude/analytics-core', () => {
 });
 
 // Get the mocked constructor for use in tests
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-const MockedRemoteConfigClient = jest.mocked(jest.requireActual('@amplitude/analytics-core')).RemoteConfigClient;
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-var-requires
+const MockedRemoteConfigClient = jest.mocked(require('@amplitude/analytics-core').RemoteConfigClient);
 
 jest.mock('web-vitals', () => ({
   onLCP: jest.fn(),
