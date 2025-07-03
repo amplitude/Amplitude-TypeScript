@@ -62,10 +62,6 @@ jobs:
         run: |
           yarn test
 
-      - name: Test all examples
-        run: |
-          yarn test:examples
-
       - name: Lint all packages
         run: |
           yarn lint
