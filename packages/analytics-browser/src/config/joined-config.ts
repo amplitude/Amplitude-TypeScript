@@ -36,7 +36,10 @@ export function updateBrowserConfigWithRemoteConfig(
   }
 
   try {
-    browserConfig.loggerProvider.debug('Remote configuration:', JSON.stringify(remoteConfig, null, 2));
+    browserConfig.loggerProvider.debug(
+      'Update browser config with remote configuration:',
+      JSON.stringify(remoteConfig),
+    );
 
     const typedRemoteConfig = remoteConfig as RemoteConfigBrowserSDK;
 
@@ -120,7 +123,7 @@ export function updateBrowserConfigWithRemoteConfig(
       browserConfig.defaultTracking = browserConfig.autocapture;
     }
 
-    browserConfig.loggerProvider.debug('Applied remote configuration:', JSON.stringify(browserConfig));
+    browserConfig.loggerProvider.debug('Browser config after remote config update:', JSON.stringify(browserConfig));
   } catch (e) {
     browserConfig.loggerProvider.error('Failed to apply remote configuration because of error: ', e);
   }
