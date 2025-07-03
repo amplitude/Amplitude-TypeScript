@@ -24,6 +24,7 @@ import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
+import * as joinedConfig from '../src/config/joined-config';
 
 // Mock RemoteConfigClient constructor
 const mockRemoteConfigClient = {
@@ -154,6 +155,57 @@ describe('browser-client', () => {
         fetchRemoteConfig: false,
       }).promise;
       expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+    });
+
+    test('should call updateBrowserConfigWithRemoteConfig when remoteConfig is not null', async () => {
+      const mockRemoteConfig = {
+        autocapture: {
+          elementInteractions: true,
+          pageViews: true,
+        },
+      };
+
+      // Mock the remote config client to return a non-null remoteConfig
+      const mockRemoteConfigClientWithData = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (
+              _configKey: string,
+              _eventType: string,
+              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+            ) => {
+              // Call the callback immediately with a non-null remoteConfig
+              callback(mockRemoteConfig, 'cache', new Date());
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      // Replace the default mock with our data mock
+      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithData);
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: MockedRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+
+      // Spy on the updateBrowserConfigWithRemoteConfig function
+      const updateBrowserConfigSpy = jest.spyOn(joinedConfig, 'updateBrowserConfigWithRemoteConfig');
+
+      await client.init(apiKey, {
+        fetchRemoteConfig: true,
+      }).promise;
+
+      // Verify that updateBrowserConfigWithRemoteConfig was called
+      expect(updateBrowserConfigSpy).toHaveBeenCalledTimes(1);
+      expect(updateBrowserConfigSpy).toHaveBeenCalledWith(
+        mockRemoteConfig,
+        expect.any(Object), // browserOptions
+      );
+
+      updateBrowserConfigSpy.mockRestore();
     });
 
     test('should initialize client', async () => {
