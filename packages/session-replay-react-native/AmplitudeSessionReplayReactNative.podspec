@@ -17,6 +17,7 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm,swift}"
 
   s.dependency 'AmplitudeSessionReplay', '>=0.4.0'
+  s.dependency 'AmplitudeCore', '>=1.1.0'
 
   # This code is to support RN prior to 0.71.0. Should be removed when we drop support for RN < 0.71.0.
   # Use install_modules_dependencies helper to install the dependencies if React Native version >=0.71.0.

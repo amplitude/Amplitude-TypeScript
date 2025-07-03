@@ -30,7 +30,7 @@ export interface NativeSessionReplayConfig {
   deviceId: string | null;
   /** Whether to enable remote configuration for dynamic settings updates */
   enableRemoteConfig: boolean;
-  /** Log level for native module logging (0=None, 1=Error, 2=Warn, 3=Verbose, 4=Debug) */
+  /** Log level for native module logging (0=None, 1=Error, 2=Warn, 3=Log, 4=Debug) */
   logLevel: 0 | 1 | 2 | 3 | 4;
   /** Level of masking applied to sensitive content in recordings */
   maskLevel: 'light' | 'medium' | 'conservative';
