@@ -7,15 +7,5 @@
   "logLevel": "Error",
   "name": "Amplitude SDK",
   "out": "docs",
-  "readme": "./README.md",
-  "exclude": [
-    "**/*.test.ts",
-    "**/*.test.js",
-    "**/*.spec.ts",
-    "**/*.spec.js",
-    "**/test/**",
-    "**/tests/**",
-    "**/examples/**",
-    "**/__tests__/**"
-  ]
+  "readme": "./README.md"
 }
