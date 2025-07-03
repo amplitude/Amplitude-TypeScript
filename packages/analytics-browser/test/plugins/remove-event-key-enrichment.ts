@@ -40,4 +40,4 @@ export const removeEventKeyEnrichment = (keysToRemove: KeyOfEvent[] = []): Enric
  * is set to 1000 milliseconds. In rare cases where initial request to Amplitude fails due to
  * bad payload, throttled request, server error, etc, the time difference can be extended.
  */
-export const removeTimeEnrichment = removeEventKeyEnrichment(['time']); 
+export const removeTimeEnrichment = removeEventKeyEnrichment(['time']);

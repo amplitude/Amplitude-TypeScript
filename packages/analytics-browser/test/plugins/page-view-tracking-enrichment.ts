@@ -12,7 +12,8 @@ export const pageViewTrackingEnrichment = (): EnrichmentPlugin => {
     type: 'enrichment',
     setup: async () => undefined,
     execute: async (event) => {
-      if (event.event_type !== '[Amplitude] Page Viewed') {  // event name format if using Autocapture Pageviews 
+      if (event.event_type !== '[Amplitude] Page Viewed') {
+        // event name format if using Autocapture Pageviews
         return event;
       }
       event.event_properties = {
@@ -23,4 +24,4 @@ export const pageViewTrackingEnrichment = (): EnrichmentPlugin => {
       return event;
     },
   };
-}; 
+};
