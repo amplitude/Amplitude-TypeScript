@@ -69,7 +69,7 @@ export function updateBrowserConfigWithRemoteConfig(
           const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
           // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
           const regexList = [];
-          for (const pattern of typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex || []) {
+          for (const pattern of typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex) {
             try {
               regexList.push(new RegExp(pattern));
             } catch (regexError) {
