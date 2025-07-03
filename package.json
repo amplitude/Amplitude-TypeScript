@@ -28,7 +28,6 @@
     "test": "lerna run test --stream",
     "test:nx-cache": "nx run-many --target=test --all",
     "test:nx-affected": "nx affected --target=test",
-    "test:examples": "jest --env=jsdom --coverage=false examples --setupFiles ./jest.setup.examples.js",
     "test:unit": "lerna run test --stream --ignore @amplitude/analytics-*-test",
     "test:e2e": "lerna run test --stream --scope @amplitude/analytics-*-test",
     "test:playwright": "lerna run test:playwright --stream",

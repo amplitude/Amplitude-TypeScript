@@ -1,4 +1,4 @@
-import { removeEventKeyEnrichment } from './';
+import { removeEventKeyEnrichment } from '../../../../examples/plugins/remove-event-key';
 
 describe('remove-event-key-enrichment', () => {
   describe('execute', () => {

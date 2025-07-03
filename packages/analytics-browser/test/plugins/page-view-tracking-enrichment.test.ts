@@ -1,4 +1,4 @@
-import { pageViewTrackingEnrichment } from './';
+import { pageViewTrackingEnrichment } from '../../../../examples/plugins/page-view-tracking-enrichment';
 
 describe('page-view-tracking-enrichment', () => {
   describe('execute', () => {
