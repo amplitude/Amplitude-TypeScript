@@ -23,6 +23,10 @@ import {
   BrowserClient,
   SpecialEventType,
   AnalyticsClient,
+  IRemoteConfigClient,
+  RemoteConfigClient,
+  RemoteConfig,
+  Source,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -68,6 +72,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  remoteConfig: IRemoteConfigClient;
+
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
     let options: BrowserOptions | undefined;
@@ -93,8 +101,24 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
     this.initializing = true;
 
-    let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
+
+    // Get default browser config based on browser options
+    let browserOptions = await useBrowserConfig(options.apiKey, options, this);
+    // Create remote config client and subscribe to analytics configs
+    this.remoteConfig = new RemoteConfigClient(
+      browserOptions.apiKey,
+      browserOptions.loggerProvider,
+      browserOptions.serverZone,
+    );
+    this.remoteConfig.subscribe(
+      'configs.analyticsSDK.browserSDK',
+      'all',
+      (res: RemoteConfig | null, source: Source, lastFetch: Date) => {
+        console.log('remoteConfig callback', { res, source, lastFetch });
+      },
+    );
+
     if (browserOptions.fetchRemoteConfig) {
       const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
       browserOptions = await joinedConfigGenerator.generateJoinedConfig();
