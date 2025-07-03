@@ -1,9 +1,8 @@
-import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import {
-  RequestMetadata,
-  BrowserConfig as IBrowserConfig,
   AutocaptureOptions,
   type ElementInteractionsOptions,
+  BrowserConfig,
+  RemoteConfig,
 } from '@amplitude/analytics-core';
 
 export interface AutocaptureOptionsRemoteConfig extends AutocaptureOptions {
@@ -16,80 +15,60 @@ export interface ElementInteractionsOptionsRemoteConfig extends ElementInteracti
   pageUrlAllowlistRegex?: string[];
 }
 
-export type BrowserRemoteConfig = {
-  browserSDK: {
-    autocapture?: AutocaptureOptionsRemoteConfig | boolean;
-  };
+// Type alias for the remote config structure we expect (this is what comes from the filtered browserSDK config)
+type RemoteConfigBrowserSDK = {
+  autocapture?: AutocaptureOptionsRemoteConfig | boolean;
 };
 
-export class BrowserJoinedConfigGenerator {
-  // Local config before generateJoinedConfig is called
-  // Joined config after generateJoinedConfig is called
-  config: IBrowserConfig;
-  remoteConfigFetch: RemoteConfigFetch<BrowserRemoteConfig> | undefined;
-
-  constructor(localConfig: IBrowserConfig) {
-    this.config = localConfig;
-    this.config.loggerProvider.debug(
-      'Local configuration before merging with remote config',
-      JSON.stringify(this.config, null, 2),
-    );
+/**
+ * Applies remote configuration to the browser config, merging autocapture settings.
+ * This function replicates the logic from the original generateJoinedConfig method.
+ */
+export function applyRemoteConfig(remoteConfig: RemoteConfig | null, browserConfig: BrowserConfig): BrowserConfig {
+  if (!remoteConfig) {
+    return browserConfig;
   }
 
-  async initialize() {
-    this.remoteConfigFetch = await createRemoteConfigFetch<BrowserRemoteConfig>({
-      localConfig: this.config,
-      configKeys: ['analyticsSDK'],
-    });
-  }
+  try {
+    browserConfig.loggerProvider.debug('Remote configuration:', JSON.stringify(remoteConfig, null, 2));
 
-  async generateJoinedConfig(): Promise<IBrowserConfig> {
-    try {
-      const remoteConfig =
-        this.remoteConfigFetch &&
-        (await this.remoteConfigFetch.getRemoteConfig('analyticsSDK', 'browserSDK', this.config.sessionId));
-      this.config.loggerProvider.debug('Remote configuration:', JSON.stringify(remoteConfig, null, 2));
+    const typedRemoteConfig = remoteConfig as RemoteConfigBrowserSDK;
 
-      // merge remoteConfig.autocapture and this.config.autocapture
-      // if a field is in remoteConfig.autocapture, use that value
-      // if a field is not in remoteConfig.autocapture, use the value from this.config.autocapture
-      if (remoteConfig && 'autocapture' in remoteConfig) {
-        if (typeof remoteConfig.autocapture === 'boolean') {
-          this.config.autocapture = remoteConfig.autocapture;
+    // merge remoteConfig.autocapture and browserConfig.autocapture
+    // if a field is in remoteConfig.autocapture, use that value
+    // if a field is not in remoteConfig.autocapture, use the value from browserConfig.autocapture
+    if (typedRemoteConfig && 'autocapture' in typedRemoteConfig) {
+      if (typeof typedRemoteConfig.autocapture === 'boolean') {
+        browserConfig.autocapture = typedRemoteConfig.autocapture;
+      }
+
+      if (typeof typedRemoteConfig.autocapture === 'object' && typedRemoteConfig.autocapture !== null) {
+        const transformedAutocaptureRemoteConfig = { ...typedRemoteConfig.autocapture };
+
+        if (browserConfig.autocapture === undefined) {
+          browserConfig.autocapture = typedRemoteConfig.autocapture;
         }
 
-        if (typeof remoteConfig.autocapture === 'object') {
-          const transformedAutocaptureRemoteConfig = { ...remoteConfig.autocapture };
+        // Handle Element Interactions config initialization
+        if (
+          typeof typedRemoteConfig.autocapture.elementInteractions === 'object' &&
+          typedRemoteConfig.autocapture.elementInteractions !== null &&
+          typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex?.length
+        ) {
+          transformedAutocaptureRemoteConfig.elementInteractions = {
+            ...typedRemoteConfig.autocapture.elementInteractions,
+          };
+          const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
 
-          if (this.config.autocapture === undefined) {
-            this.config.autocapture = remoteConfig.autocapture;
-          }
-
-          // Handle Element Interactions config initialization
-          if (
-            typeof remoteConfig.autocapture.elementInteractions === 'object' &&
-            remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex?.length
-          ) {
-            transformedAutocaptureRemoteConfig.elementInteractions = {
-              ...remoteConfig.autocapture.elementInteractions,
-            };
-            const transformedRcElementInteractions = transformedAutocaptureRemoteConfig.elementInteractions;
-
-            const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
-            // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
-            const regexList = [];
-            for (const pattern of remoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex) {
-              try {
-                regexList.push(new RegExp(pattern));
-              } catch (regexError) {
-                this.config.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
-              }
+          const exactAllowList = transformedRcElementInteractions.pageUrlAllowlist ?? [];
+          // Convert string patterns to RegExp objects, warn on invalid patterns and skip them
+          const regexList = [];
+          for (const pattern of typedRemoteConfig.autocapture.elementInteractions.pageUrlAllowlistRegex || []) {
+            try {
+              regexList.push(new RegExp(pattern));
+            } catch (regexError) {
+              browserConfig.loggerProvider.warn(`Invalid regex pattern: ${pattern}`, regexError);
             }
-
-            const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
-
-            transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
-            delete transformedRcElementInteractions.pageUrlAllowlistRegex;
           }
 
           if (typeof this.config.autocapture === 'boolean') {
@@ -105,43 +84,40 @@ export class BrowserJoinedConfigGenerator {
               ...transformedAutocaptureRemoteConfig,
             };
           }
+          const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
 
-          if (typeof this.config.autocapture === 'object') {
-            this.config.autocapture = {
-              ...this.config.autocapture,
-              ...transformedAutocaptureRemoteConfig,
-            };
-          }
+          transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
+          delete transformedRcElementInteractions.pageUrlAllowlistRegex;
         }
 
-        // Override default tracking options if autocapture is updated by remote config
-        this.config.defaultTracking = this.config.autocapture;
+        if (typeof browserConfig.autocapture === 'boolean') {
+          browserConfig.autocapture = {
+            attribution: browserConfig.autocapture,
+            fileDownloads: browserConfig.autocapture,
+            formInteractions: browserConfig.autocapture,
+            pageViews: browserConfig.autocapture,
+            sessions: browserConfig.autocapture,
+            elementInteractions: browserConfig.autocapture,
+            ...transformedAutocaptureRemoteConfig,
+          };
+        }
+
+        if (typeof browserConfig.autocapture === 'object') {
+          browserConfig.autocapture = {
+            ...browserConfig.autocapture,
+            ...transformedAutocaptureRemoteConfig,
+          };
+        }
       }
 
-      this.config.loggerProvider.debug('Joined configuration: ', JSON.stringify(this.config, null, 2));
-      this.config.requestMetadata ??= new RequestMetadata();
-      if (this.remoteConfigFetch?.metrics.fetchTimeAPISuccess) {
-        this.config.requestMetadata.recordHistogram(
-          'remote_config_fetch_time_API_success',
-          this.remoteConfigFetch.metrics.fetchTimeAPISuccess,
-        );
-      }
-      if (this.remoteConfigFetch?.metrics.fetchTimeAPIFail) {
-        this.config.requestMetadata.recordHistogram(
-          'remote_config_fetch_time_API_fail',
-          this.remoteConfigFetch.metrics.fetchTimeAPIFail,
-        );
-      }
-    } catch (e) {
-      this.config.loggerProvider.error('Failed to fetch remote configuration because of error: ', e);
+      // Override default tracking options if autocapture is updated by remote config
+      browserConfig.defaultTracking = browserConfig.autocapture;
     }
 
-    return this.config;
+    browserConfig.loggerProvider.debug('Applied remote configuration:', JSON.stringify(browserConfig, null, 2));
+  } catch (e) {
+    browserConfig.loggerProvider.error('Failed to apply remote configuration because of error: ', e);
   }
-}
 
-export const createBrowserJoinedConfigGenerator = async (localConfig: IBrowserConfig) => {
-  const joinedConfigGenerator = new BrowserJoinedConfigGenerator(localConfig);
-  await joinedConfigGenerator.initialize();
-  return joinedConfigGenerator;
-};
+  return browserConfig;
+}

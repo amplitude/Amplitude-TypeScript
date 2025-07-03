@@ -1,20 +1,6 @@
-import { createRemoteConfigFetch, RemoteConfigFetch } from '@amplitude/analytics-remote-config';
-import {
-  BrowserJoinedConfigGenerator,
-  createBrowserJoinedConfigGenerator,
-  BrowserRemoteConfig,
-} from '../../src/config/joined-config';
+import { applyRemoteConfig } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
-import {
-  RequestMetadata,
-  BrowserConfig as IBrowserConfig,
-  type BrowserConfig,
-  type ElementInteractionsOptions,
-} from '@amplitude/analytics-core';
-
-jest.mock('@amplitude/analytics-remote-config', () => ({
-  createRemoteConfigFetch: jest.fn(),
-}));
+import { type BrowserConfig, type ElementInteractionsOptions } from '@amplitude/analytics-core';
 
 function expectIsAutocaptureObjectWithElementInteractions(config: BrowserConfig): asserts config is BrowserConfig & {
   autocapture: BrowserConfig['autocapture'] & { elementInteractions: ElementInteractionsOptions };
@@ -24,42 +10,16 @@ function expectIsAutocaptureObjectWithElementInteractions(config: BrowserConfig)
 }
 
 describe('joined-config', () => {
-  let localConfig: IBrowserConfig;
-  let mockRemoteConfigFetch: RemoteConfigFetch<BrowserRemoteConfig>;
-  let generator: BrowserJoinedConfigGenerator;
-  const metrics = {
-    fetchTimeAPISuccess: 100,
-  };
+  let localConfig: BrowserConfig;
 
   beforeEach(() => {
     localConfig = { ...createConfigurationMock(), defaultTracking: false, autocapture: false };
-
-    mockRemoteConfigFetch = {
-      getRemoteConfig: jest.fn().mockResolvedValue({
-        defaultTracking: true,
-        autocapture: true,
-      }),
-      metrics: metrics,
-    };
-
-    // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
-    (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-      mockRemoteConfigFetch,
-    );
-
-    generator = new BrowserJoinedConfigGenerator(localConfig);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('BrowserJoinedConfigGenerator', () => {
-    describe('constructor', () => {
-      test('should set localConfig', () => {
-        expect(generator.config).toEqual(localConfig);
-        expect(generator.remoteConfigFetch).toBeUndefined();
-      });
+  describe('applyRemoteConfig', () => {
+    test('should return local config if remote config is null', () => {
+      const result = applyRemoteConfig(null, localConfig);
+      expect(result).toEqual(localConfig);
     });
 
     describe('initialize', () => {
@@ -259,283 +219,295 @@ describe('joined-config', () => {
           expect(joinedConfig.defaultTracking).toStrictEqual(remoteAutocapture);
         },
       );
-
-      test('should handle getRemoteConfig error', async () => {
-        const error = new Error('Mocked completeRequest error');
-        (mockRemoteConfigFetch.getRemoteConfig as jest.Mock).mockRejectedValue(error);
-
-        const logError = jest.spyOn(localConfig.loggerProvider, 'error');
-
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig).toEqual(localConfig);
-        expect(logError).toHaveBeenCalledWith('Failed to fetch remote configuration because of error: ', error);
-      });
-
-      test('should merge local and remote config', async () => {
-        await generator.initialize();
-        expect(generator.config.defaultTracking).toBe(false);
-        const joinedConfig = await generator.generateJoinedConfig();
-        const expectedConfig = localConfig;
-        expectedConfig.defaultTracking = true;
-
-        expect(mockRemoteConfigFetch.getRemoteConfig).toHaveBeenCalledWith(
-          'analyticsSDK',
-          'browserSDK',
-          localConfig.sessionId,
-        );
-        // expectedConfig also includes protected properties
-        expect(joinedConfig).toEqual(expectedConfig);
-      });
-
-      test('should use local config if remoteConfigFetch is not set', async () => {
-        expect(generator.remoteConfigFetch).toBeUndefined();
-        const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig).toEqual(localConfig);
-      });
-
-      test.each([undefined, new RequestMetadata()])('should set requestMetadata', async (requestMetadata) => {
-        await generator.initialize();
-        generator.config.requestMetadata = requestMetadata;
-        const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig.requestMetadata).not.toBeUndefined();
-      });
-
-      test('should set remote config fetch time API success', async () => {
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue({
-            defaultTracking: true,
-            autocapture: true,
-          }),
-          metrics: {
-            fetchTimeAPISuccess: 100,
-          },
-        };
-
-        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
-        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-          mockRemoteConfigFetch,
-        );
-
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_success).toBe(100);
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(undefined);
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(undefined);
-      });
-
-      test('should set remote config fetch time API fail', async () => {
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue({
-            defaultTracking: true,
-            autocapture: true,
-          }),
-          metrics: {
-            fetchTimeAPIFail: 100,
-          },
-        };
-
-        // Mock the createRemoteConfigFetch to return the mockRemoteConfigFetch
-        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-          mockRemoteConfigFetch,
-        );
-
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_success).toBe(
-          undefined,
-        );
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_API_fail).toBe(100);
-        expect(joinedConfig.requestMetadata?.sdk.metrics.histogram.remote_config_fetch_time_IDB).toBe(undefined);
-      });
-
-      test('should convert pageUrlAllowlistRegex strings to RegExp objects and combine with pageUrlAllowlist', async () => {
-        localConfig = createConfigurationMock(createConfigurationMock({}));
-        generator = new BrowserJoinedConfigGenerator(localConfig);
-
-        const remoteConfig = {
-          autocapture: {
-            elementInteractions: {
-              pageUrlAllowlist: ['exact-match.com', 'another-exact-match.com'],
-              pageUrlAllowlistRegex: ['^https://.*\\.example\\.com$', '.*\\.amplitude\\.com$'],
-            },
-          },
-        };
-
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          metrics: metrics,
-        };
-
-        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-          mockRemoteConfigFetch,
-        );
-
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-
-        // Verify the combined pageUrlAllowlist contains both exact matches and RegExp objects
-        expectIsAutocaptureObjectWithElementInteractions(joinedConfig);
-        const elementInteractions = joinedConfig.autocapture?.elementInteractions;
-
-        const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
-        expect(Array.isArray(pageUrlAllowlist)).toBe(true);
-        expect(pageUrlAllowlist?.length).toBe(4);
-
-        // First two items should be strings
-        expect(pageUrlAllowlist?.[0]).toBe('exact-match.com');
-        expect(pageUrlAllowlist?.[1]).toBe('another-exact-match.com');
-
-        // Last two items should be RegExp objects
-        expect(pageUrlAllowlist?.[2]).toBeInstanceOf(RegExp);
-        expect(pageUrlAllowlist?.[3]).toBeInstanceOf(RegExp);
-        expect(pageUrlAllowlist?.[2].toString()).toBe(new RegExp('^https://.*\\.example\\.com$').toString());
-        expect(pageUrlAllowlist?.[3].toString()).toBe(new RegExp('.*\\.amplitude\\.com$').toString());
-
-        // pageUrlAllowlistRegex should have been removed
-        expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
-      });
-
-      test('should handle empty pageUrlAllowlist when pageUrlAllowlistRegex is provided', async () => {
-        localConfig = createConfigurationMock(createConfigurationMock({}));
-        generator = new BrowserJoinedConfigGenerator(localConfig);
-
-        const remoteConfig = {
-          autocapture: {
-            elementInteractions: {
-              pageUrlAllowlistRegex: ['^https://.*\\.example\\.com$', '.*\\.amplitude\\.com$'],
-            },
-          },
-        };
-
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          metrics: metrics,
-        };
-
-        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-          mockRemoteConfigFetch,
-        );
-
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-
-        // Verify the pageUrlAllowlist contains only RegExp objects
-        expectIsAutocaptureObjectWithElementInteractions(joinedConfig);
-        const elementInteractions = joinedConfig.autocapture?.elementInteractions;
-
-        const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
-        expect(Array.isArray(pageUrlAllowlist)).toBe(true);
-        expect(pageUrlAllowlist?.length).toBe(2);
-
-        // Both items should be RegExp objects
-        expect(pageUrlAllowlist?.[0]).toBeInstanceOf(RegExp);
-        expect(pageUrlAllowlist?.[1]).toBeInstanceOf(RegExp);
-        expect(pageUrlAllowlist?.[0].toString()).toBe(new RegExp('^https://.*\\.example\\.com$').toString());
-        expect(pageUrlAllowlist?.[1].toString()).toBe(new RegExp('.*\\.amplitude\\.com$').toString());
-
-        // pageUrlAllowlistRegex should have been removed
-        expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
-      });
-
-      test('should skip and warn on invalid regex patterns', async () => {
-        localConfig = createConfigurationMock(createConfigurationMock({}));
-        generator = new BrowserJoinedConfigGenerator(localConfig);
-
-        const remoteConfig = {
-          autocapture: {
-            elementInteractions: {
-              pageUrlAllowlistRegex: ['^https://.*\\.example\\.com$', '***', '.*\\.amplitude\\.com$'],
-            },
-          },
-        };
-
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          metrics: metrics,
-        };
-        const logWarn = jest.spyOn(localConfig.loggerProvider, 'warn');
-
-        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-          mockRemoteConfigFetch,
-        );
-
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-
-        // Verify the pageUrlAllowlist contains only RegExp objects
-        expectIsAutocaptureObjectWithElementInteractions(joinedConfig);
-        const elementInteractions = joinedConfig.autocapture?.elementInteractions;
-
-        const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
-        expect(Array.isArray(pageUrlAllowlist)).toBe(true);
-        expect(pageUrlAllowlist?.length).toBe(2);
-
-        // Both items should be RegExp objects
-        expect(pageUrlAllowlist?.[0]).toBeInstanceOf(RegExp);
-        expect(pageUrlAllowlist?.[1]).toBeInstanceOf(RegExp);
-        expect(pageUrlAllowlist?.[0].toString()).toBe(new RegExp('^https://.*\\.example\\.com$').toString());
-        expect(pageUrlAllowlist?.[1].toString()).toBe(new RegExp('.*\\.amplitude\\.com$').toString());
-
-        // pageUrlAllowlistRegex should have been removed
-        expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
-
-        expect(logWarn).toHaveBeenCalledWith('Invalid regex pattern: ***', expect.any(Error));
-      });
-
-      test('should not fail or override pageUrlAllowlist when pageUrlAllowlistRegex is undefined', async () => {
-        localConfig = createConfigurationMock({});
-        generator = new BrowserJoinedConfigGenerator(localConfig);
-
-        // Define the remote configuration with an existing exact match allowlist and pageUrlAllowlistRegex as undefined
-        const remoteConfig = {
-          autocapture: {
-            elementInteractions: {
-              pageUrlAllowlist: ['existing-domain.com', 'another-domain.net'],
-            },
-          },
-        };
-
-        mockRemoteConfigFetch = {
-          getRemoteConfig: jest.fn().mockResolvedValue(remoteConfig),
-          metrics: metrics,
-        };
-
-        (createRemoteConfigFetch as jest.MockedFunction<typeof createRemoteConfigFetch>).mockResolvedValue(
-          mockRemoteConfigFetch,
-        );
-
-        // Act: Initialize the generator and generate the joined configuration
-        await generator.initialize();
-        const joinedConfig = await generator.generateJoinedConfig();
-
-        // Assert: Verify that the original pageUrlAllowlist remains unchanged
-        // Ensure the autocapture and elementInteractions objects exist in the joined config
-        expectIsAutocaptureObjectWithElementInteractions(joinedConfig);
-        const elementInteractions = joinedConfig.autocapture?.elementInteractions;
-        expect(elementInteractions).toBeDefined();
-
-        const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
-        expect(Array.isArray(pageUrlAllowlist)).toBe(true);
-        // Expect the list to have the original exact match strings
-        expect(pageUrlAllowlist?.length).toBe(2);
-
-        // Verify that the elements in the allowlist are the original strings
-        expect(pageUrlAllowlist?.[0]).toBe('existing-domain.com');
-        expect(pageUrlAllowlist?.[1]).toBe('another-domain.net');
-
-        // Assert: Verify that the pageUrlAllowlistRegex property has been removed (even if it was undefined)
-        expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
-      });
     });
-  });
 
-  describe('createBrowserJoinedConfigGenerator', () => {
-    test('should create joined config generator', async () => {
-      const generator = await createBrowserJoinedConfigGenerator(localConfig);
+    test('should disable elementInteractions if remote config sets it to false', () => {
+      localConfig = createConfigurationMock(
+        createConfigurationMock({
+          autocapture: true,
+        }),
+      );
 
-      expect(generator.config).toEqual(localConfig);
-      expect(generator.remoteConfigFetch).toBe(mockRemoteConfigFetch);
+      const remoteConfig = {
+        autocapture: {
+          elementInteractions: false,
+        },
+      };
+
+      const expectedAutocapture = {
+        sessions: true,
+        fileDownloads: true,
+        formInteractions: true,
+        pageViews: true,
+        attribution: true,
+        elementInteractions: false,
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+      expect(result.autocapture).toStrictEqual(expectedAutocapture);
+      expect(result.defaultTracking).toStrictEqual(expectedAutocapture);
+    });
+
+    test('should disable defaultTracking if remote config sets it to false', () => {
+      localConfig = createConfigurationMock(
+        createConfigurationMock({
+          autocapture: true,
+          defaultTracking: true,
+        }),
+      );
+
+      const remoteConfig = {
+        autocapture: {
+          fileDownloads: false,
+          formInteractions: false,
+          pageViews: false,
+          attribution: false,
+          sessions: false,
+        },
+      };
+
+      const expectedAutocapture = {
+        fileDownloads: false,
+        formInteractions: false,
+        pageViews: false,
+        attribution: false,
+        sessions: false,
+        elementInteractions: true,
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+      expect(result.defaultTracking).toStrictEqual(expectedAutocapture);
+      expect(result.autocapture).toStrictEqual(expectedAutocapture);
+    });
+
+    test.each([
+      {
+        sessions: false,
+        fileDownloads: false,
+        formInteractions: false,
+        attribution: false,
+        pageViews: false,
+      },
+      false,
+    ])('should only enable elementInteractions if remote config only sets it to true', (localAutocapture) => {
+      localConfig = createConfigurationMock(
+        createConfigurationMock({
+          autocapture: localAutocapture,
+        }),
+      );
+
+      const remoteConfig = {
+        autocapture: {
+          elementInteractions: true,
+        },
+      };
+
+      const expectedJoinedConfig = {
+        sessions: false,
+        fileDownloads: false,
+        formInteractions: false,
+        attribution: false,
+        pageViews: false,
+        elementInteractions: true,
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+      expect(result.autocapture).toStrictEqual(expectedJoinedConfig);
+      expect(result.defaultTracking).toStrictEqual(expectedJoinedConfig);
+    });
+
+    test('should use remote autocapture if local autocapture is undefined', () => {
+      localConfig = createConfigurationMock(createConfigurationMock({}));
+
+      const remoteConfig = {
+        autocapture: {
+          elementInteractions: false,
+        },
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+      expect(result.autocapture).toStrictEqual(remoteConfig.autocapture);
+      expect(result.defaultTracking).toStrictEqual(remoteConfig.autocapture);
+    });
+
+    test.each([true, false])(
+      'should overwrite local autocapture if remote autocapture is boolean',
+      (remoteAutocapture) => {
+        localConfig = createConfigurationMock(createConfigurationMock({}));
+
+        const remoteConfig = {
+          autocapture: remoteAutocapture,
+        };
+
+        const result = applyRemoteConfig(remoteConfig, localConfig);
+        expect(result.autocapture).toStrictEqual(remoteAutocapture);
+        expect(result.defaultTracking).toStrictEqual(remoteAutocapture);
+      },
+    );
+
+    test('should handle errors gracefully', () => {
+      const logError = jest.spyOn(localConfig.loggerProvider, 'error');
+
+      // Create a problematic remote config that will cause an error
+      const remoteConfig = {
+        autocapture: {
+          get elementInteractions() {
+            throw new Error('Test error');
+          },
+        },
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+      expect(result).toEqual(localConfig);
+      expect(logError).toHaveBeenCalledWith(
+        'Failed to apply remote configuration because of error: ',
+        expect.any(Error),
+      );
+    });
+
+    test('should merge local and remote config', () => {
+      const remoteConfig = {
+        autocapture: true,
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+      expect(result.autocapture).toBe(true);
+      expect(result.defaultTracking).toBe(true);
+    });
+
+    test('should convert pageUrlAllowlistRegex strings to RegExp objects and combine with pageUrlAllowlist', () => {
+      localConfig = createConfigurationMock(createConfigurationMock({}));
+
+      const remoteConfig = {
+        autocapture: {
+          elementInteractions: {
+            pageUrlAllowlist: ['exact-match.com', 'another-exact-match.com'],
+            pageUrlAllowlistRegex: ['^https://.*\\.example\\.com$', '.*\\.amplitude\\.com$'],
+          },
+        },
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+
+      // Verify the combined pageUrlAllowlist contains both exact matches and RegExp objects
+      expectIsAutocaptureObjectWithElementInteractions(result);
+      const elementInteractions = result.autocapture?.elementInteractions;
+
+      const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
+      expect(Array.isArray(pageUrlAllowlist)).toBe(true);
+      expect(pageUrlAllowlist?.length).toBe(4);
+
+      // First two items should be strings
+      expect(pageUrlAllowlist?.[0]).toBe('exact-match.com');
+      expect(pageUrlAllowlist?.[1]).toBe('another-exact-match.com');
+
+      // Last two items should be RegExp objects
+      expect(pageUrlAllowlist?.[2]).toBeInstanceOf(RegExp);
+      expect(pageUrlAllowlist?.[3]).toBeInstanceOf(RegExp);
+      expect(pageUrlAllowlist?.[2].toString()).toBe(new RegExp('^https://.*\\.example\\.com$').toString());
+      expect(pageUrlAllowlist?.[3].toString()).toBe(new RegExp('.*\\.amplitude\\.com$').toString());
+
+      // pageUrlAllowlistRegex should have been removed
+      expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
+    });
+
+    test('should handle empty pageUrlAllowlist when pageUrlAllowlistRegex is provided', () => {
+      localConfig = createConfigurationMock(createConfigurationMock({}));
+
+      const remoteConfig = {
+        autocapture: {
+          elementInteractions: {
+            pageUrlAllowlistRegex: ['^https://.*\\.example\\.com$', '.*\\.amplitude\\.com$'],
+          },
+        },
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+
+      // Verify the pageUrlAllowlist contains only RegExp objects
+      expectIsAutocaptureObjectWithElementInteractions(result);
+      const elementInteractions = result.autocapture?.elementInteractions;
+
+      const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
+      expect(Array.isArray(pageUrlAllowlist)).toBe(true);
+      expect(pageUrlAllowlist?.length).toBe(2);
+
+      // Both items should be RegExp objects
+      expect(pageUrlAllowlist?.[0]).toBeInstanceOf(RegExp);
+      expect(pageUrlAllowlist?.[1]).toBeInstanceOf(RegExp);
+      expect(pageUrlAllowlist?.[0].toString()).toBe(new RegExp('^https://.*\\.example\\.com$').toString());
+      expect(pageUrlAllowlist?.[1].toString()).toBe(new RegExp('.*\\.amplitude\\.com$').toString());
+
+      // pageUrlAllowlistRegex should have been removed
+      expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
+    });
+
+    test('should skip and warn on invalid regex patterns', () => {
+      localConfig = createConfigurationMock(createConfigurationMock({}));
+
+      const remoteConfig = {
+        autocapture: {
+          elementInteractions: {
+            pageUrlAllowlistRegex: ['^https://.*\\.example\\.com$', '***', '.*\\.amplitude\\.com$'],
+          },
+        },
+      };
+
+      const logWarn = jest.spyOn(localConfig.loggerProvider, 'warn');
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+
+      // Verify the pageUrlAllowlist contains only RegExp objects
+      expectIsAutocaptureObjectWithElementInteractions(result);
+      const elementInteractions = result.autocapture?.elementInteractions;
+
+      const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
+      expect(Array.isArray(pageUrlAllowlist)).toBe(true);
+      expect(pageUrlAllowlist?.length).toBe(2);
+
+      // Both items should be RegExp objects
+      expect(pageUrlAllowlist?.[0]).toBeInstanceOf(RegExp);
+      expect(pageUrlAllowlist?.[1]).toBeInstanceOf(RegExp);
+      expect(pageUrlAllowlist?.[0].toString()).toBe(new RegExp('^https://.*\\.example\\.com$').toString());
+      expect(pageUrlAllowlist?.[1].toString()).toBe(new RegExp('.*\\.amplitude\\.com$').toString());
+
+      // pageUrlAllowlistRegex should have been removed
+      expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
+
+      expect(logWarn).toHaveBeenCalledWith('Invalid regex pattern: ***', expect.any(Error));
+    });
+
+    test('should not fail or override pageUrlAllowlist when pageUrlAllowlistRegex is undefined', () => {
+      localConfig = createConfigurationMock({});
+
+      // Define the remote configuration with an existing exact match allowlist and pageUrlAllowlistRegex as undefined
+      const remoteConfig = {
+        autocapture: {
+          elementInteractions: {
+            pageUrlAllowlist: ['existing-domain.com', 'another-domain.net'],
+          },
+        },
+      };
+
+      const result = applyRemoteConfig(remoteConfig, localConfig);
+
+      // Assert: Verify that the original pageUrlAllowlist remains unchanged
+      // Ensure the autocapture and elementInteractions objects exist in the joined config
+      expectIsAutocaptureObjectWithElementInteractions(result);
+      const elementInteractions = result.autocapture?.elementInteractions;
+      expect(elementInteractions).toBeDefined();
+
+      const pageUrlAllowlist = elementInteractions.pageUrlAllowlist;
+      expect(Array.isArray(pageUrlAllowlist)).toBe(true);
+      // Expect the list to have the original exact match strings
+      expect(pageUrlAllowlist?.length).toBe(2);
+
+      // Verify that the elements in the allowlist are the original strings
+      expect(pageUrlAllowlist?.[0]).toBe('existing-domain.com');
+      expect(pageUrlAllowlist?.[1]).toBe('another-domain.net');
+
+      // Assert: Verify that the pageUrlAllowlistRegex property has been removed (even if it was undefined)
+      expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
     });
   });
 });
