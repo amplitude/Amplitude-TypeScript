@@ -25,25 +25,13 @@ import * as formInteractionTracking from '../src/plugins/form-interaction-tracki
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
 
-// Mock only RemoteConfigClient from analytics-core
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return
-jest.mock('@amplitude/analytics-core', () => {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const originalModule = jest.requireActual('@amplitude/analytics-core');
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  return {
-    ...originalModule,
-    RemoteConfigClient: jest.fn().mockImplementation(() => ({
-      subscribe: jest.fn(),
-      unsubscribe: jest.fn(),
-      updateConfigs: jest.fn(),
-    })),
-  };
-});
-
-// Get the mocked constructor for use in tests
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-var-requires
-const MockedRemoteConfigClient = jest.mocked(require('@amplitude/analytics-core').RemoteConfigClient);
+// Mock RemoteConfigClient constructor
+const mockRemoteConfigClient = {
+  subscribe: jest.fn(),
+  unsubscribe: jest.fn(),
+  updateConfigs: jest.fn(),
+};
+let MockedRemoteConfigClient: jest.SpyInstance;
 
 jest.mock('web-vitals', () => ({
   onLCP: jest.fn(),
@@ -74,12 +62,28 @@ describe('browser-client', () => {
     apiKey = core.UUID();
     userId = core.UUID();
     deviceId = core.UUID();
+
+    // Set up RemoteConfigClient mock
+    MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClient);
+    Object.defineProperty(core, 'RemoteConfigClient', {
+      value: MockedRemoteConfigClient,
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
     // clean up cookies
     document.cookie = `AMP_${apiKey}=null; expires=-1`;
+    // clean up RemoteConfigClient mock
+    if (MockedRemoteConfigClient) {
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+    }
   });
 
   describe('plugin', () => {
@@ -515,8 +519,22 @@ describe('browser-client', () => {
     });
 
     test('should not support offline mode if global scope returns undefined', async () => {
-      // Skip this test as it conflicts with global mocks
-      // The functionality it tests is covered by other tests
+      const getGlobalScopeMock = jest.spyOn(core, 'getGlobalScope').mockReturnValueOnce(undefined);
+      const addEventListenerMock = jest.spyOn(window, 'addEventListener');
+
+      await client.init(apiKey, {
+        defaultTracking: false,
+      }).promise;
+
+      window.dispatchEvent(new Event('online'));
+      expect(client.config.offline).toBe(false);
+
+      client.config.offline = true;
+      window.dispatchEvent(new Event('offline'));
+      expect(client.config.offline).toBe(true);
+
+      getGlobalScopeMock.mockRestore();
+      addEventListenerMock.mockRestore();
     });
 
     test.each([[url], [new URL(`https://www.example.com?deviceId=${testDeviceId}`)]])(
@@ -1310,8 +1328,32 @@ describe('browser-client', () => {
       expect(logSpy).toHaveBeenCalledWith('Created a new session for new campaign.');
     });
     test('should track web attribution if change in campaign information', async () => {
-      // Skip this test as it conflicts with global mocks
-      // The functionality it tests is covered by other tests
+      const track = jest.spyOn(client, 'dispatch').mockReturnValue(
+        Promise.resolve({
+          code: 200,
+          message: '',
+          event: {
+            event_type: 'event_type',
+          },
+        }),
+      );
+      await client.init(apiKey, {
+        optOut: true,
+        logLevel: LogLevel.Warn,
+        defaultTracking: {
+          attribution: {
+            resetSessionOnNewCampaign: true,
+          },
+        },
+      }).promise;
+
+      client.webAttribution = new WebAttribution({}, { ...client.config, lastEventTime: undefined });
+      client.webAttribution.shouldTrackNewCampaign = true;
+      jest.spyOn(core, 'isNewSession').mockReturnValueOnce(false);
+      await client.process({
+        event_type: 'event',
+      });
+      expect(track).toHaveBeenCalled();
     });
 
     test('should proceed with unexpired session', async () => {
