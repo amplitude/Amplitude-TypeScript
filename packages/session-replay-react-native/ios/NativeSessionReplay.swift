@@ -1,5 +1,6 @@
 import Foundation
 import AmplitudeSessionReplay
+import AmplitudeCore
 
 @objc(AMPNativeSessionReplay)
 class NativeSessionReplay: NSObject, RCTBridgeModule {
@@ -8,7 +9,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
     }
     
     var sessionReplay: SessionReplay!
-    var logger: ConsoleLogger!
+    var logger: CoreLogger!
     
     override init() {
         print("NativeSessionReplay init")
@@ -31,7 +32,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
         
         let deviceId = config["deviceId"] as? String
         
-        logger = ConsoleLogger(logLevel: logLevel)
+        logger = OSLogger(logLevel: LogLevel(rawValue: logLevel) ?? .warn)
         
         logger.log(message:
             """
@@ -54,7 +55,7 @@ class NativeSessionReplay: NSObject, RCTBridgeModule {
             deviceId: deviceId,
             sessionId: sessionId.int64Value,
             optOut: optOut,
-            sampleRate: Float(sampleRate),
+            sampleRate: Float(truncating: sampleRate),
             logger: logger,
             serverZone: serverZone == "EU" ? .EU : .US,
             maskLevel: .fromString(maskLevel),
