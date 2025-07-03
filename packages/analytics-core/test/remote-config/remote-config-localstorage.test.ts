@@ -49,7 +49,9 @@ describe('RemoteConfigLocalStorage', () => {
 
       expect(result.remoteConfig).toEqual(remoteConfig);
       expect(result.lastFetch).toEqual(lastFetch);
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config localstorage parsed successfully.');
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config localstorage parsed successfully:'),
+      );
     });
 
     it('should return remote config info null and clear storage if JSON parsing fails', async () => {

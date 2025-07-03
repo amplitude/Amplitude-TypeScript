@@ -118,11 +118,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
           'configs.analyticsSDK.browserSDK',
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
-            browserOptions.loggerProvider.debug('Remote configuration received:', {
-              remoteConfig: JSON.stringify(remoteConfig, null, 2),
-              source,
-              lastFetch,
-            });
+            browserOptions.loggerProvider.debug(
+              'Remote configuration received:',
+              JSON.stringify(
+                {
+                  remoteConfig: JSON.stringify(remoteConfig),
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
             if (remoteConfig) {
               updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
             }
