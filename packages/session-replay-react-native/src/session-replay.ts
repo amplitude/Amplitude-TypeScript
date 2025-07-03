@@ -1,3 +1,5 @@
+// @refresh reset
+
 import { NativeSessionReplay, type NativeSessionReplayConfig } from './native-module';
 import { getDefaultConfig, SessionReplayConfig } from './session-replay-config';
 import { createSessionReplayLogger } from './logger';
