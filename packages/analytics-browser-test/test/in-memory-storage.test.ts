@@ -69,7 +69,8 @@ describe('Storage options', () => {
      */
     expect(window.localStorage.key(0)).toContain(`AMP_${shortenedApiKey}`);
     expect(window.localStorage.key(1)).toBe(`AMP_unsent_${shortenedApiKey}`);
-    expect(window.localStorage.length).toBe(2);
+    expect(window.localStorage.key(2)).toBe(`AMP_remote_config_${shortenedApiKey}`);
+    expect(window.localStorage.length).toBe(3);
 
     scope.done();
   });
@@ -95,7 +96,10 @@ describe('Storage options', () => {
      * storageProvider is set to new MemoryStorage()
      * asserts that local storage is not used
      */
-    expect(window.localStorage.length).toBe(0);
+    // TODO(xinyi): configurable storage for remote config.
+    // Right now, remote config is stored in local storage only.
+    expect(window.localStorage.key(0)).toBe(`AMP_remote_config_${shortenedApiKey}`);
+    expect(window.localStorage.length).toBe(1);
 
     scope.done();
   });

@@ -5,9 +5,13 @@ import { UUID } from '../utils/uuid';
 
 /**
  * Modes for receiving remote config updates:
- * - `'all'` – Receive all config updates as they occur.
- * - `{ timeout: number }` – Wait for a remote response until the specified timeout (in milliseconds),
- *   then return a cached copy if available.
+ * - `'all'` – Optimized for both speed and freshness. Returns the fastest response first
+ *   (cache or remote), then always waits for and returns the remote response to ensure
+ *   the most up-to-date config. Callback may be called once (if remote wins) or twice
+ *   (cache first, then remote).
+ * - `{ timeout: number }` – Prefers remote data but with a fallback strategy. Waits for
+ *   a remote response until the specified timeout (in milliseconds), then falls back to
+ *   cached data if available. Callback is called exactly once.
  */
 export type DeliveryMode = 'all' | { timeout: number };
 
@@ -163,7 +167,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
    */
   async subscribeAll(callbackInfo: CallbackInfo) {
     const remotePromise = this.fetch().then((result) => {
-      this.logger.debug('Remote config client subscription all mode fetched from remote.');
+      this.logger.debug(`Remote config client subscription all mode fetched from remote: ${JSON.stringify(result)}`);
       this.sendCallback(callbackInfo, result, 'remote');
       void this.storage.setConfig(result);
     });
@@ -177,7 +181,7 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
     // If cache is fetched first, wait for remote.
     if (result !== undefined) {
-      this.logger.debug('Remote config client subscription all mode fetched from cache.');
+      this.logger.debug(`Remote config client subscription all mode fetched from cache: ${JSON.stringify(result)}`);
       this.sendCallback(callbackInfo, result, 'cache');
     }
     await remotePromise;
