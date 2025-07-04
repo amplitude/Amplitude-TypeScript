@@ -45,15 +45,26 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
     tag: tagName,
   };
 
-  const siblings = Array.from(element.parentElement?.children ?? []);
-  if (siblings.length) {
-    properties.index = siblings.indexOf(element);
-    properties.indexOfType = siblings.filter((el) => el.tagName === element.tagName).indexOf(element);
+  // Get index of element in parent's children and index of type of element in parent's children
+  let indexOfType = 0,
+    indexOfElement = 0;
+  const siblings = element.parentElement?.children ?? [];
+  while (indexOfElement < siblings.length) {
+    const el = siblings[indexOfElement];
+    if (el === element) {
+      properties.index = indexOfElement;
+      properties.indexOfType = indexOfType;
+      break;
+    }
+    indexOfElement++;
+    if (el.tagName === element.tagName) {
+      indexOfType++;
+    }
   }
 
-  const prevSiblingTag = element.previousElementSibling?.tagName?.toLowerCase();
-  if (prevSiblingTag) {
-    properties.prevSib = String(prevSiblingTag);
+  const previousElement = element.previousElementSibling;
+  if (previousElement) {
+    properties.prevSib = String(previousElement.tagName).toLowerCase();
   }
 
   const id = element.getAttribute('id');
@@ -67,13 +78,16 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   }
 
   const attributes: Record<string, string> = {};
-  const attributesArray = Array.from(element.attributes);
-  const filteredAttributes = attributesArray.filter((attr) => !BLOCKED_ATTRIBUTES.includes(attr.name));
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
   if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
-    for (const attr of filteredAttributes) {
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attr = element.attributes[i];
+      if (BLOCKED_ATTRIBUTES.includes(attr.name)) {
+        continue;
+      }
+
       // If sensitive element, only allow certain attributes
       if (isSensitiveElement && !SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST.includes(attr.name)) {
         continue;
