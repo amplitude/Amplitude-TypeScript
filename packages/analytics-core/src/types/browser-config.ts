@@ -165,6 +165,11 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   networkTracking?: boolean | NetworkTrackingOptions;
+  /**
+   * Enables/disables web vitals tracking.
+   * @defaultValue `false`
+   */
+  webVitals?: boolean;
 }
 
 export interface TrackingOptions {

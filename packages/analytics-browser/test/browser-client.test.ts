@@ -16,6 +16,7 @@ import * as core from '@amplitude/analytics-core';
 import * as pageViewTracking from '@amplitude/plugin-page-view-tracking-browser';
 import * as autocapture from '@amplitude/plugin-autocapture-browser';
 import * as networkCapturePlugin from '@amplitude/plugin-network-capture-browser';
+import * as webVitals from '@amplitude/plugin-web-vitals-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
 import * as RemoteConfig from '../src/config/joined-config';
@@ -29,6 +30,14 @@ jest.mock('../src/config/joined-config', () => ({
   createBrowserJoinedConfigGenerator: jest.fn().mockImplementation((localConfig) => ({
     generateJoinedConfig: jest.fn().mockResolvedValue(localConfig),
   })),
+}));
+
+jest.mock('web-vitals', () => ({
+  onLCP: jest.fn(),
+  onFCP: jest.fn(),
+  onINP: jest.fn(),
+  onCLS: jest.fn(),
+  onTTFB: jest.fn(),
 }));
 
 describe('browser-client', () => {
@@ -410,6 +419,16 @@ describe('browser-client', () => {
         },
       }).promise;
       expect(networkTrackingPlugin).toHaveBeenCalledTimes(1);
+    });
+
+    test('should use web vitals plugin when autocapture.webVitals is on', async () => {
+      const webVitalsPlugin = jest.spyOn(webVitals, 'webVitalsPlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          webVitals: true,
+        },
+      }).promise;
+      expect(webVitalsPlugin).toHaveBeenCalledTimes(1);
     });
 
     test('should listen for network change to online', async () => {

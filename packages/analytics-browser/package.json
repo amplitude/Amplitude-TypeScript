@@ -52,6 +52,7 @@
     "@amplitude/plugin-autocapture-browser": "^1.5.0",
     "@amplitude/plugin-network-capture-browser": "^1.3.0",
     "@amplitude/plugin-page-view-tracking-browser": "^2.3.33",
+    "@amplitude/plugin-web-vitals-browser": "^1.0.0",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

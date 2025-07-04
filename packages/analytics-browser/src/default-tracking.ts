@@ -91,6 +91,24 @@ export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | b
   return false;
 };
 
+/**
+ * Returns true if
+ * 1. autocapture === true
+ * 2. if autocapture.webVitals === true
+ * otherwise returns false
+ */
+export const isWebVitalsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (typeof autocapture === 'object' && autocapture.webVitals === true) {
+    return true;
+  }
+
+  return false;
+};
+
 export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
   if (
     isElementInteractionsEnabled(config.autocapture) &&
