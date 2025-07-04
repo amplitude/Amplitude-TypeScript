@@ -38,7 +38,7 @@ export class SegmentSessionReplayPlugin extends Plugin {
   private sessionReplayConfig: SessionReplayConfig;
 
   // @review: This is to ensure the plugin is initialized before the first event is processed.
-  // because `configure` is not asyncronous
+  // because `configure` is not asynchronous
   private initPromise: Promise<void> | null = null;
 
   constructor(config: SessionReplayConfig) {

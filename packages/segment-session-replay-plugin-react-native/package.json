@@ -13,9 +13,9 @@
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
   "license": "MIT",
-  "main": "src/index.ts",
-  "module": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "lib/commonjs/index",
+  "module": "lib/module/index",
+  "types": "lib/typescript/index.d.ts",
   "react-native": "src/index.ts",
   "source": "src/index.ts",
   "publishConfig": {
@@ -27,7 +27,7 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "echo 'build'",
+    "build": "bob build",
     "fix": "yarn fix:eslint & yarn fix:prettier",
     "fix:eslint": "eslint '{src,test}/**/*.ts' --fix",
     "fix:prettier": "prettier --write \"{src,test}/**/*.ts\"",
@@ -53,10 +53,25 @@
   },
   "devDependencies": {
     "@amplitude/session-replay-react-native": "0.0.1-beta.1",
-    "@segment/analytics-react-native": "2.15.0"
+    "@segment/analytics-react-native": "2.15.0",
+    "react-native-builder-bob": "^0.20.3"
   },
   "peerDependencies": {
     "@amplitude/session-replay-react-native": "*",
     "@segment/analytics-react-native": ">= 2.2.0 < 3"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      "commonjs",
+      "module",
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
   }
 }
