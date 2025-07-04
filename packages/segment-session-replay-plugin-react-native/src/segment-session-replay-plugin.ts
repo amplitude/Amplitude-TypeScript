@@ -12,9 +12,10 @@ import {
 import { VERSION } from './version';
 
 function getSessionId(event: SegmentEvent): number {
-  const amplitudeSessionId = (event.integrations?.['Actions Amplitude'] as { session_id: number })?.['session_id'];
-  if (amplitudeSessionId) {
-    return amplitudeSessionId ?? -1;
+  const amplitudeSessionId =
+    (event.integrations?.['Actions Amplitude'] as { session_id: number })?.['session_id'] ?? null;
+  if (amplitudeSessionId !== null) {
+    return amplitudeSessionId;
   }
 
   if (event.type === EventType.TrackEvent || event.type === EventType.ScreenEvent) {
