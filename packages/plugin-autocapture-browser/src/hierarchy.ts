@@ -81,6 +81,7 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
+  let hasAttributes = false;
   if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
     for (let i = 0; i < element.attributes.length; i++) {
       const attr = element.attributes[i];
@@ -95,10 +96,11 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
       // Finally cast attribute value to string and limit attribute value length
       attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
+      hasAttributes = true;
     }
   }
 
-  if (Object.keys(attributes).length) {
+  if (hasAttributes) {
     properties.attrs = attributes;
   }
 
