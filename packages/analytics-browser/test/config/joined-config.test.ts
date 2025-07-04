@@ -104,6 +104,7 @@ describe('joined-config', () => {
           pageViews: true,
           attribution: true,
           elementInteractions: false,
+          webVitals: true,
         };
 
         await generator.initialize();
@@ -128,6 +129,7 @@ describe('joined-config', () => {
             pageViews: false,
             attribution: false,
             sessions: false,
+            webVitals: false,
           },
         };
         mockRemoteConfigFetch = {
@@ -146,6 +148,7 @@ describe('joined-config', () => {
           attribution: false,
           sessions: false,
           elementInteractions: true,
+          webVitals: false,
         };
 
         await generator.initialize();
@@ -163,6 +166,7 @@ describe('joined-config', () => {
           formInteractions: false,
           attribution: false,
           pageViews: false,
+          webVitals: false,
         },
         false,
       ])('should only enable elementInteractions if remote config only sets it to true', async (localAutocapture) => {
@@ -193,6 +197,7 @@ describe('joined-config', () => {
           attribution: false,
           pageViews: false,
           elementInteractions: true,
+          webVitals: false,
         };
 
         await generator.initialize();

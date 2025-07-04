@@ -151,6 +151,11 @@ export interface AutocaptureOptions {
    * @defaultValue `false`
    */
   elementInteractions?: boolean | ElementInteractionsOptions;
+  /**
+   * Enables/disables web vitals tracking.
+   * @defaultValue `false`
+   */
+  webVitals?: boolean;
 }
 
 export interface TrackingOptions {

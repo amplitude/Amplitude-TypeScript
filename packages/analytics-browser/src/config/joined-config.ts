@@ -100,6 +100,7 @@ export class BrowserJoinedConfigGenerator {
               pageViews: this.config.autocapture,
               sessions: this.config.autocapture,
               elementInteractions: this.config.autocapture,
+              webVitals: this.config.autocapture,
               ...transformedAutocaptureRemoteConfig,
             };
           }
