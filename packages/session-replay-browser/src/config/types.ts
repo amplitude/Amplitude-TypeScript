@@ -161,6 +161,15 @@ export interface SessionReplayLocalConfig extends IConfig {
    * This helps visualize which elements are blocked from being captured.
    */
   applyBackgroundColorToBlockedElements?: boolean;
+  /**
+   * Enables URL change polling as a fallback for SPA route tracking.
+   * When enabled, the SDK will periodically check for URL changes every second
+   * in addition to patching the History API. This is useful for edge cases where
+   * route changes might bypass the standard History API methods.
+   *
+   * @defaultValue false
+   */
+  enableUrlChangePolling?: boolean;
   interactionConfig?: InteractionConfig;
 }
 
