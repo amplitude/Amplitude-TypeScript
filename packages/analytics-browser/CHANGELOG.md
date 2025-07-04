@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.12...@amplitude/analytics-browser@2.18.0) (2025-06-30)
+
+
+### Features
+
+* add getOptOut() and getIdentity() ([#1174](https://github.com/amplitude/Amplitude-TypeScript/issues/1174)) ([72017c8](https://github.com/amplitude/Amplitude-TypeScript/commit/72017c8a1a54d929542e883e61d61168f214a780))
+
+
+
+
+
+## [2.17.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.11...@amplitude/analytics-browser@2.17.12) (2025-06-26)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 ## [2.17.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.10...@amplitude/analytics-browser@2.17.11) (2025-06-25)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

@@ -96,8 +96,8 @@ export const frustrationPlugin = (
     }
 
     // Create should track event functions for the different allowlists
-    const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors, true);
-    const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors, true);
+    const shouldTrackRageClick = createShouldTrackEvent(options, rageCssSelectors);
+    const shouldTrackDeadClick = createShouldTrackEvent(options, deadCssSelectors);
 
     // Create observables for events on the window
     const allObservables = createObservables();

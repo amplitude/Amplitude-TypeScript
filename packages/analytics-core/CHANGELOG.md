@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.14.0...@amplitude/analytics-core@2.15.0) (2025-06-30)
+
+
+### Features
+
+* add getOptOut() and getIdentity() ([#1174](https://github.com/amplitude/Amplitude-TypeScript/issues/1174)) ([72017c8](https://github.com/amplitude/Amplitude-TypeScript/commit/72017c8a1a54d929542e883e61d61168f214a780))
+
+
+
+
+
+# [2.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.13.0...@amplitude/analytics-core@2.14.0) (2025-06-26)
+
+
+### Features
+
+* **plugin-autocapture-browser:** add rage+dead clicks to autocapture plugin ([#1146](https://github.com/amplitude/Amplitude-TypeScript/issues/1146)) ([c850f02](https://github.com/amplitude/Amplitude-TypeScript/commit/c850f020a6b56bbd8d64e0f946acaf0eac15ccf7))
+
+
+
+
+
 # [2.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.12.3...@amplitude/analytics-core@2.13.0) (2025-06-25)
 
 

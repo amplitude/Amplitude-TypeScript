@@ -21,6 +21,7 @@ import {
   BrowserOptions,
   BrowserConfig,
   BrowserClient,
+  SpecialEventType,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -62,6 +63,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
+  userProperties: { [key: string]: any } | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -221,6 +223,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     this.setUserId(undefined);
   }
 
+  getIdentity() {
+    return {
+      deviceId: this.config?.deviceId,
+      userId: this.config?.userId,
+      userProperties: this.userProperties,
+    };
+  }
+
+  getOptOut(): boolean {
+    return this.config.optOut;
+  }
+
   getSessionId() {
     return this.config?.sessionId;
   }
@@ -371,6 +385,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         // if there has been a chance in the campaign information.
         this.trackCampaignEventIfNeeded();
       }
+    }
+
+    // Set user properties
+    if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
+      this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     }
 
     return super.process(event);

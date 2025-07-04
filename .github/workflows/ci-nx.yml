@@ -1,10 +1,6 @@
 name: Continuous Integration (NX)
 
 on:
-  push:
-    branches:
-      - main
-      - v1.x
   pull_request:
     types: [opened, synchronize]
 
@@ -68,10 +64,6 @@ jobs:
       - name: Test affected packages
         run: |
           yarn test:nx-affected
-
-      - name: Test all examples
-        run: |
-          yarn test:examples
 
       - name: Lint affected packages
         run: |

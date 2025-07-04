@@ -19,6 +19,8 @@ export const createAmplitudeMock = (): jest.MockedObject<BrowserClient> => ({
   setGroup: jest.fn(),
   revenue: jest.fn(),
   setOptOut: jest.fn(),
+  getOptOut: jest.fn(),
+  getIdentity: jest.fn(),
   flush: jest.fn(),
   getUserId: jest.fn(),
   setUserId: jest.fn(),
