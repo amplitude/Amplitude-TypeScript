@@ -5,6 +5,7 @@
     "baseUrl": ".",
     "esModuleInterop": true,
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "lib": ["dom"]
   }
 }

@@ -70,12 +70,12 @@ export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boole
   return false;
 };
 
-export const isPageUrlPreviousPageEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+export const isPageUrlEnrichmentEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
 
-  if (typeof autocapture === 'object' && autocapture.pageUrlPreviousPage === true) {
+  if (typeof autocapture === 'object' && autocapture.pageUrlEnrichment === true) {
     return true;
   }
 

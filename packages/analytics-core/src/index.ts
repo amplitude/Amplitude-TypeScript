@@ -23,6 +23,8 @@ export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
 export { getStorageKey } from './storage/helpers';
 
+export { BrowserStorage } from './storage/browser-storage';
+
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
 

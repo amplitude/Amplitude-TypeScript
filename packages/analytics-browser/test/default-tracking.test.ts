@@ -12,7 +12,7 @@ import {
   getNetworkTrackingConfig,
   isNetworkTrackingEnabled,
   isFrustrationInteractionsEnabled,
-  isPageUrlPreviousPageEnabled,
+  isPageUrlEnrichmentEnabled,
 } from '../src/default-tracking';
 
 describe('isFrustrationInteractionsEnabled', () => {
@@ -311,39 +311,39 @@ describe('isElementInteractionsEnabled', () => {
   });
 });
 
-describe('isPageUrlPreviousPageEnabled', () => {
+describe('isPageUrlEnrichmentEnabled', () => {
   test('should return true with true parameter', () => {
-    expect(isPageUrlPreviousPageEnabled(true)).toBe(true);
+    expect(isPageUrlEnrichmentEnabled(true)).toBe(true);
   });
 
   test('should return false with undefined parameter', () => {
-    expect(isPageUrlPreviousPageEnabled(undefined)).toBe(false);
+    expect(isPageUrlEnrichmentEnabled(undefined)).toBe(false);
   });
 
   test('should return false with false parameter', () => {
-    expect(isPageUrlPreviousPageEnabled(false)).toBe(false);
+    expect(isPageUrlEnrichmentEnabled(false)).toBe(false);
   });
 
   test('should return true with object parameter set to true', () => {
     expect(
-      isPageUrlPreviousPageEnabled({
-        pageUrlPreviousPage: true,
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: true,
       }),
     ).toBe(true);
   });
 
   test('should return false with object parameter set to false', () => {
     expect(
-      isPageUrlPreviousPageEnabled({
-        pageUrlPreviousPage: false,
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: false,
       }),
     ).toBe(false);
   });
 
   test('should return false with object parameter undefined', () => {
     expect(
-      isPageUrlPreviousPageEnabled({
-        pageUrlPreviousPage: undefined,
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: undefined,
       }),
     ).toBe(false);
   });

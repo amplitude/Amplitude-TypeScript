@@ -1,17 +1,92 @@
-import { createAmplitudeMock, createConfigurationMock } from '../helpers/mock';
-import { getGlobalScope } from '@amplitude/analytics-core';
-import { BrowserConfig } from '@amplitude/analytics-types/';
+import { BrowserClient, BrowserConfig, LogLevel } from '@amplitude/analytics-types';
 import {
+  pageUrlEnrichmentPlugin,
   CURRENT_PAGE_STORAGE_KEY,
-  pageUrlPreviousPagePlugin,
   PREVIOUS_PAGE_STORAGE_KEY,
   URL_INFO_STORAGE_KEY,
-} from '../../src/plugins/page-url-previous-page';
+  isPageUrlEnrichmentEnabled,
+} from '../src/page-url-enrichment';
+import { Logger, UUID } from '@amplitude/analytics-core';
+import { CookieStorage, FetchTransport } from '@amplitude/analytics-client-common';
+import { getGlobalScope } from '@amplitude/analytics-core';
+import * as Core from '@amplitude/analytics-core';
 
-describe('pageUrlPreviousPagePlugin', () => {
+// Mock BrowserClient implementation
+const createMockBrowserClient = (): jest.Mocked<BrowserClient> => {
+  const mockClient = {
+    init: jest.fn().mockReturnValue({
+      promise: Promise.resolve(),
+    }),
+    add: jest.fn(),
+    remove: jest.fn(),
+    track: jest.fn(),
+    logEvent: jest.fn(),
+    identify: jest.fn(),
+    groupIdentify: jest.fn(),
+    setGroup: jest.fn(),
+    revenue: jest.fn(),
+    flush: jest.fn(),
+    getUserId: jest.fn(),
+    setUserId: jest.fn(),
+    getDeviceId: jest.fn(),
+    setDeviceId: jest.fn(),
+    getSessionId: jest.fn(),
+    setSessionId: jest.fn(),
+    extendSession: jest.fn(),
+    reset: jest.fn(),
+    setOptOut: jest.fn(),
+    setTransport: jest.fn(),
+  } as unknown as jest.Mocked<BrowserClient>;
+
+  // Set up default return values for methods that return promises
+  mockClient.track.mockReturnValue({
+    promise: Promise.resolve({
+      code: 200,
+      message: '',
+      event: {
+        event_type: '[Amplitude] Page Viewed',
+      },
+    }),
+  });
+
+  return mockClient;
+};
+
+const createConfigurationMock = (): jest.Mocked<BrowserConfig> => {
+  return {
+    apiKey: UUID(),
+    flushIntervalMillis: 0,
+    flushMaxRetries: 0,
+    flushQueueSize: 0,
+    logLevel: LogLevel.None,
+    loggerProvider: new Logger(),
+    offline: false,
+    optOut: false,
+    serverUrl: undefined,
+    transportProvider: new FetchTransport(),
+    useBatch: false,
+    cookieOptions: {
+      domain: '.amplitude.com',
+      expiration: 365,
+      sameSite: 'Lax',
+      secure: false,
+      upgrade: true,
+    },
+    cookieStorage: new CookieStorage(),
+    sessionTimeout: 30 * 60 * 1000,
+    trackingOptions: {
+      ipAddress: true,
+      language: true,
+      platform: true,
+    },
+    pageCounter: 0,
+  } as unknown as jest.Mocked<BrowserConfig>;
+};
+
+describe('pageUrlEnrichmentPlugin', () => {
   let mockConfig: BrowserConfig = createConfigurationMock();
-  let mockAmplitude = createAmplitudeMock();
-  const plugin = pageUrlPreviousPagePlugin();
+  let mockAmplitude = createMockBrowserClient();
+  const plugin = pageUrlEnrichmentPlugin();
 
   beforeAll(() => {
     Object.defineProperty(window, 'location', {
@@ -26,7 +101,7 @@ describe('pageUrlPreviousPagePlugin', () => {
   });
 
   beforeEach(() => {
-    mockAmplitude = createAmplitudeMock();
+    mockAmplitude = createMockBrowserClient();
     mockConfig = createConfigurationMock();
 
     (window.location as any) = {
@@ -39,6 +114,7 @@ describe('pageUrlPreviousPagePlugin', () => {
 
   afterEach(async () => {
     await plugin.teardown?.();
+    jest.restoreAllMocks();
   });
 
   describe('setup', () => {
@@ -141,51 +217,6 @@ describe('pageUrlPreviousPagePlugin', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
       const storedThirdUrlInfo = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
       expect(JSON.parse(storedThirdUrlInfo)).toStrictEqual(thirdUrlInfo);
-    });
-
-    test('should track page changes if we go back a page', async () => {
-      await plugin.setup?.(mockConfig, mockAmplitude);
-      const sessionStorage = getGlobalScope()?.sessionStorage;
-      const history = getGlobalScope()?.history;
-      // move to first url
-      const firstUrl = new URL('https://www.example.com/1');
-      mockWindowLocationFromURL(firstUrl);
-      history?.pushState(undefined, firstUrl.href);
-      const firstUrlInfo = {
-        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/1',
-        [PREVIOUS_PAGE_STORAGE_KEY]: '',
-      };
-      // block event loop so that the sessionStorage is updated since pushState is async
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      const firstUrlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
-      expect(JSON.parse(firstUrlInfoStr)).toStrictEqual(firstUrlInfo);
-
-      // move to second url
-      const secondUrl = new URL('https://www.example.com/2');
-      mockWindowLocationFromURL(secondUrl);
-      history?.pushState(undefined, secondUrl.href);
-      const secondUrlInfo = {
-        [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/2',
-        [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/1',
-      };
-      // block event loop so that the sessionStorage is updated since pushState is async
-      await new Promise((resolve) => setTimeout(resolve, 0));
-      const secondUrlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
-      expect(JSON.parse(secondUrlInfoStr)).toStrictEqual(secondUrlInfo);
-
-      // go back
-      // history?.back();
-      // const popStateEvent = new PopStateEvent('popstate', { state: null });
-      // dispatchEvent(popStateEvent);
-      // const backtrackedUrlInfo = {
-      //   [CURRENT_PAGE_STORAGE_KEY]: 'https://www.example.com/1',
-      //   [PREVIOUS_PAGE_STORAGE_KEY]: 'https://www.example.com/2',
-      // };
-      // // block event loop so that the sessionStorage is updated since popstate is async
-      // await new Promise((resolve) => setTimeout(resolve, 0));
-
-      // const backtrackedUrlInfoStr = sessionStorage?.getItem(URL_INFO_STORAGE_KEY) || '';
-      // expect(JSON.parse(backtrackedUrlInfoStr)).toStrictEqual(backtrackedUrlInfo);
     });
   });
 
@@ -414,8 +445,73 @@ describe('pageUrlPreviousPagePlugin', () => {
   });
 
   describe('others', () => {
-    // test('should handle when globalScope is not defined', async () => {});
-    // test('should handle when sessionStorage is not defined', async () => {});
+    test('should handle when globalScope is not defined', async () => {
+      jest.spyOn(Core, 'getGlobalScope').mockReturnValue(undefined);
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+      await newPlugin.teardown?.();
+      expect(Core.getGlobalScope).toHaveBeenCalledTimes(1);
+    });
+    test('should handle when sessionStorage is not defined', async () => {
+      const actual = jest.requireActual('@amplitude/analytics-core') as unknown as typeof Core;
+      jest.spyOn(Core, 'getGlobalScope').mockReturnValue({
+        ...actual.getGlobalScope(),
+        sessionStorage: undefined,
+      } as unknown as typeof globalThis);
+      const newPlugin = pageUrlEnrichmentPlugin();
+      await newPlugin.setup?.(mockConfig, mockAmplitude);
+
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+      mockDocumentTitle('Home - Example');
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      await newPlugin.execute?.({
+        event_type: 'test_event',
+      });
+      await newPlugin.teardown?.();
+      expect(Core.getGlobalScope).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+describe('isPageUrlEnrichmentEnabled', () => {
+  test('should return true with true parameter', () => {
+    expect(isPageUrlEnrichmentEnabled(true)).toBe(true);
+  });
+
+  test('should return false with undefined parameter', () => {
+    expect(isPageUrlEnrichmentEnabled(undefined)).toBe(false);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isPageUrlEnrichmentEnabled(false)).toBe(false);
+  });
+
+  test('should return true with object parameter set to true', () => {
+    expect(
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: true,
+      }),
+    ).toBe(true);
+  });
+
+  test('should return false with object parameter set to false', () => {
+    expect(
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: false,
+      }),
+    ).toBe(false);
+  });
+
+  test('should return false with object parameter undefined', () => {
+    expect(
+      isPageUrlEnrichmentEnabled({
+        pageUrlEnrichment: undefined,
+      }),
+    ).toBe(false);
   });
 });
 
