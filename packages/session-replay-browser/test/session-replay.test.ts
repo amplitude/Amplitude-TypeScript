@@ -1686,10 +1686,11 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(4);
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
       expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
+      expect(removeEventListenerMock.mock.calls[3][0]).toEqual('popstate'); // URLTracker cleanup
     });
 
     test('should remove event listeners with pagehide', async () => {
@@ -1705,10 +1706,11 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(4);
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
       expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pagehide');
+      expect(removeEventListenerMock.mock.calls[3][0]).toEqual('popstate'); // URLTracker cleanup
     });
 
     test('should stop recording and send any events in queue', async () => {
@@ -2002,6 +2004,146 @@ describe('SessionReplay', () => {
       }).promise;
       const metadata = (sessionReplay as any).metadata;
       expect(metadata?.replaySDKType).toBe('@amplitude/segment-session-replay-plugin');
+    });
+  });
+
+  describe('URL Tracking', () => {
+    describe('initializeUrlTracking', () => {
+      test('should return early if config is undefined', () => {
+        sessionReplay.config = undefined;
+        expect(() => {
+          (sessionReplay as any).initializeUrlTracking();
+        }).not.toThrow();
+        expect((sessionReplay as any).urlTracker).toBeUndefined();
+      });
+
+      test('should create URLTracker with UGC filter rules from interaction config', async () => {
+        const mockUgcFilterRules = [
+          { selector: 'test', replacement: 'filtered' },
+          { selector: '/test/', replacement: 'filtered' },
+        ];
+
+        __setNamespaceConfig({
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+          sr_interaction_config: {
+            enabled: true,
+            ugcFilterRules: mockUgcFilterRules,
+          },
+        });
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        expect((sessionReplay as any).urlTracker).toBeDefined();
+        expect((sessionReplay as any).urlTracker.ugcFilterRules).toEqual(mockUgcFilterRules);
+      });
+
+      test('should create URLTracker with polling enabled', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          enableUrlChangePolling: true,
+        }).promise;
+
+        expect((sessionReplay as any).urlTracker).toBeDefined();
+        // Note: enablePolling is private, so we test the public behavior instead
+        // The URLTracker was created with polling enabled during initialization
+      });
+    });
+
+    describe('teardownEventListeners URL tracking', () => {
+      test('should stop URLTracker on teardown', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const urlTracker = (sessionReplay as any).urlTracker;
+        const stopSpy = jest.spyOn(urlTracker, 'stop');
+
+        // Call teardownEventListeners with teardown=true
+        (sessionReplay as any).teardownEventListeners(true);
+
+        expect(stopSpy).toHaveBeenCalled();
+      });
+
+      test('should not stop URLTracker when teardown is false', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const urlTracker = (sessionReplay as any).urlTracker;
+        const stopSpy = jest.spyOn(urlTracker, 'stop');
+
+        // Call teardownEventListeners with teardown=false
+        (sessionReplay as any).teardownEventListeners(false);
+
+        expect(stopSpy).not.toHaveBeenCalled();
+      });
+
+      test('should reinitialize URLTracker when setting up listeners', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const initializeUrlTrackingSpy = jest.spyOn(sessionReplay as any, 'initializeUrlTracking');
+
+        // Call teardownEventListeners with teardown=false (setup mode)
+        (sessionReplay as any).teardownEventListeners(false);
+
+        expect(initializeUrlTrackingSpy).toHaveBeenCalled();
+      });
+
+      test('should handle undefined urlTracker during teardown', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        // Set urlTracker to undefined to test the optional chaining branch
+        (sessionReplay as any).urlTracker = undefined;
+
+        expect(() => {
+          (sessionReplay as any).teardownEventListeners(true);
+        }).not.toThrow();
+      });
+    });
+
+    describe('URL tracking integration', () => {
+      test('should handle URL change events with custom RRWeb events', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+        const urlTracker = (sessionReplay as any).urlTracker;
+        expect(urlTracker).toBeDefined();
+
+        // Test URL change events by directly calling addCustomRRWebEvent
+        const mockUrlChangeEvent = {
+          href: 'https://example.com/page1',
+          title: 'Page 1',
+        };
+
+        await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.URL_CHANGE, mockUrlChangeEvent);
+
+        expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.URL_CHANGE, mockUrlChangeEvent);
+      });
+
+      test('should handle empty UGC filter rules', async () => {
+        __setNamespaceConfig({
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+          sr_interaction_config: {
+            enabled: true,
+            ugcFilterRules: [],
+          },
+        });
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const urlTracker = (sessionReplay as any).urlTracker;
+        expect(urlTracker.ugcFilterRules).toEqual([]);
+      });
+
+      test('should handle missing interaction config', async () => {
+        __setNamespaceConfig({
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+        });
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const urlTracker = (sessionReplay as any).urlTracker;
+        expect(urlTracker.ugcFilterRules).toEqual([]);
+      });
     });
   });
 

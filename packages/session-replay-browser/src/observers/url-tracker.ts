@@ -88,7 +88,7 @@ export class URLTracker {
     const originalPushState = this.originalPushState;
     const emitUrlChange = this.emitUrlChange;
     globalScope.history.pushState = function (this: History, ...args: Parameters<typeof history.pushState>) {
-      const result = originalPushState?.apply(this, args);
+      const result = originalPushState.apply(this, args);
       emitUrlChange();
       return result;
     };
@@ -96,7 +96,7 @@ export class URLTracker {
     // Patch replaceState
     const originalReplaceState = this.originalReplaceState;
     globalScope.history.replaceState = function (this: History, ...args: Parameters<typeof history.replaceState>) {
-      const result = originalReplaceState?.apply(this, args);
+      const result = originalReplaceState.apply(this, args);
       emitUrlChange();
       return result;
     };

@@ -47,7 +47,8 @@ import { EventCompressor } from './events/event-compressor';
 import { SafeLoggerProvider } from './logger';
 
 // Import only the type for NetworkRequestEvent to keep type safety
-import type { NetworkRequestEvent, NetworkObservers, URLTracker } from './observers';
+import type { NetworkRequestEvent, NetworkObservers } from './observers';
+import { URLTracker } from './observers';
 import type { RecordFunction } from './utils/rrweb';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
@@ -104,16 +105,13 @@ export class SessionReplay implements AmplitudeSessionReplay {
       if (teardown) {
         this.urlTracker?.stop();
       } else {
-        void this.initializeUrlTracking();
+        this.initializeUrlTracking();
       }
     }
   };
 
-  private initializeUrlTracking = async () => {
+  private initializeUrlTracking = () => {
     if (!this.config) return;
-
-    // Import URLTracker class
-    const { URLTracker } = await import('./observers');
 
     // Initialize URLTracker with configuration
     this.urlTracker = new URLTracker({
