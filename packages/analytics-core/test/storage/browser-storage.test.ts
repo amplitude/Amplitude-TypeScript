@@ -1,11 +1,15 @@
-import { BrowserStorage } from '../../src/storage/browser-storage';
-import * as AnalyticsCore from '@amplitude/analytics-core';
-import { getGlobalScope } from '@amplitude/analytics-core';
+/**
+ * @jest-environment jsdom
+ */
+
+import { getGlobalScope, BrowserStorage } from '../../src/index';
+import * as AnalyticsCore from '../../src/index';
 
 describe('browser-storage', () => {
   describe('isEnabled', () => {
     test('should return true', async () => {
       const sessionStorage = new BrowserStorage(getGlobalScope()?.sessionStorage);
+      console.log('sessionStorage????', sessionStorage);
       expect(await sessionStorage.isEnabled()).toBe(true);
     });
   });

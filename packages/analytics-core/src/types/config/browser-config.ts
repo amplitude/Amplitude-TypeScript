@@ -182,7 +182,7 @@ export interface AutocaptureOptions {
    * Enables/disables adding additional referrer and page url event properties.
    * @defaultValue `false`
    */
-  pageUrlPreviousPage?: boolean;
+  pageUrlEnrichment?: boolean;
 }
 
 export interface TrackingOptions {

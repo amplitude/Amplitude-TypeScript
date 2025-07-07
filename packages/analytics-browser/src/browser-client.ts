@@ -39,7 +39,7 @@ import {
   isWebVitalsEnabled,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
-  isPageUrlPreviousPageEnabled,
+  isPageUrlEnrichmentEnabled,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -55,7 +55,7 @@ import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapt
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
-import { pageUrlPreviousPagePlugin } from './plugins/page-url-previous-page';
+import { pageUrlEnrichmentPlugin } from '@amplitude/plugin-page-url-enrichment-browser';
 
 /**
  * Exported for `@amplitude/unified` or integration with blade plugins.
@@ -155,9 +155,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       await this.add(formInteractionTracking()).promise;
     }
 
-    if (isPageUrlPreviousPageEnabled(this.config.autocapture)) {
+    if (isPageUrlEnrichmentEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding referrer page url plugin');
-      await this.add(pageUrlPreviousPagePlugin()).promise;
+      await this.add(pageUrlEnrichmentPlugin()).promise;
     }
 
     // Add page view plugin
