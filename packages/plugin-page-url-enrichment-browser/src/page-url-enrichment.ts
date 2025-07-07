@@ -1,6 +1,5 @@
 import type { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, Logger } from '@amplitude/analytics-types';
-import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { BrowserStorage } from './browser-storage';
+import { getGlobalScope, BrowserStorage } from '@amplitude/analytics-core';
 
 export const CURRENT_PAGE_STORAGE_KEY = 'AMP_CURRENT_PAGE';
 export const PREVIOUS_PAGE_STORAGE_KEY = 'AMP_PREVIOUS_PAGE';
@@ -18,17 +17,17 @@ enum PreviousPageType {
   External = 'external', // for different domains
 }
 
-export const isPageUrlPreviousPageEnabled = (option: unknown): boolean => {
+export const isPageUrlEnrichmentEnabled = (option: unknown): boolean => {
   if (typeof option === 'boolean') {
     return option;
   }
-  if (typeof option === 'object' && option !== null && 'pageUrlPreviousPage' in option) {
-    return Boolean((option as { pageUrlPreviousPage?: boolean }).pageUrlPreviousPage);
+  if (typeof option === 'object' && option !== null && 'pageUrlEnrichment' in option) {
+    return Boolean((option as { pageUrlEnrichment?: boolean }).pageUrlEnrichment);
   }
   return false;
 };
 
-export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
+export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
   const globalScope = getGlobalScope();
   let sessionStorage: BrowserStorage<URLInfo> | undefined = undefined;
   let isStorageEnabled = false;
@@ -50,14 +49,17 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   };
 
   const getHostname = (url: string): string | undefined => {
+    let hostname: string | undefined;
+
     try {
       const decodedUrl = getDecodeURI(url);
-      return new URL(decodedUrl).hostname;
+      hostname = new URL(decodedUrl).hostname;
     } catch (e) {
       /* istanbul ignore next */
       loggerProvider?.error('Could not parse URL: ', e);
     }
-    return undefined;
+
+    return hostname;
   };
 
   const getPrevPageType = (previousPage: string) => {
@@ -92,12 +94,12 @@ export const pageUrlPreviousPagePlugin = (): EnrichmentPlugin => {
   };
 
   const plugin: EnrichmentPlugin = {
-    name: '@amplitude/plugin-page-url-previous-page-browser',
+    name: '@amplitude/plugin-page-url-enrichment-browser',
     type: 'enrichment',
 
     setup: async (config: BrowserConfig, _: BrowserClient) => {
       loggerProvider = config.loggerProvider;
-      loggerProvider.log('Installing @amplitude/plugin-page-url-previous-page-browser');
+      loggerProvider.log('Installing @amplitude/plugin-page-url-enrichment-browser');
 
       isTracking = true;
 

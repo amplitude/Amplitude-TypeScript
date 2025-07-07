@@ -1,5 +1,4 @@
-import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
-import { BrowserStorage } from './browser-storage';
+import { getGlobalScope, ILogger, BrowserStorage } from '@amplitude/analytics-core';
 
 const MAX_ARRAY_LENGTH = 1000;
 
