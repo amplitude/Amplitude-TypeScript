@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "module": "es2022",
+    "target": "es2015",
+    "skipLibCheck": true,
+    "noEmit": false,
+    "outDir": "lib/esm",
+    "rootDir": "./src"
+  }
+} 
