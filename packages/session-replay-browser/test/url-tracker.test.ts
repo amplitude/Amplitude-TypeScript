@@ -354,36 +354,33 @@ describe('URLTracker', () => {
       });
     });
 
-    test('should handle undefined original methods in patches', () => {
+    test('should handle null original methods in history method patches', () => {
       urlTracker.start(mockCallback);
       mockCallback.mockClear();
 
-      // Test undefined originalPushState
+      // Test null originalPushState during method creation
       // @ts-expect-error - Testing private property
-      urlTracker.originalPushState = undefined;
-      setUrlAndTitle('https://example.com/test-push', 'Initial Page');
+      urlTracker.originalPushState = null;
+      // @ts-expect-error - Testing private property
+      urlTracker.originalReplaceState = null;
+
+      // Force recreation of patched methods by calling setup again
+      // @ts-expect-error - Testing private method
+      urlTracker.patchHistoryMethods(mockGlobalScope);
+
+      setUrlAndTitle('https://example.com/null-test', 'Null Test');
 
       expect(() => {
-        mockGlobalScope.history.pushState({}, '', '/test-push');
+        mockGlobalScope.history.pushState({}, '', '/null-test');
       }).not.toThrow();
-      expect(mockCallback).toHaveBeenCalledWith({
-        href: 'https://example.com/test-push',
-        title: 'Initial Page',
-      });
-
-      mockCallback.mockClear();
-
-      // Test undefined originalReplaceState
-      // @ts-expect-error - Testing private property
-      urlTracker.originalReplaceState = undefined;
-      setUrlAndTitle('https://example.com/test-replace', 'Initial Page');
 
       expect(() => {
-        mockGlobalScope.history.replaceState({}, '', '/test-replace');
+        mockGlobalScope.history.replaceState({}, '', '/null-test-2');
       }).not.toThrow();
+
       expect(mockCallback).toHaveBeenCalledWith({
-        href: 'https://example.com/test-replace',
-        title: 'Initial Page',
+        href: 'https://example.com/null-test',
+        title: 'Null Test',
       });
     });
   });
