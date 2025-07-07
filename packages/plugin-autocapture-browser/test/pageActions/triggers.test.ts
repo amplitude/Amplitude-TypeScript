@@ -1,4 +1,4 @@
-import { ElementBasedTimestampedEvent } from './../../src/helpers';
+import type { ElementBasedTimestampedEvent } from '../../src/helpers';
 import type {
   LabeledEvent,
   Trigger,
@@ -12,6 +12,7 @@ import {
 } from '../../src/pageActions/triggers';
 import * as matchEventToFilterModule from '../../src/pageActions/matchEventToFilter';
 import * as actionsModule from '../../src/pageActions/actions';
+import { AMPLITUDE_ELEMENT_CLICKED_EVENT, AMPLITUDE_ELEMENT_CHANGED_EVENT } from '../../src/constants';
 
 jest.mock('../../src/pageActions/matchEventToFilter');
 jest.mock('../../src/pageActions/actions');
@@ -39,13 +40,13 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 3: Groups 'click' events correctly
   test('should group click event IDs correctly', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'event1', definition: [{ event_type: 'click', filters: [] }] },
+      { id: 'event1', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
       {
         id: 'event2',
         definition: [
           {
-            event_type: 'click',
-            filters: [{ subprop_key: '[Amplitude] Element Text', subprop_op: 'exact', subprop_value: ['v'] }],
+            event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
+            filters: [{ subprop_key: '[Amplitude] Element Text', subprop_op: 'is', subprop_value: ['v'] }],
           },
         ],
       },
@@ -58,8 +59,8 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 4: Groups 'change' events correctly
   test('should group change event IDs correctly', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'event3', definition: [{ event_type: 'change', filters: [] }] },
-      { id: 'event4', definition: [{ event_type: 'change', filters: [] }] },
+      { id: 'event3', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
+      { id: 'event4', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
     ];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.change).toEqual(new Set(['event3', 'event4']));
@@ -69,10 +70,10 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 5: Groups a mix of 'click' and 'change' events
   test('should group a mix of click and change event IDs', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'event1', definition: [{ event_type: 'click', filters: [] }] },
-      { id: 'event5', definition: [{ event_type: 'change', filters: [] }] },
-      { id: 'event2', definition: [{ event_type: 'click', filters: [] }] },
-      { id: 'event6', definition: [{ event_type: 'change', filters: [] }] },
+      { id: 'event1', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
+      { id: 'event5', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
+      { id: 'event2', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
+      { id: 'event6', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
     ];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.click).toEqual(new Set(['event1', 'event2']));
@@ -85,13 +86,13 @@ describe('groupLabeledEventIdsByEventType', () => {
       {
         id: 'eventA',
         definition: [
-          { event_type: 'click', filters: [] },
-          { event_type: 'change', filters: [] },
+          { event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] },
+          { event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] },
         ],
       },
       {
         id: 'eventB', // Belongs only to click
-        definition: [{ event_type: 'click', filters: [] }],
+        definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }],
       },
     ];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
@@ -102,8 +103,8 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 6b: Handles separate LabeledEvent items with the same ID but different event types
   test('should handle separate LabeledEvent items with the same ID for different types', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'eventC', definition: [{ event_type: 'click', filters: [] }] },
-      { id: 'eventC', definition: [{ event_type: 'change', filters: [] }] },
+      { id: 'eventC', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
+      { id: 'eventC', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
     ];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.click).toEqual(new Set(['eventC']));
@@ -113,17 +114,17 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 7: Handles duplicate event IDs for the same event type (Set should ensure uniqueness)
   test('should handle duplicate event IDs for the same type, ensuring uniqueness', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'event1', definition: [{ event_type: 'click', filters: [] }] },
-      { id: 'event1', definition: [{ event_type: 'click', filters: [] }] }, // Processed, but ID is already in Set
+      { id: 'event1', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
+      { id: 'event1', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] }, // Processed, but ID is already in Set
       {
         id: 'event1', // Same ID, multiple definitions, one of which is click
         definition: [
-          { event_type: 'change', filters: [] }, // This would add 'event1' to change set
-          { event_type: 'click', filters: [] }, // This would attempt to add 'event1' to click set (no change if already there)
+          { event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }, // This would add 'event1' to change set
+          { event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }, // This would attempt to add 'event1' to click set (no change if already there)
         ],
       },
-      { id: 'event8', definition: [{ event_type: 'change', filters: [] }] },
-      { id: 'event8', definition: [{ event_type: 'change', filters: [] }] },
+      { id: 'event8', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
+      { id: 'event8', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
     ];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.click).toEqual(new Set(['event1']));
@@ -136,7 +137,7 @@ describe('groupLabeledEventIdsByEventType', () => {
       { id: 'event9', definition: [] }, // Empty definition array
       { id: 'event10' }, // Missing definition property
       { id: 'event10b', definition: null }, // Null definition property
-      { id: 'event11', definition: [{ event_type: 'click', filters: [] }] },
+      { id: 'event11', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
     ] as LabeledEvent[];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.click).toEqual(new Set(['event11']));
@@ -147,12 +148,12 @@ describe('groupLabeledEventIdsByEventType', () => {
   test('should ignore definitions with unknown or malformed event_types', () => {
     const labeledEvents: LabeledEvent[] = [
       { id: 'event12', definition: [{ event_type: 'mouseover', filters: [] }] }, // 'mouseover' is not in groupedLabeledEvents
-      { id: 'event13', definition: [{ event_type: 'click', filters: [] }] },
+      { id: 'event13', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
       {
         id: 'event14',
         definition: [
           { event_type: 'custom_event', filters: [] }, // Ignored
-          { event_type: 'change', filters: [] }, // Processed
+          { event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }, // Processed
         ],
       },
       { id: 'event14b', definition: [{ event_type: null, filters: [] }] }, // Malformed event_type
@@ -166,10 +167,10 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 10: Handles LabeledEvents with definition items that are null or malformed
   test('should handle LabeledEvents with null or malformed definition items', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'event15', definition: [null, { event_type: 'click', filters: [] }] }, // Null item in definition array
-      { id: 'event16', definition: [{ event_type: 'change', filters: [] }, {}] }, // Empty object as definition item
-      { id: 'event17', definition: [{ event_type: 'click', filters: [] }] },
-      { id: 'event18', definition: [undefined, { event_type: 'change', filters: [] }] }, // Undefined item
+      { id: 'event15', definition: [null, { event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] }, // Null item in definition array
+      { id: 'event16', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }, {}] }, // Empty object as definition item
+      { id: 'event17', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
+      { id: 'event18', definition: [undefined, { event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] }, // Undefined item
     ] as LabeledEvent[];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.click).toEqual(new Set(['event17']));
@@ -179,12 +180,12 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 11: Handles LabeledEvent items that are null or not objects within the input array
   test('should gracefully handle null or non-object items in labeledEvents array', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'c1', definition: [{ event_type: 'click', filters: [] }] },
+      { id: 'c1', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
       null, // Null item in labeledEvents
-      { id: 'ch1', definition: [{ event_type: 'change', filters: [] }] },
+      { id: 'ch1', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
       'not_an_object', // String item in labeledEvents
       undefined, // Undefined item
-      { id: 'c2', definition: [{ event_type: 'click', filters: [] }] },
+      { id: 'c2', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
     ] as LabeledEvent[];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.click).toEqual(new Set(['c1', 'c2']));
@@ -194,29 +195,29 @@ describe('groupLabeledEventIdsByEventType', () => {
   // Test 12: Complex scenario with mixed valid, invalid, and duplicate data
   test('should handle a complex mix of data correctly', () => {
     const labeledEvents: LabeledEvent[] = [
-      { id: 'c1', definition: [{ event_type: 'click', filters: [] }] },
+      { id: 'c1', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
       null,
-      { id: 'ch1', definition: [{ event_type: 'change', filters: [] }] },
+      { id: 'ch1', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
       {
         id: 'c2',
         definition: [
-          { event_type: 'click', filters: [] },
+          { event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] },
           { event_type: 'focus', filters: [] },
         ],
       },
-      { id: 'ch1', definition: [{ event_type: 'change', filters: [] }] }, // Duplicate ID for change
+      { id: 'ch1', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] }, // Duplicate ID for change
       {
         id: 'multi1',
         definition: [
-          { event_type: 'click', filters: [] },
-          { event_type: 'change', filters: [] },
+          { event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] },
+          { event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] },
         ],
       },
       { id: 'eventWithoutDef' }, // Missing definition
       { id: 'eventWithEmptyDef', definition: [] }, // Empty definition array
-      { id: 'eventWithNullDefItem', definition: [null, { event_type: 'click', filters: [] }] },
+      { id: 'eventWithNullDefItem', definition: [null, { event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
       { id: 'eventWithInvalidDefObj', definition: [{ some_other_prop: 'value' }] }, // Missing event_type
-      { id: 'eventWithOnlyChange', definition: [{ event_type: 'change', filters: [] }] },
+      { id: 'eventWithOnlyChange', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
     ] as LabeledEvent[];
     const result = groupLabeledEventIdsByEventType(labeledEvents);
     expect(result.click).toEqual(new Set(['c1', 'c2', 'multi1']));
@@ -251,11 +252,11 @@ describe('matchEventToLabeledEvents', () => {
         id: '1',
         definition: [
           {
-            event_type: 'click',
+            event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
             filters: [
               {
                 subprop_key: '[Amplitude] Element Text',
-                subprop_op: 'exact',
+                subprop_op: 'is',
                 subprop_value: ['Button A'],
               },
             ],
@@ -277,7 +278,7 @@ describe('matchEventToLabeledEvents', () => {
         id: '2',
         definition: [
           {
-            event_type: 'click',
+            event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
             filters: [
               {
                 subprop_key: '[Amplitude] Element Hierarchy',
@@ -292,7 +293,7 @@ describe('matchEventToLabeledEvents', () => {
         id: '3',
         definition: [
           {
-            event_type: 'change',
+            event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT,
             filters: [
               {
                 subprop_key: '[Amplitude] Element Text',
@@ -318,7 +319,7 @@ describe('matchEventToLabeledEvents', () => {
         id: '4',
         definition: [
           {
-            event_type: 'click',
+            event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
             filters: [
               {
                 subprop_key: '[Amplitude] Element Text',
@@ -333,7 +334,7 @@ describe('matchEventToLabeledEvents', () => {
         id: '5',
         definition: [
           {
-            event_type: 'click',
+            event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
             filters: [
               {
                 subprop_key: '[Amplitude] Element Hierarchy',
@@ -348,7 +349,7 @@ describe('matchEventToLabeledEvents', () => {
         id: '6',
         definition: [
           {
-            event_type: 'change',
+            event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT,
             filters: [
               {
                 subprop_key: '[Amplitude] Element Text',
@@ -371,7 +372,7 @@ describe('matchEventToLabeledEvents', () => {
       id: '7',
       definition: [
         {
-          event_type: 'click', // This definition will not match `mockEvent.type`
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, // This definition will not match `mockEvent.type`
           filters: [
             {
               subprop_key: '[Amplitude] Element Text',
@@ -381,11 +382,11 @@ describe('matchEventToLabeledEvents', () => {
           ],
         },
         {
-          event_type: 'click', // This definition will match
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, // This definition will match
           filters: [
             {
               subprop_key: '[Amplitude] Element Hierarchy',
-              subprop_op: 'starts_with',
+              subprop_op: 'autotrack css match',
               subprop_value: ['body > div'],
             },
           ],
@@ -410,7 +411,7 @@ describe('matchEventToLabeledEvents', () => {
       id: '8',
       definition: [
         {
-          event_type: 'click',
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
           filters: [
             {
               subprop_key: '[Amplitude] Element Text',
@@ -420,11 +421,11 @@ describe('matchEventToLabeledEvents', () => {
           ],
         },
         {
-          event_type: 'click',
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
           filters: [
             {
               subprop_key: '[Amplitude] Element Hierarchy',
-              subprop_op: 'contains',
+              subprop_op: 'autotrack css match',
               subprop_value: ['path2'],
             },
           ],
@@ -444,7 +445,7 @@ describe('matchEventToLabeledEvents', () => {
       id: '9',
       definition: [
         {
-          event_type: 'click',
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
           filters: [
             {
               subprop_key: '[Amplitude] Element Text',
@@ -453,7 +454,7 @@ describe('matchEventToLabeledEvents', () => {
             },
             {
               subprop_key: '[Amplitude] Element Hierarchy',
-              subprop_op: 'ends_with',
+              subprop_op: 'autotrack css match',
               subprop_value: ['button'],
             },
           ],
@@ -473,7 +474,7 @@ describe('matchEventToLabeledEvents', () => {
       id: '10',
       definition: [
         {
-          event_type: 'click',
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
           filters: [
             {
               subprop_key: '[Amplitude] Element Text',
@@ -482,7 +483,7 @@ describe('matchEventToLabeledEvents', () => {
             },
             {
               subprop_key: '[Amplitude] Element Hierarchy',
-              subprop_op: 'ends_with',
+              subprop_op: 'autotrack css match',
               subprop_value: ['non-matching-path'],
             },
           ],
@@ -504,7 +505,7 @@ describe('matchEventToLabeledEvents', () => {
       id: '11',
       definition: [
         {
-          event_type: 'click',
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
           filters: [], // Empty filters array
         },
       ],
@@ -556,14 +557,14 @@ describe('generateEvaluateTriggers', () => {
       id: 'le-click',
       definition: [
         {
-          event_type: 'click',
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
           filters: [{ subprop_key: '[Amplitude] Element Text', subprop_op: 'is', subprop_value: ['value'] }],
         },
       ],
     },
     'le-change': {
       id: 'le-change',
-      definition: [{ event_type: 'change', filters: [] }],
+      definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }],
     },
   };
 
@@ -616,7 +617,7 @@ describe('generateEvaluateTriggers', () => {
         labeledEvents: {
           'untriggered-event': {
             id: 'untriggered-event',
-            definition: [{ event_type: 'click', filters: [] }],
+            definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }],
           },
         },
         triggers: [], // No triggers

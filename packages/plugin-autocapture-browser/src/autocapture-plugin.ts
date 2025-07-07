@@ -207,23 +207,25 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     }
 
     // Fetch remote config for pageActions in a non-blocking manner
-    createRemoteConfigFetch({
-      localConfig: config,
-      configKeys: ['analyticsSDK.pageActions'],
-    })
-      .then(async (remoteConfigFetch) => {
-        try {
-          const remotePageActions = await remoteConfigFetch.getRemoteConfig('analyticsSDK', 'pageActions');
-          recomputePageActionsData(remotePageActions as ElementInteractionsOptions['pageActions']);
-        } catch (error) {
-          // Log error but don't fail the setup
-          config?.loggerProvider?.error(`Failed to fetch remote config: ${String(error)}`);
-        }
+    if (config.fetchRemoteConfig) {
+      createRemoteConfigFetch({
+        localConfig: config,
+        configKeys: ['analyticsSDK.pageActions'],
       })
-      .catch((error) => {
-        // Log error but don't fail the setup
-        config?.loggerProvider?.error(`Failed to create remote config fetch: ${String(error)}`);
-      });
+        .then(async (remoteConfigFetch) => {
+          try {
+            const remotePageActions = await remoteConfigFetch.getRemoteConfig('analyticsSDK', 'pageActions');
+            recomputePageActionsData(remotePageActions as ElementInteractionsOptions['pageActions']);
+          } catch (error) {
+            // Log error but don't fail the setup
+            config?.loggerProvider?.error(`Failed to fetch remote config: ${String(error)}`);
+          }
+        })
+        .catch((error) => {
+          // Log error but don't fail the setup
+          config?.loggerProvider?.error(`Failed to create remote config fetch: ${String(error)}`);
+        });
+    }
 
     // Create should track event functions the different allowlists
     const shouldTrackEvent = createShouldTrackEvent(

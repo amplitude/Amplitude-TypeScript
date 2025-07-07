@@ -8,6 +8,10 @@ import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 import { matchEventToFilter } from './matchEventToFilter';
 import { executeActions } from './actions';
 
+const eventTypeToBrowserEventMap = {
+  '[Amplitude] Element Clicked': 'click',
+  '[Amplitude] Element Changed': 'change',
+} as const;
 // groups labeled events by event type
 // skips any labeled events with malformed definitions or unexpected event_type
 export const groupLabeledEventIdsByEventType = (labeledEvents?: LabeledEvent[] | null) => {
@@ -22,7 +26,10 @@ export const groupLabeledEventIdsByEventType = (labeledEvents?: LabeledEvent[] |
   for (const le of labeledEvents) {
     try {
       for (const def of le.definition) {
-        groupedLabeledEvents[def.event_type]?.add(le.id);
+        const browserEvent = eventTypeToBrowserEventMap[def.event_type];
+        if (browserEvent) {
+          groupedLabeledEvents[browserEvent]?.add(le.id);
+        }
       }
     } catch (e) {
       // Skip this labeled event if there is an error
@@ -68,7 +75,10 @@ export const matchEventToLabeledEvents = (
 ) => {
   return labeledEvents.filter((le) => {
     return le.definition.some((def) => {
-      return def.event_type === event.type && def.filters.every((filter) => matchEventToFilter(event, filter));
+      return (
+        eventTypeToBrowserEventMap[def.event_type] === event.type &&
+        def.filters.every((filter) => matchEventToFilter(event, filter))
+      );
     });
   });
 };
@@ -78,7 +88,9 @@ export const matchLabeledEventsToTriggers = (labeledEvents: LabeledEvent[], leTo
   for (const le of labeledEvents) {
     const triggers = leToTriggerMap.get(le.id);
     if (triggers) {
-      triggers.forEach((trigger) => matchingTriggers.add(trigger));
+      for (const trigger of triggers) {
+        matchingTriggers.add(trigger);
+      }
     }
   }
   return Array.from(matchingTriggers);
