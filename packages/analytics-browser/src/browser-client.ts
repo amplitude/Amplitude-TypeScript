@@ -22,6 +22,10 @@ import {
   BrowserConfig,
   BrowserClient,
   SpecialEventType,
+  IRemoteConfigClient,
+  RemoteConfigClient,
+  RemoteConfig,
+  Source,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -45,7 +49,7 @@ import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
-import { createBrowserJoinedConfigGenerator } from './config/joined-config';
+import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
 import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { WebAttribution } from './attribution/web-attribution';
@@ -62,6 +66,10 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  remoteConfig: IRemoteConfigClient;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -88,12 +96,50 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     }
     this.initializing = true;
 
-    let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
+    // Get default browser config based on browser options
+    const browserOptions = await useBrowserConfig(options.apiKey, options, this);
+
+    // Create remote config client and subscribe to analytics configs
     if (browserOptions.fetchRemoteConfig) {
-      const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
-      browserOptions = await joinedConfigGenerator.generateJoinedConfig();
+      this.remoteConfig = new RemoteConfigClient(
+        browserOptions.apiKey,
+        browserOptions.loggerProvider,
+        browserOptions.serverZone,
+      );
+
+      // TODO (check how long will this await take)
+      // 1. what will happen for first time user? Will empty cache return remote config null
+      // 2. what will happen for eixisting user if network is down? Will cache returns immediately to unblock init?
+
+      // Wait for initial remote config before proceeding
+      await new Promise<void>((resolve) => {
+        this.remoteConfig.subscribe(
+          'configs.analyticsSDK.browserSDK',
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            browserOptions.loggerProvider.debug(
+              'Remote configuration received:',
+              JSON.stringify(
+                {
+                  remoteConfig: JSON.stringify(remoteConfig),
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            if (remoteConfig) {
+              updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
+            }
+            // Resolve the promise on first callback (initial config)
+            resolve();
+          },
+        );
+      });
     }
+
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
 

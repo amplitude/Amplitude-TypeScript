@@ -209,7 +209,9 @@ describe('RemoteConfigClient', () => {
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(mockStorage.fetchConfig).toHaveBeenCalledTimes(1);
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config client subscription all mode fetched from remote.');
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client subscription all mode fetched from remote:'),
+      );
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'remote');
       expect(mockStorage.setConfig).toHaveBeenCalledWith(remoteConfigInfo);
     });
@@ -246,8 +248,12 @@ describe('RemoteConfigClient', () => {
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(mockStorage.fetchConfig).toHaveBeenCalledTimes(1);
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config client subscription all mode fetched from cache.');
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config client subscription all mode fetched from remote.');
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client subscription all mode fetched from cache:'),
+      );
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client subscription all mode fetched from remote:'),
+      );
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'remote');
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'cache');
       expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
