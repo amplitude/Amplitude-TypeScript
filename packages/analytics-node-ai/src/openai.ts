@@ -115,7 +115,10 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
     }
   }
 
-  trackAgentMessage() {
+  /**
+   * Tracks an agent message event using the Amplitude client.
+   */
+  private trackAgentMessage() {
     this.amplitudeClient.track('agent message');
   }
 }
