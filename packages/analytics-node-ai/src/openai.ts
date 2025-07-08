@@ -112,19 +112,34 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
           (async () => {
             try {
               let responseContent = '';
+              let promptTokens = 0;
+              let completionTokens = 0;
+              let totalTokens = 0;
+
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
               for await (const chunk of stream1) {
                 // Collect response content from chunks
                 if (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) {
                   responseContent += chunk.choices[0].delta.content;
                 }
+
+                // Extract token usage from the final chunk
+                if (chunk.usage) {
+                  promptTokens = chunk.usage.prompt_tokens || 0;
+                  completionTokens = chunk.usage.completion_tokens || 0;
+                  totalTokens = chunk.usage.total_tokens || 0;
+                }
               }
+
               // Track agent message event
               this.amplitudeClient.track(
                 'agent message',
                 {
                   model: body.model,
                   message_content: responseContent,
+                  input_tokens: promptTokens,
+                  output_tokens: completionTokens,
+                  total_tokens: totalTokens,
                 },
                 {
                   user_id: amplitudeUserId,
@@ -150,6 +165,9 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
               {
                 model: body.model,
                 message_content: result.choices[0]?.message?.content || '',
+                input_tokens: result.usage?.prompt_tokens || 0,
+                output_tokens: result.usage?.completion_tokens || 0,
+                total_tokens: result.usage?.total_tokens || 0,
               },
               {
                 user_id: amplitudeUserId,
