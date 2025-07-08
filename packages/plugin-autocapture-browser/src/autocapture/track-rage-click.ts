@@ -1,18 +1,12 @@
 import { AllWindowObservables } from 'src/autocapture-plugin';
-import { filter, map, bufferTime } from 'rxjs';
+import { filter, map } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
 import { DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
 
-let RAGE_CLICK_THRESHOLD = DEFAULT_RAGE_CLICK_THRESHOLD;
-let RAGE_CLICK_WINDOW_MS = DEFAULT_RAGE_CLICK_WINDOW_MS;
-
-// allow override of rage click config for testing only
-export function _overrideRageClickConfig(rageClickThreshold: number, rageClickWindowMs: number) {
-  RAGE_CLICK_THRESHOLD = rageClickThreshold;
-  RAGE_CLICK_WINDOW_MS = rageClickWindowMs;
-}
+const RAGE_CLICK_THRESHOLD = DEFAULT_RAGE_CLICK_THRESHOLD;
+const RAGE_CLICK_WINDOW_MS = DEFAULT_RAGE_CLICK_WINDOW_MS;
 
 type Click = {
   X: number;
@@ -28,6 +22,13 @@ type EventRageClick = {
   '[Amplitude] Click Count': number;
 };
 
+type ClickEvent = {
+  event: MouseEvent | Event;
+  timestamp: number;
+  targetElementProperties: Record<string, any>;
+  closestTrackedAncestor: Element | null;
+};
+
 export function trackRageClicks({
   amplitude,
   allObservables,
@@ -39,52 +40,68 @@ export function trackRageClicks({
 }) {
   const { clickObservable } = allObservables;
 
-  // Buffer clicks within a RAGE_CLICK_WINDOW_MS window and filter for rage clicks
-  const rageClickObservable = clickObservable.pipe(
-    filter(filterOutNonTrackableEvents),
-    filter((click) => {
-      return shouldTrackRageClick('click', click.closestTrackedAncestor);
-    }),
-    bufferTime(RAGE_CLICK_WINDOW_MS),
-    filter((clicks) => {
-      // filter if not enough clicks to be a rage click
-      if (clicks.length < RAGE_CLICK_THRESHOLD) {
-        return false;
-      }
+  // Keep track of all clicks within the sliding window
+  const clickWindow: ClickEvent[] = [];
 
-      // filter if the last RAGE_CLICK_THRESHOLD clicks were not all on the same element
-      let trailingIndex = clicks.length - 1;
-      const lastClickTarget = clicks[trailingIndex].event.target;
-      while (--trailingIndex >= clicks.length - RAGE_CLICK_THRESHOLD) {
-        if (clicks[trailingIndex].event.target !== lastClickTarget) {
-          return false;
+  return clickObservable
+    .pipe(
+      filter(filterOutNonTrackableEvents),
+      filter((click) => {
+        return shouldTrackRageClick('click', click.closestTrackedAncestor);
+      }),
+      map((click) => {
+        const now = click.timestamp;
+
+        // if the current click isn't on the same element as the most recent click,
+        // clear the sliding window and start over
+        if (clickWindow.length > 0 && clickWindow[clickWindow.length - 1].event.target !== click.event.target) {
+          clickWindow.splice(0, clickWindow.length);
         }
+
+        // remove past clicks that are outside the sliding window
+        let clickPtr = 0;
+        for (; clickPtr < clickWindow.length; clickPtr++) {
+          if (now - clickWindow[clickPtr].timestamp < RAGE_CLICK_WINDOW_MS) {
+            break;
+          }
+        }
+        clickWindow.splice(0, clickPtr);
+
+        // add the current click to the window
+        clickWindow.push(click);
+
+        // if there's not trailing clicks to be a rage click, return null
+        if (clickWindow.length < RAGE_CLICK_THRESHOLD) {
+          return null;
+        }
+
+        // if we've made it here, we have enough trailing clicks on the same element
+        // for it to be a rage click
+        const firstClick = clickWindow[0];
+        const lastClick = clickWindow[clickWindow.length - 1];
+
+        const rageClickEvent: EventRageClick = {
+          '[Amplitude] Begin Time': new Date(firstClick.timestamp).toISOString(),
+          '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
+          '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
+          '[Amplitude] Clicks': clickWindow.map((click) => ({
+            X: (click.event as MouseEvent).clientX,
+            Y: (click.event as MouseEvent).clientY,
+            Time: click.timestamp,
+          })),
+          '[Amplitude] Click Count': clickWindow.length,
+          ...firstClick.targetElementProperties,
+        };
+
+        return { rageClickEvent, time: firstClick.timestamp };
+      }),
+      filter((result) => result !== null),
+    )
+    .subscribe((data: { rageClickEvent: EventRageClick; time: number } | null) => {
+      /* istanbul ignore if */
+      if (data === null) {
+        return;
       }
-
-      // if we reach here that means the last RAGE_CLICK_THRESHOLD clicks were all on the same element
-      // and thus we have a rage click
-      return true;
-    }),
-    map((clicks) => {
-      const firstClick = clicks[0];
-      const lastClick = clicks[clicks.length - 1];
-      const rageClickEvent: EventRageClick = {
-        '[Amplitude] Begin Time': new Date(firstClick.timestamp).toISOString(),
-        '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
-        '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
-        '[Amplitude] Clicks': clicks.map((click) => ({
-          X: (click.event as MouseEvent).clientX,
-          Y: (click.event as MouseEvent).clientY,
-          Time: click.timestamp,
-        })),
-        '[Amplitude] Click Count': clicks.length,
-        ...firstClick.targetElementProperties,
-      };
-      return { rageClickEvent, time: firstClick.timestamp };
-    }),
-  );
-
-  return rageClickObservable.subscribe(({ rageClickEvent, time }) => {
-    amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
-  });
+      amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, data.rageClickEvent, { time: data.time });
+    });
 }

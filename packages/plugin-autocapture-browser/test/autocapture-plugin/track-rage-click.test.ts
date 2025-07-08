@@ -4,7 +4,7 @@
 
 import { Subject } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
-import { _overrideRageClickConfig, trackRageClicks } from '../../src/autocapture/track-rage-click';
+import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../../src/constants';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
 
@@ -16,7 +16,7 @@ describe('trackRageClicks', () => {
 
   beforeAll(() => {
     // reduce the rage click window to 5ms to speed up the test
-    _overrideRageClickConfig(5, 5);
+    //_overrideRageClickConfig(5, 5);
   });
 
   beforeEach(() => {
@@ -67,7 +67,7 @@ describe('trackRageClicks', () => {
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
         expect.objectContaining({
-          '[Amplitude] Click Count': 5,
+          '[Amplitude] Click Count': 4,
           '[Amplitude] Clicks': expect.arrayContaining([
             expect.objectContaining({
               X: 100,
@@ -93,8 +93,8 @@ describe('trackRageClicks', () => {
     // Create a mock element
     const mockElement = document.createElement('div');
 
-    // Simulate only 4 clicks (below threshold)
-    for (let i = 0; i < 4; i++) {
+    // Simulate only 3 clicks (below threshold)
+    for (let i = 0; i < 3; i++) {
       clickObservable.next({
         event: {
           target: mockElement,
