@@ -185,7 +185,6 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   // Function to recalculate internal variables when remote config is updated
   const recomputePageActionsData = (remotePageActions: ElementInteractionsOptions['pageActions']) => {
     if (remotePageActions) {
-      console.log('recomputePageActionsData', remotePageActions);
       // Merge remote config with local options
       options.pageActions = {
         ...options.pageActions,
