@@ -89,6 +89,9 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
     // Extract Amplitude-specific properties
     const { amplitudeUserId, amplitudeDeviceId, amplitudeSessionId, ...openAIBody } = body;
 
+    // Record start time for latency calculation
+    const startTime = Date.now();
+
     // Track user message event
     this.amplitudeClient.track(
       'user message',
@@ -135,6 +138,9 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
                 }
               }
 
+              // Calculate latency
+              const latency = Date.now() - startTime;
+
               // Track agent message event
               this.amplitudeClient.track(
                 'agent message',
@@ -144,6 +150,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
                   input_tokens: promptTokens,
                   output_tokens: completionTokens,
                   total_tokens: totalTokens,
+                  latency: latency,
                 },
                 {
                   user_id: amplitudeUserId,
@@ -164,6 +171,9 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
       return parentPromise.then(
         async (result) => {
           if ('choices' in result) {
+            // Calculate latency
+            const latency = Date.now() - startTime;
+
             // Track agent message event
             this.amplitudeClient.track(
               'agent message',
@@ -173,6 +183,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
                 input_tokens: result.usage?.prompt_tokens || 0,
                 output_tokens: result.usage?.completion_tokens || 0,
                 total_tokens: result.usage?.total_tokens || 0,
+                latency: latency,
               },
               {
                 user_id: amplitudeUserId,
