@@ -115,7 +115,7 @@ class AndroidContextProvider(private val context: Context, shouldTrackAdid: Bool
           if (manager.phoneType != TelephonyManager.PHONE_TYPE_CDMA) {
             val country = manager.networkCountryIso
             if (country != null) {
-              return country.toUpperCase(Locale.US)
+              return country.uppercase(Locale.US)
             }
           }
         } catch (e: Exception) {
