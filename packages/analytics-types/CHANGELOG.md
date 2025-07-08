@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@1.3.5...@amplitude/analytics-types@1.4.0) (2025-07-08)
+
+### Features
+
+- **analytics-browser:** add browser version to config
+  ([#998](https://github.com/amplitude/Amplitude-TypeScript/issues/998))
+  ([9aceb3f](https://github.com/amplitude/Amplitude-TypeScript/commit/9aceb3f6e2da24e896f80023ebfb190cc02cae86))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@1.3.4...@amplitude/analytics-types@1.3.5) (2025-02-28)
 
 ### Bug Fixes

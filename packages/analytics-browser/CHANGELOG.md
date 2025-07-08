@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.10...@amplitude/analytics-browser@1.14.0) (2025-07-08)
+
+### Features
+
+- **analytics-browser:** add browser version to config
+  ([#998](https://github.com/amplitude/Amplitude-TypeScript/issues/998))
+  ([9aceb3f](https://github.com/amplitude/Amplitude-TypeScript/commit/9aceb3f6e2da24e896f80023ebfb190cc02cae86))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.13.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@1.13.9...@amplitude/analytics-browser@1.13.10) (2025-03-03)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

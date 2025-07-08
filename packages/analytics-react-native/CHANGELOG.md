@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.13...@amplitude/analytics-react-native@1.4.14) (2025-07-08)
+
+### Bug Fixes
+
+- **analytics-react-native:** country uppercase with existing Kotlin version
+  ([#1198](https://github.com/amplitude/Amplitude-TypeScript/issues/1198))
+  ([9e7ed0e](https://github.com/amplitude/Amplitude-TypeScript/commit/9e7ed0e345e5c5de28a8c76ced512c7343d204ea))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
 ## [1.4.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.4.12...@amplitude/analytics-react-native@1.4.13) (2025-03-03)
 
 **Note:** Version bump only for package @amplitude/analytics-react-native
