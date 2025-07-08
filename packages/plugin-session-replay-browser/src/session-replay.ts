@@ -1,10 +1,19 @@
 import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, SpecialEventType } from '@amplitude/analytics-core';
-import * as sessionReplay from '@amplitude/session-replay-browser';
+import {
+  init,
+  setSessionId,
+  getSessionId,
+  getSessionReplayProperties,
+  flush,
+  shutdown,
+  evaluateTargetingAndCapture,
+  AmplitudeSessionReplay,
+  SessionReplayOptions as SessionReplayBrowserOptions,
+} from '@amplitude/session-replay-browser';
 import { getAnalyticsConnector } from '@amplitude/analytics-client-common';
 import { parseUserProperties } from './helpers';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
-import { AmplitudeSessionReplay } from '@amplitude/session-replay-browser';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, BrowserConfig> {
   static pluginName = '@amplitude/plugin-session-replay-browser';
@@ -15,15 +24,15 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   // @ts-ignore
   config: BrowserConfig;
   options: SessionReplayOptions;
-  srInitOptions: sessionReplay.SessionReplayOptions;
+  srInitOptions: SessionReplayBrowserOptions;
   sessionReplay: AmplitudeSessionReplay = {
-    flush: sessionReplay.flush,
-    getSessionId: sessionReplay.getSessionId,
-    getSessionReplayProperties: sessionReplay.getSessionReplayProperties,
-    init: sessionReplay.init,
-    setSessionId: sessionReplay.setSessionId,
-    shutdown: sessionReplay.shutdown,
-    evaluateTargetingAndCapture: sessionReplay.evaluateTargetingAndCapture,
+    flush: flush,
+    getSessionId: getSessionId,
+    getSessionReplayProperties: getSessionReplayProperties,
+    init: init,
+    setSessionId: setSessionId,
+    shutdown: shutdown,
+    evaluateTargetingAndCapture: evaluateTargetingAndCapture,
   };
 
   constructor(options?: SessionReplayOptions) {
@@ -153,7 +162,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
           if (event.event_type === SpecialEventType.IDENTIFY) {
             userProperties = parseUserProperties(event);
           }
-          await this.sr.evaluateTargetingAndCapture({ event, userProperties });
+          await this.sessionReplay.evaluateTargetingAndCapture({ event, userProperties });
           const sessionRecordingProperties = this.sessionReplay.getSessionReplayProperties();
           event.event_properties = {
             ...event.event_properties,
