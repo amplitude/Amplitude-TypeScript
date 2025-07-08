@@ -13,9 +13,18 @@ import {
 import * as matchEventToFilterModule from '../../src/pageActions/matchEventToFilter';
 import * as actionsModule from '../../src/pageActions/actions';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT, AMPLITUDE_ELEMENT_CHANGED_EVENT } from '../../src/constants';
+import { autocapturePlugin } from '../../src/autocapture-plugin';
+import type { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
+import { createInstance } from '@amplitude/analytics-browser';
+import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 
 jest.mock('../../src/pageActions/matchEventToFilter');
 jest.mock('../../src/pageActions/actions');
+
+// Mock the remote config fetch
+jest.mock('@amplitude/analytics-remote-config', () => ({
+  createRemoteConfigFetch: jest.fn(),
+}));
 
 describe('groupLabeledEventIdsByEventType', () => {
   // Test 1: Handles an empty array
@@ -693,5 +702,591 @@ describe('generateEvaluateTriggers', () => {
     expect(executeActionsSpy).toHaveBeenCalledTimes(2);
     expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[0].actions, mockEvent);
     expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[1].actions, mockEvent);
+  });
+});
+
+describe('autocapturePlugin recomputePageActionsData functionality', () => {
+  let plugin: EnrichmentPlugin | undefined;
+  let instance: any;
+  let loggerProvider: ILogger;
+
+  // Mock data
+  const mockLabeledEvents: Record<string, LabeledEvent> = {
+    'local-event-1': {
+      id: 'local-event-1',
+      definition: [
+        {
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
+          filters: [
+            {
+              subprop_key: '[Amplitude] Element Text',
+              subprop_op: 'is',
+              subprop_value: ['Local Button'],
+            },
+          ],
+        },
+      ],
+    },
+    'local-event-2': {
+      id: 'local-event-2',
+      definition: [
+        {
+          event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT,
+          filters: [
+            {
+              subprop_key: '[Amplitude] Element Text',
+              subprop_op: 'is',
+              subprop_value: ['Local Input'],
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const mockTriggers: Trigger[] = [
+    {
+      id: 'local-trigger-1',
+      name: 'Local Trigger',
+      conditions: [
+        {
+          type: 'LABELED_EVENT',
+          match: {
+            eventId: 'local-event-1',
+          },
+        },
+      ],
+      actions: [
+        {
+          id: 'local-action-1',
+          actionType: 'ATTACH_EVENT_PROPERTY',
+          dataSource: {
+            sourceType: 'DOM_ELEMENT',
+            elementExtractType: 'TEXT',
+            scope: '.container',
+            selector: '.title',
+          },
+          destinationKey: 'title',
+        },
+      ],
+    },
+  ];
+
+  const mockRemoteLabeledEvents: Record<string, LabeledEvent> = {
+    'remote-event-1': {
+      id: 'remote-event-1',
+      definition: [
+        {
+          event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT,
+          filters: [
+            {
+              subprop_key: '[Amplitude] Element Text',
+              subprop_op: 'is',
+              subprop_value: ['Remote Button'],
+            },
+          ],
+        },
+      ],
+    },
+    'remote-event-2': {
+      id: 'remote-event-2',
+      definition: [
+        {
+          event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT,
+          filters: [
+            {
+              subprop_key: '[Amplitude] Element Text',
+              subprop_op: 'is',
+              subprop_value: ['Remote Input'],
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const mockRemoteTriggers: Trigger[] = [
+    {
+      id: 'remote-trigger-1',
+      name: 'Remote Trigger',
+      conditions: [
+        {
+          type: 'LABELED_EVENT',
+          match: {
+            eventId: 'remote-event-1',
+          },
+        },
+      ],
+      actions: [
+        {
+          id: 'remote-action-1',
+          actionType: 'ATTACH_EVENT_PROPERTY',
+          dataSource: {
+            sourceType: 'DOM_ELEMENT',
+            elementExtractType: 'TEXT',
+            scope: '.remote-container',
+            selector: '.remote-title',
+          },
+          destinationKey: 'remote-title',
+        },
+      ],
+    },
+  ];
+
+  beforeAll(() => {
+    Object.defineProperty(window, 'location', {
+      value: {
+        hostname: '',
+        href: '',
+        pathname: '',
+        search: '',
+      },
+      writable: true,
+    });
+  });
+
+  beforeEach(async () => {
+    (window.location as any) = {
+      hostname: '',
+      href: '',
+      pathname: '',
+      search: '',
+    };
+
+    loggerProvider = {
+      log: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+    } as unknown as ILogger;
+
+    instance = createInstance();
+    await instance.init('API_KEY', 'USER_ID').promise;
+
+    // Reset all mocks
+    jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    void plugin?.teardown?.();
+    if (typeof document !== 'undefined') {
+      document.getElementsByTagName('body')[0].innerHTML = '';
+    }
+    jest.clearAllMocks();
+  });
+
+  describe('with local pageActions only', () => {
+    it('should initialize with local pageActions', async () => {
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Verify setup was called (indirectly through the functions being used)
+      expect(plugin?.name).toBe('@amplitude/plugin-autocapture-browser');
+      expect(plugin?.type).toBe('enrichment');
+    });
+  });
+
+  describe('with remote config integration', () => {
+    it('should fetch remote config and merge with local pageActions', async () => {
+      const mockRemoteConfigFetch = {
+        getRemoteConfig: jest.fn().mockResolvedValue({
+          labeledEvents: mockRemoteLabeledEvents,
+          triggers: mockRemoteTriggers,
+        }),
+      };
+
+      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
+
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be fetched and processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify remote config fetch was called
+      expect(createRemoteConfigFetch).toHaveBeenCalledWith({
+        localConfig: config,
+        configKeys: ['analyticsSDK.pageActions'],
+      });
+
+      expect(mockRemoteConfigFetch.getRemoteConfig).toHaveBeenCalledWith('analyticsSDK', 'pageActions');
+    });
+
+    it('should handle remote config fetch errors gracefully', async () => {
+      const mockRemoteConfigFetch = {
+        getRemoteConfig: jest.fn().mockRejectedValue(new Error('Remote config fetch failed')),
+      };
+
+      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
+
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify error was logged
+      expect(loggerProvider.error).toHaveBeenCalledWith(
+        'Failed to fetch remote config: Error: Remote config fetch failed',
+      );
+    });
+
+    it('should handle createRemoteConfigFetch errors gracefully', async () => {
+      (createRemoteConfigFetch as jest.Mock).mockRejectedValue(new Error('Failed to create remote config fetch'));
+
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify error was logged
+      expect(loggerProvider.error).toHaveBeenCalledWith(
+        'Failed to create remote config fetch: Error: Failed to create remote config fetch',
+      );
+    });
+
+    it('should not fetch remote config when fetchRemoteConfig is false', async () => {
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: false,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait to ensure no remote config processing happens
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify remote config fetch was not called
+      expect(createRemoteConfigFetch).not.toHaveBeenCalled();
+    });
+
+    it('should handle null/undefined remote pageActions', async () => {
+      const mockRemoteConfigFetch = {
+        getRemoteConfig: jest.fn().mockResolvedValue(null),
+      };
+
+      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
+
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // No errors should be logged for null remote config
+      expect(loggerProvider.error).not.toHaveBeenCalled();
+    });
+
+    it('should handle when local pageActions is undefined and remote config provides pageActions', async () => {
+      const mockRemoteConfigFetch = {
+        getRemoteConfig: jest.fn().mockResolvedValue({
+          labeledEvents: mockRemoteLabeledEvents,
+          triggers: mockRemoteTriggers,
+        }),
+      };
+
+      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
+
+      // Start with undefined pageActions
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: undefined,
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify remote config fetch was called
+      expect(createRemoteConfigFetch).toHaveBeenCalledWith({
+        localConfig: config,
+        configKeys: ['analyticsSDK.pageActions'],
+      });
+
+      expect(mockRemoteConfigFetch.getRemoteConfig).toHaveBeenCalledWith('analyticsSDK', 'pageActions');
+
+      // No errors should be logged when starting with undefined pageActions
+      expect(loggerProvider.error).not.toHaveBeenCalled();
+
+      // Plugin should still function normally
+      expect(plugin?.name).toBe('@amplitude/plugin-autocapture-browser');
+      expect(plugin?.type).toBe('enrichment');
+    });
+
+    it('should handle when remote pageActions overwrites local labeledEvents with undefined', async () => {
+      // Mock the module function before creating the plugin
+      const originalGroupLabeledEvents = require('../../src/pageActions/triggers').groupLabeledEventIdsByEventType;
+      const groupLabeledEventsSpy = jest.spyOn(
+        require('../../src/pageActions/triggers'),
+        'groupLabeledEventIdsByEventType',
+      );
+      groupLabeledEventsSpy.mockImplementation(originalGroupLabeledEvents);
+
+      const mockRemoteConfigFetch = {
+        getRemoteConfig: jest.fn().mockResolvedValue({
+          // Remote config explicitly sets labeledEvents to undefined, overwriting local
+          labeledEvents: undefined,
+          triggers: mockRemoteTriggers,
+        }),
+      };
+
+      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
+
+      // Start with local pageActions that has labeledEvents
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be processed
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // The spy should have been called twice:
+      // 1. Once during initial plugin creation with local labeledEvents
+      // 2. Once during recomputePageActionsData with empty array (due to undefined labeledEvents after merge)
+      expect(groupLabeledEventsSpy).toHaveBeenCalledTimes(2);
+
+      // Check the second call (recomputePageActionsData) received empty array
+      const secondCall = groupLabeledEventsSpy.mock.calls[1];
+      expect(secondCall[0]).toEqual([]); // Object.values({}) when labeledEvents is undefined
+
+      // No errors should be logged
+      expect(loggerProvider.error).not.toHaveBeenCalled();
+
+      groupLabeledEventsSpy.mockRestore();
+    });
+
+    it('should handle when both local and remote labeledEvents are undefined', async () => {
+      // Mock the module function before creating the plugin
+      const originalGroupLabeledEvents = require('../../src/pageActions/triggers').groupLabeledEventIdsByEventType;
+      const groupLabeledEventsSpy = jest.spyOn(
+        require('../../src/pageActions/triggers'),
+        'groupLabeledEventIdsByEventType',
+      );
+      groupLabeledEventsSpy.mockImplementation(originalGroupLabeledEvents);
+
+      const mockRemoteConfigFetch = {
+        getRemoteConfig: jest.fn().mockResolvedValue({
+          labeledEvents: undefined,
+          triggers: mockRemoteTriggers,
+        }),
+      };
+
+      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
+
+      // Start with local pageActions that also has undefined labeledEvents
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: undefined as any,
+          triggers: mockTriggers,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be processed
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // The spy should have been called twice:
+      // 1. Once during initial plugin creation with empty array (local labeledEvents undefined)
+      // 2. Once during recomputePageActionsData with empty array (remote labeledEvents also undefined)
+      expect(groupLabeledEventsSpy).toHaveBeenCalledTimes(2);
+
+      // Both calls should receive empty array due to the "?? {}" fallback
+      expect(groupLabeledEventsSpy.mock.calls[0][0]).toEqual([]); // Initial call
+      expect(groupLabeledEventsSpy.mock.calls[1][0]).toEqual([]); // recomputePageActionsData call
+
+      // No errors should be logged
+      expect(loggerProvider.error).not.toHaveBeenCalled();
+
+      groupLabeledEventsSpy.mockRestore();
+    });
+
+    it('should handle when both local and remote triggers are undefined', async () => {
+      // Mock the module function before creating the plugin
+      const originalCreateLabeledEventToTriggerMap =
+        require('../../src/pageActions/triggers').createLabeledEventToTriggerMap;
+      const createLabeledEventToTriggerMapSpy = jest.spyOn(
+        require('../../src/pageActions/triggers'),
+        'createLabeledEventToTriggerMap',
+      );
+      createLabeledEventToTriggerMapSpy.mockImplementation(originalCreateLabeledEventToTriggerMap);
+
+      const mockRemoteConfigFetch = {
+        getRemoteConfig: jest.fn().mockResolvedValue({
+          labeledEvents: mockRemoteLabeledEvents,
+          triggers: undefined,
+        }),
+      };
+
+      (createRemoteConfigFetch as jest.Mock).mockResolvedValue(mockRemoteConfigFetch);
+
+      // Start with local pageActions that also has undefined triggers
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: {
+          labeledEvents: mockLabeledEvents,
+          triggers: undefined as any,
+        },
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+        fetchRemoteConfig: true,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // Wait for remote config to be processed
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // The spy should have been called twice:
+      // 1. Once during initial plugin creation with empty array (local triggers undefined)
+      // 2. Once during recomputePageActionsData with empty array (remote triggers also undefined)
+      expect(createLabeledEventToTriggerMapSpy).toHaveBeenCalledTimes(2);
+
+      // Both calls should receive empty array due to the "?? []" fallback
+      expect(createLabeledEventToTriggerMapSpy.mock.calls[0][0]).toEqual([]); // Initial call
+      expect(createLabeledEventToTriggerMapSpy.mock.calls[1][0]).toEqual([]); // recomputePageActionsData call
+
+      // No errors should be logged
+      expect(loggerProvider.error).not.toHaveBeenCalled();
+
+      createLabeledEventToTriggerMapSpy.mockRestore();
+    });
+  });
+
+  describe('plugin initialization without pageActions', () => {
+    it('should handle initialization without pageActions', async () => {
+      const autocaptureConfig: ElementInteractionsOptions = {};
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(plugin?.name).toBe('@amplitude/plugin-autocapture-browser');
+      expect(plugin?.type).toBe('enrichment');
+    });
+
+    it('should handle undefined pageActions', async () => {
+      const autocaptureConfig: ElementInteractionsOptions = {
+        pageActions: undefined,
+      };
+
+      plugin = autocapturePlugin(autocaptureConfig);
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      expect(plugin?.name).toBe('@amplitude/plugin-autocapture-browser');
+      expect(plugin?.type).toBe('enrichment');
+    });
   });
 });

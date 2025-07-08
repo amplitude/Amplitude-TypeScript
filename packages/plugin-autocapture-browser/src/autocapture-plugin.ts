@@ -185,6 +185,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   // Function to recalculate internal variables when remote config is updated
   const recomputePageActionsData = (remotePageActions: ElementInteractionsOptions['pageActions']) => {
     if (remotePageActions) {
+      console.log('recomputePageActionsData', remotePageActions);
       // Merge remote config with local options
       options.pageActions = {
         ...options.pageActions,
@@ -192,8 +193,8 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       };
 
       // Recalculate internal variables
-      groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions?.labeledEvents ?? {}));
-      labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
+      groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(options.pageActions.labeledEvents ?? {}));
+      labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions.triggers ?? []);
 
       // Update evaluateTriggers function
       evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, options);
@@ -218,11 +219,13 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
             recomputePageActionsData(remotePageActions as ElementInteractionsOptions['pageActions']);
           } catch (error) {
             // Log error but don't fail the setup
+            /* istanbul ignore next */
             config?.loggerProvider?.error(`Failed to fetch remote config: ${String(error)}`);
           }
         })
         .catch((error) => {
           // Log error but don't fail the setup
+          /* istanbul ignore next */
           config?.loggerProvider?.error(`Failed to create remote config fetch: ${String(error)}`);
         });
     }

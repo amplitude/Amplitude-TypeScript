@@ -1,7 +1,7 @@
 import { autocapturePlugin } from '../src/autocapture-plugin';
 import * as hierarchyModule from '../src/hierarchy';
 
-import { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient } from '@amplitude/analytics-core';
+import type { BrowserConfig, EnrichmentPlugin, ILogger, BrowserClient } from '@amplitude/analytics-core';
 import { mockWindowLocationFromURL } from './utils';
 import { VERSION } from '../src/version';
 import { createMockBrowserClient } from './mock-browser-client';
@@ -674,7 +674,7 @@ describe('autoTrackingPlugin', () => {
 
     test('should follow pageUrlAllowlist configuration', async () => {
       plugin = autocapturePlugin({
-        pageUrlAllowlist: [new RegExp('https://www.test.com')],
+        pageUrlAllowlist: [/https:\/\/www\.test\.com/],
         debounceTime: TESTING_DEBOUNCE_TIME,
       });
 

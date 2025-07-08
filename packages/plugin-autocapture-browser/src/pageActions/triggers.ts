@@ -14,7 +14,7 @@ const eventTypeToBrowserEventMap = {
 } as const;
 // groups labeled events by event type
 // skips any labeled events with malformed definitions or unexpected event_type
-export const groupLabeledEventIdsByEventType = (labeledEvents?: LabeledEvent[] | null) => {
+export const groupLabeledEventIdsByEventType = (labeledEvents: LabeledEvent[] | null | undefined) => {
   const groupedLabeledEvents = {
     click: new Set<string>(),
     change: new Set<string>(),
