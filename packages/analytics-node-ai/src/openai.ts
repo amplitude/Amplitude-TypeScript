@@ -13,16 +13,19 @@ type ChatCompletionCreateParamsStreaming = OpenAIOriginal.Chat.Completions.ChatC
 type AmplitudeExtendedParamsBase = ChatCompletionCreateParamsBase & {
   amplitudeUserId?: string;
   amplitudeDeviceId?: string;
+  amplitudeSessionId?: number;
 };
 
 type AmplitudeExtendedParamsNonStreaming = ChatCompletionCreateParamsNonStreaming & {
   amplitudeUserId?: string;
   amplitudeDeviceId?: string;
+  amplitudeSessionId?: number;
 };
 
 type AmplitudeExtendedParamsStreaming = ChatCompletionCreateParamsStreaming & {
   amplitudeUserId?: string;
   amplitudeDeviceId?: string;
+  amplitudeSessionId?: number;
 };
 
 interface AmplitudeOpenAIConfig extends ClientOptions {
@@ -84,7 +87,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
     options?: RequestOptions,
   ): APIPromise<ChatCompletion | Stream<ChatCompletionChunk>> {
     // Extract Amplitude-specific properties
-    const { amplitudeUserId, amplitudeDeviceId, ...openAIBody } = body;
+    const { amplitudeUserId, amplitudeDeviceId, amplitudeSessionId, ...openAIBody } = body;
 
     // Track user message event
     this.amplitudeClient.track(
@@ -96,6 +99,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
       {
         user_id: amplitudeUserId,
         device_id: amplitudeDeviceId,
+        session_id: amplitudeSessionId,
       },
     );
 
@@ -144,6 +148,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
                 {
                   user_id: amplitudeUserId,
                   device_id: amplitudeDeviceId,
+                  session_id: amplitudeSessionId,
                 },
               );
             } catch (error) {
@@ -172,6 +177,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
               {
                 user_id: amplitudeUserId,
                 device_id: amplitudeDeviceId,
+                session_id: amplitudeSessionId,
               },
             );
           }
