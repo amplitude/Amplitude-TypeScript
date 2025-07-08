@@ -15,20 +15,24 @@ const eventTypeToBrowserEventMap = {
 // groups labeled events by event type
 // skips any labeled events with malformed definitions or unexpected event_type
 export const groupLabeledEventIdsByEventType = (labeledEvents: LabeledEvent[] | null | undefined) => {
-  const groupedLabeledEvents = {
-    click: new Set<string>(),
-    change: new Set<string>(),
-  };
+  // Initialize all event types with empty sets
+  const groupedLabeledEvents = Object.values(eventTypeToBrowserEventMap).reduce((acc, browserEvent) => {
+    acc[browserEvent] = new Set<string>();
+    return acc;
+  }, {} as Record<string, Set<string>>);
+
+  // If there are no labeled events, return the initialized groupedLabeledEvents
   if (!labeledEvents) {
     return groupedLabeledEvents;
   }
 
+  // Group labeled events by event type
   for (const le of labeledEvents) {
     try {
       for (const def of le.definition) {
         const browserEvent = eventTypeToBrowserEventMap[def.event_type];
         if (browserEvent) {
-          groupedLabeledEvents[browserEvent]?.add(le.id);
+          groupedLabeledEvents[browserEvent].add(le.id);
         }
       }
     } catch (e) {

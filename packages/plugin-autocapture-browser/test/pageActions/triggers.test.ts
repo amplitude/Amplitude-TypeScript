@@ -1,3 +1,4 @@
+import { mockWindowLocationFromURL } from './../utils';
 import type { ElementBasedTimestampedEvent } from '../../src/helpers';
 import type {
   LabeledEvent,
@@ -14,9 +15,12 @@ import * as matchEventToFilterModule from '../../src/pageActions/matchEventToFil
 import * as actionsModule from '../../src/pageActions/actions';
 import { AMPLITUDE_ELEMENT_CLICKED_EVENT, AMPLITUDE_ELEMENT_CHANGED_EVENT } from '../../src/constants';
 import { autocapturePlugin } from '../../src/autocapture-plugin';
-import type { BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
+import type { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@amplitude/analytics-core';
 import { createInstance } from '@amplitude/analytics-browser';
 import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
+import * as triggersModule from '../../src/pageActions/triggers';
+
+/* eslint-disable @typescript-eslint/unbound-method */
 
 jest.mock('../../src/pageActions/matchEventToFilter');
 jest.mock('../../src/pageActions/actions');
@@ -201,7 +205,31 @@ describe('groupLabeledEventIdsByEventType', () => {
     expect(result.change).toEqual(new Set(['ch1']));
   });
 
-  // Test 12: Complex scenario with mixed valid, invalid, and duplicate data
+  // Test 12: Should ignore unknown Amplitude event types
+  test('should ignore unknown Amplitude event types like "[Amplitude] Random Event"', () => {
+    const labeledEvents: LabeledEvent[] = [
+      { id: 'validClick', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
+      { id: 'validChange', definition: [{ event_type: AMPLITUDE_ELEMENT_CHANGED_EVENT, filters: [] }] },
+      {
+        id: 'randomEvent',
+        definition: [
+          { event_type: '[Amplitude] Random Event' as unknown as typeof AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] },
+        ],
+      },
+      {
+        id: 'mixedEvent',
+        definition: [
+          { event_type: '[Amplitude] Unknown Event' as unknown as typeof AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }, // Should be ignored
+          { event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }, // Should be processed
+        ],
+      },
+    ];
+    const result = groupLabeledEventIdsByEventType(labeledEvents);
+    expect(result.click).toEqual(new Set(['validClick', 'mixedEvent']));
+    expect(result.change).toEqual(new Set(['validChange']));
+  });
+
+  // Test 13: Complex scenario with mixed valid, invalid, and duplicate data
   test('should handle a complex mix of data correctly', () => {
     const labeledEvents: LabeledEvent[] = [
       { id: 'c1', definition: [{ event_type: AMPLITUDE_ELEMENT_CLICKED_EVENT, filters: [] }] },
@@ -634,9 +662,9 @@ describe('generateEvaluateTriggers', () => {
     };
 
     const grouped = groupLabeledEventIdsByEventType(
-      Object.values(optionsWithUntriggeredEvent.pageActions!.labeledEvents),
+      Object.values(optionsWithUntriggeredEvent.pageActions?.labeledEvents || {}),
     );
-    const triggerMap = createLabeledEventToTriggerMap(optionsWithUntriggeredEvent.pageActions!.triggers);
+    const triggerMap = createLabeledEventToTriggerMap(optionsWithUntriggeredEvent.pageActions?.triggers || []);
 
     matchEventToFilterSpy.mockReturnValue(true); // event matches
 
@@ -707,7 +735,7 @@ describe('generateEvaluateTriggers', () => {
 
 describe('autocapturePlugin recomputePageActionsData functionality', () => {
   let plugin: EnrichmentPlugin | undefined;
-  let instance: any;
+  let instance: BrowserClient;
   let loggerProvider: ILogger;
 
   // Mock data
@@ -846,12 +874,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
   });
 
   beforeEach(async () => {
-    (window.location as any) = {
-      hostname: '',
-      href: '',
-      pathname: '',
-      search: '',
-    };
+    mockWindowLocationFromURL(new URL('https://test.com'));
 
     loggerProvider = {
       log: jest.fn(),
@@ -1096,11 +1119,8 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
     it('should handle when remote pageActions overwrites local labeledEvents with undefined', async () => {
       // Mock the module function before creating the plugin
-      const originalGroupLabeledEvents = require('../../src/pageActions/triggers').groupLabeledEventIdsByEventType;
-      const groupLabeledEventsSpy = jest.spyOn(
-        require('../../src/pageActions/triggers'),
-        'groupLabeledEventIdsByEventType',
-      );
+      const originalGroupLabeledEvents = triggersModule.groupLabeledEventIdsByEventType;
+      const groupLabeledEventsSpy = jest.spyOn(triggersModule, 'groupLabeledEventIdsByEventType');
       groupLabeledEventsSpy.mockImplementation(originalGroupLabeledEvents);
 
       const mockRemoteConfigFetch = {
@@ -1150,11 +1170,8 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
     it('should handle when both local and remote labeledEvents are undefined', async () => {
       // Mock the module function before creating the plugin
-      const originalGroupLabeledEvents = require('../../src/pageActions/triggers').groupLabeledEventIdsByEventType;
-      const groupLabeledEventsSpy = jest.spyOn(
-        require('../../src/pageActions/triggers'),
-        'groupLabeledEventIdsByEventType',
-      );
+      const originalGroupLabeledEvents = triggersModule.groupLabeledEventIdsByEventType;
+      const groupLabeledEventsSpy = jest.spyOn(triggersModule, 'groupLabeledEventIdsByEventType');
       groupLabeledEventsSpy.mockImplementation(originalGroupLabeledEvents);
 
       const mockRemoteConfigFetch = {
@@ -1169,7 +1186,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       // Start with local pageActions that also has undefined labeledEvents
       const autocaptureConfig: ElementInteractionsOptions = {
         pageActions: {
-          labeledEvents: undefined as any,
+          labeledEvents: undefined as unknown as Record<string, LabeledEvent>,
           triggers: mockTriggers,
         },
       };
@@ -1203,12 +1220,8 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
 
     it('should handle when both local and remote triggers are undefined', async () => {
       // Mock the module function before creating the plugin
-      const originalCreateLabeledEventToTriggerMap =
-        require('../../src/pageActions/triggers').createLabeledEventToTriggerMap;
-      const createLabeledEventToTriggerMapSpy = jest.spyOn(
-        require('../../src/pageActions/triggers'),
-        'createLabeledEventToTriggerMap',
-      );
+      const originalCreateLabeledEventToTriggerMap = triggersModule.createLabeledEventToTriggerMap;
+      const createLabeledEventToTriggerMapSpy = jest.spyOn(triggersModule, 'createLabeledEventToTriggerMap');
       createLabeledEventToTriggerMapSpy.mockImplementation(originalCreateLabeledEventToTriggerMap);
 
       const mockRemoteConfigFetch = {
@@ -1224,7 +1237,7 @@ describe('autocapturePlugin recomputePageActionsData functionality', () => {
       const autocaptureConfig: ElementInteractionsOptions = {
         pageActions: {
           labeledEvents: mockLabeledEvents,
-          triggers: undefined as any,
+          triggers: undefined as unknown as Trigger[],
         },
       };
 
