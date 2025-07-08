@@ -9,11 +9,29 @@ type ChatCompletionCreateParamsBase = OpenAIOriginal.Chat.Completions.ChatComple
 type ChatCompletionCreateParamsNonStreaming = OpenAIOriginal.Chat.Completions.ChatCompletionCreateParamsNonStreaming;
 type ChatCompletionCreateParamsStreaming = OpenAIOriginal.Chat.Completions.ChatCompletionCreateParamsStreaming;
 
+// Extended types with Amplitude properties
+type AmplitudeExtendedParamsBase = ChatCompletionCreateParamsBase & {
+  amplitudeUserId?: string;
+  amplitudeDeviceId?: string;
+};
+
+type AmplitudeExtendedParamsNonStreaming = ChatCompletionCreateParamsNonStreaming & {
+  amplitudeUserId?: string;
+  amplitudeDeviceId?: string;
+};
+
+type AmplitudeExtendedParamsStreaming = ChatCompletionCreateParamsStreaming & {
+  amplitudeUserId?: string;
+  amplitudeDeviceId?: string;
+};
+
 interface AmplitudeOpenAIConfig extends ClientOptions {
   amplitudeApiKey: string;
   amplitudeClient: NodeClient;
 }
 
+// TODO(Xinyi): Should be more strict
+// Original type: https://github.com/openai/openai-node/blob/862e36338c9f64881bd5b23b79fa3380742b80be/src/internal/request-options.ts#L12
 type RequestOptions = Record<string, any>;
 
 export class AmplitudeOpenAI extends OpenAIOriginal {
@@ -46,49 +64,73 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
   }
 
   // --- Overload #1: Non-streaming
-  public create(body: ChatCompletionCreateParamsNonStreaming, options?: RequestOptions): APIPromise<ChatCompletion>;
+  public create(body: AmplitudeExtendedParamsNonStreaming, options?: RequestOptions): APIPromise<ChatCompletion>;
 
   // --- Overload #2: Streaming
   public create(
-    body: ChatCompletionCreateParamsStreaming,
+    body: AmplitudeExtendedParamsStreaming,
     options?: RequestOptions,
   ): APIPromise<Stream<ChatCompletionChunk>>;
 
   // --- Overload #3: Generic base
   public create(
-    body: ChatCompletionCreateParamsBase,
+    body: AmplitudeExtendedParamsBase,
     options?: RequestOptions,
   ): APIPromise<ChatCompletion | Stream<ChatCompletionChunk>>;
 
   // --- Implementation Signature
   public create(
-    body: ChatCompletionCreateParamsBase,
+    body: AmplitudeExtendedParamsBase,
     options?: RequestOptions,
   ): APIPromise<ChatCompletion | Stream<ChatCompletionChunk>> {
-    // Track user message event
-    this.amplitudeClient.track('user message', {
-      model: body.model,
-      message_content: body.messages[0].content,
-    });
+    // Extract Amplitude-specific properties
+    const { amplitudeUserId, amplitudeDeviceId, ...openAIBody } = body;
 
-    const parentPromise = super.create(body, options);
+    // Track user message event
+    this.amplitudeClient.track(
+      'user message',
+      {
+        model: body.model,
+        message_content: body.messages[0].content,
+      },
+      {
+        user_id: amplitudeUserId,
+        device_id: amplitudeDeviceId,
+      },
+    );
+
+    const parentPromise = super.create(openAIBody as ChatCompletionCreateParamsBase, options);
 
     if (body.stream) {
       return parentPromise.then((value) => {
         if ('tee' in value) {
           // Splits the stream into two streams which can be independently read from at different speeds.
-          const [stream1, stream2] = value.tee();
+          const [stream1, stream2] = (value as Stream<ChatCompletionChunk>).tee();
 
           // Process stream in background to track agent message
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           (async () => {
             try {
+              let responseContent = '';
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
-              for await (const _chunk of stream1) {
-                // Just consume the stream to track completion
+              for await (const chunk of stream1) {
+                // Collect response content from chunks
+                if (chunk.choices && chunk.choices[0] && chunk.choices[0].delta && chunk.choices[0].delta.content) {
+                  responseContent += chunk.choices[0].delta.content;
+                }
               }
               // Track agent message event
-              this.trackAgentMessage();
+              this.amplitudeClient.track(
+                'agent message',
+                {
+                  model: body.model,
+                  message_content: responseContent,
+                },
+                {
+                  user_id: amplitudeUserId,
+                  device_id: amplitudeDeviceId,
+                },
+              );
             } catch (error) {
               console.error('Error tracking agent message:', error);
             }
@@ -103,7 +145,17 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
         async (result) => {
           if ('choices' in result) {
             // Track agent message event
-            this.trackAgentMessage();
+            this.amplitudeClient.track(
+              'agent message',
+              {
+                model: body.model,
+                message_content: result.choices[0]?.message?.content || '',
+              },
+              {
+                user_id: amplitudeUserId,
+                device_id: amplitudeDeviceId,
+              },
+            );
           }
           return result;
         },
@@ -113,13 +165,6 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
         },
       ) as APIPromise<ChatCompletion>;
     }
-  }
-
-  /**
-   * Tracks an agent message event using the Amplitude client.
-   */
-  private trackAgentMessage() {
-    this.amplitudeClient.track('agent message');
   }
 }
 
