@@ -66,6 +66,46 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
     this.amplitudeClient = amplitudeClient;
   }
 
+  private trackAgentError(
+    error: any,
+    body: AmplitudeExtendedParamsBase,
+    startTime: number,
+    amplitudeUserId?: string,
+    amplitudeDeviceId?: string,
+    amplitudeSessionId?: number,
+  ) {
+    const latency = Date.now() - startTime;
+
+    // Extract error information
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
+    const errorMessage: string = error?.message || error?.toString() || 'Unknown error';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const errorType: string = error?.type || error?.code || 'unknown';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const errorCode: number | null = error?.code || error?.status || null;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const requestId: string | null = error?.request_id || null;
+
+    this.amplitudeClient.track(
+      'agent error',
+      {
+        model: body.model,
+        message_content: body.messages[0]?.content || '',
+        error_message: errorMessage,
+        error_type: errorType,
+        error_code: errorCode,
+        latency: latency,
+        request_id: requestId,
+        api_endpoint: 'chat.completions',
+      },
+      {
+        user_id: amplitudeUserId,
+        device_id: amplitudeDeviceId,
+        session_id: amplitudeSessionId,
+      },
+    );
+  }
+
   // --- Overload #1: Non-streaming
   public create(body: AmplitudeExtendedParamsNonStreaming, options?: RequestOptions): APIPromise<ChatCompletion>;
 
@@ -160,6 +200,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
               );
             } catch (error) {
               console.error('Error tracking agent message:', error);
+              this.trackAgentError(error, body, startTime, amplitudeUserId, amplitudeDeviceId, amplitudeSessionId);
             }
           })();
 
@@ -196,6 +237,7 @@ export class WrappedCompletions extends OpenAIOriginal.Chat.Completions {
         },
         (error) => {
           console.error('Error in OpenAI completion:', error);
+          this.trackAgentError(error, body, startTime, amplitudeUserId, amplitudeDeviceId, amplitudeSessionId);
           throw error;
         },
       ) as APIPromise<ChatCompletion>;
