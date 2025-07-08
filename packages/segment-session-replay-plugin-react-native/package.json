@@ -52,7 +52,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "devDependencies": {
-    "@amplitude/session-replay-react-native": "0.0.1-beta.1",
+    "@amplitude/session-replay-react-native": ">=0.0.1-beta.2 <1.0.0",
     "@segment/analytics-react-native": "2.15.0",
     "react-native-builder-bob": "^0.20.3"
   },
