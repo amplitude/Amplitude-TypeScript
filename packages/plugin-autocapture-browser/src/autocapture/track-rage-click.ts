@@ -73,7 +73,7 @@ export function trackRageClicks({
         // add the current click to the window
         clickWindow.push(click);
 
-        // if there's not trailing clicks to be a rage click, return null
+        // if there's not enough clicks to be a rage click, return null
         if (clickWindow.length < RAGE_CLICK_THRESHOLD) {
           return null;
         }

@@ -14,11 +14,6 @@ describe('trackRageClicks', () => {
   let allObservables: AllWindowObservables;
   let shouldTrackRageClick: jest.Mock;
 
-  beforeAll(() => {
-    // reduce the rage click window to 5ms to speed up the test
-    //_overrideRageClickConfig(5, 5);
-  });
-
   beforeEach(() => {
     mockAmplitude = {
       track: jest.fn(),
