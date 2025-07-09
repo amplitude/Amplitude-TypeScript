@@ -14,6 +14,7 @@ import {
   start,
   stop,
 } from '@amplitude/session-replay-react-native';
+import { VERSION } from '../src/version';
 
 // Mock the session replay module
 jest.mock('@amplitude/session-replay-react-native', () => ({
@@ -56,7 +57,7 @@ describe('SegmentSessionReplayPlugin', () => {
   describe('constructor', () => {
     it('should initialize with correct properties', () => {
       expect(plugin.name).toBe('amplitude-segment-session-replay-plugin-react-native');
-      expect(plugin.version).toBe('0.0.1-beta.1');
+      expect(plugin.version).toBe(VERSION);
       expect(plugin.type).toBe(PluginType.enrichment);
     });
   });
