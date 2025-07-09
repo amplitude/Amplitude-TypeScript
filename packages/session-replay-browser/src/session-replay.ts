@@ -285,7 +285,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   };
 
   evaluateTargetingAndCapture = async (
-    targetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>,
+    targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
     isInit = false,
   ) => {
     if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
@@ -298,7 +298,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     if (this.config.targetingConfig && !this.sessionTargetingMatch) {
-      let eventForTargeting = targetingParams?.event;
+      let eventForTargeting = targetingParams.event;
       if (
         eventForTargeting &&
         Object.values(SpecialEventType).includes(eventForTargeting.event_type as SpecialEventType)
@@ -314,7 +314,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
         targetingConfig: this.config.targetingConfig,
         loggerProvider: this.loggerProvider,
         apiKey: this.config.apiKey,
-        targetingParams: { userProperties: targetingParams?.userProperties, event: eventForTargeting },
+        targetingParams: { userProperties: targetingParams.userProperties, event: eventForTargeting },
       });
     }
 
