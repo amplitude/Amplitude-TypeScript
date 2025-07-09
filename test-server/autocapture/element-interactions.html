@@ -257,9 +257,7 @@
       window.amplitude = amplitude;
       const frustrationInteractions = {
         deadClicks: true,
-        rageClicks: {
-          cssSelectorAllowlist: ['input'],
-        },
+        rageClicks: true,
       };
       amplitude.add(frustrationPlugin(frustrationInteractions));
       amplitude.init(

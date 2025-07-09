@@ -54,7 +54,10 @@ export function trackRageClicks({
 
         // if the current click isn't on the same element as the most recent click,
         // clear the sliding window and start over
-        if (clickWindow.length > 0 && clickWindow[clickWindow.length - 1].event.target !== click.event.target) {
+        if (
+          clickWindow.length > 0 &&
+          clickWindow[clickWindow.length - 1].closestTrackedAncestor !== click.closestTrackedAncestor
+        ) {
           clickWindow.splice(0, clickWindow.length);
         }
 
@@ -92,6 +95,9 @@ export function trackRageClicks({
           '[Amplitude] Click Count': clickWindow.length,
           ...firstClick.targetElementProperties,
         };
+
+        // restart the sliding window
+        clickWindow.splice(0, clickWindow.length);
 
         return { rageClickEvent, time: firstClick.timestamp };
       }),
