@@ -72,7 +72,7 @@ export class SessionReplayJoinedConfigGenerator {
         // This is intentionally forced to only be set through the remote config.
         config.loggingConfig = namespaceConfig.sr_logging_config;
 
-        if (samplingConfig || privacyConfig) {
+        if (samplingConfig || privacyConfig || targetingConfig) {
           remoteConfig = {};
           if (samplingConfig) {
             remoteConfig.sr_sampling_config = samplingConfig;
@@ -80,12 +80,9 @@ export class SessionReplayJoinedConfigGenerator {
           if (privacyConfig) {
             remoteConfig.sr_privacy_config = privacyConfig;
           }
-        }
-        if (targetingConfig) {
-          if (!remoteConfig) {
-            remoteConfig = {};
+          if (targetingConfig) {
+            remoteConfig.sr_targeting_config = targetingConfig;
           }
-          remoteConfig.sr_targeting_config = targetingConfig;
         }
       }
     } catch (err: unknown) {
