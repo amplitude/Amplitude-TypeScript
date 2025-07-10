@@ -7,6 +7,7 @@ import {
   AutocaptureOptions,
   AttributionOptions,
   NetworkTrackingOptions,
+  FrustrationInteractionsOptions,
 } from '@amplitude/analytics-core';
 
 /**
@@ -91,6 +92,21 @@ export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | b
   return false;
 };
 
+export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.frustrationInteractions === true || typeof autocapture.frustrationInteractions === 'object')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
   if (
     isElementInteractionsEnabled(config.autocapture) &&
@@ -98,6 +114,19 @@ export const getElementInteractionsConfig = (config: BrowserOptions): ElementInt
     typeof config.autocapture.elementInteractions === 'object'
   ) {
     return config.autocapture.elementInteractions;
+  }
+  return undefined;
+};
+
+export const getFrustrationInteractionsConfig = (
+  config: BrowserOptions,
+): FrustrationInteractionsOptions | undefined => {
+  if (
+    isFrustrationInteractionsEnabled(config.autocapture) &&
+    typeof config.autocapture === 'object' &&
+    typeof config.autocapture.frustrationInteractions === 'object'
+  ) {
+    return config.autocapture.frustrationInteractions;
   }
   return undefined;
 };
