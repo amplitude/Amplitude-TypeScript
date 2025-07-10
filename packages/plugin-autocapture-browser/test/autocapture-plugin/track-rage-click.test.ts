@@ -78,6 +78,49 @@ describe('trackRageClicks', () => {
     }, 100); // Wait slightly longer than the buffer window
   });
 
+  it('should track if 6 clicks but first click is outside the rage click window', (done) => {
+    const subscription = trackRageClicks({
+      amplitude: mockAmplitude,
+      allObservables,
+      shouldTrackRageClick,
+    });
+
+    // Create a mock element
+    const mockElement = document.createElement('div');
+
+    // Simulate 6 clicks
+    const startTime = Date.now();
+    clickObservable.next({
+      event: {
+        target: mockElement,
+        clientX: 100,
+        clientY: 100,
+      },
+      timestamp: startTime,
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+    });
+    const rageClickWindow = 1000;
+    for (let i = 0; i < 4; i++) {
+      clickObservable.next({
+        event: {
+          target: mockElement,
+          clientX: 100,
+          clientY: 100,
+        },
+        timestamp: startTime + (rageClickWindow - 200) + i * 100,
+        closestTrackedAncestor: mockElement,
+        targetElementProperties: { id: 'test-element' },
+      });
+    }
+
+    setTimeout(() => {
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      subscription.unsubscribe();
+      done();
+    }, 100);
+  });
+
   it('should not track when clicks are below threshold', (done) => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
@@ -141,7 +184,7 @@ describe('trackRageClicks', () => {
     }, 100);
   });
 
-  it('should not track div elements', (done) => {
+  it('should not track untracked elements', (done) => {
     shouldTrackRageClick.mockReturnValue(false);
 
     const subscription = trackRageClicks({
