@@ -104,6 +104,7 @@ describe('joined-config', () => {
           pageViews: true,
           attribution: true,
           elementInteractions: false,
+          frustrationInteractions: true,
         };
 
         await generator.initialize();
@@ -146,6 +147,7 @@ describe('joined-config', () => {
           attribution: false,
           sessions: false,
           elementInteractions: true,
+          frustrationInteractions: true,
         };
 
         await generator.initialize();
@@ -163,6 +165,7 @@ describe('joined-config', () => {
           formInteractions: false,
           attribution: false,
           pageViews: false,
+          frustrationInteractions: false,
         },
         false,
       ])('should only enable elementInteractions if remote config only sets it to true', async (localAutocapture) => {
@@ -193,6 +196,7 @@ describe('joined-config', () => {
           attribution: false,
           pageViews: false,
           elementInteractions: true,
+          frustrationInteractions: false,
         };
 
         await generator.initialize();
