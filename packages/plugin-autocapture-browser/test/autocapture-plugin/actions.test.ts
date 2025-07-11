@@ -53,11 +53,11 @@ describe('page actions', () => {
       id: '123',
       definition: [
         {
-          event_type: 'click',
+          event_type: '[Amplitude] Element Clicked',
           filters: [
             {
               subprop_key: '[Amplitude] Element Text',
-              subprop_op: 'exact',
+              subprop_op: 'is',
               subprop_value: ['Add to Cart'],
             },
             {

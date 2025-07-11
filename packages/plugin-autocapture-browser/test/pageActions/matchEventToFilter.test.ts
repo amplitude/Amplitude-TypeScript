@@ -52,31 +52,31 @@ describe('matchEventToFilter', () => {
       testContainer.appendChild(dummyElement);
     });
 
-    test('should return true if subprop_op is "exact" and text matches', () => {
+    test('should return true if subprop_op is "is" and text matches', () => {
       const event = createEventForTesting('Hello World', dummyElement);
       const filter: Filter = {
         subprop_key: textFilterKey,
-        subprop_op: 'exact',
+        subprop_op: 'is',
         subprop_value: ['Hello World'],
       };
       expect(matchEventToFilter(event, filter)).toBe(true);
     });
 
-    test('should return true if subprop_op is "exact" and text is one of the values', () => {
+    test('should return true if subprop_op is "is" and text is one of the values', () => {
       const event = createEventForTesting('Click Here', dummyElement);
       const filter: Filter = {
         subprop_key: textFilterKey,
-        subprop_op: 'exact',
+        subprop_op: 'is',
         subprop_value: ['Submit', 'Click Here', 'View More'],
       };
       expect(matchEventToFilter(event, filter)).toBe(true);
     });
 
-    test('should return false if subprop_op is "exact" and text does not match', () => {
+    test('should return false if subprop_op is "is" and text does not match', () => {
       const event = createEventForTesting('Goodbye World', dummyElement);
       const filter: Filter = {
         subprop_key: textFilterKey,
-        subprop_op: 'exact',
+        subprop_op: 'is',
         subprop_value: ['Hello World'],
       };
       expect(matchEventToFilter(event, filter)).toBe(false);
@@ -86,14 +86,14 @@ describe('matchEventToFilter', () => {
       const event = createEventForTesting(undefined, dummyElement);
       const filter: Filter = {
         subprop_key: textFilterKey,
-        subprop_op: 'exact',
+        subprop_op: 'is',
         subprop_value: ['Hello World'],
       };
       expect(matchEventToFilter(event, filter)).toBe(false);
     });
 
     // TODO: add tests for other operators
-    test('should return false if subprop_op is not "exact" (due to other operators not implemented)', () => {
+    test('should return false if subprop_op is not "is" (due to other operators not implemented)', () => {
       const event = createEventForTesting('Hello World', dummyElement);
       const filter: Filter = {
         subprop_key: textFilterKey,
@@ -103,11 +103,11 @@ describe('matchEventToFilter', () => {
       expect(matchEventToFilter(event, filter)).toBe(false);
     });
 
-    test('should return false if subprop_value is an empty array for "exact" text match', () => {
+    test('should return false if subprop_value is an empty array for "is" text match', () => {
       const event = createEventForTesting('Hello World', dummyElement);
       const filter: Filter = {
         subprop_key: textFilterKey,
-        subprop_op: 'exact',
+        subprop_op: 'is',
         subprop_value: [],
       };
       expect(matchEventToFilter(event, filter)).toBe(false);
@@ -175,7 +175,7 @@ describe('matchEventToFilter', () => {
       const event = createEventForTesting('Any text', button);
       const filter: Filter = {
         subprop_key: hierarchyFilterKey,
-        subprop_op: 'exact', // Any other operator
+        subprop_op: 'is', // Any other operator
         subprop_value: ['div > .my-button'],
       };
       expect(matchEventToFilter(event, filter)).toBe(false);
@@ -230,7 +230,7 @@ describe('matchEventToFilter', () => {
       const event = createEventForTesting('Some Text', dummyElement);
       const filter: Filter = {
         subprop_key: '[Amplitude] Unknown Key' as EventSubpropKey, // Intentionally unknown
-        subprop_op: 'exact',
+        subprop_op: 'is',
         subprop_value: ['Some Text'],
       };
       expect(matchEventToFilter(event, filter)).toBe(false);

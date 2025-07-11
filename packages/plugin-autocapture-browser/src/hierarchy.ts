@@ -1,5 +1,5 @@
-import { isNonSensitiveElement, JSONValue } from './helpers';
-import { Hierarchy, HierarchyNode } from './typings/autocapture';
+import { isNonSensitiveElement, type JSONValue } from './helpers';
+import type { Hierarchy, HierarchyNode } from './typings/autocapture';
 
 const BLOCKED_ATTRIBUTES = [
   // Already captured elsewhere in the hierarchy object
