@@ -42,10 +42,10 @@
   "dependencies": {
     "@amplitude/analytics-core": "^2.16.0",
     "@amplitude/analytics-remote-config": "^0.6.3",
-    "@amplitude/rrweb-packer": "2.0.0-alpha.30",
-    "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.30",
-    "@amplitude/rrweb-record": "2.0.0-alpha.30",
-    "@amplitude/rrweb-utils": "2.0.0-alpha.30",
+    "@amplitude/rrweb-packer": "2.0.0-alpha.32",
+    "@amplitude/rrweb-plugin-console-record": "2.0.0-alpha.32",
+    "@amplitude/rrweb-record": "2.0.0-alpha.32",
+    "@amplitude/rrweb-utils": "2.0.0-alpha.32",
     "@rollup/plugin-replace": "^6.0.1",
     "idb": "8.0.0",
     "tslib": "^2.4.1"
