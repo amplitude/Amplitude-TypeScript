@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.26.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.26.0...@amplitude/session-replay-browser@1.26.1) (2025-07-11)
+
+
+### Bug Fixes
+
+* **session replay:** better Angular zone detection ([#1205](https://github.com/amplitude/Amplitude-TypeScript/issues/1205)) ([7d88d29](https://github.com/amplitude/Amplitude-TypeScript/commit/7d88d29671810d294f809a87d642eec825959759))
+
+
+
+
+
 # [1.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.25.3...@amplitude/session-replay-browser@1.26.0) (2025-07-08)
 
 
