@@ -8,6 +8,8 @@ import { UGCFilterRule } from '../config/types';
 export interface URLChangeEvent {
   href: string;
   title: string;
+  viewportHeight: number;
+  viewportWidth: number;
 }
 
 /**
@@ -111,10 +113,12 @@ export class URLTracker {
 
     const globalScope = getGlobalScope();
     // Bail out if browser doesn't support location API
-    if (!globalScope?.location) return;
+    if (!globalScope || !globalScope.location) return;
 
-    const currentUrl = globalScope.location.href;
-    const currentTitle = globalScope.document?.title || '';
+    const { innerHeight, innerWidth, location, document } = globalScope;
+
+    const currentUrl = location.href;
+    const currentTitle = document?.title || '';
 
     // Only emit if URL actually changed to prevent duplicate events
     if (currentUrl !== this.lastTrackedUrl) {
@@ -126,6 +130,8 @@ export class URLTracker {
       this.callback({
         href: filteredUrl,
         title: currentTitle,
+        viewportHeight: innerHeight,
+        viewportWidth: innerWidth,
       });
     }
   };

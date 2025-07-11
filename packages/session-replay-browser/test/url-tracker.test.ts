@@ -22,6 +22,8 @@ interface MockGlobalScope {
   removeEventListener: jest.Mock;
   setInterval: jest.Mock;
   clearInterval: jest.Mock;
+  innerHeight: number;
+  innerWidth: number;
 }
 
 // Test data factories
@@ -45,6 +47,8 @@ const createMockGlobalScope = (overrides: Partial<MockGlobalScope> = {}): MockGl
   removeEventListener: jest.fn(),
   setInterval: jest.fn().mockReturnValue(123),
   clearInterval: jest.fn(),
+  innerHeight: 768,
+  innerWidth: 1024,
   ...overrides,
 });
 
@@ -114,6 +118,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/initial',
         title: 'Initial Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
 
@@ -159,6 +165,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/new-page',
         title: 'New Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
 
@@ -168,6 +176,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/replaced-page',
         title: 'Replaced Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
 
@@ -178,6 +188,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/back-page',
         title: 'Back Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
 
@@ -185,6 +197,22 @@ describe('URLTracker', () => {
       setUrlAndTitle('https://example.com/initial', 'Initial Page');
       mockGlobalScope.history.pushState({}, '', '/initial');
       expect(mockCallback).not.toHaveBeenCalled();
+    });
+
+    test('should include viewport dimensions in URL change events', () => {
+      // Update viewport dimensions
+      mockGlobalScope.innerHeight = 600;
+      mockGlobalScope.innerWidth = 800;
+
+      setUrlAndTitle('https://example.com/viewport-test', 'Viewport Test');
+      mockGlobalScope.history.pushState({}, '', '/viewport-test');
+
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/viewport-test',
+        title: 'Viewport Test',
+        viewportHeight: 600,
+        viewportWidth: 800,
+      });
     });
   });
 
@@ -204,6 +232,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: filteredUrl,
         title: 'Sensitive Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
 
@@ -217,6 +247,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/no-filtering',
         title: 'No Filtering',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
   });
@@ -258,6 +290,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/polled-page',
         title: 'Polled Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
   });
@@ -276,6 +310,12 @@ describe('URLTracker', () => {
       mockGlobalScope.history.pushState({}, '', '/updated');
 
       expect(Helpers.getPageUrl).toHaveBeenCalledWith('https://example.com/updated', newRules);
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/filtered',
+        title: 'Updated Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
     });
   });
 
@@ -291,6 +331,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/no-title',
         title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
 
@@ -351,6 +393,31 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/test',
         title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+    });
+
+    test('should handle missing viewport dimensions gracefully', () => {
+      const scopeWithoutViewport = {
+        ...createMockGlobalScope(),
+        innerHeight: undefined,
+        innerWidth: undefined,
+      };
+      // @ts-expect-error - Testing edge case with invalid scope type
+      mockGlobalScopeReturn(scopeWithoutViewport);
+
+      urlTracker.start(mockCallback);
+      mockCallback.mockClear();
+
+      scopeWithoutViewport.location.href = 'https://example.com/test';
+      scopeWithoutViewport.document.title = '';
+      scopeWithoutViewport.history.pushState({}, '', '/test');
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/test',
+        title: '',
+        viewportHeight: undefined,
+        viewportWidth: undefined,
       });
     });
 
@@ -381,6 +448,8 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/null-test',
         title: 'Null Test',
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
     });
   });
