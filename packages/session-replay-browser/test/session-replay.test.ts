@@ -2048,6 +2048,19 @@ describe('SessionReplay', () => {
         // Note: enablePolling is private, so we test the public behavior instead
         // The URLTracker was created with polling enabled during initialization
       });
+
+      test('should create URLTracker with custom polling interval', async () => {
+        const customInterval = 2000;
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          enableUrlChangePolling: true,
+          urlChangePollingInterval: customInterval,
+        }).promise;
+
+        expect((sessionReplay as any).urlTracker).toBeDefined();
+        // Note: The polling interval is passed during URLTracker construction
+        // We can verify this works by ensuring the URLTracker is properly constructed
+      });
     });
 
     describe('teardownEventListeners URL tracking', () => {

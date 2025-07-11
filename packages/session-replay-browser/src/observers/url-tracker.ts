@@ -1,6 +1,7 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
 import { getPageUrl } from '../helpers';
 import { UGCFilterRule } from '../config/types';
+import { DEFAULT_URL_CHANGE_POLLING_INTERVAL } from '../constants';
 
 /**
  * Event emitted when URL changes are detected
@@ -16,9 +17,6 @@ export interface URLChangeEvent {
  * Callback function type for URL change notifications
  */
 export type URLChangeCallback = (event: URLChangeEvent) => void;
-
-// Constants
-const POLLING_INTERVAL_MS = 1000; // Check for URL changes every second when polling is enabled
 
 // Type alias for global scope to improve type safety
 type GlobalScope = NonNullable<ReturnType<typeof getGlobalScope>>;
@@ -49,21 +47,25 @@ export class URLTracker {
   private ugcFilterRules: UGCFilterRule[] = [];
   private isTracking = false;
   private enablePolling = false;
+  private pollingInterval: number;
 
   /**
    * Create a new URLTracker instance
    * @param options Configuration options
    * @param options.ugcFilterRules Rules for filtering sensitive content from URLs
    * @param options.enablePolling Whether to enable polling as a fallback detection method
+   * @param options.pollingInterval Polling interval in milliseconds (default: DEFAULT_URL_CHANGE_POLLING_INTERVAL)
    */
   constructor(
     options: {
       ugcFilterRules?: UGCFilterRule[];
       enablePolling?: boolean;
+      pollingInterval?: number;
     } = {},
   ) {
     this.ugcFilterRules = options.ugcFilterRules || [];
     this.enablePolling = options.enablePolling || false;
+    this.pollingInterval = options.pollingInterval || DEFAULT_URL_CHANGE_POLLING_INTERVAL;
   }
 
   /**
@@ -226,7 +228,7 @@ export class URLTracker {
     if (this.enablePolling) {
       this.urlChangeInterval = globalScope.setInterval(() => {
         this.emitUrlChange();
-      }, POLLING_INTERVAL_MS) as unknown as number;
+      }, this.pollingInterval) as unknown as number;
     }
   }
 

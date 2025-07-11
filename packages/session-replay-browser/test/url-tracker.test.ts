@@ -1,6 +1,7 @@
 import { URLTracker, URLChangeCallback } from '../src/observers/url-tracker';
 import * as AnalyticsCore from '@amplitude/analytics-core';
 import * as Helpers from '../src/helpers';
+import { DEFAULT_URL_CHANGE_POLLING_INTERVAL } from '../src/constants';
 
 jest.mock('../src/helpers', () => ({
   getPageUrl: jest.fn(),
@@ -257,7 +258,17 @@ describe('URLTracker', () => {
     test('should setup polling when enabled', () => {
       urlTracker = new URLTracker({ enablePolling: true });
       urlTracker.start(mockCallback);
-      expect(mockGlobalScope.setInterval).toHaveBeenCalledWith(expect.any(Function), 1000);
+      expect(mockGlobalScope.setInterval).toHaveBeenCalledWith(
+        expect.any(Function),
+        DEFAULT_URL_CHANGE_POLLING_INTERVAL,
+      );
+    });
+
+    test('should setup polling with custom interval', () => {
+      const customInterval = 2000;
+      urlTracker = new URLTracker({ enablePolling: true, pollingInterval: customInterval });
+      urlTracker.start(mockCallback);
+      expect(mockGlobalScope.setInterval).toHaveBeenCalledWith(expect.any(Function), customInterval);
     });
 
     test('should not setup polling when disabled', () => {

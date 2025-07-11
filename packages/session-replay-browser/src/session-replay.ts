@@ -117,6 +117,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.urlTracker = new URLTracker({
       ugcFilterRules: this.config.interactionConfig?.ugcFilterRules || [],
       enablePolling: this.config.enableUrlChangePolling || false,
+      pollingInterval: this.config.urlChangePollingInterval,
     });
 
     // Start tracking and handle URL changes

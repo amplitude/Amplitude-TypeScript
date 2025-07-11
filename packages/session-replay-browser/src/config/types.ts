@@ -170,6 +170,13 @@ export interface SessionReplayLocalConfig extends IConfig {
    * @defaultValue false
    */
   enableUrlChangePolling?: boolean;
+  /**
+   * Specifies the interval in milliseconds for URL change polling when enableUrlChangePolling is true.
+   * The SDK will check for URL changes at this interval as a fallback for SPA route tracking.
+   *
+   * @defaultValue 1000
+   */
+  urlChangePollingInterval?: number;
   interactionConfig?: InteractionConfig;
 }
 
