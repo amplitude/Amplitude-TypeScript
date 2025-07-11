@@ -90,3 +90,6 @@ export class NetworkObservers {
     };
   }
 }
+
+// Export URLTracker from separate file
+export * from './observers/url-tracker';

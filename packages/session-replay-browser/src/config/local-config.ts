@@ -1,5 +1,10 @@
 import { Config, Logger, FetchTransport, LogLevel } from '@amplitude/analytics-core';
-import { DEFAULT_PERFORMANCE_CONFIG, DEFAULT_SAMPLE_RATE, DEFAULT_SERVER_ZONE } from '../constants';
+import {
+  DEFAULT_PERFORMANCE_CONFIG,
+  DEFAULT_SAMPLE_RATE,
+  DEFAULT_SERVER_ZONE,
+  DEFAULT_URL_CHANGE_POLLING_INTERVAL,
+} from '../constants';
 import { SessionReplayOptions, StoreType } from '../typings/session-replay';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
@@ -36,6 +41,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     script?: boolean;
     comment?: boolean;
   };
+  urlChangePollingInterval?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
     const defaultConfig = getDefaultConfig();
@@ -60,6 +66,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
     this.storeType = options.storeType ?? 'idb';
     this.applyBackgroundColorToBlockedElements = options.applyBackgroundColorToBlockedElements ?? false;
+    this.urlChangePollingInterval = options.urlChangePollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
 
     if (options.privacyConfig) {
       this.privacyConfig = options.privacyConfig;

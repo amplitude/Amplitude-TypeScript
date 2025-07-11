@@ -8,6 +8,7 @@ import {
 } from '../../src/config/joined-config';
 import { SessionReplayLocalConfig } from '../../src/config/local-config';
 import { PrivacyConfig, SessionReplayRemoteConfig, UGCFilterRule } from '../../src/config/types';
+import { DEFAULT_URL_CHANGE_POLLING_INTERVAL } from '../../src/constants';
 
 jest.mock('@amplitude/analytics-remote-config');
 
@@ -316,6 +317,28 @@ describe('SessionReplayJoinedConfigGenerator', () => {
           },
         });
         expect(config.interactionConfig?.ugcFilterRules).toEqual(validRules);
+      });
+
+      test('should set urlChangePollingInterval to default value when not provided', () => {
+        const config = new SessionReplayLocalConfig('static_key', mockOptions);
+        expect(config.urlChangePollingInterval).toBe(DEFAULT_URL_CHANGE_POLLING_INTERVAL);
+      });
+
+      test('should set urlChangePollingInterval to custom value when provided', () => {
+        const customInterval = 2000;
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          urlChangePollingInterval: customInterval,
+        });
+        expect(config.urlChangePollingInterval).toBe(customInterval);
+      });
+
+      test('should set urlChangePollingInterval to 0 when explicitly set to 0', () => {
+        const config = new SessionReplayLocalConfig('static_key', {
+          ...mockOptions,
+          urlChangePollingInterval: 0,
+        });
+        expect(config.urlChangePollingInterval).toBe(0);
       });
 
       test('should throw error for invalid UGC filter rules with non-string selector', () => {

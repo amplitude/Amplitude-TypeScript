@@ -48,6 +48,7 @@ import { SafeLoggerProvider } from './logger';
 
 // Import only the type for NetworkRequestEvent to keep type safety
 import type { NetworkRequestEvent, NetworkObservers } from './observers';
+import { URLTracker } from './observers';
 import type { RecordFunction } from './utils/rrweb';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
@@ -68,6 +69,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   private scrollHook?: scrollCallback;
   private networkObservers?: NetworkObservers;
   private metadata: SessionReplayMetadata | undefined;
+  private urlTracker?: URLTracker;
 
   // Cache the dynamically imported record function
   private recordFunction: RecordFunction | null = null;
@@ -98,7 +100,30 @@ export class SessionReplay implements AmplitudeSessionReplay {
         globalScope.removeEventListener('beforeunload', this.pageLeaveListener);
         !teardown && globalScope.addEventListener('beforeunload', this.pageLeaveListener);
       }
+
+      // Setup or teardown URL tracking
+      if (teardown) {
+        this.urlTracker?.stop();
+      } else {
+        this.initializeUrlTracking();
+      }
     }
+  };
+
+  private initializeUrlTracking = () => {
+    if (!this.config) return;
+
+    // Initialize URLTracker with configuration
+    this.urlTracker = new URLTracker({
+      ugcFilterRules: this.config.interactionConfig?.ugcFilterRules || [],
+      enablePolling: this.config.enableUrlChangePolling || false,
+      pollingInterval: this.config.urlChangePollingInterval,
+    });
+
+    // Start tracking and handle URL changes
+    this.urlTracker.start((event) => {
+      void this.addCustomRRWebEvent(CustomRRwebEvent.URL_CHANGE, event);
+    });
   };
 
   protected async _init(apiKey: string, options: SessionReplayOptions) {
