@@ -68,7 +68,7 @@ export {
   CookieOptions,
   AttributionOptions,
 } from './types/config/browser-config';
-export { BrowserClient } from './types/browser-client';
+export { BrowserClient } from './types/client/browser-client';
 
 export { NetworkEventCallback, networkObserver } from './network-observer';
 export { NetworkRequestEvent } from './network-request-event';
