@@ -1,4 +1,5 @@
-export { AmplitudeCore, CoreClient } from './core-client';
+export { AmplitudeCore } from './core-client';
+export { CoreClient } from './types/client/core-client';
 export { Identify, IIdentify } from './identify';
 export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
