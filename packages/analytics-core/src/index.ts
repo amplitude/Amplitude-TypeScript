@@ -70,6 +70,10 @@ export {
 } from './types/config/browser-config';
 export { BrowserClient } from './types/client/browser-client';
 
+// Node
+export { NodeClient } from './types/client/node-client';
+export { NodeConfig, NodeOptions } from './types/config/node-config';
+
 export { NetworkEventCallback, networkObserver } from './network-observer';
 export { NetworkRequestEvent } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
