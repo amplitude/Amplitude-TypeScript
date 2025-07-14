@@ -8,7 +8,7 @@ import {
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
-import { IRequestWrapper } from '@amplitude/analytics-core/lib/esm/network-request-event';
+import { IRequestWrapper } from '@amplitude/analytics-core';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
