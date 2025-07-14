@@ -1,10 +1,10 @@
-import { BeforePlugin, NodeConfig, Event } from '@amplitude/analytics-types';
+import { BeforePlugin, NodeConfig, Event, PluginType } from '@amplitude/analytics-types';
 import { UUID } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 
 export class Context implements BeforePlugin {
-  name = '@amplitude/plugin-context-node';
-  type = 'before' as const;
+  name = 'context';
+  type = PluginType.BEFORE as const;
 
   // this.config is defined in setup() which will always be called first
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
