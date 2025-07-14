@@ -1,5 +1,5 @@
 import { Plugin } from './types/plugin';
-import { IConfig } from './types/config/core';
+import { IConfig } from './types/config/core-config';
 import { BaseEvent, EventOptions } from './types/event/base-event';
 import { Result } from './types/result';
 import {

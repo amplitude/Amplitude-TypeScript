@@ -1,5 +1,5 @@
 import { Event } from './event/event';
-import { IConfig } from './config/core';
+import { IConfig } from './config/core-config';
 import { Result } from './result';
 import { CoreClient } from '../core-client';
 

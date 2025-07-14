@@ -1,5 +1,5 @@
 import { IdentityEventSender } from '../../src/plugins/identity';
-import { IConfig } from '../../src/types/config/core';
+import { IConfig } from '../../src/types/config/core-config';
 import { getAnalyticsConnector } from '../../src/analytics-connector';
 
 describe('identity', () => {

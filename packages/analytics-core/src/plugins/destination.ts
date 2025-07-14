@@ -21,7 +21,7 @@ import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
-import { IConfig } from '../types/config/core';
+import { IConfig } from '../types/config/core-config';
 import { EventCallback } from '../types/event-callback';
 
 export interface Context {

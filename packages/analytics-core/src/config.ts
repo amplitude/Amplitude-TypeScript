@@ -14,8 +14,8 @@ import {
 
 import { Logger, ILogger } from './logger';
 import { LogLevel } from './types/loglevel';
-import { ConfigOptions, IRequestMetadata, IHistogramOptions, HistogramKey } from './types/config/core';
-import { IConfig } from './types/config/core';
+import { ConfigOptions, IRequestMetadata, IHistogramOptions, HistogramKey } from './types/config/core-config';
+import { IConfig } from './types/config/core-config';
 
 export const getDefaultConfig = () => ({
   flushMaxRetries: 12,

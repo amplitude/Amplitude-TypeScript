@@ -1,6 +1,6 @@
 import { AnalyticsIdentity, BeforePlugin, DestinationPlugin, EnrichmentPlugin, Plugin } from './types/plugin';
 import { CoreClient } from './core-client';
-import { IConfig } from './types/config/core';
+import { IConfig } from './types/config/core-config';
 import { ILogger } from './logger';
 import { EventCallback } from './types/event-callback';
 import { Event } from './types/event/event';

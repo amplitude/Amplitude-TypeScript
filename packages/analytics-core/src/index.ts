@@ -4,7 +4,7 @@ export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
 export { IdentityEventSender } from './plugins/identity';
 export { Config, RequestMetadata } from './config';
-export { IConfig } from './types/config/core';
+export { IConfig } from './types/config/core-config';
 export { Logger, ILogger, LogConfig } from './logger';
 export { getGlobalScope } from './global-scope';
 export { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from './analytics-connector';
@@ -66,7 +66,7 @@ export {
   AutocaptureOptions,
   CookieOptions,
   AttributionOptions,
-} from './types/browser-config';
+} from './types/config/browser-config';
 export { BrowserClient } from './types/browser-client';
 
 export { NetworkEventCallback, networkObserver } from './network-observer';
