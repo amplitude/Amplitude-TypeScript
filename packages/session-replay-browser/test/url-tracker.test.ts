@@ -122,6 +122,10 @@ describe('URLTracker', () => {
         viewportHeight: 768,
         viewportWidth: 1024,
       });
+      // With default config (no polling), event listeners should be set up
+      expect(mockGlobalScope.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+      // Polling should NOT be set up by default
+      expect(mockGlobalScope.setInterval).not.toHaveBeenCalled();
     });
 
     test('should not start if already tracking', () => {
@@ -134,6 +138,8 @@ describe('URLTracker', () => {
       urlTracker.start(mockCallback);
       urlTracker.stop();
       expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+      // Polling should NOT be cleaned up when event listeners were used
+      expect(mockGlobalScope.clearInterval).not.toHaveBeenCalled();
     });
 
     test('should handle missing global scope gracefully', () => {
@@ -262,6 +268,8 @@ describe('URLTracker', () => {
         expect.any(Function),
         DEFAULT_URL_CHANGE_POLLING_INTERVAL,
       );
+      // Event listeners should NOT be set up when polling is enabled
+      expect(mockGlobalScope.addEventListener).not.toHaveBeenCalled();
     });
 
     test('should setup polling with custom interval', () => {
@@ -269,12 +277,16 @@ describe('URLTracker', () => {
       urlTracker = new URLTracker({ enablePolling: true, pollingInterval: customInterval });
       urlTracker.start(mockCallback);
       expect(mockGlobalScope.setInterval).toHaveBeenCalledWith(expect.any(Function), customInterval);
+      // Event listeners should NOT be set up when polling is enabled
+      expect(mockGlobalScope.addEventListener).not.toHaveBeenCalled();
     });
 
     test('should not setup polling when disabled', () => {
       urlTracker = new URLTracker({ enablePolling: false });
       urlTracker.start(mockCallback);
       expect(mockGlobalScope.setInterval).not.toHaveBeenCalled();
+      // Event listeners should be set up when polling is disabled
+      expect(mockGlobalScope.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
     });
 
     test('should clear polling interval when stopped', () => {
@@ -282,6 +294,8 @@ describe('URLTracker', () => {
       urlTracker.start(mockCallback);
       urlTracker.stop();
       expect(mockGlobalScope.clearInterval).toHaveBeenCalledWith(123);
+      // Event listeners should NOT be cleaned up when polling was used
+      expect(mockGlobalScope.removeEventListener).not.toHaveBeenCalled();
     });
 
     test('should execute polling callback and emit URL changes', () => {
@@ -301,29 +315,6 @@ describe('URLTracker', () => {
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/polled-page',
         title: 'Polled Page',
-        viewportHeight: 768,
-        viewportWidth: 1024,
-      });
-    });
-  });
-
-  describe('updateConfig', () => {
-    test('should update UGC filter rules', () => {
-      urlTracker = new URLTracker();
-      const newRules = [{ selector: 'updated', replacement: 'filtered' }];
-      urlTracker.updateConfig(newRules);
-
-      const filteredUrl = 'https://example.com/filtered';
-      (Helpers.getPageUrl as jest.Mock).mockReturnValue(filteredUrl);
-
-      startTrackingAndClearCallback();
-      setUrlAndTitle('https://example.com/updated', 'Updated Page');
-      mockGlobalScope.history.pushState({}, '', '/updated');
-
-      expect(Helpers.getPageUrl).toHaveBeenCalledWith('https://example.com/updated', newRules);
-      expect(mockCallback).toHaveBeenCalledWith({
-        href: 'https://example.com/filtered',
-        title: 'Updated Page',
         viewportHeight: 768,
         viewportWidth: 1024,
       });

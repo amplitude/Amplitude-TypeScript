@@ -24,8 +24,8 @@ type GlobalScope = NonNullable<ReturnType<typeof getGlobalScope>>;
 /**
  * URLTracker monitors URL changes in single-page applications by:
  * 1. Patching browser history methods (pushState, replaceState)
- * 2. Listening for popstate events (back/forward navigation)
- * 3. Optional polling as a fallback for edge cases
+ * 2. Either listening for popstate events (back/forward navigation) OR polling for changes
+ *    (mutually exclusive - polling is used when enabled, otherwise event listeners)
  *
  * Features:
  * - Deduplication of identical URL changes
@@ -40,7 +40,7 @@ export class URLTracker {
 
   // Track state to prevent duplicate emissions and manage lifecycle
   private lastTrackedUrl = '';
-  private urlChangeInterval: number | null = null;
+  private urlChangeInterval: NodeJS.Timeout | null = null;
   private callback: URLChangeCallback | null = null;
 
   // Configuration
@@ -53,7 +53,7 @@ export class URLTracker {
    * Create a new URLTracker instance
    * @param options Configuration options
    * @param options.ugcFilterRules Rules for filtering sensitive content from URLs
-   * @param options.enablePolling Whether to enable polling as a fallback detection method
+   * @param options.enablePolling Whether to use polling instead of event listeners for URL change detection
    * @param options.pollingInterval Polling interval in milliseconds (default: DEFAULT_URL_CHANGE_POLLING_INTERVAL)
    */
   constructor(
@@ -95,14 +95,6 @@ export class URLTracker {
     this.teardownUrlTracking();
     this.callback = null;
     this.isTracking = false;
-  }
-
-  /**
-   * Update the UGC filtering rules without restarting the tracker
-   * @param ugcFilterRules New filtering rules to apply
-   */
-  updateConfig(ugcFilterRules: UGCFilterRule[]): void {
-    this.ugcFilterRules = ugcFilterRules;
   }
 
   /**
@@ -150,9 +142,8 @@ export class URLTracker {
    * Set up all URL tracking mechanisms:
    * 1. Store original browser methods
    * 2. Patch history methods to detect programmatic navigation
-   * 3. Add event listeners for browser navigation
-   * 4. Set up optional polling fallback
-   * 5. Emit initial URL state
+   * 3. Set up either polling OR event listeners (mutually exclusive)
+   * 4. Emit initial URL state
    */
   private setupUrlTracking(): void {
     const globalScope = getGlobalScope();
@@ -161,8 +152,13 @@ export class URLTracker {
 
     this.storeOriginalHistoryMethods(globalScope);
     this.patchHistoryMethods(globalScope);
-    this.setupEventListeners(globalScope);
-    this.setupPolling(globalScope);
+
+    // Use either polling or event listeners, not both
+    if (this.enablePolling) {
+      this.setupPolling(globalScope);
+    } else {
+      this.setupEventListeners(globalScope);
+    }
 
     // Emit initial URL to establish baseline
     this.emitUrlChange();
@@ -220,20 +216,19 @@ export class URLTracker {
   }
 
   /**
-   * Set up optional polling as a fallback for URL change detection
-   * Some edge cases or browser bugs might not trigger our other detection methods
+   * Set up polling for URL change detection (alternative to event listeners)
+   * Used when enablePolling is true, provides regular interval-based URL checking
    * @param globalScope The global scope for setting intervals
    */
   private setupPolling(globalScope: GlobalScope): void {
-    if (this.enablePolling) {
-      this.urlChangeInterval = globalScope.setInterval(() => {
-        this.emitUrlChange();
-      }, this.pollingInterval) as unknown as number;
-    }
+    this.urlChangeInterval = globalScope.setInterval(() => {
+      this.emitUrlChange();
+    }, this.pollingInterval);
   }
 
   /**
-   * Clean up all tracking mechanisms and restore original browser state
+   * Clean up tracking mechanisms and restore original browser state
+   * Only cleans up the specific method that was actually used (polling OR event listeners)
    */
   private teardownUrlTracking(): void {
     const globalScope = getGlobalScope();
@@ -241,8 +236,14 @@ export class URLTracker {
     if (!globalScope) return;
 
     this.restoreOriginalHistoryMethods(globalScope);
-    this.removeEventListeners(globalScope);
-    this.clearPolling(globalScope);
+
+    // Clean up only the method that was actually used
+    if (this.enablePolling) {
+      this.clearPolling(globalScope);
+    } else {
+      this.removeEventListeners(globalScope);
+    }
+
     this.resetState();
   }
 
