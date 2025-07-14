@@ -1,5 +1,4 @@
-import { BeforePlugin, NodeConfig, Event } from '@amplitude/analytics-types';
-import { UUID } from '@amplitude/analytics-core';
+import { UUID, BeforePlugin, NodeConfig, Event } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 
 export class Context implements BeforePlugin {
