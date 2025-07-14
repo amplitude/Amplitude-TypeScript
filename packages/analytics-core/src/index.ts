@@ -69,5 +69,5 @@ export {
 export { BrowserClient } from './types/browser-client';
 
 export { NetworkEventCallback, networkObserver } from './network-observer';
-export { NetworkRequestEvent } from './network-request-event';
+export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
