@@ -1,4 +1,5 @@
-import { getDefaultConfig, IConfig } from '../../src/config';
+import { getDefaultConfig } from '../../src/config';
+import { IConfig } from '../../src/types/config/core';
 
 export const useDefaultConfig = (): IConfig => ({
   apiKey: API_KEY,

@@ -1,5 +1,5 @@
 import { BeforePlugin } from '../types/plugin';
-import { IConfig } from '../config';
+import { IConfig } from '../types/config/core';
 import { Event } from '../types/event/event';
 import { getAnalyticsConnector } from '../analytics-connector';
 

@@ -1,7 +1,7 @@
 import { UserSession } from './user-session';
 import { IdentityStorageType, Storage } from './storage';
 import { Transport } from './transport';
-import { IConfig } from '../config';
+import { IConfig } from './config/core';
 import { ElementInteractionsOptions } from './element-interactions';
 import { PageTrackingOptions } from './page-view-tracking';
 import { NetworkTrackingOptions } from './network-tracking';

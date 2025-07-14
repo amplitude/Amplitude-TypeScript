@@ -1,5 +1,5 @@
 import { Destination, getResponseBodyString, Context } from '../../src/plugins/destination';
-import { IConfig } from '../../src/config';
+import { IConfig } from '../../src/types/config/core';
 import { ILogger } from '../../src/logger';
 import { Payload } from '../../src/types/payload';
 import { Status } from '../../src/types/status';
