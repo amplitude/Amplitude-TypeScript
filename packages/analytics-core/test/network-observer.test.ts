@@ -380,6 +380,7 @@ describe('NetworkObserver', () => {
         method: 'GET',
         url: 'https://api.example.com/data',
         startTime: Date.now(),
+        status: 200,
         toSerializable: () => ({ ...mockEvent }),
       };
 
@@ -848,5 +849,12 @@ describe('RequestWrapperFetch', () => {
 describe('networkObserver', () => {
   test('singleton should be an instance of NetworkObserver', () => {
     expect(networkObserver).toBeInstanceOf(NetworkObserver);
+  });
+});
+
+describe('NetworkRequestEvent', () => {
+  test('status should be 0 if not set', () => {
+    const event = new NetworkRequestEvent('xhr', 'GET', 0, 0, 'https://api.example.com/data');
+    expect(event.status).toBe(0);
   });
 });

@@ -1,6 +1,5 @@
 import { getGlobalScope, ServerZone } from '@amplitude/analytics-core';
-import { getInputType } from '@amplitude/rrweb-snapshot';
-import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig } from './config/types';
+import { DEFAULT_MASK_LEVEL, MaskLevel, PrivacyConfig, SessionReplayJoinedConfig, UGCFilterRule } from './config/types';
 import {
   KB_SIZE,
   MASK_TEXT_CLASS,
@@ -10,6 +9,7 @@ import {
   UNMASK_TEXT_CLASS,
 } from './constants';
 import { StorageData } from './typings/session-replay';
+import { getInputType } from './utils/get-input-type';
 
 type ChromeStorageEstimate = {
   quota?: number;
@@ -141,6 +141,48 @@ export const getServerUrl = (serverZone?: keyof typeof ServerZone, trackServerUr
   }
 
   return SESSION_REPLAY_SERVER_URL;
+};
+
+const isValidGlobUrl = (globUrl: string): boolean => {
+  if (typeof globUrl !== 'string' || globUrl.trim() === '') return false;
+  const urlPattern = /^\/|^https?:\/\/[^\s]+$/;
+  if (!urlPattern.test(globUrl)) return false;
+  return true;
+};
+
+const globToRegex = (glob: string): RegExp => {
+  // Escape special regex characters, then convert globs
+  const escaped = glob
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex specials
+    .replace(/\*/g, '.*') // Convert * to .*
+    .replace(/\?/g, '.'); // Convert ? to .
+
+  return new RegExp(`^${escaped}$`);
+};
+
+export const validateUGCFilterRules = (ugcFilterRules: UGCFilterRule[]) => {
+  // validate ugcFilterRules
+  if (!ugcFilterRules.every((rule) => typeof rule.selector === 'string' && typeof rule.replacement === 'string')) {
+    throw new Error('ugcFilterRules must be an array of objects with selector and replacement properties');
+  }
+
+  // validate ugcFilterRules are valid globs
+  if (!ugcFilterRules.every((rule) => isValidGlobUrl(rule.selector))) {
+    throw new Error('ugcFilterRules must be an array of objects with valid globs');
+  }
+};
+
+export const getPageUrl = (pageUrl: string, ugcFilterRules: UGCFilterRule[]) => {
+  // apply ugcFilterRules, order is important, first rule wins
+  for (const rule of ugcFilterRules) {
+    const regex = globToRegex(rule.selector);
+
+    if (regex.test(pageUrl)) {
+      return pageUrl.replace(regex, rule.replacement);
+    }
+  }
+
+  return pageUrl;
 };
 
 export const getStorageSize = async (): Promise<StorageData> => {

@@ -1,10 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
-import * as RRWeb from '@amplitude/rrweb';
 import { IDBFactory } from 'fake-indexeddb';
 import { SessionReplayOptions } from 'src/typings/session-replay';
 import * as SessionReplayIDB from '../../src/events/events-idb-store';
@@ -13,10 +12,17 @@ import { DEFAULT_SAMPLE_RATE, DEFAULT_SESSION_REPLAY_PROPERTY, SESSION_REPLAY_SE
 import * as Helpers from '../../src/helpers';
 import { SessionReplay } from '../../src/session-replay';
 import { SESSION_ID_IN_20_SAMPLE } from '../test-data';
+import { eventWithTime } from '@amplitude/rrweb-types';
+
+jest.mock('@amplitude/analytics-remote-config');
+
+// Accessing mock helper functions from the Jest manual mock for @amplitude/analytics-remote-config.
+// This import is intentionally ts-ignored as these helpers are not part of the module's type definitions.
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { __setNamespaceConfig, __setShouldThrowError } from '@amplitude/analytics-remote-config';
 
 type MockedLogger = jest.Mocked<ILogger>;
-jest.mock('@amplitude/rrweb');
-type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
 
 const mockEvent = {
   type: 4,
@@ -35,7 +41,6 @@ async function runScheduleTimers() {
 }
 
 describe('module level integration', () => {
-  const { record } = RRWeb as MockedRRWeb;
   const addEventListenerMock = jest.fn() as jest.Mock<typeof window.addEventListener>;
   const removeEventListenerMock = jest.fn() as jest.Mock<typeof window.removeEventListener>;
   const mockGlobalScope = {
@@ -77,13 +82,14 @@ describe('module level integration', () => {
     deviceId: '1a2b3c',
     sessionId: SESSION_ID_IN_20_SAMPLE,
   };
-  let getRemoteConfigMock: jest.Mock;
+  let mockRecordFunction: jest.Mock & { addCustomEvent: jest.Mock };
   beforeEach(() => {
-    getRemoteConfigMock = jest.fn();
-    jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
-      getRemoteConfig: getRemoteConfigMock,
-      metrics: {},
+    // Reset the namespace config before each test
+    __setNamespaceConfig({
+      sr_sampling_config: samplingConfig,
+      sr_privacy_config: {},
     });
+    __setShouldThrowError(false);
     jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new');
     jest.useFakeTimers({ doNotFake: ['nextTick'] });
     originalFetch = global.fetch;
@@ -93,6 +99,13 @@ describe('module level integration', () => {
       }),
     ) as jest.Mock;
     jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
+
+    // Create mock record function with addCustomEvent method
+    mockRecordFunction = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & { addCustomEvent: jest.Mock };
+    mockRecordFunction.addCustomEvent = jest.fn();
+
+    // Mock the getRecordFunction method instead of mocking RRWeb directly
+    jest.spyOn(SessionReplay.prototype, 'getRecordFunction' as any).mockResolvedValue(mockRecordFunction);
   });
   afterEach(() => {
     jest.resetAllMocks();
@@ -103,7 +116,7 @@ describe('module level integration', () => {
   describe('sampleRate and captureEnabled', () => {
     describe('remote config API failure', () => {
       beforeEach(() => {
-        getRemoteConfigMock.mockImplementation(() => Promise.reject('error'));
+        __setShouldThrowError(true);
       });
       test('should not capture replays and use options sampleRate', async () => {
         const sessionReplay = new SessionReplay();
@@ -117,28 +130,30 @@ describe('module level integration', () => {
           expect(sampleRate).toBe(1);
           const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
           expect(sessionRecordingProperties).toMatchObject({});
-          expect(record).not.toHaveBeenCalled();
+          expect(mockRecordFunction).not.toHaveBeenCalled();
         });
       });
     });
     describe('without remote config set', () => {
       beforeEach(() => {
-        getRemoteConfigMock.mockResolvedValue({});
+        __setNamespaceConfig({});
       });
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        // Wait for async initialize to complete
+        await runScheduleTimers();
+        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
           .results[0].value;
 
         jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
-        const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
         });
-        expect(record).toHaveBeenCalled();
-        const recordArg = record.mock.calls[0][0];
-        recordArg?.emit && recordArg?.emit(mockEvent);
+        expect(mockRecordFunction).toHaveBeenCalled();
+        const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: eventWithTime) => void };
+        recordArg?.emit?.(mockEvent);
         sessionReplay.sendEvents();
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
 
@@ -161,11 +176,15 @@ describe('module level integration', () => {
     });
     describe('with remote config set', () => {
       beforeEach(() => {
-        getRemoteConfigMock.mockResolvedValue(samplingConfig);
+        __setNamespaceConfig({
+          sr_sampling_config: samplingConfig,
+        });
       });
       test('should capture', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions }).promise;
+        // Wait for async initialize to complete
+        await runScheduleTimers();
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
           .results[0].value;
@@ -174,9 +193,9 @@ describe('module level integration', () => {
         expect(sessionRecordingProperties).toMatchObject({
           [DEFAULT_SESSION_REPLAY_PROPERTY]: `1a2b3c/${SESSION_ID_IN_20_SAMPLE}`,
         });
-        expect(record).toHaveBeenCalled();
-        const recordArg = record.mock.calls[0][0];
-        recordArg?.emit && recordArg?.emit(mockEvent);
+        expect(mockRecordFunction).toHaveBeenCalled();
+        const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: eventWithTime) => void };
+        recordArg?.emit?.(mockEvent);
         sessionReplay.sendEvents();
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
@@ -200,7 +219,7 @@ describe('module level integration', () => {
   });
   describe('sampling logic', () => {
     beforeEach(() => {
-      getRemoteConfigMock.mockResolvedValue({});
+      __setNamespaceConfig({});
     });
     describe('with a sample rate', () => {
       test('should not record session if excluded due to sampling', async () => {
@@ -211,13 +230,15 @@ describe('module level integration', () => {
         expect(sampleRate).toBe(0.1);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
-        expect(record).not.toHaveBeenCalled();
+        expect(mockRecordFunction).not.toHaveBeenCalled();
         await runScheduleTimers();
         expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });
       test('should record session if included due to sampling', async () => {
         const sessionReplay = new SessionReplay();
         await sessionReplay.init(apiKey, { ...mockOptions, sampleRate: 0.8 }).promise;
+        // Wait for async initialize to complete
+        await runScheduleTimers();
         const createEventsIDBStoreInstance = await (SessionReplayIDB.SessionReplayEventsIDBStore.new as jest.Mock).mock
           .results[0].value;
         jest.spyOn(createEventsIDBStoreInstance, 'storeCurrentSequence');
@@ -227,9 +248,9 @@ describe('module level integration', () => {
         });
         // Log is called from setup, but that's not what we're testing here
         mockLoggerProvider.log.mockClear();
-        expect(record).toHaveBeenCalled();
-        const recordArg = record.mock.calls[0][0];
-        recordArg?.emit && recordArg?.emit(mockEvent);
+        expect(mockRecordFunction).toHaveBeenCalled();
+        const recordArg = mockRecordFunction.mock.calls[0][0] as { emit?: (event: eventWithTime) => void };
+        recordArg?.emit?.(mockEvent);
         sessionReplay.sendEvents();
         await (createEventsIDBStoreInstance.storeCurrentSequence as jest.Mock).mock.results[0].value;
         await runScheduleTimers();
@@ -251,7 +272,7 @@ describe('module level integration', () => {
         expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
-        expect(record).not.toHaveBeenCalled();
+        expect(mockRecordFunction).not.toHaveBeenCalled();
         await runScheduleTimers();
         expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });
@@ -262,7 +283,7 @@ describe('module level integration', () => {
         expect(sampleRate).toBe(DEFAULT_SAMPLE_RATE);
         const sessionRecordingProperties = sessionReplay.getSessionReplayProperties();
         expect(sessionRecordingProperties).toMatchObject({});
-        expect(record).not.toHaveBeenCalled();
+        expect(mockRecordFunction).not.toHaveBeenCalled();
         await runScheduleTimers();
         expect(fetch).not.toHaveBeenCalledWith(SESSION_REPLAY_SERVER_URL);
       });

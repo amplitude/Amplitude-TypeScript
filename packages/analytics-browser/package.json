@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-browser",
-  "version": "2.17.6",
+  "version": "2.18.2",
   "description": "Official Amplitude SDK for Web",
   "keywords": [
     "analytics",
@@ -38,6 +38,7 @@
     "playground:react-spa": "cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js && cd ./playground/react-spa && yarn install && yarn start",
     "publish": "node ../../scripts/publish/upload-to-s3.js",
     "test": "jest",
+    "test:playwright": "playwright test",
     "typecheck": "tsc -p ./tsconfig.json",
     "version": "yarn version-file && GENERATE_SNIPPET=true yarn build && cp lib/scripts/amplitude-min.js playground/html/amplitude.js && cp lib/scripts/amplitude-min.js playground/react-spa/public/amplitude.js",
     "version-file": "node -p \"'export const VERSION = \\'' + require('./package.json').version + '\\';'\" > src/version.ts"
@@ -46,11 +47,11 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-core": "^2.12.0",
+    "@amplitude/analytics-core": "^2.16.0",
     "@amplitude/analytics-remote-config": "^0.4.0",
-    "@amplitude/plugin-autocapture-browser": "^1.2.6",
-    "@amplitude/plugin-network-capture-browser": "^1.1.6",
-    "@amplitude/plugin-page-view-tracking-browser": "^2.3.27",
+    "@amplitude/plugin-autocapture-browser": "^1.6.1",
+    "@amplitude/plugin-network-capture-browser": "^1.3.1",
+    "@amplitude/plugin-page-view-tracking-browser": "^2.3.34",
     "tslib": "^2.4.1"
   },
   "devDependencies": {

@@ -91,9 +91,20 @@ sessionReplay.shutdown()
 |`trackServerUrl`|`string`|No|`undefined`|Specifies the endpoint URL for sending session replay data. If provided, it overrides the default server zone configuration.|
 |`shouldInlineStylesheet`|`boolean`|No|`true`|If stylesheets are inlined, the contents of the stylesheet will be stored. During replay, the stored stylesheet will be used instead of attempting to fetch it remotely. This prevents replays from appearing broken due to missing stylesheets. Note: Inlining stylesheets may not work in all cases. If this is `undefined` stylesheets will be inlined.|
 |`storeType`|`string`|No|`idb`|Specifies how replay events should be stored. `idb` uses IndexedDB to persist replay events when all events cannot be sent during capture. `memory` stores replay events only in memory, meaning events are lost when the page is closed. If IndexedDB is unavailable, the system falls back to `memory`.|
-|`performanceConfig.enabled`|`boolean`|No|`false`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
+|`performanceConfig.enabled`|`boolean`|No|`true`|If enabled, event compression will be deferred to occur during the browser's idle periods.|
 |`performanceConfig.timeout`|`number`|No|`undefined`|Optional timeout in milliseconds for the `requestIdleCallback` API. If specified, this value will be used to set a maximum time for the browser to wait before executing the deferred compression task, even if the browser is not idle.|
 |`experimental.useWebWorker`|`boolean`|No|`false`|If the SDK should compress the replay events using a webworker.|
+
+## Bundle Size Optimization
+The Session Replay SDK uses dynamic imports to optimize bundle size and improve initial page load performance. Key modules are loaded on-demand rather than being included in the initial bundle:
+
+- **`@amplitude/rrweb-record`**: The core recording functionality is dynamically imported when `sessionReplay.init()` is called and capture should begin. In cases where users are not sampled or have opted out, then the Session Replay SDK will not import these dependencies. 
+
+This approach ensures that:
+- Your application's initial JavaScript bundle remains as small as possible.
+- Only the necessary Session Replay dependencies are loaded.
+
+The dynamic imports happen asynchronously and won't block your application's initialization. If the imports fail for any reason, the SDK will not initiate capture.
 
 ## Privacy
 By default, the session replay will mask all inputs, meaning the text in inputs will appear in a session replay as asterisks: `***`. You may require more specific masking controls based on your use case, so we offer the following controls:
@@ -117,3 +128,4 @@ sessionReplay.init(AMPLITUDE_API_KEY, {
   }
 })
 ```
+

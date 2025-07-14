@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Vitals</title>
+  </head>
+  <body>
+    <script>
+        let inpDelay = 100;
+        document.querySelector('#inp-tester').addEventListener('click', () => {
+          const list = document.querySelector('#list');
+          const newChild = document.createElement('li');
+          newChild.textContent = 'Another element to trigger INP';
+          setTimeout(() => {
+            list.appendChild(newChild);
+            inpDelay += 100;
+          }, inpDelay);
+        });
+    </script>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
+      window.amplitude = amplitude;
+      const plugin = webVitalsPlugin();
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {},
+      );
+      amplitude.add(plugin);
+    </script>
+    <h1>Simulate Interaction to Next Paint > 300ms</h1>
+    <button id="simulate-btn">Click Me</button>
+    <div id="result"></div>
+  
+    <script>
+      let timeout = 100;
+      document.getElementById('simulate-btn').addEventListener('click', () => {
+        const resultEl = document.getElementById('result');
+        resultEl.textContent = '';
+  
+        // Block main thread for ~350ms to simulate poor responsiveness
+        const start = performance.now();
+        while (performance.now() - start < timeout) {
+          // Busy-wait loop
+        }
+  
+        // Simulated paint update
+        resultEl.textContent = 'Interaction complete ' + timeout + 'ms';
+        timeout += 100;
+      });
+    </script>
+  </body>
+</html>

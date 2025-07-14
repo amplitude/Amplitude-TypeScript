@@ -3,6 +3,151 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.26.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.26.0...@amplitude/session-replay-browser@1.26.1) (2025-07-11)
+
+
+### Bug Fixes
+
+* **session replay:** better Angular zone detection ([#1205](https://github.com/amplitude/Amplitude-TypeScript/issues/1205)) ([7d88d29](https://github.com/amplitude/Amplitude-TypeScript/commit/7d88d29671810d294f809a87d642eec825959759))
+
+
+
+
+
+# [1.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.25.3...@amplitude/session-replay-browser@1.26.0) (2025-07-08)
+
+
+### Features
+
+* **session-replay-browser:** allows users to omit scripts and comments from being captured ([#1179](https://github.com/amplitude/Amplitude-TypeScript/issues/1179)) ([4a705bc](https://github.com/amplitude/Amplitude-TypeScript/commit/4a705bc21eaae7e3319042701d6e2b0dbef971aa))
+
+
+### Performance Improvements
+
+* **session replay:** use text encoder instead of blob for size calc ([#1176](https://github.com/amplitude/Amplitude-TypeScript/issues/1176)) ([9a37bc3](https://github.com/amplitude/Amplitude-TypeScript/commit/9a37bc3a5844f6f56fef238faec4cf506e58b198))
+* **session-replay:** enable compression performance by default ([#1181](https://github.com/amplitude/Amplitude-TypeScript/issues/1181)) ([c91e192](https://github.com/amplitude/Amplitude-TypeScript/commit/c91e1927a81e4c87b1d25a3494749ce5820a231c))
+
+
+
+
+
+## [1.25.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.25.2...@amplitude/session-replay-browser@1.25.3) (2025-06-30)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** reduces network calls to remote config from many to 1 ([#1175](https://github.com/amplitude/Amplitude-TypeScript/issues/1175)) ([17452c2](https://github.com/amplitude/Amplitude-TypeScript/commit/17452c28e76a4dc7415d634599e30bbb0075dd43))
+
+
+
+
+
+## [1.25.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.25.1...@amplitude/session-replay-browser@1.25.2) (2025-06-26)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.25.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.25.0...@amplitude/session-replay-browser@1.25.1) (2025-06-25)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+# [1.25.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.24.1...@amplitude/session-replay-browser@1.25.0) (2025-06-17)
+
+
+### Features
+
+* **session replay:** dynamically import rrweb ([#1156](https://github.com/amplitude/Amplitude-TypeScript/issues/1156)) ([510cc67](https://github.com/amplitude/Amplitude-TypeScript/commit/510cc67bf04f740940504e3351c39c05d54c5c32))
+
+
+
+
+
+## [1.24.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.24.0...@amplitude/session-replay-browser@1.24.1) (2025-06-17)
+
+
+### Bug Fixes
+
+* **session-replay-browser:** indexeddb open error handling ([#1155](https://github.com/amplitude/Amplitude-TypeScript/issues/1155)) ([cbbda90](https://github.com/amplitude/Amplitude-TypeScript/commit/cbbda90b94426ad9413c935e7298cd4dd1adcc38))
+
+
+
+
+
+# [1.24.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.23.0...@amplitude/session-replay-browser@1.24.0) (2025-06-13)
+
+
+### Features
+
+* **session-replay:** support background colors on blocked elements ([#1153](https://github.com/amplitude/Amplitude-TypeScript/issues/1153)) ([36fcd40](https://github.com/amplitude/Amplitude-TypeScript/commit/36fcd409b996c3c898bedd04ed77c9057ebbf994))
+
+
+
+
+
+# [1.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.11...@amplitude/session-replay-browser@1.23.0) (2025-06-12)
+
+
+### Features
+
+* **session-replay-browser:** ugc removal poc ([#1062](https://github.com/amplitude/Amplitude-TypeScript/issues/1062)) ([c63fafd](https://github.com/amplitude/Amplitude-TypeScript/commit/c63fafdaea2507a273cd23d8ef56dbe43c5aa1c3))
+
+
+
+
+
+## [1.22.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.10...@amplitude/session-replay-browser@1.22.11) (2025-06-11)
+
+
+### Bug Fixes
+
+* **session replay:** add gzip to cdn ([#1150](https://github.com/amplitude/Amplitude-TypeScript/issues/1150)) ([f61e38f](https://github.com/amplitude/Amplitude-TypeScript/commit/f61e38fc37d9a825a0c3f31147631eb1a16546a4))
+
+
+
+
+
+## [1.22.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.9...@amplitude/session-replay-browser@1.22.10) (2025-06-03)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.22.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.8...@amplitude/session-replay-browser@1.22.9) (2025-06-02)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.22.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.7...@amplitude/session-replay-browser@1.22.8) (2025-05-30)
+
+
+### Bug Fixes
+
+* **session-replay:** map the type to the correct sdk plugin ([#1099](https://github.com/amplitude/Amplitude-TypeScript/issues/1099)) ([d1c79c5](https://github.com/amplitude/Amplitude-TypeScript/commit/d1c79c5633c956cbf6599a4b9af83d3ee460df1d))
+
+
+
+
+
+## [1.22.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.6...@amplitude/session-replay-browser@1.22.7) (2025-05-27)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
 ## [1.22.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.22.5...@amplitude/session-replay-browser@1.22.6) (2025-05-13)
 
 

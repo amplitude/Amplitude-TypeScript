@@ -45,7 +45,7 @@ initAll('YOUR_API_KEY', {
   },
   
   // Session Replay options
-  sr: {
+  sessionReplay: {
     // Session Replay configuration options
   },
   
@@ -65,7 +65,7 @@ import {
   track, 
   identify, 
   experiment, 
-  sr 
+  sessionReplay 
 } from '@amplitude/unified';
 
 // Track events
@@ -78,7 +78,7 @@ identify(new Identify().set('userType', 'premium'));
 const variant = await experiment.fetch('experiment-key');
 
 // Access Session Replay features
-sr.startRecording();
+sessionReplay.flush();
 ```
 
 ## Configuration Options

@@ -3,6 +3,162 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.20.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.20.0...@amplitude/plugin-session-replay-browser@1.20.1) (2025-07-11)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+# [1.20.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.19.3...@amplitude/plugin-session-replay-browser@1.20.0) (2025-07-08)
+
+
+### Features
+
+* **session-replay-browser:** allows users to omit scripts and comments from being captured ([#1179](https://github.com/amplitude/Amplitude-TypeScript/issues/1179)) ([4a705bc](https://github.com/amplitude/Amplitude-TypeScript/commit/4a705bc21eaae7e3319042701d6e2b0dbef971aa))
+
+
+### Performance Improvements
+
+* **session-replay:** enable compression performance by default ([#1181](https://github.com/amplitude/Amplitude-TypeScript/issues/1181)) ([c91e192](https://github.com/amplitude/Amplitude-TypeScript/commit/c91e1927a81e4c87b1d25a3494749ce5820a231c))
+
+
+
+
+
+## [1.19.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.19.2...@amplitude/plugin-session-replay-browser@1.19.3) (2025-06-30)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.19.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.19.1...@amplitude/plugin-session-replay-browser@1.19.2) (2025-06-26)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.19.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.19.0...@amplitude/plugin-session-replay-browser@1.19.1) (2025-06-25)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+# [1.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.18.2...@amplitude/plugin-session-replay-browser@1.19.0) (2025-06-17)
+
+
+### Bug Fixes
+
+* **unified:** rename sr to sessionReplay ([#1102](https://github.com/amplitude/Amplitude-TypeScript/issues/1102)) ([e1fa514](https://github.com/amplitude/Amplitude-TypeScript/commit/e1fa5148325bebfcb7054c83c38cd6d42a21ac5f))
+
+
+### Features
+
+* **session replay:** dynamically import rrweb ([#1156](https://github.com/amplitude/Amplitude-TypeScript/issues/1156)) ([510cc67](https://github.com/amplitude/Amplitude-TypeScript/commit/510cc67bf04f740940504e3351c39c05d54c5c32))
+
+
+
+
+
+## [1.18.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.18.1...@amplitude/plugin-session-replay-browser@1.18.2) (2025-06-17)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.18.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.18.0...@amplitude/plugin-session-replay-browser@1.18.1) (2025-06-16)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+# [1.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.17.0...@amplitude/plugin-session-replay-browser@1.18.0) (2025-06-13)
+
+
+### Features
+
+* **session-replay:** support background colors on blocked elements ([#1153](https://github.com/amplitude/Amplitude-TypeScript/issues/1153)) ([36fcd40](https://github.com/amplitude/Amplitude-TypeScript/commit/36fcd409b996c3c898bedd04ed77c9057ebbf994))
+
+
+
+
+
+# [1.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.15...@amplitude/plugin-session-replay-browser@1.17.0) (2025-06-12)
+
+
+### Features
+
+* **session-replay-browser:** ugc removal poc ([#1062](https://github.com/amplitude/Amplitude-TypeScript/issues/1062)) ([c63fafd](https://github.com/amplitude/Amplitude-TypeScript/commit/c63fafdaea2507a273cd23d8ef56dbe43c5aa1c3))
+
+
+
+
+
+## [1.16.15](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.14...@amplitude/plugin-session-replay-browser@1.16.15) (2025-06-11)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.16.14](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.13...@amplitude/plugin-session-replay-browser@1.16.14) (2025-06-11)
+
+
+### Bug Fixes
+
+* **session replay:** add gzip to cdn ([#1150](https://github.com/amplitude/Amplitude-TypeScript/issues/1150)) ([f61e38f](https://github.com/amplitude/Amplitude-TypeScript/commit/f61e38fc37d9a825a0c3f31147631eb1a16546a4))
+
+
+
+
+
+## [1.16.13](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.12...@amplitude/plugin-session-replay-browser@1.16.13) (2025-06-03)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.16.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.11...@amplitude/plugin-session-replay-browser@1.16.12) (2025-06-03)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.16.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.10...@amplitude/plugin-session-replay-browser@1.16.11) (2025-05-30)
+
+**Note:** Version bump only for package @amplitude/plugin-session-replay-browser
+
+
+
+
+
+## [1.16.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.10-main.0...@amplitude/plugin-session-replay-browser@1.16.10) (2025-05-27)
+
+
+### Reverts
+
+* "chore(release): publish" ([#1094](https://github.com/amplitude/Amplitude-TypeScript/issues/1094)) ([f6db1ee](https://github.com/amplitude/Amplitude-TypeScript/commit/f6db1eed32ed77c7ce626624dc55972971f3b27d))
+
+
+
+
+
 ## [1.16.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-browser@1.16.8...@amplitude/plugin-session-replay-browser@1.16.9) (2025-05-14)
 
 **Note:** Version bump only for package @amplitude/plugin-session-replay-browser

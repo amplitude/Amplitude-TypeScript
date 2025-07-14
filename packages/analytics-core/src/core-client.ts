@@ -205,6 +205,7 @@ export class AmplitudeCore implements CoreClient, PluginHost {
   protected async _init(config: IConfig) {
     this.config = config;
     this.timeline.reset(this);
+    this.timeline.loggerProvider = this.config.loggerProvider;
     await this.runQueuedFunctions('q');
     this.isReady = true;
   }

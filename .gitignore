@@ -22,3 +22,15 @@ yarn-error.log*
 *.d.ts
 *.d.ts.map
 .env
+
+lerna-debug.log
+
+# Playwright
+**/test-results/
+**/playwright-report/
+**/playwright/.cache/
+**/playwright/.auth/
+
+# Nx
+.nx/cache/
+.nx/workspace-data/

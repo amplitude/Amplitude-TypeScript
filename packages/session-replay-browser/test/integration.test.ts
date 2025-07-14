@@ -2,9 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import * as RemoteConfigFetch from '@amplitude/analytics-remote-config';
 import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
-import * as RRWeb from '@amplitude/rrweb';
+import * as RRWeb from '@amplitude/rrweb-record';
 import { IDBFactory } from 'fake-indexeddb';
 import { EventType, SessionReplayOptions } from 'src/typings/session-replay';
 import { SESSION_REPLAY_EU_URL as SESSION_REPLAY_EU_SERVER_URL } from '../src/constants';
@@ -14,8 +13,9 @@ import { SessionReplay } from '../src/session-replay';
 
 jest.mock('idb-keyval');
 type MockedLogger = jest.Mocked<ILogger>;
-jest.mock('@amplitude/rrweb');
-type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb')>;
+jest.mock('@amplitude/rrweb-record');
+type MockedRRWeb = jest.Mocked<typeof import('@amplitude/rrweb-record')>;
+jest.mock('@amplitude/analytics-remote-config');
 
 const mockEvent = {
   type: 4,
@@ -66,13 +66,7 @@ describe('module level integration', () => {
     sessionId: 123,
     serverZone: ServerZone.EU,
   };
-  let getRemoteConfigMock: jest.Mock;
   beforeEach(() => {
-    getRemoteConfigMock = jest.fn();
-    jest.spyOn(RemoteConfigFetch, 'createRemoteConfigFetch').mockResolvedValue({
-      getRemoteConfig: getRemoteConfigMock,
-      metrics: {},
-    });
     jest.spyOn(SessionReplayIDB.SessionReplayEventsIDBStore, 'new');
     jest.useFakeTimers();
     originalFetch = global.fetch;

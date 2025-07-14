@@ -47,6 +47,14 @@ export {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
 } from './types/element-interactions';
+export {
+  FrustrationInteractionsOptions,
+  DEFAULT_DEAD_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_THRESHOLD,
+  DEFAULT_RAGE_CLICK_WINDOW_MS,
+  DEFAULT_DEAD_CLICK_WINDOW_MS,
+} from './types/frustration-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
 export { Status } from './types/status';
 export {

@@ -3,6 +3,87 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.15.0...@amplitude/analytics-core@2.16.0) (2025-07-08)
+
+
+### Bug Fixes
+
+* **analytics-core:** more logs in timeline ([#1180](https://github.com/amplitude/Amplitude-TypeScript/issues/1180)) ([dcb6cee](https://github.com/amplitude/Amplitude-TypeScript/commit/dcb6ceee00e3587b8eaf601074940696c94a4466))
+* **analytics-core:** remote config use new schema & config group ([#1185](https://github.com/amplitude/Amplitude-TypeScript/issues/1185)) ([db54ae5](https://github.com/amplitude/Amplitude-TypeScript/commit/db54ae5ce87d5d7a4ae49c80aab5037dee3dd03c))
+
+
+### Features
+
+* **analytics-browser:** change definition of rage click ([#1183](https://github.com/amplitude/Amplitude-TypeScript/issues/1183)) ([108f930](https://github.com/amplitude/Amplitude-TypeScript/commit/108f930114629fdb3d600532a2c6b8b4f6cafd01))
+
+
+
+
+
+# [2.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.14.0...@amplitude/analytics-core@2.15.0) (2025-06-30)
+
+
+### Features
+
+* add getOptOut() and getIdentity() ([#1174](https://github.com/amplitude/Amplitude-TypeScript/issues/1174)) ([72017c8](https://github.com/amplitude/Amplitude-TypeScript/commit/72017c8a1a54d929542e883e61d61168f214a780))
+
+
+
+
+
+# [2.14.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.13.0...@amplitude/analytics-core@2.14.0) (2025-06-26)
+
+
+### Features
+
+* **plugin-autocapture-browser:** add rage+dead clicks to autocapture plugin ([#1146](https://github.com/amplitude/Amplitude-TypeScript/issues/1146)) ([c850f02](https://github.com/amplitude/Amplitude-TypeScript/commit/c850f020a6b56bbd8d64e0f946acaf0eac15ccf7))
+
+
+
+
+
+# [2.13.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.12.3...@amplitude/analytics-core@2.13.0) (2025-06-25)
+
+
+### Features
+
+* **autocapture:** Added config to capture event properties ([#1111](https://github.com/amplitude/Amplitude-TypeScript/issues/1111)) ([109c3e2](https://github.com/amplitude/Amplitude-TypeScript/commit/109c3e220293fff92f870f8efe1a6cb4a20bebf4))
+
+
+
+
+
+## [2.12.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.12.2...@amplitude/analytics-core@2.12.3) (2025-06-11)
+
+**Note:** Version bump only for package @amplitude/analytics-core
+
+
+
+
+
+## [2.12.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.12.1...@amplitude/analytics-core@2.12.2) (2025-06-03)
+
+
+### Bug Fixes
+
+* **analytics-core:** bump version ([#1123](https://github.com/amplitude/Amplitude-TypeScript/issues/1123)) ([65ab775](https://github.com/amplitude/Amplitude-TypeScript/commit/65ab77559dc0a61895043eb10c08922ad4f19690))
+
+
+
+
+
+## [2.12.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.12.0...@amplitude/analytics-core@2.12.1) (2025-05-27)
+
+
+### Bug Fixes
+
+* **analytics-browser:** support autocapture.networkTracking as object ([#1095](https://github.com/amplitude/Amplitude-TypeScript/issues/1095)) ([121abc7](https://github.com/amplitude/Amplitude-TypeScript/commit/121abc7e69a354cc704de7cbe493b8c79fa6eacd))
+* **analytics-browser:** support XHR in network capture ([#1089](https://github.com/amplitude/Amplitude-TypeScript/issues/1089)) ([339d49c](https://github.com/amplitude/Amplitude-TypeScript/commit/339d49cfa7b07ffc20fe085b8548f6489a3029f3))
+
+
+
+
+
 # [2.12.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.11.2...@amplitude/analytics-core@2.12.0) (2025-05-13)
 
 

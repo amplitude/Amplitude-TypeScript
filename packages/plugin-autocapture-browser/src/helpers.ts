@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 import * as constants from './constants';
 import { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
-import { ElementBasedEvent, ElementBasedTimestampedEvent } from './autocapture-plugin';
+import { getHierarchy } from './hierarchy';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -9,9 +9,17 @@ const SENSITIVE_TAGS = ['input', 'select', 'textarea'];
 
 export type shouldTrackEvent = (actionType: ActionType, element: Element) => boolean;
 
+export const isElementPointerCursor = (element: Element, actionType: ActionType): boolean => {
+  /* istanbul ignore next */
+  const computedStyle = window?.getComputedStyle?.(element);
+  /* istanbul ignore next */
+  return computedStyle?.getPropertyValue('cursor') === 'pointer' && actionType === 'click';
+};
+
 export const createShouldTrackEvent = (
   autocaptureOptions: ElementInteractionsOptions,
   allowlist: string[], // this can be any type of css selector allow list
+  isAlwaysCaptureCursorPointer = false,
 ): shouldTrackEvent => {
   return (actionType: ActionType, element: Element) => {
     const { pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
@@ -42,6 +50,12 @@ export const createShouldTrackEvent = (
       }
     }
 
+    const isCursorPointer = isElementPointerCursor(element, actionType);
+
+    if (isAlwaysCaptureCursorPointer && isCursorPointer) {
+      return true;
+    }
+
     /* istanbul ignore if */
     if (allowlist) {
       const hasMatchAnyAllowedSelector = allowlist.some((selector) => !!element?.matches?.(selector));
@@ -57,9 +71,8 @@ export const createShouldTrackEvent = (
         return actionType === 'change' || actionType === 'click';
       default: {
         /* istanbul ignore next */
-        const computedStyle = window?.getComputedStyle?.(element);
         /* istanbul ignore next */
-        if (computedStyle && computedStyle.getPropertyValue('cursor') === 'pointer' && actionType === 'click') {
+        if (isCursorPointer) {
           return true;
         }
         return actionType === 'click';
@@ -275,3 +288,140 @@ export const filterOutNonTrackableEvents = (event: ElementBasedTimestampedEvent<
 
   return true;
 };
+
+// Returns the Amplitude event properties for the given element.
+export const getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
+  /* istanbul ignore next */
+  const tag = element?.tagName?.toLowerCase?.();
+  /* istanbul ignore next */
+  const rect =
+    typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
+  const ariaLabel = element.getAttribute('aria-label');
+  const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
+  const nearestLabel = getNearestLabel(element);
+  /* istanbul ignore next */
+  const properties: Record<string, any> = {
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
+    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
+    [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
+    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
+    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
+  };
+  if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
+  }
+  return removeEmptyProperties(properties);
+};
+
+export type AutoCaptureOptionsWithDefaults = Required<
+  Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
+> &
+  ElementInteractionsOptions;
+
+export const addAdditionalEventProperties = <T>(
+  event: T,
+  type: TimestampedEvent<T>['type'],
+  selectorAllowlist: string[],
+  dataAttributePrefix: string,
+
+  // capture the event if the cursor is a "pointer" when this element is clicked on
+  // reason: a "pointer" cursor indicates that an element should be interactable
+  //         regardless of the element's tag name
+  isCapturingCursorPointer = false,
+): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
+  const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
+    event,
+    timestamp: Date.now(),
+    type,
+  };
+
+  if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+    if (isCapturingCursorPointer) {
+      const isCursorPointer = isElementPointerCursor(baseEvent.event.target as Element, baseEvent.type);
+      if (isCursorPointer) {
+        baseEvent.closestTrackedAncestor = baseEvent.event.target as HTMLElement;
+        baseEvent.targetElementProperties = getEventProperties(
+          baseEvent.type,
+          baseEvent.closestTrackedAncestor,
+          dataAttributePrefix,
+        );
+        return baseEvent;
+      }
+    }
+    // Retrieve additional event properties from the target element
+    const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
+    if (closestTrackedAncestor) {
+      baseEvent.closestTrackedAncestor = closestTrackedAncestor;
+      baseEvent.targetElementProperties = getEventProperties(
+        baseEvent.type,
+        closestTrackedAncestor,
+        dataAttributePrefix,
+      );
+    }
+    return baseEvent;
+  }
+
+  return baseEvent;
+};
+
+// Base TimestampedEvent type
+export type BaseTimestampedEvent<T> = {
+  event: T;
+  timestamp: number;
+  type: 'rage' | 'click' | 'change' | 'error' | 'navigate' | 'mutation';
+};
+
+// Specific types for events with targetElementProperties
+export type ElementBasedEvent = MouseEvent | Event;
+export type ElementBasedTimestampedEvent<T> = BaseTimestampedEvent<T> & {
+  event: MouseEvent | Event;
+  type: 'click' | 'change';
+  closestTrackedAncestor: Element;
+  targetElementProperties: Record<string, any>;
+};
+
+export type evaluateTriggersFn = <T extends ElementBasedEvent>(
+  event: ElementBasedTimestampedEvent<T>,
+) => ElementBasedTimestampedEvent<T>;
+
+// Union type for all possible TimestampedEvents
+export type TimestampedEvent<T> = BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T>;
+
+// Type predicate
+export function isElementBasedEvent<T>(event: BaseTimestampedEvent<T>): event is ElementBasedTimestampedEvent<T> {
+  return event.type === 'click' || event.type === 'change';
+}
+
+export interface NavigateEvent extends Event {
+  readonly navigationType: 'reload' | 'push' | 'replace' | 'traverse';
+  readonly destination: {
+    readonly url: string;
+    readonly key: string | null;
+    readonly id: string | null;
+    readonly index: number;
+    readonly sameDocument: boolean;
+
+    getState(): any;
+  };
+  readonly canIntercept: boolean;
+  readonly userInitiated: boolean;
+  readonly hashChange: boolean;
+  readonly signal: AbortSignal;
+  readonly formData: FormData | null;
+  readonly downloadRequest: string | null;
+  readonly info: any;
+  readonly hasUAVisualTransition: boolean;
+  /** @see https://github.com/WICG/navigation-api/pull/264 */
+  readonly sourceElement: Element | null;
+
+  scroll(): void;
+}
