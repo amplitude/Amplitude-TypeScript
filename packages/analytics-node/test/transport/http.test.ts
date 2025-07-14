@@ -1,6 +1,6 @@
 import { Http } from '../../src/transports/http';
-import * as http from 'http';
-import * as https from 'https';
+import http from 'http';
+import https from 'https';
 import { Status } from '@amplitude/analytics-core';
 
 describe('http transport', () => {
