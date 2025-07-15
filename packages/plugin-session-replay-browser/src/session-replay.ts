@@ -1,8 +1,19 @@
-import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event } from '@amplitude/analytics-core';
-import * as sessionReplay from '@amplitude/session-replay-browser';
+import { BrowserClient, BrowserConfig, EnrichmentPlugin, Event, SpecialEventType } from '@amplitude/analytics-core';
+import {
+  init,
+  setSessionId,
+  getSessionId,
+  getSessionReplayProperties,
+  flush,
+  shutdown,
+  evaluateTargetingAndCapture,
+  AmplitudeSessionReplay,
+  SessionReplayOptions as SessionReplayBrowserOptions,
+} from '@amplitude/session-replay-browser';
+import { getAnalyticsConnector } from '@amplitude/analytics-client-common';
+import { parseUserProperties } from './helpers';
 import { SessionReplayOptions } from './typings/session-replay';
 import { VERSION } from './version';
-import { AmplitudeSessionReplay } from '@amplitude/session-replay-browser';
 
 export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, BrowserConfig> {
   static pluginName = '@amplitude/plugin-session-replay-browser';
@@ -13,14 +24,15 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
   // @ts-ignore
   config: BrowserConfig;
   options: SessionReplayOptions;
-  srInitOptions: sessionReplay.SessionReplayOptions;
+  srInitOptions: SessionReplayBrowserOptions;
   sessionReplay: AmplitudeSessionReplay = {
-    flush: sessionReplay.flush,
-    getSessionId: sessionReplay.getSessionId,
-    getSessionReplayProperties: sessionReplay.getSessionReplayProperties,
-    init: sessionReplay.init,
-    setSessionId: sessionReplay.setSessionId,
-    shutdown: sessionReplay.shutdown,
+    flush: flush,
+    getSessionId: getSessionId,
+    getSessionReplayProperties: getSessionReplayProperties,
+    init: init,
+    setSessionId: setSessionId,
+    shutdown: shutdown,
+    evaluateTargetingAndCapture: evaluateTargetingAndCapture,
   };
 
   constructor(options?: SessionReplayOptions) {
@@ -52,6 +64,8 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
           };
         }
       }
+      const identityStore = getAnalyticsConnector(this.config.instanceName).identityStore;
+      const userProperties = identityStore.getIdentity().userProperties;
 
       this.srInitOptions = {
         instanceName: this.config.instanceName,
@@ -77,6 +91,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         performanceConfig: this.options.performanceConfig,
         storeType: this.options.storeType,
         experimental: this.options.experimental,
+        userProperties: userProperties,
         omitElementTags: this.options.omitElementTags,
         applyBackgroundColorToBlockedElements: this.options.applyBackgroundColorToBlockedElements,
         interactionConfig: this.options.interactionConfig,
@@ -140,6 +155,11 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         // Treating config.sessionId as source of truth, if the event's session id doesn't match, the
         // event is not of the current session (offline/late events). In that case, don't tag the events
         if (sessionId && sessionId === event.session_id) {
+          let userProperties;
+          if (event.event_type === SpecialEventType.IDENTIFY) {
+            userProperties = parseUserProperties(event);
+          }
+          await this.sessionReplay.evaluateTargetingAndCapture({ event, userProperties });
           const sessionRecordingProperties = this.sessionReplay.getSessionReplayProperties();
           event.event_properties = {
             ...event.event_properties,
