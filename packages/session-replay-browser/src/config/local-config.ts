@@ -41,6 +41,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     script?: boolean;
     comment?: boolean;
   };
+  enableUrlChangePolling?: boolean;
   urlChangePollingInterval?: number;
 
   constructor(apiKey: string, options: SessionReplayOptions) {
@@ -66,6 +67,7 @@ export class SessionReplayLocalConfig extends Config implements ISessionReplayLo
     this.performanceConfig = options.performanceConfig || DEFAULT_PERFORMANCE_CONFIG;
     this.storeType = options.storeType ?? 'idb';
     this.applyBackgroundColorToBlockedElements = options.applyBackgroundColorToBlockedElements ?? false;
+    this.enableUrlChangePolling = options.enableUrlChangePolling ?? false;
     this.urlChangePollingInterval = options.urlChangePollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
 
     if (options.privacyConfig) {
