@@ -35,6 +35,8 @@ import {
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
   isNetworkTrackingEnabled,
+  isFrustrationInteractionsEnabled,
+  getFrustrationInteractionsConfig,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -46,7 +48,7 @@ import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './consta
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
-import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
+import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { WebAttribution } from './attribution/web-attribution';
 
@@ -157,6 +159,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isElementInteractionsEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding user interactions plugin (autocapture plugin)');
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
+    }
+
+    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding frustration interactions plugin');
+      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
     }
 
     if (isNetworkTrackingEnabled(this.config.autocapture)) {

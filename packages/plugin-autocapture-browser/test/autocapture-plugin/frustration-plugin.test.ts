@@ -105,6 +105,12 @@ describe('frustrationPlugin', () => {
   });
 
   describe('plugin lifecycle', () => {
+    it('should initialize with default options', () => {
+      plugin = frustrationPlugin();
+      expect(plugin.name).toBe('@amplitude/plugin-frustration-browser');
+      expect(plugin.type).toBe('enrichment');
+    });
+
     it('should initialize with correct name and type', () => {
       plugin = frustrationPlugin({});
       expect(plugin.name).toBe('@amplitude/plugin-frustration-browser');
