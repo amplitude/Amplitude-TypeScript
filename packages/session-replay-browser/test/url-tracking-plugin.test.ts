@@ -100,6 +100,7 @@ describe('URL Tracking Plugin', () => {
         ugcFilterRules: createMockUgcFilterRules(),
         enablePolling: true,
         pollingInterval: 2000,
+        captureDocumentTitle: false,
       };
       const plugin = createUrlTrackingPlugin(options);
       expect(plugin.options).toEqual(options);
@@ -112,7 +113,7 @@ describe('URL Tracking Plugin', () => {
       const cleanup = callObserver(plugin, mockGlobalScope);
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/initial',
-        title: 'Initial Page',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -141,7 +142,7 @@ describe('URL Tracking Plugin', () => {
       mockGlobalScope.history?.pushState({}, '', '/new-page');
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/new-page',
-        title: 'New Page',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -158,7 +159,7 @@ describe('URL Tracking Plugin', () => {
       mockGlobalScope.history?.replaceState({}, '', '/replaced-page');
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/replaced-page',
-        title: 'Replaced Page',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -177,7 +178,7 @@ describe('URL Tracking Plugin', () => {
       if (popstateListener) popstateListener();
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/back-page',
-        title: 'Back Page',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -205,9 +206,71 @@ describe('URL Tracking Plugin', () => {
       mockGlobalScope.history?.pushState({}, '', '/viewport-test');
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/viewport-test',
-        title: 'Viewport Test',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 600,
         viewportWidth: 800,
+      });
+      cleanup();
+    });
+  });
+
+  describe('document title capture', () => {
+    test('should not capture document title by default', () => {
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/initial',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should capture document title when explicitly enabled', () => {
+      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/initial',
+        title: 'Initial Page',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should not capture document title on URL changes by default', () => {
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      mockCallback.mockClear();
+      // Simulate URL and title change
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/new-page';
+      if (mockGlobalScope.document) mockGlobalScope.document.title = 'New Page';
+      // Trigger pushState which should be patched by the plugin
+      mockGlobalScope.history?.pushState({}, '', '/new-page');
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/new-page',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should capture document title on URL changes when explicitly enabled', () => {
+      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      mockCallback.mockClear();
+      // Simulate URL and title change
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/new-page';
+      if (mockGlobalScope.document) mockGlobalScope.document.title = 'New Page';
+      // Trigger pushState which should be patched by the plugin
+      mockGlobalScope.history?.pushState({}, '', '/new-page');
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/new-page',
+        title: 'New Page', // Document title captured when enabled
+        viewportHeight: 768,
+        viewportWidth: 1024,
       });
       cleanup();
     });
@@ -229,7 +292,7 @@ describe('URL Tracking Plugin', () => {
       // Verify that the filtered URL was emitted
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/filtered',
-        title: 'Sensitive',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -248,7 +311,7 @@ describe('URL Tracking Plugin', () => {
       // Verify that the original URL was emitted
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/no-filtering',
-        title: 'No Filtering',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -284,7 +347,7 @@ describe('URL Tracking Plugin', () => {
       // Verify that the URL change was detected via polling
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/polled',
-        title: 'Polled',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -296,6 +359,36 @@ describe('URL Tracking Plugin', () => {
       cleanup();
       // Verify that the polling interval was cleared
       expect(mockGlobalScope.clearInterval).toHaveBeenCalledWith(123);
+    });
+
+    test('should handle null polling interval on cleanup', () => {
+      // Mock setInterval to return null
+      mockGlobalScope.setInterval.mockReturnValue(null as unknown as number);
+      const plugin = createUrlTrackingPlugin({ enablePolling: true });
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      cleanup();
+      // Should not call clearInterval when interval is null
+      expect(mockGlobalScope.clearInterval).not.toHaveBeenCalled();
+    });
+
+    test('should detect URL changes via polling with document title capture enabled', () => {
+      const plugin = createUrlTrackingPlugin({ enablePolling: true, captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      mockCallback.mockClear();
+      // Simulate URL change
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/polled';
+      if (mockGlobalScope.document) mockGlobalScope.document.title = 'Polled';
+      // Get the polling function and execute it manually
+      const pollingFunction = mockGlobalScope.setInterval.mock.calls[0]?.[0];
+      pollingFunction();
+      // Verify that the URL change was detected via polling with title captured
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/polled',
+        title: 'Polled', // Document title captured when enabled
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
     });
   });
 
@@ -338,7 +431,7 @@ describe('URL Tracking Plugin', () => {
       // Should emit event with empty href when location.href is undefined
       expect(mockCallback).toHaveBeenCalledWith({
         href: '',
-        title: 'Initial Page',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -385,7 +478,59 @@ describe('URL Tracking Plugin', () => {
       // Should still emit initial URL even when history is missing
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/initial',
-        title: 'Initial Page',
+        title: '', // Default behavior: no document title capture
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+  });
+
+  // Group all document title edge cases together for clarity
+  describe('document title edge cases', () => {
+    test('should emit empty title when document.title is undefined and captureDocumentTitle is true', () => {
+      const scope = createMockGlobalScope({ document: { title: undefined } });
+      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, scope);
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/initial',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+    test('should emit empty title when document.title is null and captureDocumentTitle is true', () => {
+      const scope = createMockGlobalScope({ document: { title: null as unknown as string } });
+      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, scope);
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/initial',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+    test('should emit empty title when document.title is empty string and captureDocumentTitle is true', () => {
+      const scope = createMockGlobalScope({ document: { title: '' } });
+      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, scope);
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/initial',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+    test('should emit empty title when document is undefined and captureDocumentTitle is true', () => {
+      const scope = createMockGlobalScope({ document: undefined });
+      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, scope);
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/initial',
+        title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
       });
@@ -479,7 +624,7 @@ describe('URL Tracking Plugin', () => {
 
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/new',
-        title: 'New',
+        title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
       });

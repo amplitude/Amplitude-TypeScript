@@ -33,6 +33,7 @@ jest.mock('../src/plugins/url-tracking-plugin', () => ({
       ugcFilterRules: options.ugcFilterRules || [],
       enablePolling: options.enablePolling || false,
       pollingInterval: options.pollingInterval || 1000,
+      captureDocumentTitle: options.captureDocumentTitle ?? false,
     },
   })),
 }));
@@ -74,6 +75,7 @@ const defaultMockImplementation = (options: any = {}) => ({
     ugcFilterRules: options.ugcFilterRules || [],
     enablePolling: options.enablePolling || false,
     pollingInterval: options.pollingInterval || 1000,
+    captureDocumentTitle: options.captureDocumentTitle ?? false,
   },
 });
 
@@ -2133,6 +2135,19 @@ describe('SessionReplay', () => {
 
         expect(urlTrackingPlugin).toBeDefined();
         expect((urlTrackingPlugin?.options as any).pollingInterval).toBe(customInterval);
+      });
+
+      test('should create URL tracking plugin with captureDocumentTitle enabled', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          captureDocumentTitle: true,
+        }).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        expect((urlTrackingPlugin?.options as any).captureDocumentTitle).toBe(true);
       });
     });
 

@@ -177,6 +177,13 @@ export interface SessionReplayLocalConfig extends IConfig {
    * @defaultValue 1000
    */
   urlChangePollingInterval?: number;
+  /**
+   * Whether to capture document title in URL change events.
+   * When disabled, the title field will be empty in URL change events.
+   *
+   * @defaultValue false
+   */
+  captureDocumentTitle?: boolean;
   interactionConfig?: InteractionConfig;
 }
 

@@ -28,6 +28,8 @@ export interface URLTrackingPluginOptions {
   enablePolling?: boolean;
   /** Interval in milliseconds for polling URL changes (default: 1000ms) */
   pollingInterval?: number;
+  /** Whether to capture document title in URL change events (default: false) */
+  captureDocumentTitle?: boolean;
 }
 
 /**
@@ -52,6 +54,7 @@ export function createUrlTrackingPlugin(
       const ugcFilterRules = config.ugcFilterRules || [];
       const enablePolling = config.enablePolling || false;
       const pollingInterval = config.pollingInterval || DEFAULT_URL_CHANGE_POLLING_INTERVAL;
+      const captureDocumentTitle = config.captureDocumentTitle ?? false;
 
       // Early return if no global scope is available
       if (!globalScope) {
@@ -68,7 +71,10 @@ export function createUrlTrackingPlugin(
       const createUrlChangeEvent = (): URLChangeEvent => {
         const { innerHeight, innerWidth, location, document } = globalScope;
         const currentUrl = location.href || '';
-        const currentTitle = document?.title || '';
+        let currentTitle = '';
+        if (captureDocumentTitle) {
+          currentTitle = document?.title || '';
+        }
 
         // Apply UGC filtering if rules are provided, otherwise use original URL
         const filteredUrl = ugcFilterRules.length > 0 ? getPageUrl(currentUrl, ugcFilterRules) : currentUrl;
