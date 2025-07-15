@@ -67,6 +67,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
   sessionTargetingMatch = false;
+  private lastTargetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
 
   // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
@@ -297,6 +298,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
 
+    // Store targeting parameters for use in getShouldRecord
+    this.lastTargetingParams = targetingParams;
+
     if (this.config.targetingConfig && !this.sessionTargetingMatch) {
       let eventForTargeting = targetingParams.event;
       if (
@@ -377,27 +381,46 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return false;
     }
 
+    let shouldRecord = false;
+    let message = '';
+    let matched = false;
+
     // If targetingConfig exists, we'll use the sessionTargetingMatch to determine whether to record
     // Otherwise, we'll evaluate the session against the overall sample rate
     if (this.config.targetingConfig) {
       if (!this.sessionTargetingMatch) {
-        this.loggerProvider.log(
-          `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`,
-        );
-        return false;
+        message = `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`;
+        this.loggerProvider.log(message);
+        shouldRecord = false;
+        matched = false;
+      } else {
+        message = `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`;
+        this.loggerProvider.log(message);
+        shouldRecord = true;
+        matched = true;
       }
-      this.loggerProvider.log(
-        `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`,
-      );
     } else {
       const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
       if (!isInSample) {
-        this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`);
+        message = `Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`;
+        this.loggerProvider.log(message);
+        shouldRecord = false;
+        matched = false;
+      } else {
+        shouldRecord = true;
+        matched = true;
       }
-      return isInSample;
     }
 
-    return true;
+    // Send custom rrweb event for targeting decision
+    void this.addCustomRRWebEvent(CustomRRwebEvent.TARGETING_DECISION, {
+      message,
+      sessionId: this.identifiers.sessionId,
+      matched,
+      targetingParams: this.lastTargetingParams,
+    });
+
+    return shouldRecord;
   }
 
   getBlockSelectors(): string | string[] | undefined {

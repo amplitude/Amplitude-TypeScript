@@ -1961,6 +1961,42 @@ describe('SessionReplay', () => {
       expect(mockRecordFunction.addCustomEvent).not.toHaveBeenCalled();
       expect(mockLoggerProvider.debug).toHaveBeenCalled();
     });
+
+    test('should send targeting decision event when getShouldRecord is called', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Mock targeting parameters and store them
+      const targetingParams = {
+        userProperties: { userType: 'premium' },
+        event: { event_type: 'page_view', user_id: '123' },
+      };
+      (sessionReplay as any).lastTargetingParams = targetingParams;
+
+      // Set up targeting config and match
+      sessionReplay.config!.targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      sessionReplay.sessionTargetingMatch = true;
+
+      // Spy on addCustomRRWebEvent
+      const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+
+      // Call getShouldRecord
+      sessionReplay.getShouldRecord();
+
+      // Verify the targeting decision event was sent
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(
+        CustomRRwebEvent.TARGETING_DECISION,
+        expect.objectContaining({
+          message: expect.stringContaining('Capturing replays for session'),
+          sessionId: 123,
+          matched: true,
+          targetingParams: targetingParams,
+        }),
+      );
+    });
   });
 
   describe('getRecordingPlugins', () => {
