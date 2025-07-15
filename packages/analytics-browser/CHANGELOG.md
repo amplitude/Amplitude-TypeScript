@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.18.2...@amplitude/analytics-browser@2.19.0) (2025-07-15)
+
+
+### Features
+
+* **analytics-browser:** add experimental frustrationInteractions ([#1209](https://github.com/amplitude/Amplitude-TypeScript/issues/1209)) ([e321744](https://github.com/amplitude/Amplitude-TypeScript/commit/e3217444c58be15e779ff1fd54a55027c93f5db0))
+
+
+
+
+
 ## [2.18.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.18.1...@amplitude/analytics-browser@2.18.2) (2025-07-11)
 
 **Note:** Version bump only for package @amplitude/analytics-browser
