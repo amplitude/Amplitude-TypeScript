@@ -14,6 +14,32 @@ const mockLoggerProvider: MockedLogger = {
   debug: jest.fn(),
 };
 
+type EventTypesEntry = {
+  eventTypes: Record<string, Record<number | string, { event_type: string }>>;
+  sessionId: string;
+  lastUpdated: number;
+};
+
+async function getAllEntriesTyped(db: IDBPDatabase<TargetingDB>): Promise<EventTypesEntry[]> {
+  const result = await db.getAll('eventTypesForSession');
+  if (Array.isArray(result)) {
+    return result.map((entry) => {
+      // Defensive: only return if entry has the expected shape
+      if (
+        typeof entry === 'object' &&
+        entry !== null &&
+        'eventTypes' in entry &&
+        'sessionId' in entry &&
+        'lastUpdated' in entry
+      ) {
+        return entry as EventTypesEntry;
+      }
+      throw new Error('Unexpected entry shape in getAllEntriesTyped');
+    });
+  }
+  return [];
+}
+
 describe('targeting idb store', () => {
   let db: IDBPDatabase<TargetingDB>;
   beforeEach(async () => {
@@ -36,16 +62,16 @@ describe('targeting idb store', () => {
         apiKey: 'static_key',
         loggerProvider: mockLoggerProvider,
       });
-      const allEntries = await db.getAll('eventTypesForSession');
-      expect(allEntries).toEqual([
-        {
-          eventTypes: {
-            'Add to Cart': { 123: { event_type: 'Add to Cart' } },
-            Purchase: { 123: { event_type: 'Purchase' } },
-          },
-          sessionId: 123,
+      const allEntries = await getAllEntriesTyped(db);
+      expect(allEntries).toHaveLength(1);
+      expect(allEntries[0]).toMatchObject({
+        eventTypes: {
+          'Add to Cart': { 123: { event_type: 'Add to Cart' } },
+          Purchase: { 123: { event_type: 'Purchase' } },
         },
-      ]);
+        sessionId: '123',
+      });
+      expect(typeof allEntries[0].lastUpdated).toBe('number');
     });
 
     test('should handle adding the same event twice correctly', async () => {
@@ -63,15 +89,15 @@ describe('targeting idb store', () => {
         apiKey: 'static_key',
         loggerProvider: mockLoggerProvider,
       });
-      const allEntries = await db.getAll('eventTypesForSession');
-      expect(allEntries).toEqual([
-        {
-          eventTypes: {
-            'Add to Cart': { 123: { event_type: 'Add to Cart' } },
-          },
-          sessionId: 123,
+      const allEntries = await getAllEntriesTyped(db);
+      expect(allEntries).toHaveLength(1);
+      expect(allEntries[0]).toMatchObject({
+        eventTypes: {
+          'Add to Cart': { 123: { event_type: 'Add to Cart' } },
         },
-      ]);
+        sessionId: '123',
+      });
+      expect(typeof allEntries[0].lastUpdated).toBe('number');
     });
 
     test('should add the same event with different timestamps', async () => {
@@ -89,15 +115,15 @@ describe('targeting idb store', () => {
         apiKey: 'static_key',
         loggerProvider: mockLoggerProvider,
       });
-      const allEntries = await db.getAll('eventTypesForSession');
-      expect(allEntries).toEqual([
-        {
-          eventTypes: {
-            'Add to Cart': { 123: { event_type: 'Add to Cart' }, 456: { event_type: 'Add to Cart' } },
-          },
-          sessionId: 123,
+      const allEntries = await getAllEntriesTyped(db);
+      expect(allEntries).toHaveLength(1);
+      expect(allEntries[0]).toMatchObject({
+        eventTypes: {
+          'Add to Cart': { 123: { event_type: 'Add to Cart' }, 456: { event_type: 'Add to Cart' } },
         },
-      ]);
+        sessionId: '123',
+      });
+      expect(typeof allEntries[0].lastUpdated).toBe('number');
     });
 
     test('should return updated list', async () => {
@@ -140,7 +166,7 @@ describe('targeting idb store', () => {
             store: {
               put: jest.fn().mockImplementation(() => Promise.reject('put error')),
             },
-          };
+          } as unknown as IDBObjectStore;
         }),
       } as unknown as IDBPDatabase<TargetingDB>;
       jest.spyOn(targetingIDBStore, 'openOrCreateDB').mockResolvedValue(mockDB);
@@ -180,13 +206,13 @@ describe('targeting idb store', () => {
         apiKey: 'static_key',
         loggerProvider: mockLoggerProvider,
       });
-      const allEntries = await db.getAll('eventTypesForSession');
-      expect(allEntries).toEqual([
-        {
-          eventTypes: { 'Add to Cart': { 123: { event_type: 'Add to Cart' } } },
-          sessionId: new Date('2023-07-25 08:30:00').getTime(),
-        },
-      ]);
+      const allEntries = await getAllEntriesTyped(db);
+      expect(allEntries).toHaveLength(1);
+      expect(allEntries[0]).toMatchObject({
+        eventTypes: { 'Add to Cart': { 123: { event_type: 'Add to Cart' } } },
+        sessionId: String(new Date('2023-07-25 08:30:00').getTime()),
+      });
+      expect(typeof allEntries[0].lastUpdated).toBe('number');
       await targetingIDBStore.storeEventTypeForSession({
         eventTime: 123,
         eventType: 'Purchase',
@@ -194,13 +220,13 @@ describe('targeting idb store', () => {
         apiKey: 'static_key',
         loggerProvider: mockLoggerProvider,
       });
-      const allEntriesUpdated = await db.getAll('eventTypesForSession');
-      expect(allEntriesUpdated).toEqual([
-        {
-          eventTypes: { Purchase: { 123: { event_type: 'Purchase' } } },
-          sessionId: new Date('2023-07-31 07:30:00').getTime(),
-        },
-      ]);
+      const allEntriesUpdated = await getAllEntriesTyped(db);
+      expect(allEntriesUpdated).toHaveLength(1);
+      expect(allEntriesUpdated[0]).toMatchObject({
+        eventTypes: { Purchase: { 123: { event_type: 'Purchase' } } },
+        sessionId: String(new Date('2023-07-31 07:30:00').getTime()),
+      });
+      expect(typeof allEntriesUpdated[0].lastUpdated).toBe('number');
     });
   });
 });

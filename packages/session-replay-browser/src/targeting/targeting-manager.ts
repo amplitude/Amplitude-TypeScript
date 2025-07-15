@@ -10,7 +10,7 @@ export const evaluateTargetingAndStore = async ({
   apiKey,
   targetingParams,
 }: {
-  sessionId: number;
+  sessionId: string | number;
   targetingConfig: TargetingConfig;
   loggerProvider: Logger;
   apiKey: string;

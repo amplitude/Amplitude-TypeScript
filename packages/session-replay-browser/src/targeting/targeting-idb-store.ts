@@ -2,12 +2,14 @@ import { Logger as ILogger } from '@amplitude/analytics-types';
 import { DBSchema, IDBPDatabase, openDB } from 'idb';
 
 export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 2; // 2 days
+
 export interface SessionReplayTargetingDB extends DBSchema {
   sessionTargetingMatch: {
-    key: number;
+    key: string;
     value: {
-      sessionId: number;
+      sessionId: string;
       targetingMatch: boolean;
+      lastUpdated: number;
     };
   };
 }
@@ -44,11 +46,12 @@ export class TargetingIDBStore {
   }: {
     loggerProvider: ILogger;
     apiKey: string;
-    sessionId: number;
+    sessionId: string | number;
   }) => {
     try {
       const db = await this.openOrCreateDB(apiKey);
-      const targetingMatchForSession = await db.get<'sessionTargetingMatch'>('sessionTargetingMatch', sessionId);
+      const sessionIdStr = String(sessionId);
+      const targetingMatchForSession = await db.get<'sessionTargetingMatch'>('sessionTargetingMatch', sessionIdStr);
 
       return targetingMatchForSession?.targetingMatch;
     } catch (e) {
@@ -65,14 +68,16 @@ export class TargetingIDBStore {
   }: {
     loggerProvider: ILogger;
     apiKey: string;
-    sessionId: number;
+    sessionId: string | number;
     targetingMatch: boolean;
   }) => {
     try {
       const db = await this.openOrCreateDB(apiKey);
+      const sessionIdStr = String(sessionId);
       const targetingMatchForSession = await db.put<'sessionTargetingMatch'>('sessionTargetingMatch', {
         targetingMatch,
-        sessionId,
+        sessionId: sessionIdStr,
+        lastUpdated: Date.now(),
       });
 
       return targetingMatchForSession;
@@ -89,16 +94,17 @@ export class TargetingIDBStore {
   }: {
     loggerProvider: ILogger;
     apiKey: string;
-    currentSessionId: number;
+    currentSessionId: string | number;
   }) => {
     try {
       const db = await this.openOrCreateDB(apiKey);
+      const currentSessionIdStr = String(currentSessionId);
       const tx = db.transaction<'sessionTargetingMatch', 'readwrite'>('sessionTargetingMatch', 'readwrite');
       const allTargetingMatchObjs = await tx.store.getAll();
       for (let i = 0; i < allTargetingMatchObjs.length; i++) {
         const targetingMatchObj = allTargetingMatchObjs[i];
-        const amountOfTimeSinceSession = Date.now() - targetingMatchObj.sessionId;
-        if (targetingMatchObj.sessionId !== currentSessionId && amountOfTimeSinceSession > MAX_IDB_STORAGE_LENGTH) {
+        const amountOfTimeSinceSession = Date.now() - targetingMatchObj.lastUpdated;
+        if (targetingMatchObj.sessionId !== currentSessionIdStr && amountOfTimeSinceSession > MAX_IDB_STORAGE_LENGTH) {
           await tx.store.delete(targetingMatchObj.sessionId);
         }
       }

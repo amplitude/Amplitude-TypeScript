@@ -105,6 +105,7 @@ describe('TargetingIDBStore', () => {
     test('should delete object stores with sessions older than 2 days', async () => {
       // Set current time to 08:30
       jest.useFakeTimers().setSystemTime(new Date('2023-07-31 08:30:00').getTime());
+
       // Current session from one hour before, 07:30
       const currentSessionId = new Date('2023-07-31 07:30:00').getTime();
       await targetingIDBStore.storeTargetingMatchForSession({
@@ -113,6 +114,7 @@ describe('TargetingIDBStore', () => {
         sessionId: currentSessionId,
         targetingMatch: true,
       });
+
       // Add session from the same day
       await targetingIDBStore.storeTargetingMatchForSession({
         loggerProvider: mockLoggerProvider,
@@ -120,27 +122,36 @@ describe('TargetingIDBStore', () => {
         sessionId: new Date('2023-07-31 05:30:00').getTime(),
         targetingMatch: true,
       });
-      // Add session from one month ago
+
+      // Add session from one month ago - set the time to simulate this being created a month ago
+      jest.setSystemTime(new Date('2023-06-31 10:30:00').getTime());
       await targetingIDBStore.storeTargetingMatchForSession({
         loggerProvider: mockLoggerProvider,
         apiKey,
         sessionId: new Date('2023-06-31 10:30:00').getTime(),
         targetingMatch: true,
       });
+
+      // Reset time back to current
+      jest.setSystemTime(new Date('2023-07-31 08:30:00').getTime());
+
       const allEntries =
         targetingIDBStore.dbs && (await targetingIDBStore.dbs['static_key'].getAll('sessionTargetingMatch'));
       expect(allEntries).toEqual([
         {
-          sessionId: new Date('2023-06-31 10:30:00').getTime(),
+          sessionId: String(new Date('2023-06-31 10:30:00').getTime()),
           targetingMatch: true,
+          lastUpdated: new Date('2023-06-31 10:30:00').getTime(),
         },
         {
-          sessionId: new Date('2023-07-31 05:30:00').getTime(),
+          sessionId: String(new Date('2023-07-31 05:30:00').getTime()),
           targetingMatch: true,
+          lastUpdated: new Date('2023-07-31 08:30:00').getTime(),
         },
         {
-          sessionId: currentSessionId,
+          sessionId: String(currentSessionId),
           targetingMatch: true,
+          lastUpdated: new Date('2023-07-31 08:30:00').getTime(),
         },
       ]);
 
@@ -155,12 +166,14 @@ describe('TargetingIDBStore', () => {
       // Only one month old entry should be deleted
       expect(allEntriesUpdated).toEqual([
         {
-          sessionId: new Date('2023-07-31 05:30:00').getTime(),
+          sessionId: String(new Date('2023-07-31 05:30:00').getTime()),
           targetingMatch: true,
+          lastUpdated: new Date('2023-07-31 08:30:00').getTime(),
         },
         {
-          sessionId: currentSessionId,
+          sessionId: String(currentSessionId),
           targetingMatch: true,
+          lastUpdated: new Date('2023-07-31 08:30:00').getTime(),
         },
       ]);
     });

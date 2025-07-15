@@ -10,12 +10,14 @@ export const MAX_IDB_STORAGE_LENGTH = 1000 * 60 * 60 * 24 * 2; // 2 days
 type EventData = { event_type: string };
 
 type EventTypeStore = { [event_type: string]: { [timestamp: number]: EventData } };
+
 export interface TargetingDB extends DBSchema {
   eventTypesForSession: {
-    key: number;
+    key: string;
     value: {
-      sessionId: number;
+      sessionId: string;
       eventTypes: EventTypeStore;
+      lastUpdated: number;
     };
   };
 }
@@ -53,25 +55,33 @@ export class TargetingIDBStore {
     loggerProvider,
     tx,
   }: {
-    sessionId: number;
+    sessionId: string | number;
     eventType: string;
     eventTime: number;
     loggerProvider: ILogger;
     tx: IDBPTransaction<TargetingDB, ['eventTypesForSession'], 'readwrite'>;
   }) => {
     try {
-      const eventTypesForSessionStorage = await tx.store.get(sessionId);
-      const eventTypesForSession = eventTypesForSessionStorage ? eventTypesForSessionStorage.eventTypes : {};
-      const eventTypeStore = eventTypesForSession[eventType] || {};
+      const sessionIdStr = String(sessionId);
+      const sessionData = await tx.store.get(sessionIdStr);
+      const eventTypes = sessionData ? sessionData.eventTypes : {};
+      const eventTypeStore = eventTypes[eventType] || {};
 
       const updatedEventTypes: EventTypeStore = {
-        ...eventTypesForSession,
+        ...eventTypes,
         [eventType]: {
           ...eventTypeStore,
           [eventTime]: { event_type: eventType },
         },
       };
-      await tx.store.put({ sessionId, eventTypes: updatedEventTypes });
+
+      const updatedSessionData = {
+        sessionId: sessionIdStr,
+        eventTypes: updatedEventTypes,
+        lastUpdated: Date.now(),
+      };
+
+      await tx.store.put(updatedSessionData);
       return updatedEventTypes;
     } catch (e) {
       loggerProvider.warn(`Failed to store events for targeting ${sessionId}: ${e as string}`);
@@ -84,21 +94,22 @@ export class TargetingIDBStore {
     loggerProvider,
     tx,
   }: {
-    currentSessionId: number;
+    currentSessionId: string | number;
     loggerProvider: ILogger;
     tx: IDBPTransaction<TargetingDB, ['eventTypesForSession'], 'readwrite'>;
   }) => {
     try {
-      const allEventTypeObjs = await tx.store.getAll();
-      for (let i = 0; i < allEventTypeObjs.length; i++) {
-        const eventTypeObj = allEventTypeObjs[i];
-        const amountOfTimeSinceSession = Date.now() - eventTypeObj.sessionId;
-        if (eventTypeObj.sessionId !== currentSessionId && amountOfTimeSinceSession > MAX_IDB_STORAGE_LENGTH) {
-          await tx.store.delete(eventTypeObj.sessionId);
+      const currentSessionIdStr = String(currentSessionId);
+      const allSessions = await tx.store.getAll();
+      for (let i = 0; i < allSessions.length; i++) {
+        const session = allSessions[i];
+        const amountOfTimeSinceSession = Date.now() - session.lastUpdated;
+        if (session.sessionId !== currentSessionIdStr && amountOfTimeSinceSession > MAX_IDB_STORAGE_LENGTH) {
+          await tx.store.delete(session.sessionId);
         }
       }
     } catch (e) {
-      loggerProvider.warn(`Failed to clear old session events for targeting: ${e as string}`);
+      loggerProvider.warn(`Failed to clear old session event types for targeting: ${e as string}`);
     }
   };
 
@@ -113,7 +124,7 @@ export class TargetingIDBStore {
     apiKey: string;
     eventType: string;
     eventTime: number;
-    sessionId: number;
+    sessionId: string | number;
   }) => {
     try {
       const db = await this.openOrCreateDB(apiKey);
