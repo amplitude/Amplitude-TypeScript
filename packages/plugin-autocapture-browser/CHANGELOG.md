@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.6.0...@amplitude/plugin-autocapture-browser@1.6.1) (2025-07-11)
+
+
+### Bug Fixes
+
+* use sliding window to capture rage clicks ([#1202](https://github.com/amplitude/Amplitude-TypeScript/issues/1202)) ([b80f09e](https://github.com/amplitude/Amplitude-TypeScript/commit/b80f09e5ed9a92a7f7d26bd6761c0cd11f306ec3))
+
+
+
+
+
 # [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.5.0...@amplitude/plugin-autocapture-browser@1.6.0) (2025-07-08)
 
 

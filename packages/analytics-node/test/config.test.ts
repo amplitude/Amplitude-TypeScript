@@ -1,6 +1,6 @@
 import * as Config from '../src/config';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel } from '@amplitude/analytics-types';
+import { LogLevel } from '@amplitude/analytics-core';
 import { Http } from '../src/transports/http';
 
 describe('config', () => {
@@ -19,6 +19,7 @@ describe('config', () => {
         instanceName: '$default_instance',
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
+        minIdLength: undefined,
         offline: false,
         _optOut: false,
         plan: undefined,
@@ -39,24 +40,21 @@ describe('config', () => {
       const config = Config.useNodeConfig(API_KEY, undefined);
       expect(config).toEqual({
         apiKey: API_KEY,
-        deviceId: undefined,
         flushIntervalMillis: 10000,
         flushMaxRetries: 12,
         flushQueueSize: 200,
         instanceName: '$default_instance',
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
+        minIdLength: undefined,
         offline: false,
         _optOut: false,
-        partnerId: undefined,
         plan: undefined,
         ingestionMetadata: undefined,
         serverUrl: 'https://api2.amplitude.com/2/httpapi',
         serverZone: 'US',
-        sessionId: undefined,
         storageProvider: undefined,
         transportProvider: new Http(),
-        userId: undefined,
         useBatch: false,
       });
     });
