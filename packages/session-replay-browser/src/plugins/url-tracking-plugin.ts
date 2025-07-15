@@ -36,9 +36,10 @@ export interface URLTrackingPluginOptions {
  * Creates a URL tracking plugin for rrweb record function
  *
  * This plugin monitors URL changes in the browser and emits events when the URL changes.
- * It supports two tracking modes:
- * 1. History API patching (default) - patches pushState/replaceState and listens to popstate
- * 2. Polling - periodically checks for URL changes
+ * It supports three tracking modes:
+ * 1. Polling (if explicitly enabled) - periodically checks for URL changes
+ * 2. History API + Hash routing (default) - patches pushState/replaceState, listens to popstate and hashchange
+ * 3. Hash routing only (fallback) - listens to hashchange events when History API is unavailable
  *
  * @param options Configuration options for URL tracking
  * @returns RecordPlugin instance that can be used with rrweb
@@ -126,9 +127,14 @@ export function createUrlTrackingPlugin(
       // Track the last URL to prevent duplicate events
       let lastTrackedUrl = '';
 
-      // Polling mode: periodically check for URL changes
+      // Hashchange event handler
+      const hashChangeHandler = () => {
+        emitUrlChange();
+      };
+
+      // 1. if explicitly enable polling → use polling
       if (enablePolling) {
-        // Set up interval to check for URL changes
+        // Use polling (covers everything)
         const urlChangeInterval = globalScope.setInterval(() => {
           emitUrlChange();
         }, pollingInterval);
@@ -144,8 +150,9 @@ export function createUrlTrackingPlugin(
         };
       }
 
-      // History API mode: patch history methods and listen to popstate events
+      // 2. if polling not enabled → check history, if exist, use history
       if (globalScope.history) {
+        // Use History API + hashchange (covers History API + hash routing)
         // Store original history methods for restoration during cleanup
         const originalPushState = globalScope.history.pushState.bind(globalScope.history);
         const originalReplaceState = globalScope.history.replaceState.bind(globalScope.history);
@@ -166,6 +173,8 @@ export function createUrlTrackingPlugin(
 
         // Listen to popstate events for browser back/forward navigation
         globalScope.addEventListener('popstate', emitUrlChange);
+        // Listen to hashchange events for hash routing
+        globalScope.addEventListener('hashchange', hashChangeHandler);
 
         // Emit initial URL immediately
         emitUrlChange();
@@ -178,14 +187,17 @@ export function createUrlTrackingPlugin(
 
           // Remove popstate event listener
           globalScope.removeEventListener('popstate', emitUrlChange);
+          // Remove hashchange event listener
+          globalScope.removeEventListener('hashchange', hashChangeHandler);
         };
       }
 
-      // Fallback mode: no history API and polling disabled - emit initial URL only
+      // 3. if not, then the framework is probably using hash router → do hash
+      // Fallback: just hashchange (for pure hash routing)
+      globalScope.addEventListener('hashchange', hashChangeHandler);
       emitUrlChange();
-
       return () => {
-        // No cleanup needed when neither history API nor polling is available
+        globalScope.removeEventListener('hashchange', hashChangeHandler);
       };
     },
     options,

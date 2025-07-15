@@ -130,7 +130,7 @@ describe('URL Tracking Plugin', () => {
     });
   });
 
-  describe('URL change detection', () => {
+  describe('History API + Hash routing mode (scenario 2)', () => {
     test('should detect URL changes via pushState', () => {
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, mockGlobalScope);
@@ -211,6 +211,139 @@ describe('URL Tracking Plugin', () => {
         viewportWidth: 800,
       });
       cleanup();
+    });
+  });
+
+  describe('hash routing detection (scenario 2)', () => {
+    test('should detect URL changes via hashchange event', () => {
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      mockCallback.mockClear();
+      // Simulate URL and title change
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/page#new-hash';
+      if (mockGlobalScope.document) mockGlobalScope.document.title = 'Hash Page';
+      // Find and trigger the hashchange event listener that was registered by the plugin
+      const hashchangeCall = mockGlobalScope.addEventListener.mock.calls.find(([event]) => event === 'hashchange');
+      const hashchangeListener = hashchangeCall?.[1];
+      if (hashchangeListener) hashchangeListener();
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/page#new-hash',
+        title: '', // Default behavior: no document title capture
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should detect hash changes with document title capture enabled', () => {
+      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      mockCallback.mockClear();
+      // Simulate URL and title change
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/page#new-hash';
+      if (mockGlobalScope.document) mockGlobalScope.document.title = 'Hash Page';
+      // Find and trigger the hashchange event listener
+      const hashchangeCall = mockGlobalScope.addEventListener.mock.calls.find(([event]) => event === 'hashchange');
+      const hashchangeListener = hashchangeCall?.[1];
+      if (hashchangeListener) hashchangeListener();
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/page#new-hash',
+        title: 'Hash Page', // Document title captured when enabled
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should not emit duplicate hash changes', () => {
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      mockCallback.mockClear();
+      // Find the hashchange event listener
+      const hashchangeCall = mockGlobalScope.addEventListener.mock.calls.find(([event]) => event === 'hashchange');
+      const hashchangeListener = hashchangeCall?.[1];
+      expect(hashchangeListener).toBeDefined();
+      // Trigger hashchange with same URL - should not trigger callback
+      hashchangeListener!();
+      expect(mockCallback).not.toHaveBeenCalled();
+      cleanup();
+    });
+
+    test('should handle hash changes in fallback mode (no history API)', () => {
+      const scope = createMockGlobalScope({ history: undefined });
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, scope);
+      mockCallback.mockClear();
+      // Simulate URL change
+      if (scope.location) scope.location.href = 'https://example.com/page#fallback-hash';
+      if (scope.document) scope.document.title = 'Fallback Hash';
+      // Find and trigger the hashchange event listener
+      const hashchangeCall = scope.addEventListener.mock.calls.find(([event]) => event === 'hashchange');
+      const hashchangeListener = hashchangeCall?.[1];
+      if (hashchangeListener) hashchangeListener();
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/page#fallback-hash',
+        title: '', // Default behavior: no document title capture
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should not add hashchange listener in polling mode', () => {
+      const plugin = createUrlTrackingPlugin({ enablePolling: true });
+      const cleanup = callObserver(plugin, mockGlobalScope);
+      // Verify that hashchange event listener was not added in polling mode (polling covers everything)
+      const hashchangeCall = mockGlobalScope.addEventListener.mock.calls.find(([event]) => event === 'hashchange');
+      expect(hashchangeCall).toBeUndefined();
+      cleanup();
+    });
+  });
+
+  describe('hash routing only mode (scenario 3)', () => {
+    test('should handle hash changes when no history API available', () => {
+      const scope = createMockGlobalScope({ history: undefined });
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, scope);
+      mockCallback.mockClear();
+      // Simulate URL change
+      if (scope.location) scope.location.href = 'https://example.com/page#hash-only';
+      if (scope.document) scope.document.title = 'Hash Only';
+      // Find and trigger the hashchange event listener
+      const hashchangeCall = scope.addEventListener.mock.calls.find(([event]) => event === 'hashchange');
+      const hashchangeListener = hashchangeCall?.[1];
+      expect(hashchangeListener).toBeDefined();
+      hashchangeListener!();
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/page#hash-only',
+        title: '', // Default behavior: no document title capture
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should emit initial URL in hash routing only mode', () => {
+      const scope = createMockGlobalScope({ history: undefined });
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, scope);
+      // Should emit initial URL even when history API is not available
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/initial',
+        title: '', // Default behavior: no document title capture
+        viewportHeight: 768,
+        viewportWidth: 1024,
+      });
+      cleanup();
+    });
+
+    test('should clean up hashchange listener in hash routing only mode', () => {
+      const scope = createMockGlobalScope({ history: undefined });
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, scope);
+      cleanup();
+      // Should remove hashchange event listener on cleanup
+      expect(scope.removeEventListener).toHaveBeenCalledWith('hashchange', expect.any(Function));
     });
   });
 
@@ -319,8 +452,8 @@ describe('URL Tracking Plugin', () => {
     });
   });
 
-  describe('polling', () => {
-    test('should enable polling when configured', () => {
+  describe('polling mode (scenario 1)', () => {
+    test('should enable polling when explicitly configured', () => {
       const plugin = createUrlTrackingPlugin({ enablePolling: true });
       const cleanup = callObserver(plugin, mockGlobalScope);
       // Verify that setInterval was called with the default polling interval
@@ -471,11 +604,11 @@ describe('URL Tracking Plugin', () => {
       });
       cleanup();
     });
-    test('should handle missing history gracefully', () => {
+    test('should handle missing history gracefully (falls back to scenario 3)', () => {
       const scope = createMockGlobalScope({ history: undefined });
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, scope);
-      // Should still emit initial URL even when history is missing
+      // Should still emit initial URL even when history is missing (scenario 3: hash routing only)
       expect(mockCallback).toHaveBeenCalledWith({
         href: 'https://example.com/initial',
         title: '', // Default behavior: no document title capture
@@ -603,6 +736,7 @@ describe('URL Tracking Plugin', () => {
       cleanup();
 
       expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+      expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('hashchange', expect.any(Function));
     });
 
     test('should reset internal state on cleanup', () => {
