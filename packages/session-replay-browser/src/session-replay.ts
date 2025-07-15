@@ -310,7 +310,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       // is async, we need to access this value synchronously (for record
       // and for getSessionReplayProperties - both synchronous fns)
       this.sessionTargetingMatch = await evaluateTargetingAndStore({
-        sessionId: Number(this.identifiers.sessionId),
+        sessionId: this.identifiers.sessionId,
         targetingConfig: this.config.targetingConfig,
         loggerProvider: this.loggerProvider,
         apiKey: this.config.apiKey,

@@ -7,7 +7,7 @@ export interface TargetingParameters {
   userProperties?: { [key: string]: any };
   deviceId?: string;
   flag: EvaluationFlag;
-  sessionId: number;
+  sessionId: string | number;
   apiKey: string;
   loggerProvider: Logger;
 }
