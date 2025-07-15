@@ -1,7 +1,7 @@
 import { Http } from '../../src/transports/http';
-import * as http from 'http';
-import * as https from 'https';
-import { Status } from '@amplitude/analytics-types';
+import http from 'http';
+import https from 'https';
+import { Status } from '@amplitude/analytics-core';
 
 describe('http transport', () => {
   test('should send to http url', async () => {

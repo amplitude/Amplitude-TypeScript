@@ -144,6 +144,13 @@ export class RequestWrapperFetch implements IRequestWrapper {
   get method(): string | undefined {
     return this.request.method;
   }
+
+  get body(): FetchRequestBody | XMLHttpRequestBodyInitSafe | null {
+    if (typeof this.request.body === 'string') {
+      return this.request.body;
+    }
+    return null;
+  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {

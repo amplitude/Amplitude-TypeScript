@@ -48,60 +48,60 @@
     base64-js "1.5.1"
     unfetch "4.1.0"
 
-"@amplitude/rrdom@^2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrdom/-/rrdom-2.0.0-alpha.30.tgz"
-  integrity sha512-Yt8t/c/dm8STfDB7E2RxRpekNUz6jDnVW97Oca5oCKJBwrewVK01oAWyBgtDXPXRj2it7zu6vNr5eU2griLP0Q==
+"@amplitude/rrdom@^2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrdom/-/rrdom-2.0.0-alpha.32.tgz#f86c13ee05da3ff94fdc07323cb23c5830f03f5c"
+  integrity sha512-FvEoclQ/wHBh9if060V1eaDexUJMUWUV1g3w7+mKfz9yO1aT0XmY+UAqE7mvaEB2GnWyIPYMlFrKTZ25JZ8z+w==
   dependencies:
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.30"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.32"
 
-"@amplitude/rrweb-packer@2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrweb-packer/-/rrweb-packer-2.0.0-alpha.30.tgz"
-  integrity sha512-6pqUG+XL1A5JT4cmpwiogcGYfrzkiQtFKXiTzcHqnKll/J6YrGzJdYy32kbWIK8GCAxAQm5WOgwaOT2CvQ9ZsA==
+"@amplitude/rrweb-packer@2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-packer/-/rrweb-packer-2.0.0-alpha.32.tgz#1e1e8ed7531ea44c2cb21f31d60df8f26ec7f9fb"
+  integrity sha512-vYT0JFzle/FV9jIpEbuumCLh516az6ltAo7mrd06dlGo1tgos7bJbl3kcnvEXmDG7WWsKwip/Qprap7cZ4CmJw==
   dependencies:
-    "@amplitude/rrweb-types" "^2.0.0-alpha.30"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.32"
     fflate "^0.4.4"
 
-"@amplitude/rrweb-plugin-console-record@2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrweb-plugin-console-record/-/rrweb-plugin-console-record-2.0.0-alpha.30.tgz"
-  integrity sha512-dlfXnDby16dk1ayX+i2w0SACbTKdjmcUFFOLlIkg6VppehripkmXfs8pPU/nP7jqRWHFc7qkdK7M+dHIO1iJEA==
+"@amplitude/rrweb-plugin-console-record@2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-plugin-console-record/-/rrweb-plugin-console-record-2.0.0-alpha.32.tgz#e47a56087c6ca029c461639b0961d5c106bb0478"
+  integrity sha512-oJuBSNuBnqnrRCneW3b/pMirSz0Ubr2Ebz/t+zJhkGBgrTPNMviv8sSyyGuSn0kL4RAh/9QAG1H1hiYf9cuzgA==
 
-"@amplitude/rrweb-record@2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrweb-record/-/rrweb-record-2.0.0-alpha.30.tgz"
-  integrity sha512-SBSwIbaAZhwO9fU72w9gOhH16fLRMQngTmVHGRVT7vKDkqwcH/uo8KfCX/SuRSiTZ55MLd4idS1V0DkpAq+jXw==
+"@amplitude/rrweb-record@2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-record/-/rrweb-record-2.0.0-alpha.32.tgz#018af4eb9b2fda1a70a93216344d2af70915ac4c"
+  integrity sha512-bs5ItsPfedVNiZyIzYgtey6S6qaU90XcP4/313dcvedzBk9o+eVjBG5DDbStJnwYnSj+lB+oAWw5uc9H9ghKjQ==
   dependencies:
-    "@amplitude/rrweb" "^2.0.0-alpha.30"
-    "@amplitude/rrweb-types" "^2.0.0-alpha.30"
+    "@amplitude/rrweb" "^2.0.0-alpha.32"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.32"
 
-"@amplitude/rrweb-snapshot@^2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.30.tgz"
-  integrity sha512-PSOJPLqibSNEtyvPvRtYeKTa4PblGDVdNsSM805lYCSA5MHJPdqn4q8MDRx3vMD63CshkKouPPMYjFaUu8bErQ==
+"@amplitude/rrweb-snapshot@^2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-snapshot/-/rrweb-snapshot-2.0.0-alpha.32.tgz#7793a59cc5ae72146afa92d14c4afcc9606fcd50"
+  integrity sha512-7kBfo965IS0HxGsB8yMClIARGbUMMdnu+7TkKwvnWRkfBiKLGu1DbYiE6wr3dBsScpyy/orPRoLDbxGVFctaZg==
   dependencies:
     postcss "^8.4.38"
 
-"@amplitude/rrweb-types@^2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.30.tgz"
-  integrity sha512-keNd0ouO/BQeEKs0KTIAQKGW62nQTYSyUn5hoQ3c9T+L/exxhQM+j+XsuzIcvh4uOheXQTTpHrzJG/wtIlU9ug==
+"@amplitude/rrweb-types@^2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-types/-/rrweb-types-2.0.0-alpha.32.tgz#c880e085df841e1f0ca6381f7410508ffb1f537d"
+  integrity sha512-tDs8uizkG+UwE2GKjXh+gH8WhUz0C3y7WfTwrtWi1TnsVc00sXaKSUo5G2h4YF4PGK6dpnLgJBqTwrqCZ211AQ==
 
-"@amplitude/rrweb-utils@2.0.0-alpha.30", "@amplitude/rrweb-utils@^2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.30.tgz"
-  integrity sha512-vQuyyzHqEtXwbfMGkUQJiJnB1FJDmhhKQxBM6VmRK1SgZNKgstd81FfF5WM2essYsHOz4iuyIuDJ8OVNXmNRWw==
+"@amplitude/rrweb-utils@2.0.0-alpha.32", "@amplitude/rrweb-utils@^2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb-utils/-/rrweb-utils-2.0.0-alpha.32.tgz#8d243b8f565d74c72c34704a7fbaf468a6b70a4b"
+  integrity sha512-DCCQjuNACkIMkdY5/KBaEgL4znRHU694ClW3RIjqFXJ6j6pqGyjEhCqtlCes+XwdgwOQKnJGMNka3J9rmrSqHg==
 
-"@amplitude/rrweb@^2.0.0-alpha.30":
-  version "2.0.0-alpha.30"
-  resolved "https://registry.npmjs.org/@amplitude/rrweb/-/rrweb-2.0.0-alpha.30.tgz"
-  integrity sha512-fIrCP94X6w1QAYFRPE3VSfruDp80Y3jJrf3l3yzQ73f1EXp3XAmzxlPkHXS76VezLio6YLCjZBnfC8yy5EkzJA==
+"@amplitude/rrweb@^2.0.0-alpha.32":
+  version "2.0.0-alpha.32"
+  resolved "https://registry.yarnpkg.com/@amplitude/rrweb/-/rrweb-2.0.0-alpha.32.tgz#1a9109974fbdf7c94328608de703657bd02b09f1"
+  integrity sha512-hpQTvFTTpRcz8ZODSR7WYEe02IXE5pXdPZivFbScr6UihiXvAApr41eVDP0tEQlg+JvahOYtuf8kyU89p+NIqg==
   dependencies:
-    "@amplitude/rrdom" "^2.0.0-alpha.30"
-    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.30"
-    "@amplitude/rrweb-types" "^2.0.0-alpha.30"
-    "@amplitude/rrweb-utils" "^2.0.0-alpha.30"
+    "@amplitude/rrdom" "^2.0.0-alpha.32"
+    "@amplitude/rrweb-snapshot" "^2.0.0-alpha.32"
+    "@amplitude/rrweb-types" "^2.0.0-alpha.32"
+    "@amplitude/rrweb-utils" "^2.0.0-alpha.32"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
@@ -13009,16 +13009,7 @@ string-length@^4.0.1:
     char-regex "^1.0.2"
     strip-ansi "^6.0.0"
 
-"string-width-cjs@npm:string-width@^4.2.0":
-  version "4.2.3"
-  resolved "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz"
-  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
-  dependencies:
-    emoji-regex "^8.0.0"
-    is-fullwidth-code-point "^3.0.0"
-    strip-ansi "^6.0.1"
-
-"string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
+"string-width-cjs@npm:string-width@^4.2.0", "string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
   version "4.2.3"
   resolved "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -13050,7 +13041,7 @@ string_decoder@~1.1.1:
   dependencies:
     safe-buffer "~5.1.0"
 
-"strip-ansi-cjs@npm:strip-ansi@^6.0.1":
+"strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
   version "6.0.1"
   resolved "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.1.tgz"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -13070,13 +13061,6 @@ strip-ansi@^5.0.0, strip-ansi@^5.2.0:
   integrity sha512-DuRs1gKbBqsMKIZlrffwlug8MHkcnpjs5VPmL1PAh+mA30U0DTotfDZ0d2UUsXpPmPmMMJ6W773MaA3J+lbiWA==
   dependencies:
     ansi-regex "^4.1.0"
-
-strip-ansi@^6.0.0, strip-ansi@^6.0.1:
-  version "6.0.1"
-  resolved "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.1.tgz"
-  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
-  dependencies:
-    ansi-regex "^5.0.1"
 
 strip-ansi@^7.0.1:
   version "7.1.0"
@@ -13926,7 +13910,7 @@ wordwrap@^1.0.0:
   resolved "https://registry.npmjs.org/wordwrap/-/wordwrap-1.0.0.tgz"
   integrity sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==
 
-"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
+"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
   version "7.0.0"
   resolved "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-7.0.0.tgz"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
@@ -13939,15 +13923,6 @@ wrap-ansi@^6.0.1, wrap-ansi@^6.2.0:
   version "6.2.0"
   resolved "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-6.2.0.tgz"
   integrity sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA==
-  dependencies:
-    ansi-styles "^4.0.0"
-    string-width "^4.1.0"
-    strip-ansi "^6.0.0"
-
-wrap-ansi@^7.0.0:
-  version "7.0.0"
-  resolved "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-7.0.0.tgz"
-  integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
   dependencies:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"

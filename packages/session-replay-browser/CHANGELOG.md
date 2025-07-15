@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.26.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.26.0...@amplitude/session-replay-browser@1.26.1) (2025-07-11)
+
+
+### Bug Fixes
+
+* **session replay:** better Angular zone detection ([#1205](https://github.com/amplitude/Amplitude-TypeScript/issues/1205)) ([7d88d29](https://github.com/amplitude/Amplitude-TypeScript/commit/7d88d29671810d294f809a87d642eec825959759))
+
+
+
+
+
+# [1.26.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.25.3...@amplitude/session-replay-browser@1.26.0) (2025-07-08)
+
+
+### Features
+
+* **session-replay-browser:** allows users to omit scripts and comments from being captured ([#1179](https://github.com/amplitude/Amplitude-TypeScript/issues/1179)) ([4a705bc](https://github.com/amplitude/Amplitude-TypeScript/commit/4a705bc21eaae7e3319042701d6e2b0dbef971aa))
+
+
+### Performance Improvements
+
+* **session replay:** use text encoder instead of blob for size calc ([#1176](https://github.com/amplitude/Amplitude-TypeScript/issues/1176)) ([9a37bc3](https://github.com/amplitude/Amplitude-TypeScript/commit/9a37bc3a5844f6f56fef238faec4cf506e58b198))
+* **session-replay:** enable compression performance by default ([#1181](https://github.com/amplitude/Amplitude-TypeScript/issues/1181)) ([c91e192](https://github.com/amplitude/Amplitude-TypeScript/commit/c91e1927a81e4c87b1d25a3494749ce5820a231c))
+
+
+
+
+
 ## [1.25.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.25.2...@amplitude/session-replay-browser@1.25.3) (2025-06-30)
 
 

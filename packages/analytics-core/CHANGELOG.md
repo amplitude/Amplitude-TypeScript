@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.15.0...@amplitude/analytics-core@2.16.0) (2025-07-08)
+
+
+### Bug Fixes
+
+* **analytics-core:** more logs in timeline ([#1180](https://github.com/amplitude/Amplitude-TypeScript/issues/1180)) ([dcb6cee](https://github.com/amplitude/Amplitude-TypeScript/commit/dcb6ceee00e3587b8eaf601074940696c94a4466))
+* **analytics-core:** remote config use new schema & config group ([#1185](https://github.com/amplitude/Amplitude-TypeScript/issues/1185)) ([db54ae5](https://github.com/amplitude/Amplitude-TypeScript/commit/db54ae5ce87d5d7a4ae49c80aab5037dee3dd03c))
+
+
+### Features
+
+* **analytics-browser:** change definition of rage click ([#1183](https://github.com/amplitude/Amplitude-TypeScript/issues/1183)) ([108f930](https://github.com/amplitude/Amplitude-TypeScript/commit/108f930114629fdb3d600532a2c6b8b4f6cafd01))
+
+
+
+
+
 # [2.15.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.14.0...@amplitude/analytics-core@2.15.0) (2025-06-30)
 
 

@@ -1,8 +1,8 @@
-import { TransportType } from './transport';
-import { CoreClient } from '../core-client';
-import { AnalyticsIdentity, Plugin } from './plugin';
-import { AmplitudeReturn } from '../utils/return-wrapper';
-import { BrowserConfig, BrowserOptions } from './browser-config';
+import { TransportType } from '../transport';
+import { CoreClient } from './core-client';
+import { AnalyticsIdentity, Plugin } from '../plugin';
+import { AmplitudeReturn } from '../../utils/return-wrapper';
+import { BrowserConfig, BrowserOptions } from '../config/browser-config';
 
 interface Client extends CoreClient {
   /**
