@@ -2151,55 +2151,36 @@ describe('SessionReplay', () => {
       });
     });
 
-    describe('URL Change Event Handling', () => {
-      test('should handle URL change events with custom RRWeb events', async () => {
-        await sessionReplay.init(apiKey, mockOptions).promise;
-
-        const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
-
-        const mockUrlChangeEvent = {
-          href: 'https://example.com/page1',
-          title: 'Page 1',
-          viewportHeight: 768,
-          viewportWidth: 1024,
-        };
-
-        await sessionReplay.addCustomRRWebEvent(CustomRRwebEvent.URL_CHANGE, mockUrlChangeEvent);
-
-        expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.URL_CHANGE, mockUrlChangeEvent);
+    test('should handle empty UGC filter rules', async () => {
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_interaction_config: {
+          enabled: true,
+          ugcFilterRules: [],
+        },
       });
 
-      test('should handle empty UGC filter rules', async () => {
-        __setNamespaceConfig({
-          sr_sampling_config: samplingConfig,
-          sr_privacy_config: {},
-          sr_interaction_config: {
-            enabled: true,
-            ugcFilterRules: [],
-          },
-        });
+      await sessionReplay.init(apiKey, mockOptions).promise;
 
-        await sessionReplay.init(apiKey, mockOptions).promise;
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
 
-        const plugins = await sessionReplay.getRecordingPlugins(undefined);
-        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+      expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
+    });
 
-        expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
+    test('should handle missing interaction config', async () => {
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
       });
 
-      test('should handle missing interaction config', async () => {
-        __setNamespaceConfig({
-          sr_sampling_config: samplingConfig,
-          sr_privacy_config: {},
-        });
+      await sessionReplay.init(apiKey, mockOptions).promise;
 
-        await sessionReplay.init(apiKey, mockOptions).promise;
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
 
-        const plugins = await sessionReplay.getRecordingPlugins(undefined);
-        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
-
-        expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
-      });
+      expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
     });
   });
 

@@ -53,8 +53,8 @@ export function createUrlTrackingPlugin(
       // Merge options with plugin-level options taking precedence over constructor options
       const config = { ...options, ...pluginOptions };
       const ugcFilterRules = config.ugcFilterRules || [];
-      const enablePolling = config.enablePolling || false;
-      const pollingInterval = config.pollingInterval || DEFAULT_URL_CHANGE_POLLING_INTERVAL;
+      const enablePolling = config.enablePolling ?? false;
+      const pollingInterval = config.pollingInterval ?? DEFAULT_URL_CHANGE_POLLING_INTERVAL;
       const captureDocumentTitle = config.captureDocumentTitle ?? false;
 
       // Early return if no global scope is available
