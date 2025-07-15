@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.16.0...@amplitude/analytics-core@2.17.0) (2025-07-15)
+
+
+### Bug Fixes
+
+* **analytics-browser:** prevent infinite Amplitude network requests ([#1100](https://github.com/amplitude/Amplitude-TypeScript/issues/1100)) ([fde763c](https://github.com/amplitude/Amplitude-TypeScript/commit/fde763cd4889bda41edc55789ee18186711d825e))
+
+
+### Features
+
+* **analytics-browser:** add experimental frustrationInteractions ([#1209](https://github.com/amplitude/Amplitude-TypeScript/issues/1209)) ([e321744](https://github.com/amplitude/Amplitude-TypeScript/commit/e3217444c58be15e779ff1fd54a55027c93f5db0))
+* **analytics-node:** migrate to v2.x core  ([#1207](https://github.com/amplitude/Amplitude-TypeScript/issues/1207)) ([e1c1b28](https://github.com/amplitude/Amplitude-TypeScript/commit/e1c1b28ed2036f7ebb68173f8da2e6cbb82cb287))
+
+
+
+
+
 # [2.16.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.15.0...@amplitude/analytics-core@2.16.0) (2025-07-08)
 
 
