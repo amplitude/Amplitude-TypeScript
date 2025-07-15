@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Replay Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    .log-container {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .log-entry {
+      margin-bottom: 5px;
+      color: #0066cc;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+  </style>
+</head>
+<body>
+  <h1>Session Replay Test</h1>
+  
+  <div class="status">
+    <strong>Session Replay Status:</strong> <span id="statusText">Initializing...</span>
+  </div>
+
+  <div class="container">
+    <h2>Test Session Replay</h2>
+    <p>This page has Session Replay enabled with rrweb event logging.</p>
+    
+    <div>
+      <button onclick="testClick()">Test Click</button>
+      <button onclick="testConsole()">Test Console</button>
+      <button onclick="testNetwork()">Test Network</button>
+      <button onclick="testForm()">Test Form</button>
+    </div>
+
+    <div>
+      <input type="text" placeholder="Regular input (masked)" id="input1">
+      <input type="text" class="amp-unmask" placeholder="Unmasked input" id="input2">
+      <textarea placeholder="Textarea for testing" rows="3"></textarea>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>Session Replay Logs</h2>
+    <div id="logContainer" class="log-container">
+      <div class="log-entry">Session Replay initialized. Waiting for events...</div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as amplitude from '@amplitude/analytics-browser';
+    import { sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+
+    // Get API key from URL or environment
+    const urlParams = new URLSearchParams(window.location.search);
+    const apiKey = urlParams.get('apiKey') || import.meta.env.VITE_AMPLITUDE_API_KEY;
+
+    // Initialize Amplitude with Session Replay
+    window.amplitude = amplitude;
+    
+    amplitude.add(sessionReplayPlugin({
+      sampleRate: 1.0, // 100% sample rate
+      debugMode: true,
+      loggingConfig: {
+        console: { enabled: true, levels: ['log', 'warn', 'error'] },
+        network: { enabled: true }
+      }
+    }));
+
+    amplitude.init(apiKey, 'test-user', {
+      logLevel: 'DEBUG',
+      defaultTracking: { pageViews: true, sessions: true },
+    });
+
+    // Update status
+    const statusText = document.getElementById('statusText');
+    statusText.textContent = apiKey ? 'Enabled' : 'Disabled - No API Key';
+
+    // Simple logging
+    const logContainer = document.getElementById('logContainer');
+    function log(message) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logContainer.appendChild(entry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    // Test functions
+    window.testClick = function() {
+      log('Click event triggered');
+      console.log('Test click event');
+    };
+
+    window.testConsole = function() {
+      console.log('Test console.log');
+      console.warn('Test console.warn');
+      console.error('Test console.error');
+    };
+
+    window.testNetwork = function() {
+      log('Making network request...');
+      fetch('https://httpstat.us/200?sleep=500')
+        .then(() => log('Network request completed'))
+        .catch(error => log(`Network request failed: ${error.message}`));
+    };
+
+    window.testForm = function() {
+      const input = document.getElementById('input1');
+      input.focus();
+      input.value = 'Test value';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.blur();
+      log('Form interaction completed');
+    };
+
+    // Log initialization
+    log('Session Replay initialized');
+    log(`API Key: ${apiKey ? 'Provided' : 'Missing'}`);
+    console.log('Session Replay test page loaded');
+  </script>
+</body>
+</html> 
