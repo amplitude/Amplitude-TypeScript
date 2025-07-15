@@ -5,6 +5,7 @@ import { IConfig } from './core-config';
 import { ElementInteractionsOptions } from '../element-interactions';
 import { PageTrackingOptions } from '../page-view-tracking';
 import { NetworkTrackingOptions } from '../network-tracking';
+import { FrustrationInteractionsOptions } from '../frustration-interactions';
 
 export interface BrowserConfig extends ExternalBrowserConfig, InternalBrowserConfig {}
 
