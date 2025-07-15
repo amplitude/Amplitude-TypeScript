@@ -1,7 +1,7 @@
 import { Event } from './event/event';
-import { IConfig } from '../config';
+import { IConfig } from './config/core-config';
 import { Result } from './result';
-import { CoreClient } from '../core-client';
+import { CoreClient } from './client/core-client';
 
 type PluginTypeBefore = 'before';
 type PluginTypeEnrichment = 'enrichment';

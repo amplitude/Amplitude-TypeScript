@@ -27,10 +27,10 @@ This package is published on NPM registry and is available to be installed using
 
 ```sh
 # npm
-npm install @amplitude/analytics-node
+npm install @amplitude/analytics-node@^1.0.0
 
 # yarn
-yarn add @amplitude/analytics-node
+yarn add @amplitude/analytics-node@^1.0.0
 ```
 
 ## Usage

@@ -1,9 +1,11 @@
-export { AmplitudeCore, CoreClient } from './core-client';
+export { AmplitudeCore } from './core-client';
+export { CoreClient } from './types/client/core-client';
 export { Identify, IIdentify } from './identify';
 export { Revenue, IRevenue, RevenueProperty } from './revenue';
 export { Destination } from './plugins/destination';
 export { IdentityEventSender } from './plugins/identity';
-export { IConfig, Config, RequestMetadata } from './config';
+export { Config, RequestMetadata } from './config';
+export { IConfig } from './types/config/core-config';
 export { Logger, ILogger, LogConfig } from './logger';
 export { getGlobalScope } from './global-scope';
 export { getAnalyticsConnector, setConnectorDeviceId, setConnectorUserId } from './analytics-connector';
@@ -65,8 +67,12 @@ export {
   AutocaptureOptions,
   CookieOptions,
   AttributionOptions,
-} from './types/browser-config';
-export { BrowserClient } from './types/browser-client';
+} from './types/config/browser-config';
+export { BrowserClient } from './types/client/browser-client';
+
+// Node
+export { NodeClient } from './types/client/node-client';
+export { NodeConfig, NodeOptions } from './types/config/node-config';
 
 export { NetworkEventCallback, networkObserver } from './network-observer';
 export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
