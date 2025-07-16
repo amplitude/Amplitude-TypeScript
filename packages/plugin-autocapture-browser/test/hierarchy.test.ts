@@ -19,7 +19,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const nullElement = document.getElementById('null-element');
-      expect(HierarchyUtil.getElementProperties(nullElement)).toEqual(null);
+      expect(HierarchyUtil.getElementProperties(nullElement).properties).toEqual(null);
     });
 
     test('should return tag and index information if element has siblings', () => {
@@ -41,7 +41,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const inner4 = document.getElementById('inner4');
-      expect(HierarchyUtil.getElementProperties(inner4)).toEqual({
+      expect(HierarchyUtil.getElementProperties(inner4).properties).toEqual({
         id: 'inner4',
         index: 3,
         indexOfType: 1,
@@ -63,7 +63,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const inner = document.getElementById('inner');
-      expect(HierarchyUtil.getElementProperties(inner)).toEqual({
+      expect(HierarchyUtil.getElementProperties(inner).properties).toEqual({
         id: 'inner',
         index: 0,
         indexOfType: 0,
@@ -81,7 +81,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const inner = document.getElementById('inner');
-      expect(HierarchyUtil.getElementProperties(inner)).toEqual({
+      expect(HierarchyUtil.getElementProperties(inner).properties).toEqual({
         id: 'inner',
         index: 0,
         indexOfType: 0,
@@ -94,7 +94,7 @@ describe('autocapture-plugin hierarchy', () => {
   test('should not fail when parent element is null', () => {
     const parentlessElement = document.createElement('div');
 
-    expect(HierarchyUtil.getElementProperties(parentlessElement)).toEqual({
+    expect(HierarchyUtil.getElementProperties(parentlessElement).properties).toEqual({
       tag: 'div',
     });
   });
@@ -106,7 +106,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
@@ -123,7 +123,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
@@ -140,7 +140,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
@@ -155,7 +155,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,

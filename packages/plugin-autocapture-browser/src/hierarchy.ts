@@ -38,9 +38,9 @@ const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 const MAX_ATTRIBUTE_LENGTH = 128;
 const MAX_HIERARCHY_LENGTH = 1024;
 
-export function getElementProperties(element: Element | null): HierarchyNode | null {
+export function getElementProperties(element: Element | null): { properties: HierarchyNode | null } {
   if (element === null) {
-    return null;
+    return { properties: null };
   }
 
   const tagName = String(element.tagName).toLowerCase();
@@ -107,7 +107,7 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
     properties.attrs = attributes;
   }
 
-  return properties;
+  return { properties };
 }
 
 export function getAncestors(targetEl: Element | null): Element[] {
@@ -143,7 +143,7 @@ export const getHierarchy = (element: Element | null): { hierarchy: Hierarchy } 
   // Get list of ancestors including itself and get properties at each level in the hierarchy
   const ancestors = getAncestors(element);
   hierarchy = ensureListUnderLimit(
-    ancestors.map((el) => getElementProperties(el)),
+    ancestors.map((el) => getElementProperties(el).properties),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
 
