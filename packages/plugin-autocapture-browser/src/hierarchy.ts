@@ -38,7 +38,7 @@ const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 const MAX_ATTRIBUTE_LENGTH = 128;
 const MAX_HIERARCHY_LENGTH = 1024;
 
-export function getElementProperties(element: Element | null): {
+export function getElementProperties(element: Element | null, skipNearestLabel = false): {
   properties: HierarchyNode | null;
   nearestLabel: string;
 } {
@@ -61,6 +61,9 @@ export function getElementProperties(element: Element | null): {
     if (el === element) {
       properties.index = indexOfElement;
       properties.indexOfType = indexOfType;
+      if (skipNearestLabel) {
+        break;
+      }
     }
     indexOfElement++;
     if (el.tagName === element.tagName) {
@@ -68,7 +71,7 @@ export function getElementProperties(element: Element | null): {
     }
     const tagName = el.tagName.toLowerCase();
     let labelEl;
-    if (!nearestLabel) {
+    if (!nearestLabel && !skipNearestLabel) {
       if (['span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
         labelEl = el;
       } else {
@@ -169,7 +172,8 @@ export const getHierarchy = (element: Element | null): HierarchyResult => {
   let nearestLabel = '';
   hierarchy = ensureListUnderLimit(
     ancestors.map((el) => {
-      const { properties, nearestLabel: currNearestLabel } = getElementProperties(el);
+      const skipNearestLabel = nearestLabel !== '';
+      const { properties, nearestLabel: currNearestLabel } = getElementProperties(el, skipNearestLabel);
       if (!nearestLabel && currNearestLabel) {
         nearestLabel = currNearestLabel;
       }
