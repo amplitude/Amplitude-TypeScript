@@ -50,7 +50,8 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   let indexOfType = 0,
     indexOfElement = 0;
   const siblings = element.parentElement?.children ?? [];
-  while (indexOfElement < siblings.length) {
+  const siblingsLength = siblings.length;
+  while (indexOfElement < siblingsLength) {
     const el = siblings[indexOfElement];
     if (el === element) {
       properties.index = indexOfElement;
