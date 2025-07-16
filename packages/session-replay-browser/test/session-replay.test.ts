@@ -194,7 +194,7 @@ describe('SessionReplay', () => {
       });
 
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
       await sessionReplay.recordEvents();
       expect(startSpy).toHaveBeenCalled();
     });
@@ -217,40 +217,6 @@ describe('SessionReplay', () => {
       expect(networkObserversConstructorSpy).not.toHaveBeenCalled();
 
       expect((sessionReplayWithoutConfig as any).networkObservers).toBeUndefined();
-    });
-
-    test('should log warning when NetworkObservers import fails', async () => {
-      __setNamespaceConfig({
-        sr_sampling_config: samplingConfig,
-        sr_privacy_config: {},
-        sr_interaction_config: {
-          enabled: true,
-        },
-        sr_logging_config: {
-          network: {
-            enabled: true,
-          },
-        },
-      });
-
-      // Mock the dynamic import to throw an error
-      jest.doMock('../src/observers', () => {
-        throw new Error('Import failed');
-      });
-
-      await sessionReplay.init(apiKey, mockOptions).promise;
-
-      // Call initializeNetworkObservers directly to test the catch block
-      await (sessionReplay as any).initializeNetworkObservers();
-
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
-        'Failed to import or instantiate NetworkObservers:',
-        expect.any(Error),
-      );
-      expect((sessionReplay as any).networkObservers).toBeUndefined();
-
-      // Clean up the mock
-      jest.dontMock('../src/observers');
     });
 
     test('should catch error and log a warn when initializing', async () => {
@@ -1045,6 +1011,8 @@ describe('SessionReplay', () => {
   });
   describe('stopRecordingEvents', () => {
     test('it should catch errors as warnings', async () => {
+      const mockUnsubscribe = jest.fn();
+      jest.spyOn(AnalyticsCore.networkObserver, 'unsubscribe').mockImplementation(mockUnsubscribe);
       await sessionReplay.init(apiKey, mockOptions).promise;
       const mockStopRecordingEvents = jest.fn().mockImplementation(() => {
         throw new Error('test error');
@@ -1934,16 +1902,8 @@ describe('SessionReplay', () => {
   describe('should call addCustomRRWebEvent with network request events', () => {
     test('should call addCustomRRWebEvent with network request events', async () => {
       // Mock the observers module before initialization
-      const mockStart = jest.fn();
-      const mockNetworkObserversClass = jest.fn().mockImplementation(() => ({
-        start: mockStart,
-        stop: jest.fn(),
-      }));
-
-      jest.doMock('../src/observers', () => ({
-        NetworkObservers: mockNetworkObserversClass,
-        NetworkRequestEvent: {} as any,
-      }));
+      const mockSubscribe = jest.fn();
+      jest.spyOn(AnalyticsCore.networkObserver, 'subscribe').mockImplementation(mockSubscribe);
 
       __setNamespaceConfig({
         sr_sampling_config: samplingConfig,
@@ -1968,16 +1928,26 @@ describe('SessionReplay', () => {
         responseHeaders: {},
         requestBody: '',
         responseBody: '',
+        toSerializable() {
+          return {
+            ...this,
+          };
+        },
       };
 
       await sessionReplay.recordEvents();
 
-      expect(mockStart).toHaveBeenCalled();
-      const startCallback = mockStart.mock.calls[0][0] as (event: NetworkRequestEvent) => void;
+      expect(mockSubscribe).toHaveBeenCalled();
+      const startCallback = mockSubscribe.mock.calls[0][0].callback as (event: NetworkRequestEvent) => void;
 
       startCallback(mockNetworkEvent);
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
+
+      const mockUnsubscribe = jest.fn();
+      jest.spyOn(AnalyticsCore.networkObserver, 'unsubscribe').mockImplementation(mockUnsubscribe);
+      await sessionReplay.shutdown();
+      expect(mockUnsubscribe).toHaveBeenCalled();
 
       jest.dontMock('../src/observers');
     });

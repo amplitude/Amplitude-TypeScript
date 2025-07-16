@@ -5,6 +5,9 @@ import {
   getGlobalScope,
   ILogger,
   LogLevel,
+  networkObserver,
+  NetworkRequestEvent,
+  NetworkEventCallback,
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
@@ -46,8 +49,6 @@ import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
 import { SafeLoggerProvider } from './logger';
 
-// Import only the type for NetworkRequestEvent to keep type safety
-import type { NetworkRequestEvent, NetworkObservers } from './observers';
 import type { RecordFunction } from './utils/rrweb';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
@@ -66,7 +67,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
   // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
   private scrollHook?: scrollCallback;
-  private networkObservers?: NetworkObservers;
+  private networkObservers?: typeof networkObserver;
+  private networkEventCallback?: NetworkEventCallback;
   private metadata: SessionReplayMetadata | undefined;
 
   // Cache the dynamically imported record function
@@ -416,9 +418,11 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     await this.initializeNetworkObservers();
 
-    this.networkObservers?.start((event: NetworkRequestEvent) => {
-      void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
+    const networkEventCallback = new NetworkEventCallback((event: NetworkRequestEvent) => {
+      void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event.toSerializable());
     });
+    this.networkEventCallback = networkEventCallback;
+    this.networkObservers?.subscribe(networkEventCallback);
     const { privacyConfig, interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
@@ -549,7 +553,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.log('Session Replay capture stopping.');
       this.recordCancelCallback && this.recordCancelCallback();
       this.recordCancelCallback = null;
-      this.networkObservers?.stop();
+      this.networkEventCallback && this.networkObservers?.unsubscribe(this.networkEventCallback);
     } catch (error) {
       const typedError = error as Error;
       this.loggerProvider.warn(`Error occurred while stopping replay capture: ${typedError.toString()}`);
@@ -613,12 +617,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   private async initializeNetworkObservers(): Promise<void> {
     if (this.config?.loggingConfig?.network?.enabled && !this.networkObservers) {
-      try {
-        const { NetworkObservers: NetworkObserversClass } = await import('./observers');
-        this.networkObservers = new NetworkObserversClass();
-      } catch (error) {
-        this.loggerProvider.warn('Failed to import or instantiate NetworkObservers:', error);
-      }
+      this.networkObservers = networkObserver;
     }
   }
 }
