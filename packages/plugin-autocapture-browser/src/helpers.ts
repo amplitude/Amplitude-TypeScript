@@ -181,26 +181,6 @@ export const removeEmptyProperties = (properties: { [key: string]: unknown }) =>
   }, {});
 };
 
-export const getNearestLabel = (element: Element): string => {
-  const parent = element.parentElement;
-  if (!parent) {
-    return '';
-  }
-  let labelElement;
-  try {
-    labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
-  } catch (error) {
-    /* istanbul ignore next */
-    labelElement = null;
-  }
-  if (labelElement) {
-    /* istanbul ignore next */
-    const labelText = labelElement.textContent || '';
-    return isNonSensitiveString(labelText) ? labelText : '';
-  }
-  return getNearestLabel(parent);
-};
-
 export const querySelectUniqueElements = (root: Element | Document, selectors: string[]): Element[] => {
   if (root && 'querySelectorAll' in root && typeof root.querySelectorAll === 'function') {
     const elementSet = selectors.reduce((elements: Set<Element>, selector) => {
@@ -298,12 +278,12 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
     typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
   const ariaLabel = element.getAttribute('aria-label');
   const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
-  const nearestLabel = getNearestLabel(element);
+  const { hierarchy, nearestLabel } = getHierarchy(element);
   /* istanbul ignore next */
   const properties: Record<string, any> = {
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: hierarchy,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),

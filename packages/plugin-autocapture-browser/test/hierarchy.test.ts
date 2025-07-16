@@ -19,7 +19,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const nullElement = document.getElementById('null-element');
-      expect(HierarchyUtil.getElementProperties(nullElement)).toEqual(null);
+      expect(HierarchyUtil.getElementProperties(nullElement).properties).toEqual(null);
     });
 
     test('should return tag and index information if element has siblings', () => {
@@ -41,7 +41,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const inner4 = document.getElementById('inner4');
-      expect(HierarchyUtil.getElementProperties(inner4)).toEqual({
+      expect(HierarchyUtil.getElementProperties(inner4).properties).toEqual({
         id: 'inner4',
         index: 3,
         indexOfType: 1,
@@ -63,7 +63,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const inner = document.getElementById('inner');
-      expect(HierarchyUtil.getElementProperties(inner)).toEqual({
+      expect(HierarchyUtil.getElementProperties(inner).properties).toEqual({
         id: 'inner',
         index: 0,
         indexOfType: 0,
@@ -81,7 +81,7 @@ describe('autocapture-plugin hierarchy', () => {
       `;
 
       const inner = document.getElementById('inner');
-      expect(HierarchyUtil.getElementProperties(inner)).toEqual({
+      expect(HierarchyUtil.getElementProperties(inner).properties).toEqual({
         id: 'inner',
         index: 0,
         indexOfType: 0,
@@ -94,7 +94,7 @@ describe('autocapture-plugin hierarchy', () => {
   test('should not fail when parent element is null', () => {
     const parentlessElement = document.createElement('div');
 
-    expect(HierarchyUtil.getElementProperties(parentlessElement)).toEqual({
+    expect(HierarchyUtil.getElementProperties(parentlessElement).properties).toEqual({
       tag: 'div',
     });
   });
@@ -106,7 +106,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
@@ -123,7 +123,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
@@ -140,7 +140,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
@@ -155,7 +155,7 @@ describe('autocapture-plugin hierarchy', () => {
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+      expect(HierarchyUtil.getElementProperties(target).properties).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
@@ -210,7 +210,7 @@ describe('getHierarchy', () => {
 
     const inner2 = document.getElementById('inner2');
 
-    expect(HierarchyUtil.getHierarchy(inner2)).toEqual([
+    expect(HierarchyUtil.getHierarchy(inner2).hierarchy).toEqual([
       {
         id: 'inner2',
         index: 1,
@@ -241,7 +241,7 @@ describe('getHierarchy', () => {
 
   test('should not fail when element is null', () => {
     const nullElement = null;
-    expect(HierarchyUtil.getHierarchy(nullElement)).toEqual([]);
+    expect(HierarchyUtil.getHierarchy(nullElement).hierarchy).toEqual([]);
   });
 
   describe('[Amplitude] Element Hierarchy property:', () => {
@@ -264,7 +264,7 @@ describe('getHierarchy', () => {
     `;
 
       const inner12345 = document.getElementById('inner12345');
-      const innerHierarchy = HierarchyUtil.getHierarchy(inner12345);
+      const innerHierarchy = HierarchyUtil.getHierarchy(inner12345).hierarchy;
       // expect innerHierarchy to not have body to stay under 1024 chars
       expect(innerHierarchy).toEqual([
         {

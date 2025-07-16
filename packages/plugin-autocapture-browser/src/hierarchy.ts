@@ -1,5 +1,8 @@
-import { isNonSensitiveElement, JSONValue } from './helpers';
+import { getGlobalScope } from '@amplitude/analytics-core';
+import { isNonSensitiveElement, isNonSensitiveString, JSONValue } from './helpers';
 import { Hierarchy, HierarchyNode } from './typings/autocapture';
+
+const globalScope = getGlobalScope();
 
 const BLOCKED_ATTRIBUTES = [
   // Already captured elsewhere in the hierarchy object
@@ -35,25 +38,58 @@ const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 const MAX_ATTRIBUTE_LENGTH = 128;
 const MAX_HIERARCHY_LENGTH = 1024;
 
-export function getElementProperties(element: Element | null): HierarchyNode | null {
+export function getElementProperties(element: Element | null, skipNearestLabel = false): {
+  properties: HierarchyNode | null;
+  nearestLabel: string;
+} {
   if (element === null) {
-    return null;
+    return { properties: null, nearestLabel: '' };
   }
 
+  let nearestLabel = '';
   const tagName = String(element.tagName).toLowerCase();
   const properties: HierarchyNode = {
     tag: tagName,
   };
 
-  const siblings = Array.from(element.parentElement?.children ?? []);
-  if (siblings.length) {
-    properties.index = siblings.indexOf(element);
-    properties.indexOfType = siblings.filter((el) => el.tagName === element.tagName).indexOf(element);
+  // Get index of element in parent's children and index of type of element in parent's children
+  let indexOfType = 0,
+    indexOfElement = 0;
+  const siblings = element.parentElement?.children ?? [];
+  while (indexOfElement < siblings.length) {
+    const el = siblings[indexOfElement];
+    if (el === element) {
+      properties.index = indexOfElement;
+      properties.indexOfType = indexOfType;
+      if (skipNearestLabel) {
+        break;
+      }
+    }
+    indexOfElement++;
+    if (el.tagName === element.tagName) {
+      indexOfType++;
+    }
+    const tagName = el.tagName.toLowerCase();
+    let labelEl;
+    if (!nearestLabel && !skipNearestLabel) {
+      if (['span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+        labelEl = el;
+      } else {
+        labelEl = el.querySelector('h1,h2,h3,h4,h5,h6');
+      }
+    }
+
+    // TODO: DO NOT MERGE THE IGNORE!!! ADD A TEST!!!
+    /* istanbul ignore next */
+    if (labelEl) {
+      nearestLabel = labelEl.textContent || '';
+      nearestLabel = isNonSensitiveString(nearestLabel) ? nearestLabel : '';
+    }
   }
 
-  const prevSiblingTag = element.previousElementSibling?.tagName?.toLowerCase();
-  if (prevSiblingTag) {
-    properties.prevSib = String(prevSiblingTag);
+  const previousElement = element.previousElementSibling;
+  if (previousElement) {
+    properties.prevSib = String(previousElement.tagName).toLowerCase();
   }
 
   const id = element.getAttribute('id');
@@ -67,13 +103,17 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   }
 
   const attributes: Record<string, string> = {};
-  const attributesArray = Array.from(element.attributes);
-  const filteredAttributes = attributesArray.filter((attr) => !BLOCKED_ATTRIBUTES.includes(attr.name));
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
+  let hasAttributes = false;
   if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
-    for (const attr of filteredAttributes) {
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attr = element.attributes[i];
+      if (BLOCKED_ATTRIBUTES.includes(attr.name)) {
+        continue;
+      }
+
       // If sensitive element, only allow certain attributes
       if (isSensitiveElement && !SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST.includes(attr.name)) {
         continue;
@@ -81,14 +121,15 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
       // Finally cast attribute value to string and limit attribute value length
       attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
+      hasAttributes = true;
     }
   }
 
-  if (Object.keys(attributes).length) {
+  if (hasAttributes) {
     properties.attrs = attributes;
   }
 
-  return properties;
+  return { properties, nearestLabel };
 }
 
 export function getAncestors(targetEl: Element | null): Element[] {
@@ -108,21 +149,53 @@ export function getAncestors(targetEl: Element | null): Element[] {
   return ancestors;
 }
 
+type HierarchyResult = {
+  hierarchy: Hierarchy;
+  nearestLabel: string;
+};
+
+const hierarchyCache = new Map<Element, HierarchyResult>();
+
 // Get the DOM hierarchy of the element, starting from the target element to the root element.
-export const getHierarchy = (element: Element | null): Hierarchy => {
+export const getHierarchy = (element: Element | null): HierarchyResult => {
   let hierarchy: Hierarchy = [];
   if (!element) {
-    return [];
+    return { hierarchy: [], nearestLabel: '' };
+  }
+
+  if (hierarchyCache.has(element)) {
+    return hierarchyCache.get(element) as HierarchyResult;
   }
 
   // Get list of ancestors including itself and get properties at each level in the hierarchy
   const ancestors = getAncestors(element);
+  let nearestLabel = '';
   hierarchy = ensureListUnderLimit(
-    ancestors.map((el) => getElementProperties(el)),
+    ancestors.map((el) => {
+      const skipNearestLabel = nearestLabel !== '';
+      const { properties, nearestLabel: currNearestLabel } = getElementProperties(el, skipNearestLabel);
+      if (!nearestLabel && currNearestLabel) {
+        nearestLabel = currNearestLabel;
+      }
+      return properties;
+    }),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
 
-  return hierarchy;
+  // memoize the results of this method so that if another handler calls this method
+  // on the same element and within the same event loop, we don't need to
+  // re-calculate the hierarchy
+  // (e.g.: clicking a "checkbox" will invoke a click and a change event)
+  // TODO: DO NOT MERGE THE IGNORE!!! ADD A TEST!!!
+  /* istanbul ignore next */
+  if (globalScope?.queueMicrotask) {
+    hierarchyCache.set(element, { hierarchy, nearestLabel });
+    globalScope.queueMicrotask(() => {
+      hierarchyCache.clear();
+    });
+  }
+
+  return { hierarchy, nearestLabel };
 };
 
 export function ensureListUnderLimit(list: Hierarchy | JSONValue[], bytesLimit: number): Hierarchy | JSONValue[] {
