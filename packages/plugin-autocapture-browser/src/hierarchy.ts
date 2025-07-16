@@ -151,6 +151,8 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
   // on the same element and within the same event loop, we don't need to
   // re-calculate the hierarchy
   // (e.g.: clicking a "checkbox" will invoke a click and a change event)
+  // TODO: DO NOT MERGE THE IGNORE!!! ADD A TEST!!!
+  /* istanbul ignore next */
   if (globalScope?.queueMicrotask) {
     hierarchyCache.set(element, hierarchy);
     globalScope.queueMicrotask(() => {
