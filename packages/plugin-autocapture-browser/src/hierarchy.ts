@@ -1,5 +1,8 @@
+import { getGlobalScope } from '@amplitude/analytics-core';
 import { isNonSensitiveElement, JSONValue } from './helpers';
 import { Hierarchy, HierarchyNode } from './typings/autocapture';
+
+const globalScope = getGlobalScope();
 
 const BLOCKED_ATTRIBUTES = [
   // Already captured elsewhere in the hierarchy object
@@ -124,11 +127,17 @@ export function getAncestors(targetEl: Element | null): Element[] {
   return ancestors;
 }
 
+const hierarchyCache = new Map<Element, Hierarchy>();
+
 // Get the DOM hierarchy of the element, starting from the target element to the root element.
 export const getHierarchy = (element: Element | null): Hierarchy => {
   let hierarchy: Hierarchy = [];
   if (!element) {
     return [];
+  }
+
+  if (hierarchyCache.has(element)) {
+    return hierarchyCache.get(element) as Hierarchy;
   }
 
   // Get list of ancestors including itself and get properties at each level in the hierarchy
@@ -137,6 +146,17 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
     ancestors.map((el) => getElementProperties(el)),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
+
+  // memoize the results of this method so that if another handler calls this method
+  // on the same element and within the same event loop, we don't need to
+  // re-calculate the hierarchy
+  // (e.g.: clicking a "checkbox" will invoke a click and a change event)
+  if (globalScope?.queueMicrotask) {
+    hierarchyCache.set(element, hierarchy);
+    globalScope.queueMicrotask(() => {
+      hierarchyCache.clear();
+    });
+  }
 
   return hierarchy;
 };
