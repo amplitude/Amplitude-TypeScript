@@ -299,11 +299,12 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
   const ariaLabel = element.getAttribute('aria-label');
   const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
   const nearestLabel = getNearestLabel(element);
+  const { hierarchy } = getHierarchy(element);
   /* istanbul ignore next */
   const properties: Record<string, any> = {
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
+    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: hierarchy,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),

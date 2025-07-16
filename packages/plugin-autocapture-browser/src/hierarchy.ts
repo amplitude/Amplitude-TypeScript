@@ -130,14 +130,14 @@ export function getAncestors(targetEl: Element | null): Element[] {
 const hierarchyCache = new Map<Element, Hierarchy>();
 
 // Get the DOM hierarchy of the element, starting from the target element to the root element.
-export const getHierarchy = (element: Element | null): Hierarchy => {
+export const getHierarchy = (element: Element | null): { hierarchy: Hierarchy } => {
   let hierarchy: Hierarchy = [];
   if (!element) {
-    return [];
+    return { hierarchy: [] };
   }
 
   if (hierarchyCache.has(element)) {
-    return hierarchyCache.get(element) as Hierarchy;
+    return { hierarchy: hierarchyCache.get(element) as Hierarchy };
   }
 
   // Get list of ancestors including itself and get properties at each level in the hierarchy
@@ -160,7 +160,7 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
     });
   }
 
-  return hierarchy;
+  return { hierarchy };
 };
 
 export function ensureListUnderLimit(list: Hierarchy | JSONValue[], bytesLimit: number): Hierarchy | JSONValue[] {

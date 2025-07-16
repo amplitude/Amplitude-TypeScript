@@ -210,7 +210,7 @@ describe('getHierarchy', () => {
 
     const inner2 = document.getElementById('inner2');
 
-    expect(HierarchyUtil.getHierarchy(inner2)).toEqual([
+    expect(HierarchyUtil.getHierarchy(inner2).hierarchy).toEqual([
       {
         id: 'inner2',
         index: 1,
@@ -241,7 +241,7 @@ describe('getHierarchy', () => {
 
   test('should not fail when element is null', () => {
     const nullElement = null;
-    expect(HierarchyUtil.getHierarchy(nullElement)).toEqual([]);
+    expect(HierarchyUtil.getHierarchy(nullElement).hierarchy).toEqual([]);
   });
 
   describe('[Amplitude] Element Hierarchy property:', () => {
@@ -264,7 +264,7 @@ describe('getHierarchy', () => {
     `;
 
       const inner12345 = document.getElementById('inner12345');
-      const innerHierarchy = HierarchyUtil.getHierarchy(inner12345);
+      const innerHierarchy = HierarchyUtil.getHierarchy(inner12345).hierarchy;
       // expect innerHierarchy to not have body to stay under 1024 chars
       expect(innerHierarchy).toEqual([
         {
