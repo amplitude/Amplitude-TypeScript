@@ -249,7 +249,7 @@
         let targetElement = null;
         
         // Create the tree structure
-        for (let row = 1; row <= 300; row++) {
+        for (let row = 1; row <= MAX_ROWS; row++) {
           const rowDiv = createElementWithAttributes('div', {
             'data-row': row.toString(),
             'data-type': 'row',
