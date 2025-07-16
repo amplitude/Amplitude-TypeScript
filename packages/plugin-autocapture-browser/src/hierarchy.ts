@@ -2,8 +2,6 @@ import { getGlobalScope } from '@amplitude/analytics-core';
 import { isNonSensitiveElement, JSONValue } from './helpers';
 import { Hierarchy, HierarchyNode } from './typings/autocapture';
 
-const globalScope = getGlobalScope();
-
 const BLOCKED_ATTRIBUTES = [
   // Already captured elsewhere in the hierarchy object
   'id',
@@ -127,7 +125,36 @@ export function getAncestors(targetEl: Element | null): Element[] {
   return ancestors;
 }
 
-const hierarchyCache = new Map<Element, Hierarchy>();
+const globalScope = getGlobalScope();
+
+// data structure that caches getHierarchy results so that results can be memoized
+// if it's called on the same element and within the same event loop
+const hierarchyCache = {
+  cache: new Map<Element, Hierarchy>(),
+  isScheduledToClear: false,
+  has(element: Element) {
+    return this.cache.has(element);
+  },
+  get(element: Element) {
+    return this.cache.get(element);
+  },
+  set(element: Element, value: Hierarchy) {
+    /* istanbul ignore next */
+    if (!globalScope?.queueMicrotask) {
+      return;
+    }
+    this.cache.set(element, value);
+
+    // schedule the cache to be cleared right after the current event loop is empty
+    if (!this.isScheduledToClear) {
+      this.isScheduledToClear = true;
+      globalScope.queueMicrotask(() => {
+        this.cache.clear();
+        this.isScheduledToClear = false;
+      });
+    }
+  },
+};
 
 // Get the DOM hierarchy of the element, starting from the target element to the root element.
 export const getHierarchy = (element: Element | null): Hierarchy => {
@@ -147,18 +174,7 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
 
-  // memoize the results of this method so that if another handler calls this method
-  // on the same element and within the same event loop, we don't need to
-  // re-calculate the hierarchy
-  // (e.g.: clicking a "checkbox" will invoke a click and a change event)
-  // TODO: DO NOT MERGE THE IGNORE!!! ADD A TEST!!!
-  /* istanbul ignore next */
-  if (globalScope?.queueMicrotask) {
-    hierarchyCache.set(element, hierarchy);
-    globalScope.queueMicrotask(() => {
-      hierarchyCache.clear();
-    });
-  }
+  hierarchyCache.set(element, hierarchy);
 
   return hierarchy;
 };

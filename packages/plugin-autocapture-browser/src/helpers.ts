@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import * as constants from './constants';
-import { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, getGlobalScope } from '@amplitude/analytics-core';
 import { getHierarchy } from './hierarchy';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -289,6 +289,37 @@ export const filterOutNonTrackableEvents = (event: ElementBasedTimestampedEvent<
   return true;
 };
 
+const globalScope = getGlobalScope();
+
+// data structure that caches getNearestLabel results and invalidates the cache
+// after the current event loop is empty
+const nearestLabelCache = {
+  cache: new Map<Element, string>(),
+  isScheduledToClear: false,
+  has(element: Element) {
+    return this.cache.has(element);
+  },
+  get(element: Element) {
+    return this.cache.get(element);
+  },
+  set(element: Element, value: string) {
+    /* istanbul ignore next */
+    if (!globalScope?.queueMicrotask) {
+      return;
+    }
+    this.cache.set(element, value);
+
+    // schedule the cache to be cleared right after the current event loop is empty
+    if (!this.isScheduledToClear) {
+      this.isScheduledToClear = true;
+      globalScope.queueMicrotask(() => {
+        this.cache.clear();
+        this.isScheduledToClear = false;
+      });
+    }
+  },
+};
+
 // Returns the Amplitude event properties for the given element.
 export const getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
   /* istanbul ignore next */
@@ -298,7 +329,13 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
     typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
   const ariaLabel = element.getAttribute('aria-label');
   const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
-  const nearestLabel = getNearestLabel(element);
+  let nearestLabel = '';
+  if (nearestLabelCache.has(element)) {
+    nearestLabel = nearestLabelCache.get(element) as string;
+  } else {
+    nearestLabel = getNearestLabel(element);
+    nearestLabelCache.set(element, nearestLabel);
+  }
   /* istanbul ignore next */
   const properties: Record<string, any> = {
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',

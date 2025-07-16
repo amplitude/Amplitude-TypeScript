@@ -200,8 +200,8 @@
         startTime = Date.now();
         isTracking = true;
         
-        // Use requestAnimationFrame to ensure DOM operations are complete
-        requestAnimationFrame(() => {
+        // Mark the end of the click event when the event loop is empty
+        setTimeout(() => {
           const endTime = Date.now();
           const duration = endTime - startTime;
           
@@ -212,7 +212,7 @@
           
           updateMetrics();
           console.log(`Performance test click ${clickCount}: ${duration}ms`);
-        });
+        }, 0);
       }
 
       // Initialize metrics display
