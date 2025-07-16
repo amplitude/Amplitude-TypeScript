@@ -1,5 +1,5 @@
 import { getGlobalScope } from '@amplitude/analytics-core';
-import { isNonSensitiveElement, JSONValue } from './helpers';
+import { isNonSensitiveElement, isNonSensitiveString, JSONValue } from './helpers';
 import { Hierarchy, HierarchyNode } from './typings/autocapture';
 
 const globalScope = getGlobalScope();
@@ -38,11 +38,12 @@ const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 const MAX_ATTRIBUTE_LENGTH = 128;
 const MAX_HIERARCHY_LENGTH = 1024;
 
-export function getElementProperties(element: Element | null): { properties: HierarchyNode | null } {
+export function getElementProperties(element: Element | null): { properties: HierarchyNode | null; nearestLabel: string } {
   if (element === null) {
-    return { properties: null };
+    return { properties: null, nearestLabel: '' };
   }
 
+  let nearestLabel = '';
   const tagName = String(element.tagName).toLowerCase();
   const properties: HierarchyNode = {
     tag: tagName,
@@ -62,6 +63,10 @@ export function getElementProperties(element: Element | null): { properties: Hie
     indexOfElement++;
     if (el.tagName === element.tagName) {
       indexOfType++;
+    }
+    if (['span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(el.tagName)) {
+      nearestLabel = el.textContent || '';
+      nearestLabel = isNonSensitiveString(nearestLabel) ? nearestLabel : '';
     }
   }
 
@@ -107,7 +112,7 @@ export function getElementProperties(element: Element | null): { properties: Hie
     properties.attrs = attributes;
   }
 
-  return { properties };
+  return { properties, nearestLabel };
 }
 
 export function getAncestors(targetEl: Element | null): Element[] {
@@ -127,23 +132,35 @@ export function getAncestors(targetEl: Element | null): Element[] {
   return ancestors;
 }
 
-const hierarchyCache = new Map<Element, Hierarchy>();
+type HierarchyResult = {
+  hierarchy: Hierarchy;
+  nearestLabel: string;
+};
+
+const hierarchyCache = new Map<Element, HierarchyResult>();
 
 // Get the DOM hierarchy of the element, starting from the target element to the root element.
-export const getHierarchy = (element: Element | null): { hierarchy: Hierarchy } => {
+export const getHierarchy = (element: Element | null): HierarchyResult => {
   let hierarchy: Hierarchy = [];
   if (!element) {
-    return { hierarchy: [] };
+    return { hierarchy: [], nearestLabel: '' };
   }
 
   if (hierarchyCache.has(element)) {
-    return { hierarchy: hierarchyCache.get(element) as Hierarchy };
+    return hierarchyCache.get(element) as HierarchyResult;
   }
 
   // Get list of ancestors including itself and get properties at each level in the hierarchy
   const ancestors = getAncestors(element);
+  let nearestLabel = '';
   hierarchy = ensureListUnderLimit(
-    ancestors.map((el) => getElementProperties(el).properties),
+    ancestors.map((el) => {
+      const { properties, nearestLabel: currNearestLabel } = getElementProperties(el);
+      if (!nearestLabel && currNearestLabel) {
+        nearestLabel = currNearestLabel;
+      }
+      return properties;
+    }),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
 
@@ -154,13 +171,13 @@ export const getHierarchy = (element: Element | null): { hierarchy: Hierarchy } 
   // TODO: DO NOT MERGE THE IGNORE!!! ADD A TEST!!!
   /* istanbul ignore next */
   if (globalScope?.queueMicrotask) {
-    hierarchyCache.set(element, hierarchy);
+    hierarchyCache.set(element, { hierarchy, nearestLabel });
     globalScope.queueMicrotask(() => {
       hierarchyCache.clear();
     });
   }
 
-  return { hierarchy };
+  return { hierarchy, nearestLabel };
 };
 
 export function ensureListUnderLimit(list: Hierarchy | JSONValue[], bytesLimit: number): Hierarchy | JSONValue[] {
