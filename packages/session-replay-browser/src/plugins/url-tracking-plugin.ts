@@ -66,6 +66,9 @@ export function createUrlTrackingPlugin(
         };
       }
 
+      // Track the last URL to prevent duplicate events
+      let lastTrackedUrl = '';
+
       // Helper functions
       /**
        * Creates a URL change event with current page information
@@ -126,9 +129,6 @@ export function createUrlTrackingPlugin(
           return result;
         };
       };
-
-      // Track the last URL to prevent duplicate events
-      let lastTrackedUrl = '';
 
       // Hashchange event handler
       const hashChangeHandler = () => {
