@@ -43,6 +43,12 @@ export interface URLTrackingPluginOptions {
  * 2. History API + Hash routing (default) - patches pushState/replaceState, listens to popstate and hashchange
  * 3. Hash routing only (fallback) - listens to hashchange events when History API is unavailable
  *
+ * The plugin handles edge cases gracefully:
+ * - Missing or null location objects
+ * - Undefined, null, or empty location.href values
+ * - Temporal dead zone issues with variable declarations
+ * - Consistent URL normalization across all code paths
+ *
  * @param options Configuration options for URL tracking
  * @returns RecordPlugin instance that can be used with rrweb
  */
@@ -67,16 +73,30 @@ export function createUrlTrackingPlugin(
       }
 
       // Track the last URL to prevent duplicate events
-      let lastTrackedUrl = '';
+      // Initialize to undefined to ensure first call always emits an event
+      let lastTrackedUrl: string | undefined = undefined;
 
       // Helper functions
       /**
+       * Gets the current URL with proper normalization
+       * Handles edge cases where location.href might be undefined, null, or empty
+       * Ensures consistent behavior across all code paths
+       * @returns Normalized URL string (empty string if location unavailable)
+       */
+      const getCurrentUrl = (): string => {
+        if (!globalScope.location) return '';
+        return globalScope.location.href || '';
+      };
+
+      /**
        * Creates a URL change event with current page information
        * Applies UGC filtering if rules are configured
+       * Uses getCurrentUrl() for consistent URL normalization
+       * @returns URLChangeEvent with current page state
        */
       const createUrlChangeEvent = (): URLChangeEvent => {
-        const { innerHeight, innerWidth, location, document } = globalScope;
-        const currentUrl = location.href || '';
+        const { innerHeight, innerWidth, document } = globalScope;
+        const currentUrl = getCurrentUrl();
         let currentTitle = '';
         if (captureDocumentTitle) {
           currentTitle = document?.title || '';
@@ -96,20 +116,17 @@ export function createUrlTrackingPlugin(
 
       /**
        * Emits a URL change event if the URL has actually changed
-       * Prevents duplicate events for the same URL
+       * Always emits on first call (when lastTrackedUrl is undefined)
+       * Prevents duplicate events for the same URL on subsequent calls
+       * Handles edge cases like undefined/null/empty URLs gracefully
        */
       const emitUrlChange = (): void => {
-        // Early return if location is not available
-        if (!globalScope.location) return;
+        const currentUrl = getCurrentUrl();
 
-        const currentUrl = globalScope.location.href;
-
-        // Only emit if URL actually changed to prevent duplicate events
-        if (currentUrl !== lastTrackedUrl) {
+        // Always emit on first call, or if URL actually changed
+        if (lastTrackedUrl === undefined || currentUrl !== lastTrackedUrl) {
           lastTrackedUrl = currentUrl;
           const event = createUrlChangeEvent();
-
-          // Call the main callback with the URL change event
           cb(event);
         }
       };
@@ -117,6 +134,9 @@ export function createUrlTrackingPlugin(
       /**
        * Creates a patched version of history methods (pushState/replaceState)
        * that calls the original method and then emits a URL change event
+       * Ensures URL changes are detected even when history methods are called programmatically
+       * @param originalMethod The original history method to patch
+       * @returns Patched function that calls original method then emits URL change event
        */
       const createHistoryMethodPatch = <T extends typeof history.pushState | typeof history.replaceState>(
         originalMethod: T,
@@ -130,7 +150,7 @@ export function createUrlTrackingPlugin(
         };
       };
 
-      // Hashchange event handler
+      // Hashchange event handler - delegates to emitUrlChange for consistency
       const hashChangeHandler = () => {
         emitUrlChange();
       };
@@ -162,6 +182,7 @@ export function createUrlTrackingPlugin(
 
         /**
          * Sets up history method patching to intercept pushState and replaceState calls
+         * This ensures URL changes are detected even when history methods are called programmatically
          */
         const setupHistoryPatching = (): void => {
           // Patch pushState to emit URL change events

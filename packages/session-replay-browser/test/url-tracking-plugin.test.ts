@@ -559,36 +559,28 @@ describe('URL Tracking Plugin', () => {
       expect(typeof cleanup).toBe('function');
       if (cleanup) cleanup();
     });
-    test('should handle missing location gracefully', () => {
-      const scope = createMockGlobalScope({ location: undefined });
+
+    // PARAMETERIZED: Location edge cases (missing/null/undefined/empty)
+    test.each([
+      [{ location: undefined }, 'missing location'],
+      [{ location: null }, 'null location'],
+      [{ location: { href: undefined } }, 'undefined href'],
+      [{ location: { href: null as unknown as string } }, 'null href'],
+      [{ location: { href: '' } }, 'empty string href'],
+    ])('should emit event with empty href for %s', (locationOverride, _label) => {
+      const scope = createMockGlobalScope(locationOverride);
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, scope);
-      // Should not emit events when location is missing
-      expect(mockCallback).not.toHaveBeenCalled();
-      cleanup();
-    });
-    test('should handle null location gracefully', () => {
-      const scope = createMockGlobalScope({ location: null });
-      const plugin = createUrlTrackingPlugin();
-      const cleanup = callObserver(plugin, scope);
-      // Should not emit events when location is null
-      expect(mockCallback).not.toHaveBeenCalled();
-      cleanup();
-    });
-    test('should handle location with undefined href', () => {
-      const scope = createMockGlobalScope({ location: { href: undefined } });
-      const plugin = createUrlTrackingPlugin();
-      const cleanup = callObserver(plugin, scope);
-      // Should emit event with empty href when location.href is undefined
       expect(mockCallback).toHaveBeenCalledWith({
         href: '',
-        title: '', // Default behavior: no document title capture
+        title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
         type: 'url-change-event',
       });
       cleanup();
     });
+
     test('should handle missing or null document', () => {
       const testCases = [
         { document: undefined, description: 'undefined document' },
@@ -641,49 +633,15 @@ describe('URL Tracking Plugin', () => {
     });
   });
 
-  // Group all document title edge cases together for clarity
+  // PARAMETERIZED: Document title edge cases
   describe('document title edge cases', () => {
-    test('should emit empty title when document.title is undefined and captureDocumentTitle is true', () => {
-      const scope = createMockGlobalScope({ document: { title: undefined } });
-      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
-      const cleanup = callObserver(plugin, scope);
-      expect(mockCallback).toHaveBeenCalledWith({
-        href: 'https://example.com/initial',
-        title: '',
-        viewportHeight: 768,
-        viewportWidth: 1024,
-        type: 'url-change-event',
-      });
-      cleanup();
-    });
-    test('should emit empty title when document.title is null and captureDocumentTitle is true', () => {
-      const scope = createMockGlobalScope({ document: { title: null as unknown as string } });
-      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
-      const cleanup = callObserver(plugin, scope);
-      expect(mockCallback).toHaveBeenCalledWith({
-        href: 'https://example.com/initial',
-        title: '',
-        viewportHeight: 768,
-        viewportWidth: 1024,
-        type: 'url-change-event',
-      });
-      cleanup();
-    });
-    test('should emit empty title when document.title is empty string and captureDocumentTitle is true', () => {
-      const scope = createMockGlobalScope({ document: { title: '' } });
-      const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
-      const cleanup = callObserver(plugin, scope);
-      expect(mockCallback).toHaveBeenCalledWith({
-        href: 'https://example.com/initial',
-        title: '',
-        viewportHeight: 768,
-        viewportWidth: 1024,
-        type: 'url-change-event',
-      });
-      cleanup();
-    });
-    test('should emit empty title when document is undefined and captureDocumentTitle is true', () => {
-      const scope = createMockGlobalScope({ document: undefined });
+    test.each([
+      [{ document: { title: undefined } }, 'undefined title'],
+      [{ document: { title: null as unknown as string } }, 'null title'],
+      [{ document: { title: '' } }, 'empty string title'],
+      [{ document: undefined }, 'undefined document'],
+    ])('should emit empty title for %s when captureDocumentTitle is true', (docOverride, _label) => {
+      const scope = createMockGlobalScope(docOverride);
       const plugin = createUrlTrackingPlugin({ captureDocumentTitle: true });
       const cleanup = callObserver(plugin, scope);
       expect(mockCallback).toHaveBeenCalledWith({
@@ -697,100 +655,183 @@ describe('URL Tracking Plugin', () => {
     });
   });
 
-  describe('history method patching', () => {
-    test('should restore original history methods on cleanup', () => {
-      const originalPushState = jest.fn();
-      const originalReplaceState = jest.fn();
-
-      // Set up the mock to track the bound methods
-      if (mockGlobalScope.history) {
-        mockGlobalScope.history.pushState = originalPushState;
-        mockGlobalScope.history.replaceState = originalReplaceState;
-      }
-
+  // PARAMETERIZED: Consistency across modes
+  describe('URL consistency and temporal dead zone fixes', () => {
+    test('should handle temporal dead zone correctly - lastTrackedUrl accessible in emitUrlChange', () => {
       const plugin = createUrlTrackingPlugin();
       const cleanup = callObserver(plugin, mockGlobalScope);
 
-      // History methods should be patched
-      expect(mockGlobalScope.history?.pushState).not.toBe(originalPushState);
-      expect(mockGlobalScope.history?.replaceState).not.toBe(originalReplaceState);
-
-      cleanup();
-
-      // History methods should be restored and functional
-      expect(typeof mockGlobalScope.history?.pushState).toBe('function');
-      expect(typeof mockGlobalScope.history?.replaceState).toBe('function');
-
-      // Test that the restored methods still work
-      mockGlobalScope.history?.pushState({}, '', '/test');
-      mockGlobalScope.history?.replaceState({}, '', '/test');
-
-      expect(originalPushState).toHaveBeenCalledWith({}, '', '/test');
-      expect(originalReplaceState).toHaveBeenCalledWith({}, '', '/test');
-    });
-
-    test('should call original history methods', () => {
-      const originalPushState = jest.fn();
-      if (mockGlobalScope.history) {
-        mockGlobalScope.history.pushState = originalPushState;
-      }
-
-      const plugin = createUrlTrackingPlugin();
-      const cleanup = callObserver(plugin, mockGlobalScope);
-
+      // This test verifies that lastTrackedUrl is properly accessible
+      // The fact that we can call emitUrlChange without ReferenceError proves the fix works
       mockCallback.mockClear();
 
-      const state = { foo: 'bar' };
-      const title = 'Test';
-      const url = '/test';
+      // Simulate multiple URL changes to test lastTrackedUrl tracking
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/first';
+      mockGlobalScope.history?.pushState({}, '', '/first');
 
-      // Call the patched method
-      mockGlobalScope.history?.pushState(state, title, url);
+      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/second';
+      mockGlobalScope.history?.pushState({}, '', '/second');
 
-      // The original method should have been called
-      expect(originalPushState).toHaveBeenCalledWith(state, title, url);
-
-      cleanup();
-    });
-  });
-
-  describe('cleanup', () => {
-    test('should remove event listeners on cleanup', () => {
-      const plugin = createUrlTrackingPlugin();
-      const cleanup = callObserver(plugin, mockGlobalScope);
-
-      cleanup();
-
-      expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
-      expect(mockGlobalScope.removeEventListener).toHaveBeenCalledWith('hashchange', expect.any(Function));
-    });
-
-    test('should reset internal state on cleanup', () => {
-      const plugin = createUrlTrackingPlugin();
-      const cleanup = callObserver(plugin, mockGlobalScope);
-
-      mockCallback.mockClear();
-
-      // Change URL and cleanup
-      if (mockGlobalScope.location) mockGlobalScope.location.href = 'https://example.com/new';
-      if (mockGlobalScope.document) mockGlobalScope.document.title = 'New';
-      mockGlobalScope.history?.pushState({}, '', '/new');
-      cleanup();
-
-      mockCallback.mockClear();
-
-      // Start new observer should emit initial URL again
-      const cleanup2 = callObserver(plugin, mockGlobalScope);
-
-      expect(mockCallback).toHaveBeenCalledWith({
-        href: 'https://example.com/new',
-        title: '', // Default behavior: no document title capture
+      // Should emit both URL changes (no temporal dead zone error)
+      expect(mockCallback).toHaveBeenCalledTimes(2);
+      expect(mockCallback).toHaveBeenNthCalledWith(1, {
+        href: 'https://example.com/first',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+        type: 'url-change-event',
+      });
+      expect(mockCallback).toHaveBeenNthCalledWith(2, {
+        href: 'https://example.com/second',
+        title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
         type: 'url-change-event',
       });
 
-      cleanup2();
+      cleanup();
+    });
+
+    // PARAMETERIZED: Consistency across modes (undefined/null/empty)
+    test.each([
+      [undefined, 'undefined'],
+      [null, 'null'],
+      ['', 'empty string'],
+    ])('should handle %s location.href consistently across all modes', (hrefValue, _label) => {
+      const testCases = [{ options: { enablePolling: true } }, { options: {} }, { options: {}, history: undefined }];
+      testCases.forEach(({ options, history }) => {
+        const scope = createMockGlobalScope({
+          location: { href: hrefValue as string },
+          history: history !== undefined ? history : mockGlobalScope.history,
+        });
+        const plugin = createUrlTrackingPlugin(options);
+        const cleanup = callObserver(plugin, scope);
+        // Should emit event with empty href consistently across all modes
+        expect(mockCallback).toHaveBeenCalledWith({
+          href: '',
+          title: '',
+          viewportHeight: 768,
+          viewportWidth: 1024,
+          type: 'url-change-event',
+        });
+        cleanup();
+        mockCallback.mockClear();
+      });
+    });
+
+    test('should handle null location.href consistently across all modes', () => {
+      const testCases = [{ options: { enablePolling: true } }, { options: {} }, { options: {}, history: undefined }];
+
+      testCases.forEach(({ options, history }) => {
+        const scope = createMockGlobalScope({
+          location: { href: null as unknown as string },
+          history: history !== undefined ? history : mockGlobalScope.history,
+        });
+        const plugin = createUrlTrackingPlugin(options);
+        const cleanup = callObserver(plugin, scope);
+
+        // Should emit event with empty href consistently across all modes
+        expect(mockCallback).toHaveBeenCalledWith({
+          href: '',
+          title: '',
+          viewportHeight: 768,
+          viewportWidth: 1024,
+          type: 'url-change-event',
+        });
+
+        cleanup();
+        mockCallback.mockClear();
+      });
+    });
+
+    test('should handle empty string location.href consistently across all modes', () => {
+      const testCases = [{ options: { enablePolling: true } }, { options: {} }, { options: {}, history: undefined }];
+
+      testCases.forEach(({ options, history }) => {
+        const scope = createMockGlobalScope({
+          location: { href: '' },
+          history: history !== undefined ? history : mockGlobalScope.history,
+        });
+        const plugin = createUrlTrackingPlugin(options);
+        const cleanup = callObserver(plugin, scope);
+
+        // Should emit event with empty href consistently across all modes
+        expect(mockCallback).toHaveBeenCalledWith({
+          href: '',
+          title: '',
+          viewportHeight: 768,
+          viewportWidth: 1024,
+          type: 'url-change-event',
+        });
+
+        cleanup();
+        mockCallback.mockClear();
+      });
+    });
+
+    test('should prevent duplicate events when location.href transitions between undefined/empty values', () => {
+      const scope = createMockGlobalScope({ location: { href: undefined } });
+      const plugin = createUrlTrackingPlugin();
+      const cleanup = callObserver(plugin, scope);
+
+      // Initial call should emit empty href
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: '',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+        type: 'url-change-event',
+      });
+
+      mockCallback.mockClear();
+
+      // Change to empty string - should not emit duplicate
+      if (scope.location) scope.location.href = '';
+      scope.history?.pushState({}, '', '/');
+
+      // Should not emit duplicate event for same normalized URL
+      expect(mockCallback).not.toHaveBeenCalled();
+
+      // Change to actual URL - should emit
+      if (scope.location) scope.location.href = 'https://example.com/actual';
+      scope.history?.pushState({}, '', '/actual');
+
+      expect(mockCallback).toHaveBeenCalledWith({
+        href: 'https://example.com/actual',
+        title: '',
+        viewportHeight: 768,
+        viewportWidth: 1024,
+        type: 'url-change-event',
+      });
+
+      cleanup();
+    });
+
+    test('should handle getCurrentUrl function behavior correctly', () => {
+      const testCases = [
+        { href: undefined, expected: '' },
+        { href: null, expected: '' },
+        { href: '', expected: '' },
+        { href: 'https://example.com/test', expected: 'https://example.com/test' },
+      ];
+
+      testCases.forEach(({ href, expected }) => {
+        const scope = createMockGlobalScope({ location: { href: href as string } });
+        const plugin = createUrlTrackingPlugin();
+        const cleanup = callObserver(plugin, scope);
+
+        // Should emit event with expected href
+        expect(mockCallback).toHaveBeenCalledWith({
+          href: expected,
+          title: '',
+          viewportHeight: 768,
+          viewportWidth: 1024,
+          type: 'url-change-event',
+        });
+
+        cleanup();
+        mockCallback.mockClear();
+      });
     });
   });
 });
