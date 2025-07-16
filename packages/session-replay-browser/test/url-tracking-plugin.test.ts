@@ -116,6 +116,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       expect(typeof cleanup).toBe('function');
       cleanup();
@@ -145,6 +146,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -162,6 +164,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -181,6 +184,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -209,6 +213,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 600,
         viewportWidth: 800,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -231,6 +236,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -251,6 +257,7 @@ describe('URL Tracking Plugin', () => {
         title: 'Hash Page', // Document title captured when enabled
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -286,6 +293,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -319,6 +327,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -333,6 +342,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -356,6 +366,7 @@ describe('URL Tracking Plugin', () => {
         title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -368,6 +379,7 @@ describe('URL Tracking Plugin', () => {
         title: 'Initial Page',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -386,6 +398,7 @@ describe('URL Tracking Plugin', () => {
         title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -404,6 +417,7 @@ describe('URL Tracking Plugin', () => {
         title: 'New Page', // Document title captured when enabled
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -428,6 +442,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -447,6 +462,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -483,6 +499,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -520,6 +537,7 @@ describe('URL Tracking Plugin', () => {
         title: 'Polled', // Document title captured when enabled
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -567,6 +585,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -586,6 +605,7 @@ describe('URL Tracking Plugin', () => {
           title: '',
           viewportHeight: 768,
           viewportWidth: 1024,
+          type: 'url-change-event',
         });
         cleanup();
         mockCallback.mockClear();
@@ -601,6 +621,7 @@ describe('URL Tracking Plugin', () => {
         title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -614,6 +635,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -630,6 +652,7 @@ describe('URL Tracking Plugin', () => {
         title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -642,6 +665,7 @@ describe('URL Tracking Plugin', () => {
         title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -654,6 +678,7 @@ describe('URL Tracking Plugin', () => {
         title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -666,6 +691,7 @@ describe('URL Tracking Plugin', () => {
         title: '',
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
       cleanup();
     });
@@ -761,6 +787,7 @@ describe('URL Tracking Plugin', () => {
         title: '', // Default behavior: no document title capture
         viewportHeight: 768,
         viewportWidth: 1024,
+        type: 'url-change-event',
       });
 
       cleanup2();

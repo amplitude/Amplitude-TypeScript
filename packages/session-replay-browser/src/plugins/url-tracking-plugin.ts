@@ -16,6 +16,8 @@ export interface URLChangeEvent {
   viewportHeight: number;
   /** Viewport width in pixels */
   viewportWidth: number;
+  /** The type of URL change event */
+  type: string;
 }
 
 /**
@@ -85,6 +87,7 @@ export function createUrlTrackingPlugin(
           title: currentTitle,
           viewportHeight: innerHeight,
           viewportWidth: innerWidth,
+          type: 'url-change-event',
         };
       };
 
