@@ -4,9 +4,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
+import { LogLevel, ILogger, ServerZone, NetworkRequestEvent } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
-import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
 
 import { IDBFactory } from 'fake-indexeddb';
 import { LoggingConfig, SessionReplayJoinedConfig } from '../src/config/types';
@@ -201,7 +200,7 @@ describe('SessionReplay', () => {
 
     test('should not start network observers when network logging is disabled in remote config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
       await sessionReplay.recordEvents();
       expect(startSpy).not.toHaveBeenCalled();
     });
@@ -209,13 +208,7 @@ describe('SessionReplay', () => {
     test('should not initialize network observers when config is undefined', async () => {
       // Create a new SessionReplay instance without initializing
       const sessionReplayWithoutConfig = new SessionReplay();
-
-      const networkObserversConstructorSpy = jest.spyOn(NetworkObservers.prototype, 'constructor' as any);
-
       await (sessionReplayWithoutConfig as any).initializeNetworkObservers();
-
-      expect(networkObserversConstructorSpy).not.toHaveBeenCalled();
-
       expect((sessionReplayWithoutConfig as any).networkObservers).toBeUndefined();
     });
 
@@ -1928,6 +1921,8 @@ describe('SessionReplay', () => {
         responseHeaders: {},
         requestBody: '',
         responseBody: '',
+        startTime: Date.now(),
+        endTime: Date.now(),
         toSerializable() {
           return {
             ...this,
@@ -1948,8 +1943,6 @@ describe('SessionReplay', () => {
       jest.spyOn(AnalyticsCore.networkObserver, 'unsubscribe').mockImplementation(mockUnsubscribe);
       await sessionReplay.shutdown();
       expect(mockUnsubscribe).toHaveBeenCalled();
-
-      jest.dontMock('../src/observers');
     });
   });
 
