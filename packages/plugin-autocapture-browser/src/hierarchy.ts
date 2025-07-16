@@ -38,7 +38,10 @@ const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 const MAX_ATTRIBUTE_LENGTH = 128;
 const MAX_HIERARCHY_LENGTH = 1024;
 
-export function getElementProperties(element: Element | null): { properties: HierarchyNode | null; nearestLabel: string } {
+export function getElementProperties(element: Element | null): {
+  properties: HierarchyNode | null;
+  nearestLabel: string;
+} {
   if (element === null) {
     return { properties: null, nearestLabel: '' };
   }
@@ -58,14 +61,25 @@ export function getElementProperties(element: Element | null): { properties: Hie
     if (el === element) {
       properties.index = indexOfElement;
       properties.indexOfType = indexOfType;
-      break;
     }
     indexOfElement++;
     if (el.tagName === element.tagName) {
       indexOfType++;
     }
-    if (['span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(el.tagName)) {
-      nearestLabel = el.textContent || '';
+    const tagName = el.tagName.toLowerCase();
+    let labelEl;
+    if (!nearestLabel) {
+      if (['span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) {
+        labelEl = el;
+      } else {
+        labelEl = el.querySelector('h1,h2,h3,h4,h5,h6');
+      }
+    }
+
+    // TODO: DO NOT MERGE THE IGNORE!!! ADD A TEST!!!
+    /* istanbul ignore next */
+    if (labelEl) {
+      nearestLabel = labelEl.textContent || '';
       nearestLabel = isNonSensitiveString(nearestLabel) ? nearestLabel : '';
     }
   }

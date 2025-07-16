@@ -1,3 +1,4 @@
+import { getHierarchy } from '../src/hierarchy';
 import {
   isNonSensitiveString,
   isTextNode,
@@ -7,7 +8,6 @@ import {
   getAttributesWithPrefix,
   isEmpty,
   removeEmptyProperties,
-  getNearestLabel,
   querySelectUniqueElements,
   getClosestElement,
   getEventTagProps,
@@ -299,7 +299,7 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  describe('getNearestLabel', () => {
+  describe('getHierarchy().nearestLabel', () => {
     test('should return nearest label of the element', () => {
       const div = document.createElement('div');
       const span = document.createElement('span');
@@ -308,7 +308,7 @@ describe('autocapture-plugin helpers', () => {
       div.appendChild(span);
       div.appendChild(input);
 
-      const result = getNearestLabel(input);
+      const result = getHierarchy(input).nearestLabel;
       expect(result).toEqual('nearest label');
     });
 
@@ -320,7 +320,7 @@ describe('autocapture-plugin helpers', () => {
       div.appendChild(span);
       div.appendChild(input);
 
-      const result = getNearestLabel(input);
+      const result = getHierarchy(input).nearestLabel;
       expect(result).toEqual('');
     });
 
@@ -334,14 +334,14 @@ describe('autocapture-plugin helpers', () => {
       const input = document.createElement('input');
       innerDiv.appendChild(input);
 
-      const result = getNearestLabel(input);
+      const result = getHierarchy(input).nearestLabel;
       expect(result).toEqual('parent label');
     });
 
     test('should return empty string when there is no parent', () => {
       const input = document.createElement('input');
 
-      const result = getNearestLabel(input);
+      const result = getHierarchy(input).nearestLabel;
       expect(result).toEqual('');
     });
   });
