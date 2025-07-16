@@ -76,6 +76,9 @@ describe('RemoteConfigFetch', () => {
       storeRemoteConfig: jest.fn(),
       getLastFetchedSessionId: jest.fn().mockResolvedValue(123),
       getRemoteConfig: jest.fn().mockResolvedValue(samplingConfig.sr_sampling_config),
+      getRemoteNamespaceConfig: jest.fn().mockResolvedValue({
+        sr_sampling_config: samplingConfig.sr_sampling_config,
+      }),
       remoteConfigHasValues: jest.fn().mockResolvedValue(true),
     };
     localConfig = new Config({

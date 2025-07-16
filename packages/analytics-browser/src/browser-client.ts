@@ -21,6 +21,7 @@ import {
   BrowserOptions,
   BrowserConfig,
   BrowserClient,
+  SpecialEventType,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -34,6 +35,8 @@ import {
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
   isNetworkTrackingEnabled,
+  isFrustrationInteractionsEnabled,
+  getFrustrationInteractionsConfig,
 } from './default-tracking';
 import { convertProxyObjectToRealObject, isInstanceProxy } from './utils/snippet-helper';
 import { Context } from './plugins/context';
@@ -45,7 +48,7 @@ import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './consta
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
-import { autocapturePlugin } from '@amplitude/plugin-autocapture-browser';
+import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { WebAttribution } from './attribution/web-attribution';
 
@@ -60,6 +63,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   previousSessionDeviceId: string | undefined;
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
+  userProperties: { [key: string]: any } | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -157,9 +161,12 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
       await this.add(autocapturePlugin(getElementInteractionsConfig(this.config))).promise;
     }
 
-    // TODO: the "this.config.networkTrackingOptions" should be taken out once we have
-    // beta tested network tracking
-    if (isNetworkTrackingEnabled(this.config.autocapture) && !!this.config.networkTrackingOptions) {
+    if (isFrustrationInteractionsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding frustration interactions plugin');
+      await this.add(frustrationPlugin(getFrustrationInteractionsConfig(this.config))).promise;
+    }
+
+    if (isNetworkTrackingEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding network tracking plugin');
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
     }
@@ -214,6 +221,18 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
   reset() {
     this.setDeviceId(UUID());
     this.setUserId(undefined);
+  }
+
+  getIdentity() {
+    return {
+      deviceId: this.config?.deviceId,
+      userId: this.config?.userId,
+      userProperties: this.userProperties,
+    };
+  }
+
+  getOptOut(): boolean {
+    return this.config.optOut;
   }
 
   getSessionId() {
@@ -366,6 +385,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
         // if there has been a chance in the campaign information.
         this.trackCampaignEventIfNeeded();
       }
+    }
+
+    // Set user properties
+    if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
+      this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     }
 
     return super.process(event);

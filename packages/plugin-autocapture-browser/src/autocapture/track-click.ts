@@ -1,4 +1,5 @@
 import { AllWindowObservables, AutoCaptureOptionsWithDefaults } from 'src/autocapture-plugin';
+import { type evaluateTriggersFn } from 'src/helpers';
 import { buffer, filter, map, debounceTime, merge, pairwise, delay } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
@@ -11,11 +12,13 @@ export function trackClicks({
   allObservables,
   options,
   shouldTrackEvent,
+  evaluateTriggers,
 }: {
   amplitude: BrowserClient;
   allObservables: AllWindowObservables;
   options: AutoCaptureOptionsWithDefaults;
   shouldTrackEvent: shouldTrackEvent;
+  evaluateTriggers: evaluateTriggersFn;
 }) {
   const { clickObservable } = allObservables;
 
@@ -50,6 +53,7 @@ export function trackClicks({
       // Only track clicks on elements that should be tracked,
       return shouldTrackEvent('click', click.closestTrackedAncestor);
     }),
+    map((click) => evaluateTriggers(click)),
     buffer(triggers),
   );
 

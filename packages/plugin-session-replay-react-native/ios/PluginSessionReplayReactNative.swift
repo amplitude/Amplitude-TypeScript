@@ -6,7 +6,7 @@ class PluginSessionReplayReactNative: NSObject {
     
     var sessionReplay: SessionReplay!
     
-    @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:resolve:reject:)
+    @objc(setup:deviceId:sessionId:serverZone:sampleRate:enableRemoteConfig:logLevel:autoStart:resolve:reject:)
     func setup(_ apiKey: String,
                deviceId: String,
                sessionId: NSNumber,
@@ -14,6 +14,7 @@ class PluginSessionReplayReactNative: NSObject {
                sampleRate: Float,
                enableRemoteConfig: Bool,
                logLevel: Int,
+               autoStart: Bool,
                resolve: RCTPromiseResolveBlock,
                reject: RCTPromiseRejectBlock) -> Void {
         print(
@@ -26,6 +27,7 @@ class PluginSessionReplayReactNative: NSObject {
             Sample Rate: \(sampleRate)
             Enable Remote Config: \(enableRemoteConfig)
             Log Level: \(logLevel)
+            Auto Start: \(autoStart)
             """
         )
         sessionReplay = SessionReplay(apiKey:apiKey,
@@ -35,7 +37,9 @@ class PluginSessionReplayReactNative: NSObject {
                                       logger:ConsoleLogger(logLevel: logLevel),
                                       serverZone: serverZone == "EU" ? .EU : .US,
                                       enableRemoteConfig: enableRemoteConfig)
-        sessionReplay.start()
+        if (autoStart) {
+            sessionReplay.start()
+        }
         resolve(nil)
     }
     

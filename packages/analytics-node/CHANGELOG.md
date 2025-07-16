@@ -1,5 +1,182 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.1.6...@amplitude/analytics-node@1.4.0) (2025-07-15)
+
+
+### Bug Fixes
+
+* response with non-json format ([#758](https://github.com/amplitude/Amplitude-TypeScript/issues/758)) ([3d234ca](https://github.com/amplitude/Amplitude-TypeScript/commit/3d234ca5a71bacf9ab7f82a115cb2010e94a3a33))
+* simplify plugins and eliminate enums ([#407](https://github.com/amplitude/Amplitude-TypeScript/issues/407)) ([890ec66](https://github.com/amplitude/Amplitude-TypeScript/commit/890ec6695a8b25cd6988e9f7ae584d4ba2835f67))
+
+
+### Features
+
+* add offline mode ([#644](https://github.com/amplitude/Amplitude-TypeScript/issues/644)) ([f2cd717](https://github.com/amplitude/Amplitude-TypeScript/commit/f2cd717316eef66b101153cb8eedf37fadc6de0c))
+* add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428)) ([1a8ff7d](https://github.com/amplitude/Amplitude-TypeScript/commit/1a8ff7d665d2a936db7cb42f4cde5350379b7cae))
+* **analytics-browser:** autocapture network errors ([#1050](https://github.com/amplitude/Amplitude-TypeScript/issues/1050)) ([104350f](https://github.com/amplitude/Amplitude-TypeScript/commit/104350ffe8b1bd1a7090482ac3bf24d85672bd43))
+* **analytics-node:** migrate to v2.x core  ([#1207](https://github.com/amplitude/Amplitude-TypeScript/issues/1207)) ([e1c1b28](https://github.com/amplitude/Amplitude-TypeScript/commit/e1c1b28ed2036f7ebb68173f8da2e6cbb82cb287))
+* log response body from API to logger ([#415](https://github.com/amplitude/Amplitude-TypeScript/issues/415)) ([#422](https://github.com/amplitude/Amplitude-TypeScript/issues/422)) ([d14b5c0](https://github.com/amplitude/Amplitude-TypeScript/commit/d14b5c00a88f1a61149a61128bb4c4d07ed35836))
+* simplify browser SDK options and plugin options interface ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384)) ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
+
+
+### Reverts
+
+* Revert "chore(release): publish" ([d392f62](https://github.com/amplitude/Amplitude-TypeScript/commit/d392f6290b8bb4dd955d6e6f20b00191679489c4))
+
+
+
+
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.8...@amplitude/analytics-node@1.3.9) (2025-07-08)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.7...@amplitude/analytics-node@1.3.8) (2025-03-03)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.6...@amplitude/analytics-node@1.3.7) (2025-02-28)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.5...@amplitude/analytics-node@1.3.6) (2024-05-28)
+
+### Bug Fixes
+
+- response with non-json format ([#757](https://github.com/amplitude/Amplitude-TypeScript/issues/757))
+  ([6f072f6](https://github.com/amplitude/Amplitude-TypeScript/commit/6f072f68412bc439c4f562aecb265546e067b99b))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.4...@amplitude/analytics-node@1.3.5) (2023-12-19)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.3...@amplitude/analytics-node@1.3.4) (2023-10-26)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.2...@amplitude/analytics-node@1.3.3) (2023-08-22)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.1...@amplitude/analytics-node@1.3.2) (2023-08-10)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.3.0...@amplitude/analytics-node@1.3.1) (2023-07-05)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [1.3.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.2.2...@amplitude/analytics-node@1.3.0) (2023-06-26)
+
+### Features
+
+- add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428))
+  ([#442](https://github.com/amplitude/Amplitude-TypeScript/issues/442))
+  ([569464c](https://github.com/amplitude/Amplitude-TypeScript/commit/569464c698eb54b3da05e203ac90cf1a399d96ed))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.2.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.2.1...@amplitude/analytics-node@1.2.2) (2023-06-14)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.2.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.2.0...@amplitude/analytics-node@1.2.1) (2023-06-13)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [1.2.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.1.7...@amplitude/analytics-node@1.2.0) (2023-06-08)
+
+### Features
+
+- log response body from API to logger ([#415](https://github.com/amplitude/Amplitude-TypeScript/issues/415))
+  ([86de7bd](https://github.com/amplitude/Amplitude-TypeScript/commit/86de7bd75c564601d980c029e548fe0303ba43f2))
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.1.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.1.7-beta.0...@amplitude/analytics-node@1.1.7) (2023-06-06)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## [1.1.7-beta.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.1.6...@amplitude/analytics-node@1.1.7-beta.0) (2023-06-06)
+
+**Note:** Version bump only for package @amplitude/analytics-node
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 

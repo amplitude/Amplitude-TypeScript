@@ -1,9 +1,12 @@
-import { mouseInteractionCallBack, MouseInteractions } from '@amplitude/rrweb-types';
-import { record, utils } from '@amplitude/rrweb';
+import type { mouseInteractionCallBack } from '@amplitude/rrweb-types';
+import { MouseInteractions } from '@amplitude/rrweb-types';
+import { getWindowScroll, Mirror } from '../utils/rrweb';
 import { SessionReplayEventsManager as AmplitudeSessionReplayEventsManager } from '../typings/session-replay';
 import { PayloadBatcher } from 'src/track-destination';
 import { finder } from '../libs/finder';
 import { getGlobalScope, ILogger } from '@amplitude/analytics-core';
+import { UGCFilterRule } from 'src/config/types';
+import { getPageUrl } from '../helpers';
 
 // exported for testing
 export type ClickEvent = {
@@ -24,6 +27,8 @@ type Options = {
   sessionId: string | number;
   deviceIdFn: () => string | undefined;
   eventsManager: AmplitudeSessionReplayEventsManager<'interaction', string>;
+  mirror: Mirror;
+  ugcFilterRules: UGCFilterRule[];
 };
 
 const HOUR_IN_MILLISECONDS = 3_600_000;
@@ -68,7 +73,7 @@ export const clickBatcher: PayloadBatcher = ({ version, events }) => {
 };
 
 export const clickHook: (logger: ILogger, options: Options) => mouseInteractionCallBack =
-  (logger, { eventsManager, sessionId, deviceIdFn }) =>
+  (logger, { eventsManager, sessionId, deviceIdFn, mirror, ugcFilterRules }) =>
   (e) => {
     if (e.type !== MouseInteractions.Click) {
       return;
@@ -90,7 +95,7 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
       return;
     }
 
-    const node = record.mirror.getNode(e.id);
+    const node = mirror.getNode(e.id);
     let selector;
     if (node) {
       try {
@@ -100,7 +105,9 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
       }
     }
 
-    const { left: scrollX, top: scrollY } = utils.getWindowScroll(globalScope as unknown as Window);
+    const { left: scrollX, top: scrollY } = getWindowScroll(globalScope as unknown as Window);
+
+    const pageUrl = getPageUrl(location.href, ugcFilterRules);
 
     const event: ClickEvent = {
       x: x + scrollX,
@@ -109,7 +116,7 @@ export const clickHook: (logger: ILogger, options: Options) => mouseInteractionC
 
       viewportHeight: innerHeight,
       viewportWidth: innerWidth,
-      pageUrl: location.href,
+      pageUrl,
       timestamp: Date.now(),
       type: 'click',
     };

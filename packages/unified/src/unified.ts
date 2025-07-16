@@ -21,23 +21,38 @@ export interface UnifiedSharedOptions {
 
 export type UnifiedOptions = UnifiedSharedOptions & {
   analytics?: BrowserOptions;
-  sr?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
+  sessionReplay?: Omit<SessionReplayOptions, keyof UnifiedSharedOptions>;
   experiment?: Omit<ExperimentPluginConfig, keyof UnifiedSharedOptions>;
 };
 
 export interface UnifiedClient extends BrowserClient {
   initAll(apiKey: string, unifiedOptions?: UnifiedOptions): Promise<void>;
-  sr: AmplitudeSessionReplay;
-  experiment: IExperimentClient;
+  sessionReplay: AmplitudeSessionReplay;
+  experiment: IExperimentClient | undefined;
 }
 
 export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
-  experiment: IExperimentClient;
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  sr: AmplitudeSessionReplay;
+  sessionReplay: AmplitudeSessionReplay;
+
+  get experiment(): IExperimentClient | undefined {
+    // Return when init() or initAll() is not called
+    if (this.config === undefined) {
+      return undefined;
+    }
+
+    const expPlugins = this.plugins(ExperimentPlugin);
+    if (expPlugins.length === 0) {
+      this.config.loggerProvider.debug(`${ExperimentPlugin.pluginName} plugin is not found.`);
+      return undefined;
+    } else if (expPlugins.length === 1) {
+      return expPlugins[0].experiment;
+    } else {
+      this.config.loggerProvider.debug(`Multiple instances of ${ExperimentPlugin.pluginName} are found.`);
+      return undefined;
+    }
+  }
 
   /**
    * Initialize SDKs with configuration options.
@@ -52,10 +67,10 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
       instanceName: unifiedOptions?.instanceName,
     };
 
-    await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
     super.add(libraryPlugin());
+    await super.init(apiKey, { ...unifiedOptions?.analytics, ...sharedOptions }).promise;
 
-    await super.add(sessionReplayPlugin({ ...unifiedOptions?.sr, ...sharedOptions })).promise;
+    await super.add(sessionReplayPlugin({ ...unifiedOptions?.sessionReplay, ...sharedOptions })).promise;
 
     await super.add(experimentPlugin({ ...unifiedOptions?.experiment, ...sharedOptions })).promise;
 
@@ -63,14 +78,7 @@ export class AmplitudeUnified extends AmplitudeBrowser implements UnifiedClient 
     if (srPlugin === undefined) {
       this.config.loggerProvider.debug(`${SessionReplayPlugin.pluginName} plugin is not found.`);
     } else {
-      this.sr = (srPlugin as SessionReplayPlugin).sr;
-    }
-
-    const expPlugin = this.plugin(ExperimentPlugin.pluginName);
-    if (expPlugin === undefined) {
-      this.config.loggerProvider.debug(`${ExperimentPlugin.pluginName} plugin is not found.`);
-    } else {
-      this.experiment = (expPlugin as ExperimentPlugin).experiment;
+      this.sessionReplay = (srPlugin as SessionReplayPlugin).sessionReplay;
     }
   }
 

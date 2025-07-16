@@ -1,0 +1,99 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Code Style Guidelines
+
+This document outlines the code style and conventions for the Amplitude TypeScript SDK monorepo.
+
+## TypeScript Conventions
+
+### General Rules
+- Use TypeScript strict mode with all compiler checks enabled as defined in [tsconfig.json](mdc:tsconfig.json)
+- Always define explicit return types for public methods and functions
+- Use meaningful variable and function names that clearly describe their purpose
+- Prefer `const` over `let` when variables won't be reassigned
+- Use template literals instead of string concatenation
+- Avoid `any` type - use proper typing or generic constraints instead
+
+### Interface and Type Definitions
+- Use `interface` for object shapes that might be extended
+- Use `type` for unions, intersections, and computed types
+- Export types that are used across package boundaries
+- Use PascalCase for interfaces and type names (e.g., `EventType`, `BrowserConfig`)
+
+### Function and Method Conventions
+- Use camelCase for function and method names
+- Use async/await instead of raw Promises for better readability
+- Keep functions focused on a single responsibility
+- Use proper JSDoc comments for public APIs
+
+### Import/Export Standards
+- Use named imports/exports over default exports for better tree-shaking
+- Group imports in this order: external libraries, internal packages, relative imports
+- Use absolute imports for cross-package references in the monorepo
+- Consistent barrel exports in `index.ts` files
+
+## Code Organization
+
+### File Structure
+- Follow the established pattern from [packages/analytics-browser/src](mdc:packages/analytics-browser/src)
+- Group related functionality in dedicated directories (config, plugins, utils, etc.)
+- Use descriptive file names that match their primary export
+
+### Class Organization
+- Private methods and properties should be prefixed with underscore
+- Group methods logically: constructor, public methods, private methods
+- Use readonly properties where appropriate
+- Implement proper error handling and validation
+
+## Formatting Rules
+
+The project uses Prettier with the following configuration from [.prettierrc.json](mdc:.prettierrc.json):
+- Line width: 120 characters
+- Single quotes for strings
+- Trailing commas in all contexts
+- Proper prose wrapping for markdown
+
+## Linting Standards
+
+Follow the ESLint configuration defined in [.eslintrc.js](mdc:.eslintrc.js):
+- No unused variables (except function parameters)
+- Require explicit return types for TypeScript functions
+- No multiple empty lines
+- End files with newline
+- Avoid unsafe global access (window, globalThis, self) except in test files
+
+## Package-Specific Conventions
+
+### Browser Packages
+- Use feature detection instead of user agent sniffing
+- Implement proper error boundaries for browser APIs
+- Follow the established plugin architecture pattern
+- Ensure backwards compatibility with older browser versions
+
+### Node.js Packages  
+- Use appropriate Node.js APIs and avoid browser-specific code
+- Implement proper error handling for server environments
+- Follow semantic versioning for breaking changes
+
+## Testing Conventions
+- Use Jest for unit testing as configured in [jest.config.js](mdc:jest.config.js)
+- Follow the naming pattern `*.test.ts` for test files
+- Write descriptive test names that explain the expected behavior
+- Use proper mocking for external dependencies
+- Maintain high test coverage for public APIs
+
+## Error Handling
+- Use custom error classes with descriptive messages
+- Implement proper error boundaries in browser environments
+- Log errors with appropriate context for debugging
+- Provide meaningful error messages for developers
+
+## Performance Guidelines
+- Avoid blocking operations in browser environments
+- Use lazy loading for optional features
+- Implement proper caching strategies
+- Consider bundle size impact for browser packages
+- Use tree-shaking friendly exports

@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import client from './unified-client-factory';
 export { createInstance } from './unified-client-factory';
-// eslint-disable-next-line @typescript-eslint/unbound-method
 export const {
   initAll,
   experiment,
-  sr,
+  sessionReplay,
   add,
   extendSession,
   flush,

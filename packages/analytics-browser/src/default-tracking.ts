@@ -7,50 +7,68 @@ import {
   AutocaptureOptions,
   AttributionOptions,
   NetworkTrackingOptions,
+  FrustrationInteractionsOptions,
 } from '@amplitude/analytics-core';
 
 /**
- * Returns autocapture[event] if it is defined
- * returns defaultValue if autocapture[event] is undefined
- * otherwise returns true
+ * A subset of AutocaptureOptions that includes the autocapture features that
+ * are made available to users by default (even if "config.autocapture === undefined")
+ */
+type AutocaptureOptionsDefaultAvailable = Pick<
+  AutocaptureOptions,
+  'pageViews' | 'sessions' | 'fileDownloads' | 'formInteractions' | 'attribution'
+>;
+
+/**
+ * Returns false if autocapture === false or if autocapture[event],
+ * otherwise returns true (even if "config.autocapture === undefined")
  */
 const isTrackingEnabled = (
-  autocapture: AutocaptureOptions | boolean | undefined,
-  event: keyof AutocaptureOptions,
-  defaultValue: boolean,
+  autocapture: AutocaptureOptionsDefaultAvailable | boolean | undefined,
+  event: keyof AutocaptureOptionsDefaultAvailable,
 ) => {
   if (typeof autocapture === 'boolean') {
     return autocapture;
   }
 
-  if (autocapture !== null && typeof autocapture === 'object') {
-    if (autocapture[event] === false) {
-      return false;
-    } else if (autocapture[event] === undefined) {
-      return defaultValue;
-    }
+  if (autocapture?.[event] === false) {
+    return false;
   }
 
   return true;
 };
 
 export const isAttributionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'attribution', true);
+  isTrackingEnabled(autocapture, 'attribution');
 
 export const isFileDownloadTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'fileDownloads', true);
+  isTrackingEnabled(autocapture, 'fileDownloads');
 
 export const isFormInteractionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'formInteractions', true);
+  isTrackingEnabled(autocapture, 'formInteractions');
 
 export const isPageViewTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'pageViews', true);
+  isTrackingEnabled(autocapture, 'pageViews');
 
 export const isSessionTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'sessions', true);
+  isTrackingEnabled(autocapture, 'sessions');
 
-export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) =>
-  isTrackingEnabled(autocapture, 'networkTracking', false);
+/**
+ * Returns true if
+ * 1. if autocapture.networkTracking === true
+ * 2. if autocapture.networkTracking === object
+ * otherwise returns false
+ */
+export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.networkTracking === true || typeof autocapture.networkTracking === 'object')
+  ) {
+    return true;
+  }
+
+  return false;
+};
 
 /**
  * Returns true if
@@ -74,6 +92,21 @@ export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | b
   return false;
 };
 
+export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  if (typeof autocapture === 'boolean') {
+    return autocapture;
+  }
+
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.frustrationInteractions === true || typeof autocapture.frustrationInteractions === 'object')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
   if (
     isElementInteractionsEnabled(config.autocapture) &&
@@ -85,9 +118,26 @@ export const getElementInteractionsConfig = (config: BrowserOptions): ElementInt
   return undefined;
 };
 
+export const getFrustrationInteractionsConfig = (
+  config: BrowserOptions,
+): FrustrationInteractionsOptions | undefined => {
+  if (
+    isFrustrationInteractionsEnabled(config.autocapture) &&
+    typeof config.autocapture === 'object' &&
+    typeof config.autocapture.frustrationInteractions === 'object'
+  ) {
+    return config.autocapture.frustrationInteractions;
+  }
+  return undefined;
+};
+
 export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackingOptions | undefined => {
-  if (isNetworkTrackingEnabled(config.autocapture) && config.networkTrackingOptions) {
-    return config.networkTrackingOptions;
+  if (isNetworkTrackingEnabled(config.autocapture)) {
+    if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
+      return config.autocapture.networkTracking;
+    } else if (config.networkTrackingOptions) {
+      return config.networkTrackingOptions;
+    }
   }
   return;
 };

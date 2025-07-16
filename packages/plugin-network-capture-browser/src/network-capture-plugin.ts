@@ -3,11 +3,11 @@ import {
   BrowserClient,
   BrowserConfig,
   EnrichmentPlugin,
-  ElementInteractionsOptions,
   NetworkRequestEvent,
   networkObserver,
   NetworkEventCallback,
   NetworkTrackingOptions,
+  ILogger,
 } from '@amplitude/analytics-core';
 import * as constants from './constants';
 import { Observable, Subscription } from 'rxjs';
@@ -21,11 +21,6 @@ declare global {
 }
 
 export type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
-
-export type AutoCaptureOptionsWithDefaults = Required<
-  Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
-> &
-  ElementInteractionsOptions;
 
 export enum ObservablesEnum {
   NetworkObservable = 'networkObservable',
@@ -57,6 +52,7 @@ export interface AllWindowObservables {
 export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.PLUGIN_NAME;
   const type = 'enrichment';
+  let logger: ILogger;
 
   const subscriptions: Subscription[] = [];
 
@@ -80,7 +76,7 @@ export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): Brow
         const eventWithProperties = addAdditionalEventProperties(event, 'network');
         observer.next(eventWithProperties);
       });
-      networkObserver.subscribe(callback);
+      networkObserver.subscribe(callback, logger);
       return () => {
         networkObserver.unsubscribe(callback);
       };
@@ -108,7 +104,9 @@ export const networkCapturePlugin = (options: NetworkTrackingOptions = {}): Brow
     subscriptions.push(networkRequestSubscription);
 
     /* istanbul ignore next */
-    config?.loggerProvider?.log(`${name} has been successfully added.`);
+    logger = config?.loggerProvider;
+    /* istanbul ignore next */
+    logger?.log(`${name} has been successfully added.`);
   };
 
   /* istanbul ignore next */

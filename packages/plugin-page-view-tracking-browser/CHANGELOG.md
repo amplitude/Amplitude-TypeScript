@@ -3,6 +3,89 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.3.35](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.34...@amplitude/plugin-page-view-tracking-browser@2.3.35) (2025-07-15)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.34](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.33...@amplitude/plugin-page-view-tracking-browser@2.3.34) (2025-07-08)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.33](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.32...@amplitude/plugin-page-view-tracking-browser@2.3.33) (2025-06-30)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.32](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.31...@amplitude/plugin-page-view-tracking-browser@2.3.32) (2025-06-26)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.31](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.30...@amplitude/plugin-page-view-tracking-browser@2.3.31) (2025-06-25)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.30](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.29...@amplitude/plugin-page-view-tracking-browser@2.3.30) (2025-06-11)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.29](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.28...@amplitude/plugin-page-view-tracking-browser@2.3.29) (2025-06-03)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.28](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.28-main.0...@amplitude/plugin-page-view-tracking-browser@2.3.28) (2025-05-27)
+
+
+### Reverts
+
+* "chore(release): publish" ([#1094](https://github.com/amplitude/Amplitude-TypeScript/issues/1094)) ([f6db1ee](https://github.com/amplitude/Amplitude-TypeScript/commit/f6db1eed32ed77c7ce626624dc55972971f3b27d))
+
+
+
+
+
+## [2.3.27](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.26...@amplitude/plugin-page-view-tracking-browser@2.3.27) (2025-05-14)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
+## [2.3.26](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.25...@amplitude/plugin-page-view-tracking-browser@2.3.26) (2025-05-13)
+
+**Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser
+
+
+
+
+
 ## [2.3.25](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-page-view-tracking-browser@2.3.24...@amplitude/plugin-page-view-tracking-browser@2.3.25) (2025-05-07)
 
 **Note:** Version bump only for package @amplitude/plugin-page-view-tracking-browser

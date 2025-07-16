@@ -7,10 +7,21 @@ import { AmplitudeCore } from '../src/core-client';
 
 describe('timeline', () => {
   let timeline = new Timeline(new AmplitudeCore());
+  const mockLoggerProvider = {
+    error: jest.fn(),
+    log: jest.fn(),
+    disable: jest.fn(),
+    enable: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  };
+  timeline.loggerProvider = mockLoggerProvider;
   const config = useDefaultConfig();
 
   beforeEach(() => {
     timeline = new Timeline(new AmplitudeCore());
+    timeline.loggerProvider = mockLoggerProvider;
+    jest.clearAllMocks();
   });
 
   describe('register', () => {
@@ -29,15 +40,16 @@ describe('timeline', () => {
         teardown: jest.fn(),
         execute: jest.fn(),
       };
-      const logWarn = jest.spyOn(config.loggerProvider, 'warn');
 
       await timeline.register(plugin, config);
       await timeline.register(plugin, config);
 
       expect(timeline.plugins).toHaveLength(1);
       expect(timeline.plugins[0].name).toBe('TestPlugin');
-      expect(logWarn).toHaveBeenCalledTimes(1);
-      expect(logWarn).toHaveBeenCalledWith(`Plugin with name ${pluginName} already exists, skipping registration`);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
+        `Plugin with name ${pluginName} already exists, skipping registration`,
+      );
     });
 
     test('should register plugins with different names', async () => {
@@ -71,14 +83,13 @@ describe('timeline', () => {
         teardown: jest.fn(),
         execute: jest.fn(),
       };
-      const logWarn = jest.spyOn(config.loggerProvider, 'warn');
 
       await timeline.register(plugin, config);
 
       expect(timeline.plugins).toHaveLength(1);
       expect(timeline.plugins[0].name).not.toBeUndefined();
-      expect(logWarn).toHaveBeenCalledTimes(1);
-      expect(logWarn).toHaveBeenCalledWith(expect.stringContaining('Plugin name is undefined'));
+      expect(mockLoggerProvider.warn).toHaveBeenCalledTimes(1);
+      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(expect.stringContaining('Plugin name is undefined'));
     });
   });
 

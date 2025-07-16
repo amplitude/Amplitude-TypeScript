@@ -3,6 +3,50 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.1...@amplitude/plugin-session-replay-react-native@0.4.2) (2025-06-25)
+
+
+### Bug Fixes
+
+* [SR RN] LogCatLogger missing error ([#1169](https://github.com/amplitude/Amplitude-TypeScript/issues/1169)) ([48766b4](https://github.com/amplitude/Amplitude-TypeScript/commit/48766b4b1249a885b2f59fcb31e6e8ab8c15f124))
+
+
+
+
+
+## [0.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.0...@amplitude/plugin-session-replay-react-native@0.4.1) (2025-05-15)
+
+
+### Bug Fixes
+
+* **react-native-session-replay:** prevent crash on Android with old architecture  ([#1086](https://github.com/amplitude/Amplitude-TypeScript/issues/1086)) ([0a7c985](https://github.com/amplitude/Amplitude-TypeScript/commit/0a7c9854a5bb909018a9549fe496927f0a163008))
+
+
+
+
+
+# [0.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.3.3...@amplitude/plugin-session-replay-react-native@0.4.0) (2025-05-13)
+
+
+### Features
+
+* **session-replay:** add autoStart configuration option ([#1076](https://github.com/amplitude/Amplitude-TypeScript/issues/1076)) ([0865e8b](https://github.com/amplitude/Amplitude-TypeScript/commit/0865e8b760b19bc6e1d816747d220a04a6787049))
+
+
+
+
+
+## [0.3.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.3.2...@amplitude/plugin-session-replay-react-native@0.3.3) (2025-05-09)
+
+
+### Bug Fixes
+
+* use correct logger ([#1072](https://github.com/amplitude/Amplitude-TypeScript/issues/1072)) ([8004464](https://github.com/amplitude/Amplitude-TypeScript/commit/8004464cf8f3263a53966954ff9335f517c201db))
+
+
+
+
+
 ## [0.3.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.3.1...@amplitude/plugin-session-replay-react-native@0.3.2) (2025-04-03)
 
 

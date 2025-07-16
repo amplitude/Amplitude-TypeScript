@@ -6,6 +6,7 @@ import { SessionReplayLocalConfig } from './local-config';
 import {
   SessionReplayLocalConfig as ISessionReplayLocalConfig,
   PrivacyConfig,
+  SessionReplayConfigs,
   SessionReplayJoinedConfig,
   SessionReplayRemoteConfig,
 } from './types';
@@ -46,7 +47,7 @@ export class SessionReplayJoinedConfigGenerator {
     this.remoteConfigFetch = remoteConfigFetch;
   }
 
-  async generateJoinedConfig(sessionId?: string | number): Promise<SessionReplayJoinedConfig> {
+  async generateJoinedConfig(sessionId?: string | number): Promise<SessionReplayConfigs> {
     const config: SessionReplayJoinedConfig = { ...this.localConfig };
     // Special case here as optOut is implemented via getter/setter
     config.optOut = this.localConfig.optOut;
@@ -55,39 +56,29 @@ export class SessionReplayJoinedConfigGenerator {
     config.captureEnabled = true;
     let remoteConfig: SessionReplayRemoteConfig | undefined;
     try {
-      const samplingConfig = await this.remoteConfigFetch.getRemoteConfig(
-        'sessionReplay',
-        'sr_sampling_config',
-        sessionId,
-      );
+      const namespaceConfig = await this.remoteConfigFetch.getRemoteNamespaceConfig('sessionReplay', sessionId);
+      if (namespaceConfig) {
+        const samplingConfig = namespaceConfig.sr_sampling_config;
+        const privacyConfig = namespaceConfig.sr_privacy_config;
 
-      const privacyConfig = await this.remoteConfigFetch.getRemoteConfig(
-        'sessionReplay',
-        'sr_privacy_config',
-        sessionId,
-      );
-
-      // This is intentionally forced to only be set through the remote config.
-      config.interactionConfig = await this.remoteConfigFetch.getRemoteConfig(
-        'sessionReplay',
-        'sr_interaction_config',
-        sessionId,
-      );
-
-      // This is intentionally forced to only be set through the remote config.
-      config.loggingConfig = await this.remoteConfigFetch.getRemoteConfig(
-        'sessionReplay',
-        'sr_logging_config',
-        sessionId,
-      );
-
-      if (samplingConfig || privacyConfig) {
-        remoteConfig = {};
-        if (samplingConfig) {
-          remoteConfig.sr_sampling_config = samplingConfig;
+        const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
+        // This is intentionally forced to only be set through the remote config.
+        config.interactionConfig = namespaceConfig.sr_interaction_config;
+        if (config.interactionConfig && ugcFilterRules) {
+          config.interactionConfig.ugcFilterRules = ugcFilterRules;
         }
-        if (privacyConfig) {
-          remoteConfig.sr_privacy_config = privacyConfig;
+
+        // This is intentionally forced to only be set through the remote config.
+        config.loggingConfig = namespaceConfig.sr_logging_config;
+
+        if (samplingConfig || privacyConfig) {
+          remoteConfig = {};
+          if (samplingConfig) {
+            remoteConfig.sr_sampling_config = samplingConfig;
+          }
+          if (privacyConfig) {
+            remoteConfig.sr_privacy_config = privacyConfig;
+          }
         }
       }
     } catch (err: unknown) {
@@ -97,7 +88,11 @@ export class SessionReplayJoinedConfigGenerator {
     }
 
     if (!remoteConfig) {
-      return config;
+      return {
+        localConfig: this.localConfig,
+        joinedConfig: config,
+        remoteConfig,
+      };
     }
 
     const { sr_sampling_config: samplingConfig, sr_privacy_config: remotePrivacyConfig } = remoteConfig;
@@ -188,7 +183,11 @@ export class SessionReplayJoinedConfigGenerator {
       JSON.stringify({ name: 'session replay joined config', config: getDebugConfig(config) }, null, 2),
     );
 
-    return config;
+    return {
+      localConfig: this.localConfig,
+      joinedConfig: config,
+      remoteConfig,
+    };
   }
 }
 

@@ -29,14 +29,6 @@ export const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_TIMEOUT = 1000;
 // TODO(xinyi)
 // const DEFAULT_MIN_TIME_BETWEEN_FETCHES = 5 * 60 * 1000; // 5 minutes
-export const FETCHED_KEYS = [
-  'analyticsSDK.browserSDK',
-  'sessionReplay.sr_interaction_config',
-  'sessionReplay.sr_logging_config',
-  'sessionReplay.sr_privacy_config',
-  'sessionReplay.sr_sampling_config',
-  'sessionReplay.sr_targeting_config',
-];
 
 export interface RemoteConfig {
   [key: string]: any;
@@ -109,6 +101,8 @@ export interface IRemoteConfigClient {
 }
 
 export class RemoteConfigClient implements IRemoteConfigClient {
+  static readonly CONFIG_GROUP = 'browser';
+
   readonly apiKey: string;
   readonly serverUrl: string;
   readonly logger: ILogger;
@@ -299,13 +293,12 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   }
 
   getUrlParams(): string {
-    const urlParams = new URLSearchParams({
-      api_key: this.apiKey,
-    });
-    FETCHED_KEYS.forEach((key) => {
-      urlParams.append('config_keys', key);
-    });
+    // URL encode the API key to handle special characters
+    const encodedApiKey = encodeURIComponent(this.apiKey);
 
-    return `${this.serverUrl}?${urlParams.toString()}`;
+    const urlParams = new URLSearchParams();
+    urlParams.append('config_group', RemoteConfigClient.CONFIG_GROUP);
+
+    return `${this.serverUrl}/${encodedApiKey}?${urlParams.toString()}`;
   }
 }

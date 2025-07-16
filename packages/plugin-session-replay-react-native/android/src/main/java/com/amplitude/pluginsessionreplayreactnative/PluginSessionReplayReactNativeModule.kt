@@ -20,7 +20,7 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   @ReactMethod
-  fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int) {
+  fun setup(apiKey: String, deviceId: String?, sessionId: Double, serverZone: String, sampleRate: Double, enableRemoteConfig: Boolean, logLevel: Int, autoStart: Boolean) {
     LogcatLogger.logger.logMode = when (logLevel) {
         0 -> Logger.LogMode.OFF
         1 -> Logger.LogMode.ERROR
@@ -29,6 +29,19 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
         4 -> Logger.LogMode.DEBUG
         else -> Logger.LogMode.WARN
     }
+
+    LogcatLogger.logger.debug("""
+        setup:
+        API Key: $apiKey
+        Device Id: $deviceId
+        Session Id: $sessionId
+        Server Zone: $serverZone
+        Sample Rate: $sampleRate
+        Enable Remote Config: $enableRemoteConfig
+        Log Level: $logLevel
+        Auto Start: $autoStart
+    """.trimIndent())
+
     sessionReplay = SessionReplay(
       apiKey,
       reactContext.applicationContext,
@@ -40,7 +53,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
       serverZone = when (serverZone) {
         "EU" -> ServerZone.EU
         else -> ServerZone.US
-      }
+      },
+      autoStart = autoStart
     )
   }
 
@@ -95,6 +109,8 @@ class PluginSessionReplayReactNativeModule(private val reactContext: ReactApplic
   }
 
   override fun invalidate() {
-    sessionReplay.shutdown()
+    if (::sessionReplay.isInitialized) {
+      sessionReplay.shutdown()
+    }
   }
 }

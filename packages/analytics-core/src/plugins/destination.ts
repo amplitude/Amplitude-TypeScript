@@ -21,7 +21,7 @@ import { chunk } from '../utils/chunk';
 import { buildResult } from '../utils/result-builder';
 import { createServerConfig, RequestMetadata } from '../config';
 import { UUID } from '../utils/uuid';
-import { IConfig } from '../config';
+import { IConfig } from '../types/config/core-config';
 import { EventCallback } from '../types/event-callback';
 
 export interface Context {
@@ -77,7 +77,7 @@ export class Destination implements DestinationPlugin {
     this.storageKey = `${STORAGE_PREFIX}_${this.config.apiKey.substring(0, 10)}`;
     const unsent = await this.config.storageProvider?.get(this.storageKey);
     if (unsent && unsent.length > 0) {
-      void Promise.all(unsent.map((event) => this.execute(event))).catch();
+      void Promise.all(unsent.map((event: Event) => this.execute(event))).catch();
     }
 
     return Promise.resolve(undefined);

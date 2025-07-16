@@ -10,6 +10,10 @@ export interface InteractionConfig {
   trackEveryNms?: number;
   enabled: boolean; // defaults to false
   batch: boolean; // defaults to false
+  /**
+   * UGC filter rules.
+   */
+  ugcFilterRules?: UGCFilterRule[];
 }
 
 export interface LoggingConfig {
@@ -36,7 +40,7 @@ export interface SessionReplayRemoteConfigAPIResponse {
 }
 
 export type MaskLevel =
-  | 'light' // only mask a subset of inputs that’s deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
+  | 'light' // only mask a subset of inputs that's deemed sensitive - password, credit card, telephone #, email. These are information we never want to capture.
   | 'medium' // mask all inputs
   | 'conservative'; // mask all inputs and all texts
 
@@ -48,6 +52,20 @@ export type PrivacyConfig = {
   defaultMaskLevel?: MaskLevel;
   maskSelector?: string[];
   unmaskSelector?: string[];
+};
+
+/**
+ * UGC filter rule.
+ */
+export type UGCFilterRule = {
+  /**
+   * The selector of the UGC element.
+   */
+  selector: string;
+  /**
+   * The replacement text for the UGC element.
+   */
+  replacement: string;
 };
 
 export interface SessionReplayLocalConfig extends IConfig {
@@ -123,6 +141,27 @@ export interface SessionReplayLocalConfig extends IConfig {
      */
     useWebWorker: boolean;
   };
+
+  /**
+   * Remove certain parts of the DOM from being captured. These are typically ignored when blocking by selectors.
+   */
+  omitElementTags?: {
+    /**
+     * If true, removes script tags from the DOM, but not noscript tags.
+     */
+    script?: boolean;
+    /**
+     * If true, removes comment tags from the DOM.
+     */
+    comment?: boolean;
+  };
+
+  /**
+   * If true, applies a background color to blocked elements in the replay.
+   * This helps visualize which elements are blocked from being captured.
+   */
+  applyBackgroundColorToBlockedElements?: boolean;
+  interactionConfig?: InteractionConfig;
 }
 
 export interface SessionReplayJoinedConfig extends SessionReplayLocalConfig {
@@ -138,8 +177,30 @@ export interface SessionReplayRemoteConfigFetch {
   getRemoteConfig: (sessionId?: number) => Promise<SessionReplayRemoteConfig | void>;
 }
 
+export interface SessionReplayConfigs {
+  localConfig: SessionReplayLocalConfig;
+  joinedConfig: SessionReplayJoinedConfig;
+  remoteConfig: SessionReplayRemoteConfig | undefined;
+}
 export interface SessionReplayJoinedConfigGenerator {
-  generateJoinedConfig: (sessionId?: string | number) => Promise<SessionReplayJoinedConfig>;
+  generateJoinedConfig: (sessionId?: string | number) => Promise<SessionReplayConfigs>;
+}
+
+export interface SessionReplayMetadata {
+  remoteConfig: SessionReplayRemoteConfig | undefined;
+  localConfig: SessionReplayLocalConfig;
+  joinedConfig: SessionReplayJoinedConfig;
+  framework?: {
+    name: string;
+    version: string;
+  };
+  sessionId: string | number | undefined;
+  hashValue?: number;
+  sampleRate: number;
+  replaySDKType: string | null;
+  replaySDKVersion: string | undefined;
+  standaloneSDKType: string;
+  standaloneSDKVersion: string | undefined;
 }
 
 export interface SessionReplayVersion {

@@ -1,6 +1,7 @@
 // make a test class that implements NetworkRequestEvent
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   BrowserClient,
   BrowserConfig,
@@ -12,30 +13,53 @@ import {
   networkObserver,
   NetworkRequestEvent,
 } from '@amplitude/analytics-core';
+import * as AnalyticsCore from '@amplitude/analytics-core';
 import { shouldTrackNetworkEvent } from '../../src/track-network-event';
 import { NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
-import { AmplitudeBrowser } from '@amplitude/analytics-browser';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
 import { VERSION } from '../../src/version';
+import { createMockBrowserClient } from '../mock-browser-client';
+import * as streams from 'stream/web';
+import { TextEncoder } from 'util';
+type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
+
+type ResourceType = 'fetch' | 'xhr';
 
 class MockNetworkRequestEvent implements NetworkRequestEvent {
   constructor(
     public url: string = 'https://example.com',
-    public type: string = 'fetch',
+    public type: ResourceType = 'fetch',
     public method: string = 'GET',
     public status: number = 200,
     public duration: number = 100,
-    public responseBodySize: number = 100,
-    public requestBodySize: number = 100,
-    public requestHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-    },
+    public responseWrapper = {
+      bodySize: 100,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    } as any,
+    public requestWrapper = {
+      bodySize: 100,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    } as any,
     public startTime: number = Date.now(),
     public timestamp: number = Date.now(),
     public endTime: number = Date.now() + 100,
   ) {
     this.type = 'fetch';
+  }
+
+  toSerializable(): Record<string, any> {
+    return {
+      ...this,
+      responseBodySize: this.responseWrapper.bodySize,
+      requestBodySize: this.requestWrapper.bodySize,
+      requestHeaders: this.requestWrapper.headers,
+      responseHeaders: this.responseWrapper.headers,
+    };
   }
 }
 
@@ -93,9 +117,26 @@ describe('track-network-event', () => {
     });
 
     let plugin: BrowserEnrichmentPlugin;
+    let amendedGlobalScope: PartialGlobal;
+    let originalFetchMock: jest.Mock;
 
     beforeEach(async () => {
-      client = new AmplitudeBrowser();
+      originalFetchMock = jest.fn();
+      amendedGlobalScope = {
+        fetch: originalFetchMock,
+        TextEncoder,
+        ReadableStream: streams,
+      } as PartialGlobal;
+      // keep reference to original getGlobalScope
+      const originalGetGlobalScope = AnalyticsCore.getGlobalScope;
+      jest.spyOn(AnalyticsCore, 'getGlobalScope').mockImplementation((): any => {
+        return {
+          ...originalGetGlobalScope(),
+          ...amendedGlobalScope,
+        };
+      });
+
+      client = createMockBrowserClient();
       trackSpy = jest.spyOn(client, 'track');
       client.init('<FAKE_API_KEY>', undefined, localConfig);
       jest.spyOn(networkObserver, 'subscribe').mockImplementation(subscribe);
@@ -108,6 +149,8 @@ describe('track-network-event', () => {
     });
 
     test('should track a network request event with status=500', async () => {
+      const responseHeaders = new Headers();
+      responseHeaders.set('content-length', '100');
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
           url: 'https://example.com/track?hello=world#hash',
@@ -115,14 +158,18 @@ describe('track-network-event', () => {
           method: 'POST',
           status: 500,
           duration: 100,
-          responseBodySize: 100,
-          requestBodySize: 100,
-          requestHeaders: {
-            'Content-Type': 'application/json',
-          },
+          requestWrapper: {
+            bodySize: 10,
+            headers: { 'content-type': 'application/json' },
+          } as any,
+          responseWrapper: {
+            bodySize: 100,
+            headers: { 'content-length': '100' },
+          } as any,
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
+          toSerializable: () => networkEvent.toSerializable(),
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
@@ -139,8 +186,9 @@ describe('track-network-event', () => {
         '[Amplitude] Start Time': expect.any(Number),
         '[Amplitude] Completion Time': expect.any(Number),
         '[Amplitude] Duration': expect.any(Number),
-        '[Amplitude] Request Body Size': 100,
+        '[Amplitude] Request Body Size': 10,
         '[Amplitude] Response Body Size': 100,
+        '[Amplitude] Request Type': 'fetch',
       });
     });
 
@@ -148,14 +196,18 @@ describe('track-network-event', () => {
       eventCallbacks.forEach((cb: NetworkEventCallback) => {
         cb.callback({
           url: 'https://example.com/track?hello=world#hash',
-          type: 'fetch',
+          type: 'xhr',
           method: 'POST',
           status: 500,
           duration: 100,
-          requestHeaders: {
-            'Content-Type': 'application/json',
-          },
+          requestWrapper: {
+            bodySize: undefined,
+            headers: { 'content-type': 'application/json' },
+          } as any,
           timestamp: Date.now(),
+          startTime: Date.now(),
+          endTime: Date.now() + 100,
+          toSerializable: () => networkEvent.toSerializable(),
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
@@ -169,11 +221,12 @@ describe('track-network-event', () => {
         '[Amplitude] URL Fragment': 'hash',
         '[Amplitude] Request Method': 'POST',
         '[Amplitude] Status Code': 500,
-        '[Amplitude] Start Time': undefined,
-        '[Amplitude] Completion Time': undefined,
+        '[Amplitude] Start Time': expect.any(Number),
+        '[Amplitude] Completion Time': expect.any(Number),
         '[Amplitude] Duration': expect.any(Number),
         '[Amplitude] Request Body Size': undefined,
         '[Amplitude] Response Body Size': undefined,
+        '[Amplitude] Request Type': 'xhr',
       });
     });
 
@@ -185,14 +238,40 @@ describe('track-network-event', () => {
           method: 'POST',
           status: 200,
           duration: 100,
-          responseBodySize: 100,
-          requestBodySize: 100,
-          requestHeaders: {
-            'Content-Type': 'application/json',
-          },
+          requestWrapper: {
+            bodySize: 10,
+            headers: { 'content-type': 'application/json' },
+          } as any,
           startTime: Date.now(),
           timestamp: Date.now(),
           endTime: Date.now() + 100,
+          toSerializable: () => networkEvent.toSerializable(),
+        });
+      });
+      const networkEventCall = trackSpy.mock.calls.find((call) => {
+        return call[0] === AMPLITUDE_NETWORK_REQUEST_EVENT;
+      });
+      expect(networkEventCall).toBeUndefined();
+    });
+
+    test('should not track event if request event is missing URL', () => {
+      eventCallbacks.forEach((cb: NetworkEventCallback) => {
+        const event = {
+          type: 'fetch',
+          method: 'POST',
+          status: 500,
+          duration: 100,
+          requestWrapper: {
+            bodySize: 10,
+            headers: { 'content-type': 'application/json' },
+          } as any,
+          startTime: Date.now(),
+          timestamp: Date.now(),
+          endTime: Date.now() + 100,
+        } as NetworkRequestEvent;
+        cb.callback({
+          ...event,
+          toSerializable: () => event,
         });
       });
       const networkEventCall = trackSpy.mock.calls.find((call) => {
@@ -203,6 +282,36 @@ describe('track-network-event', () => {
   });
 
   describe('shouldTrackNetworkEvent returns false when', () => {
+    test('network request body contains "[Amplitude] Network Request"', () => {
+      networkEvent.url = 'https://api2.amplitude.com/track';
+      const body =
+        '{"api_key":"*****","events":[{"user_id":"****","device_id":"a1c372c9-e8bb-4be2-9865-1ba97787d485","session_id":1747961537096,"time":1747963021841,"platform":"Web","language":"en-US","ip":"$remote","insert_id":"22c2c614-ca7c-4668-9ad4-1576f3372bc0","event_type":"[Amplitude] Page Viewed","event_properties":{"referrer":"http://localhost:5173/browser-sdk/fetch.html","referring_domain":"localhost:5173","[Amplitude] Page Domain":"localhost","[Amplitude] Page Location":"http://localhost:5173/browser-sdk/fetch.html","[Amplitude] Page Path":"/browser-sdk/fetch.html","[Amplitude] Page Title":"Fetch & XHR Network Tracking Test","[Amplitude] Page URL":"http://localhost:5173/browser-sdk/fetch.html","[Amplitude] Page Counter":24},"event_id":14683,"library":"amplitude-ts/2.17.6","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"},{"user_id":"daniel.graham.dev","device_id":"a1c372c9-e8bb-4be2-9865-1ba97787d485","session_id":1747961537096,"time":1747963022828,"platform":"Web","language":"en-US","ip":"$remote","insert_id":"d5c71b76-22d5-4bbf-9b44-79a8b315a47f","event_type":"[Amplitude] Network Request","event_properties":{"[Amplitude] URL":"https://httpstat.us/200","[Amplitude] URL Query":"","[Amplitude] URL Fragment":"","[Amplitude] Request Method":"POST","[Amplitude] Status Code":0,"[Amplitude] Start Time":1747963022814,"[Amplitude] Completion Time":1747963022825,"[Amplitude] Duration":11,"[Amplitude] Request Body Size":28,"[Amplitude] Request Type":"fetch"},"event_id":14684,"library":"amplitude-ts/2.17.6","user_agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36"}],"options":{},"client_upload_time":"2025-05-23T01:17:02.843Z","request_metadata":{"sdk":{"metrics":{"histogram":{"remote_config_fetch_time_API_success":6}}}}}';
+      networkEvent.requestWrapper.body = body;
+      const networkTracking = {
+        ignoreAmplitudeRequests: false,
+        captureRules: [{ hosts: ['*'], statusCodeRange: '200-299' }],
+      };
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(false);
+    });
+
+    test('status code is empty', () => {
+      const networkEvent = new MockNetworkRequestEvent(
+        'fetch',
+        undefined,
+        'POST',
+        0,
+        0,
+        'https://example.com/track',
+        // leave status empty
+      );
+      const result = shouldTrackNetworkEvent(
+        networkEvent,
+        localConfig.networkTrackingOptions as NetworkTrackingOptions,
+      );
+      expect(result).toBe(false);
+    });
+
     test('domain is amplitude.com', () => {
       networkEvent.url = 'https://api.amplitude.com/track';
       expect(shouldTrackNetworkEvent(networkEvent)).toBe(false);

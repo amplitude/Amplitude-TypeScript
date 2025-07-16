@@ -1,11 +1,10 @@
-import { utils } from '@amplitude/rrweb';
-import { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
+import { getWindowHeight, getWindowWidth } from '../utils/rrweb';
+import type { scrollCallback, scrollPosition } from '@amplitude/rrweb-types';
 import { BeaconTransport } from '../beacon-transport';
 import { getGlobalScope } from '@amplitude/analytics-core';
 import { SessionReplayJoinedConfig } from '../config/types';
 import { SessionReplayDestinationSessionMetadata } from '../typings/session-replay';
-
-const { getWindowHeight, getWindowWidth } = utils;
+import { getPageUrl } from '../helpers';
 
 export type ScrollEvent = {
   timestamp: number; // Timestamp the event occurred
@@ -35,19 +34,24 @@ export class ScrollWatcher {
   private _maxScrollWidth: number;
   private _maxScrollHeight: number;
   private readonly transport: BeaconTransport<ScrollEventPayload>;
+  private readonly config: Pick<SessionReplayJoinedConfig, 'loggerProvider' | 'interactionConfig'>;
 
   static default(
     context: Omit<SessionReplayDestinationSessionMetadata, 'deviceId'>,
     config: SessionReplayJoinedConfig,
   ): ScrollWatcher {
-    return new ScrollWatcher(new BeaconTransport<ScrollEventPayload>(context, config));
+    return new ScrollWatcher(new BeaconTransport<ScrollEventPayload>(context, config), config);
   }
 
-  constructor(transport: BeaconTransport<ScrollEventPayload>) {
+  constructor(
+    transport: BeaconTransport<ScrollEventPayload>,
+    config: Pick<SessionReplayJoinedConfig, 'loggerProvider' | 'interactionConfig'>,
+  ) {
     this._maxScrollX = 0;
     this._maxScrollY = 0;
     this._maxScrollWidth = getWindowWidth();
     this._maxScrollHeight = getWindowHeight();
+    this.config = config;
 
     this.transport = transport;
   }
@@ -110,7 +114,7 @@ export class ScrollWatcher {
 
             viewportHeight: getWindowHeight(),
             viewportWidth: getWindowWidth(),
-            pageUrl: globalScope.location.href,
+            pageUrl: getPageUrl(globalScope.location.href, this.config.interactionConfig?.ugcFilterRules ?? []),
             timestamp: this.timestamp,
             type: 'scroll',
           },

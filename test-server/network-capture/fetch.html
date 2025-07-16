@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Fetch Network Tracking Test</title>
+    <style>
+      .result-item {
+        margin: 10px 0;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .success {
+        border-left: 4px solid #4CAF50;
+      }
+      .error {
+        border-left: 4px solid #f44336;
+      }
+      .result-url {
+        font-weight: bold;
+        word-break: break-all;
+      }
+      .result-status {
+        margin: 5px 0;
+      }
+      .result-details {
+        font-family: monospace;
+        white-space: pre-wrap;
+        background: #f5f5f5;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      #completion-indicator {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background-color: #e3f2fd;
+        color: #1565c0;
+        font-weight: bold;
+      }
+      #completion-indicator[data-complete="true"] {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fetch Network Tracking Test</h1>
+    <div id="completion-indicator" data-complete="false">Running tests...</div>
+    <div id="app">
+      <p>
+        This tests the autocapture.networkTracking feature and the fetch API.
+        It will make a series of requests to various endpoints and display the results
+        to verify that the fetch override is working.
+      </p>
+      <div id="results"></div>
+    </div>
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      window.amplitude = amplitude;
+
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
+        {
+          autocapture: {
+            networkTracking: true,
+          },
+          networkTrackingOptions: {
+            ignoreAmplitudeRequests: false,
+            ignoreHosts: [],
+            captureRules: [
+              { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
+              { hosts: ['httpstat.us'], statusCodeRange: '0,400-599' },
+              { hosts: ['*'], statusCodeRange: '0,300-599' },
+            ],
+          },
+        }
+      );
+
+      const displayResult = ({res, data, url, options, error}) => {
+        const resultsContainer = document.getElementById('results');
+        const resultItem = document.createElement('div');
+        resultItem.className = `result-item ${error ? 'error' : 'success'}`;
+        
+        const status = error ? 'Error' : res.status;
+        const statusText = error ? error.name : res.statusText;
+        
+        resultItem.innerHTML = `
+          <div class="result-url">${url}</div>
+          <div class="result-status">Status: ${status} ${statusText}</div>
+          <div class="result-details">
+            Method: ${options?.method || 'GET'}
+            ${data ? `\nResponse: ${JSON.stringify(data, null, 2)}` : ''}
+            ${error ? `\nError: ${error.message}` : ''}
+          </div>
+        `;
+        
+        resultsContainer.appendChild(resultItem);
+      };
+
+      const makeRequest = async (url, options) => {
+        try {
+          console.log('fetching', url, options);
+          const res = await fetch(url, options);
+          const contentType = res.headers.get('content-type') || '';
+          let data = contentType.includes('application/json') ? await res.json() : await res.text();
+          const result = {res, data, url, options};
+          displayResult(result);
+          return result;
+        } catch (error) {
+          console.error('Fetch error:', error);
+          const result = { status: 0, error, url, options };
+          displayResult(result);
+          return result;
+        }
+      };
+
+      function assert(result, expectedStatus) {
+        // Handle error case
+        if (result.error) {
+          if (expectedStatus !== 0) {
+            throw new Error(`Expected status code ${expectedStatus} but got error: ${result.error.message}`);
+          }
+          return true;
+        }
+
+        // Handle Response case
+        const res = result.res;
+        if (!(res instanceof Response)) {
+          throw new Error(`Test failed to receive a Response object`);
+        }
+
+        // Check that the response has required properties
+        if (typeof res.status !== 'number') {
+          throw new Error(`Response missing status code`);
+        }
+
+        if (typeof res.statusText !== 'string') {
+          throw new Error(`Response missing status text`);
+        }
+
+        if (!(res.headers instanceof Headers)) {
+          throw new Error(`Response missing headers`);
+        }
+
+        // Check that the response has a valid status code
+        if (res.status < 0 || res.status > 599) {
+          throw new Error(`Invalid status code: ${res.status}`);
+        }
+
+        // Check that the status code matches the expected status
+        if (res.status !== expectedStatus) {
+          throw new Error(`Expected status code ${expectedStatus} but got ${res.status}`);
+        }
+
+        // Check that the response has content-type header
+        const contentType = res.headers.get('content-type');
+        if (!contentType) {
+          throw new Error(`Response missing content-type header`);
+        }
+
+        // Check that the response has a valid body
+        if (!res.body) {
+          throw new Error(`Response missing body`);
+        }
+
+        return true;
+      }
+
+      function updateCompletionIndicator(success, message) {
+        const indicator = document.getElementById('completion-indicator');
+        indicator.dataset.complete = success ? 'true' : 'false';
+        indicator.textContent = message;
+        indicator.style.backgroundColor = success ? '#e8f5e9' : '#ffebee';
+        indicator.style.color = success ? '#2e7d32' : '#c62828';
+      }
+
+      setTimeout(async () => {
+        let res;
+        let testFailed = false;
+        let failureMessage = '';
+
+        try {
+          const controller = new AbortController();
+          setTimeout(() => controller.abort(), 10); // abort after 10ms
+
+          try {
+            const abortedRes = await fetch('https://httpstat.us/200', {
+              method: 'POST',
+              body: 'This request will be aborted',
+              headers: { 'Content-Type': 'text/plain' },
+              signal: controller.signal,
+            });
+            const result = await abortedRes.text();
+            console.log('Response:', result);
+          } catch (err) {
+            console.error('Aborted request error:', err.name);  // Should print "AbortError"
+          }
+
+          // Original test cases
+          res = await makeRequest('https://httpstat.us/500', { method: 'POST', body: 'Hello', headers: { 'Content-Type': 'text/plain' } });
+          assert(res, 500);
+          
+          res = await makeRequest('https://httpbin.org/status/501', { method: 'POST', body: JSON.stringify({ message: 'Hello', count: 42 }), headers: { 'Content-Type': 'application/json' } });
+          assert(res, 501);
+          
+          const formData = new FormData();
+          formData.append('text', 'Hello from FormData');
+          formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
+          res = await makeRequest('https://httpbin.org/status/502', { method: 'POST', body: formData });
+          assert(res, 502);
+          
+          const params = new URLSearchParams();
+          params.append('param1', 'value1');
+          params.append('param2', 'value2');
+          res = await makeRequest('https://httpstat.us/503', { method: 'POST', body: params });
+          assert(res, 503);
+          
+          res = await makeRequest('https://httpstat.us/504', { method: 'POST', body: new ArrayBuffer(8) });
+          assert(res, 504);
+          
+          res = await makeRequest('https://httpstat.us/505', { method: 'POST', body: new Blob(['Hello from Blob'], { type: 'text/plain' }) });
+          assert(res, 505);
+          
+          const encoder = new TextEncoder();
+          res = await makeRequest('https://httpstat.us/506', { method: 'POST', body: encoder.encode('Hello from Stream') });
+          assert(res, 506);
+          
+          res = await makeRequest('https://httpstat.us/507', { method: 'GET' });
+          assert(res, 507);
+          
+          res = await makeRequest('https://httpstat.us/200', { method: 'GET' });
+          assert(res, 200);
+
+          // Additional test cases
+          res = await makeRequest('https://httpstat.us/200', { method: 'HEAD' });
+          assert(res, 200);
+          
+          res = await makeRequest('https://httpstat.us/200', { method: 'OPTIONS' });
+          assert(res, 200);
+          
+          res = await makeRequest('https://httpstat.us/200', { method: 'DELETE' });
+          assert(res, 200);
+          
+          res = await makeRequest('https://httpstat.us/200', { method: 'PUT', body: JSON.stringify({ message: 'Update' }), headers: { 'Content-Type': 'application/json' } });
+          assert(res, 200);
+          
+          res = await makeRequest('/api/test', { method: 'GET' }); // Relative URL, expect 404 or dev server response
+          assert(res, 200);
+          
+          res = await makeRequest('https://invalid.domain.test'); // Unresolvable domain
+          assert(res, 0); // Network errors have status 0
+          
+          res = await makeRequest('https://httpstat.us/200?sleep=5000'); // Slow request
+          assert(res, 200);
+
+          updateCompletionIndicator(true, 'All tests completed successfully!');
+        } catch (error) {
+          testFailed = true;
+          failureMessage = `Test failed: ${error.message}`;
+          updateCompletionIndicator(false, failureMessage);
+          console.error(failureMessage);
+        }
+      }, 100);
+    </script>
+  </body>
+</html>

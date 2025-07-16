@@ -2,6 +2,7 @@ import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
+  getFrustrationInteractionsConfig,
   isAttributionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
@@ -9,7 +10,54 @@ import {
   isSessionTrackingEnabled,
   isElementInteractionsEnabled,
   getNetworkTrackingConfig,
+  isNetworkTrackingEnabled,
+  isFrustrationInteractionsEnabled,
 } from '../src/default-tracking';
+
+describe('isFrustrationInteractionsEnabled', () => {
+  test('should return true with true parameter', () => {
+    expect(isFrustrationInteractionsEnabled(true)).toBe(true);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isFrustrationInteractionsEnabled(undefined)).toBe(false);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isFrustrationInteractionsEnabled(false)).toBe(false);
+  });
+
+  test('should return true with object parameter', () => {
+    expect(isFrustrationInteractionsEnabled({ frustrationInteractions: true })).toBe(true);
+  });
+
+  test('should return false with object parameter', () => {
+    expect(isFrustrationInteractionsEnabled({ frustrationInteractions: false })).toBe(false);
+  });
+
+  test('should get frustration interactions config', () => {
+    const config = getFrustrationInteractionsConfig({
+      autocapture: {
+        frustrationInteractions: {
+          deadClicks: {
+            cssSelectorAllowlist: ['button'],
+          },
+          rageClicks: {
+            cssSelectorAllowlist: ['button'],
+          },
+        },
+      },
+    });
+    expect(config).toEqual({
+      deadClicks: {
+        cssSelectorAllowlist: ['button'],
+      },
+      rageClicks: {
+        cssSelectorAllowlist: ['button'],
+      },
+    });
+  });
+});
 
 describe('isFileDownloadTrackingEnabled', () => {
   test('should return true with true parameter', () => {
@@ -169,6 +217,54 @@ describe('isAttributionTrackingEnabled', () => {
   });
 });
 
+describe('isNetworkTrackingEnabled', () => {
+  test('should return false when autocapture is false', () => {
+    expect(isNetworkTrackingEnabled(false)).toBe(false);
+  });
+
+  test('should return false when autocapture is undefined', () => {
+    expect(isNetworkTrackingEnabled(undefined)).toBe(false);
+  });
+
+  test('should return false when autocapture is true (explicit opt-in)', () => {
+    expect(isNetworkTrackingEnabled(true)).toBe(false);
+  });
+
+  test('should return true when autocapture.networkTracking is true', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: true,
+      }),
+    ).toBe(true);
+  });
+
+  test('should return true when autocapture.networkTracking is an object', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: {},
+      }),
+    ).toBe(true);
+  });
+
+  test('should return false when autocapture.networkTracking is false', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        networkTracking: false,
+      }),
+    ).toBe(false);
+  });
+
+  test('should return false when autocapture.networkTracking is undefined', () => {
+    expect(
+      isNetworkTrackingEnabled({
+        sessions: true,
+        pageViews: true,
+        networkTracking: undefined,
+      }),
+    ).toBe(false);
+  });
+});
+
 describe('isElementInteractionsEnabled', () => {
   test('should return true with true parameter', () => {
     expect(isElementInteractionsEnabled(true)).toBe(true);
@@ -295,9 +391,54 @@ describe('getAttributionTrackingConfig', () => {
 });
 
 describe('getNetworkTrackingConfig', () => {
-  test('should return undefined when networkTracking is not defined', () => {
+  test('should return autocapture.networkTracking if it is an object', () => {
+    const autocapture = {
+      networkTracking: {
+        ignoreAmplitudeRequests: true,
+        ignoreHosts: ['example.com'],
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      },
+    };
     const config = getNetworkTrackingConfig({
-      networkTrackingOptions: undefined,
+      autocapture,
+    });
+    expect(typeof config).toBe('object');
+    expect(config).toEqual(autocapture.networkTracking);
+  });
+
+  test('should return "networkTrackingOptions" if is defined and autocapture.networkTracking=true (deprecated)', () => {
+    const autocapture = {
+      networkTracking: true,
+    };
+    const networkTrackingOptions = {
+      ignoreAmplitudeRequests: true,
+      ignoreHosts: ['example.com'],
+      captureRules: [
+        {
+          hosts: ['example.com'],
+          statusCodeRange: '500-599',
+        },
+      ],
+    };
+    const config = getNetworkTrackingConfig({
+      autocapture,
+      networkTrackingOptions,
+    });
+    expect(typeof config).toBe('object');
+    expect(config).toEqual(networkTrackingOptions);
+  });
+
+  test('should return undefined when autocapture is not defined', () => {
+    const autocapture = undefined;
+    const networkTrackingOptions = {};
+    const config = getNetworkTrackingConfig({
+      autocapture,
+      networkTrackingOptions,
     });
     expect(config).toBeUndefined();
   });
@@ -320,30 +461,6 @@ describe('getNetworkTrackingConfig', () => {
       },
     });
     expect(config).toBeUndefined();
-  });
-
-  test('should return default config when networkTracking is true', () => {
-    const config = getNetworkTrackingConfig({
-      networkTrackingOptions: {
-        ignoreAmplitudeRequests: false,
-        ignoreHosts: ['example.com'],
-        captureRules: [
-          {
-            hosts: ['example.com'],
-            statusCodeRange: '500-599',
-          },
-        ],
-      },
-    });
-
-    expect(config?.ignoreAmplitudeRequests).toBe(false);
-    expect(config?.ignoreHosts).toEqual(['example.com']);
-    expect(config?.captureRules).toEqual([
-      {
-        hosts: ['example.com'],
-        statusCodeRange: '500-599',
-      },
-    ]);
   });
 });
 

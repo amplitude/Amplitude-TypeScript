@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amplitude Events Test</title>
+    <style>
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .pending {
+            background-color: #fff3cd;
+        }
+        .complete {
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <h1>Amplitude Events Test Page</h1>
+    <div id="status">
+        <div id="event1-status" class="status pending">Waiting to track Event 1...</div>
+        <div id="event2-status" class="status pending">Waiting to track Event 2...</div>
+        <div id="event3-status" class="status pending">Waiting to track Event 3...</div>
+        <div id="event4-status" class="status pending">Waiting to track Event 4...</div>
+    </div>
+
+    <script type="module">
+        import * as amplitude from '@amplitude/analytics-browser';
+        const apiKey = import.meta.env.VITE_AMPLITUDE_API_KEY;
+
+        // Initialize Amplitude
+        amplitude.init(apiKey, 'test-user', {
+            defaultTracking: false,
+            logLevel: amplitude.Types.LogLevel.Debug
+        });
+
+        // Helper function to update status
+        function updateStatus(id, status, message) {
+            const element = document.getElementById(id);
+            element.className = `status ${status}`;
+            element.textContent = message;
+        }
+
+        // Track events in sequence
+        async function trackEvents() {
+            const events = [
+                { id: 'event1-status', name: 'Event 1' },
+                { id: 'event2-status', name: 'Event 2' },
+                { id: 'event3-status', name: 'Event 3' },
+                { id: 'event4-status', name: 'Event 4' }
+            ];
+
+            for (const event of events) {
+                updateStatus(event.id, 'pending', `Tracking ${event.name}...`);
+                await amplitude.track(event.name);
+                updateStatus(event.id, 'complete', `Tracked ${event.name}`);
+            }
+        }
+        // Start tracking events
+        trackEvents();
+    </script>
+</body>
+</html> 

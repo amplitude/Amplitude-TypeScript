@@ -9,10 +9,18 @@ import {
   NetworkRequestEvent,
   NetworkEventCallback,
 } from '@amplitude/analytics-core';
-import { record } from '@amplitude/rrweb';
-import { scrollCallback } from '@amplitude/rrweb-types';
+
+// Import only specific types to avoid pulling in the entire rrweb-types package
+import { EventType as RRWebEventType, scrollCallback, eventWithTime } from '@amplitude/rrweb-types';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
-import { LoggingConfig, SessionReplayJoinedConfig, SessionReplayJoinedConfigGenerator } from './config/types';
+import {
+  LoggingConfig,
+  SessionReplayJoinedConfig,
+  SessionReplayJoinedConfigGenerator,
+  SessionReplayMetadata,
+  SessionReplayLocalConfig,
+  SessionReplayRemoteConfig,
+} from './config/types';
 import {
   BLOCK_CLASS,
   CustomRRwebEvent,
@@ -24,7 +32,7 @@ import {
 } from './constants';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
-import { generateHashCode, getDebugConfig, getStorageSize, isSessionInSample, maskFn } from './helpers';
+import { generateHashCode, getDebugConfig, getPageUrl, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
@@ -41,6 +49,8 @@ import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
 import { SafeLoggerProvider } from './logger';
 
+import type { RecordFunction } from './utils/rrweb';
+
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
 
 export class SessionReplay implements AmplitudeSessionReplay {
@@ -51,14 +61,18 @@ export class SessionReplay implements AmplitudeSessionReplay {
   networkEventCallback?: NetworkEventCallback;
   eventsManager?: AmplitudeSessionReplayEventsManager<'replay' | 'interaction', string>;
   loggerProvider: ILogger;
-  recordCancelCallback: ReturnType<typeof record> | null = null;
+  recordCancelCallback: ReturnType<RecordFunction> | null = null;
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
 
-  // Visible for testing
+  // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
   private scrollHook?: scrollCallback;
   private networkObserver?: typeof networkObserver;
+  private metadata: SessionReplayMetadata | undefined;
+
+  // Cache the dynamically imported record function
+  private recordFunction: RecordFunction | null = null;
 
   constructor() {
     this.loggerProvider = new SafeLoggerProvider(new Logger());
@@ -95,7 +109,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       this.loggerProvider.enable(options.logLevel as LogLevel);
     this.identifiers = new SessionIdentifiers({ sessionId: options.sessionId, deviceId: options.deviceId });
     this.joinedConfigGenerator = await createSessionReplayJoinedConfigGenerator(apiKey, options);
-    this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+    const { joinedConfig, localConfig, remoteConfig } = await this.joinedConfigGenerator.generateJoinedConfig(
+      this.identifiers.sessionId,
+    );
+    this.config = joinedConfig;
+
+    this.setMetadata(
+      options.sessionId,
+      joinedConfig,
+      localConfig,
+      remoteConfig,
+      options.version?.version,
+      VERSION,
+      options.version?.type,
+    );
 
     if (options.sessionId && this.config.interactionConfig?.enabled) {
       const scrollWatcher = ScrollWatcher.default(
@@ -155,11 +182,6 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.eventCompressor = new EventCompressor(this.eventsManager, this.config, this.getDeviceId());
 
-    // Initialize network observers if logging is enabled
-    if (this.config.loggingConfig?.network?.enabled) {
-      this.networkObserver = networkObserver;
-    }
-
     this.loggerProvider.log('Installing @amplitude/session-replay-browser.');
 
     this.teardownEventListeners(false);
@@ -186,7 +208,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     // If there is no previous session id, SDK is being initialized for the first time,
     // and config was just fetched in initialization, so no need to fetch it a second time
     if (this.joinedConfigGenerator && previousSessionId) {
-      this.config = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+      const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
+      this.config = joinedConfig;
     }
     void this.recordEvents();
   }
@@ -236,7 +259,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   focusListener = () => {
     // Restart recording on focus to ensure that when user
     // switches tabs, we take a full snapshot
-    void this.recordEvents();
+    void this.recordEvents(false);
   };
 
   /**
@@ -349,6 +372,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     //   }
     if (loggingConfig?.console?.enabled) {
       try {
+        // Dynamic import keeps console plugin separate and only loads when needed
         const { getRecordConsolePlugin } = await import('@amplitude/rrweb-plugin-console-record');
         plugins.push(getRecordConsolePlugin({ level: loggingConfig.console.levels }));
       } catch (error) {
@@ -359,7 +383,22 @@ export class SessionReplay implements AmplitudeSessionReplay {
     return plugins.length > 0 ? plugins : undefined;
   }
 
-  async recordEvents() {
+  private async getRecordFunction(): Promise<RecordFunction | null> {
+    if (this.recordFunction) {
+      return this.recordFunction;
+    }
+
+    try {
+      const { record } = await import('@amplitude/rrweb-record');
+      this.recordFunction = record;
+      return record;
+    } catch (error) {
+      this.loggerProvider.warn('Failed to load rrweb-record module:', error);
+      return null;
+    }
+  }
+
+  async recordEvents(shouldLogMetadata = true) {
     const config = this.config;
     const shouldRecord = this.getShouldRecord();
     const sessionId = this.identifiers?.sessionId;
@@ -367,10 +406,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return;
     }
     this.stopRecordingEvents();
+
+    console.log('calling getRecordFunction');
+    const recordFunction = await this.getRecordFunction();
+
+    // May be undefined if cannot import rrweb-record
+    if (!recordFunction) {
+      return;
+    }
+
     this.networkEventCallback = new NetworkEventCallback((event: NetworkRequestEvent) => {
-      void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, event);
+      const serializedEvent = event.toSerializable();
+      void this.addCustomRRWebEvent(CustomRRwebEvent.FETCH_REQUEST, serializedEvent);
     });
-    this.networkObserver?.subscribe(this.networkEventCallback);
+    networkObserver?.subscribe(this.networkEventCallback);
     const { privacyConfig, interactionConfig, loggingConfig } = config;
 
     const hooks = interactionConfig?.enabled
@@ -381,21 +430,30 @@ export class SessionReplay implements AmplitudeSessionReplay {
               eventsManager: this.eventsManager,
               sessionId,
               deviceIdFn: this.getDeviceId.bind(this),
+              mirror: recordFunction.mirror,
+              ugcFilterRules: interactionConfig.ugcFilterRules ?? [],
             }),
           scroll: this.scrollHook,
         }
       : {};
 
+    const ugcFilterRules =
+      interactionConfig?.enabled && interactionConfig.ugcFilterRules ? interactionConfig.ugcFilterRules : [];
+
     this.loggerProvider.log(`Session Replay capture beginning for ${sessionId}.`);
 
     try {
-      this.recordCancelCallback = record({
-        emit: (event) => {
+      this.recordCancelCallback = recordFunction({
+        emit: (event: eventWithTime) => {
           if (this.shouldOptOut()) {
             this.loggerProvider.log(`Opting session ${sessionId} out of recording due to optOut config.`);
             this.stopRecordingEvents();
             this.sendEvents();
             return;
+          }
+
+          if (event.type === RRWebEventType.Meta) {
+            event.data.href = getPageUrl(event.data.href, ugcFilterRules);
           }
 
           if (this.eventCompressor) {
@@ -408,14 +466,17 @@ export class SessionReplay implements AmplitudeSessionReplay {
         maskAllInputs: true,
         maskTextClass: MASK_TEXT_CLASS,
         blockClass: BLOCK_CLASS,
-        // rrweb only exposes string type through its types, but arrays are also be supported. #class, ['#class', 'id']
         blockSelector: this.getBlockSelectors() as string | undefined,
+        applyBackgroundColorToBlockedElements: config.applyBackgroundColorToBlockedElements,
         maskInputFn: maskFn('input', privacyConfig),
         maskTextFn: maskFn('text', privacyConfig),
-        // rrweb only exposes string type through its types, but arrays are also be supported. since rrweb uses .matches() which supports arrays.
         maskTextSelector: this.getMaskTextSelectors(),
         recordCanvas: false,
-        errorHandler: (error) => {
+        slimDOMOptions: {
+          script: config.omitElementTags?.script,
+          comment: config.omitElementTags?.comment,
+        },
+        errorHandler: (error: unknown) => {
           const typedError = error as Error & { _external_?: boolean };
 
           // styled-components relies on this error being thrown and bubbled up, rrweb is otherwise suppressing it
@@ -438,6 +499,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
       });
 
       void this.addCustomRRWebEvent(CustomRRwebEvent.DEBUG_INFO);
+      if (shouldLogMetadata) {
+        void this.addCustomRRWebEvent(CustomRRwebEvent.METADATA, this.metadata);
+      }
     } catch (error) {
       this.loggerProvider.warn('Failed to initialize session replay:', error);
     }
@@ -451,7 +515,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
     try {
       let debugInfo: DebugInfo | undefined = undefined;
       const config = this.config;
-      if (config) {
+      // Only add debug info for non-metadata events
+      if (config && eventName !== CustomRRwebEvent.METADATA) {
         debugInfo = {
           config: getDebugConfig(config),
           version: VERSION,
@@ -465,8 +530,8 @@ export class SessionReplay implements AmplitudeSessionReplay {
         }
       }
       // Check first to ensure we are recording
-      if (this.recordCancelCallback) {
-        record.addCustomEvent(eventName, {
+      if (this.recordCancelCallback && this.recordFunction) {
+        this.recordFunction.addCustomEvent(eventName, {
           ...eventData,
           ...debugInfo,
         });
@@ -510,5 +575,42 @@ export class SessionReplay implements AmplitudeSessionReplay {
     this.teardownEventListeners(true);
     this.stopRecordingEvents();
     this.sendEvents();
+  }
+
+  private mapSDKType(sdkType: string | undefined) {
+    if (sdkType === 'plugin') {
+      return '@amplitude/plugin-session-replay-browser';
+    }
+
+    if (sdkType === 'segment') {
+      return '@amplitude/segment-session-replay-plugin';
+    }
+
+    return null;
+  }
+
+  private setMetadata(
+    sessionId: string | number | undefined,
+    joinedConfig: SessionReplayJoinedConfig,
+    localConfig: SessionReplayLocalConfig,
+    remoteConfig: SessionReplayRemoteConfig | undefined,
+    replaySDKVersion: string | undefined,
+    standaloneSDKVersion: string | undefined,
+    sdkType: string | undefined,
+  ) {
+    const hashValue = sessionId?.toString() ? generateHashCode(sessionId.toString()) : undefined;
+
+    this.metadata = {
+      joinedConfig,
+      localConfig,
+      remoteConfig,
+      sessionId,
+      hashValue,
+      sampleRate: joinedConfig.sampleRate,
+      replaySDKType: this.mapSDKType(sdkType),
+      replaySDKVersion,
+      standaloneSDKType: '@amplitude/session-replay-browser',
+      standaloneSDKVersion,
+    };
   }
 }

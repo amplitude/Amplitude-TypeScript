@@ -3,6 +3,119 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.18.2...@amplitude/analytics-browser@2.19.0) (2025-07-15)
+
+
+### Features
+
+* **analytics-browser:** add experimental frustrationInteractions ([#1209](https://github.com/amplitude/Amplitude-TypeScript/issues/1209)) ([e321744](https://github.com/amplitude/Amplitude-TypeScript/commit/e3217444c58be15e779ff1fd54a55027c93f5db0))
+
+
+
+
+
+## [2.18.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.18.1...@amplitude/analytics-browser@2.18.2) (2025-07-11)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.18.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.18.0...@amplitude/analytics-browser@2.18.1) (2025-07-08)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+# [2.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.12...@amplitude/analytics-browser@2.18.0) (2025-06-30)
+
+
+### Features
+
+* add getOptOut() and getIdentity() ([#1174](https://github.com/amplitude/Amplitude-TypeScript/issues/1174)) ([72017c8](https://github.com/amplitude/Amplitude-TypeScript/commit/72017c8a1a54d929542e883e61d61168f214a780))
+
+
+
+
+
+## [2.17.12](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.11...@amplitude/analytics-browser@2.17.12) (2025-06-26)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.17.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.10...@amplitude/analytics-browser@2.17.11) (2025-06-25)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.17.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.9...@amplitude/analytics-browser@2.17.10) (2025-06-16)
+
+
+### Bug Fixes
+
+* guard globalScope missing "addEventListener" ([#1154](https://github.com/amplitude/Amplitude-TypeScript/issues/1154)) ([7cf775f](https://github.com/amplitude/Amplitude-TypeScript/commit/7cf775f320375b86fa15710444e101f3905b4836))
+
+
+
+
+
+## [2.17.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.8...@amplitude/analytics-browser@2.17.9) (2025-06-11)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.17.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.7...@amplitude/analytics-browser@2.17.8) (2025-06-03)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.17.7](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.7-main.0...@amplitude/analytics-browser@2.17.7) (2025-05-27)
+
+
+### Bug Fixes
+
+* **analytics-browser:** support autocapture.networkTracking as object ([#1095](https://github.com/amplitude/Amplitude-TypeScript/issues/1095)) ([121abc7](https://github.com/amplitude/Amplitude-TypeScript/commit/121abc7e69a354cc704de7cbe493b8c79fa6eacd))
+
+
+### Reverts
+
+* "chore(release): publish" ([#1094](https://github.com/amplitude/Amplitude-TypeScript/issues/1094)) ([f6db1ee](https://github.com/amplitude/Amplitude-TypeScript/commit/f6db1eed32ed77c7ce626624dc55972971f3b27d))
+
+
+
+
+
+## [2.17.6](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.5...@amplitude/analytics-browser@2.17.6) (2025-05-14)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.17.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.4...@amplitude/analytics-browser@2.17.5) (2025-05-13)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 ## [2.17.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.17.3...@amplitude/analytics-browser@2.17.4) (2025-05-07)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

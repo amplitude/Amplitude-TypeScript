@@ -5,7 +5,7 @@ export const createInstance = (): UnifiedClient => {
   const client = new AmplitudeUnified();
   return {
     experiment: client.experiment,
-    sr: client.sr,
+    sessionReplay: client.sessionReplay,
     initAll: debugWrapper(
       client.initAll.bind(client),
       'initAll',
@@ -126,9 +126,21 @@ export const createInstance = (): UnifiedClient => {
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),
+    getOptOut: debugWrapper(
+      client.getOptOut.bind(client),
+      'getOptOut',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
     setTransport: debugWrapper(
       client.setTransport.bind(client),
       'setTransport',
+      getClientLogConfig(client),
+      getClientStates(client, ['config']),
+    ),
+    getIdentity: debugWrapper(
+      client.getIdentity.bind(client),
+      'getIdentity',
       getClientLogConfig(client),
       getClientStates(client, ['config']),
     ),

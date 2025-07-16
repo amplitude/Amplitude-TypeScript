@@ -191,7 +191,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
-    test('should call initalize on session replay sdk', async () => {
+    test('should call initialize on session replay sdk', async () => {
       const sessionReplay = new SessionReplayPlugin({
         sampleRate: 0.4,
         privacyConfig: {
@@ -222,7 +222,7 @@ describe('SessionReplayPlugin', () => {
       });
     });
 
-    test('should call initalize on session replay sdk with custom server urls', async () => {
+    test('should call initialize on session replay sdk with custom server urls', async () => {
       const configServerUrl = 'http://localhost:3000';
       const trackServerUrl = 'http://localhost:3001';
 
@@ -258,6 +258,44 @@ describe('SessionReplayPlugin', () => {
           version: VERSION,
         },
       });
+    });
+
+    test.each([
+      {
+        description: 'should call init with applyBackgroundColorToBlockedElements=true when provided value is true',
+        options: { applyBackgroundColorToBlockedElements: true },
+        expectedValue: true,
+      },
+      {
+        description:
+          'should call init with applyBackgroundColorToBlockedElements=undefined when provided value is undefined',
+        options: { applyBackgroundColorToBlockedElements: undefined },
+        expectedValue: undefined,
+      },
+      {
+        description: 'should default applyBackgroundColorToBlockedElements=undefined when not provided',
+        options: {},
+        expectedValue: undefined,
+      },
+      {
+        description: 'should call init with applyBackgroundColorToBlockedElements=false when provided value is false',
+        options: { applyBackgroundColorToBlockedElements: false },
+        expectedValue: false,
+      },
+    ])('$description', async ({ options, expectedValue }) => {
+      const sessionReplay = new SessionReplayPlugin({
+        ...options,
+      });
+
+      await sessionReplay.setup?.(mockConfig, mockAmplitude);
+
+      expect(init).toHaveBeenCalledTimes(1);
+      expect(init.mock.calls[0][0]).toEqual(mockConfig.apiKey);
+      expect(init.mock.calls[0][1]).toEqual(
+        expect.objectContaining({
+          applyBackgroundColorToBlockedElements: expectedValue,
+        }),
+      );
     });
 
     // eslint-disable-next-line jest/expect-expect

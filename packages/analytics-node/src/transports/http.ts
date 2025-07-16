@@ -1,5 +1,4 @@
-import { Payload, Response, Transport } from '@amplitude/analytics-types';
-import { BaseTransport } from '@amplitude/analytics-core';
+import { BaseTransport, Payload, Response, Transport } from '@amplitude/analytics-core';
 import * as http from 'http';
 import * as https from 'https';
 

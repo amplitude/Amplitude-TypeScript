@@ -18,7 +18,9 @@ If you plan on contributing to this SDK, here's how you can start.
 
 ```
 $ git clone git@github.com:amplitude/Amplitude-TypeScript.git
-$ yarn
+$ nvm use
+$ yarn --version
+$ yarn install
 $ yarn build
 ```
 

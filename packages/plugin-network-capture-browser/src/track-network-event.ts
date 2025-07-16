@@ -8,6 +8,7 @@ import {
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
+import { IRequestWrapper } from '@amplitude/analytics-core';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -51,7 +52,10 @@ function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?:
   return true;
 }
 
-function parseUrl(url: string) {
+function parseUrl(url: string | undefined) {
+  if (!url) {
+    return;
+  }
   try {
     /* istanbul ignore next */
     const currentHref = getGlobalScope()?.location.href;
@@ -68,6 +72,26 @@ function parseUrl(url: string) {
     /* istanbul ignore next */
     return;
   }
+}
+
+function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWrapper): boolean {
+  if (host.includes('amplitude.com')) {
+    try {
+      const body = requestWrapper.body;
+      if (typeof body !== 'string') {
+        return false;
+      }
+      const bodyObj = JSON.parse(body) as { events: any[] };
+      const { events } = bodyObj;
+      /* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */
+      if (events.find((event: any) => event.event_type === AMPLITUDE_NETWORK_REQUEST_EVENT)) {
+        return true;
+      }
+    } catch (e) {
+      // do nothing
+    }
+  }
+  return false;
 }
 
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
@@ -119,6 +143,11 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     }
   }
 
+  // skip Amplitude network requests to "[Amplitude] Network Request" to avoid infinite loop
+  if (networkEvent.requestWrapper && isAmplitudeNetworkRequestEvent(host, networkEvent.requestWrapper)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -133,6 +162,7 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
   ['[Amplitude] Response Body Size']?: number;
+  ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
 
 export function trackNetworkEvents({
@@ -154,7 +184,7 @@ export function trackNetworkEvents({
   );
 
   return filteredNetworkObservable.subscribe((networkEvent) => {
-    const request = networkEvent.event as NetworkRequestEvent;
+    const request = networkEvent.event;
 
     // convert to NetworkAnalyticsEvent
     const urlObj = parseUrl(request.url);
@@ -167,6 +197,10 @@ export function trackNetworkEvents({
       return;
     }
 
+    const responseBodySize = request.responseWrapper?.bodySize;
+    /* istanbul ignore next */
+    const requestBodySize = request.requestWrapper?.bodySize;
+
     const networkAnalyticsEvent: NetworkAnalyticsEvent = {
       ['[Amplitude] URL']: urlObj.hrefWithoutQueryOrHash,
       ['[Amplitude] URL Query']: urlObj.query,
@@ -176,8 +210,9 @@ export function trackNetworkEvents({
       ['[Amplitude] Start Time']: request.startTime,
       ['[Amplitude] Completion Time']: request.endTime,
       ['[Amplitude] Duration']: request.duration,
-      ['[Amplitude] Request Body Size']: request.requestBodySize,
-      ['[Amplitude] Response Body Size']: request.responseBodySize,
+      ['[Amplitude] Request Body Size']: requestBodySize,
+      ['[Amplitude] Response Body Size']: responseBodySize,
+      ['[Amplitude] Request Type']: request.type,
     };
 
     /* istanbul ignore next */
