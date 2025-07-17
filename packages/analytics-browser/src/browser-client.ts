@@ -35,6 +35,7 @@ import {
   isElementInteractionsEnabled,
   isPageViewTrackingEnabled,
   isNetworkTrackingEnabled,
+  isWebVitalsEnabled,
   isFrustrationInteractionsEnabled,
   getFrustrationInteractionsConfig,
 } from './default-tracking';
@@ -50,6 +51,7 @@ import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity
 import { createBrowserJoinedConfigGenerator } from './config/joined-config';
 import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
+import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
 import { WebAttribution } from './attribution/web-attribution';
 
 /**
@@ -169,6 +171,11 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient {
     if (isNetworkTrackingEnabled(this.config.autocapture)) {
       this.config.loggerProvider.debug('Adding network tracking plugin');
       await this.add(networkCapturePlugin(getNetworkTrackingConfig(this.config))).promise;
+    }
+
+    if (isWebVitalsEnabled(this.config.autocapture)) {
+      this.config.loggerProvider.debug('Adding web vitals plugin');
+      await this.add(webVitalsPlugin()).promise;
     }
 
     this.initializing = false;
