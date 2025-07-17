@@ -1,3 +1,4 @@
+import { getGlobalScope } from '@amplitude/analytics-core';
 import { isNonSensitiveElement, JSONValue } from './helpers';
 import { Hierarchy, HierarchyNode } from './typings/autocapture';
 
@@ -45,15 +46,27 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
     tag: tagName,
   };
 
-  const siblings = Array.from(element.parentElement?.children ?? []);
-  if (siblings.length) {
-    properties.index = siblings.indexOf(element);
-    properties.indexOfType = siblings.filter((el) => el.tagName === element.tagName).indexOf(element);
+  // Get index of element in parent's children and index of type of element in parent's children
+  let indexOfType = 0,
+    indexOfElement = 0;
+  const siblings = element.parentElement?.children ?? [];
+  const siblingsLength = siblings.length;
+  while (indexOfElement < siblingsLength) {
+    const el = siblings[indexOfElement];
+    if (el === element) {
+      properties.index = indexOfElement;
+      properties.indexOfType = indexOfType;
+      break;
+    }
+    indexOfElement++;
+    if (el.tagName === element.tagName) {
+      indexOfType++;
+    }
   }
 
-  const prevSiblingTag = element.previousElementSibling?.tagName?.toLowerCase();
-  if (prevSiblingTag) {
-    properties.prevSib = String(prevSiblingTag);
+  const previousElement = element.previousElementSibling;
+  if (previousElement) {
+    properties.prevSib = String(previousElement.tagName).toLowerCase();
   }
 
   const id = element.getAttribute('id');
@@ -67,13 +80,17 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   }
 
   const attributes: Record<string, string> = {};
-  const attributesArray = Array.from(element.attributes);
-  const filteredAttributes = attributesArray.filter((attr) => !BLOCKED_ATTRIBUTES.includes(attr.name));
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
+  let hasAttributes = false;
   if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
-    for (const attr of filteredAttributes) {
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attr = element.attributes[i];
+      if (BLOCKED_ATTRIBUTES.includes(attr.name)) {
+        continue;
+      }
+
       // If sensitive element, only allow certain attributes
       if (isSensitiveElement && !SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST.includes(attr.name)) {
         continue;
@@ -81,10 +98,11 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
       // Finally cast attribute value to string and limit attribute value length
       attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
+      hasAttributes = true;
     }
   }
 
-  if (Object.keys(attributes).length) {
+  if (hasAttributes) {
     properties.attrs = attributes;
   }
 
@@ -108,11 +126,51 @@ export function getAncestors(targetEl: Element | null): Element[] {
   return ancestors;
 }
 
+// data structure that caches getHierarchy results so that results can be memoized
+// if it's called on the same element and within the same event loop
+const globalScope = getGlobalScope();
+/* istanbul ignore next */
+
+const hierarchyCache = {
+  cache: new Map<Element, Hierarchy>(),
+  isScheduledToClear: false,
+  /* istanbul ignore next */
+  messageChannel: globalScope?.MessageChannel ? new globalScope.MessageChannel() : null,
+  has(element: Element) {
+    return this.cache.has(element);
+  },
+  get(element: Element) {
+    return this.cache.get(element);
+  },
+  set(element: Element, value: Hierarchy) {
+    /* istanbul ignore next */
+    if (!this.messageChannel) {
+      return;
+    }
+    this.cache.set(element, value);
+
+    // schedule the cache to be cleared right after the current macrotask is done
+    // this is to avoid recalculating getHierarchy for the same element within the same
+    if (!this.isScheduledToClear) {
+      this.isScheduledToClear = true;
+      this.messageChannel.port1.onmessage = () => {
+        this.cache.clear();
+        this.isScheduledToClear = false;
+      };
+      this.messageChannel.port2.postMessage(null);
+    }
+  },
+};
+
 // Get the DOM hierarchy of the element, starting from the target element to the root element.
 export const getHierarchy = (element: Element | null): Hierarchy => {
   let hierarchy: Hierarchy = [];
   if (!element) {
     return [];
+  }
+
+  if (hierarchyCache.has(element)) {
+    return hierarchyCache.get(element) as Hierarchy;
   }
 
   // Get list of ancestors including itself and get properties at each level in the hierarchy
@@ -121,6 +179,8 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
     ancestors.map((el) => getElementProperties(el)),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
+
+  hierarchyCache.set(element, hierarchy);
 
   return hierarchy;
 };

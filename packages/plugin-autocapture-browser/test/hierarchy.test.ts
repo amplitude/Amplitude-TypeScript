@@ -1,6 +1,64 @@
+/* eslint-disable no-restricted-globals */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import * as HierarchyUtil from '../src/hierarchy';
 
+jest.mock('@amplitude/analytics-core', () => {
+  return {
+    getGlobalScope: () => {
+      const globalThis = global as any;
+      class MessageChannel {
+        port1 = {
+          onmessage: null,
+        };
+        port2 = {
+          postMessage: () => {
+            setTimeout(() => {
+              (this.port1.onmessage as any)?.();
+            }, 0);
+          },
+        };
+      }
+      return {
+        MessageChannel,
+        ...globalThis,
+      };
+    },
+  };
+});
+
 describe('autocapture-plugin hierarchy', () => {
+  // beforeAll(() => {
+  //   // mock getGlobalScope
+  //   jest.spyOn(AnalyticsCore, 'getGlobalScope').mockImplementation(() => {
+  //     const globalThis = global as any;
+  //     console.log("RETURNING GLOBAL SCOPE");
+  //     return {
+  //       MessageChannel: function () {
+  //         return {
+  //           port1: {
+  //             onmessage: () => {},
+  //           },
+  //           port2: {
+  //             postMessage: () => {},
+  //           },
+  //         };
+  //       },
+  //       ...globalThis,
+  //     };
+  //   });
+  //   // (global as any).MessageChannel = function () {
+  //   //   return {
+  //   //     port1: {
+  //   //       onmessage: () => {},
+  //   //     },
+  //   //     port2: {
+  //   //       postMessage: () => {},
+  //   //     },
+  //   //   };
+  //   // };
+  // });
   afterEach(() => {
     document.getElementsByTagName('body')[0].innerHTML = '';
     jest.clearAllMocks();
@@ -242,6 +300,24 @@ describe('getHierarchy', () => {
   test('should not fail when element is null', () => {
     const nullElement = null;
     expect(HierarchyUtil.getHierarchy(nullElement)).toEqual([]);
+  });
+
+  test('should re-use cached hierarchy', async () => {
+    document.getElementsByTagName('body')[0].innerHTML = `
+      <div id="parent2">
+        <div id="parent1">
+          <div id="inner">
+            xxx
+          </div>
+        </div>
+      </div>
+    `;
+
+    const inner = document.getElementById('inner');
+    const hierarchy = HierarchyUtil.getHierarchy(inner);
+    const hierarchy2 = HierarchyUtil.getHierarchy(inner);
+    expect(hierarchy2).toBe(hierarchy);
+    await new Promise((resolve) => setTimeout(resolve, 1));
   });
 
   describe('[Amplitude] Element Hierarchy property:', () => {

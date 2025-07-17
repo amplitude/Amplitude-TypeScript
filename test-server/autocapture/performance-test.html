@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Performance Test - Deep DOM Hierarchy</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+      
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      .performance-info {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+      
+      .deep-nested-container {
+        border: 2px solid #ff9800;
+        padding: 10px;
+        margin: 10px 0;
+        background: #fff3e0;
+      }
+      
+      .nested-level {
+        border: 1px solid #ccc;
+        padding: 8px;
+        margin: 5px;
+        background: #fafafa;
+      }
+      
+      .checkbox-container {
+        background: #e8f5e8;
+        border: 2px solid #4caf50;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+      
+      .target-checkbox {
+        transform: scale(1.5);
+        margin: 10px;
+      }
+      
+      .performance-metrics {
+        background: #f0f8ff;
+        border: 1px solid #0066cc;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 20px 0;
+        font-family: monospace;
+      }
+      
+      .btn {
+        background: #2196f3;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      
+      .btn:hover {
+        background: #1976d2;
+      }
+      
+      .btn:active {
+        background: #0d47a1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Performance Test - Deep DOM Hierarchy</h1>
+      
+      <div class="performance-info">
+        <h3>Test Description</h3>
+        <p>This page creates a deeply nested DOM structure with many attributes, classes, and siblings to test the performance of the <code>getHierarchy</code> function. The target checkbox is nested 15 levels deep with 12 siblings at each level.</p>
+        <ul>
+          <li><strong>DOM Depth:</strong> 15 levels deep</li>
+          <li><strong>Siblings per level:</strong> 12 elements</li>
+          <li><strong>Attributes per element:</strong> 5-10 attributes</li>
+          <li><strong>Classes per element:</strong> 3-5 classes</li>
+          <li><strong>Total DOM operations:</strong> ~1000+ operations per hierarchy calculation</li>
+        </ul>
+      </div>
+
+      <div class="performance-metrics">
+        <h3>Performance Metrics</h3>
+        <div id="metrics">
+          <p>Click the checkbox below to trigger the performance test...</p>
+        </div>
+      </div>
+
+      <div class="checkbox-container">
+        <h3>Target Checkbox (Deeply Nested)</h3>
+        <p>This checkbox is nested 15 levels deep in the DOM. Clicking it will trigger <code>getHierarchy</code> to process the entire ancestor chain.</p>
+        
+        <div id="deep-hierarchy-container">
+          <!-- Deep hierarchy will be generated here -->
+        </div>
+      </div>
+
+      <div class="deep-nested-container">
+        <h3>Sibling Elements (Level 1)</h3>
+        <div id="siblings-level-1">
+          <!-- Siblings will be generated here -->
+        </div>
+      </div>
+
+      <div class="deep-nested-container">
+        <h3>Additional Sibling Elements (Level 2)</h3>
+        <div id="siblings-level-2">
+          <!-- Siblings will be generated here -->
+        </div>
+      </div>
+
+      <div class="deep-nested-container">
+        <h3>Control Buttons</h3>
+        <button class="btn" id="reset-test">Reset Test</button>
+        <button class="btn" id="run-benchmark">Run Benchmark (20 clicks)</button>
+        <button class="btn" id="clear-metrics">Clear Metrics</button>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as amplitude from '@amplitude/analytics-browser';
+      import { frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
+      
+      window.amplitude = amplitude;
+      const frustrationInteractions = {
+        deadClicks: true,
+        rageClicks: true,
+      };
+      //amplitude.add(frustrationPlugin(frustrationInteractions));
+      amplitude.init(
+        import.meta.env.VITE_AMPLITUDE_API_KEY,
+        import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript performance test user',
+        {
+          autocapture: {
+            elementInteractions: true,
+          },
+        }
+      );
+
+      // Performance tracking variables
+      let clickCount = 0;
+      let totalTime = 0;
+      let startTime = 0;
+      let isTracking = false;
+      let clickTimes = []; // Array to store individual click times for median calculation
+
+      // Get the metrics div
+      const metricsDiv = document.getElementById('metrics');
+
+      // Function to update metrics display
+      function updateMetrics() {
+        const avgTime = clickCount > 0 ? (totalTime / clickCount).toFixed(2) : 0;
+        const medianTime = clickTimes.length > 0 ? calculateMedian(clickTimes).toFixed(2) : 0;
+        metricsDiv.innerHTML = `
+          <p><strong>Test Results:</strong></p>
+          <p>Total clicks: ${clickCount}</p>
+          <p>Total time: ${totalTime.toFixed(2)}ms</p>
+          <p>Average time per click: ${avgTime}ms</p>
+          <p>Median time per click: ${medianTime}ms</p>
+          <p>Last click time: ${startTime > 0 ? (Date.now() - startTime).toFixed(2) : 0}ms</p>
+          <p>Status: ${isTracking ? 'Tracking...' : 'Ready'}</p>
+        `;
+      }
+
+      // Function to calculate median
+      function calculateMedian(numbers) {
+        const sorted = numbers.slice().sort((a, b) => a - b);
+        const middle = Math.floor(sorted.length / 2);
+        
+        if (sorted.length % 2 === 0) {
+          return (sorted[middle - 1] + sorted[middle]) / 2;
+        } else {
+          return sorted[middle];
+        }
+      }
+
+      // Function to measure performance
+      function measurePerformance() {
+        startTime = Date.now();
+        isTracking = true;
+        
+        // Mark the end of the click event when the event loop is empty
+        setTimeout(() => {
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          
+          totalTime += duration;
+          clickCount++;
+          clickTimes.push(duration);
+          isTracking = false;
+          
+          updateMetrics();
+          console.log(`Performance test click ${clickCount}: ${duration}ms`);
+        }, 0);
+      }
+
+      // Initialize metrics display
+      updateMetrics();
+
+      // Generate the deep DOM hierarchy programmatically
+      function generateDeepHierarchy() {
+        const container = document.getElementById('deep-hierarchy-container');
+        const depth = 15;
+        const childrenPerLevel = 12;
+        
+        let currentElement = container;
+        
+        for (let level = 1; level <= depth; level++) {
+          const levelDiv = document.createElement('div');
+          levelDiv.className = 'nested-level';
+          levelDiv.setAttribute('data-level', level.toString());
+          levelDiv.setAttribute('data-test-id', `level-${level}`);
+          levelDiv.setAttribute('data-performance', 'test');
+          levelDiv.setAttribute('data-depth', (depth - level + 1).toString());
+          levelDiv.setAttribute('data-siblings', childrenPerLevel.toString());
+          levelDiv.setAttribute('data-generated', 'true');
+          
+          // Add many more attributes for maximum complexity
+          levelDiv.setAttribute('data-complexity', 'high');
+          levelDiv.setAttribute('data-stress-test', 'true');
+          levelDiv.setAttribute('data-hierarchy-level', level.toString());
+          levelDiv.setAttribute('data-element-type', 'container');
+          levelDiv.setAttribute('data-visibility', 'visible');
+          levelDiv.setAttribute('data-interactive', 'false');
+          levelDiv.setAttribute('data-semantic-role', 'generic');
+          levelDiv.setAttribute('data-accessibility-level', level.toString());
+          levelDiv.setAttribute('data-render-priority', 'normal');
+          levelDiv.setAttribute('data-layout-type', 'block');
+          levelDiv.setAttribute('data-styling-context', 'standard');
+          levelDiv.setAttribute('data-event-handlers', 'none');
+          levelDiv.setAttribute('data-animation-state', 'static');
+          levelDiv.setAttribute('data-responsive-breakpoint', 'desktop');
+          levelDiv.setAttribute('data-theme-context', 'default');
+          levelDiv.setAttribute('data-localization-key', `level_${level}_container`);
+          levelDiv.setAttribute('data-analytics-category', 'hierarchy-test');
+          levelDiv.setAttribute('data-performance-marker', `level-${level}-marker`);
+          levelDiv.setAttribute('data-debug-info', `Generated at ${Date.now()}`);
+          
+          currentElement.appendChild(levelDiv);
+          
+          // Add 12 siblings at this level (including the one that continues the path)
+          for (let siblingIndex = 1; siblingIndex <= childrenPerLevel; siblingIndex++) {
+            if (siblingIndex === 1) {
+              // The first sibling continues the path to the checkbox
+              currentElement = levelDiv;
+            } else {
+              // Create additional siblings at this level
+              const siblingDiv = document.createElement('div');
+              siblingDiv.className = 'nested-level sibling-element';
+              siblingDiv.setAttribute('data-level', level.toString());
+              siblingDiv.setAttribute('data-sibling', siblingIndex.toString());
+              siblingDiv.setAttribute('data-test-id', `sibling-${level}-${siblingIndex}`);
+              siblingDiv.setAttribute('data-performance', 'test');
+              siblingDiv.setAttribute('data-depth', (depth - level + 1).toString());
+              siblingDiv.setAttribute('data-siblings', childrenPerLevel.toString());
+              siblingDiv.setAttribute('data-generated', 'true');
+              siblingDiv.setAttribute('data-complexity', 'high');
+              siblingDiv.setAttribute('data-stress-test', 'true');
+              siblingDiv.setAttribute('data-sibling-index', siblingIndex.toString());
+              
+              // Add many more attributes for maximum complexity
+              siblingDiv.setAttribute('data-element-type', 'sibling');
+              siblingDiv.setAttribute('data-visibility', 'visible');
+              siblingDiv.setAttribute('data-interactive', 'false');
+              siblingDiv.setAttribute('data-semantic-role', 'generic');
+              siblingDiv.setAttribute('data-accessibility-level', level.toString());
+              siblingDiv.setAttribute('data-render-priority', 'low');
+              siblingDiv.setAttribute('data-layout-type', 'inline-block');
+              siblingDiv.setAttribute('data-styling-context', 'sibling');
+              siblingDiv.setAttribute('data-event-handlers', 'none');
+              siblingDiv.setAttribute('data-animation-state', 'static');
+              siblingDiv.setAttribute('data-responsive-breakpoint', 'desktop');
+              siblingDiv.setAttribute('data-theme-context', 'default');
+              siblingDiv.setAttribute('data-localization-key', `sibling_${level}_${siblingIndex}`);
+              siblingDiv.setAttribute('data-analytics-category', 'hierarchy-test-sibling');
+              siblingDiv.setAttribute('data-performance-marker', `sibling-${level}-${siblingIndex}-marker`);
+              siblingDiv.setAttribute('data-debug-info', `Generated at ${Date.now()}`);
+              siblingDiv.setAttribute('data-sibling-position', siblingIndex.toString());
+              siblingDiv.setAttribute('data-sibling-total', childrenPerLevel.toString());
+              siblingDiv.setAttribute('data-sibling-type', 'additional');
+              siblingDiv.setAttribute('data-sibling-role', 'test-element');
+              siblingDiv.setAttribute('data-sibling-complexity', 'high');
+              siblingDiv.setAttribute('data-sibling-stress-level', 'maximum');
+              siblingDiv.setAttribute('data-external-sibling', 'true');
+              siblingDiv.setAttribute('data-external-level', level.toString());
+              siblingDiv.setAttribute('data-external-index', siblingIndex.toString());
+              siblingDiv.setAttribute('data-external-complexity', 'extreme');
+              siblingDiv.setAttribute('data-external-attributes', '25');
+              siblingDiv.setAttribute('data-external-performance', 'stress-test');
+              
+              const span = document.createElement('span');
+              span.textContent = `Sibling ${level}-${siblingIndex}`;
+              siblingDiv.appendChild(span);
+              
+              currentElement.appendChild(siblingDiv);
+            }
+          }
+        }
+        
+        // Add the target checkbox at the deepest level
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'target-checkbox';
+        checkbox.id = 'performance-test-checkbox';
+        checkbox.setAttribute('data-test-id', 'target-checkbox');
+        checkbox.setAttribute('data-performance', 'test');
+        checkbox.setAttribute('data-depth', '0');
+        checkbox.setAttribute('data-expensive', 'true');
+        checkbox.setAttribute('data-complex', 'true');
+        checkbox.setAttribute('data-nested', 'deep');
+        checkbox.setAttribute('data-generated', 'true');
+        
+        // Add many more attributes to the checkbox for maximum complexity
+        checkbox.setAttribute('data-element-type', 'input');
+        checkbox.setAttribute('data-input-type', 'checkbox');
+        checkbox.setAttribute('data-visibility', 'visible');
+        checkbox.setAttribute('data-interactive', 'true');
+        checkbox.setAttribute('data-semantic-role', 'checkbox');
+        checkbox.setAttribute('data-accessibility-level', '0');
+        checkbox.setAttribute('data-render-priority', 'high');
+        checkbox.setAttribute('data-layout-type', 'inline');
+        checkbox.setAttribute('data-styling-context', 'form-control');
+        checkbox.setAttribute('data-event-handlers', 'click');
+        checkbox.setAttribute('data-animation-state', 'static');
+        checkbox.setAttribute('data-responsive-breakpoint', 'desktop');
+        checkbox.setAttribute('data-theme-context', 'form');
+        checkbox.setAttribute('data-localization-key', 'performance_test_checkbox');
+        checkbox.setAttribute('data-analytics-category', 'hierarchy-test-target');
+        checkbox.setAttribute('data-performance-marker', 'target-checkbox-marker');
+        checkbox.setAttribute('data-debug-info', `Generated at ${Date.now()}`);
+        checkbox.setAttribute('data-target-element', 'true');
+        checkbox.setAttribute('data-target-complexity', 'maximum');
+        checkbox.setAttribute('data-target-stress-level', 'extreme');
+        checkbox.setAttribute('data-target-hierarchy-depth', depth.toString());
+        checkbox.setAttribute('data-target-siblings-total', (depth * childrenPerLevel).toString());
+        checkbox.setAttribute('data-target-attributes-count', '25');
+        checkbox.setAttribute('data-target-performance-test', 'true');
+        checkbox.setAttribute('data-target-benchmark-element', 'true');
+        
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(' Performance Test Checkbox'));
+        currentElement.appendChild(label);
+        
+        return checkbox;
+      }
+
+      // Generate sibling elements for a specific level
+      function generateSiblings(containerId, level, count) {
+        const container = document.getElementById(containerId);
+        
+        for (let i = 1; i <= count; i++) {
+          const siblingDiv = document.createElement('div');
+          siblingDiv.className = 'nested-level sibling-element';
+          siblingDiv.setAttribute('data-level', level.toString());
+          siblingDiv.setAttribute('data-sibling', i.toString());
+          siblingDiv.setAttribute('data-test-id', `sibling-${level}-${i}`);
+          siblingDiv.setAttribute('data-performance', 'test');
+          siblingDiv.setAttribute('data-depth', (15 - level + 1).toString());
+          siblingDiv.setAttribute('data-siblings', count.toString());
+          siblingDiv.setAttribute('data-generated', 'true');
+          siblingDiv.setAttribute('data-complexity', 'high');
+          siblingDiv.setAttribute('data-stress-test', 'true');
+          siblingDiv.setAttribute('data-sibling-index', i.toString());
+          
+          // Add many more attributes for maximum complexity
+          siblingDiv.setAttribute('data-element-type', 'sibling');
+          siblingDiv.setAttribute('data-visibility', 'visible');
+          siblingDiv.setAttribute('data-interactive', 'false');
+          siblingDiv.setAttribute('data-semantic-role', 'generic');
+          siblingDiv.setAttribute('data-accessibility-level', level.toString());
+          siblingDiv.setAttribute('data-render-priority', 'low');
+          siblingDiv.setAttribute('data-layout-type', 'inline-block');
+          siblingDiv.setAttribute('data-styling-context', 'sibling');
+          siblingDiv.setAttribute('data-event-handlers', 'none');
+          siblingDiv.setAttribute('data-animation-state', 'static');
+          siblingDiv.setAttribute('data-responsive-breakpoint', 'desktop');
+          siblingDiv.setAttribute('data-theme-context', 'default');
+          siblingDiv.setAttribute('data-localization-key', `sibling_${level}_${i}`);
+          siblingDiv.setAttribute('data-analytics-category', 'hierarchy-test-sibling');
+          siblingDiv.setAttribute('data-performance-marker', `sibling-${level}-${i}-marker`);
+          siblingDiv.setAttribute('data-debug-info', `Generated at ${Date.now()}`);
+          siblingDiv.setAttribute('data-sibling-position', i.toString());
+          siblingDiv.setAttribute('data-sibling-total', count.toString());
+          siblingDiv.setAttribute('data-sibling-type', 'additional');
+          siblingDiv.setAttribute('data-sibling-role', 'test-element');
+          siblingDiv.setAttribute('data-sibling-complexity', 'high');
+          siblingDiv.setAttribute('data-sibling-stress-level', 'maximum');
+          siblingDiv.setAttribute('data-external-sibling', 'true');
+          siblingDiv.setAttribute('data-external-level', level.toString());
+          siblingDiv.setAttribute('data-external-index', i.toString());
+          siblingDiv.setAttribute('data-external-complexity', 'extreme');
+          siblingDiv.setAttribute('data-external-attributes', '25');
+          siblingDiv.setAttribute('data-external-performance', 'stress-test');
+          
+          const span = document.createElement('span');
+          span.textContent = `Sibling ${level}-${i}`;
+          siblingDiv.appendChild(span);
+          
+          container.appendChild(siblingDiv);
+        }
+      }
+
+      // Generate all DOM elements
+      function generateAllElements() {
+        console.log('Generating deep DOM hierarchy...');
+        
+        // Generate the deep hierarchy and get the checkbox reference
+        const generatedCheckbox = generateDeepHierarchy();
+        
+        // Generate siblings for level 1 (12 siblings)
+        generateSiblings('siblings-level-1', 1, 12);
+        
+        // Generate siblings for level 2 (12 siblings)
+        generateSiblings('siblings-level-2', 2, 12);
+        
+        console.log('DOM hierarchy generation completed');
+        console.log('Target checkbox DOM depth:', getElementDepth(generatedCheckbox));
+        console.log('Total sibling elements at level 1:', document.querySelectorAll('[data-level="1"]').length);
+        console.log('Total sibling elements at level 2:', document.querySelectorAll('[data-level="2"]').length);
+        
+        return generatedCheckbox;
+      }
+
+      // Generate the DOM structure when the page loads
+      const targetCheckbox = generateAllElements();
+
+      // Add click event listener to the target checkbox
+      targetCheckbox.addEventListener('click', measurePerformance);
+
+      // Reset test button
+      document.getElementById('reset-test').addEventListener('click', () => {
+        clickCount = 0;
+        totalTime = 0;
+        startTime = 0;
+        isTracking = false;
+        clickTimes = [];
+        updateMetrics();
+        console.log('Performance test reset');
+      });
+
+      // Run benchmark button
+      document.getElementById('run-benchmark').addEventListener('click', () => {
+        console.log('Starting benchmark test...');
+        let benchmarkCount = 0;
+        const maxBenchmark = 20; // Increased from 10 to 20
+        
+        function runBenchmarkClick() {
+          if (benchmarkCount < maxBenchmark) {
+            targetCheckbox.click();
+            benchmarkCount++;
+            setTimeout(runBenchmarkClick, 100); // Small delay between clicks
+          } else {
+            // Calculate and display final statistics
+            const avgTime = (totalTime / clickCount).toFixed(2);
+            const medianTime = calculateMedian(clickTimes).toFixed(2);
+            const minTime = Math.min(...clickTimes).toFixed(2);
+            const maxTime = Math.max(...clickTimes).toFixed(2);
+            
+            console.log('=== BENCHMARK COMPLETED ===');
+            console.log(`Total clicks: ${clickCount}`);
+            console.log(`Total time: ${totalTime.toFixed(2)}ms`);
+            console.log(`Average time: ${avgTime}ms`);
+            console.log(`Median time: ${medianTime}ms`);
+            console.log(`Min time: ${minTime}ms`);
+            console.log(`Max time: ${maxTime}ms`);
+            console.log('==========================');
+            
+            // Update the metrics display with final results
+            metricsDiv.innerHTML = `
+              <p><strong>BENCHMARK COMPLETED (${clickCount} clicks)</strong></p>
+              <p>Total time: ${totalTime.toFixed(2)}ms</p>
+              <p>Average time per click: ${avgTime}ms</p>
+              <p>Median time per click: ${medianTime}ms</p>
+              <p>Min time: ${minTime}ms</p>
+              <p>Max time: ${maxTime}ms</p>
+              <p>Status: Completed</p>
+            `;
+          }
+        }
+        
+        runBenchmarkClick();
+      });
+
+      // Clear metrics button
+      document.getElementById('clear-metrics').addEventListener('click', () => {
+        metricsDiv.innerHTML = '<p>Click the checkbox below to trigger the performance test...</p>';
+      });
+
+      // Log the DOM structure for debugging
+      console.log('Performance test page loaded');
+      console.log('Target checkbox DOM depth:', getElementDepth(targetCheckbox));
+      console.log('Total sibling elements at level 1:', document.querySelectorAll('[data-level="1"]').length);
+      console.log('Total sibling elements at level 2:', document.querySelectorAll('[data-level="2"]').length);
+
+      // Helper function to get element depth
+      function getElementDepth(element) {
+        let depth = 0;
+        let current = element;
+        while (current.parentElement) {
+          depth++;
+          current = current.parentElement;
+        }
+        return depth;
+      }
+    </script>
+  </body>
+</html> 
