@@ -348,6 +348,16 @@ describe('browser-client', () => {
       expect(networkConnectivityCheckerPlugin).toHaveBeenCalledTimes(0);
     });
 
+    test('should add frustration interactions plugin when autocapture is set', async () => {
+      const frustrationInteractionsPlugin = jest.spyOn(autocapture, 'frustrationPlugin');
+      await client.init(apiKey, userId, {
+        autocapture: {
+          frustrationInteractions: true,
+        },
+      }).promise;
+      expect(frustrationInteractionsPlugin).toHaveBeenCalledTimes(1);
+    });
+
     test('should add page view tracking plugin by default', async () => {
       const pageViewTrackingPlugin = jest.spyOn(pageViewTracking, 'pageViewTrackingPlugin');
       await client.init(apiKey, userId).promise;
