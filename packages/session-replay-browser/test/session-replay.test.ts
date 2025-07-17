@@ -19,13 +19,36 @@ import { SessionReplayOptions } from '../src/typings/session-replay';
 
 jest.mock('@amplitude/analytics-remote-config');
 
+// Mock the URL tracking plugin
+jest.mock('../src/plugins/url-tracking-plugin', () => ({
+  createUrlTrackingPlugin: jest.fn().mockImplementation((options: any = {}) => ({
+    name: 'amplitude/url-tracking@1',
+    observer: jest.fn().mockImplementation((_callback: any, _opts: any) => {
+      // Return a cleanup function
+      return () => {
+        // cleanup function
+      };
+    }),
+    options: {
+      ugcFilterRules: options.ugcFilterRules || [],
+      enablePolling: options.enablePolling || false,
+      pollingInterval: options.pollingInterval || 1000,
+      captureDocumentTitle: options.captureDocumentTitle ?? false,
+    },
+  })),
+}));
+
 // Accessing mock helper functions from the Jest manual mock for @amplitude/analytics-remote-config.
 // This import is intentionally ts-ignored as these helpers are not part of the module's type definitions.
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { __setNamespaceConfig, __setShouldThrowError } from '@amplitude/analytics-remote-config';
 
+import { createUrlTrackingPlugin } from '../src/plugins/url-tracking-plugin';
+
 type MockedLogger = jest.Mocked<ILogger>;
+
+const mockCreateUrlTrackingPlugin = createUrlTrackingPlugin as jest.MockedFunction<typeof createUrlTrackingPlugin>;
 
 const mockEvent = {
   type: 4,
@@ -39,18 +62,22 @@ const samplingConfig = {
   capture_enabled: true,
 };
 
-// Add this helper function at the top of your describe block
-function createMockRecordFunction() {
-  const mockRecordFn = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
-    addCustomEvent: jest.Mock;
-    mirror: { getNode: jest.Mock };
-  };
-  mockRecordFn.addCustomEvent = jest.fn();
-  mockRecordFn.mirror = {
-    getNode: jest.fn().mockReturnValue(null),
-  };
-  return mockRecordFn;
-}
+// Default mock implementation
+const defaultMockImplementation = (options: any = {}) => ({
+  name: 'amplitude/url-tracking@1',
+  observer: jest.fn().mockImplementation((_callback: any, _opts: any) => {
+    // Return a cleanup function
+    return () => {
+      // cleanup function
+    };
+  }),
+  options: {
+    ugcFilterRules: options.ugcFilterRules || [],
+    enablePolling: options.enablePolling || false,
+    pollingInterval: options.pollingInterval || 1000,
+    captureDocumentTitle: options.captureDocumentTitle ?? false,
+  },
+});
 
 describe('SessionReplay', () => {
   let originalFetch: typeof global.fetch;
@@ -120,7 +147,27 @@ describe('SessionReplay', () => {
   let sessionReplay: SessionReplay;
   let initialize: jest.SpyInstance;
   let mockRecordFunction: jest.Mock & { addCustomEvent: jest.Mock; mirror: { getNode: jest.Mock } };
+
+  // Add this helper function at the top of your describe block
+  function createMockRecordFunction() {
+    const mockRecordFn = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
+      addCustomEvent: jest.Mock;
+      mirror: { getNode: jest.Mock };
+    };
+    mockRecordFn.addCustomEvent = jest.fn();
+    mockRecordFn.mirror = {
+      getNode: jest.fn().mockReturnValue(null),
+    };
+    return mockRecordFn;
+  }
+
   beforeEach(() => {
+    // Reset the mock implementation to default for each test
+    mockCreateUrlTrackingPlugin.mockImplementation(defaultMockImplementation);
+
+    // Reset all other mocks and setup
+    jest.clearAllMocks();
+
     // Set default remote config
     __setNamespaceConfig({
       sr_sampling_config: samplingConfig,
@@ -146,10 +193,7 @@ describe('SessionReplay', () => {
     globalSpy = jest.spyOn(AnalyticsCore, 'getGlobalScope').mockReturnValue(mockGlobalScope);
 
     // Create mock record function with addCustomEvent method and mirror property
-    mockRecordFunction = jest.fn().mockReturnValue(jest.fn()) as jest.Mock & {
-      addCustomEvent: jest.Mock;
-      mirror: { getNode: jest.Mock };
-    };
+    mockRecordFunction = createMockRecordFunction();
     mockRecordFunction.addCustomEvent = jest.fn();
     mockRecordFunction.mirror = {
       getNode: jest.fn().mockReturnValue(null),
@@ -1686,7 +1730,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3); // blur, focus, beforeunload - popstate handled by plugin cleanup
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
       expect(removeEventListenerMock.mock.calls[2][0]).toEqual('beforeunload');
@@ -1705,7 +1749,7 @@ describe('SessionReplay', () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
       removeEventListenerMock.mockReset();
       sessionReplay.shutdown();
-      expect(removeEventListenerMock).toHaveBeenCalledTimes(3);
+      expect(removeEventListenerMock).toHaveBeenCalledTimes(3); // blur, focus, pagehide - popstate handled by plugin cleanup
       expect(removeEventListenerMock.mock.calls[0][0]).toEqual('blur');
       expect(removeEventListenerMock.mock.calls[1][0]).toEqual('focus');
       expect(removeEventListenerMock.mock.calls[2][0]).toEqual('pagehide');
@@ -1901,7 +1945,10 @@ describe('SessionReplay', () => {
           levels: [],
         },
       };
-      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toBeUndefined();
+      const plugins = await sessionReplay.getRecordingPlugins(loggingConfig);
+      expect(plugins).toBeDefined();
+      expect(plugins?.length).toBe(1); // URL tracking plugin is always present
+      expect(plugins?.[0].name).toBe('amplitude/url-tracking@1');
     });
     test('enabled console logging', async () => {
       const loggingConfig: LoggingConfig = {
@@ -1910,7 +1957,11 @@ describe('SessionReplay', () => {
           levels: ['warn', 'error'],
         },
       };
-      await expect(sessionReplay.getRecordingPlugins(loggingConfig)).resolves.toHaveLength(1);
+      const plugins = await sessionReplay.getRecordingPlugins(loggingConfig);
+      expect(plugins).toBeDefined();
+      expect(plugins?.length).toBe(2); // URL tracking plugin + console plugin
+      expect(plugins?.find((p) => p.name === 'amplitude/url-tracking@1')).toBeDefined();
+      expect(plugins?.find((p) => p.name === 'rrweb/console@1')).toBeDefined();
     });
     test('should warn if loading console plugin fails', async () => {
       const loggingConfig: LoggingConfig = {
@@ -1928,6 +1979,19 @@ describe('SessionReplay', () => {
       await sessionReplay.getRecordingPlugins(loggingConfig);
       expect(warnSpy).toHaveBeenCalledWith('Failed to load console plugin:', expect.any(Error));
       jest.dontMock('@amplitude/rrweb-plugin-console-record');
+    });
+
+    test('should return undefined when no plugins are available', async () => {
+      // Mock createUrlTrackingPlugin to throw an error
+      mockCreateUrlTrackingPlugin.mockImplementationOnce(() => {
+        throw new Error('URL tracking plugin creation failed');
+      });
+
+      const warnSpy = jest.spyOn(sessionReplay.loggerProvider, 'warn');
+
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      expect(plugins).toBeUndefined();
+      expect(warnSpy).toHaveBeenCalledWith('Failed to create URL tracking plugin:', expect.any(Error));
     });
   });
 
@@ -2002,6 +2066,121 @@ describe('SessionReplay', () => {
       }).promise;
       const metadata = (sessionReplay as any).metadata;
       expect(metadata?.replaySDKType).toBe('@amplitude/segment-session-replay-plugin');
+    });
+  });
+
+  describe('URL Tracking', () => {
+    describe('Plugin Integration', () => {
+      test('should include URL tracking plugin in recording plugins', async () => {
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        expect(plugins).toBeDefined();
+        expect(plugins?.length).toBeGreaterThan(0);
+
+        // Find the URL tracking plugin
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+        expect(urlTrackingPlugin).toBeDefined();
+        expect(urlTrackingPlugin?.observer).toBeDefined();
+      });
+
+      test('should create URL tracking plugin with UGC filter rules from interaction config', async () => {
+        const mockUgcFilterRules = [
+          { selector: 'test', replacement: 'filtered' },
+          { selector: '/test/', replacement: 'filtered' },
+        ];
+
+        __setNamespaceConfig({
+          sr_sampling_config: samplingConfig,
+          sr_privacy_config: {},
+          sr_interaction_config: {
+            enabled: true,
+            ugcFilterRules: mockUgcFilterRules,
+          },
+        });
+
+        await sessionReplay.init(apiKey, mockOptions).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual(mockUgcFilterRules);
+      });
+
+      test('should create URL tracking plugin with polling enabled', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          enableUrlChangePolling: true,
+        }).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        // The config options should be passed to the plugin
+        expect((urlTrackingPlugin?.options as any).enablePolling).toBe(true);
+      });
+
+      test('should create URL tracking plugin with custom polling interval', async () => {
+        const customInterval = 2000;
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          enableUrlChangePolling: true,
+          urlChangePollingInterval: customInterval,
+        }).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        expect((urlTrackingPlugin?.options as any).pollingInterval).toBe(customInterval);
+      });
+
+      test('should create URL tracking plugin with captureDocumentTitle enabled', async () => {
+        await sessionReplay.init(apiKey, {
+          ...mockOptions,
+          captureDocumentTitle: true,
+        }).promise;
+
+        const plugins = await sessionReplay.getRecordingPlugins(undefined);
+        const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+        expect(urlTrackingPlugin).toBeDefined();
+        expect((urlTrackingPlugin?.options as any).captureDocumentTitle).toBe(true);
+      });
+    });
+
+    test('should handle empty UGC filter rules', async () => {
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+        sr_interaction_config: {
+          enabled: true,
+          ugcFilterRules: [],
+        },
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+      expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
+    });
+
+    test('should handle missing interaction config', async () => {
+      __setNamespaceConfig({
+        sr_sampling_config: samplingConfig,
+        sr_privacy_config: {},
+      });
+
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      const plugins = await sessionReplay.getRecordingPlugins(undefined);
+      const urlTrackingPlugin = plugins?.find((plugin) => plugin.name === 'amplitude/url-tracking@1');
+
+      expect((urlTrackingPlugin?.options as any).ugcFilterRules).toEqual([]);
     });
   });
 
