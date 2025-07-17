@@ -126,13 +126,16 @@ export function getAncestors(targetEl: Element | null): Element[] {
   return ancestors;
 }
 
-const globalScope = getGlobalScope();
-
 // data structure that caches getHierarchy results so that results can be memoized
 // if it's called on the same element and within the same event loop
+const globalScope = getGlobalScope();
+/* istanbul ignore next */
+
 const hierarchyCache = {
   cache: new Map<Element, Hierarchy>(),
   isScheduledToClear: false,
+  /* istanbul ignore next */
+  messageChannel: globalScope?.MessageChannel ? new globalScope.MessageChannel() : null,
   has(element: Element) {
     return this.cache.has(element);
   },
@@ -141,18 +144,20 @@ const hierarchyCache = {
   },
   set(element: Element, value: Hierarchy) {
     /* istanbul ignore next */
-    if (!globalScope?.queueMicrotask) {
+    if (!this.messageChannel) {
       return;
     }
     this.cache.set(element, value);
 
-    // schedule the cache to be cleared right after the current event loop is empty
+    // schedule the cache to be cleared right after the current macrotask is done
+    // this is to avoid recalculating getHierarchy for the same element within the same
     if (!this.isScheduledToClear) {
       this.isScheduledToClear = true;
-      globalScope.queueMicrotask(() => {
+      this.messageChannel.port1.onmessage = () => {
         this.cache.clear();
         this.isScheduledToClear = false;
-      });
+      };
+      this.messageChannel.port2.postMessage(null);
     }
   },
 };

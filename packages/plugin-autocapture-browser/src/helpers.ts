@@ -1,4 +1,7 @@
 /* eslint-disable no-restricted-globals */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import * as constants from './constants';
 import { ElementInteractionsOptions, ActionType, getGlobalScope } from '@amplitude/analytics-core';
 import { getHierarchy } from './hierarchy';
@@ -293,9 +296,13 @@ const globalScope = getGlobalScope();
 
 // data structure that caches getNearestLabel results and invalidates the cache
 // after the current event loop is empty
+// TODO: ignoring this for now, the plan is to merge getNearestLabel and getHierarchy
+//       so this will become redundant and be removed in a future PR
+/* istanbul ignore next */
 const nearestLabelCache = {
   cache: new Map<Element, string>(),
   isScheduledToClear: false,
+  messageChannel: globalScope?.MessageChannel ? new globalScope.MessageChannel() : null,
   has(element: Element) {
     return this.cache.has(element);
   },
@@ -303,8 +310,7 @@ const nearestLabelCache = {
     return this.cache.get(element);
   },
   set(element: Element, value: string) {
-    /* istanbul ignore next */
-    if (!globalScope?.queueMicrotask) {
+    if (!this.messageChannel) {
       return;
     }
     this.cache.set(element, value);
@@ -312,10 +318,12 @@ const nearestLabelCache = {
     // schedule the cache to be cleared right after the current event loop is empty
     if (!this.isScheduledToClear) {
       this.isScheduledToClear = true;
-      globalScope.queueMicrotask(() => {
+      // use message channel to schedule the cache clear
+      this.messageChannel.port1.onmessage = () => {
         this.cache.clear();
         this.isScheduledToClear = false;
-      });
+      };
+      this.messageChannel.port2.postMessage(null);
     }
   },
 };
@@ -330,6 +338,8 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
   const ariaLabel = element.getAttribute('aria-label');
   const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
   let nearestLabel = '';
+
+  /* istanbul ignore if */
   if (nearestLabelCache.has(element)) {
     nearestLabel = nearestLabelCache.get(element) as string;
   } else {
