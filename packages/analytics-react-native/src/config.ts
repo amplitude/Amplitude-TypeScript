@@ -10,6 +10,7 @@ import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
 import { CookieStorage, getCookieName, getQueryParams, FetchTransport } from '@amplitude/analytics-client-common';
 
 import { LocalStorage } from './storage/local-storage';
+import RemnantDataMigration from './migration/remnant-data-migration';
 
 export const getDefaultConfig = () => {
   const cookieStorage = new MemoryStorage<UserSession>();
@@ -25,6 +26,7 @@ export const getDefaultConfig = () => {
     platform: true,
     appSetId: true,
     idfv: true,
+    country: false, // NOTE: tracking country information would disable server-side IP address lookup to fill other information like region, city, dma, etc.
   };
   return {
     cookieExpiration: 365,
@@ -189,21 +191,39 @@ export const useReactNativeConfig = async (
   const queryParams = getQueryParams();
 
   // reconcile user session
-  const deviceId = options?.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId ?? UUID();
-  const lastEventTime = options?.lastEventTime ?? previousCookies?.lastEventTime;
+  let deviceId = options?.deviceId ?? queryParams.deviceId ?? previousCookies?.deviceId;
+  let lastEventTime = options?.lastEventTime ?? previousCookies?.lastEventTime;
   const optOut = options?.optOut ?? Boolean(previousCookies?.optOut);
-  const sessionId = options?.sessionId ?? previousCookies?.sessionId;
-  const userId = options?.userId ?? previousCookies?.userId;
+  let sessionId = options?.sessionId ?? previousCookies?.sessionId;
+  let userId = options?.userId ?? previousCookies?.userId;
+  let lastEventId = previousCookies?.lastEventId;
+
+  const storageProvider = options?.storageProvider ?? (await createEventsStorage(options));
+
+  if (options?.migrateLegacyData !== false) {
+    const legacySessionData = await new RemnantDataMigration(
+      apiKey,
+      options?.instanceName,
+      storageProvider,
+      previousCookies?.lastEventTime === undefined,
+      options?.loggerProvider,
+    ).execute();
+    deviceId = deviceId ?? legacySessionData.deviceId;
+    userId = userId ?? legacySessionData.userId;
+    sessionId = sessionId ?? legacySessionData.sessionId;
+    lastEventTime = lastEventTime ?? legacySessionData.lastEventTime;
+    lastEventId = lastEventId ?? legacySessionData.lastEventId;
+  }
 
   const config = new ReactNativeConfig(apiKey, {
     ...options,
     cookieStorage,
-    deviceId,
+    deviceId: deviceId ?? UUID(),
     domain,
     lastEventTime,
     optOut,
     sessionId,
-    storageProvider: await createEventsStorage(options),
+    storageProvider,
     trackingOptions: {
       ...defaultConfig.trackingOptions,
       ...options?.trackingOptions,
@@ -212,7 +232,7 @@ export const useReactNativeConfig = async (
     userId,
   });
 
-  config.lastEventId = previousCookies?.lastEventId;
+  config.lastEventId = lastEventId;
 
   config.loggerProvider?.log(
     `Init: storage=${cookieStorage.constructor.name} restoredSessionId = ${

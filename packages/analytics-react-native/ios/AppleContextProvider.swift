@@ -1,20 +1,28 @@
+#if os(iOS) && !targetEnvironment(simulator)
+import CoreTelephony
+#endif
 import Foundation
 
 @objc public class AppleContextProvider : NSObject {
 
     public let version: String? = AppleContextProvider.getVersion()
     public let language: String? = AppleContextProvider.getLanguage()
+    public let country: String? = AppleContextProvider.getCountry()
     public let platform: String = AppleContextProvider.getPlatform()
     public let osName: String = AppleContextProvider.getOsName()
     public let osVersion: String = AppleContextProvider.getOsVersion()
     public let deviceManufacturer: String = AppleContextProvider.getDeviceManufacturer()
     public let deviceModel: String = AppleContextProvider.getDeviceModel()
     public var idfv: String? = nil
+    public var carrier: String? = nil
 
-    init(trackIdfv: Bool) {
+    init(trackIdfv: Bool, trackCarrier: Bool) {
       super.init()
       if (trackIdfv) {
         fetchIdfv()
+      }
+      if (trackCarrier) {
+        fetchCarrier()
       }
     }
 
@@ -24,6 +32,10 @@ import Foundation
 
     private static func getLanguage() -> String? {
         return Locale(identifier: "en_US").localizedString(forLanguageCode: Locale.preferredLanguages[0])
+    }
+
+    private static func getCountry() -> String? {
+        return Locale.current.regionCode
     }
 
     private static func getPlatform() -> String {
@@ -51,6 +63,22 @@ import Foundation
 
     private func fetchIdfv() {
         self.idfv = UIDevice.current.identifierForVendor?.uuidString
+    }
+
+    private func fetchCarrier() {
+        self.carrier = "Unknown"
+        #if os(iOS) && !targetEnvironment(simulator)
+        if #available(iOS 12.0, *) {
+            let networkInfo = CTTelephonyNetworkInfo()
+            if let providers = networkInfo.serviceSubscriberCellularProviders {
+                for (_, provider) in providers where provider.mobileNetworkCode != nil {
+                    self.carrier = provider.carrierName ?? carrier
+                    // As long as we get one carrier information, we break.
+                    break
+                }
+            }
+        }
+        #endif
     }
 
     private static func getDeviceModel() -> String {
