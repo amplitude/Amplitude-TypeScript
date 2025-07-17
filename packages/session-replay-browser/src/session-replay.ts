@@ -49,6 +49,7 @@ import { VERSION } from './version';
 import { EventCompressor } from './events/event-compressor';
 import { SafeLoggerProvider } from './logger';
 
+import { createUrlTrackingPlugin } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
 
 type PageLeaveFn = (e: PageTransitionEvent | Event) => void;
@@ -360,6 +361,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
   async getRecordingPlugins(loggingConfig: LoggingConfig | undefined) {
     const plugins = [];
+
+    // Add URL tracking plugin
+    try {
+      const urlTrackingPlugin = createUrlTrackingPlugin({
+        ugcFilterRules: this.config?.interactionConfig?.ugcFilterRules || [],
+        enablePolling: this.config?.enableUrlChangePolling || false,
+        pollingInterval: this.config?.urlChangePollingInterval,
+        captureDocumentTitle: this.config?.captureDocumentTitle,
+      });
+
+      plugins.push(urlTrackingPlugin);
+    } catch (error) {
+      this.loggerProvider.warn('Failed to create URL tracking plugin:', error);
+    }
 
     // Default plugin settings -
     // {

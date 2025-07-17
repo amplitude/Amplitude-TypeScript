@@ -80,6 +80,9 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         omitElementTags: this.options.omitElementTags,
         applyBackgroundColorToBlockedElements: this.options.applyBackgroundColorToBlockedElements,
         interactionConfig: this.options.interactionConfig,
+        captureDocumentTitle: this.options.captureDocumentTitle,
+        enableUrlChangePolling: this.options.enableUrlChangePolling,
+        urlChangePollingInterval: this.options.urlChangePollingInterval,
       };
 
       await this.sessionReplay.init(config.apiKey, this.srInitOptions).promise;
