@@ -15,8 +15,8 @@ import {
 } from '../src/default-tracking';
 
 describe('isFrustrationInteractionsEnabled', () => {
-  test('should return true with true parameter', () => {
-    expect(isFrustrationInteractionsEnabled(true)).toBe(true);
+  test('should return false with true parameter while frustrationInteractions is Beta', () => {
+    expect(isFrustrationInteractionsEnabled(true)).toBe(false);
   });
 
   test('should return true with undefined parameter', () => {
@@ -56,6 +56,13 @@ describe('isFrustrationInteractionsEnabled', () => {
         cssSelectorAllowlist: ['button'],
       },
     });
+  });
+
+  test('should get undefined frustration interactions config when autocapture is true', () => {
+    const config = getFrustrationInteractionsConfig({
+      autocapture: true,
+    });
+    expect(config).toBeUndefined();
   });
 });
 
