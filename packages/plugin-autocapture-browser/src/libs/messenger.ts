@@ -1,5 +1,6 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
+import { extractDataFromDataSource } from 'src/pageActions/actions';
 import {
   AMPLITUDE_ORIGIN,
   AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL,
@@ -195,6 +196,7 @@ export class WindowMessenger implements Messenger {
                 messenger: this,
                 cssSelectorAllowlist,
                 actionClickAllowlist,
+                extractDataFromDataSource,
               });
               this.notify({ action: 'selector-loaded' });
             })
