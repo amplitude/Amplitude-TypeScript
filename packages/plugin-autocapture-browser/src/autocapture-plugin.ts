@@ -1,40 +1,36 @@
 /* eslint-disable no-restricted-globals */
 import {
-  BrowserClient,
-  BrowserConfig,
-  EnrichmentPlugin,
-  ElementInteractionsOptions,
+  type BrowserClient,
+  type BrowserConfig,
+  type EnrichmentPlugin,
+  type ElementInteractionsOptions,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
 } from '@amplitude/analytics-core';
 import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as constants from './constants';
-import { fromEvent, map, Observable, Subscription, share } from 'rxjs';
+import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
 import {
   addAdditionalEventProperties,
   createShouldTrackEvent,
   getEventProperties,
-  ElementBasedTimestampedEvent,
-  TimestampedEvent,
-  ElementBasedEvent,
-  NavigateEvent,
+  type ElementBasedTimestampedEvent,
+  type TimestampedEvent,
+  type NavigateEvent,
 } from './helpers';
 import { WindowMessenger } from './libs/messenger';
 import { trackClicks } from './autocapture/track-click';
 import { trackChange } from './autocapture/track-change';
 import { trackActionClick } from './autocapture/track-action-click';
-import { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
+import type { HasEventTargetAddRemove } from 'rxjs/internal/observable/fromEvent';
 import { createMutationObservable, createClickObservable } from './observables';
 
 import {
   createLabeledEventToTriggerMap,
-  generateEvaluateTriggers,
+  createTriggerEvaluator,
   groupLabeledEventIdsByEventType,
-  matchEventToLabeledEvents,
-  matchLabeledEventsToTriggers,
 } from './pageActions/triggers';
-import { executeActions } from './pageActions/actions';
 
 declare global {
   interface Window {
@@ -115,7 +111,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     // );
 
     // Create observable for URL changes
-    let navigateObservable;
+    let navigateObservable: Observable<TimestampedEvent<NavigateEvent>> | undefined;
     /* istanbul ignore next */
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
@@ -159,28 +155,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   let labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
 
   // Evaluate triggers for the given event by running the actions associated with the matching triggers
-  let evaluateTriggers = (
-    event: ElementBasedTimestampedEvent<ElementBasedEvent>,
-  ): ElementBasedTimestampedEvent<ElementBasedEvent> => {
-    // If there is no pageActions, return the event as is
-    const { pageActions } = options;
-    if (!pageActions) {
-      return event;
-    }
-
-    // Find matching labeled events
-    const matchingLabeledEvents = matchEventToLabeledEvents(
-      event,
-      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
-    );
-    // Find matching conditions
-    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
-    for (const trigger of matchingTriggers) {
-      executeActions(trigger.actions, event);
-    }
-
-    return event;
-  };
+  const evaluateTriggers = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
 
   // Function to recalculate internal variables when remote config is updated
   const recomputePageActionsData = (remotePageActions: ElementInteractionsOptions['pageActions']) => {
@@ -196,7 +171,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions.triggers ?? []);
 
       // Update evaluateTriggers function
-      evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, options);
+      evaluateTriggers.update(groupedLabeledEvents, labeledEventToTriggerMap, options);
     }
   };
 
@@ -248,7 +223,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       options: options as AutoCaptureOptionsWithDefaults,
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
-      evaluateTriggers,
+      evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
     });
     subscriptions.push(clickTrackingSubscription);
 
@@ -257,7 +232,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
       getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
-      evaluateTriggers,
+      evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
     });
     subscriptions.push(changeSubscription);
 

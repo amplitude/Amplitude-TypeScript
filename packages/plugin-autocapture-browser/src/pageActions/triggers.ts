@@ -1,10 +1,10 @@
-import { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
+import type { Trigger } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 // Return which labeled events, if any, the element matches
 import type {
   ElementInteractionsOptions,
   LabeledEvent,
 } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
+import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
 import { matchEventToFilter } from './matchEventToFilter';
 import { executeActions } from './actions';
 
@@ -100,14 +100,16 @@ export const matchLabeledEventsToTriggers = (labeledEvents: LabeledEvent[], leTo
   return Array.from(matchingTriggers);
 };
 
-export const generateEvaluateTriggers = (
-  groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
-  labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
-  options: ElementInteractionsOptions,
-) => {
-  return (event: ElementBasedTimestampedEvent<ElementBasedEvent>) => {
+export class TriggerEvaluator {
+  constructor(
+    private groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
+    private labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+    private options: ElementInteractionsOptions,
+  ) {}
+
+  evaluate(event: ElementBasedTimestampedEvent<ElementBasedEvent>) {
     // If there is no pageActions, return the event as is
-    const { pageActions } = options;
+    const { pageActions } = this.options;
     if (!pageActions) {
       return event;
     }
@@ -115,14 +117,32 @@ export const generateEvaluateTriggers = (
     // Find matching labeled events
     const matchingLabeledEvents = matchEventToLabeledEvents(
       event,
-      Array.from(groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
+      Array.from(this.groupedLabeledEvents[event.type]).map((id) => pageActions.labeledEvents[id]),
     );
     // Find matching conditions
-    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, labeledEventToTriggerMap);
+    const matchingTriggers = matchLabeledEventsToTriggers(matchingLabeledEvents, this.labeledEventToTriggerMap);
     for (const trigger of matchingTriggers) {
       executeActions(trigger.actions, event);
     }
 
     return event;
-  };
+  }
+
+  update(
+    groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
+    labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+    options: ElementInteractionsOptions,
+  ) {
+    this.groupedLabeledEvents = groupedLabeledEvents;
+    this.labeledEventToTriggerMap = labeledEventToTriggerMap;
+    this.options = options;
+  }
+}
+
+export const createTriggerEvaluator = (
+  groupedLabeledEvents: ReturnType<typeof groupLabeledEventIdsByEventType>,
+  labeledEventToTriggerMap: ReturnType<typeof createLabeledEventToTriggerMap>,
+  options: ElementInteractionsOptions,
+) => {
+  return new TriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
 };

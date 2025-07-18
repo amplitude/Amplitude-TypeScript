@@ -9,7 +9,7 @@ import {
   groupLabeledEventIdsByEventType,
   matchEventToLabeledEvents,
   createLabeledEventToTriggerMap,
-  generateEvaluateTriggers,
+  createTriggerEvaluator,
 } from '../../src/pageActions/triggers';
 import * as matchEventToFilterModule from '../../src/pageActions/matchEventToFilter';
 import * as actionsModule from '../../src/pageActions/actions';
@@ -571,7 +571,7 @@ describe('matchEventToLabeledEvents', () => {
   });
 });
 
-describe('generateEvaluateTriggers', () => {
+describe('TriggerEvaluator', () => {
   const executeActionsSpy = jest.spyOn(actionsModule, 'executeActions');
   const matchEventToFilterSpy = jest.spyOn(matchEventToFilterModule, 'matchEventToFilter');
 
@@ -631,9 +631,9 @@ describe('generateEvaluateTriggers', () => {
   const groupedLabeledEvents = groupLabeledEventIdsByEventType(Object.values(labeledEvents));
   const labeledEventToTriggerMap = createLabeledEventToTriggerMap(triggers);
 
-  it('should return a function that does nothing if pageActions is not configured', () => {
-    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, {});
-    const result = evaluateTriggers(mockEvent);
+  it('should do nothing if pageActions is not configured', () => {
+    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, {});
+    const result = triggerEvaluator.evaluate(mockEvent);
 
     expect(result).toBe(mockEvent);
     expect(executeActionsSpy).not.toHaveBeenCalled();
@@ -642,8 +642,8 @@ describe('generateEvaluateTriggers', () => {
   it('should not call executeActions if no labeled event matches', () => {
     matchEventToFilterSpy.mockReturnValue(false); // No filter match
 
-    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, options);
-    evaluateTriggers(mockEvent);
+    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).not.toHaveBeenCalled();
   });
@@ -668,8 +668,8 @@ describe('generateEvaluateTriggers', () => {
 
     matchEventToFilterSpy.mockReturnValue(true); // event matches
 
-    const evaluateTriggers = generateEvaluateTriggers(grouped, triggerMap, optionsWithUntriggeredEvent);
-    evaluateTriggers(mockEvent);
+    const triggerEvaluator = createTriggerEvaluator(grouped, triggerMap, optionsWithUntriggeredEvent);
+    triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).not.toHaveBeenCalled();
   });
@@ -677,8 +677,8 @@ describe('generateEvaluateTriggers', () => {
   it('should call executeActions with correct actions when a trigger is matched', () => {
     matchEventToFilterSpy.mockReturnValue(true); // Labeled event matches
 
-    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, labeledEventToTriggerMap, options);
-    evaluateTriggers(mockEvent);
+    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).toHaveBeenCalledTimes(1);
     expect(executeActionsSpy).toHaveBeenCalledWith(triggers[0].actions, mockEvent);
@@ -724,12 +724,29 @@ describe('generateEvaluateTriggers', () => {
     const triggerMap = createLabeledEventToTriggerMap(multiTrigger);
     matchEventToFilterSpy.mockReturnValue(true);
 
-    const evaluateTriggers = generateEvaluateTriggers(groupedLabeledEvents, triggerMap, multiTriggerOptions);
-    evaluateTriggers(mockEvent);
+    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, triggerMap, multiTriggerOptions);
+    triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).toHaveBeenCalledTimes(2);
     expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[0].actions, mockEvent);
     expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[1].actions, mockEvent);
+  });
+
+  it('should update state when update method is called', () => {
+    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, {});
+
+    // Initially should do nothing since pageActions is empty
+    triggerEvaluator.evaluate(mockEvent);
+    expect(executeActionsSpy).not.toHaveBeenCalled();
+
+    // Update the evaluator with proper options
+    triggerEvaluator.update(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    matchEventToFilterSpy.mockReturnValue(true);
+
+    // Now it should execute actions
+    triggerEvaluator.evaluate(mockEvent);
+    expect(executeActionsSpy).toHaveBeenCalledTimes(1);
+    expect(executeActionsSpy).toHaveBeenCalledWith(triggers[0].actions, mockEvent);
   });
 });
 

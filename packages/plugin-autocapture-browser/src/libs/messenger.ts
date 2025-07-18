@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 /* eslint-disable no-restricted-globals */
-import { extractDataFromDataSource } from 'src/pageActions/actions';
+import { extractDataFromDataSource } from '../pageActions/actions';
 import {
   AMPLITUDE_ORIGIN,
   AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL,
