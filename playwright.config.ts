@@ -12,7 +12,7 @@ export default defineConfig({
     trace: process.env.CI ? 'on' : 'on-first-retry',
     actionTimeout: 30000,
     navigationTimeout: 30000,
-    ignoreHTTPSErrors: true,
+    ignoreHTTPSErrors: false,
     // Capture screenshot on failure
     screenshot: 'only-on-failure',
     // Record video for all tests in CI
@@ -46,6 +46,8 @@ export default defineConfig({
     url: 'http://localhost:5173',
     reuseExistingServer: true,
     timeout: 120000,
+    stdout: 'pipe', // Add this to see server logs
+    stderr: 'pipe', // Add this to see server errors
   },
   testMatch: '**/e2e/**/*.spec.ts',
   timeout: 30000,
