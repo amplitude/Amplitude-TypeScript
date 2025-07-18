@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+    <meta charset=UTF-8>
+    <title>Session Replay Test - Sample Rate 1</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Session Replay Test Page</h1>
+        <p>This page demonstrates Session Replay with sample rate 1 (100% of sessions recorded).</p>
+    </div>
+
+    <script type="module">
+        import { plugin as sessionReplayPlugin } from '@amplitude/plugin-session-replay-browser';
+        import * as amplitude from '@amplitude/analytics-browser';
+
+        // Initialize Amplitude
+        amplitude.init(import.meta.env.VITE_AMPLITUDE_API_KEY, import.meta.env.VITE_AMPLITUDE_USER_ID, {
+            logging: {
+                level: 'debug',
+            },
+            autocapture: {
+                sessions: true,
+                pageViews: true,
+                formInteractions: true,
+                fileDownloads: true
+            }
+        });
+        const srPlugin = sessionReplayPlugin({
+            apiKey: import.meta.env.VITE_AMPLITUDE_API_KEY,
+            sampleRate: 1,
+            loggingConfig: {
+                network: {
+                    enabled: true,
+                },
+            },
+        });
+        amplitude.add(srPlugin);
+    </script>
+</body>
+</html> 

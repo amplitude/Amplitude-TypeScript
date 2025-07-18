@@ -4,9 +4,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { LogLevel, ILogger, ServerZone } from '@amplitude/analytics-core';
+import { LogLevel, ILogger, ServerZone, NetworkRequestEvent } from '@amplitude/analytics-core';
 import { SessionReplayLocalConfig } from '../src/config/local-config';
-import { NetworkObservers, NetworkRequestEvent } from '../src/observers';
 
 import { IDBFactory } from 'fake-indexeddb';
 import { LoggingConfig, SessionReplayJoinedConfig } from '../src/config/types';
@@ -238,14 +237,14 @@ describe('SessionReplay', () => {
       });
 
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
       await sessionReplay.recordEvents();
       expect(startSpy).toHaveBeenCalled();
     });
 
     test('should not start network observers when network logging is disabled in remote config', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
-      const startSpy = jest.spyOn(NetworkObservers.prototype, 'start');
+      const startSpy = jest.spyOn(AnalyticsCore.networkObserver, 'subscribe');
       await sessionReplay.recordEvents();
       expect(startSpy).not.toHaveBeenCalled();
     });
@@ -253,48 +252,8 @@ describe('SessionReplay', () => {
     test('should not initialize network observers when config is undefined', async () => {
       // Create a new SessionReplay instance without initializing
       const sessionReplayWithoutConfig = new SessionReplay();
-
-      const networkObserversConstructorSpy = jest.spyOn(NetworkObservers.prototype, 'constructor' as any);
-
       await (sessionReplayWithoutConfig as any).initializeNetworkObservers();
-
-      expect(networkObserversConstructorSpy).not.toHaveBeenCalled();
-
       expect((sessionReplayWithoutConfig as any).networkObservers).toBeUndefined();
-    });
-
-    test('should log warning when NetworkObservers import fails', async () => {
-      __setNamespaceConfig({
-        sr_sampling_config: samplingConfig,
-        sr_privacy_config: {},
-        sr_interaction_config: {
-          enabled: true,
-        },
-        sr_logging_config: {
-          network: {
-            enabled: true,
-          },
-        },
-      });
-
-      // Mock the dynamic import to throw an error
-      jest.doMock('../src/observers', () => {
-        throw new Error('Import failed');
-      });
-
-      await sessionReplay.init(apiKey, mockOptions).promise;
-
-      // Call initializeNetworkObservers directly to test the catch block
-      await (sessionReplay as any).initializeNetworkObservers();
-
-      expect(mockLoggerProvider.warn).toHaveBeenCalledWith(
-        'Failed to import or instantiate NetworkObservers:',
-        expect.any(Error),
-      );
-      expect((sessionReplay as any).networkObservers).toBeUndefined();
-
-      // Clean up the mock
-      jest.dontMock('../src/observers');
     });
 
     test('should catch error and log a warn when initializing', async () => {
@@ -1089,6 +1048,8 @@ describe('SessionReplay', () => {
   });
   describe('stopRecordingEvents', () => {
     test('it should catch errors as warnings', async () => {
+      const mockUnsubscribe = jest.fn();
+      jest.spyOn(AnalyticsCore.networkObserver, 'unsubscribe').mockImplementation(mockUnsubscribe);
       await sessionReplay.init(apiKey, mockOptions).promise;
       const mockStopRecordingEvents = jest.fn().mockImplementation(() => {
         throw new Error('test error');
@@ -1998,16 +1959,8 @@ describe('SessionReplay', () => {
   describe('should call addCustomRRWebEvent with network request events', () => {
     test('should call addCustomRRWebEvent with network request events', async () => {
       // Mock the observers module before initialization
-      const mockStart = jest.fn();
-      const mockNetworkObserversClass = jest.fn().mockImplementation(() => ({
-        start: mockStart,
-        stop: jest.fn(),
-      }));
-
-      jest.doMock('../src/observers', () => ({
-        NetworkObservers: mockNetworkObserversClass,
-        NetworkRequestEvent: {} as any,
-      }));
+      const mockSubscribe = jest.fn();
+      jest.spyOn(AnalyticsCore.networkObserver, 'subscribe').mockImplementation(mockSubscribe);
 
       __setNamespaceConfig({
         sr_sampling_config: samplingConfig,
@@ -2032,18 +1985,28 @@ describe('SessionReplay', () => {
         responseHeaders: {},
         requestBody: '',
         responseBody: '',
+        startTime: Date.now(),
+        endTime: Date.now(),
+        toSerializable() {
+          return {
+            ...this,
+          };
+        },
       };
 
       await sessionReplay.recordEvents();
 
-      expect(mockStart).toHaveBeenCalled();
-      const startCallback = mockStart.mock.calls[0][0] as (event: NetworkRequestEvent) => void;
+      expect(mockSubscribe).toHaveBeenCalled();
+      const startCallback = mockSubscribe.mock.calls[0][0].callback as (event: NetworkRequestEvent) => void;
 
       startCallback(mockNetworkEvent);
 
       expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.FETCH_REQUEST, mockNetworkEvent);
 
-      jest.dontMock('../src/observers');
+      const mockUnsubscribe = jest.fn();
+      jest.spyOn(AnalyticsCore.networkObserver, 'unsubscribe').mockImplementation(mockUnsubscribe);
+      sessionReplay.shutdown();
+      expect(mockUnsubscribe).toHaveBeenCalled();
     });
   });
 
