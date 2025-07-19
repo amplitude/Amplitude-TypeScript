@@ -1,4 +1,4 @@
-import { getGlobalScope } from './global-scope';
+import { getGlobalScope } from './';
 import { UUID } from './utils/uuid';
 import { ILogger } from './logger';
 import {

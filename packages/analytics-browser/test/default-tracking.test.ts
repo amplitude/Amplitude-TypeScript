@@ -2,6 +2,7 @@ import {
   getAttributionTrackingConfig,
   getPageViewTrackingConfig,
   getElementInteractionsConfig,
+  getFrustrationInteractionsConfig,
   isAttributionTrackingEnabled,
   isFileDownloadTrackingEnabled,
   isFormInteractionTrackingEnabled,
@@ -10,7 +11,60 @@ import {
   isElementInteractionsEnabled,
   getNetworkTrackingConfig,
   isNetworkTrackingEnabled,
+  isFrustrationInteractionsEnabled,
 } from '../src/default-tracking';
+
+describe('isFrustrationInteractionsEnabled', () => {
+  test('should return false with true parameter while frustrationInteractions is Beta', () => {
+    expect(isFrustrationInteractionsEnabled(true)).toBe(false);
+  });
+
+  test('should return true with undefined parameter', () => {
+    expect(isFrustrationInteractionsEnabled(undefined)).toBe(false);
+  });
+
+  test('should return false with false parameter', () => {
+    expect(isFrustrationInteractionsEnabled(false)).toBe(false);
+  });
+
+  test('should return true with object parameter', () => {
+    expect(isFrustrationInteractionsEnabled({ frustrationInteractions: true })).toBe(true);
+  });
+
+  test('should return false with object parameter', () => {
+    expect(isFrustrationInteractionsEnabled({ frustrationInteractions: false })).toBe(false);
+  });
+
+  test('should get frustration interactions config', () => {
+    const config = getFrustrationInteractionsConfig({
+      autocapture: {
+        frustrationInteractions: {
+          deadClicks: {
+            cssSelectorAllowlist: ['button'],
+          },
+          rageClicks: {
+            cssSelectorAllowlist: ['button'],
+          },
+        },
+      },
+    });
+    expect(config).toEqual({
+      deadClicks: {
+        cssSelectorAllowlist: ['button'],
+      },
+      rageClicks: {
+        cssSelectorAllowlist: ['button'],
+      },
+    });
+  });
+
+  test('should get undefined frustration interactions config when autocapture is true', () => {
+    const config = getFrustrationInteractionsConfig({
+      autocapture: true,
+    });
+    expect(config).toBeUndefined();
+  });
+});
 
 describe('isFileDownloadTrackingEnabled', () => {
   test('should return true with true parameter', () => {

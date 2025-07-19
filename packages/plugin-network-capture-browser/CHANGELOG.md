@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.4.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.4.0...@amplitude/plugin-network-capture-browser@1.4.1) (2025-07-17)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
+# [1.4.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.3.1...@amplitude/plugin-network-capture-browser@1.4.0) (2025-07-15)
+
+
+### Bug Fixes
+
+* **analytics-browser:** prevent infinite Amplitude network requests ([#1100](https://github.com/amplitude/Amplitude-TypeScript/issues/1100)) ([fde763c](https://github.com/amplitude/Amplitude-TypeScript/commit/fde763cd4889bda41edc55789ee18186711d825e))
+
+
+### Features
+
+* **analytics-browser:** add experimental frustrationInteractions ([#1209](https://github.com/amplitude/Amplitude-TypeScript/issues/1209)) ([e321744](https://github.com/amplitude/Amplitude-TypeScript/commit/e3217444c58be15e779ff1fd54a55027c93f5db0))
+
+
+
+
+
 ## [1.3.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.3.0...@amplitude/plugin-network-capture-browser@1.3.1) (2025-07-08)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

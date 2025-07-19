@@ -1,5 +1,4 @@
-import { NodeOptions, NodeConfig as INodeConfig } from '@amplitude/analytics-types';
-import { Config } from '@amplitude/analytics-core';
+import { Config, NodeOptions, NodeConfig as INodeConfig } from '@amplitude/analytics-core';
 import { Http } from './transports/http';
 
 export class NodeConfig extends Config implements INodeConfig {

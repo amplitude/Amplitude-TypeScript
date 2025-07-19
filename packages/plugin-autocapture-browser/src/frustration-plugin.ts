@@ -24,7 +24,7 @@ import { createClickObservable, createMutationObservable } from './observables';
 
 type BrowserEnrichmentPlugin = EnrichmentPlugin<BrowserClient, BrowserConfig>;
 
-export const frustrationPlugin = (options: FrustrationInteractionsOptions): BrowserEnrichmentPlugin => {
+export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}): BrowserEnrichmentPlugin => {
   const name = constants.FRUSTRATION_PLUGIN_NAME;
   const type = 'enrichment';
 

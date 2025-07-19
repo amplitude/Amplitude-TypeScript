@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.7.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.7.0...@amplitude/plugin-autocapture-browser@1.7.1) (2025-07-17)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+# [1.7.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.6.1...@amplitude/plugin-autocapture-browser@1.7.0) (2025-07-15)
+
+
+### Features
+
+* **analytics-browser:** add experimental frustrationInteractions ([#1209](https://github.com/amplitude/Amplitude-TypeScript/issues/1209)) ([e321744](https://github.com/amplitude/Amplitude-TypeScript/commit/e3217444c58be15e779ff1fd54a55027c93f5db0))
+
+
+
+
+
+## [1.6.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.6.0...@amplitude/plugin-autocapture-browser@1.6.1) (2025-07-11)
+
+
+### Bug Fixes
+
+* use sliding window to capture rage clicks ([#1202](https://github.com/amplitude/Amplitude-TypeScript/issues/1202)) ([b80f09e](https://github.com/amplitude/Amplitude-TypeScript/commit/b80f09e5ed9a92a7f7d26bd6761c0cd11f306ec3))
+
+
+
+
+
 # [1.6.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.5.0...@amplitude/plugin-autocapture-browser@1.6.0) (2025-07-08)
 
 

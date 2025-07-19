@@ -5,8 +5,10 @@ import {
   debugWrapper,
   getClientLogConfig,
   getClientStates,
+  NodeClient,
+  NodeConfig,
+  NodeOptions,
 } from '@amplitude/analytics-core';
-import { NodeClient, NodeConfig, NodeOptions } from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useNodeConfig } from './config';
 

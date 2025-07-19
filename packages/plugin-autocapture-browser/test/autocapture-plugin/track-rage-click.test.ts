@@ -4,7 +4,7 @@
 
 import { Subject } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
-import { _overrideRageClickConfig, trackRageClicks } from '../../src/autocapture/track-rage-click';
+import { trackRageClicks } from '../../src/autocapture/track-rage-click';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../../src/constants';
 import { AllWindowObservables, ObservablesEnum } from '../../src/autocapture-plugin';
 
@@ -13,11 +13,6 @@ describe('trackRageClicks', () => {
   let clickObservable: Subject<any>;
   let allObservables: AllWindowObservables;
   let shouldTrackRageClick: jest.Mock;
-
-  beforeAll(() => {
-    // reduce the rage click window to 5ms to speed up the test
-    _overrideRageClickConfig(5, 5);
-  });
 
   beforeEach(() => {
     mockAmplitude = {
@@ -67,7 +62,7 @@ describe('trackRageClicks', () => {
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
         expect.objectContaining({
-          '[Amplitude] Click Count': 5,
+          '[Amplitude] Click Count': 4,
           '[Amplitude] Clicks': expect.arrayContaining([
             expect.objectContaining({
               X: 100,
@@ -83,6 +78,49 @@ describe('trackRageClicks', () => {
     }, 100); // Wait slightly longer than the buffer window
   });
 
+  it('should track if 6 clicks but first click is outside the rage click window', (done) => {
+    const subscription = trackRageClicks({
+      amplitude: mockAmplitude,
+      allObservables,
+      shouldTrackRageClick,
+    });
+
+    // Create a mock element
+    const mockElement = document.createElement('div');
+
+    // Simulate 6 clicks
+    const startTime = Date.now();
+    clickObservable.next({
+      event: {
+        target: mockElement,
+        clientX: 100,
+        clientY: 100,
+      },
+      timestamp: startTime,
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+    });
+    const rageClickWindow = 1000;
+    for (let i = 0; i < 4; i++) {
+      clickObservable.next({
+        event: {
+          target: mockElement,
+          clientX: 100,
+          clientY: 100,
+        },
+        timestamp: startTime + (rageClickWindow - 200) + i * 100,
+        closestTrackedAncestor: mockElement,
+        targetElementProperties: { id: 'test-element' },
+      });
+    }
+
+    setTimeout(() => {
+      expect(mockAmplitude.track).toHaveBeenCalledTimes(1);
+      subscription.unsubscribe();
+      done();
+    }, 100);
+  });
+
   it('should not track when clicks are below threshold', (done) => {
     const subscription = trackRageClicks({
       amplitude: mockAmplitude,
@@ -93,8 +131,8 @@ describe('trackRageClicks', () => {
     // Create a mock element
     const mockElement = document.createElement('div');
 
-    // Simulate only 4 clicks (below threshold)
-    for (let i = 0; i < 4; i++) {
+    // Simulate only 3 clicks (below threshold)
+    for (let i = 0; i < 3; i++) {
       clickObservable.next({
         event: {
           target: mockElement,
@@ -146,7 +184,7 @@ describe('trackRageClicks', () => {
     }, 100);
   });
 
-  it('should not track div elements', (done) => {
+  it('should not track untracked elements', (done) => {
     shouldTrackRageClick.mockReturnValue(false);
 
     const subscription = trackRageClicks({

@@ -1,9 +1,8 @@
-import { BeforePlugin, NodeConfig, Event } from '@amplitude/analytics-types';
-import { UUID } from '@amplitude/analytics-core';
+import { UUID, BeforePlugin, NodeConfig, Event } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
 
 export class Context implements BeforePlugin {
-  name = '@amplitude/plugin-context-node';
+  name = 'context';
   type = 'before' as const;
 
   // this.config is defined in setup() which will always be called first

@@ -7,6 +7,7 @@ import {
   AutocaptureOptions,
   AttributionOptions,
   NetworkTrackingOptions,
+  FrustrationInteractionsOptions,
 } from '@amplitude/analytics-core';
 
 /**
@@ -91,6 +92,41 @@ export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | b
   return false;
 };
 
+/**
+ * Returns true if
+ * 1. autocapture === true
+ * 2. if autocapture.webVitals === true
+ * otherwise returns false
+ */
+export const isWebVitalsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  // TODO restore this if statement when webVitals is GA
+  // if (typeof autocapture === 'boolean') {
+  //   return autocapture;
+  // }
+
+  if (typeof autocapture === 'object' && autocapture.webVitals === true) {
+    return true;
+  }
+
+  return false;
+};
+
+export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  // TODO restore this if statement when frustrationInteractions is GA
+  // if (typeof autocapture === 'boolean') {
+  //   return autocapture;
+  // }
+
+  if (
+    typeof autocapture === 'object' &&
+    (autocapture.frustrationInteractions === true || typeof autocapture.frustrationInteractions === 'object')
+  ) {
+    return true;
+  }
+
+  return false;
+};
+
 export const getElementInteractionsConfig = (config: BrowserOptions): ElementInteractionsOptions | undefined => {
   if (
     isElementInteractionsEnabled(config.autocapture) &&
@@ -98,6 +134,19 @@ export const getElementInteractionsConfig = (config: BrowserOptions): ElementInt
     typeof config.autocapture.elementInteractions === 'object'
   ) {
     return config.autocapture.elementInteractions;
+  }
+  return undefined;
+};
+
+export const getFrustrationInteractionsConfig = (
+  config: BrowserOptions,
+): FrustrationInteractionsOptions | undefined => {
+  if (
+    isFrustrationInteractionsEnabled(config.autocapture) &&
+    typeof config.autocapture === 'object' &&
+    typeof config.autocapture.frustrationInteractions === 'object'
+  ) {
+    return config.autocapture.frustrationInteractions;
   }
   return undefined;
 };

@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.1.0-beta.11](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.10...@amplitude/plugin-web-vitals-browser@0.1.0-beta.11) (2025-07-17)
+
+
+### Features
+
+* **analytics-browser:** support autocapture.webVitals ([#1195](https://github.com/amplitude/Amplitude-TypeScript/issues/1195)) ([a186f52](https://github.com/amplitude/Amplitude-TypeScript/commit/a186f523a28d8a322842566b892f50bcf2643142))
+
+
+
+
+
+# [0.1.0-beta.10](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.9...@amplitude/plugin-web-vitals-browser@0.1.0-beta.10) (2025-07-15)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
+# [0.1.0-beta.9](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.8...@amplitude/plugin-web-vitals-browser@0.1.0-beta.9) (2025-07-11)
+
+**Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
+
+
+
+
+
 # [0.1.0-beta.8](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-web-vitals-browser@0.1.0-beta.7...@amplitude/plugin-web-vitals-browser@0.1.0-beta.8) (2025-07-08)
 
 **Note:** Version bump only for package @amplitude/plugin-web-vitals-browser
