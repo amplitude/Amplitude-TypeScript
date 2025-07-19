@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@amplitude/analytics-core": "^2.18.0",
+    "@amplitude/analytics-remote-config": "^0.6.3",
     "rxjs": "^7.8.1",
     "tslib": "^2.4.1"
   },
