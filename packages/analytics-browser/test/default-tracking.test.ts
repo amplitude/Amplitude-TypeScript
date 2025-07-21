@@ -12,7 +12,6 @@ import {
   getNetworkTrackingConfig,
   isNetworkTrackingEnabled,
   isFrustrationInteractionsEnabled,
-  isPageUrlEnrichmentEnabled,
 } from '../src/default-tracking';
 
 describe('isFrustrationInteractionsEnabled', () => {
@@ -306,44 +305,6 @@ describe('isElementInteractionsEnabled', () => {
     expect(
       isElementInteractionsEnabled({
         elementInteractions: undefined,
-      }),
-    ).toBe(false);
-  });
-});
-
-describe('isPageUrlEnrichmentEnabled', () => {
-  test('should return true with true parameter', () => {
-    expect(isPageUrlEnrichmentEnabled(true)).toBe(true);
-  });
-
-  test('should return false with undefined parameter', () => {
-    expect(isPageUrlEnrichmentEnabled(undefined)).toBe(false);
-  });
-
-  test('should return false with false parameter', () => {
-    expect(isPageUrlEnrichmentEnabled(false)).toBe(false);
-  });
-
-  test('should return true with object parameter set to true', () => {
-    expect(
-      isPageUrlEnrichmentEnabled({
-        pageUrlEnrichment: true,
-      }),
-    ).toBe(true);
-  });
-
-  test('should return false with object parameter set to false', () => {
-    expect(
-      isPageUrlEnrichmentEnabled({
-        pageUrlEnrichment: false,
-      }),
-    ).toBe(false);
-  });
-
-  test('should return false with object parameter undefined', () => {
-    expect(
-      isPageUrlEnrichmentEnabled({
-        pageUrlEnrichment: undefined,
       }),
     ).toBe(false);
   });
