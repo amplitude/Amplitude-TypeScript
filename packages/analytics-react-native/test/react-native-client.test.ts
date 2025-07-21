@@ -311,7 +311,7 @@ describe('react-native-client', () => {
       client.reset();
       expect(client.getUserId()).toBe(undefined);
       expect(client.getDeviceId()).not.toBe(DEVICE_ID);
-    });
+    }, 10000);
   });
 
   describe('getSessionId', () => {

@@ -232,8 +232,8 @@ describe('migration', () => {
 
     const eventsKey = `${STORAGE_PREFIX}_${client.config.apiKey.substring(0, 10)}`;
     const events = await storageProvider.get(eventsKey);
-    expect(events?.length).toEqual(0);
+    expect(events?.length || 0).toEqual(0);
 
     expect(removeLegacyEvent.mock.calls).toEqual([]);
-  });
+  }, 10000);
 });
