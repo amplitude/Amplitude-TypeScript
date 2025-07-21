@@ -1,13 +1,18 @@
 import {
+  Config,
+  MemoryStorage,
+  UUID,
+  ReactNativeConfig as IReactNativeConfig,
+  ReactNativeTrackingOptions,
   Event,
   ReactNativeOptions,
-  ReactNativeConfig as IReactNativeConfig,
   Storage,
-  ReactNativeTrackingOptions,
   UserSession,
-} from '@amplitude/analytics-types';
-import { Config, MemoryStorage, UUID } from '@amplitude/analytics-core';
-import { CookieStorage, getCookieName, getQueryParams, FetchTransport } from '@amplitude/analytics-client-common';
+  CookieStorage,
+  getCookieName,
+  getQueryParams,
+  FetchTransport,
+} from '@amplitude/analytics-core';
 
 import { LocalStorage } from './storage/local-storage';
 import RemnantDataMigration from './migration/remnant-data-migration';

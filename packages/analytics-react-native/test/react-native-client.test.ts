@@ -1,7 +1,7 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
 import * as CookieMigration from '../src/cookie-migration';
-import { Status, UserSession, Event } from '@amplitude/analytics-types';
+import { Status, UserSession, Event } from '@amplitude/analytics-core';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAnalyticsConnector } from '@amplitude/analytics-client-common';

@@ -1,6 +1,6 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
-import { Status, UserSession, Event } from '@amplitude/analytics-types';
+import { Status, UserSession, Event } from '@amplitude/analytics-core';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

@@ -7,6 +7,15 @@ import {
   debugWrapper,
   getClientLogConfig,
   getClientStates,
+  ReactNativeConfig,
+  ReactNativeOptions,
+  ReactNativeAttributionOptions as AttributionOptions,
+  IIdentify,
+  EventOptions,
+  Event,
+  Result,
+  ReactNativeClient,
+  Campaign,
 } from '@amplitude/analytics-core';
 import {
   CampaignTracker,
@@ -15,17 +24,6 @@ import {
   setConnectorDeviceId,
   setConnectorUserId,
 } from '@amplitude/analytics-client-common';
-import {
-  ReactNativeConfig,
-  Campaign,
-  ReactNativeOptions,
-  AttributionOptions,
-  ReactNativeClient,
-  Identify as IIdentify,
-  EventOptions,
-  Event,
-  Result,
-} from '@amplitude/analytics-types';
 import { Context } from './plugins/context';
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';

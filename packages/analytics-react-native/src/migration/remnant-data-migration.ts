@@ -1,5 +1,5 @@
 import { NativeModules } from 'react-native';
-import { Event, Logger, Storage, UserSession } from '@amplitude/analytics-types';
+import { Event, ILogger, Storage, UserSession } from '@amplitude/analytics-core';
 import { STORAGE_PREFIX } from '@amplitude/analytics-core';
 
 type LegacyEventKind = 'event' | 'identify' | 'interceptedIdentify';
@@ -19,7 +19,7 @@ export default class RemnantDataMigration {
     private instanceName: string | undefined,
     private storage: Storage<Event[]> | undefined,
     private firstRunSinceUpgrade: boolean,
-    private logger: Logger | undefined,
+    private logger: ILogger | undefined,
   ) {
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     this.eventsStorageKey = `${STORAGE_PREFIX}_${this.apiKey.substring(0, 10)}`;
