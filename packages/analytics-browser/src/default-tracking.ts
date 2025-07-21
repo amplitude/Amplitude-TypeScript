@@ -70,18 +70,6 @@ export const isNetworkTrackingEnabled = (autocapture: AutocaptureOptions | boole
   return false;
 };
 
-export const isPageUrlEnrichmentEnabled = (autocapture: AutocaptureOptions | boolean | undefined) => {
-  if (typeof autocapture === 'boolean') {
-    return autocapture;
-  }
-
-  if (typeof autocapture === 'object' && autocapture.pageUrlEnrichment === true) {
-    return true;
-  }
-
-  return false;
-};
-
 /**
  * Returns true if
  * 1. autocapture === true

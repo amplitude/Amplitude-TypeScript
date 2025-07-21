@@ -156,14 +156,23 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
 
         event.event_properties = {
           ...(event.event_properties || {}),
-          '[Amplitude] Page Domain':
-            /* istanbul ignore next */ (typeof location !== 'undefined' && location.hostname) || '',
-          '[Amplitude] Page Location': locationHREF,
-          '[Amplitude] Page Path':
-            /* istanbul ignore next */ (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
-          '[Amplitude] Page Title':
-            /* istanbul ignore next */ (typeof document !== 'undefined' && document.title) || '',
-          '[Amplitude] Page URL': locationHREF.split('?')[0],
+          '[Amplitude] Page Domain': addIfNotExist(
+            event,
+            '[Amplitude] Page Domain',
+            (typeof location !== 'undefined' && location.hostname) || '',
+          ),
+          '[Amplitude] Page Location': addIfNotExist(event, '[Amplitude] Page Location', locationHREF),
+          '[Amplitude] Page Path': addIfNotExist(
+            event,
+            '[Amplitude] Page Path',
+            (typeof location !== 'undefined' && getDecodeURI(location.pathname)) || '',
+          ),
+          '[Amplitude] Page Title': addIfNotExist(
+            event,
+            '[Amplitude] Page Title',
+            (typeof document !== 'undefined' && document.title) || '',
+          ),
+          '[Amplitude] Page URL': addIfNotExist(event, '[Amplitude] Page URL', locationHREF.split('?')[0]),
           '[Amplitude] Previous Page Location': previousPage,
           '[Amplitude] Previous Page Type': getPrevPageType(previousPage),
         };
@@ -186,3 +195,15 @@ export const pageUrlEnrichmentPlugin = (): EnrichmentPlugin => {
 
   return plugin;
 };
+
+function addIfNotExist(event: Event, key: string, value: string): string {
+  if (!event.event_properties) {
+    event.event_properties = {};
+  }
+
+  if ((event.event_properties as { [key: string]: any })[key] === undefined) {
+    return value;
+  }
+
+  return (event.event_properties as { [key: string]: any })[key] as string;
+}

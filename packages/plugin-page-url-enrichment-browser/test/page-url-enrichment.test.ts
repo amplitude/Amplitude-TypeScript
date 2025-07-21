@@ -417,6 +417,37 @@ describe('pageUrlEnrichmentPlugin', () => {
         }),
       );
     });
+
+    test('should not add properties if they already exist', async () => {
+      await plugin.setup?.(mockConfig, mockAmplitude);
+
+      const firstUrl = new URL('https://www.example.com/home');
+      mockWindowLocationFromURL(firstUrl);
+      window.history.pushState(undefined, firstUrl.href);
+      // block event loop so that the sessionStorage is updated since pushState is async
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const event = await plugin.execute?.({
+        event_type: 'test_event',
+        event_properties: {
+          '[Amplitude] Page Domain': 'www.existingexample.com',
+          '[Amplitude] Page Location': 'https://www.existingexample.com/about?test=param',
+          '[Amplitude] Page Path': '/existingexample',
+          '[Amplitude] Page Title': 'Existing Example',
+          '[Amplitude] Page URL': 'https://www.existingexample.com/about',
+        },
+      });
+
+      expect(event?.event_properties).toStrictEqual({
+        '[Amplitude] Page Domain': 'www.existingexample.com',
+        '[Amplitude] Page Location': 'https://www.existingexample.com/about?test=param',
+        '[Amplitude] Page Path': '/existingexample',
+        '[Amplitude] Page Title': 'Existing Example',
+        '[Amplitude] Page URL': 'https://www.existingexample.com/about',
+        '[Amplitude] Previous Page Location': '',
+        '[Amplitude] Previous Page Type': 'direct',
+      });
+    });
   });
 
   describe('teardown', () => {
