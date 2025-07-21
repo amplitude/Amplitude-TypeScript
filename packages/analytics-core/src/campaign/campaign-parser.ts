@@ -1,4 +1,4 @@
-import { getQueryParams } from '@amplitude/analytics-core';
+import { getQueryParams } from '../query-params';
 import {
   UTM_CAMPAIGN,
   UTM_CONTENT,
@@ -18,14 +18,8 @@ import {
   GBRAID,
   WBRAID,
   UTM_ID,
-} from './constants';
-import {
-  Campaign,
-  CampaignParser as ICampaignParser,
-  ClickIdParameters,
-  ReferrerParameters,
-  UTMParameters,
-} from './campaign';
+} from '../types/constants';
+import { Campaign, ICampaignParser, ClickIdParameters, ReferrerParameters, UTMParameters } from '../types/campaign';
 
 export class CampaignParser implements ICampaignParser {
   async parse(): Promise<Campaign> {

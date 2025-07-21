@@ -65,7 +65,9 @@ export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
 
 // Campaign
-export { Campaign } from './types/campaign';
+export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
+export { EMPTY_VALUE, BASE_CAMPAIGN, MKTG } from './types/constants';
+export { CampaignParser } from './campaign/campaign-parser';
 
 // Browser
 export {
