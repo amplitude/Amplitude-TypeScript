@@ -41,7 +41,7 @@ export const frustrationPlugin = (options: FrustrationInteractionsOptions = {}):
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
     // Create Observables from direct user events
-    const clickObservable = createClickObservable().pipe(
+    const clickObservable = createClickObservable('pointerdown').pipe(
       map((click) => {
         return addAdditionalEventProperties(
           click,
