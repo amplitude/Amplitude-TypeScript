@@ -1,5 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-core';
-import { BrowserStorage } from './browser-storage';
+import { getGlobalScope, BrowserStorage } from '@amplitude/analytics-core';
 
 export class SessionStorage<T> extends BrowserStorage<T> {
   constructor() {
