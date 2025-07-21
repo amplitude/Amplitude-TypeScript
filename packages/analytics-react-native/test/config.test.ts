@@ -1,9 +1,8 @@
 import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, UserSession } from '@amplitude/analytics-core';
-import * as BrowserUtils from '@amplitude/analytics-client-common';
-import { getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
+import { LogLevel, Storage, UserSession, getCookieName, FetchTransport } from '@amplitude/analytics-core';
+import * as BrowserUtils from '@amplitude/analytics-core';
 import { isWeb } from '../src/utils/platform';
 import { uuidPattern } from './helpers/constants';
 
@@ -62,6 +61,8 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
         trackingSessionEvents: false,
+        offline: false,
+        storageProvider: undefined,
       });
     });
   });
@@ -116,6 +117,7 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
         trackingSessionEvents: false,
+        offline: false,
       });
     });
 
@@ -198,6 +200,7 @@ describe('config', () => {
         transportProvider: new FetchTransport(),
         useBatch: false,
         _userId: 'userIdFromCookies',
+        offline: false,
       });
     });
   });

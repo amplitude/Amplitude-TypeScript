@@ -1,12 +1,16 @@
 import { AmplitudeReactNative } from '../src/react-native-client';
 import * as core from '@amplitude/analytics-core';
 import * as CookieMigration from '../src/cookie-migration';
-import { Status, UserSession, Event } from '@amplitude/analytics-core';
+import {
+  Status,
+  UserSession,
+  Event,
+  getAnalyticsConnector,
+  getCookieName as getStorageKey,
+} from '@amplitude/analytics-core';
 import { isWeb } from '../src/utils/platform';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAnalyticsConnector } from '@amplitude/analytics-client-common';
 import * as Config from '../src/config';
-import { getCookieName as getStorageKey } from '@amplitude/analytics-client-common/src';
 
 describe('react-native-client', () => {
   const API_KEY = 'API_KEY';

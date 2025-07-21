@@ -1,5 +1,4 @@
-import { getGlobalScope } from '@amplitude/analytics-client-common';
-import { Storage } from '@amplitude/analytics-core';
+import { Storage, getGlobalScope } from '@amplitude/analytics-core';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export class LocalStorage<T> implements Storage<T> {

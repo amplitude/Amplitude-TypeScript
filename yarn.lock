@@ -2,17 +2,7 @@
 # yarn lockfile v1
 
 
-"@amplitude/analytics-client-common@^1.2.6":
-  version "1.2.6"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-client-common/-/analytics-client-common-1.2.6.tgz#a9808303112f431563c744c61ac62091566fef0d"
-  integrity sha512-xuZuppJs01/Owli8IX4KAabuKBcswhFPWMYcLaTRBRSr4wgioVjrVihT3jKsAqvUeFDvJQEcxvdOkz/Xpp7o2A==
-  dependencies:
-    "@amplitude/analytics-connector" "^1.5.0"
-    "@amplitude/analytics-core" "^1.2.8"
-    "@amplitude/analytics-types" "^1.4.0"
-    tslib "^2.4.1"
-
-"@amplitude/analytics-connector@^1.4.8", "@amplitude/analytics-connector@^1.5.0", "@amplitude/analytics-connector@^1.6.4":
+"@amplitude/analytics-connector@^1.4.8", "@amplitude/analytics-connector@^1.6.4":
   version "1.6.4"
   resolved "https://registry.npmjs.org/@amplitude/analytics-connector/-/analytics-connector-1.6.4.tgz"
   integrity sha512-SpIv0IQMNIq6SH3UqFGiaZyGSc7PBZwRdq7lvP0pBxW8i4Ny+8zwI0pV+VMfMHQwWY3wdIbWw5WQphNjpdq1/Q==
@@ -23,14 +13,6 @@
   integrity sha512-SM9jdQ+l2q+hy+DdCQm5vtfOTiI+53c+alSSc7fwiuFnTExllXHf9RUK6kKhw3ky+N2o6yqbo+0OGoepLhNf6w==
   dependencies:
     "@amplitude/analytics-types" "^1.3.5"
-    tslib "^2.4.1"
-
-"@amplitude/analytics-core@^1.2.8":
-  version "1.2.8"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-core/-/analytics-core-1.2.8.tgz#eb454effa04d144458035c0db5290d0e13e49b83"
-  integrity sha512-Krxpr5uvS3HmmjvpYqPfbMbs2kcZZu09L+6KwQnPiofWRzoXWIM217fRfy6aSD/QrAoPGbZjvtVitw9cB7Cx+A==
-  dependencies:
-    "@amplitude/analytics-types" "^1.4.0"
     tslib "^2.4.1"
 
 "@amplitude/analytics-remote-config@^0.4.0":
@@ -47,11 +29,6 @@
   version "1.3.5"
   resolved "https://registry.npmjs.org/@amplitude/analytics-types/-/analytics-types-1.3.5.tgz"
   integrity sha512-IpncCNTZZ6VoGe4fNwTTZtpi+ZNm3mtsocdbCHtIwmKg2wmOF2E09CAwvyF7mK5aRlMIrSAKQyR3GwraATghSw==
-
-"@amplitude/analytics-types@^1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@amplitude/analytics-types/-/analytics-types-1.4.0.tgz#63f84e5ea5e26beeb06745732063e3787194f0d2"
-  integrity sha512-RiMPHBqdrJ8ktTqG+Wzj2htnN/PCG9jGZG0SXtTFnWwVvcAJYbYm55/nrP1TTyrx1OlLhvF2VG3lVUP/xGAU8w==
 
 "@amplitude/experiment-core@^0.11.0":
   version "0.11.0"

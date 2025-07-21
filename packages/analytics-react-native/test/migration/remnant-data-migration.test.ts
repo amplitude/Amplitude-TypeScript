@@ -1,8 +1,13 @@
 import { NativeModules } from 'react-native';
 import { AmplitudeReactNative } from '../../src/react-native-client';
 import { Logger, MemoryStorage } from '@amplitude/analytics-core';
-import { Event, LogLevel, UserSession, STORAGE_PREFIX } from '@amplitude/analytics-core';
-import { getCookieName as getStorageKey } from '@amplitude/analytics-client-common/src';
+import {
+  Event,
+  LogLevel,
+  UserSession,
+  STORAGE_PREFIX,
+  getCookieName as getStorageKey,
+} from '@amplitude/analytics-core';
 
 describe('migration', () => {
   const deviceId = '22833898-c487-4536-b213-40f207abdce0R';

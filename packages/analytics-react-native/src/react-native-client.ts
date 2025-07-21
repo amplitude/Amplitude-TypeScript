@@ -16,14 +16,12 @@ import {
   Result,
   ReactNativeClient,
   Campaign,
-} from '@amplitude/analytics-core';
-import {
-  CampaignTracker,
   IdentityEventSender,
   getAnalyticsConnector,
   setConnectorDeviceId,
   setConnectorUserId,
-} from '@amplitude/analytics-client-common';
+} from '@amplitude/analytics-core';
+import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
 import { useReactNativeConfig, createCookieStorage } from './config';
 import { parseOldCookies } from './cookie-migration';
