@@ -34,7 +34,7 @@ export interface AmplitudeReactNative {
 }
 
 export class Context implements BeforePlugin {
-  name = 'context';
+  name = '@amplitude/plugin-context-react-native';
   type = 'before' as const;
 
   // this.config is defined in setup() which will always be called first
