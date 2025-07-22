@@ -1,5 +1,4 @@
-import { ReactNativeOptions, UserSession } from '@amplitude/analytics-types';
-import { getOldCookieName } from '@amplitude/analytics-client-common';
+import { UserSession, ReactNativeOptions, getOldCookieName } from '@amplitude/analytics-core';
 import { createCookieStorage, getDefaultConfig, getTopLevelDomain } from '../config';
 
 export const parseOldCookies = async (apiKey: string, options?: ReactNativeOptions): Promise<UserSession> => {

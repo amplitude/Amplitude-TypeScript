@@ -1,7 +1,12 @@
-import { BeforePlugin, ReactNativeConfig, Event, ReactNativeTrackingOptions } from '@amplitude/analytics-types';
+import {
+  BeforePlugin,
+  ReactNativeConfig,
+  Event,
+  ReactNativeTrackingOptions,
+  UUID,
+  getLanguage,
+} from '@amplitude/analytics-core';
 import UAParser from '@amplitude/ua-parser-js';
-import { UUID } from '@amplitude/analytics-core';
-import { getLanguage } from '@amplitude/analytics-client-common';
 import { VERSION } from '../version';
 import { NativeModules } from 'react-native';
 
@@ -12,6 +17,7 @@ type NativeContext = {
   version: string;
   platform: string;
   language: string;
+  country: string;
   osName: string;
   osVersion: string;
   deviceBrand: string;
@@ -47,6 +53,7 @@ export class Context implements BeforePlugin {
     if (typeof navigator !== 'undefined') {
       agent = navigator.userAgent;
     }
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     this.uaResult = new UAParser(agent).getResult();
   }
 
@@ -58,13 +65,18 @@ export class Context implements BeforePlugin {
   async execute(context: Event): Promise<Event> {
     const time = new Date().getTime();
     const nativeContext = await this.nativeModule?.getApplicationContext(this.config.trackingOptions);
-    const appVersion = nativeContext?.version || this.config.appVersion;
+    const appVersion = this.config.appVersion || nativeContext?.version;
     const platform = nativeContext?.platform || BROWSER_PLATFORM;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     const osName = nativeContext?.osName || this.uaResult.browser.name;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     const osVersion = nativeContext?.osVersion || this.uaResult.browser.version;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     const deviceVendor = nativeContext?.deviceManufacturer || this.uaResult.device.vendor;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
     const deviceModel = nativeContext?.deviceModel || this.uaResult.device.model || this.uaResult.os.name;
     const language = nativeContext?.language || getLanguage();
+    const country = nativeContext?.country;
     const carrier = nativeContext?.carrier;
     const adid = nativeContext?.adid;
     const appSetId = nativeContext?.appSetId;
@@ -75,13 +87,19 @@ export class Context implements BeforePlugin {
       device_id: this.config.deviceId,
       session_id: this.config.sessionId,
       time,
-      ...(this.config.appVersion && { app_version: appVersion }),
+      ...(appVersion && { app_version: appVersion }),
       ...(this.config.trackingOptions.platform && { platform: platform }),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       ...(this.config.trackingOptions.osName && { os_name: osName }),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       ...(this.config.trackingOptions.osVersion && { os_version: osVersion }),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       ...(this.config.trackingOptions.deviceManufacturer && { device_manufacturer: deviceVendor }),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       ...(this.config.trackingOptions.deviceModel && { device_model: deviceModel }),
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       ...(this.config.trackingOptions.language && { language: language }),
+      ...(this.config.trackingOptions.country && { country: country }),
       ...(this.config.trackingOptions.carrier && { carrier: carrier }),
       ...(this.config.trackingOptions.ipAddress && { ip: IP_ADDRESS }),
       ...(this.config.trackingOptions.adid && { adid: adid }),

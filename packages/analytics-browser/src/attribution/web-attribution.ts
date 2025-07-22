@@ -1,8 +1,14 @@
-import { BrowserConfig, ILogger, Storage, getStorageKey, isNewSession } from '@amplitude/analytics-core';
-import { Campaign } from './campaign';
+import {
+  BrowserConfig,
+  ILogger,
+  Storage,
+  getStorageKey,
+  isNewSession,
+  Campaign,
+  BASE_CAMPAIGN,
+  CampaignParser,
+} from '@amplitude/analytics-core';
 import { Options, getDefaultExcludedReferrers, createCampaignEvent, isNewCampaign } from './helpers';
-import { CampaignParser } from './campaign-parser';
-import { BASE_CAMPAIGN } from './constants';
 
 export class WebAttribution {
   options: Options;

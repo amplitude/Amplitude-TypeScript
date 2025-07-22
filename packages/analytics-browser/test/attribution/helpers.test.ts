@@ -1,4 +1,3 @@
-import { BASE_CAMPAIGN } from '../../src/attribution/constants';
 import {
   isNewCampaign,
   createCampaignEvent,
@@ -6,7 +5,7 @@ import {
   isExcludedReferrer,
 } from '../../src/attribution/helpers';
 
-import { getStorageKey } from '@amplitude/analytics-core';
+import { getStorageKey, BASE_CAMPAIGN } from '@amplitude/analytics-core';
 
 const loggerProvider = {
   log: jest.fn(),
