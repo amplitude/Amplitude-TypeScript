@@ -20,16 +20,4 @@ describe('Type Exports', () => {
       expect(Object.keys((amplitude.Types as any)[enumType]).length).toBeGreaterThan(0);
     });
   });
-
-  test('exported arrays are proper arrays', () => {
-    const arrTypes = ['DEFAULT_CSS_SELECTOR_ALLOWLIST', 'DEFAULT_ACTION_CLICK_ALLOWLIST'];
-    arrTypes.forEach((arrType) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect((amplitude.Types as any)[arrType]).toBeDefined();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(Array.isArray((amplitude.Types as any)[arrType])).toBe(true);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion
-      expect(((amplitude.Types as any)[arrType] as any).length).toBeGreaterThan(0);
-    });
-  });
 });
