@@ -1980,10 +1980,13 @@ describe('SessionReplay', () => {
       };
       sessionReplay.sessionTargetingMatch = true;
 
+      // Reset the decision to ensure we start fresh
+      (sessionReplay as any).lastShouldRecordDecision = undefined;
+
       // Spy on addCustomRRWebEvent
       const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
 
-      // Call getShouldRecord
+      // Call getShouldRecord first time - should fire event
       sessionReplay.getShouldRecord();
 
       // Verify the targeting decision event was sent
@@ -1994,6 +1997,66 @@ describe('SessionReplay', () => {
           sessionId: 123,
           matched: true,
           targetingParams: targetingParams,
+        }),
+      );
+
+      // Clear the spy and call again - should NOT fire event since decision hasn't changed
+      addCustomRRWebEventSpy.mockClear();
+      sessionReplay.getShouldRecord();
+
+      // Should not have been called again
+      expect(addCustomRRWebEventSpy).not.toHaveBeenCalledWith(CustomRRwebEvent.TARGETING_DECISION, expect.anything());
+
+      // Change the targeting match and call again - should fire event
+      sessionReplay.sessionTargetingMatch = false;
+      sessionReplay.getShouldRecord();
+
+      // Should have been called with the new decision
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(
+        CustomRRwebEvent.TARGETING_DECISION,
+        expect.objectContaining({
+          message: expect.stringContaining('Not capturing replays for session'),
+          sessionId: 123,
+          matched: false,
+          targetingParams: targetingParams,
+        }),
+      );
+    });
+
+    test('should reset targeting decision when session ID changes', async () => {
+      await sessionReplay.init(apiKey, mockOptions).promise;
+
+      // Set up targeting config
+      sessionReplay.config!.targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+      sessionReplay.sessionTargetingMatch = true;
+
+      // Ensure we start fresh
+      (sessionReplay as any).lastShouldRecordDecision = undefined;
+
+      // Spy on addCustomRRWebEvent
+      const addCustomRRWebEventSpy = jest.spyOn(sessionReplay, 'addCustomRRWebEvent');
+
+      // Call getShouldRecord to establish initial decision
+      sessionReplay.getShouldRecord();
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(CustomRRwebEvent.TARGETING_DECISION, expect.anything());
+
+      // Clear the spy
+      addCustomRRWebEventSpy.mockClear();
+
+      // Change session ID - this should reset the targeting decision
+      await sessionReplay.setSessionId(456).promise;
+
+      // Call getShouldRecord again - should fire event for new session
+      sessionReplay.getShouldRecord();
+
+      expect(addCustomRRWebEventSpy).toHaveBeenCalledWith(
+        CustomRRwebEvent.TARGETING_DECISION,
+        expect.objectContaining({
+          sessionId: 456,
         }),
       );
     });
@@ -2517,7 +2580,7 @@ describe('SessionReplay', () => {
     });
   });
 
-  describe('getShouldRecord - targeting scenarios', () => {
+  describe('targeting decision events', () => {
     test('should return false when targetingConfig exists but sessionTargetingMatch is false', async () => {
       await sessionReplay.init(apiKey, mockOptions).promise;
 

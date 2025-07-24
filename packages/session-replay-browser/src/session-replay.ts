@@ -68,6 +68,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
   eventCompressor: EventCompressor | undefined;
   sessionTargetingMatch = false;
   private lastTargetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
+  private lastShouldRecordDecision?: boolean;
 
   // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
@@ -205,6 +206,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     options?: { userProperties?: { [key: string]: any } },
   ) {
     this.sessionTargetingMatch = false;
+    this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
 
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
@@ -412,13 +414,16 @@ export class SessionReplay implements AmplitudeSessionReplay {
       }
     }
 
-    // Send custom rrweb event for targeting decision
-    void this.addCustomRRWebEvent(CustomRRwebEvent.TARGETING_DECISION, {
-      message,
-      sessionId: this.identifiers.sessionId,
-      matched,
-      targetingParams: this.lastTargetingParams,
-    });
+    // Only send custom rrweb event for targeting decision when the decision changes
+    if (this.lastShouldRecordDecision !== shouldRecord) {
+      void this.addCustomRRWebEvent(CustomRRwebEvent.TARGETING_DECISION, {
+        message,
+        sessionId: this.identifiers.sessionId,
+        matched,
+        targetingParams: this.lastTargetingParams,
+      });
+      this.lastShouldRecordDecision = shouldRecord;
+    }
 
     return shouldRecord;
   }
