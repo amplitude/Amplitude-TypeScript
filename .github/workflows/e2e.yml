@@ -11,7 +11,9 @@ on:
 jobs:
   e2e:
     name: E2E Tests
-    runs-on: ops-amd64-general
+    runs-on:
+      group: ops-amd64-general
+      labels: large
 
     steps:
       - name: Check out git repository
