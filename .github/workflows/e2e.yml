@@ -11,9 +11,7 @@ on:
 jobs:
   e2e:
     name: E2E Tests
-    runs-on: ubuntu-latest
-    container:
-      image: mcr.microsoft.com/playwright:v1.52.0
+    runs-on: ops-amd64-general
 
     steps:
       - name: Check out git repository
@@ -38,6 +36,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
+
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps
 
       - name: Install project dependencies
         run: |
