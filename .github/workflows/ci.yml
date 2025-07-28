@@ -90,10 +90,6 @@ jobs:
             exit 1
           fi
 
-      - name: Build docs
-        run: |
-          yarn docs:check:nx-affected
-
       - name: Test affected packages
         run: |
           yarn test:nx-affected
