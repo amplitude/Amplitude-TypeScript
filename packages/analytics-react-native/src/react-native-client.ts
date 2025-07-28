@@ -20,6 +20,8 @@ import {
   getAnalyticsConnector,
   setConnectorDeviceId,
   setConnectorUserId,
+  SpecialEventType,
+  AnalyticsClient,
 } from '@amplitude/analytics-core';
 import { CampaignTracker } from './campaign/campaign-tracker';
 import { Context } from './plugins/context';
@@ -30,13 +32,14 @@ import { isNative } from './utils/platform';
 const START_SESSION_EVENT = 'session_start';
 const END_SESSION_EVENT = 'session_end';
 
-export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient {
+export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeClient, AnalyticsClient {
   appState: AppStateStatus = 'background';
   private appStateChangeHandler: NativeEventSubscription | undefined;
   explicitSessionId: number | undefined;
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   config: ReactNativeConfig;
+  userProperties: { [key: string]: any } | undefined;
 
   init(apiKey = '', userId?: string, options?: ReactNativeOptions) {
     return returnWrapper(this._init({ ...options, userId, apiKey }));
@@ -169,6 +172,18 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
     return this.config?.sessionId;
   }
 
+  getIdentity() {
+    return {
+      userId: this.getUserId(),
+      deviceId: this.getDeviceId(),
+      userProperties: this.userProperties,
+    };
+  }
+
+  getOptOut() {
+    return this.config.optOut;
+  }
+
   setSessionId(sessionId: number) {
     if (!this.config) {
       this.q.push(this.setSessionId.bind(this, sessionId));
@@ -247,6 +262,11 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
         event = { ...event, event_id: eventId };
         this.config.lastEventId = eventId;
       }
+    }
+
+    // Set user properties
+    if (event.event_type === SpecialEventType.IDENTIFY && event.user_properties) {
+      this.userProperties = this.getOperationAppliedUserProperties(event.user_properties);
     }
 
     return super.process(event);
