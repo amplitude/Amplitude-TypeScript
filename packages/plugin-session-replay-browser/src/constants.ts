@@ -7,5 +7,4 @@ export const PROPERTY_ADD_OPERATIONS = [
   IdentifyOperation.APPEND,
   IdentifyOperation.PREPEND,
   IdentifyOperation.POSTINSERT,
-  IdentifyOperation.POSTINSERT,
 ];
