@@ -1,23 +1,23 @@
 import {
-  Logger,
-  returnWrapper,
   getAnalyticsConnector,
   getGlobalScope,
   ILogger,
+  Logger,
   LogLevel,
+  returnWrapper,
   SpecialEventType,
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
-import { EventType as RRWebEventType, scrollCallback, eventWithTime } from '@amplitude/rrweb-types';
+import { eventWithTime, EventType as RRWebEventType, scrollCallback } from '@amplitude/rrweb-types';
 import { TargetingParameters } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
   SessionReplayJoinedConfig,
   SessionReplayJoinedConfigGenerator,
-  SessionReplayMetadata,
   SessionReplayLocalConfig,
+  SessionReplayMetadata,
   SessionReplayRemoteConfig,
 } from './config/types';
 import {
@@ -29,28 +29,28 @@ import {
   MASK_TEXT_CLASS,
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
+import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { generateHashCode, getDebugConfig, getPageUrl, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
+import { SafeLoggerProvider } from './logger';
 import { evaluateTargetingAndStore } from './targeting/targeting-manager';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   DebugInfo,
-  EventType,
   EventsManagerWithType,
+  EventType,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
 import { VERSION } from './version';
-import { EventCompressor } from './events/event-compressor';
-import { SafeLoggerProvider } from './logger';
 
 // Import only the type for NetworkRequestEvent to keep type safety
-import type { NetworkRequestEvent, NetworkObservers } from './observers';
+import type { NetworkObservers, NetworkRequestEvent } from './observers';
 import { createUrlTrackingPlugin } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
 
@@ -415,7 +415,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
 
     // Only send custom rrweb event for targeting decision when the decision changes
-    if (this.lastShouldRecordDecision !== shouldRecord) {
+    if (this.lastShouldRecordDecision !== shouldRecord && this.config.targetingConfig) {
       void this.addCustomRRWebEvent(CustomRRwebEvent.TARGETING_DECISION, {
         message,
         sessionId: this.identifiers.sessionId,

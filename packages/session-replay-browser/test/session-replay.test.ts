@@ -2050,6 +2050,13 @@ describe('SessionReplay', () => {
       // Change session ID - this should reset the targeting decision
       await sessionReplay.setSessionId(456).promise;
 
+      // Set the targeting config to undefined
+      sessionReplay.config!.targetingConfig = {
+        key: 'sr_targeting_config',
+        variants: { on: { key: 'on' }, off: { key: 'off' } },
+        segments: [],
+      };
+
       // Call getShouldRecord again - should fire event for new session
       sessionReplay.getShouldRecord();
 
