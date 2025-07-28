@@ -184,6 +184,11 @@ describe('isExcludedReferrer', () => {
   test('should return true with regexp excluded referrer', () => {
     expect(isExcludedReferrer(getDefaultExcludedReferrers('.amplitude.com'), 'data.amplitude.com')).toEqual(true);
   });
+
+  test('should return true with regexp excluded referrer and string excluded referrer', () => {
+    expect(isExcludedReferrer([/website\.com$/g], 'website.com:5173')).toEqual(true);
+    expect(isExcludedReferrer([/website\.com$/g], 'website.com')).toEqual(true);
+  });
 });
 
 describe('createCampaignEvent', () => {

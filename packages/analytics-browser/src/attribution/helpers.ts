@@ -61,8 +61,10 @@ export const isNewCampaign = (
 };
 
 export const isExcludedReferrer = (excludeReferrers: (string | RegExp)[] = [], referringDomain = '') => {
+  // remove port from referringDomain
+  const referringDomainWithoutPort = referringDomain.split(':')[0];
   return excludeReferrers.some((value) =>
-    value instanceof RegExp ? value.test(referringDomain) : value === referringDomain,
+    value instanceof RegExp ? value.test(referringDomainWithoutPort) : value === referringDomainWithoutPort,
   );
 };
 
