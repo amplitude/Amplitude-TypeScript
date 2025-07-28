@@ -92,7 +92,7 @@ jobs:
 
       - name: Build docs
         run: |
-          yarn docs:check
+          yarn docs:check:nx-affected
 
       - name: Test affected packages
         run: |

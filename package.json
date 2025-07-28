@@ -15,6 +15,7 @@
     "dev:ssh": "export SSH=true && npm run dev",
     "docs": "typedoc",
     "docs:check": "typedoc --emit none",
+    "docs:check:nx-affected": "nx affected --target=docs:check",
     "fix": "lerna run fix --stream",
     "generate-signed-cert": "sh ./scripts/dev/generate-signed-cert.sh",
     "lint": "lerna run lint --stream",
