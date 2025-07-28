@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.20.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.20.0...@amplitude/analytics-browser@2.20.1) (2025-07-18)
+
+
+### Bug Fixes
+
+* **analytics-browser:** disable frustrationInteractions and webVitals when autocapture=true ([#1214](https://github.com/amplitude/Amplitude-TypeScript/issues/1214)) ([b16efb9](https://github.com/amplitude/Amplitude-TypeScript/commit/b16efb98d4e8a1b94114f8e0dbf0501c4984123a))
+
+
+
+
+
+# [2.20.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.19.0...@amplitude/analytics-browser@2.20.0) (2025-07-17)
+
+
+### Features
+
+* **analytics-browser:** support autocapture.webVitals ([#1195](https://github.com/amplitude/Amplitude-TypeScript/issues/1195)) ([a186f52](https://github.com/amplitude/Amplitude-TypeScript/commit/a186f523a28d8a322842566b892f50bcf2643142))
+
+
+
+
+
 # [2.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.18.2...@amplitude/analytics-browser@2.19.0) (2025-07-15)
 
 

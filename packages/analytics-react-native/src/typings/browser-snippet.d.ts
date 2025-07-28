@@ -1,4 +1,4 @@
-import { InstanceProxy } from '@amplitude/analytics-types';
+import { InstanceProxy } from '@amplitude/analytics-core';
 
 declare global {
   // globalThis only includes `var` declarations

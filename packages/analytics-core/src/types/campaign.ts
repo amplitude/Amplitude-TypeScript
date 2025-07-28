@@ -4,7 +4,7 @@ export interface Campaign
     ReferrerParameters,
     ClickIdParameters {}
 
-export interface CampaignParser {
+export interface ICampaignParser {
   parse(): Promise<Campaign>;
 }
 

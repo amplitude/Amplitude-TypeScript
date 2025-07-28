@@ -45,6 +45,10 @@ import {
   IdentifyOperation,
   SpecialEventType,
   ServerZone,
+  BASE_CAMPAIGN,
+  CampaignParser,
+  EMPTY_VALUE,
+  MKTG,
 } from '../src/index';
 
 describe('index', () => {
@@ -108,5 +112,9 @@ describe('index', () => {
     expect(DEFAULT_RAGE_CLICK_THRESHOLD).toBeGreaterThan(1);
     expect(DEFAULT_RAGE_CLICK_WINDOW_MS).toBeGreaterThan(1);
     expect(DEFAULT_DEAD_CLICK_WINDOW_MS).toBeGreaterThan(1);
+    expect(EMPTY_VALUE).toBe('EMPTY');
+    expect(typeof BASE_CAMPAIGN).toBe('object');
+    expect(typeof MKTG).toBe('string');
+    expect(typeof CampaignParser).toBe('function');
   });
 });

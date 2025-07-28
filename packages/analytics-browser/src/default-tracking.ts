@@ -92,10 +92,30 @@ export const isElementInteractionsEnabled = (autocapture: AutocaptureOptions | b
   return false;
 };
 
-export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
-  if (typeof autocapture === 'boolean') {
-    return autocapture;
+/**
+ * Returns true if
+ * 1. autocapture === true
+ * 2. if autocapture.webVitals === true
+ * otherwise returns false
+ */
+export const isWebVitalsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  // TODO restore this if statement when webVitals is GA
+  // if (typeof autocapture === 'boolean') {
+  //   return autocapture;
+  // }
+
+  if (typeof autocapture === 'object' && autocapture.webVitals === true) {
+    return true;
   }
+
+  return false;
+};
+
+export const isFrustrationInteractionsEnabled = (autocapture: AutocaptureOptions | boolean | undefined): boolean => {
+  // TODO restore this if statement when frustrationInteractions is GA
+  // if (typeof autocapture === 'boolean') {
+  //   return autocapture;
+  // }
 
   if (
     typeof autocapture === 'object' &&

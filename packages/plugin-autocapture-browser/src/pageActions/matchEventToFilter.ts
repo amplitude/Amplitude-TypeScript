@@ -12,7 +12,7 @@ export const matchEventToFilter = (event: ElementBasedTimestampedEvent<ElementBa
     if (filter.subprop_key === '[Amplitude] Element Text') {
       // TODO: add support for the other operators
       return (
-        filter.subprop_op === 'exact' &&
+        filter.subprop_op === 'is' &&
         filter.subprop_value.includes(event.targetElementProperties['[Amplitude] Element Text'] as string)
       );
     } else if (filter.subprop_key === '[Amplitude] Element Hierarchy') {

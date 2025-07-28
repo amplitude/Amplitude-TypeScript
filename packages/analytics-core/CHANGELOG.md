@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.17.0...@amplitude/analytics-core@2.18.0) (2025-07-17)
+
+
+### Features
+
+* **analytics-browser:** support autocapture.webVitals ([#1195](https://github.com/amplitude/Amplitude-TypeScript/issues/1195)) ([a186f52](https://github.com/amplitude/Amplitude-TypeScript/commit/a186f523a28d8a322842566b892f50bcf2643142))
+
+
+
+
+
 # [2.17.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.16.0...@amplitude/analytics-core@2.17.0) (2025-07-15)
 
 

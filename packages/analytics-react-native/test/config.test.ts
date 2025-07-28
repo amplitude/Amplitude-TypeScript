@@ -1,9 +1,8 @@
 import * as Config from '../src/config';
 import * as LocalStorageModule from '../src/storage/local-storage';
 import * as core from '@amplitude/analytics-core';
-import { LogLevel, Storage, UserSession } from '@amplitude/analytics-types';
-import * as BrowserUtils from '@amplitude/analytics-client-common';
-import { getCookieName, FetchTransport } from '@amplitude/analytics-client-common';
+import { LogLevel, Storage, UserSession, getCookieName, FetchTransport } from '@amplitude/analytics-core';
+import * as BrowserUtils from '@amplitude/analytics-core';
 import { isWeb } from '../src/utils/platform';
 import { uuidPattern } from './helpers/constants';
 
@@ -38,7 +37,6 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
-        offline: false,
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
@@ -58,10 +56,13 @@ describe('config', () => {
           platform: true,
           appSetId: true,
           idfv: true,
+          country: false,
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
         trackingSessionEvents: false,
+        offline: false,
+        storageProvider: undefined,
       });
     });
   });
@@ -91,7 +92,6 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
-        offline: false,
         _optOut: false,
         partnerId: undefined,
         plan: undefined,
@@ -112,10 +112,12 @@ describe('config', () => {
           platform: true,
           appSetId: true,
           idfv: true,
+          country: false,
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
         trackingSessionEvents: false,
+        offline: false,
       });
     });
 
@@ -145,7 +147,6 @@ describe('config', () => {
         sessionTimeout: 1,
         cookieUpgrade: false,
         disableCookies: true,
-        offline: true,
       });
       expect(config).toEqual({
         apiKey: API_KEY,
@@ -167,7 +168,6 @@ describe('config', () => {
         loggerProvider: logger,
         logLevel: LogLevel.Warn,
         minIdLength: undefined,
-        offline: true,
         _optOut: false,
         partnerId: 'partnerId',
         plan: {
@@ -195,10 +195,12 @@ describe('config', () => {
           platform: true,
           appSetId: true,
           idfv: true,
+          country: false,
         },
         transportProvider: new FetchTransport(),
         useBatch: false,
         _userId: 'userIdFromCookies',
+        offline: false,
       });
     });
   });

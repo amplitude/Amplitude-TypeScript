@@ -62,6 +62,7 @@ describe('autoTrackingPlugin', () => {
       const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
+        error: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
@@ -86,6 +87,7 @@ describe('autoTrackingPlugin', () => {
       const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
+        error: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
@@ -599,6 +601,7 @@ describe('autoTrackingPlugin', () => {
         const loggerProvider: Partial<ILogger> = {
           log: jest.fn(),
           warn: jest.fn(),
+          error: jest.fn(),
         };
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
@@ -641,6 +644,7 @@ describe('autoTrackingPlugin', () => {
         const loggerProvider: Partial<ILogger> = {
           log: jest.fn(),
           warn: jest.fn(),
+          error: jest.fn(),
         };
         const config: Partial<BrowserConfig> = {
           defaultTracking: false,
@@ -897,6 +901,7 @@ describe('autoTrackingPlugin', () => {
       const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
+        error: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
@@ -922,6 +927,7 @@ describe('autoTrackingPlugin', () => {
       const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
+        error: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
@@ -942,6 +948,7 @@ describe('autoTrackingPlugin', () => {
       const loggerProvider: Partial<ILogger> = {
         log: jest.fn(),
         warn: jest.fn(),
+        error: jest.fn(),
       };
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,

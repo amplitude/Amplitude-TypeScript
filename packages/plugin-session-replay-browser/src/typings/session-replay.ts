@@ -112,4 +112,28 @@ export interface SessionReplayOptions {
   applyBackgroundColorToBlockedElements?: boolean;
 
   interactionConfig?: SessionReplayInteractionConfig;
+
+  /**
+   * Enables URL change polling as a fallback for SPA route tracking.
+   * When enabled, the SDK will periodically check for URL changes every second
+   * in addition to patching the History API. This is useful for edge cases where
+   * route changes might bypass the standard History API methods.
+   *
+   * @defaultValue false
+   */
+  enableUrlChangePolling?: boolean;
+  /**
+   * Specifies the interval in milliseconds for URL change polling when enableUrlChangePolling is true.
+   * The SDK will check for URL changes at this interval as a fallback for SPA route tracking.
+   *
+   * @defaultValue 1000
+   */
+  urlChangePollingInterval?: number;
+  /**
+   * Whether to capture document title in URL change events.
+   * When disabled, the title field will be empty in URL change events.
+   *
+   * @defaultValue false
+   */
+  captureDocumentTitle?: boolean;
 }

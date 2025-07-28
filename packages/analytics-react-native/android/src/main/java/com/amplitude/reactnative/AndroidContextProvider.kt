@@ -4,27 +4,18 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.location.Geocoder
-import android.location.Location
-import android.location.LocationManager
 import android.os.Build
 import android.provider.Settings.Secure
 import android.telephony.TelephonyManager
-import java.io.IOException
 import java.lang.Exception
-import java.lang.IllegalArgumentException
-import java.lang.IllegalStateException
-import java.lang.NullPointerException
 import java.lang.reflect.InvocationTargetException
 import java.util.Locale
 import java.util.UUID
-import kotlin.collections.ArrayList
 
-class AndroidContextProvider(private val context: Context, locationListening: Boolean, shouldTrackAdid: Boolean) {
-  var isLocationListening = true
+class AndroidContextProvider(private val context: Context, shouldTrackAdid: Boolean) {
   var shouldTrackAdid = true
   private var cachedInfo: CachedInfo? = null
-    private get() {
+    get() {
       if (field == null) {
         field = CachedInfo()
       }
@@ -110,68 +101,21 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
     private fun fetchCountry(): String? {
       // This should not be called on the main thread.
 
-      // Prioritize reverse geocode, but until we have a result from that,
-      // we try to grab the country from the network, and finally the locale
-      var country = countryFromLocation
-      if (!country.isNullOrEmpty()) {
-        return country
-      }
-      country = countryFromNetwork
+      var country = countryFromNetwork
       return if (!country.isNullOrEmpty()) {
         country
       } else countryFromLocale
-    } // Customized Android System without Google Play Service Installed// sometimes the location manager is unavailable// Bad lat / lon values can cause Geocoder to throw IllegalArgumentExceptions// failed to fetch geocoder// Failed to reverse geocode location
+    }
 
-    // Failed to reverse geocode location
-    private val countryFromLocation: String?
-      private get() {
-        if (!isLocationListening) {
-          return null
-        }
-        val recent = mostRecentLocation
-        if (recent != null) {
-          try {
-            if (Geocoder.isPresent()) {
-              val geocoder = geocoder
-              val addresses = geocoder.getFromLocation(
-                recent.latitude,
-                recent.longitude, 1
-              )
-              if (addresses != null) {
-                for (address in addresses) {
-                  if (address != null) {
-                    return address.countryCode
-                  }
-                }
-              }
-            }
-          } catch (e: IOException) {
-            // Failed to reverse geocode location
-          } catch (e: NullPointerException) {
-            // Failed to reverse geocode location
-          } catch (e: NoSuchMethodError) {
-            // failed to fetch geocoder
-          } catch (e: IllegalArgumentException) {
-            // Bad lat / lon values can cause Geocoder to throw IllegalArgumentExceptions
-          } catch (e: IllegalStateException) {
-            // sometimes the location manager is unavailable
-          } catch (e: SecurityException) {
-            // Customized Android System without Google Play Service Installed
-          }
-        }
-        return null
-      }
-
-    // Failed to get country from network
     private val countryFromNetwork: String?
-      private get() {
+      get() {
         try {
           val manager = context
             .getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
           if (manager.phoneType != TelephonyManager.PHONE_TYPE_CDMA) {
             val country = manager.networkCountryIso
             if (country != null) {
-              return country.toUpperCase(Locale.US)
+              return country.uppercase(Locale.US)
             }
           }
         } catch (e: Exception) {
@@ -181,7 +125,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
       }
 
     private val locale: Locale
-      private get() {
+      get() {
         val configuration = Resources.getSystem().configuration
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
           val localeList = configuration.locales
@@ -196,7 +140,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
       }
 
     private val countryFromLocale: String
-      private get() = locale.country
+      get() = locale.country
 
     private fun fetchLanguage(): String {
       return locale.language
@@ -243,14 +187,14 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
     }
 
     private val fetchAndCacheAmazonAdvertisingId: String?
-      private get() {
+      get() {
         val cr = context.contentResolver
         limitAdTrackingEnabled = Secure.getInt(cr, SETTING_LIMIT_AD_TRACKING, 0) == 1
         advertisingId = Secure.getString(cr, SETTING_ADVERTISING_ID)
         return advertisingId
       }
     private val fetchAndCacheGoogleAdvertisingId: String?
-      private get() {
+      get() {
         try {
           val AdvertisingIdClient = Class
             .forName("com.google.android.gms.ads.identifier.AdvertisingIdClient")
@@ -348,66 +292,7 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
   val advertisingId: String?
     get() = cachedInfo!!.advertisingId
   val appSetId: String
-    get() = cachedInfo!!.appSetId // other causes// failed to get providers list
-  // Don't crash if the device does not have location services.
-
-  // It's possible that the location service is running out of process
-  // and the remote getProviders call fails. Handle null provider lists.
-  val mostRecentLocation: Location?
-    get() {
-      if (!isLocationListening) {
-        return null
-      }
-      if (!Utils.checkLocationPermissionAllowed(context)) {
-        return null
-      }
-      val locationManager = context
-        .getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        ?: return null
-
-      // Don't crash if the device does not have location services.
-
-      // It's possible that the location service is running out of process
-      // and the remote getProviders call fails. Handle null provider lists.
-      var providers: List<String?>? = null
-      try {
-        providers = locationManager.getProviders(true)
-      } catch (e: SecurityException) {
-        // failed to get providers list
-      } catch (e: Exception) {
-        // other causes
-      }
-      if (providers == null) {
-        return null
-      }
-      val locations: MutableList<Location> = ArrayList()
-      for (provider in providers) {
-        var location: Location? = null
-        try {
-          location = locationManager.getLastKnownLocation(provider!!)
-        } catch (e: SecurityException) {
-          LogcatLogger.logger.warn("Failed to get most recent location")
-        } catch (e: Exception) {
-          LogcatLogger.logger.warn("Failed to get most recent location")
-        }
-        if (location != null) {
-          locations.add(location)
-        }
-      }
-      var maximumTimestamp: Long = -1
-      var bestLocation: Location? = null
-      for (location in locations) {
-        if (location.time > maximumTimestamp) {
-          maximumTimestamp = location.time
-          bestLocation = location
-        }
-      }
-      return bestLocation
-    }
-
-  // @VisibleForTesting
-  protected val geocoder: Geocoder
-    protected get() = Geocoder(context, Locale.ENGLISH)
+    get() = cachedInfo!!.appSetId
 
   companion object {
     const val OS_NAME = "android"
@@ -420,7 +305,6 @@ class AndroidContextProvider(private val context: Context, locationListening: Bo
   }
 
   init {
-    isLocationListening = locationListening
     this.shouldTrackAdid = shouldTrackAdid
   }
 }

@@ -59,6 +59,17 @@ export {
 } from './types/frustration-interactions';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './types/page-view-tracking';
 export { Status } from './types/status';
+
+export { NetworkEventCallback, networkObserver } from './network-observer';
+export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
+export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
+
+// Campaign
+export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
+export { EMPTY_VALUE, BASE_CAMPAIGN, MKTG } from './types/constants';
+export { CampaignParser } from './campaign/campaign-parser';
+
+// Browser
 export {
   BrowserConfig,
   BrowserOptions,
@@ -74,6 +85,11 @@ export { BrowserClient } from './types/client/browser-client';
 export { NodeClient } from './types/client/node-client';
 export { NodeConfig, NodeOptions } from './types/config/node-config';
 
-export { NetworkEventCallback, networkObserver } from './network-observer';
-export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
-export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
+// React Native
+export {
+  ReactNativeConfig,
+  ReactNativeTrackingOptions,
+  ReactNativeOptions,
+  ReactNativeAttributionOptions,
+} from './types/config/react-native-config';
+export { ReactNativeClient } from './types/client/react-native-client';

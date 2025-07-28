@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/analytics-react-native",
-  "version": "2.0.0-beta.0",
+  "version": "1.4.14",
   "description": "Official React Native SDK",
   "keywords": [
     "analytics",
@@ -16,9 +16,9 @@
   "module": "lib/module/index",
   "types": "lib/typescript/index.d.ts",
   "react-native": "src/index",
-  "private": true,
   "publishConfig": {
-    "tag": "beta"
+    "access": "public",
+    "tag": "latest"
   },
   "repository": {
     "type": "git",
@@ -58,9 +58,7 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.0.0",
-    "@amplitude/analytics-core": "^2.10.1",
-    "@amplitude/analytics-types": "^2.0.0",
+    "@amplitude/analytics-core": "^2.18.0",
     "@amplitude/ua-parser-js": "^0.7.31",
     "@react-native-async-storage/async-storage": "^1.17.11",
     "tslib": "^2.4.1"
@@ -68,7 +66,6 @@
   "devDependencies": {
     "@types/react": "^18.0.26",
     "@types/react-native": "0.70.8",
-    "@types/ua-parser-js": "^0.7.36",
     "react": "18.2.0",
     "react-native": "0.70.6",
     "react-native-builder-bob": "^0.20.3"
