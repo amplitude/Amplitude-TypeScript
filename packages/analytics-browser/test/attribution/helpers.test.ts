@@ -185,7 +185,7 @@ describe('isExcludedReferrer', () => {
     expect(isExcludedReferrer(getDefaultExcludedReferrers('.amplitude.com'), 'data.amplitude.com')).toEqual(true);
   });
 
-  test('should return true with regexp excluded referrer and string excluded referrer', () => {
+  test('should return true with regexp excluded referrer and domains on different ports', () => {
     expect(isExcludedReferrer([/website\.com$/g], 'website.com:5173')).toEqual(true);
     expect(isExcludedReferrer([/website\.com$/g], 'website.com')).toEqual(true);
   });
