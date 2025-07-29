@@ -245,6 +245,12 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     callbackInfo.callback(filteredConfig, source, remoteConfigInfo.lastFetch);
   }
 
+  /**
+   * Fetch remote config from remote.
+   * @param retries - the number of retries. default is 3.
+   * @param timeout - the timeout in milliseconds. default is 1000.
+   * @returns the remote config info. null if failed to fetch or the response is not valid JSON.
+   */
   async fetch(retries: number = DEFAULT_MAX_RETRIES, timeout: number = DEFAULT_TIMEOUT): Promise<RemoteConfigInfo> {
     const interval = timeout / retries;
     const failedRemoteConfigInfo: RemoteConfigInfo = {

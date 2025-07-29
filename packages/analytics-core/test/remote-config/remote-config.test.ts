@@ -529,6 +529,24 @@ describe('RemoteConfigClient', () => {
       expect(loggerDebug).toHaveBeenCalledTimes(2);
       expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('is rejected because:'), expect.any(Error));
     });
+
+    test('should retry on invalid JSON and eventually fail', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.reject(new SyntaxError('Invalid JSON')),
+        } as Response),
+      );
+
+      const result = await client.fetch(3);
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledTimes(3);
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('is rejected because:'),
+        expect.any(SyntaxError),
+      );
+    });
   });
 
   describe('getUrlParams', () => {

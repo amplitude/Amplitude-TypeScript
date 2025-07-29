@@ -113,11 +113,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
         browserOptions.serverZone,
       );
 
-      // TODO (check how long will this await take)
-      // 1. what will happen for first time user? Will empty cache return remote config null
-      // 2. what will happen for eixisting user if network is down? Will cache returns immediately to unblock init?
-
-      // Wait for initial remote config before proceeding
+      // Wait for initial remote config before proceeding.
+      // Delivery mode is all, meaning it calls the callback with whoever (cache or remote) returns first.
       await new Promise<void>((resolve) => {
         this.remoteConfig.subscribe(
           'configs.analyticsSDK.browserSDK',
