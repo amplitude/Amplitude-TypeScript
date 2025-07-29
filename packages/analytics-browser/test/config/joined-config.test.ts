@@ -44,6 +44,7 @@ describe('joined-config', () => {
         attribution: true,
         elementInteractions: false,
         frustrationInteractions: true,
+        webVitals: true,
       };
 
       updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
@@ -77,6 +78,7 @@ describe('joined-config', () => {
         sessions: false,
         elementInteractions: true,
         frustrationInteractions: true,
+        webVitals: true,
       };
 
       updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
@@ -92,6 +94,7 @@ describe('joined-config', () => {
         attribution: false,
         pageViews: false,
         frustrationInteractions: false,
+        webVitals: false,
       },
       false,
     ])('should only enable elementInteractions if remote config only sets it to true', (localAutocapture) => {
@@ -115,6 +118,7 @@ describe('joined-config', () => {
         pageViews: false,
         elementInteractions: true,
         frustrationInteractions: false,
+        webVitals: false,
       };
 
       updateBrowserConfigWithRemoteConfig(remoteConfig, localConfig);
