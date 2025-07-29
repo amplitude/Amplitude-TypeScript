@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.19.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.18.0...@amplitude/analytics-core@2.19.0) (2025-07-29)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** migrate to analytics-core v2 ([#1216](https://github.com/amplitude/Amplitude-TypeScript/issues/1216)) ([76e85a1](https://github.com/amplitude/Amplitude-TypeScript/commit/76e85a1daa704a1c4c44d0176a56c8dd8d4ad3f1))
+
+
+### Features
+
+* **analytics-core:** expose unified AmplitudeContext and AnalyticsClient ([#1222](https://github.com/amplitude/Amplitude-TypeScript/issues/1222)) ([7e32712](https://github.com/amplitude/Amplitude-TypeScript/commit/7e327128b4032592897dc6bb50dedda053ad8eda))
+* **autocapture:** fetch page actions from remote config ([#1168](https://github.com/amplitude/Amplitude-TypeScript/issues/1168)) ([da213cc](https://github.com/amplitude/Amplitude-TypeScript/commit/da213cc33c4986bcebff2b4264b2c17314f5f310))
+
+
+
+
+
 # [2.18.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.17.0...@amplitude/analytics-core@2.18.0) (2025-07-17)
 
 
