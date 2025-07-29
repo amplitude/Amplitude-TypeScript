@@ -71,10 +71,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  remoteConfig: IRemoteConfigClient;
+  remoteConfigClient: IRemoteConfigClient | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -107,7 +104,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Create remote config client and subscribe to analytics configs
     if (browserOptions.fetchRemoteConfig) {
-      this.remoteConfig = new RemoteConfigClient(
+      this.remoteConfigClient = new RemoteConfigClient(
         browserOptions.apiKey,
         browserOptions.loggerProvider,
         browserOptions.serverZone,
@@ -116,7 +113,9 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
       // Wait for initial remote config before proceeding.
       // Delivery mode is all, meaning it calls the callback with whoever (cache or remote) returns first.
       await new Promise<void>((resolve) => {
-        this.remoteConfig.subscribe(
+        // Disable coverage for this line because remote config client will always be defined in this case.
+        // istanbul ignore next
+        this.remoteConfigClient?.subscribe(
           'configs.analyticsSDK.browserSDK',
           'all',
           (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
@@ -124,7 +123,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
               'Remote configuration received:',
               JSON.stringify(
                 {
-                  remoteConfig: JSON.stringify(remoteConfig),
+                  remoteConfig,
                   source,
                   lastFetch,
                 },
