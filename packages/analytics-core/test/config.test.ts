@@ -4,6 +4,7 @@ import {
   AMPLITUDE_SERVER_URL,
   EU_AMPLITUDE_BATCH_SERVER_URL,
   EU_AMPLITUDE_SERVER_URL,
+  DEFAULT_INSTANCE_NAME,
 } from '../src/types/constants';
 import { Config, createServerConfig, getServerUrl, RequestMetadata } from '../src/config';
 import { Logger } from '../src/logger';
@@ -22,7 +23,7 @@ describe('config', () => {
       flushIntervalMillis: 10000,
       flushMaxRetries: 12,
       flushQueueSize: 200,
-      instanceName: '$default_instance',
+      instanceName: DEFAULT_INSTANCE_NAME,
       logLevel: LogLevel.Warn,
       loggerProvider: new Logger(),
       minIdLength: undefined,
@@ -62,7 +63,7 @@ describe('config', () => {
       flushIntervalMillis: 10000,
       flushMaxRetries: 12,
       flushQueueSize: 200,
-      instanceName: '$default_instance',
+      instanceName: DEFAULT_INSTANCE_NAME,
       logLevel: LogLevel.Verbose,
       loggerProvider: new Logger(),
       minIdLength: undefined,

@@ -1,6 +1,7 @@
 import { AnalyticsConnector } from '@amplitude/analytics-connector';
+import { DEFAULT_INSTANCE_NAME } from './types/constants';
 
-export const getAnalyticsConnector = (instanceName = '$default_instance'): AnalyticsConnector => {
+export const getAnalyticsConnector = (instanceName = DEFAULT_INSTANCE_NAME): AnalyticsConnector => {
   return AnalyticsConnector.getInstance(instanceName);
 };
 

@@ -10,6 +10,7 @@ import {
   AMPLITUDE_BATCH_SERVER_URL,
   EU_AMPLITUDE_SERVER_URL,
   EU_AMPLITUDE_BATCH_SERVER_URL,
+  DEFAULT_INSTANCE_NAME,
 } from './types/constants';
 
 import { Logger, ILogger } from './logger';
@@ -21,7 +22,7 @@ export const getDefaultConfig = () => ({
   flushMaxRetries: 12,
   flushQueueSize: 200,
   flushIntervalMillis: 10000,
-  instanceName: '$default_instance',
+  instanceName: DEFAULT_INSTANCE_NAME,
   logLevel: LogLevel.Warn,
   loggerProvider: new Logger(),
   offline: false,
