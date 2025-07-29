@@ -180,10 +180,12 @@ export class RequestWrapperXhr implements IRequestWrapper {
     return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
   }
 
-  // TODO: implement this and test it
-  // get text(): string | null {
-  //   return this.body as string | null;
-  // }
+  async text(): Promise<string | null> {
+    if (typeof this.body === 'string') {
+      return this.body;
+    }
+    return null;
+  }
 }
 
 function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number | undefined {

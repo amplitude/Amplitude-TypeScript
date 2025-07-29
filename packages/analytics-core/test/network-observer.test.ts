@@ -4,6 +4,7 @@ import {
   FetchRequestBody,
   RequestInitSafe,
   RequestWrapperFetch,
+  RequestWrapperXhr,
   ResponseWrapperFetch,
   ResponseWrapperXhr,
 } from '../src/network-request-event';
@@ -713,6 +714,18 @@ describe('serializeNetworkRequestEvent', () => {
         'Content-Type': 'application/json',
       },
     });
+  });
+});
+
+describe('RequestWrapperXhr', () => {
+  test('text should return the body', async () => {
+    const requestWrapper = new RequestWrapperXhr('Hello World!');
+    expect(await requestWrapper.text()).toBe('Hello World!');
+  });
+
+  test('text should return null if body is not a string', async () => {
+    const requestWrapper = new RequestWrapperXhr(new Blob(['Hello World!']));
+    expect(await requestWrapper.text()).toBeNull();
   });
 });
 
