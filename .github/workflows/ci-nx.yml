@@ -5,8 +5,35 @@ on:
     branches:
       - main
       - v1.x
+  pull_request:
+    types: [opened, synchronize]
 
 jobs:
+  build-docs:
+    name: Build Docs
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out git repository
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install project dependencies
+        run: |
+          yarn install --frozen-lockfile
+
+      - name: Build all packages
+        run: |
+          yarn build
+
+      - name: Build docs
+        run: |
+          yarn docs:check
+
   build:
     name: Build
     strategy:
@@ -15,10 +42,16 @@ jobs:
         node-version: [18.17.x, 20.x, 22.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    
+    env:
+      NX_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || 'origin/main~1' }}
+      NX_HEAD: ${{ github.sha }}
 
     steps:
       - name: Check out git repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Required for NX affected commands
 
       - name: Cache dependencies
         uses: actions/cache@v3
@@ -35,9 +68,14 @@ jobs:
         run: |
           yarn install --frozen-lockfile
 
-      - name: Build all packages
+      - name: Set up NX base for affected commands
         run: |
-          yarn build
+          # Ensure we have the main branch reference for NX affected commands
+          git fetch origin main:main --depth=1 || git fetch origin main --depth=1
+
+      - name: Build affected packages
+        run: |
+          yarn build:nx-affected
 
       # https://github.com/amplitude/Amplitude-TypeScript/issues/281
       - name: Check module dependencies
@@ -52,14 +90,10 @@ jobs:
             exit 1
           fi
 
-      - name: Build docs
+      - name: Test affected packages
         run: |
-          yarn docs:check
+          yarn test:nx-affected
 
-      - name: Test all packages
+      - name: Lint affected packages
         run: |
-          yarn test
-
-      - name: Lint all packages
-        run: |
-          yarn lint
+          yarn lint:nx-affected
