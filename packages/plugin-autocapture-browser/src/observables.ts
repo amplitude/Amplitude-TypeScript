@@ -22,6 +22,8 @@ export const createMutationObservable = (): Observable<MutationRecord[]> => {
  * Creates an observable that tracks click events on the document.
  * @param clickType - The type of click event to track (click or pointerdown)
  */
-export const createClickObservable = (clickType: 'click' | 'pointerdown' = 'click'): Observable<MouseEvent|PointerEvent> => {
+export const createClickObservable = (
+  clickType: 'click' | 'pointerdown' = 'click',
+): Observable<MouseEvent | PointerEvent> => {
   return fromEvent<MouseEvent>(document, clickType, { capture: true });
 };
