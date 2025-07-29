@@ -1,5 +1,45 @@
 # Change Log
 
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+# [1.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-react-native@1.1.7...@amplitude/analytics-react-native@1.5.0) (2025-07-29)
+
+
+### Bug Fixes
+
+* add app_set_id, idfa and idfv support ([#458](https://github.com/amplitude/Amplitude-TypeScript/issues/458)) ([00c6cac](https://github.com/amplitude/Amplitude-TypeScript/commit/00c6cac1e30dc73a5c9813f1f44a44ca341ec55b)), closes [#424](https://github.com/amplitude/Amplitude-TypeScript/issues/424)
+* **analytics-react-native:** migrate to analytics-core v2 ([#1216](https://github.com/amplitude/Amplitude-TypeScript/issues/1216)) ([76e85a1](https://github.com/amplitude/Amplitude-TypeScript/commit/76e85a1daa704a1c4c44d0176a56c8dd8d4ad3f1))
+* **analytics-react-native:** support RN 0.73 ([#871](https://github.com/amplitude/Amplitude-TypeScript/issues/871)) ([d0ae4d6](https://github.com/amplitude/Amplitude-TypeScript/commit/d0ae4d6d77b55d9621a4616e0cb8521ae2c9a61b))
+* location is polyfilled to an empty object ([#738](https://github.com/amplitude/Amplitude-TypeScript/issues/738)) ([130add9](https://github.com/amplitude/Amplitude-TypeScript/commit/130add99485c0d33e6a8ce32168212a2453025e4))
+* simplify plugins and eliminate enums ([#407](https://github.com/amplitude/Amplitude-TypeScript/issues/407)) ([890ec66](https://github.com/amplitude/Amplitude-TypeScript/commit/890ec6695a8b25cd6988e9f7ae584d4ba2835f67))
+
+
+### Features
+
+* add offline mode ([#644](https://github.com/amplitude/Amplitude-TypeScript/issues/644)) ([f2cd717](https://github.com/amplitude/Amplitude-TypeScript/commit/f2cd717316eef66b101153cb8eedf37fadc6de0c))
+* add option for instance name ([#428](https://github.com/amplitude/Amplitude-TypeScript/issues/428)) ([1a8ff7d](https://github.com/amplitude/Amplitude-TypeScript/commit/1a8ff7d665d2a936db7cb42f4cde5350379b7cae))
+* added extendSession() method to Browser Client ([#425](https://github.com/amplitude/Amplitude-TypeScript/issues/425)) ([#433](https://github.com/amplitude/Amplitude-TypeScript/issues/433)) ([0f5fccc](https://github.com/amplitude/Amplitude-TypeScript/commit/0f5fccc83d3f7f0a80adc4a0807fbd7e71c72e4a))
+* allow cross subdomain excluded referrer ([#391](https://github.com/amplitude/Amplitude-TypeScript/issues/391)) ([f34f64b](https://github.com/amplitude/Amplitude-TypeScript/commit/f34f64b68bbd328da354afae61ca416d7055a734))
+* **analytics-browser:** autocapture network errors ([#1050](https://github.com/amplitude/Amplitude-TypeScript/issues/1050)) ([104350f](https://github.com/amplitude/Amplitude-TypeScript/commit/104350ffe8b1bd1a7090482ac3bf24d85672bd43))
+* **analytics-core:** expose unified AmplitudeContext and AnalyticsClient ([#1222](https://github.com/amplitude/Amplitude-TypeScript/issues/1222)) ([7e32712](https://github.com/amplitude/Amplitude-TypeScript/commit/7e327128b4032592897dc6bb50dedda053ad8eda))
+* make default event tracking enabled by default ([#386](https://github.com/amplitude/Amplitude-TypeScript/issues/386)) ([242f42d](https://github.com/amplitude/Amplitude-TypeScript/commit/242f42dd2e46eaec95c827795e04f74fba39c35f))
+* simplify browser SDK options and plugin options interface ([#384](https://github.com/amplitude/Amplitude-TypeScript/issues/384)) ([b464cfb](https://github.com/amplitude/Amplitude-TypeScript/commit/b464cfb8e09d722bf06ed3c11955f77465a23daf))
+* simplify user identity storage options/configuration ([#390](https://github.com/amplitude/Amplitude-TypeScript/issues/390)) ([f8cf0cc](https://github.com/amplitude/Amplitude-TypeScript/commit/f8cf0cca8c2a17738f13878642fa5b37c0070f77))
+
+
+### Reverts
+
+* Revert "ci: remove noImplicitUseStrict as it's deprecated in ts 5.5 (#974)" ([29df7ea](https://github.com/amplitude/Amplitude-TypeScript/commit/29df7ea187a414ddbd1894f89f996a67a3c5c36c)), closes [#974](https://github.com/amplitude/Amplitude-TypeScript/issues/974)
+* Revert "chore(release): publish" ([d392f62](https://github.com/amplitude/Amplitude-TypeScript/commit/d392f6290b8bb4dd955d6e6f20b00191679489c4))
+* PR 1058 ([#1077](https://github.com/amplitude/Amplitude-TypeScript/issues/1077)) ([e72835e](https://github.com/amplitude/Amplitude-TypeScript/commit/e72835e07ec0318d564439a7ddd47f37b156c6c3))
+
+
+
+
+
+# Change Log
+
 All notable changes to this project will be documented in this file. See
 [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 

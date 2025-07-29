@@ -88,8 +88,23 @@ jobs:
         if: ${{ env.PUBLISH_FROM != 'from-package' }}
         run: |
           echo "Running lerna version..."
+          
+          # Temporarily disable exit on error to capture output even when command fails
+          set +e
           OUTPUT=$(GH_TOKEN=${{ secrets.GH_PUBLISH_TOKEN }} npm run deploy:version -- -y --no-private --create-release github 2>&1)
+          EXIT_CODE=$?
+          set -e
+          
+          # Always display the output first
+          echo "=== Lerna Version Output ==="
           echo "$OUTPUT"
+          echo "=== End Output ==="
+          
+          # Now handle the exit code
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "❌ Command failed with exit code: $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
           
           # Check if the output indicates no changed packages
           if echo "$OUTPUT" | grep -q "No changed packages to version"; then
