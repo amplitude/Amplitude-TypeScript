@@ -112,8 +112,6 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private _bodySize: number | undefined;
   constructor(private request: RequestInitSafe) {}
 
-  // TODO: add options to headers to exclude headers or to
-  // only include certain headers
   get headers(): Record<string, string> | undefined {
     if (this._headers) return this._headers;
 
@@ -375,6 +373,29 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return headers;
   }
 }
+
+/**
+ * Prune headers from a headers record object.
+ * @param headers - The headers to prune.
+ * @param options - The options to prune the headers.
+ * @param options.exclude - List of headers to delete from headers
+ * @param options.include - List of headers to keep in headers, if not provided, all headers are kept by default
+ * @returns The pruned headers.
+ */
+export const pruneHeaders = (
+  headers: Record<string, string>,
+  options: { exclude?: string[]; include?: string[] } = {},
+) => {
+  const { exclude = [], include = [] } = options;
+  for (const key of Object.keys(headers)) {
+    const lowerKey = key.toLowerCase();
+    if (exclude.find((e) => e.toLowerCase() === lowerKey)) {
+      delete headers[key];
+    } else if (include.length > 0 && !include.find((i) => i.toLowerCase() === lowerKey)) {
+      delete headers[key];
+    }
+  }
+};
 
 export class NetworkRequestEvent {
   constructor(

@@ -2,6 +2,7 @@ import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../s
 import { NetworkObserver } from '../src/network-observer';
 import {
   FetchRequestBody,
+  pruneHeaders,
   RequestInitSafe,
   RequestWrapperFetch,
   RequestWrapperXhr,
@@ -919,5 +920,48 @@ describe('NetworkRequestEvent', () => {
   test('status should be 0 if not set', () => {
     const event = new NetworkRequestEvent('xhr', 'GET', 0, 0, 'https://api.example.com/data');
     expect(event.status).toBe(0);
+  });
+});
+
+describe('pruneHeaders', () => {
+  test('should exclude headers', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers, { exclude: ['Authorization'] });
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+    });
+  });
+
+  test('should include headers', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      'X-Custom-Header': 'customvalue',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers, { include: ['Content-Type', 'Content-Length'] });
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+    });
+  });
+
+  test('should exclude headers and include headers', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      'X-Custom-Header': 'customvalue',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers, { exclude: ['Authorization'], include: ['Content-Type', 'Content-Length'] });
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+    });
   });
 });
