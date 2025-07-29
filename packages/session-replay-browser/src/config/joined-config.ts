@@ -60,6 +60,7 @@ export class SessionReplayJoinedConfigGenerator {
       if (namespaceConfig) {
         const samplingConfig = namespaceConfig.sr_sampling_config;
         const privacyConfig = namespaceConfig.sr_privacy_config;
+        const targetingConfig = namespaceConfig.sr_targeting_config;
 
         const ugcFilterRules = config.interactionConfig?.ugcFilterRules;
         // This is intentionally forced to only be set through the remote config.
@@ -71,13 +72,16 @@ export class SessionReplayJoinedConfigGenerator {
         // This is intentionally forced to only be set through the remote config.
         config.loggingConfig = namespaceConfig.sr_logging_config;
 
-        if (samplingConfig || privacyConfig) {
+        if (samplingConfig || privacyConfig || targetingConfig) {
           remoteConfig = {};
           if (samplingConfig) {
             remoteConfig.sr_sampling_config = samplingConfig;
           }
           if (privacyConfig) {
             remoteConfig.sr_privacy_config = privacyConfig;
+          }
+          if (targetingConfig) {
+            remoteConfig.sr_targeting_config = targetingConfig;
           }
         }
       }
@@ -95,7 +99,11 @@ export class SessionReplayJoinedConfigGenerator {
       };
     }
 
-    const { sr_sampling_config: samplingConfig, sr_privacy_config: remotePrivacyConfig } = remoteConfig;
+    const {
+      sr_sampling_config: samplingConfig,
+      sr_privacy_config: remotePrivacyConfig,
+      sr_targeting_config: targetingConfig,
+    } = remoteConfig;
     if (samplingConfig && Object.keys(samplingConfig).length > 0) {
       if (Object.prototype.hasOwnProperty.call(samplingConfig, 'capture_enabled')) {
         config.captureEnabled = samplingConfig.capture_enabled;
@@ -177,6 +185,10 @@ export class SessionReplayJoinedConfigGenerator {
         joinedPrivacyConfig,
         this.localConfig.loggerProvider,
       );
+    }
+
+    if (targetingConfig && Object.keys(targetingConfig).length > 0) {
+      config.targetingConfig = targetingConfig;
     }
 
     this.localConfig.loggerProvider.debug(

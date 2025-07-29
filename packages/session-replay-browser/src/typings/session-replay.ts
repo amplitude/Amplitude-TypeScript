@@ -1,5 +1,6 @@
 import { AmplitudeReturn, ServerZone } from '@amplitude/analytics-core';
 import { SessionReplayJoinedConfig, SessionReplayLocalConfig, SessionReplayVersion } from '../config/types';
+import { TargetingParameters } from '@amplitude/targeting';
 
 export type StorageData = {
   totalStorageSize: number;
@@ -93,6 +94,10 @@ export interface AmplitudeSessionReplay {
   setSessionId: (sessionId: string | number, deviceId?: string) => AmplitudeReturn<void>;
   getSessionId: () => string | number | undefined;
   getSessionReplayProperties: () => { [key: string]: boolean | string | null };
+  evaluateTargetingAndCapture: (
+    targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
+    isInit?: boolean,
+  ) => Promise<void>;
   flush: (useRetry: boolean) => Promise<void>;
   shutdown: () => void;
 }

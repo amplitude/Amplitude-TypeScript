@@ -1,21 +1,23 @@
 import {
-  Logger,
-  returnWrapper,
   getAnalyticsConnector,
   getGlobalScope,
   ILogger,
+  Logger,
   LogLevel,
+  returnWrapper,
+  SpecialEventType,
 } from '@amplitude/analytics-core';
 
 // Import only specific types to avoid pulling in the entire rrweb-types package
-import { EventType as RRWebEventType, scrollCallback, eventWithTime } from '@amplitude/rrweb-types';
+import { eventWithTime, EventType as RRWebEventType, scrollCallback } from '@amplitude/rrweb-types';
+import { TargetingParameters } from '@amplitude/targeting';
 import { createSessionReplayJoinedConfigGenerator } from './config/joined-config';
 import {
   LoggingConfig,
   SessionReplayJoinedConfig,
   SessionReplayJoinedConfigGenerator,
-  SessionReplayMetadata,
   SessionReplayLocalConfig,
+  SessionReplayMetadata,
   SessionReplayRemoteConfig,
 } from './config/types';
 import {
@@ -27,27 +29,28 @@ import {
   MASK_TEXT_CLASS,
   SESSION_REPLAY_DEBUG_PROPERTY,
 } from './constants';
+import { EventCompressor } from './events/event-compressor';
 import { createEventsManager } from './events/events-manager';
 import { MultiEventManager } from './events/multi-manager';
 import { generateHashCode, getDebugConfig, getPageUrl, getStorageSize, isSessionInSample, maskFn } from './helpers';
 import { clickBatcher, clickHook, clickNonBatcher } from './hooks/click';
 import { ScrollWatcher } from './hooks/scroll';
 import { SessionIdentifiers } from './identifiers';
+import { SafeLoggerProvider } from './logger';
+import { evaluateTargetingAndStore } from './targeting/targeting-manager';
 import {
   AmplitudeSessionReplay,
   SessionReplayEventsManager as AmplitudeSessionReplayEventsManager,
   DebugInfo,
-  EventType,
   EventsManagerWithType,
+  EventType,
   SessionIdentifiers as ISessionIdentifiers,
   SessionReplayOptions,
 } from './typings/session-replay';
 import { VERSION } from './version';
-import { EventCompressor } from './events/event-compressor';
-import { SafeLoggerProvider } from './logger';
 
 // Import only the type for NetworkRequestEvent to keep type safety
-import type { NetworkRequestEvent, NetworkObservers } from './observers';
+import type { NetworkObservers, NetworkRequestEvent } from './observers';
 import { createUrlTrackingPlugin } from './plugins/url-tracking-plugin';
 import type { RecordFunction } from './utils/rrweb';
 
@@ -63,6 +66,9 @@ export class SessionReplay implements AmplitudeSessionReplay {
   recordCancelCallback: ReturnType<RecordFunction> | null = null;
   eventCount = 0;
   eventCompressor: EventCompressor | undefined;
+  sessionTargetingMatch = false;
+  private lastTargetingParams?: Pick<TargetingParameters, 'event' | 'userProperties'>;
+  private lastShouldRecordDecision?: boolean;
 
   // Visible for testing only
   pageLeaveFns: PageLeaveFn[] = [];
@@ -187,14 +193,21 @@ export class SessionReplay implements AmplitudeSessionReplay {
 
     this.teardownEventListeners(false);
 
-    void this.initialize(true);
+    await this.evaluateTargetingAndCapture({ userProperties: options.userProperties }, true);
   }
 
   setSessionId(sessionId: string | number, deviceId?: string) {
     return returnWrapper(this.asyncSetSessionId(sessionId, deviceId));
   }
 
-  async asyncSetSessionId(sessionId: string | number, deviceId?: string) {
+  async asyncSetSessionId(
+    sessionId: string | number,
+    deviceId?: string,
+    options?: { userProperties?: { [key: string]: any } },
+  ) {
+    this.sessionTargetingMatch = false;
+    this.lastShouldRecordDecision = undefined; // Reset targeting decision for new session
+
     const previousSessionId = this.identifiers && this.identifiers.sessionId;
     if (previousSessionId) {
       this.sendEvents(previousSessionId);
@@ -212,7 +225,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
       const { joinedConfig } = await this.joinedConfigGenerator.generateJoinedConfig(this.identifiers.sessionId);
       this.config = joinedConfig;
     }
-    void this.recordEvents();
+    await this.evaluateTargetingAndCapture({ userProperties: options?.userProperties });
   }
 
   getSessionReplayProperties() {
@@ -274,6 +287,50 @@ export class SessionReplay implements AmplitudeSessionReplay {
     });
   };
 
+  evaluateTargetingAndCapture = async (
+    targetingParams: Pick<TargetingParameters, 'event' | 'userProperties'>,
+    isInit = false,
+  ) => {
+    if (!this.identifiers || !this.identifiers.sessionId || !this.config) {
+      if (this.identifiers && !this.identifiers.sessionId) {
+        this.loggerProvider.log('Session ID has not been set yet, cannot evaluate targeting for Session Replay.');
+      } else {
+        this.loggerProvider.warn('Session replay init has not been called, cannot evaluate targeting.');
+      }
+      return;
+    }
+
+    // Store targeting parameters for use in getShouldRecord
+    this.lastTargetingParams = targetingParams;
+
+    if (this.config.targetingConfig && !this.sessionTargetingMatch) {
+      let eventForTargeting = targetingParams.event;
+      if (
+        eventForTargeting &&
+        Object.values(SpecialEventType).includes(eventForTargeting.event_type as SpecialEventType)
+      ) {
+        eventForTargeting = undefined;
+      }
+
+      // We're setting this on this class because fetching the value from idb
+      // is async, we need to access this value synchronously (for record
+      // and for getSessionReplayProperties - both synchronous fns)
+      this.sessionTargetingMatch = await evaluateTargetingAndStore({
+        sessionId: this.identifiers.sessionId,
+        targetingConfig: this.config.targetingConfig,
+        loggerProvider: this.loggerProvider,
+        apiKey: this.config.apiKey,
+        targetingParams: { userProperties: targetingParams.userProperties, event: eventForTargeting },
+      });
+    }
+
+    if (isInit) {
+      void this.initialize(true);
+    } else {
+      await this.recordEvents();
+    }
+  };
+
   sendEvents(sessionId?: string | number) {
     const sessionIdToSend = sessionId || this.identifiers?.sessionId;
     const deviceId = this.getDeviceId();
@@ -326,11 +383,49 @@ export class SessionReplay implements AmplitudeSessionReplay {
       return false;
     }
 
-    const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
-    if (!isInSample) {
-      this.loggerProvider.log(`Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`);
+    let shouldRecord = false;
+    let message = '';
+    let matched = false;
+
+    // If targetingConfig exists, we'll use the sessionTargetingMatch to determine whether to record
+    // Otherwise, we'll evaluate the session against the overall sample rate
+    if (this.config.targetingConfig) {
+      if (!this.sessionTargetingMatch) {
+        message = `Not capturing replays for session ${this.identifiers.sessionId} due to not matching targeting conditions.`;
+        this.loggerProvider.log(message);
+        shouldRecord = false;
+        matched = false;
+      } else {
+        message = `Capturing replays for session ${this.identifiers.sessionId} due to matching targeting conditions.`;
+        this.loggerProvider.log(message);
+        shouldRecord = true;
+        matched = true;
+      }
+    } else {
+      const isInSample = isSessionInSample(this.identifiers.sessionId, this.config.sampleRate);
+      if (!isInSample) {
+        message = `Opting session ${this.identifiers.sessionId} out of recording due to sample rate.`;
+        this.loggerProvider.log(message);
+        shouldRecord = false;
+        matched = false;
+      } else {
+        shouldRecord = true;
+        matched = true;
+      }
     }
-    return isInSample;
+
+    // Only send custom rrweb event for targeting decision when the decision changes
+    if (this.lastShouldRecordDecision !== shouldRecord && this.config.targetingConfig) {
+      void this.addCustomRRWebEvent(CustomRRwebEvent.TARGETING_DECISION, {
+        message,
+        sessionId: this.identifiers.sessionId,
+        matched,
+        targetingParams: this.lastTargetingParams,
+      });
+      this.lastShouldRecordDecision = shouldRecord;
+    }
+
+    return shouldRecord;
   }
 
   getBlockSelectors(): string | string[] | undefined {

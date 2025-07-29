@@ -33,4 +33,5 @@ export enum CustomRRwebEvent {
   DEBUG_INFO = 'debug-info',
   FETCH_REQUEST = 'fetch-request',
   METADATA = 'metadata',
+  TARGETING_DECISION = 'targeting-decision',
 }
