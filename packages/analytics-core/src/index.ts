@@ -1,5 +1,5 @@
 export { AmplitudeCore } from './core-client';
-export { CoreClient } from './types/client/core-client';
+export { CoreClient, PluginHost } from './types/client/core-client';
 export { AnalyticsClient } from './types/client/analytics-client';
 export { AmplitudeContext } from './types/amplitude-context';
 export { Identify, IIdentify } from './identify';
@@ -41,7 +41,14 @@ export { TransportType, Transport } from './types/transport';
 export { Payload } from './types/payload';
 export { Response } from './types/response';
 export { UserSession } from './types/user-session';
-export { Plugin, BeforePlugin, DestinationPlugin, EnrichmentPlugin, PluginType } from './types/plugin';
+export {
+  Plugin,
+  BeforePlugin,
+  DestinationPlugin,
+  EnrichmentPlugin,
+  PluginType,
+  AnalyticsIdentity,
+} from './types/plugin';
 export { Result } from './types/result';
 export {
   ElementInteractionsOptions,
