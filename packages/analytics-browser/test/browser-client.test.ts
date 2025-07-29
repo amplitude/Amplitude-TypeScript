@@ -10,6 +10,7 @@ import {
   AutocaptureOptions,
   Identify,
   SpecialEventType,
+  RemoteConfigClient,
 } from '@amplitude/analytics-core';
 import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
@@ -40,6 +41,7 @@ const mockRemoteConfigClient = {
   updateConfigs: jest.fn(),
 };
 let MockedRemoteConfigClient: jest.SpyInstance;
+let originalRemoteConfigClient: typeof RemoteConfigClient;
 
 jest.mock('web-vitals', () => ({
   onLCP: jest.fn(),
@@ -72,6 +74,7 @@ describe('browser-client', () => {
     deviceId = core.UUID();
 
     // Set up RemoteConfigClient mock
+    originalRemoteConfigClient = core.RemoteConfigClient;
     MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClient);
     Object.defineProperty(core, 'RemoteConfigClient', {
       value: MockedRemoteConfigClient,
