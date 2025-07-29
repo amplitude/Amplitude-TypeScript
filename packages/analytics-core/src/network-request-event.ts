@@ -160,19 +160,17 @@ export class RequestWrapperFetch implements IRequestWrapper {
     return null;
   }
 
-  // TODO: implement this and test it, see if we need "body"
   text(): Promise<string | null> {
     return this.request.text();
   }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
-  constructor(readonly body: XMLHttpRequestBodyInitSafe | null) {}
+  constructor(readonly body: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
-  // TODO: implement this and test it
-  // get headers(): Record<string, string> | undefined {
-  //   return;
-  // }
+  get headers(): Record<string, string> | undefined {
+    return this.requestHeaders;
+  }
 
   get bodySize(): number | undefined {
     return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);

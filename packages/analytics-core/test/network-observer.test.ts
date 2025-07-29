@@ -720,12 +720,12 @@ describe('serializeNetworkRequestEvent', () => {
 
 describe('RequestWrapperXhr', () => {
   test('text should return the body', async () => {
-    const requestWrapper = new RequestWrapperXhr('Hello World!');
+    const requestWrapper = new RequestWrapperXhr('Hello World!', {});
     expect(await requestWrapper.text()).toBe('Hello World!');
   });
 
   test('text should return null if body is not a string', async () => {
-    const requestWrapper = new RequestWrapperXhr(new Blob(['Hello World!']));
+    const requestWrapper = new RequestWrapperXhr(new Blob(['Hello World!']), {});
     expect(await requestWrapper.text()).toBeNull();
   });
 });
@@ -809,10 +809,13 @@ describe('observeXhr', () => {
     it('should call mockXHR and retrieve event and still call original open/send', (done) => {
       const originalOpenSpy = jest.spyOn(MockXHR.prototype, 'open');
       const originalSendSpy = jest.spyOn(MockXHR.prototype, 'send');
+      const originalSetRequestHeaderSpy = jest.spyOn(MockXHR.prototype, 'setRequestHeader');
       const callback = (event: NetworkRequestEvent) => {
         try {
           expect(originalOpenSpy).toHaveBeenCalledWith('GET', 'https://api.example.com/data');
           expect(originalSendSpy).toHaveBeenCalledWith('hello world!');
+          expect(originalSetRequestHeaderSpy).toHaveBeenCalledWith('Authorization', 'secretpassword!');
+          expect(originalSetRequestHeaderSpy).toHaveBeenCalledWith('X-Custom-Header', 'customvalue');
           expect(event.status).toBe(200);
           expect(event.type).toBe('xhr');
           expect(event.method).toBe('GET');
@@ -822,6 +825,10 @@ describe('observeXhr', () => {
             'Content-Length': '1234',
           });
           expect(event.responseWrapper?.bodySize).toBe(1234);
+          expect(event.requestWrapper?.headers).toEqual({
+            Authorization: 'secretpassword!',
+            'X-Custom-Header': 'customvalue',
+          });
           expect(event.requestWrapper?.bodySize).toBe('hello world!'.length);
           expect(event.duration).toBeGreaterThanOrEqual(0);
           expect(event.startTime).toBeGreaterThanOrEqual(0);
@@ -838,6 +845,8 @@ describe('observeXhr', () => {
       const XMLHttpRequest = (networkObserver as unknown as any).globalScope.XMLHttpRequest;
       const xhr = new XMLHttpRequest();
       xhr.open('GET', 'https://api.example.com/data');
+      xhr.setRequestHeader('Authorization', 'secretpassword!');
+      xhr.setRequestHeader('X-Custom-Header', 'customvalue');
       xhr.send('hello world!');
     });
   });
