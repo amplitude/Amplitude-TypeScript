@@ -111,6 +111,8 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private _bodySize: number | undefined;
   constructor(private request: RequestInitSafe) {}
 
+  // TODO: add options to headers to exclude headers or to 
+  // only include certain headers
   get headers(): Record<string, string> | undefined {
     if (this._headers) return this._headers;
 
@@ -158,14 +160,29 @@ export class RequestWrapperFetch implements IRequestWrapper {
     }
     return null;
   }
+
+  // TODO: implement this and test it, see if we need "body"
+  // get text(): string | null {
+  //   return this.body as string | null;
+  // }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
   constructor(readonly body: XMLHttpRequestBodyInitSafe | null) {}
 
+  // TODO: implement this and test it
+  // get headers(): Record<string, string> | undefined {
+  //   return;
+  // }
+
   get bodySize(): number | undefined {
     return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
   }
+
+  // TODO: implement this and test it
+  // get text(): string | null {
+  //   return this.body as string | null;
+  // }
 }
 
 function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number | undefined {
@@ -256,7 +273,8 @@ export interface IResponseWrapper {
  *   * Do not make changes to this class without careful consideration
  *     of performance implications, memory usage and potential to mutate the customer's
  *     response.
- *   * NEVER .clone() the Response object. This will 2x's the memory overhead of the response
+ *   * Do not .clone() the Response object unless you need to access the body.
+ *     Cloning will 2x the memory overhead of the response.
  *   * NEVER consume the body's stream. This will cause the response to be consumed
  *     meaning the body will be empty when the customer tries to access it.
  *     (ie: if the body is an instanceof https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
