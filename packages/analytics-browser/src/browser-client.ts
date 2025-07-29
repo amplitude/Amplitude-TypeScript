@@ -239,8 +239,8 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     };
   }
 
-  getOptOut(): boolean {
-    return this.config.optOut;
+  getOptOut(): boolean | undefined {
+    return this.config?.optOut;
   }
 
   getSessionId() {

@@ -32,7 +32,7 @@ export interface AnalyticsClient<Identity extends AnalyticsIdentity = AnalyticsI
    * const optOut = getOptOut();
    * ```
    */
-  getOptOut(): boolean;
+  getOptOut(): boolean | undefined;
 
   /**
    * Tracks an event with the specified type and optional properties.
