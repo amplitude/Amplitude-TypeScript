@@ -48,6 +48,7 @@ type RequestUrlAndMethod = {
 type AmplitudeXMLHttpRequestSafe = {
   $$AmplitudeAnalyticsEvent: AmplitudeAnalyticsEvent;
   status: number;
+  responseText: string;
   getAllResponseHeaders: typeof XMLHttpRequest.prototype.getAllResponseHeaders;
   getResponseHeader: typeof XMLHttpRequest.prototype.getResponseHeader;
   addEventListener: (type: 'loadend', listener: () => void) => void;
@@ -317,6 +318,7 @@ export class NetworkObserver {
             responseHeaders,
             /* istanbul ignore next */
             responseBodySize ? parseInt(responseBodySize, 10) : undefined,
+            xhrSafe.responseText,
           );
           const requestWrapper = new RequestWrapperXhr(body);
           requestEvent.status = xhrSafe.status;

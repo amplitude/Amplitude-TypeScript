@@ -594,6 +594,42 @@ describe('NetworkObserver', () => {
       text: async () => '{"message": "Hello from mock!"}',
     };
 
+    test('text should return null if text returns nothing', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => null,
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const json = await responseWrapper.text();
+      await responseWrapper.text();
+      expect(json).toBeNull();
+    });
+
+    test('text should return null if text throws an error', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => {
+          throw new Error('some error');
+        },
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const json = await responseWrapper.text();
+      expect(json).toBeNull();
+    });
+
+    test('text should return a value', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => 'some text',
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const text = await responseWrapper.text();
+      expect(text).toBe('some text');
+    });
+
     test('bodySize should return undefined if content-length is not set', () => {
       const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
       const bodySize = responseWrapper.bodySize;
@@ -782,9 +818,11 @@ describe('observeXhr', () => {
 });
 
 describe('ResponseWrapperXhr', () => {
-  test('should return undefined if headersString is empty', () => {
-    const responseWrapper = new ResponseWrapperXhr(200, '', 0);
+  test('should return undefined if headersString is empty', async () => {
+    const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
     expect(responseWrapper.headers).toEqual(undefined);
+    const text = await responseWrapper.text();
+    expect(text).toBe('some text');
   });
 });
 

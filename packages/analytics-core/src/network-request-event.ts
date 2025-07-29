@@ -50,7 +50,14 @@ type HeadersInitSafe = HeadersRequestSafe | Record<string, string> | string[][];
 type ResponseSafe = {
   status: number;
   headers: HeadersResponseSafe | undefined;
+  clone(): ResponseCloneSafe;
 };
+
+type ResponseCloneSafe = {
+  text(): Promise<string>;
+};
+
+const TEXT_READ_TIMEOUT = 500;
 
 export type RequestInitSafe = {
   method?: string;
@@ -221,11 +228,20 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
   return bodySize;
 }
 
+export type JsonObject = {
+  [key: string]: JsonValue;
+};
+
+export type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+
+export type JsonArray = Array<JsonValue>;
+
 export interface IResponseWrapper {
   headers?: Record<string, string>;
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
+  text?: () => Promise<string | null>;
 }
 
 /**
@@ -249,6 +265,7 @@ export interface IResponseWrapper {
 export class ResponseWrapperFetch implements IResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
+  private clonedResponse: ResponseCloneSafe | undefined;
   constructor(private response: ResponseSafe) {}
 
   get headers(): Record<string, string> | undefined {
@@ -280,10 +297,35 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   get status(): number {
     return this.response.status;
   }
+
+  async text(): Promise<string | null> {
+    if (!this.clonedResponse) {
+      this.clonedResponse = this.response.clone();
+    }
+    try {
+      const textPromise = this.clonedResponse.text();
+      const timer = new Promise<null>((resolve) =>
+        setTimeout(
+          /* istanbul ignore next */
+          () => resolve(null),
+          TEXT_READ_TIMEOUT,
+        ),
+      );
+      const text = await Promise.race<string | null>([textPromise, timer]);
+      return text;
+    } catch (error) {
+      return null;
+    }
+  }
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
-  constructor(readonly statusCode: number, readonly headersString: string, readonly size: number | undefined) {}
+  constructor(
+    readonly statusCode: number,
+    readonly headersString: string,
+    readonly size: number | undefined,
+    readonly responseText: string,
+  ) {}
 
   get bodySize(): number | undefined {
     return this.size;
@@ -291,6 +333,10 @@ export class ResponseWrapperXhr implements IResponseWrapper {
 
   get status(): number {
     return this.statusCode;
+  }
+
+  async text(): Promise<string | null> {
+    return this.responseText;
   }
 
   get headers(): Record<string, string> | undefined {
