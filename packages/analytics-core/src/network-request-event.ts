@@ -63,6 +63,7 @@ export type RequestInitSafe = {
   method?: string;
   headers?: HeadersInitSafe;
   body?: BodyInitSafe;
+  text: () => Promise<string | null>;
 };
 export interface FormDataSafe {
   entries(): IterableIterator<[string, FormDataEntryValueSafe]>;
@@ -111,7 +112,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private _bodySize: number | undefined;
   constructor(private request: RequestInitSafe) {}
 
-  // TODO: add options to headers to exclude headers or to 
+  // TODO: add options to headers to exclude headers or to
   // only include certain headers
   get headers(): Record<string, string> | undefined {
     if (this._headers) return this._headers;
@@ -162,9 +163,9 @@ export class RequestWrapperFetch implements IRequestWrapper {
   }
 
   // TODO: implement this and test it, see if we need "body"
-  // get text(): string | null {
-  //   return this.body as string | null;
-  // }
+  text(): Promise<string | null> {
+    return this.request.text();
+  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {

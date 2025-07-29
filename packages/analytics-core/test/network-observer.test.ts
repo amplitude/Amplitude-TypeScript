@@ -399,6 +399,15 @@ describe('NetworkObserver', () => {
   });
 
   describe('RequestWrapper', () => {
+    describe('text should return the body', () => {
+      it('string', async () => {
+        const body = 'Hello World!';
+        const requestWrapper = new RequestWrapperFetch({
+          text: () => Promise.resolve(body),
+        } as RequestInitSafe);
+        expect(await requestWrapper.text()).toBe(body);
+      });
+    });
     describe('bodySize should return the body length when the body is of type', () => {
       it('string', () => {
         const body = 'Hello World!';
@@ -422,6 +431,7 @@ describe('NetworkObserver', () => {
         }
         const requestWrapper = new RequestWrapperFetch({
           body: buffer,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(buffer.byteLength);
         expect(buffer.byteLength).toBe(8);
@@ -439,6 +449,7 @@ describe('NetworkObserver', () => {
         }
         const requestWrapper = new RequestWrapperFetch({
           body: arr,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(arr.byteLength);
 
@@ -494,6 +505,7 @@ describe('NetworkObserver', () => {
 
         const requestWrapper = new RequestWrapperFetch({
           body: params,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(expectedSize);
         expect(spies.length).toBe(unsafeURLSearchParamsMethods.length);
