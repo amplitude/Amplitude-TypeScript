@@ -181,7 +181,7 @@ export class AmplitudeReactNative extends AmplitudeCore implements ReactNativeCl
   }
 
   getOptOut() {
-    return this.config.optOut;
+    return this.config?.optOut ?? false;
   }
 
   setSessionId(sessionId: number) {
