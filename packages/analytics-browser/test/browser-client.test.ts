@@ -87,7 +87,7 @@ describe('browser-client', () => {
     // clean up RemoteConfigClient mock
     if (MockedRemoteConfigClient) {
       Object.defineProperty(core, 'RemoteConfigClient', {
-        value: undefined,
+        value: originalRemoteConfigClient,
         writable: true,
         configurable: true,
       });
