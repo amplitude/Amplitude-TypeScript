@@ -94,6 +94,7 @@ export function updateBrowserConfigWithRemoteConfig(
             pageViews: browserConfig.autocapture,
             sessions: browserConfig.autocapture,
             elementInteractions: browserConfig.autocapture,
+            frustrationInteractions: browserConfig.autocapture,
             ...transformedAutocaptureRemoteConfig,
           };
         }
