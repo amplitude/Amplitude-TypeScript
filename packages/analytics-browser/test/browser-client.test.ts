@@ -834,6 +834,10 @@ describe('browser-client', () => {
       }).promise;
       expect(client.getOptOut()).toBe(optOut);
     });
+
+    test('should return undefined if opt out is not set', async () => {
+      expect(client.getOptOut()).toBe(undefined);
+    });
   });
 
   describe('getSessionId', () => {

@@ -68,5 +68,5 @@ export interface BrowserClient extends Client {
    * const optOut = getOptOut();
    * ```
    */
-  getOptOut(): boolean;
+  getOptOut(): boolean | undefined;
 }
