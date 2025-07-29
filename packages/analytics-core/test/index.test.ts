@@ -49,6 +49,7 @@ import {
   CampaignParser,
   EMPTY_VALUE,
   MKTG,
+  AmplitudeContext,
 } from '../src/index';
 
 describe('index', () => {
@@ -64,6 +65,7 @@ describe('index', () => {
     expect(typeof client.revenue).toBe('function');
     expect(typeof client.add).toBe('function');
     expect(typeof client.remove).toBe('function');
+    expect(typeof AmplitudeContext).toBe('function');
     expect(typeof Identify).toBe('function');
     expect(typeof Revenue).toBe('function');
     expect(typeof BaseTransport).toBe('function');
