@@ -9,7 +9,6 @@ describe('browser-storage', () => {
   describe('isEnabled', () => {
     test('should return true', async () => {
       const sessionStorage = new BrowserStorage(getGlobalScope()?.sessionStorage);
-      console.log('sessionStorage????', sessionStorage);
       expect(await sessionStorage.isEnabled()).toBe(true);
     });
   });
