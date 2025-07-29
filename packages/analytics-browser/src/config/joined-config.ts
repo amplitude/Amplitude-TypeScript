@@ -80,19 +80,6 @@ export function updateBrowserConfigWithRemoteConfig(
             }
           }
 
-          if (typeof this.config.autocapture === 'boolean') {
-            this.config.autocapture = {
-              attribution: this.config.autocapture,
-              fileDownloads: this.config.autocapture,
-              formInteractions: this.config.autocapture,
-              pageViews: this.config.autocapture,
-              sessions: this.config.autocapture,
-              elementInteractions: this.config.autocapture,
-              webVitals: this.config.autocapture,
-              frustrationInteractions: this.config.autocapture,
-              ...transformedAutocaptureRemoteConfig,
-            };
-          }
           const combinedPageUrlAllowlist = exactAllowList.concat(regexList);
 
           transformedRcElementInteractions.pageUrlAllowlist = combinedPageUrlAllowlist;
