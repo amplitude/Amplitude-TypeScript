@@ -624,9 +624,12 @@ describe('browser-client', () => {
       const currentTime = 1640995200000; // 2022-01-01 00:00:00 UTC
       const futureTimestamp = currentTime + 300000; // 5 minutes in the future
       const pastTimestamp = currentTime - 300000; // 5 minutes in the past
+      const mockedUUID = '1234567890';
 
       beforeEach(() => {
         Date.now = jest.fn(() => currentTime);
+        // Mock UUID() to return a fixed value
+        jest.spyOn(core, 'UUID').mockReturnValue(mockedUUID);
       });
 
       afterEach(() => {
@@ -734,10 +737,7 @@ describe('browser-client', () => {
         }).promise;
 
         // Should generate new device ID instead of using expired ampDeviceId
-        expect(client.config.deviceId).not.toEqual(testDeviceId);
-        expect(client.config.deviceId).toBeDefined();
-        expect(typeof client.config.deviceId).toBe('string');
-        expect(client.config.deviceId!.length).toBeGreaterThan(0);
+        expect(client.config.deviceId).toEqual(mockedUUID);
       });
 
       test('should work as before when ampTimestamp is missing (backward compatibility)', async () => {
