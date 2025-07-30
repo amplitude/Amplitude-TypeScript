@@ -112,14 +112,20 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
 
     // Step 3: Set session ID
     // Priority 1: `options.sessionId`
-    // Priority 2: sessionId from url if it's Number
+    // Priority 2: sessionId from url if it's Number and ampTimestamp is valid
     // Priority 3: last known sessionId from user identity storage
     // Default: `Date.now()`
     // Session ID is handled differently than device ID and user ID due to session events
     const queryParams = getQueryParams();
-    const querySessionId = Number.isNaN(Number(queryParams.ampSessionId))
-      ? undefined
-      : Number(queryParams.ampSessionId);
+
+    // Check if ampTimestamp is present and valid
+    const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
+    const isWithinTimeLimit = ampTimestamp ? Date.now() < ampTimestamp : true;
+
+    const querySessionId =
+      isWithinTimeLimit && !Number.isNaN(Number(queryParams.ampSessionId))
+        ? Number(queryParams.ampSessionId)
+        : undefined;
     this.setSessionId(options.sessionId ?? querySessionId ?? this.config.sessionId ?? Date.now());
 
     // Set up the analytics connector to integrate with the experiment SDK.

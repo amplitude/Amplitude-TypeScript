@@ -617,6 +617,235 @@ describe('browser-client', () => {
         Date.now = originalDate;
       },
     );
+
+    describe('ampTimestamp validation', () => {
+      const originalLocation = window.location;
+      const originalDateNow = Date.now;
+      const currentTime = 1640995200000; // 2022-01-01 00:00:00 UTC
+      const futureTimestamp = currentTime + 300000; // 5 minutes in the future
+      const pastTimestamp = currentTime - 300000; // 5 minutes in the past
+      const mockedUUID = '1234567890';
+
+      beforeEach(() => {
+        Date.now = jest.fn(() => currentTime);
+        // Mock UUID() to return a fixed value
+        jest.spyOn(core, 'UUID').mockReturnValue(mockedUUID);
+      });
+
+      afterEach(() => {
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          writable: true,
+        });
+        Date.now = originalDateNow;
+      });
+
+      test('should use ampSessionId when ampTimestamp is valid (future)', async () => {
+        const urlWithValidTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampTimestamp=${futureTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithValidTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        expect(client.config.sessionId).toEqual(testSessionId);
+        expect(setSessionId).toHaveBeenCalledWith(testSessionId);
+      });
+
+      test('should ignore ampSessionId when ampTimestamp is expired (past)', async () => {
+        const urlWithExpiredTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampTimestamp=${pastTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithExpiredTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        // Should fall back to Date.now() instead of using expired ampSessionId
+        expect(client.config.sessionId).toEqual(currentTime);
+        expect(setSessionId).toHaveBeenCalledWith(currentTime);
+      });
+
+      test('should use ampDeviceId when ampTimestamp is valid (future)', async () => {
+        const urlWithValidTimestamp = new URL(
+          `https://www.example.com?ampDeviceId=${testDeviceId}&ampTimestamp=${futureTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithValidTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        expect(client.config.deviceId).toEqual(testDeviceId);
+      });
+
+      test('should ignore ampDeviceId when ampTimestamp is expired (past)', async () => {
+        const urlWithExpiredTimestamp = new URL(
+          `https://www.example.com?ampDeviceId=${testDeviceId}&ampTimestamp=${pastTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithExpiredTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        // Should generate new device ID instead of using expired ampDeviceId
+        expect(client.config.deviceId).toEqual(mockedUUID);
+      });
+
+      test('should work as before when ampTimestamp is missing (backward compatibility)', async () => {
+        const urlWithoutTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampDeviceId=${testDeviceId}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithoutTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        // Should use both parameters when timestamp is missing (backward compatibility)
+        expect(client.config.sessionId).toEqual(testSessionId);
+        expect(client.config.deviceId).toEqual(testDeviceId);
+        expect(setSessionId).toHaveBeenCalledWith(testSessionId);
+      });
+
+      test('should handle malformed ampTimestamp gracefully', async () => {
+        const urlWithMalformedTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampDeviceId=${testDeviceId}&ampTimestamp=invalid`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithMalformedTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        // Should treat malformed timestamp as missing and use parameters (backward compatibility)
+        expect(client.config.sessionId).toEqual(testSessionId);
+        expect(client.config.deviceId).toEqual(testDeviceId);
+        expect(setSessionId).toHaveBeenCalledWith(testSessionId);
+      });
+
+      test('should use deviceId parameter when ampTimestamp is valid', async () => {
+        const urlWithValidTimestampDeviceId = new URL(
+          `https://www.example.com?deviceId=${testDeviceId}&ampTimestamp=${futureTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithValidTimestampDeviceId.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        expect(client.config.deviceId).toEqual(testDeviceId);
+      });
+
+      test('should ignore deviceId parameter when ampTimestamp is expired', async () => {
+        const urlWithExpiredTimestampDeviceId = new URL(
+          `https://www.example.com?deviceId=${testDeviceId}&ampTimestamp=${pastTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithExpiredTimestampDeviceId.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        // Should generate new device ID instead of using expired deviceId parameter
+        expect(client.config.deviceId).not.toEqual(testDeviceId);
+        expect(client.config.deviceId).toBeDefined();
+        expect(typeof client.config.deviceId).toBe('string');
+        expect(client.config.deviceId!.length).toBeGreaterThan(0);
+      });
+    });
   });
 
   describe('getUserId', () => {
