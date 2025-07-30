@@ -51,13 +51,6 @@ export interface FrustrationInteractionsOptions {
   dataAttributePrefix?: string;
 
   /**
-   * Options for integrating visual tagging selector.
-   */
-  visualTaggingOptions?: {
-    enabled?: boolean;
-    messenger?: Messenger;
-  };
-  /**
    * Configuration for dead clicks tracking
    */
   deadClicks?: DeadClickOptions;
