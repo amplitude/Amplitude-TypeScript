@@ -1,4 +1,4 @@
-import { ActionType, Messenger } from './element-interactions';
+import { ActionType } from './element-interactions';
 
 /**
  * Configuration options for dead clicks tracking
