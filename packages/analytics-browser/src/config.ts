@@ -244,7 +244,7 @@ export const useBrowserConfig = async (
 
   // Check if ampTimestamp is present and valid
   const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
-  const isTimestampValid = ampTimestamp ? Date.now() < ampTimestamp : true;
+  const isTimestampValid = ampTimestamp !== undefined && Date.now() < ampTimestamp;
 
   // Step 3: Reconcile user identity
   const deviceId =
