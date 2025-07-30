@@ -242,11 +242,14 @@ export const useBrowserConfig = async (
   const previousCookies = await cookieStorage.get(getCookieName(apiKey));
   const queryParams = getQueryParams();
 
+  // Check if ampTimestamp is present and valid
+  const ampTimestamp = queryParams.ampTimestamp ? Number(queryParams.ampTimestamp) : undefined;
+  const isTimestampValid = ampTimestamp ? Date.now() < ampTimestamp : true;
+
   // Step 3: Reconcile user identity
   const deviceId =
     options.deviceId ??
-    queryParams.ampDeviceId ??
-    queryParams.deviceId ??
+    (isTimestampValid ? queryParams.ampDeviceId ?? queryParams.deviceId : undefined) ??
     previousCookies?.deviceId ??
     legacyCookies.deviceId ??
     UUID();
