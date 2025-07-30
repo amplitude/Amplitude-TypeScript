@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.21.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.21.0...@amplitude/analytics-browser@2.21.1) (2025-07-30)
+
+
+### Bug Fixes
+
+* **analytics-browser:** support evaluation window for cross domain t… ([#1227](https://github.com/amplitude/Amplitude-TypeScript/issues/1227)) ([498224e](https://github.com/amplitude/Amplitude-TypeScript/commit/498224eb91296390193f9541debc14a75b677925))
+
+
+
+
+
 # [2.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.20.1...@amplitude/analytics-browser@2.21.0) (2025-07-29)
 
 
