@@ -28,6 +28,7 @@ import {
   IdentityEventSender,
   CookieStorage,
   FetchTransport,
+  RemoteConfigClient,
   Identify,
   Revenue,
   getStorageKey,
@@ -99,6 +100,8 @@ describe('index', () => {
     expect(() => new CookieStorage()).not.toThrow();
     expect(typeof FetchTransport).toBe('function');
     expect(() => new FetchTransport()).not.toThrow();
+    expect(typeof RemoteConfigClient).toBe('function');
+    expect(() => new RemoteConfigClient('api-key', new Logger())).not.toThrow();
     expect(OfflineDisabled).toBe(null);
     expect(typeof OfflineDisabled).toBe('object');
     expect(typeof Status).toBe('object');

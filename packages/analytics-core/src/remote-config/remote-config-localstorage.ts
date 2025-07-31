@@ -31,7 +31,7 @@ export class RemoteConfigLocalStorage implements RemoteConfigStorage {
 
     try {
       const remoteConfigInfo: RemoteConfigInfo = JSON.parse(result) as RemoteConfigInfo;
-      this.logger.debug('Remote config localstorage parsed successfully.');
+      this.logger.debug(`Remote config localstorage parsed successfully: ${JSON.stringify(remoteConfigInfo)}`);
       return Promise.resolve({
         remoteConfig: remoteConfigInfo.remoteConfig,
         lastFetch: new Date(remoteConfigInfo.lastFetch),

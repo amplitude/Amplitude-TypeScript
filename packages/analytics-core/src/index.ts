@@ -28,6 +28,8 @@ export { getStorageKey } from './storage/helpers';
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
 
+export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
+
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
 export { Storage, IdentityStorageType } from './types/storage';

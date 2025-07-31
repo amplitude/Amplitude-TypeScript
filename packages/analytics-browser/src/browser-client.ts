@@ -23,6 +23,10 @@ import {
   BrowserClient,
   SpecialEventType,
   AnalyticsClient,
+  IRemoteConfigClient,
+  RemoteConfigClient,
+  RemoteConfig,
+  Source,
 } from '@amplitude/analytics-core';
 import {
   getAttributionTrackingConfig,
@@ -49,7 +53,7 @@ import { fileDownloadTracking } from './plugins/file-download-tracking';
 import { DEFAULT_SESSION_END_EVENT, DEFAULT_SESSION_START_EVENT } from './constants';
 import { detNotify } from './det-notification';
 import { networkConnectivityCheckerPlugin } from './plugins/network-connectivity-checker';
-import { createBrowserJoinedConfigGenerator } from './config/joined-config';
+import { updateBrowserConfigWithRemoteConfig } from './config/joined-config';
 import { autocapturePlugin, frustrationPlugin } from '@amplitude/plugin-autocapture-browser';
 import { plugin as networkCapturePlugin } from '@amplitude/plugin-network-capture-browser';
 import { webVitalsPlugin } from '@amplitude/plugin-web-vitals-browser';
@@ -67,6 +71,7 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
   previousSessionUserId: string | undefined;
   webAttribution: WebAttribution | undefined;
   userProperties: { [key: string]: any } | undefined;
+  remoteConfigClient: IRemoteConfigClient | undefined;
 
   init(apiKey = '', userIdOrOptions?: string | BrowserOptions, maybeOptions?: BrowserOptions) {
     let userId: string | undefined;
@@ -93,12 +98,49 @@ export class AmplitudeBrowser extends AmplitudeCore implements BrowserClient, An
     }
     this.initializing = true;
 
-    let browserOptions = await useBrowserConfig(options.apiKey, options, this);
     // Step 2: Create browser config
+    // Get default browser config based on browser options
+    const browserOptions = await useBrowserConfig(options.apiKey, options, this);
+
+    // Create remote config client and subscribe to analytics configs
     if (browserOptions.fetchRemoteConfig) {
-      const joinedConfigGenerator = await createBrowserJoinedConfigGenerator(browserOptions);
-      browserOptions = await joinedConfigGenerator.generateJoinedConfig();
+      this.remoteConfigClient = new RemoteConfigClient(
+        browserOptions.apiKey,
+        browserOptions.loggerProvider,
+        browserOptions.serverZone,
+      );
+
+      // Wait for initial remote config before proceeding.
+      // Delivery mode is all, meaning it calls the callback with whoever (cache or remote) returns first.
+      await new Promise<void>((resolve) => {
+        // Disable coverage for this line because remote config client will always be defined in this case.
+        // istanbul ignore next
+        this.remoteConfigClient?.subscribe(
+          'configs.analyticsSDK.browserSDK',
+          'all',
+          (remoteConfig: RemoteConfig | null, source: Source, lastFetch: Date) => {
+            browserOptions.loggerProvider.debug(
+              'Remote configuration received:',
+              JSON.stringify(
+                {
+                  remoteConfig,
+                  source,
+                  lastFetch,
+                },
+                null,
+                2,
+              ),
+            );
+            if (remoteConfig) {
+              updateBrowserConfigWithRemoteConfig(remoteConfig, browserOptions);
+            }
+            // Resolve the promise on first callback (initial config)
+            resolve();
+          },
+        );
+      });
     }
+
     await super._init(browserOptions);
     this.logBrowserOptions(browserOptions);
 
