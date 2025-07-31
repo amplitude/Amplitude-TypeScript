@@ -4,6 +4,7 @@ import {
   FetchRequestBody,
   RequestInitSafe,
   RequestWrapperFetch,
+  RequestWrapperXhr,
   ResponseWrapperFetch,
   ResponseWrapperXhr,
 } from '../src/network-request-event';
@@ -399,6 +400,15 @@ describe('NetworkObserver', () => {
   });
 
   describe('RequestWrapper', () => {
+    describe('text should return the body', () => {
+      it('string', async () => {
+        const body = 'Hello World!';
+        const requestWrapper = new RequestWrapperFetch({
+          text: () => Promise.resolve(body),
+        } as RequestInitSafe);
+        expect(await requestWrapper.text()).toBe(body);
+      });
+    });
     describe('bodySize should return the body length when the body is of type', () => {
       it('string', () => {
         const body = 'Hello World!';
@@ -422,6 +432,7 @@ describe('NetworkObserver', () => {
         }
         const requestWrapper = new RequestWrapperFetch({
           body: buffer,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(buffer.byteLength);
         expect(buffer.byteLength).toBe(8);
@@ -439,6 +450,7 @@ describe('NetworkObserver', () => {
         }
         const requestWrapper = new RequestWrapperFetch({
           body: arr,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(arr.byteLength);
 
@@ -494,6 +506,7 @@ describe('NetworkObserver', () => {
 
         const requestWrapper = new RequestWrapperFetch({
           body: params,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(expectedSize);
         expect(spies.length).toBe(unsafeURLSearchParamsMethods.length);
@@ -594,6 +607,42 @@ describe('NetworkObserver', () => {
       text: async () => '{"message": "Hello from mock!"}',
     };
 
+    test('text should return null if text returns nothing', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => null,
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const json = await responseWrapper.text();
+      await responseWrapper.text();
+      expect(json).toBeNull();
+    });
+
+    test('text should return null if text throws an error', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => {
+          throw new Error('some error');
+        },
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const json = await responseWrapper.text();
+      expect(json).toBeNull();
+    });
+
+    test('text should return a value', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => 'some text',
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const text = await responseWrapper.text();
+      expect(text).toBe('some text');
+    });
+
     test('bodySize should return undefined if content-length is not set', () => {
       const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
       const bodySize = responseWrapper.bodySize;
@@ -665,6 +714,18 @@ describe('serializeNetworkRequestEvent', () => {
         'Content-Type': 'application/json',
       },
     });
+  });
+});
+
+describe('RequestWrapperXhr', () => {
+  test('text should return the body', async () => {
+    const requestWrapper = new RequestWrapperXhr('Hello World!');
+    expect(await requestWrapper.text()).toBe('Hello World!');
+  });
+
+  test('text should return null if body is not a string', async () => {
+    const requestWrapper = new RequestWrapperXhr(new Blob(['Hello World!']));
+    expect(await requestWrapper.text()).toBeNull();
   });
 });
 
@@ -782,9 +843,11 @@ describe('observeXhr', () => {
 });
 
 describe('ResponseWrapperXhr', () => {
-  test('should return undefined if headersString is empty', () => {
-    const responseWrapper = new ResponseWrapperXhr(200, '', 0);
+  test('should return undefined if headersString is empty', async () => {
+    const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
     expect(responseWrapper.headers).toEqual(undefined);
+    const text = await responseWrapper.text();
+    expect(text).toBe('some text');
   });
 });
 
