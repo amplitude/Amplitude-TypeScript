@@ -44,23 +44,20 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
 
   for (const [key, value] of Object.entries(config)) {
     // if the value is an object, translate its properties too
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      translateRemoteConfigToLocal(value as Record<string, any>);
-    }
+    translateRemoteConfigToLocal(value as Record<string, any>);
 
     if (typeof value?.enabled === 'boolean') {
-      let translatedValue;
       if (value.enabled) {
         // if enabled is true, set the value to the rest of the object
         // or true if the object has no other properties
-        const { enabled, ...rest } = value;
-        translatedValue = Object.keys(rest).length > 0 ? rest : true;
+        delete value.enabled;
+        if (Object.keys(value).length === 0) {
+          (config as any)[key] = true;
+        }
       } else {
         // If enabled is false, set the value to false
-        translatedValue = false;
+        (config as any)[key] = false;
       }
-
-      (config as any)[key] = translatedValue;
     }
   }
 }
