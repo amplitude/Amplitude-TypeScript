@@ -37,6 +37,11 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     return;
   }
 
+  // translations are not applied on array properties
+  if (Array.isArray(config)) {
+    return;
+  }
+
   for (const [key, value] of Object.entries(config)) {
     // if the value is an object, translate its properties too
     if (typeof value === 'object' && value !== null) {
