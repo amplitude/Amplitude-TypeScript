@@ -265,11 +265,11 @@ export class RemoteConfigClient implements IRemoteConfigClient {
     };
 
     for (let attempt = 0; attempt < retries; attempt++) {
-      try {
-        // Create AbortController for request timeout
-        const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(), timeout);
+      // Create AbortController for request timeout
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), timeout);
 
+      try {
         const res = await fetch(this.getUrlParams(), {
           method: 'GET',
           headers: {
@@ -277,9 +277,6 @@ export class RemoteConfigClient implements IRemoteConfigClient {
           },
           signal: abortController.signal,
         });
-
-        // Clear the timeout since request completed
-        clearTimeout(timeoutId);
 
         // Handle unsuccessful fetch
         if (!res.ok) {
@@ -300,6 +297,9 @@ export class RemoteConfigClient implements IRemoteConfigClient {
         } else {
           this.logger.debug(`Remote config client fetch with retry time ${retries} is rejected because: `, error);
         }
+      } finally {
+        // Clear the timeout since request completed or failed
+        clearTimeout(timeoutId);
       }
 
       // Linear backoff:
