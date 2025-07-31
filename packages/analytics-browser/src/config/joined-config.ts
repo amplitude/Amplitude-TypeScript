@@ -42,24 +42,31 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     return;
   }
 
-  for (const [key, value] of Object.entries(config)) {
-    // transform objects with { enabled } property to boolean | object
-    if (typeof value?.enabled === 'boolean') {
-      if (value.enabled) {
-        // if enabled is true, set the value to the rest of the object
-        // or true if the object has no other properties
-        delete value.enabled;
-        if (Object.keys(value).length === 0) {
-          (config as any)[key] = true;
+  const propertyNames = Object.keys(config);
+  for (const propertyName of propertyNames) {
+    try {
+      const value = config[propertyName];
+      // transform objects with { enabled } property to boolean | object
+      if (typeof value?.enabled === 'boolean') {
+        if (value.enabled) {
+          // if enabled is true, set the value to the rest of the object
+          // or true if the object has no other properties
+          delete value.enabled;
+          if (Object.keys(value).length === 0) {
+            (config as any)[propertyName] = true;
+          }
+        } else {
+          // If enabled is false, set the value to false
+          (config as any)[propertyName] = false;
         }
-      } else {
-        // If enabled is false, set the value to false
-        (config as any)[key] = false;
       }
-    }
 
-    // recursively translate properties of the value
-    translateRemoteConfigToLocal(value as Record<string, any>);
+      // recursively translate properties of the value
+      translateRemoteConfigToLocal(value as Record<string, any>);
+    } catch (e) {
+      // a failure here means that an accessor threw an error
+      // so don't translate it
+    }
   }
 }
 
@@ -77,6 +84,9 @@ export function updateBrowserConfigWithRemoteConfig(
   if (!remoteConfig) {
     return;
   }
+
+  // translate remote config to local compatible format
+  translateRemoteConfigToLocal(remoteConfig);
 
   try {
     browserConfig.loggerProvider.debug(
