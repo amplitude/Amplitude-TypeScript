@@ -53,12 +53,12 @@ export interface FrustrationInteractionsOptions {
   /**
    * Configuration for dead clicks tracking
    */
-  deadClicks?: DeadClickOptions | boolean;
+  deadClicks?: DeadClickOptions;
 
   /**
    * Configuration for rage clicks tracking
    */
-  rageClicks?: RageClickOptions | boolean;
+  rageClicks?: RageClickOptions;
 }
 
 const CLICKABLE_ELEMENT_SELECTORS = [
