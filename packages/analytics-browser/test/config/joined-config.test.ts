@@ -391,9 +391,9 @@ describe('joined-config', () => {
     });
     describe('should not translate property when', () => {
       test('property is an array', () => {
-        const config = { hello: ['a', 'b', 'c'] };
+        const config = ['a', 'b', 'c'];
         translateRemoteConfigToLocal(config);
-        expect(config).toEqual({ hello: ['a', 'b', 'c'] });
+        expect(config).toEqual(['a', 'b', 'c']);
       });
       test('config is null', () => {
         const config = null;
