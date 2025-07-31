@@ -43,7 +43,7 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
   }
 
   for (const [key, value] of Object.entries(config)) {
-    // if the value is an object, translate its properties too
+    // recursively translate properties of the value
     translateRemoteConfigToLocal(value as Record<string, any>);
 
     if (typeof value?.enabled === 'boolean') {
