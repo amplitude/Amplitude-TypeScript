@@ -1,4 +1,4 @@
-import { updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
+import { translateRemoteConfigToLocal, updateBrowserConfigWithRemoteConfig } from '../../src/config/joined-config';
 import { createConfigurationMock } from '../helpers/mock';
 import { type BrowserConfig, type ElementInteractionsOptions } from '@amplitude/analytics-core';
 
@@ -320,6 +320,97 @@ describe('joined-config', () => {
 
       // Assert: Verify that the pageUrlAllowlistRegex property has been removed (even if it was undefined)
       expect(elementInteractions).not.toHaveProperty('pageUrlAllowlistRegex');
+    });
+  });
+
+  describe('translateRemoteConfigToLocal', () => {
+    describe('should translate property to true when', () => {
+      test('enabled is true and object has no other properties', () => {
+        const remoteConfig = {
+          browserSDK: {
+            autocapture: {
+              frustrationInteractions: {
+                enabled: true,
+              },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(remoteConfig);
+        expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toBe(true);
+      });
+    });
+    describe('should translate property to false when', () => {
+      test('enabled is false and object has no other properties', () => {
+        const remoteConfig = {
+          browserSDK: {
+            autocapture: {
+              frustrationInteractions: {
+                enabled: false,
+              },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(remoteConfig);
+        expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toBe(false);
+      });
+      test('enabled is false and object has other properties', () => {
+        const remoteConfig = {
+          browserSDK: {
+            autocapture: {
+              frustrationInteractions: {
+                enabled: false,
+                deadClicks: true,
+                rageClicks: true,
+              },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(remoteConfig);
+        expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toBe(false);
+      });
+    });
+    describe('should translate property to object when', () => {
+      test('enabled is true and object has other properties', () => {
+        const remoteConfig = {
+          browserSDK: {
+            autocapture: {
+              frustrationInteractions: {
+                enabled: true,
+                deadClicks: true,
+                rageClicks: true,
+              },
+            },
+          },
+        };
+        translateRemoteConfigToLocal(remoteConfig);
+        expect(remoteConfig.browserSDK.autocapture.frustrationInteractions).toEqual({
+          deadClicks: true,
+          rageClicks: true,
+        });
+      });
+    });
+    describe('should not translate property when', () => {
+      test('config is null', () => {
+        const config = null;
+        /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
+        translateRemoteConfigToLocal(config as any);
+        expect(config).toBeNull();
+      });
+      test('enabled is not present', () => {
+        const config = { prop: { subprop: { hello: true, foobar: null } } };
+        translateRemoteConfigToLocal(config);
+        expect(config).toEqual({ prop: { subprop: { hello: true, foobar: null } } });
+      });
+      test('property is null', () => {
+        const config = { hello: null };
+        translateRemoteConfigToLocal(config);
+        expect(config).toEqual({ hello: null });
+      });
+      test('property is a boolean', () => {
+        const config = { hello: true };
+        translateRemoteConfigToLocal(config);
+        expect(config).toEqual({ hello: true });
+      });
     });
   });
 });

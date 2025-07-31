@@ -21,6 +21,50 @@ type RemoteConfigBrowserSDK = {
 };
 
 /**
+ * Performs deep translation of remote config so that
+ * the schema of the remote config is compatible with
+ * the schema of the local config
+ * @param config Config from remote config
+ */
+export function translateRemoteConfigToLocal(config?: Record<string, any>) {
+  // Disabling type checking rules because remote config comes from a remote source
+  // and this function needs to handle any unexpected values
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access,
+     @typescript-eslint/no-unsafe-assignment,
+     @typescript-eslint/no-unsafe-argument
+ */
+  if (typeof config !== 'object' || config === null) {
+    return;
+  }
+
+  for (const [key, value] of Object.entries(config)) {
+    // if the value is an object, translate its properties too
+    if (typeof value === 'object' && value !== null) {
+      for (const [, subValue] of Object.entries(value)) {
+        if (typeof subValue === 'object' && subValue !== null) {
+          translateRemoteConfigToLocal(subValue as Record<string, any>);
+        }
+      }
+    }
+
+    if (typeof value?.enabled === 'boolean') {
+      let translatedValue;
+      if (value.enabled) {
+        // if enabled is true, set the value to the rest of the object
+        // or true if the object has no other properties
+        const { enabled, ...rest } = value;
+        translatedValue = Object.keys(rest).length > 0 ? rest : true;
+      } else {
+        // If enabled is false, set the value to false
+        translatedValue = false;
+      }
+
+      (config as any)[key] = translatedValue;
+    }
+  }
+}
+
+/**
  * Updates the browser config in place by applying remote configuration settings.
  * Primarily merges autocapture settings from the remote config into the browser config.
  *
