@@ -602,6 +602,57 @@ describe('RemoteConfigClient', () => {
         expect.any(SyntaxError),
       );
     });
+
+    test('should handle request timeout with AbortController', async () => {
+      // Mock a fetch that respects the AbortController signal
+      global.fetch = jest.fn((_url: string | URL | Request, options?: RequestInit) => {
+        return new Promise<Response>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            resolve({
+              ok: true,
+              json: () => Promise.resolve({ key: 'value' }),
+            } as Response);
+          }, 1500); // Takes 1.5 seconds
+
+          // Listen for abort signal
+          if (options?.signal) {
+            const abortHandler = () => {
+              clearTimeout(timeoutId);
+              const error = new Error('The operation was aborted');
+              error.name = 'AbortError';
+              reject(error);
+            };
+
+            if (options.signal.aborted) {
+              abortHandler();
+            } else {
+              options.signal.addEventListener('abort', abortHandler);
+            }
+          }
+        });
+      });
+
+      const result = await client.fetch(2);
+      expect(result.remoteConfig).toBeNull();
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('timed out after 1000ms'));
+    });
+
+    test('should clear timeout when request completes successfully', async () => {
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      global.fetch = jest.fn((_url: string | URL | Request, _options?: RequestInit) => {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ key: 'value' }),
+        } as Response);
+      });
+
+      const result = await client.fetch(1);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+
+      clearTimeoutSpy.mockRestore();
+    });
   });
 
   describe('getUrlParams', () => {
