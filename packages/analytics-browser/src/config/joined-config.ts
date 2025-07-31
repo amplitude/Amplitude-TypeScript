@@ -41,6 +41,8 @@ export function updateBrowserConfigWithRemoteConfig(
       JSON.stringify(remoteConfig),
     );
 
+    // type cast error will be thrown if remoteConfig is not a valid RemoteConfigBrowserSDK
+    // and it will be caught by the try-catch block
     const typedRemoteConfig = remoteConfig as RemoteConfigBrowserSDK;
 
     // merge remoteConfig.autocapture and browserConfig.autocapture

@@ -158,7 +158,10 @@ describe('joined-config', () => {
     test('should handle errors gracefully', () => {
       const logError = jest.spyOn(localConfig.loggerProvider, 'error');
 
-      // Create a problematic remote config that will cause an error
+      // Create a problematic remote config that will cause an error when accessed.
+      // This test is necessary because RemoteConfig uses `any` type for value, allowing external
+      // sources to provide malformed data with getters, functions, or other constructs
+      // that could throw errors.
       const remoteConfig = {
         autocapture: {
           get elementInteractions() {

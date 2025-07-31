@@ -402,6 +402,61 @@ describe('RemoteConfigClient', () => {
       expect(callbackInfo.lastCallback).toBeDefined();
     });
 
+    test('should call callback with filtered config with real example', () => {
+      const autocapture = {
+        sessions: true,
+        pageViews: true,
+        elementInteractions: {
+          pageUrlAllowlistRegex: [],
+          actionClickAllowlist: ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+          pageUrlAllowlist: ['https://www.test.com'],
+          cssSelectorAllowlist: [
+            'a',
+            'button',
+            'input',
+            'select',
+            'textarea',
+            'label',
+            'video',
+            'audio',
+            '[contenteditable="true" i]',
+            '[data-amp-default-track]',
+            '.amp-default-track',
+          ],
+          dataAttributePrefix: 'data-amp-track-',
+        },
+        fileDownloads: true,
+        formInteractions: true,
+      };
+      remoteConfigInfo = {
+        remoteConfig: {
+          configs: {
+            analyticsSDK: {
+              browserSDK: {
+                autocapture: autocapture,
+              },
+            },
+          },
+        },
+        lastFetch: new Date(),
+      };
+      const callbackInfo: CallbackInfo = {
+        id: mockUuid,
+        key: 'configs.analyticsSDK.browserSDK',
+        deliveryMode: 'all' as DeliveryMode,
+        callback,
+      };
+
+      client.sendCallback(callbackInfo, remoteConfigInfo, 'remote');
+
+      expect(callback).toHaveBeenCalledWith(
+        { autocapture: autocapture }, // Expected filtered config
+        'remote',
+        remoteConfigInfo.lastFetch,
+      );
+      expect(callbackInfo.lastCallback).toBeDefined();
+    });
+
     test('should call callback with null if key is not found', () => {
       const callbackInfo: CallbackInfo = {
         id: mockUuid,
