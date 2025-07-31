@@ -248,7 +248,13 @@ export class RemoteConfigClient implements IRemoteConfigClient {
   /**
    * Fetch remote config from remote.
    * @param retries - the number of retries. default is 3.
-   * @param timeout - the timeout in milliseconds. default is 1000.
+   * @param timeout - the timeout in milliseconds. Default is 1000.
+   * This timeout serves two purposes:
+   * 1. It determines how long to wait for each remote config fetch request before aborting it.
+   *    If the fetch does not complete within the specified timeout, the request is cancelled using AbortController,
+   *    and the attempt is considered failed (and may be retried if retries remain).
+   * 2. It is also used to calculate the interval between retries. The total timeout is divided by the number of retries,
+   *    so each retry waits for (timeout / retries) milliseconds before the next attempt (linear backoff).
    * @returns the remote config info. null if failed to fetch or the response is not valid JSON.
    */
   async fetch(retries: number = DEFAULT_MAX_RETRIES, timeout: number = DEFAULT_TIMEOUT): Promise<RemoteConfigInfo> {
@@ -260,12 +266,20 @@ export class RemoteConfigClient implements IRemoteConfigClient {
 
     for (let attempt = 0; attempt < retries; attempt++) {
       try {
+        // Create AbortController for request timeout
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), timeout);
+
         const res = await fetch(this.getUrlParams(), {
           method: 'GET',
           headers: {
             Accept: '*/*',
           },
+          signal: abortController.signal,
         });
+
+        // Clear the timeout since request completed
+        clearTimeout(timeoutId);
 
         // Handle unsuccessful fetch
         if (!res.ok) {
@@ -280,8 +294,12 @@ export class RemoteConfigClient implements IRemoteConfigClient {
           };
         }
       } catch (error) {
-        // Handle rejects when the request fails, for example, a network error
-        this.logger.debug(`Remote config client fetch with retry time ${retries} is rejected because: `, error);
+        // Handle rejects when the request fails, for example, a network error or timeout
+        if (error instanceof Error && error.name === 'AbortError') {
+          this.logger.debug(`Remote config client fetch with retry time ${retries} timed out after ${timeout}ms`);
+        } else {
+          this.logger.debug(`Remote config client fetch with retry time ${retries} is rejected because: `, error);
+        }
       }
 
       // Linear backoff:
