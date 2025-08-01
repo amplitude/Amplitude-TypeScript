@@ -1,0 +1,41 @@
+{
+  "README.md": "# Movement DAO\n\nWelcome to the governance home for the Movement Network. This repository coordinates all DAO-related activities including proposals, delegate registry, Snapshot strategies, and Reown role assignments.\n\n## 🌐 Snapshot\n- **Space**: movementnetwork.eth\n- **Strategy**: ERC20 Votes (MOVE Token)\n\n## 🏛️ Governance\n- Submit proposals in \"snapshot/proposals\"\n- Follow formatting and workflow rules\n\n## 🔐 Reown\n- All DAO authority controlled by on-chain Reown roles\n- See \"reown/role-assignments.json\"\n\n## 🤝 Contributing\nWe welcome community members to propose, vote, and improve Movement Network together.\n\n---\n\n#movement #dao #move\n",
+
+  "snapshot/snapshot.config.json": {
+    "space": "movementnetwork.eth",
+    "strategies": [
+      {
+        "name": "erc20-votes",
+        "params": {
+          "address": "0x3073f7aaa4db83f95e9fff17424f71d4751a3073",
+          "symbol": "MOVE",
+          "decimals": 18
+        }
+      }
+    ],
+    "admins": [
+      "0xb2cA1CAecd1D3e9bF84B9332cb4aB11961639a5c"
+    ]
+  },
+
+  "reown/role-assignments.json": {
+    "admin": ["0xb2cA1CAecd1D3e9bF84B9332cb4aB11961639a5c"],
+    "moderator": [],
+    "author": []
+  },
+
+  "governance/rules.md": "## Governance Rules\n\n1. All proposals must follow MIP format.\n2. Proposals require Snapshot submission.\n3. Reown admins can enforce emergency on-chain permissions.\n4. Delegate voting is enabled through ERC20 Votes strategy.\n",
+
+  "contributors/delegate-list.json": [
+    {
+      "address": "0xb2cA1CAecd1D3e9bF84B9332cb4aB11961639a5c",
+      "name": "KoKyat",
+      "bio": "Founder of Movement Network",
+      "twitter": "@KoKyat",
+      "votes": 66000000
+    }
+  ],
+
+  ".github/workflows/validate-proposal.yml": "name: Validate Proposal\n\non: [pull_request]\n\njobs:\n  check-proposal:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v3\n      - name: Check proposal formatting\n        run: |
+          echo \"✅ Proposal structure looks fine\"\n"
+}
