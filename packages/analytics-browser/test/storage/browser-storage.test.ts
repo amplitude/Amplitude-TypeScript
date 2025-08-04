@@ -1,9 +1,6 @@
-/**
- * @jest-environment jsdom
- */
-
-import { getGlobalScope, BrowserStorage } from '../../src/index';
-import * as AnalyticsCore from '../../src/index';
+import { BrowserStorage } from '../../src/storage/browser-storage';
+import * as AnalyticsCore from '@amplitude/analytics-core';
+import { getGlobalScope } from '@amplitude/analytics-core';
 
 describe('browser-storage', () => {
   describe('isEnabled', () => {
