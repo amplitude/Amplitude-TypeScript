@@ -64,7 +64,6 @@ export { Transport, TransportType } from './transport';
 export { UserSession } from './user-session';
 export { UTMData } from './utm';
 export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } from './page-view-tracking';
-export { PageUrlEnrichmentOptions } from './page-url-enrichment';
 export { OfflineDisabled } from './offline';
 export {
   Messenger,

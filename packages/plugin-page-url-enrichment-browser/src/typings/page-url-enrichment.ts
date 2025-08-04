@@ -1,6 +1,6 @@
-import type { EnrichmentPlugin, PageUrlEnrichmentOptions as Options } from '@amplitude/analytics-types';
+import type { EnrichmentPlugin, PageUrlEnrichmentOptions as Options } from '@amplitude/analytics-core';
 
-export { PageUrlEnrichmentOptions as Options } from '@amplitude/analytics-types';
+export type { PageUrlEnrichmentOptions as Options } from '@amplitude/analytics-core';
 
 export interface CreatePageUrlEnrichmentBrowserPlugin {
   (options?: Options): EnrichmentPlugin;

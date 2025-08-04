@@ -75,6 +75,8 @@ export { NetworkEventCallback, networkObserver } from './network-observer';
 export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
 
+export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
+
 // Campaign
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';
 export { EMPTY_VALUE, BASE_CAMPAIGN, MKTG } from './types/constants';
