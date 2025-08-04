@@ -178,11 +178,6 @@ export interface AutocaptureOptions {
    * @experimental This feature is experimental and may not be stable
    */
   webVitals?: boolean;
-  /**
-   * Enables/disables adding additional referrer and page url event properties.
-   * @defaultValue `false`
-   */
-  pageUrlEnrichment?: boolean;
 }
 
 export interface TrackingOptions {
