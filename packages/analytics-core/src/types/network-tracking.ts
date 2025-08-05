@@ -29,15 +29,20 @@ export interface NetworkCaptureRule {
    */
   paths?: string[];
   /**
-   * Properties on response JSON to allow for network capture.
+   * Properties on response JSON to allow capture of keys on response body JSON
+   *
+   * Keys can be defined as "<key>" or "<key>/<subkey>" to capture nested keys.
    */
   allowResponseBodyKeys?: string[];
   /**
-   * Properties on request JSON to allow for network capture.
+   * Properties on request JSON to allow capture of keys on request body JSON.
+   * 
+   * Keys can be defined as "<key>" or "<key>/<subkey>" to capture nested keys.
+   * 
    */
   allowRequestBodyKeys?: string[];
   /**
-   * Headers on response to allow for network capture.
+   * Headers on response to allow capturing response headers.
    *
    * When "true", allow capture of all response headers except (case-insensitive):
    *  - "set-cookie"
@@ -47,7 +52,7 @@ export interface NetworkCaptureRule {
    */
   allowResponseHeaders?: boolean | string[];
   /**
-   * Headers on request to allow for network capture.
+   * Headers on request to allow capturing request headers.
    *
    * When "true", allow capture of all request headers except (case-insensitive):
    *  - "authorization"
