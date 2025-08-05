@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [1.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.4.2...@amplitude/analytics-node@1.5.0) (2025-08-05)
+
+
+### Bug Fixes
+
+* **analtyics-browser): Revert "feat(analytics-browser:** add page-url-previous-page plugin" ([#1237](https://github.com/amplitude/Amplitude-TypeScript/issues/1237)) ([dfd7340](https://github.com/amplitude/Amplitude-TypeScript/commit/dfd7340f6519e647a814b3c66913b0c96b0567cf))
+
+
+### Features
+
+* **analytics-browser:** add page-url-previous-page plugin ([#1110](https://github.com/amplitude/Amplitude-TypeScript/issues/1110)) ([dc053ed](https://github.com/amplitude/Amplitude-TypeScript/commit/dc053ed9f0b6378fce6a49f6a6e4196f3622bd25))
+
+
+
+
+
 ## [1.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-node@1.4.1...@amplitude/analytics-node@1.4.2) (2025-07-29)
 
 **Note:** Version bump only for package @amplitude/analytics-node

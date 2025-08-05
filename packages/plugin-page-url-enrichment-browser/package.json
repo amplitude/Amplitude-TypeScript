@@ -1,6 +1,6 @@
 {
-  "name": "@amplitude/analytics-client-common",
-  "version": "2.3.32",
+  "name": "@amplitude/plugin-page-url-enrichment-browser",
+  "version": "0.2.0",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -18,7 +18,8 @@
     "url": "git+https://github.com/amplitude/Amplitude-TypeScript.git"
   },
   "scripts": {
-    "build": "yarn build:es5 && yarn build:esm",
+    "build": "yarn bundle && yarn build:es5 && yarn build:esm",
+    "bundle": "rollup --config rollup.config.js",
     "build:es5": "tsc -p ./tsconfig.es5.json",
     "build:esm": "tsc -p ./tsconfig.esm.json",
     "watch": "tsc -p ./tsconfig.esm.json --watch",
@@ -36,10 +37,19 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-connector": "^1.4.8",
+    "@amplitude/analytics-client-common": "^2.3.32",
     "@amplitude/analytics-core": "^2.20.0",
     "@amplitude/analytics-types": "^2.9.2",
     "tslib": "^2.4.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^23.0.4",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^10.0.1",
+    "rollup": "^2.79.1",
+    "rollup-plugin-execute": "^1.1.1",
+    "rollup-plugin-gzip": "^3.1.0",
+    "rollup-plugin-terser": "^7.0.2"
   },
   "files": [
     "lib"
