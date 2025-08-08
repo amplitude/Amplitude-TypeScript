@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.22.0...@amplitude/analytics-browser@2.22.1) (2025-08-08)
+
+
+### Bug Fixes
+
+* add function to translate remoteConfig to localConfig ([#1232](https://github.com/amplitude/Amplitude-TypeScript/issues/1232)) ([ae53401](https://github.com/amplitude/Amplitude-TypeScript/commit/ae5340141d8c55544ae3ac0fefa80e54f478ba04))
+
+
+
+
+
 # [2.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.21.1...@amplitude/analytics-browser@2.22.0) (2025-08-05)
 
 
