@@ -21,10 +21,31 @@ type RemoteConfigBrowserSDK = {
 };
 
 /**
- * Performs deep translation of remote config so that
- * the schema of the remote config is compatible with
- * the schema of the local config
- * @param config Config from remote config
+ * Performs a deep transformation of a remote config object so that
+ * it matches the expected schema of the local config.
+ *
+ * Specifically, it normalizes nested `enabled` flags into concise union types.
+ *
+ * ### Transformation Rules:
+ * - If an object has `enabled: true`, it is replaced by the same object without the `enabled` field.
+ * - If it has only `enabled: true`, it is replaced with `true`.
+ * - If it has `enabled: false`, it is replaced with `false` regardless of other fields.
+ *
+ * ### Examples:
+ * Input:  { prop: { enabled: true, hello: 'world' }}
+ * Output: { prop: { hello: 'world' } }
+ *
+ * Input:  { prop: { enabled: true }}
+ * Output: { prop: true }
+ *
+ * Input:  { prop: { enabled: false, hello: 'world' }}
+ * Output: { prop: false }
+ *
+ * Input:  { prop: { hello: 'world' }}
+ * Output: { prop: { hello: 'world' } } // No change
+ *
+ * @param config Remote config object to be transformed
+ * @returns Transformed config object compatible with local schema
  */
 export function translateRemoteConfigToLocal(config?: Record<string, any>) {
   // Disabling type checking rules because remote config comes from a remote source
@@ -66,6 +87,7 @@ export function translateRemoteConfigToLocal(config?: Record<string, any>) {
     } catch (e) {
       // a failure here means that an accessor threw an error
       // so don't translate it
+      // TODO(diagnostics): add a diagnostic event for this
     }
   }
 }
