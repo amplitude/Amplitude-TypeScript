@@ -50,12 +50,20 @@ type HeadersInitSafe = HeadersRequestSafe | Record<string, string> | string[][];
 type ResponseSafe = {
   status: number;
   headers: HeadersResponseSafe | undefined;
+  clone(): ResponseCloneSafe;
 };
+
+type ResponseCloneSafe = {
+  text(): Promise<string>;
+};
+
+const TEXT_READ_TIMEOUT = 500;
 
 export type RequestInitSafe = {
   method?: string;
   headers?: HeadersInitSafe;
   body?: BodyInitSafe;
+  text: () => Promise<string | null>;
 };
 export interface FormDataSafe {
   entries(): IterableIterator<[string, FormDataEntryValueSafe]>;
@@ -151,13 +159,28 @@ export class RequestWrapperFetch implements IRequestWrapper {
     }
     return null;
   }
+
+  text(): Promise<string | null> {
+    return this.request.text();
+  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
-  constructor(readonly body: XMLHttpRequestBodyInitSafe | null) {}
+  constructor(readonly body: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
+
+  get headers(): Record<string, string> | undefined {
+    return this.requestHeaders;
+  }
 
   get bodySize(): number | undefined {
     return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
+  }
+
+  async text(): Promise<string | null> {
+    if (typeof this.body === 'string') {
+      return this.body;
+    }
+    return null;
   }
 }
 
@@ -221,11 +244,20 @@ function getBodySize(bodyUnsafe: FetchRequestBody, maxEntries: number): number |
   return bodySize;
 }
 
+export type JsonObject = {
+  [key: string]: JsonValue;
+};
+
+export type JsonValue = string | number | boolean | null | JsonObject | JsonArray;
+
+export type JsonArray = Array<JsonValue>;
+
 export interface IResponseWrapper {
   headers?: Record<string, string>;
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
+  text?: () => Promise<string | null>;
 }
 
 /**
@@ -240,7 +272,8 @@ export interface IResponseWrapper {
  *   * Do not make changes to this class without careful consideration
  *     of performance implications, memory usage and potential to mutate the customer's
  *     response.
- *   * NEVER .clone() the Response object. This will 2x's the memory overhead of the response
+ *   * Do not .clone() the Response object unless you need to access the body.
+ *     Cloning will 2x the memory overhead of the response.
  *   * NEVER consume the body's stream. This will cause the response to be consumed
  *     meaning the body will be empty when the customer tries to access it.
  *     (ie: if the body is an instanceof https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
@@ -249,6 +282,7 @@ export interface IResponseWrapper {
 export class ResponseWrapperFetch implements IResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
+  private clonedResponse: ResponseCloneSafe | undefined;
   constructor(private response: ResponseSafe) {}
 
   get headers(): Record<string, string> | undefined {
@@ -280,10 +314,35 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   get status(): number {
     return this.response.status;
   }
+
+  async text(): Promise<string | null> {
+    if (!this.clonedResponse) {
+      this.clonedResponse = this.response.clone();
+    }
+    try {
+      const textPromise = this.clonedResponse.text();
+      const timer = new Promise<null>((resolve) =>
+        setTimeout(
+          /* istanbul ignore next */
+          () => resolve(null),
+          TEXT_READ_TIMEOUT,
+        ),
+      );
+      const text = await Promise.race<string | null>([textPromise, timer]);
+      return text;
+    } catch (error) {
+      return null;
+    }
+  }
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
-  constructor(readonly statusCode: number, readonly headersString: string, readonly size: number | undefined) {}
+  constructor(
+    readonly statusCode: number,
+    readonly headersString: string,
+    readonly size: number | undefined,
+    readonly responseText: string,
+  ) {}
 
   get bodySize(): number | undefined {
     return this.size;
@@ -291,6 +350,10 @@ export class ResponseWrapperXhr implements IResponseWrapper {
 
   get status(): number {
     return this.statusCode;
+  }
+
+  async text(): Promise<string | null> {
+    return this.responseText;
   }
 
   get headers(): Record<string, string> | undefined {
@@ -308,6 +371,29 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return headers;
   }
 }
+
+/**
+ * Prune headers from a headers record object.
+ * @param headers - The headers to prune.
+ * @param options - The options to prune the headers.
+ * @param options.exclude - List of headers to delete from headers
+ * @param options.include - List of headers to keep in headers, if not provided, all headers are kept by default
+ * @returns The pruned headers.
+ */
+export const pruneHeaders = (
+  headers: Record<string, string>,
+  options: { exclude?: string[]; include?: string[] } = {},
+) => {
+  const { exclude = [], include = [] } = options;
+  for (const key of Object.keys(headers)) {
+    const lowerKey = key.toLowerCase();
+    if (exclude.find((e) => e.toLowerCase() === lowerKey)) {
+      delete headers[key];
+    } else if (include.length > 0 && !include.find((i) => i.toLowerCase() === lowerKey)) {
+      delete headers[key];
+    }
+  }
+};
 
 export class NetworkRequestEvent {
   constructor(
