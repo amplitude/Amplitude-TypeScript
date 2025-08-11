@@ -25,8 +25,12 @@ export { MemoryStorage } from './storage/memory';
 export { CookieStorage } from './storage/cookie';
 export { getStorageKey } from './storage/helpers';
 
+export { BrowserStorage } from './storage/browser-storage';
+
 export { BaseTransport } from './transports/base';
 export { FetchTransport } from './transports/fetch';
+
+export { RemoteConfigClient, IRemoteConfigClient, RemoteConfig, Source } from './remote-config/remote-config';
 
 export { LogLevel } from './types/loglevel';
 export { AMPLITUDE_PREFIX, STORAGE_PREFIX } from './types/constants';
@@ -72,6 +76,8 @@ export { Status } from './types/status';
 export { NetworkEventCallback, networkObserver } from './network-observer';
 export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
+
+export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 
 // Campaign
 export { Campaign, UTMParameters, ReferrerParameters, ClickIdParameters, ICampaignParser } from './types/campaign';

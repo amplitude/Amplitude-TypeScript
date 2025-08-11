@@ -400,14 +400,14 @@ describe('NetworkObserver', () => {
     });
   });
 
-  describe('RequestWrapper', () => {
-    describe('text should return the body', () => {
-      it('string', async () => {
+  describe('RequestWrapperFetch', () => {
+    describe('body should return the text', () => {
+      it('string', () => {
         const body = 'Hello World!';
         const requestWrapper = new RequestWrapperFetch({
-          text: () => Promise.resolve(body),
+          body,
         } as RequestInitSafe);
-        expect(await requestWrapper.text()).toBe(body);
+        expect(requestWrapper.body).toBe(body);
       });
     });
     describe('bodySize should return the body length when the body is of type', () => {
@@ -719,14 +719,14 @@ describe('serializeNetworkRequestEvent', () => {
 });
 
 describe('RequestWrapperXhr', () => {
-  test('text should return the body', async () => {
+  test('body should return string if request.body is a string', async () => {
     const requestWrapper = new RequestWrapperXhr('Hello World!', {});
-    expect(await requestWrapper.text()).toBe('Hello World!');
+    expect(requestWrapper.body).toBe('Hello World!');
   });
 
-  test('text should return null if body is not a string', async () => {
+  test('body should return null if request.body is not a string', async () => {
     const requestWrapper = new RequestWrapperXhr(new Blob(['Hello World!']), {});
-    expect(await requestWrapper.text()).toBeNull();
+    expect(requestWrapper.body).toBeNull();
   });
 });
 
@@ -943,6 +943,20 @@ describe('pruneHeaders', () => {
     expect(headers).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
+    });
+  });
+
+  test('should not exclude headers if exclude is not provided', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers);
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
     });
   });
 

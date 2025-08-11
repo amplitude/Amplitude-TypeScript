@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.28.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.1...@amplitude/session-replay-browser@1.28.2) (2025-08-08)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+## [1.28.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.28.0...@amplitude/session-replay-browser@1.28.1) (2025-08-05)
+
+**Note:** Version bump only for package @amplitude/session-replay-browser
+
+
+
+
+
+# [1.28.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.27.0...@amplitude/session-replay-browser@1.28.0) (2025-07-29)
+
+
+### Features
+
+* targeting replay capture ([#1203](https://github.com/amplitude/Amplitude-TypeScript/issues/1203)) ([a1fc5b7](https://github.com/amplitude/Amplitude-TypeScript/commit/a1fc5b71cd71b33e6c6cd578cee4d0a17576e576))
+
+
+
+
+
 # [1.27.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/session-replay-browser@1.26.2...@amplitude/session-replay-browser@1.27.0) (2025-07-17)
 
 

@@ -63,7 +63,6 @@ export type RequestInitSafe = {
   method?: string;
   headers?: HeadersInitSafe;
   body?: BodyInitSafe;
-  text: () => Promise<string | null>;
 };
 export interface FormDataSafe {
   entries(): IterableIterator<[string, FormDataEntryValueSafe]>;
@@ -153,32 +152,28 @@ export class RequestWrapperFetch implements IRequestWrapper {
     return this.request.method;
   }
 
-  get body(): FetchRequestBody | XMLHttpRequestBodyInitSafe | null {
+  get body(): string | null {
     if (typeof this.request.body === 'string') {
       return this.request.body;
     }
     return null;
   }
-
-  text(): Promise<string | null> {
-    return this.request.text();
-  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
-  constructor(readonly body: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
+  constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
   get headers(): Record<string, string> | undefined {
     return this.requestHeaders;
   }
 
   get bodySize(): number | undefined {
-    return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
+    return getBodySize(this.bodyRaw as FetchRequestBody, MAXIMUM_ENTRIES);
   }
 
-  async text(): Promise<string | null> {
-    if (typeof this.body === 'string') {
-      return this.body;
+  get body(): string | null {
+    if (typeof this.bodyRaw === 'string') {
+      return this.bodyRaw;
     }
     return null;
   }
@@ -282,7 +277,6 @@ export interface IResponseWrapper {
 export class ResponseWrapperFetch implements IResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
-  private clonedResponse: ResponseCloneSafe | undefined;
   constructor(private response: ResponseSafe) {}
 
   get headers(): Record<string, string> | undefined {
@@ -316,11 +310,11 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   }
 
   async text(): Promise<string | null> {
-    if (!this.clonedResponse) {
-      this.clonedResponse = this.response.clone();
-    }
+    // !!!IMPORTANT: we clone the response to avoid mutating the original response
+    // never call .text(), .json(), etc.. on the original response always clone it first
+    const clonedResponse = this.response.clone();
     try {
-      const textPromise = this.clonedResponse.text();
+      const textPromise = clonedResponse.text();
       const timer = new Promise<null>((resolve) =>
         setTimeout(
           /* istanbul ignore next */
