@@ -153,32 +153,28 @@ export class RequestWrapperFetch implements IRequestWrapper {
     return this.request.method;
   }
 
-  get body(): FetchRequestBody | XMLHttpRequestBodyInitSafe | null {
+  get body(): string | null {
     if (typeof this.request.body === 'string') {
       return this.request.body;
     }
     return null;
   }
-
-  text(): Promise<string | null> {
-    return this.request.text();
-  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
-  constructor(readonly body: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
+  constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
   get headers(): Record<string, string> | undefined {
     return this.requestHeaders;
   }
 
   get bodySize(): number | undefined {
-    return getBodySize(this.body as FetchRequestBody, MAXIMUM_ENTRIES);
+    return getBodySize(this.bodyRaw as FetchRequestBody, MAXIMUM_ENTRIES);
   }
 
-  async text(): Promise<string | null> {
-    if (typeof this.body === 'string') {
-      return this.body;
+  get body(): string | null {
+    if (typeof this.bodyRaw === 'string') {
+      return this.bodyRaw;
     }
     return null;
   }
