@@ -589,30 +589,76 @@ describe('NetworkObserver', () => {
     });
   });
 
-  describe('responseWrapper', () => {
-    const mockResponse = {
-      body: null,
-      bodyUsed: false,
-      headers: new Headers({ 'Content-Type': 'application/json' }),
-      ok: true,
-      redirected: false,
-      status: 200,
-      statusText: 'OK',
-      type: 'basic',
-      url: 'https://api.example.com/data',
-      clone: () => mockResponse,
-      arrayBuffer: async () => new ArrayBuffer(0),
-      blob: async () => new Blob(),
-      formData: async () => new FormData(),
-      json: async () => ({ message: 'Hello from mock!' }),
-      text: async () => '{"message": "Hello from mock!"}',
-    };
+  describe('ResponseWrapperFetch', () => {
+    let mockResponse: any;
+    const mockBody = { message: 'Hello from mock!', secret: 'secret' };
+    beforeEach(() => {
+      mockResponse = {
+        body: null,
+        bodyUsed: false,
+        headers: new Headers({ 'Content-Type': 'application/json' }),
+        ok: true,
+        redirected: false,
+        status: 200,
+        statusText: 'OK',
+        type: 'basic',
+        url: 'https://api.example.com/data',
+        clone: () => mockResponse as unknown as Response,
+        arrayBuffer: async () => new ArrayBuffer(0),
+        blob: async () => new Blob(),
+        formData: async () => new FormData(),
+        json: async () => mockBody,
+        text: async () => JSON.stringify(mockBody),
+      };
+    });
+
+    describe('.json()', () => {
+      test('json should return {} by if no rules are set', async () => {
+        const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
+        const json = await responseWrapper.json();
+        expect(json).toEqual({});
+      });
+
+      test('json should include allowed fields in response', async () => {
+        const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
+        const json = await responseWrapper.json(['message']);
+        expect(json).toEqual({ message: 'Hello from mock!' });
+      });
+
+      test('json should exclude excluded fields in response', async () => {
+        const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
+        const json = await responseWrapper.json(['**'], ['secret']);
+        expect(json).toEqual({ message: 'Hello from mock!' });
+      });
+
+      test('should gracefully handle non-json responses', async () => {
+        const mockResponseBadJson = {
+          ...mockResponse,
+          text: async () => 'not valid json',
+          clone: () => mockResponseBadJson as unknown as Response,
+        };
+        const responseWrapper = new ResponseWrapperFetch(mockResponseBadJson as unknown as Response);
+        const json = await responseWrapper.json();
+        expect(json).toEqual(null);
+      });
+
+      test('should gracefully handle no body in response', async () => {
+        const mockResponseNoText = {
+          ...mockResponse,
+          text: async () => undefined,
+          clone: () => mockResponseNoText as unknown as Response,
+        };
+        const responseWrapper = new ResponseWrapperFetch(mockResponseNoText as unknown as Response);
+        const json = await responseWrapper.json();
+        expect(json).toEqual(null);
+      });
+    });
 
     test('text should return null if text returns nothing', async () => {
       const mockResponseNonJson = {
         ...mockResponse,
         text: async () => null,
-        clone: () => mockResponseNonJson,
+        clone: () => mockResponseNonJson as unknown as Response,
       };
       const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
       const json = await responseWrapper.text();
@@ -626,7 +672,7 @@ describe('NetworkObserver', () => {
         text: async () => {
           throw new Error('some error');
         },
-        clone: () => mockResponseNonJson,
+        clone: () => mockResponseNonJson as unknown as Response,
       };
       const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
       const json = await responseWrapper.text();
@@ -637,7 +683,7 @@ describe('NetworkObserver', () => {
       const mockResponseNonJson = {
         ...mockResponse,
         text: async () => 'some text',
-        clone: () => mockResponseNonJson,
+        clone: () => mockResponseNonJson as unknown as Response,
       };
       const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
       const text = await responseWrapper.text();
