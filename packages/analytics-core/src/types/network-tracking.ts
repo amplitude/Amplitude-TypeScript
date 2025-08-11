@@ -17,6 +17,19 @@ export interface NetworkTrackingOptions {
   captureRules?: NetworkCaptureRule[];
 }
 
+export interface BodyCaptureRule {
+  /**
+   * Keys to allow in the request/response body.
+   */
+  // TODO: Change this to whatever is the settled configuration name before merging
+  allowlist?: string[];
+  /**
+   * Keys to block in the request/response body.
+   */
+  // TODO: Change this to whatever is the settled configuration name before merging
+  blocklist?: string[];
+}
+
 export interface NetworkCaptureRule {
   /**
    * Hosts to allow for network capture. Supports wildcard.
@@ -29,7 +42,15 @@ export interface NetworkCaptureRule {
    */
   statusCodeRange?: string;
   /**
-   * Threshold for what is classified as a slow request (in seconds).
+   * Determines what to capture from the response body.
+   */
+  responseBody?: BodyCaptureRule;
+  /**
+   * Determines what to capture from the request body.
+   */
+  requestBody?: BodyCaptureRule;
+  /**
+   * Threshold   for what is classified as a slow request (in seconds).
    * @defaultValue `3`
    */
   // slowThreshold?: number;
