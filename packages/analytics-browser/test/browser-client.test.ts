@@ -10,6 +10,7 @@ import {
   AutocaptureOptions,
   Identify,
   SpecialEventType,
+  RemoteConfigClient,
 } from '@amplitude/analytics-core';
 import { WebAttribution } from '../src/attribution/web-attribution';
 import * as core from '@amplitude/analytics-core';
@@ -19,18 +20,28 @@ import * as networkCapturePlugin from '@amplitude/plugin-network-capture-browser
 import * as webVitals from '@amplitude/plugin-web-vitals-browser';
 import { AmplitudeBrowser } from '../src/browser-client';
 import * as Config from '../src/config';
-import * as RemoteConfig from '../src/config/joined-config';
 import * as CookieMigration from '../src/cookie-migration';
 import * as fileDownloadTracking from '../src/plugins/file-download-tracking';
 import * as formInteractionTracking from '../src/plugins/form-interaction-tracking';
 import * as networkConnectivityChecker from '../src/plugins/network-connectivity-checker';
 import * as SnippetHelper from '../src/utils/snippet-helper';
+import * as joinedConfig from '../src/config/joined-config';
 
-jest.mock('../src/config/joined-config', () => ({
-  createBrowserJoinedConfigGenerator: jest.fn().mockImplementation((localConfig) => ({
-    generateJoinedConfig: jest.fn().mockResolvedValue(localConfig),
-  })),
-}));
+// Mock RemoteConfigClient constructor
+const mockRemoteConfigClient = {
+  subscribe: jest
+    .fn()
+    .mockImplementation(
+      (_configKey: string, _eventType: string, callback: (remoteConfig: any, source: any, lastFetch: Date) => void) => {
+        // Call the callback immediately with remoteConfig as null
+        callback(null, 'cache', new Date());
+      },
+    ),
+  unsubscribe: jest.fn(),
+  updateConfigs: jest.fn(),
+};
+let MockedRemoteConfigClient: jest.SpyInstance;
+let originalRemoteConfigClient: typeof RemoteConfigClient;
 
 jest.mock('web-vitals', () => ({
   onLCP: jest.fn(),
@@ -61,12 +72,29 @@ describe('browser-client', () => {
     apiKey = core.UUID();
     userId = core.UUID();
     deviceId = core.UUID();
+
+    // Set up RemoteConfigClient mock
+    originalRemoteConfigClient = core.RemoteConfigClient;
+    MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClient);
+    Object.defineProperty(core, 'RemoteConfigClient', {
+      value: MockedRemoteConfigClient,
+      writable: true,
+      configurable: true,
+    });
   });
 
   afterEach(() => {
     jest.clearAllMocks();
     // clean up cookies
     document.cookie = `AMP_${apiKey}=null; expires=-1`;
+    // clean up RemoteConfigClient mock
+    if (MockedRemoteConfigClient) {
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: originalRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+    }
   });
 
   describe('plugin', () => {
@@ -115,21 +143,72 @@ describe('browser-client', () => {
   describe('init', () => {
     test('should use remote config by default', async () => {
       await client.init(apiKey).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
+      expect(MockedRemoteConfigClient).toHaveBeenCalled();
     });
 
     test('should use remote config when fetchRemoteConfig is true', async () => {
       await client.init(apiKey, {
         fetchRemoteConfig: true,
       }).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).toHaveBeenCalled();
+      expect(MockedRemoteConfigClient).toHaveBeenCalled();
     });
 
-    test('should use remote config when fetchRemoteConfig is false', async () => {
+    test('should NOT use remote config when fetchRemoteConfig is false', async () => {
       await client.init(apiKey, {
         fetchRemoteConfig: false,
       }).promise;
-      expect(RemoteConfig.createBrowserJoinedConfigGenerator).not.toHaveBeenCalled();
+      expect(MockedRemoteConfigClient).not.toHaveBeenCalled();
+    });
+
+    test('should call updateBrowserConfigWithRemoteConfig when remoteConfig is not null', async () => {
+      const mockRemoteConfig = {
+        autocapture: {
+          elementInteractions: true,
+          pageViews: true,
+        },
+      };
+
+      // Mock the remote config client to return a non-null remoteConfig
+      const mockRemoteConfigClientWithData = {
+        subscribe: jest
+          .fn()
+          .mockImplementation(
+            (
+              _configKey: string,
+              _eventType: string,
+              callback: (remoteConfig: any, source: any, lastFetch: Date) => void,
+            ) => {
+              // Call the callback immediately with a non-null remoteConfig
+              callback(mockRemoteConfig, 'cache', new Date());
+            },
+          ),
+        unsubscribe: jest.fn(),
+        updateConfigs: jest.fn(),
+      };
+
+      // Replace the default mock with our data mock
+      MockedRemoteConfigClient = jest.fn().mockImplementation(() => mockRemoteConfigClientWithData);
+      Object.defineProperty(core, 'RemoteConfigClient', {
+        value: MockedRemoteConfigClient,
+        writable: true,
+        configurable: true,
+      });
+
+      // Spy on the updateBrowserConfigWithRemoteConfig function
+      const updateBrowserConfigSpy = jest.spyOn(joinedConfig, 'updateBrowserConfigWithRemoteConfig');
+
+      await client.init(apiKey, {
+        fetchRemoteConfig: true,
+      }).promise;
+
+      // Verify that updateBrowserConfigWithRemoteConfig was called
+      expect(updateBrowserConfigSpy).toHaveBeenCalledTimes(1);
+      expect(updateBrowserConfigSpy).toHaveBeenCalledWith(
+        mockRemoteConfig,
+        expect.any(Object), // browserOptions
+      );
+
+      updateBrowserConfigSpy.mockRestore();
     });
 
     test('should initialize client', async () => {
@@ -462,7 +541,6 @@ describe('browser-client', () => {
 
       expect(addEventListenerMock).toHaveBeenCalledWith('online', expect.any(Function));
       expect(client.config.offline).toBe(false);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to online.');
 
       jest.advanceTimersByTime(client.config.flushIntervalMillis);
@@ -494,7 +572,6 @@ describe('browser-client', () => {
       window.dispatchEvent(new Event('offline'));
       expect(addEventListenerMock).toHaveBeenCalledWith('offline', expect.any(Function));
       expect(client.config.offline).toBe(true);
-      expect(loggerProvider.debug).toHaveBeenCalledTimes(3);
       expect(loggerProvider.debug).toHaveBeenCalledWith('Network connectivity changed to offline.');
 
       jest.useRealTimers();
@@ -617,6 +694,235 @@ describe('browser-client', () => {
         Date.now = originalDate;
       },
     );
+
+    describe('ampTimestamp validation', () => {
+      const originalLocation = window.location;
+      const originalDateNow = Date.now;
+      const currentTime = 1640995200000; // 2022-01-01 00:00:00 UTC
+      const futureTimestamp = currentTime + 300000; // 5 minutes in the future
+      const pastTimestamp = currentTime - 300000; // 5 minutes in the past
+      const mockedUUID = '1234567890';
+
+      beforeEach(() => {
+        Date.now = jest.fn(() => currentTime);
+        // Mock UUID() to return a fixed value
+        jest.spyOn(core, 'UUID').mockReturnValue(mockedUUID);
+      });
+
+      afterEach(() => {
+        Object.defineProperty(window, 'location', {
+          value: originalLocation,
+          writable: true,
+        });
+        Date.now = originalDateNow;
+      });
+
+      test('should use ampSessionId when ampTimestamp is valid (future)', async () => {
+        const urlWithValidTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampTimestamp=${futureTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithValidTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        expect(client.config.sessionId).toEqual(testSessionId);
+        expect(setSessionId).toHaveBeenCalledWith(testSessionId);
+      });
+
+      test('should ignore ampSessionId when ampTimestamp is expired (past)', async () => {
+        const urlWithExpiredTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampTimestamp=${pastTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithExpiredTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        // Should fall back to Date.now() instead of using expired ampSessionId
+        expect(client.config.sessionId).toEqual(currentTime);
+        expect(setSessionId).toHaveBeenCalledWith(currentTime);
+      });
+
+      test('should use ampDeviceId when ampTimestamp is valid (future)', async () => {
+        const urlWithValidTimestamp = new URL(
+          `https://www.example.com?ampDeviceId=${testDeviceId}&ampTimestamp=${futureTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithValidTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        expect(client.config.deviceId).toEqual(testDeviceId);
+      });
+
+      test('should ignore ampDeviceId when ampTimestamp is expired (past)', async () => {
+        const urlWithExpiredTimestamp = new URL(
+          `https://www.example.com?ampDeviceId=${testDeviceId}&ampTimestamp=${pastTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithExpiredTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        // Should generate new device ID instead of using expired ampDeviceId
+        expect(client.config.deviceId).toEqual(mockedUUID);
+      });
+
+      test('should work as before when ampTimestamp is missing (backward compatibility)', async () => {
+        const urlWithoutTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampDeviceId=${testDeviceId}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithoutTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        // Should use both parameters when timestamp is missing (backward compatibility)
+        expect(client.config.sessionId).toEqual(testSessionId);
+        expect(client.config.deviceId).toEqual(testDeviceId);
+        expect(setSessionId).toHaveBeenCalledWith(testSessionId);
+      });
+
+      test('should handle malformed ampTimestamp gracefully', async () => {
+        const urlWithMalformedTimestamp = new URL(
+          `https://www.example.com?ampSessionId=${testSessionId}&ampDeviceId=${testDeviceId}&ampTimestamp=invalid`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithMalformedTimestamp.search,
+          } as Location,
+          writable: true,
+        });
+
+        const setSessionId = jest.spyOn(client, 'setSessionId');
+
+        await client.init(apiKey, userId, {
+          defaultTracking: {
+            attribution: false,
+            fileDownloads: false,
+            formInteractions: false,
+            pageViews: false,
+            sessions: true,
+          },
+        }).promise;
+
+        // Should treat malformed timestamp as missing and use parameters (backward compatibility)
+        expect(client.config.sessionId).toEqual(testSessionId);
+        expect(client.config.deviceId).toEqual(testDeviceId);
+        expect(setSessionId).toHaveBeenCalledWith(testSessionId);
+      });
+
+      test('should use deviceId parameter when ampTimestamp is valid', async () => {
+        const urlWithValidTimestampDeviceId = new URL(
+          `https://www.example.com?deviceId=${testDeviceId}&ampTimestamp=${futureTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithValidTimestampDeviceId.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        expect(client.config.deviceId).toEqual(testDeviceId);
+      });
+
+      test('should ignore deviceId parameter when ampTimestamp is expired', async () => {
+        const urlWithExpiredTimestampDeviceId = new URL(
+          `https://www.example.com?deviceId=${testDeviceId}&ampTimestamp=${pastTimestamp}`,
+        );
+
+        Object.defineProperty(window, 'location', {
+          value: {
+            ...originalLocation,
+            search: urlWithExpiredTimestampDeviceId.search,
+          } as Location,
+          writable: true,
+        });
+
+        await client.init(apiKey, userId, {
+          defaultTracking: false,
+        }).promise;
+
+        // Should generate new device ID instead of using expired deviceId parameter
+        expect(client.config.deviceId).not.toEqual(testDeviceId);
+        expect(client.config.deviceId).toBeDefined();
+        expect(typeof client.config.deviceId).toBe('string');
+        expect(client.config.deviceId!.length).toBeGreaterThan(0);
+      });
+    });
   });
 
   describe('getUserId', () => {

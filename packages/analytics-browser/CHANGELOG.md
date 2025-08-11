@@ -3,6 +3,62 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.22.0...@amplitude/analytics-browser@2.22.1) (2025-08-08)
+
+
+### Bug Fixes
+
+* add function to translate remoteConfig to localConfig ([#1232](https://github.com/amplitude/Amplitude-TypeScript/issues/1232)) ([ae53401](https://github.com/amplitude/Amplitude-TypeScript/commit/ae5340141d8c55544ae3ac0fefa80e54f478ba04))
+
+
+
+
+
+# [2.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.21.1...@amplitude/analytics-browser@2.22.0) (2025-08-05)
+
+
+### Bug Fixes
+
+* **analtyics-browser): Revert "feat(analytics-browser:** add page-url-previous-page plugin" ([#1237](https://github.com/amplitude/Amplitude-TypeScript/issues/1237)) ([dfd7340](https://github.com/amplitude/Amplitude-TypeScript/commit/dfd7340f6519e647a814b3c66913b0c96b0567cf))
+* **analytics-browser:** use the new remote config client ([#1191](https://github.com/amplitude/Amplitude-TypeScript/issues/1191)) ([9af61ea](https://github.com/amplitude/Amplitude-TypeScript/commit/9af61ea1f29fa97644910f37440562e5a6d5eeba))
+
+
+### Features
+
+* **analytics-browser:** add page-url-previous-page plugin ([#1110](https://github.com/amplitude/Amplitude-TypeScript/issues/1110)) ([dc053ed](https://github.com/amplitude/Amplitude-TypeScript/commit/dc053ed9f0b6378fce6a49f6a6e4196f3622bd25))
+* **plugin-page-url-enrichment-browser:** AMP-130401 create Page URL Enrichment plugin for additional Page URL related properties ([#1238](https://github.com/amplitude/Amplitude-TypeScript/issues/1238)) ([4673be8](https://github.com/amplitude/Amplitude-TypeScript/commit/4673be86ab5535fdca66d1743ef4ee071d5fdef7))
+
+
+
+
+
+## [2.21.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.21.0...@amplitude/analytics-browser@2.21.1) (2025-07-30)
+
+
+### Bug Fixes
+
+* **analytics-browser:** support evaluation window for cross domain t… ([#1227](https://github.com/amplitude/Amplitude-TypeScript/issues/1227)) ([498224e](https://github.com/amplitude/Amplitude-TypeScript/commit/498224eb91296390193f9541debc14a75b677925))
+
+
+
+
+
+# [2.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.20.1...@amplitude/analytics-browser@2.21.0) (2025-07-29)
+
+
+### Bug Fixes
+
+* **analytics-react-native:** migrate to analytics-core v2 ([#1216](https://github.com/amplitude/Amplitude-TypeScript/issues/1216)) ([76e85a1](https://github.com/amplitude/Amplitude-TypeScript/commit/76e85a1daa704a1c4c44d0176a56c8dd8d4ad3f1))
+
+
+### Features
+
+* **analytics-core:** expose unified AmplitudeContext and AnalyticsClient ([#1222](https://github.com/amplitude/Amplitude-TypeScript/issues/1222)) ([7e32712](https://github.com/amplitude/Amplitude-TypeScript/commit/7e327128b4032592897dc6bb50dedda053ad8eda))
+
+
+
+
+
 ## [2.20.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.20.0...@amplitude/analytics-browser@2.20.1) (2025-07-18)
 
 

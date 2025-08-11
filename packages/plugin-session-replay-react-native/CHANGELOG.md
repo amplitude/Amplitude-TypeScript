@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.4.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.2...@amplitude/plugin-session-replay-react-native@0.4.3) (2025-08-08)
+
+
+### Bug Fixes
+
+* make session replay optional on android ([#1239](https://github.com/amplitude/Amplitude-TypeScript/issues/1239)) ([5c34bf6](https://github.com/amplitude/Amplitude-TypeScript/commit/5c34bf687ad0b2f29cfa5eb3a2338a80c17db065))
+
+
+
+
+
 ## [0.4.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-session-replay-react-native@0.4.1...@amplitude/plugin-session-replay-react-native@0.4.2) (2025-06-25)
 
 

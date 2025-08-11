@@ -209,7 +209,9 @@ describe('RemoteConfigClient', () => {
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(mockStorage.fetchConfig).toHaveBeenCalledTimes(1);
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config client subscription all mode fetched from remote.');
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client subscription all mode fetched from remote:'),
+      );
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'remote');
       expect(mockStorage.setConfig).toHaveBeenCalledWith(remoteConfigInfo);
     });
@@ -246,8 +248,12 @@ describe('RemoteConfigClient', () => {
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(mockStorage.fetchConfig).toHaveBeenCalledTimes(1);
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config client subscription all mode fetched from cache.');
-      expect(loggerDebug).toHaveBeenCalledWith('Remote config client subscription all mode fetched from remote.');
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client subscription all mode fetched from cache:'),
+      );
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('Remote config client subscription all mode fetched from remote:'),
+      );
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'remote');
       expect(sendCallback).toHaveBeenCalledWith(callbackInfo, remoteConfigInfo, 'cache');
       expect(mockStorage.setConfig).toHaveBeenCalledTimes(1);
@@ -396,6 +402,61 @@ describe('RemoteConfigClient', () => {
       expect(callbackInfo.lastCallback).toBeDefined();
     });
 
+    test('should call callback with filtered config with real example', () => {
+      const autocapture = {
+        sessions: true,
+        pageViews: true,
+        elementInteractions: {
+          pageUrlAllowlistRegex: [],
+          actionClickAllowlist: ['div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'],
+          pageUrlAllowlist: ['https://www.test.com'],
+          cssSelectorAllowlist: [
+            'a',
+            'button',
+            'input',
+            'select',
+            'textarea',
+            'label',
+            'video',
+            'audio',
+            '[contenteditable="true" i]',
+            '[data-amp-default-track]',
+            '.amp-default-track',
+          ],
+          dataAttributePrefix: 'data-amp-track-',
+        },
+        fileDownloads: true,
+        formInteractions: true,
+      };
+      remoteConfigInfo = {
+        remoteConfig: {
+          configs: {
+            analyticsSDK: {
+              browserSDK: {
+                autocapture: autocapture,
+              },
+            },
+          },
+        },
+        lastFetch: new Date(),
+      };
+      const callbackInfo: CallbackInfo = {
+        id: mockUuid,
+        key: 'configs.analyticsSDK.browserSDK',
+        deliveryMode: 'all' as DeliveryMode,
+        callback,
+      };
+
+      client.sendCallback(callbackInfo, remoteConfigInfo, 'remote');
+
+      expect(callback).toHaveBeenCalledWith(
+        { autocapture: autocapture }, // Expected filtered config
+        'remote',
+        remoteConfigInfo.lastFetch,
+      );
+      expect(callbackInfo.lastCallback).toBeDefined();
+    });
+
     test('should call callback with null if key is not found', () => {
       const callbackInfo: CallbackInfo = {
         id: mockUuid,
@@ -522,6 +583,75 @@ describe('RemoteConfigClient', () => {
       expect(result.lastFetch).toBeInstanceOf(Date);
       expect(loggerDebug).toHaveBeenCalledTimes(2);
       expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('is rejected because:'), expect.any(Error));
+    });
+
+    test('should retry on invalid JSON and eventually fail', async () => {
+      global.fetch = jest.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.reject(new SyntaxError('Invalid JSON')),
+        } as Response),
+      );
+
+      const result = await client.fetch(3);
+      expect(result.remoteConfig).toBeNull();
+      expect(result.lastFetch).toBeInstanceOf(Date);
+      expect(loggerDebug).toHaveBeenCalledTimes(3);
+      expect(loggerDebug).toHaveBeenCalledWith(
+        expect.stringContaining('is rejected because:'),
+        expect.any(SyntaxError),
+      );
+    });
+
+    test('should handle request timeout with AbortController', async () => {
+      // Mock a fetch that respects the AbortController signal
+      global.fetch = jest.fn((_url: string | URL | Request, options?: RequestInit) => {
+        return new Promise<Response>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            resolve({
+              ok: true,
+              json: () => Promise.resolve({ key: 'value' }),
+            } as Response);
+          }, 1500); // Takes 1.5 seconds
+
+          // Listen for abort signal
+          if (options?.signal) {
+            const abortHandler = () => {
+              clearTimeout(timeoutId);
+              const error = new Error('The operation was aborted');
+              error.name = 'AbortError';
+              reject(error);
+            };
+
+            if (options.signal.aborted) {
+              abortHandler();
+            } else {
+              options.signal.addEventListener('abort', abortHandler);
+            }
+          }
+        });
+      });
+
+      const result = await client.fetch(2);
+      expect(result.remoteConfig).toBeNull();
+      expect(loggerDebug).toHaveBeenCalledWith(expect.stringContaining('timed out after 1000ms'));
+    });
+
+    test('should clear timeout when request completes successfully', async () => {
+      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout');
+
+      global.fetch = jest.fn((_url: string | URL | Request, _options?: RequestInit) => {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ key: 'value' }),
+        } as Response);
+      });
+
+      const result = await client.fetch(1);
+      expect(result.remoteConfig).toEqual({ key: 'value' });
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+
+      clearTimeoutSpy.mockRestore();
     });
   });
 

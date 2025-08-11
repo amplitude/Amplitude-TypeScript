@@ -3,6 +3,44 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.8.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.8.2...@amplitude/plugin-autocapture-browser@1.8.3) (2025-08-08)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.8.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.8.1...@amplitude/plugin-autocapture-browser@1.8.2) (2025-08-05)
+
+**Note:** Version bump only for package @amplitude/plugin-autocapture-browser
+
+
+
+
+
+## [1.8.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.8.0...@amplitude/plugin-autocapture-browser@1.8.1) (2025-07-30)
+
+
+### Bug Fixes
+
+* **analytics-browser:** use pointerdown instead of click for rage clicks ([#1210](https://github.com/amplitude/Amplitude-TypeScript/issues/1210)) ([321bb0f](https://github.com/amplitude/Amplitude-TypeScript/commit/321bb0fe345b0da2e5d0101b6de5c1e5209df6c1))
+
+
+
+
+
+# [1.8.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.7.1...@amplitude/plugin-autocapture-browser@1.8.0) (2025-07-29)
+
+
+### Features
+
+* **autocapture:** fetch page actions from remote config ([#1168](https://github.com/amplitude/Amplitude-TypeScript/issues/1168)) ([da213cc](https://github.com/amplitude/Amplitude-TypeScript/commit/da213cc33c4986bcebff2b4264b2c17314f5f310))
+
+
+
+
+
 ## [1.7.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.7.0...@amplitude/plugin-autocapture-browser@1.7.1) (2025-07-17)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
