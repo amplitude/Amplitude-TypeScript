@@ -55,15 +55,6 @@ type AmplitudeXMLHttpRequestSafe = {
   addEventListener: (type: 'loadend', listener: () => void) => void;
 };
 
-// function getJsonProperty(propertyPath: string, object: Record<string, any>) {
-//   const properties = propertyPath.split('/');
-//   let value = object;
-//   for (const property of properties) {
-//     value = value[property];
-//   }
-//   return value;
-// }
-
 export class NetworkObserver {
   private eventCallbacks: Map<string, NetworkEventCallback> = new Map();
   // eslint-disable-next-line no-restricted-globals

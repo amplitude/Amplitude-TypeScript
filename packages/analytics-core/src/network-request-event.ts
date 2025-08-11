@@ -278,7 +278,6 @@ export interface IResponseWrapper {
 export class ResponseWrapperFetch implements IResponseWrapper {
   private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
-  private clonedResponse: ResponseCloneSafe | undefined;
   constructor(private response: ResponseSafe) {}
 
   get headers(): Record<string, string> | undefined {
@@ -312,11 +311,11 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   }
 
   async text(): Promise<string | null> {
-    if (!this.clonedResponse) {
-      this.clonedResponse = this.response.clone();
-    }
+    // !!!IMPORTANT: we clone the response to avoid mutating the original response
+    // never call .text(), .json(), etc.. on the original response always clone it first
+    const clonedResponse = this.response.clone();
     try {
-      const textPromise = this.clonedResponse.text();
+      const textPromise = clonedResponse.text();
       const timer = new Promise<null>((resolve) =>
         setTimeout(
           /* istanbul ignore next */
