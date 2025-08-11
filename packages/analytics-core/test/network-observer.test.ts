@@ -615,13 +615,13 @@ describe('NetworkObserver', () => {
     describe('.json()', () => {
       test('json should return {} by if no rules are set', async () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
-        const json = await responseWrapper.json();
+        const json = await responseWrapper.json([], []);
         expect(json).toEqual({});
       });
 
       test('json should include allowed fields in response', async () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
-        const json = await responseWrapper.json(['message']);
+        const json = await responseWrapper.json(['message'], []);
         expect(json).toEqual({ message: 'Hello from mock!' });
       });
 
@@ -638,7 +638,7 @@ describe('NetworkObserver', () => {
           clone: () => mockResponseBadJson as unknown as Response,
         };
         const responseWrapper = new ResponseWrapperFetch(mockResponseBadJson as unknown as Response);
-        const json = await responseWrapper.json();
+        const json = await responseWrapper.json(['**'], []);
         expect(json).toEqual(null);
       });
 
@@ -649,7 +649,7 @@ describe('NetworkObserver', () => {
           clone: () => mockResponseNoText as unknown as Response,
         };
         const responseWrapper = new ResponseWrapperFetch(mockResponseNoText as unknown as Response);
-        const json = await responseWrapper.json();
+        const json = await responseWrapper.json(['**'], []);
         expect(json).toEqual(null);
       });
     });
@@ -773,6 +773,17 @@ describe('RequestWrapperXhr', () => {
   test('body should return null if request.body is not a string', async () => {
     const requestWrapper = new RequestWrapperXhr(new Blob(['Hello World!']), {});
     expect(requestWrapper.body).toBeNull();
+  });
+
+  describe('.json()', () => {
+    test('should parse body as JSON', async () => {
+      const requestWrapper = new RequestWrapperXhr(
+        JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
+        {},
+      );
+      const json = await requestWrapper.json(['message', 'secret'], ['secret']);
+      expect(json).toEqual({ message: 'Hello from mock!' });
+    });
   });
 });
 
@@ -905,6 +916,30 @@ describe('ResponseWrapperXhr', () => {
     const text = await responseWrapper.text();
     expect(text).toBe('some text');
   });
+
+  describe('.json()', () => {
+    test('should parse JSON response', async () => {
+      const response = {
+        message: 'Hello from mock!',
+        secret: 'secret',
+      };
+      const responseWrapper = new ResponseWrapperXhr(200, '', 0, JSON.stringify(response));
+      const json = await responseWrapper.json(['message'], ['secret']);
+      expect(json).toEqual({ message: 'Hello from mock!' });
+    });
+
+    test('should return null if text is empty', async () => {
+      const responseWrapper = new ResponseWrapperXhr(200, '', 0, '');
+      const json = await responseWrapper.json(['**'], []);
+      expect(json).toEqual(null);
+    });
+
+    test('should return null if text is not valid json', async () => {
+      const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'not valid json');
+      const json = await responseWrapper.json(['**'], []);
+      expect(json).toEqual(null);
+    });
+  });
 });
 
 describe('RequestWrapperFetch', () => {
@@ -962,6 +997,18 @@ describe('RequestWrapperFetch', () => {
       status: 200,
     } as unknown as RequestInitSafe);
     expect(requestWrapper.body).toBe(null);
+  });
+
+  describe('.json()', () => {
+    test('should parse body as JSON', async () => {
+      const requestWrapper = new RequestWrapperFetch({
+        body: JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
+        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+        status: 200,
+      } as unknown as RequestInitSafe);
+      const json = await requestWrapper.json(['message'], ['secret']);
+      expect(json).toEqual({ message: 'Hello from mock!' });
+    });
   });
 });
 

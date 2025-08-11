@@ -159,6 +159,11 @@ export class RequestWrapperFetch implements IRequestWrapper {
     }
     return null;
   }
+
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = this.body;
+    return safeParseAndPruneBody(text, allow, exclude);
+  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
@@ -177,6 +182,11 @@ export class RequestWrapperXhr implements IRequestWrapper {
       return this.bodyRaw;
     }
     return null;
+  }
+
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = this.body;
+    return safeParseAndPruneBody(text, allow, exclude);
   }
 }
 
@@ -330,18 +340,9 @@ export class ResponseWrapperFetch implements IResponseWrapper {
     }
   }
 
-  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
-    try {
-      const text = await this.text();
-      if (text) {
-        const json = JSON.parse(text) as JsonObject;
-        pruneJson(json, allow, exclude);
-        return json;
-      }
-      return null;
-    } catch (error) {
-      return null;
-    }
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = await this.text();
+    return safeParseAndPruneBody(text, allow, exclude);
   }
 }
 
@@ -378,6 +379,22 @@ export class ResponseWrapperXhr implements IResponseWrapper {
       }
     }
     return headers;
+  }
+
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = await this.text();
+    return safeParseAndPruneBody(text, allow, exclude);
+  }
+}
+
+function safeParseAndPruneBody(text: string | null, allow: string[], exclude: string[]): JsonObject | null {
+  if (!text) return null;
+  try {
+    const json = JSON.parse(text) as JsonObject;
+    pruneJson(json, allow, exclude);
+    return json;
+  } catch (error) {
+    return null;
   }
 }
 
