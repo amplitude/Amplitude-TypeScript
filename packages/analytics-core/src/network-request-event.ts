@@ -63,7 +63,6 @@ export type RequestInitSafe = {
   method?: string;
   headers?: HeadersInitSafe;
   body?: BodyInitSafe;
-  text: () => Promise<string | null>;
 };
 export interface FormDataSafe {
   entries(): IterableIterator<[string, FormDataEntryValueSafe]>;
