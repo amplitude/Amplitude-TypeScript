@@ -17,18 +17,18 @@ export interface NetworkTrackingOptions {
   captureRules?: NetworkCaptureRule[];
 }
 
-export interface BodyCaptureRule {
-  /**
-   * Keys to allow in the request/response body.
-   */
-  // TODO: Change this to whatever is the settled configuration name before merging
-  allowlist?: string[];
-  /**
-   * Keys to block in the request/response body.
-   */
-  // TODO: Change this to whatever is the settled configuration name before merging
-  blocklist?: string[];
-}
+// export interface BodyCaptureRule {
+//   /**
+//    * Keys to allow in the request/response body.
+//    */
+//   // TODO: Change this to whatever is the settled configuration name before merging
+//   allowlist?: string[];
+//   /**
+//    * Keys to block in the request/response body.
+//    */
+//   // TODO: Change this to whatever is the settled configuration name before merging
+//   blocklist?: string[];
+// }
 
 export interface NetworkCaptureRule {
   /**
