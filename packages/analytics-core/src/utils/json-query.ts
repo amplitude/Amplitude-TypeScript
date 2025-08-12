@@ -87,14 +87,12 @@ export function _pruneJson({
  * @returns The tokenized JSON path.
  */
 export function tokenizeJsonPath(path: string): string[] {
-  return path
-    .split('/')
-    .map((token) => token.replace(/~0/g, '~').replace(/~1/g, '/'));
+  return path.split('/').map((token) => token.replace(/~0/g, '~').replace(/~1/g, '/'));
 }
 
 /**
  * Check if a JSON path matches a path matcher.
- * 
+ *
  * Rules:
  * 1. If a key in a path and a matcher are the same, then they match, move to the next
  * 2. If the matcher is a *, then it matches the key, move to the next
