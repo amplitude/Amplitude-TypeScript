@@ -235,8 +235,8 @@
 
           // Relative URL (likely 404)
           try {
-            res = await axios.get(`${BASE_URL}/api/test`);
-            displayResult({res, url: `${BASE_URL}/api/test`, options: { method: 'GET' }});
+            res = await axios.get('/api/test');
+            displayResult({res, url: '/api/test', options: { method: 'GET' }});
             assert({res}, 200);
           } catch (err) {
             displayResult({error: err, url: `${BASE_URL}/api/test`, options: { method: 'GET' }});

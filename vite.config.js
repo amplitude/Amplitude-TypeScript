@@ -96,6 +96,10 @@ export default defineConfig({
       ignored: ['**/node_modules/**', '**/dist/**'],
     },
   },
+  preview: {
+    port: 5173,
+    host: true,
+  },
   plugins: [
     htmlEntriesPlugin('**/*.html', { cwd: path.resolve(__dirname, 'test-server') }),
     fileListingPlugin(),
