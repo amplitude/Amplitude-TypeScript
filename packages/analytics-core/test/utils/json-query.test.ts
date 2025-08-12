@@ -2,10 +2,16 @@ import { isPathMatch, tokenizeJsonPath, pruneJson } from '../../src/utils/json-q
 
 describe('pruneJson', () => {
   describe('empty json', () => {
-    test('should not throw an error', () => {
+    test('should pass through null objects', () => {
       const obj = null;
       pruneJson(obj, ['a'], []);
       expect(obj).toEqual(null);
+    });
+
+    test('should pass through undefined objects', () => {
+      const obj = undefined;
+      pruneJson(obj, ['a'], []);
+      expect(obj).toEqual(undefined);
     });
   });
 

@@ -15,7 +15,7 @@ function isJsonPrimitive(json?: Json): boolean {
  * @param allowlist - The keys to include in the pruned JSON object.
  * @param excludelist - The keys to exclude from the pruned JSON object.
  */
-export function pruneJson(json: Json | null, allowlist: string[], excludelist: string[]) {
+export function pruneJson(json: Json | null | undefined, allowlist: string[], excludelist: string[]) {
   if (!json) return;
   // tokenize the allowlist and excludelist
   const allowlistTokens = allowlist.map(tokenizeJsonPath);
