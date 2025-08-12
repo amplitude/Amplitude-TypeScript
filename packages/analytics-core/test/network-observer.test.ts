@@ -2,8 +2,10 @@ import { NetworkEventCallback, NetworkRequestEvent, networkObserver } from '../s
 import { NetworkObserver } from '../src/network-observer';
 import {
   FetchRequestBody,
+  pruneHeaders,
   RequestInitSafe,
   RequestWrapperFetch,
+  RequestWrapperXhr,
   ResponseWrapperFetch,
   ResponseWrapperXhr,
 } from '../src/network-request-event';
@@ -398,7 +400,16 @@ describe('NetworkObserver', () => {
     });
   });
 
-  describe('RequestWrapper', () => {
+  describe('RequestWrapperFetch', () => {
+    describe('body should return the text', () => {
+      it('string', () => {
+        const body = 'Hello World!';
+        const requestWrapper = new RequestWrapperFetch({
+          body,
+        } as RequestInitSafe);
+        expect(requestWrapper.body).toBe(body);
+      });
+    });
     describe('bodySize should return the body length when the body is of type', () => {
       it('string', () => {
         const body = 'Hello World!';
@@ -422,6 +433,7 @@ describe('NetworkObserver', () => {
         }
         const requestWrapper = new RequestWrapperFetch({
           body: buffer,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(buffer.byteLength);
         expect(buffer.byteLength).toBe(8);
@@ -439,6 +451,7 @@ describe('NetworkObserver', () => {
         }
         const requestWrapper = new RequestWrapperFetch({
           body: arr,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(arr.byteLength);
 
@@ -494,6 +507,7 @@ describe('NetworkObserver', () => {
 
         const requestWrapper = new RequestWrapperFetch({
           body: params,
+          text: () => Promise.resolve(null),
         } as RequestInitSafe);
         expect(requestWrapper.bodySize).toBe(expectedSize);
         expect(spies.length).toBe(unsafeURLSearchParamsMethods.length);
@@ -594,6 +608,42 @@ describe('NetworkObserver', () => {
       text: async () => '{"message": "Hello from mock!"}',
     };
 
+    test('text should return null if text returns nothing', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => null,
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const json = await responseWrapper.text();
+      await responseWrapper.text();
+      expect(json).toBeNull();
+    });
+
+    test('text should return null if text throws an error', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => {
+          throw new Error('some error');
+        },
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const json = await responseWrapper.text();
+      expect(json).toBeNull();
+    });
+
+    test('text should return a value', async () => {
+      const mockResponseNonJson = {
+        ...mockResponse,
+        text: async () => 'some text',
+        clone: () => mockResponseNonJson,
+      };
+      const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
+      const text = await responseWrapper.text();
+      expect(text).toBe('some text');
+    });
+
     test('bodySize should return undefined if content-length is not set', () => {
       const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
       const bodySize = responseWrapper.bodySize;
@@ -665,6 +715,18 @@ describe('serializeNetworkRequestEvent', () => {
         'Content-Type': 'application/json',
       },
     });
+  });
+});
+
+describe('RequestWrapperXhr', () => {
+  test('body should return string if request.body is a string', async () => {
+    const requestWrapper = new RequestWrapperXhr('Hello World!', {});
+    expect(requestWrapper.body).toBe('Hello World!');
+  });
+
+  test('body should return null if request.body is not a string', async () => {
+    const requestWrapper = new RequestWrapperXhr(new Blob(['Hello World!']), {});
+    expect(requestWrapper.body).toBeNull();
   });
 });
 
@@ -747,10 +809,13 @@ describe('observeXhr', () => {
     it('should call mockXHR and retrieve event and still call original open/send', (done) => {
       const originalOpenSpy = jest.spyOn(MockXHR.prototype, 'open');
       const originalSendSpy = jest.spyOn(MockXHR.prototype, 'send');
+      const originalSetRequestHeaderSpy = jest.spyOn(MockXHR.prototype, 'setRequestHeader');
       const callback = (event: NetworkRequestEvent) => {
         try {
           expect(originalOpenSpy).toHaveBeenCalledWith('GET', 'https://api.example.com/data');
           expect(originalSendSpy).toHaveBeenCalledWith('hello world!');
+          expect(originalSetRequestHeaderSpy).toHaveBeenCalledWith('Authorization', 'secretpassword!');
+          expect(originalSetRequestHeaderSpy).toHaveBeenCalledWith('X-Custom-Header', 'customvalue');
           expect(event.status).toBe(200);
           expect(event.type).toBe('xhr');
           expect(event.method).toBe('GET');
@@ -760,6 +825,10 @@ describe('observeXhr', () => {
             'Content-Length': '1234',
           });
           expect(event.responseWrapper?.bodySize).toBe(1234);
+          expect(event.requestWrapper?.headers).toEqual({
+            Authorization: 'secretpassword!',
+            'X-Custom-Header': 'customvalue',
+          });
           expect(event.requestWrapper?.bodySize).toBe('hello world!'.length);
           expect(event.duration).toBeGreaterThanOrEqual(0);
           expect(event.startTime).toBeGreaterThanOrEqual(0);
@@ -776,15 +845,19 @@ describe('observeXhr', () => {
       const XMLHttpRequest = (networkObserver as unknown as any).globalScope.XMLHttpRequest;
       const xhr = new XMLHttpRequest();
       xhr.open('GET', 'https://api.example.com/data');
+      xhr.setRequestHeader('Authorization', 'secretpassword!');
+      xhr.setRequestHeader('X-Custom-Header', 'customvalue');
       xhr.send('hello world!');
     });
   });
 });
 
 describe('ResponseWrapperXhr', () => {
-  test('should return undefined if headersString is empty', () => {
-    const responseWrapper = new ResponseWrapperXhr(200, '', 0);
+  test('should return undefined if headersString is empty', async () => {
+    const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
     expect(responseWrapper.headers).toEqual(undefined);
+    const text = await responseWrapper.text();
+    expect(text).toBe('some text');
   });
 });
 
@@ -856,5 +929,62 @@ describe('NetworkRequestEvent', () => {
   test('status should be 0 if not set', () => {
     const event = new NetworkRequestEvent('xhr', 'GET', 0, 0, 'https://api.example.com/data');
     expect(event.status).toBe(0);
+  });
+});
+
+describe('pruneHeaders', () => {
+  test('should exclude headers', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers, { exclude: ['Authorization'] });
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+    });
+  });
+
+  test('should not exclude headers if exclude is not provided', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers);
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+    });
+  });
+
+  test('should include headers', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      'X-Custom-Header': 'customvalue',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers, { include: ['Content-Type', 'Content-Length'] });
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+    });
+  });
+
+  test('should exclude headers and include headers', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      'X-Custom-Header': 'customvalue',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers, { exclude: ['Authorization'], include: ['Content-Type', 'Content-Length'] });
+    expect(headers).toEqual({
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+    });
   });
 });
