@@ -44,11 +44,11 @@ export interface NetworkCaptureRule {
   /**
    * Determines what to capture from the response body.
    */
-  responseBody?: BodyCaptureRule;
+  // responseBody?: BodyCaptureRule;
   /**
    * Determines what to capture from the request body.
    */
-  requestBody?: BodyCaptureRule;
+  // requestBody?: BodyCaptureRule;
   /**
    * Threshold   for what is classified as a slow request (in seconds).
    * @defaultValue `3`
