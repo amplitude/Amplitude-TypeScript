@@ -147,6 +147,11 @@ describe('tokenizePath', () => {
     expect(tokenizeJsonPath('a/*/**/c')).toEqual(['a', '*', '**', 'c']);
   });
 
+  test('should accept leading /', () => {
+    expect(tokenizeJsonPath('/a/b/c')).toEqual(['a', 'b', 'c']);
+    expect(tokenizeJsonPath('/a/*/**/c')).toEqual(['a', '*', '**', 'c']);
+  });
+
   test('should tokenize paths with single token', () => {
     expect(tokenizeJsonPath('a')).toEqual(['a']);
     expect(tokenizeJsonPath('a*')).toEqual(['a*']);
