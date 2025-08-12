@@ -133,12 +133,6 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     let isMatch: boolean | undefined;
     [...options.captureRules].reverse().find((rule) => {
       isMatch = isCaptureRuleMatch(rule, host, networkEvent.status);
-
-      // if we found a match, and responseBody is defined, capture parsed json response body
-      // if (isMatch && rule.responseBody) {
-      //   const responseBodyText = networkEvent.responseWrapper?.text?.();
-      // }
-
       return isMatch !== undefined;
     });
 
@@ -167,9 +161,9 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Completion Time']?: number; // unix timestamp
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
-  ['[Amplitude] Request Body']?: string;
+  //['[Amplitude] Request Body']?: string;
   ['[Amplitude] Response Body Size']?: number;
-  ['[Amplitude] Response Body']?: string;
+  //['[Amplitude] Response Body']?: string;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
 
