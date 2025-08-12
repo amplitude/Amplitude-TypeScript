@@ -25,8 +25,8 @@ describe('pruneJson', () => {
 
       test('should match multiple keys with wildcards', () => {
         const obj = { a: 'b', c: 'd', e: 'f' };
-        pruneJson(obj, ['*'], []);
-        expect(obj).toEqual({ a: 'b', c: 'd', e: 'f' });
+        pruneJson(obj, ['*'], ['e']);
+        expect(obj).toEqual({ a: 'b', c: 'd' });
       });
     });
   });
@@ -40,8 +40,8 @@ describe('pruneJson', () => {
 
     test('should match with **', () => {
       const obj = { a: { b: { c: 'd', e: 'f' } } };
-      pruneJson(obj, ['a/**'], []);
-      expect(obj).toEqual({ a: { b: { c: 'd', e: 'f' } } });
+      pruneJson(obj, ['a/**'], ['a/b/e']);
+      expect(obj).toEqual({ a: { b: { c: 'd' } } });
     });
 
     test('should match with *', () => {
@@ -106,6 +106,11 @@ describe('pruneJson', () => {
       const obj = { a: { f: 'f', b: { c: { d: 'e', f: 'f' } } } };
       pruneJson(obj, ['**/f'], []);
       expect(obj).toEqual({ a: { f: 'f', b: { c: { f: 'f' } } } });
+    });
+    test('should exclude everything if exclude list is **', () => {
+      const obj = { a: { b: { c: 'd', e: 'f' } }, g: 'h' };
+      pruneJson(obj, ['a/g'], ['**']);
+      expect(obj).toEqual({});
     });
   });
 
