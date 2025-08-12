@@ -8,7 +8,7 @@ import {
 } from '../constants';
 import { asyncLoadScript, generateUniqueId, getEventTagProps } from '../helpers';
 import { ILogger, Messenger, ActionType } from '@amplitude/analytics-core';
-import { VERSION } from 'src/version';
+import { VERSION } from '../version';
 
 export type Action =
   | 'ping'
