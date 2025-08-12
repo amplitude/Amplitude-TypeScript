@@ -60,6 +60,9 @@
       import * as amplitude from '@amplitude/analytics-browser';
       window.amplitude = amplitude;
 
+      // Base URL configuration for absolute URLs
+      const BASE_URL = 'http://localhost:5173';
+
       axios.defaults.validateStatus = () => true;
 
       amplitude.init(
@@ -74,7 +77,7 @@
             ignoreHosts: [],
             captureRules: [
               { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
-              { hosts: ['httpstat.us'], statusCodeRange: '0,400-599' },
+              { hosts: ['localhost', '127.0.0.1'], statusCodeRange: '0,400-599' },
               { hosts: ['*'], statusCodeRange: '0,300-599' },
             ],
           },
@@ -142,55 +145,55 @@
           const controller = new AbortController();
           const signal = controller.signal;
           try {
-            res = axios.post('https://httpstat.us/200', 'This request will be aborted', { signal });
+            res = axios.post(`${BASE_URL}/api/status/200`, 'This request will be aborted', { signal });
             controller.abort();
             const awaitedRes = await res;
-            displayResult({res: awaitedRes, url: 'https://httpstat.us/200', options: { method: 'POST' }});
+            displayResult({res: awaitedRes, url: `${BASE_URL}/api/status/200`, options: { method: 'POST' }});
           } catch (err) {
-            displayResult({error: err, url: 'https://httpstat.us/200', options: { method: 'POST' }});
+            displayResult({error: err, url: `${BASE_URL}/api/status/200`, options: { method: 'POST' }});
           }
 
           // Basic GET 200
-          res = await axios.get('https://httpstat.us/200');
-          displayResult({res, url: 'https://httpstat.us/200', options: { method: 'GET' }});
+          res = await axios.get(`${BASE_URL}/api/status/200`);
+          displayResult({res, url: `${BASE_URL}/api/status/200`, options: { method: 'GET' }});
           assert({res}, 200);
 
           // String body
-          res = await axios.post('https://httpstat.us/500', 'Hello, this is a test body');
-          displayResult({res, url: 'https://httpstat.us/500', options: { method: 'POST' }});
+          res = await axios.post(`${BASE_URL}/api/status/500`, 'Hello, this is a test body');
+          displayResult({res, url: `${BASE_URL}/api/status/500`, options: { method: 'POST' }});
           assert({res}, 500);
 
           // JSON object body
-          res = await axios.post('https://httpstat.us/501', { message: 'Hello', count: 42 });
-          displayResult({res, url: 'https://httpstat.us/501', options: { method: 'POST' }});
+          res = await axios.post(`${BASE_URL}/api/status/501`, { message: 'Hello', count: 42 });
+          displayResult({res, url: `${BASE_URL}/api/status/501`, options: { method: 'POST' }});
           assert({res}, 501);
 
           // FormData body
           const formData = new FormData();
           formData.append('text', 'Hello from FormData');
           formData.append('file', new Blob(['Hello from Blob'], { type: 'text/plain' }));
-          res = await axios.post('https://httpstat.us/502', formData);
-          displayResult({res, url: 'https://httpstat.us/502', options: { method: 'POST' }});
+          res = await axios.post(`${BASE_URL}/api/status/502`, formData);
+          displayResult({res, url: `${BASE_URL}/api/status/502`, options: { method: 'POST' }});
           assert({res}, 502);
 
           // URLSearchParams body
           const params = new URLSearchParams();
           params.append('param1', 'value1');
           params.append('param2', 'value2');
-          res = await axios.post('https://httpstat.us/504', params);
-          displayResult({res, url: 'https://httpstat.us/504', options: { method: 'POST' }});
+          res = await axios.post(`${BASE_URL}/api/status/504`, params);
+          displayResult({res, url: `${BASE_URL}/api/status/504`, options: { method: 'POST' }});
           assert({res}, 504);
 
           // ArrayBuffer body
           const buffer = new ArrayBuffer(8);
-          res = await axios.post('https://httpstat.us/505', buffer);
-          displayResult({res, url: 'https://httpstat.us/505', options: { method: 'POST' }});
+          res = await axios.post(`${BASE_URL}/api/status/505`, buffer);
+          displayResult({res, url: `${BASE_URL}/api/status/505`, options: { method: 'POST' }});
           assert({res}, 505);
 
           // Blob body
           const blob = new Blob(['Hello from Blob'], { type: 'text/plain' });
-          res = await axios.post('https://httpstat.us/506', blob);
-          displayResult({res, url: 'https://httpstat.us/506', options: { method: 'POST' }});
+          res = await axios.post(`${BASE_URL}/api/status/506`, blob);
+          displayResult({res, url: `${BASE_URL}/api/status/506`, options: { method: 'POST' }});
           assert({res}, 506);
 
           // Stream body (Not natively supported by Axios, but included to match fetch tests)
@@ -201,57 +204,57 @@
                 controller.close();
               },
             });
-            res = await axios.post('https://httpstat.us/507', stream);
-            displayResult({res, url: 'https://httpstat.us/507', options: { method: 'POST' }});
+            res = await axios.post(`${BASE_URL}/api/status/507`, stream);
+            displayResult({res, url: `${BASE_URL}/api/status/507`, options: { method: 'POST' }});
             assert({res}, 507);
           } catch (err) {
-            displayResult({error: err, url: 'https://httpstat.us/507', options: { method: 'POST' }});
+            displayResult({error: err, url: `${BASE_URL}/api/status/507`, options: { method: 'POST' }});
           }
 
           // GET 508
-          res = await axios.get('https://httpstat.us/508');
-          displayResult({res, url: 'https://httpstat.us/508', options: { method: 'GET' }});
+          res = await axios.get(`${BASE_URL}/api/status/508`);
+          displayResult({res, url: `${BASE_URL}/api/status/508`, options: { method: 'GET' }});
           assert({res}, 508);
 
           // Additional HTTP Methods
-          res = await axios.head('https://httpstat.us/200');
-          displayResult({res, url: 'https://httpstat.us/200', options: { method: 'HEAD' }});
+          res = await axios.head(`${BASE_URL}/api/status/200`);
+          displayResult({res, url: `${BASE_URL}/api/status/200`, options: { method: 'HEAD' }});
           assert({res}, 200);
 
-          res = await axios.options('https://httpstat.us/200');
-          displayResult({res, url: 'https://httpstat.us/200', options: { method: 'OPTIONS' }});
+          res = await axios.options(`${BASE_URL}/api/status/200`);
+          displayResult({res, url: `${BASE_URL}/api/status/200`, options: { method: 'OPTIONS' }});
           assert({res}, 200);
 
-          res = await axios.delete('https://httpstat.us/200');
-          displayResult({res, url: 'https://httpstat.us/200', options: { method: 'DELETE' }});
+          res = await axios.delete(`${BASE_URL}/api/status/200`);
+          displayResult({res, url: `${BASE_URL}/api/status/200`, options: { method: 'DELETE' }});
           assert({res}, 200);
 
-          res = await axios.put('https://httpstat.us/200', { update: true });
-          displayResult({res, url: 'https://httpstat.us/200', options: { method: 'PUT' }});
+          res = await axios.put(`${BASE_URL}/api/status/200`, { update: true });
+          displayResult({res, url: `${BASE_URL}/api/status/200`, options: { method: 'PUT' }});
           assert({res}, 200);
 
           // Relative URL (likely 404)
           try {
-            res = await axios.get('/api/test');
-            displayResult({res, url: '/api/test', options: { method: 'GET' }});
+            res = await axios.get(`${BASE_URL}/api/test`);
+            displayResult({res, url: `${BASE_URL}/api/test`, options: { method: 'GET' }});
             assert({res}, 200);
           } catch (err) {
-            displayResult({error: err, url: '/api/test', options: { method: 'GET' }});
+            displayResult({error: err, url: `${BASE_URL}/api/test`, options: { method: 'GET' }});
           }
 
           // Network failure (invalid domain)
           try {
-            res = await axios.get('https://invalid.domain.test');
-            displayResult({res, url: 'https://invalid.domain.test', options: { method: 'GET' }});
+            res = await axios.get('https://notrealdomain');
+            displayResult({res, url: 'https://notrealdomain', options: { method: 'GET' }});
             assert({res}, 0);
           } catch (err) {
-            displayResult({error: err, url: 'https://invalid.domain.test', options: { method: 'GET' }});
+            displayResult({error: err, url: 'https://notrealdomain', options: { method: 'GET' }});
             assert({error: err}, 0);
           }
 
           // Delayed response
-          res = await axios.get('https://httpstat.us/200?sleep=5000');
-          displayResult({res, url: 'https://httpstat.us/200?sleep=5000', options: { method: 'GET' }});
+          res = await axios.get(`${BASE_URL}/api/status/200?sleep=5000`);
+          displayResult({res, url: `${BASE_URL}/api/status/200?sleep=5000`, options: { method: 'GET' }});
           assert({res}, 200);
 
           updateCompletionIndicator(true, 'All tests completed successfully!');
