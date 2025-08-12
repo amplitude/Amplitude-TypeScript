@@ -93,6 +93,9 @@ export function _pruneJson({
  * @returns The tokenized JSON path.
  */
 export function tokenizeJsonPath(path: string): string[] {
+  if (path.startsWith('/')) {
+    path = path.slice(1);
+  }
   return path.split('/').map((token) => token.replace(/~0/g, '~').replace(/~1/g, '/'));
 }
 
