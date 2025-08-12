@@ -126,6 +126,12 @@ describe('pruneJson', () => {
       pruneJson(obj, ['a/1'], []);
       expect(obj).toEqual({ a: [undefined, 2, undefined] });
     });
+
+    test('should match all indices with * but exclude specific index', () => {
+      const obj = { a: [1, 2, 3] };
+      pruneJson(obj, ['a/*'], ['a/1']);
+      expect(obj).toEqual({ a: [1, undefined, 3] });
+    });
   });
 });
 
