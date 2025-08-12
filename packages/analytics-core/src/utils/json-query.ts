@@ -1,7 +1,13 @@
 type Json = Record<string, any>;
 
 function isJsonPrimitive(json?: Json): boolean {
-  return typeof json === 'string' || typeof json === 'number' || typeof json === 'boolean' || json === null;
+  return (
+    typeof json === 'string' ||
+    typeof json === 'number' ||
+    typeof json === 'boolean' ||
+    json === null ||
+    json === undefined
+  );
 }
 
 /**
