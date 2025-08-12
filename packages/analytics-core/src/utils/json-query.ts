@@ -1,7 +1,11 @@
 type Json = Record<string, any>;
 
+function isJsonPrimitive(json?: Json): boolean {
+  return typeof json === 'string' || typeof json === 'number' || typeof json === 'boolean' || json === null;
+}
+
 /**
- * Prune a JSON object to only include the keys in the allowlist and exclude the keys
+ * Prune a JSON object to only include the keys in the allowlist and excludes the keys
  * in the exclude list.
  *
  * This function is a mutative function that will modify the original JSON object.
@@ -11,7 +15,7 @@ type Json = Record<string, any>;
  * @param allowlist - The keys to include in the pruned JSON object.
  * @param excludelist - The keys to exclude from the pruned JSON object.
  */
-export function pruneJson(json: Json | null, allowlist: string[], excludelist: string[]) {
+export function pruneJson(json: Json | null | undefined, allowlist: string[], excludelist: string[]) {
   if (!json) return;
   // tokenize the allowlist and excludelist
   const allowlistTokens = allowlist.map(tokenizeJsonPath);
@@ -51,7 +55,7 @@ export function _pruneJson({
     const path = [...ancestors, key];
     if (isJsonPrimitive(targetObject[key] as Json)) {
       // if the value does not match allowlist or matches exclude list, delete it
-      if (!isPathMatchList(path, allowlist) || isPathMatchList(path, excludelist)) {
+      if (!hasPathMatchInList(path, allowlist) || hasPathMatchInList(path, excludelist)) {
         delete targetObject[key];
       }
     } else {
@@ -67,22 +71,15 @@ export function _pruneJson({
     }
   }
 
-  // if this object is empty now, clean it up
+  // if this object is empty now, delete the whole object
   if (Object.keys(targetObject).length === 0 && parentObject && targetKey) {
     delete parentObject[targetKey];
   }
 }
 
-function isJsonPrimitive(json?: Json): boolean {
-  return typeof json === 'string' || typeof json === 'number' || typeof json === 'boolean' || json === null;
-}
-
-function isPathMatchList(path: string[], list: string[][]): boolean {
-  return list.some((l) => isPathMatch(path, l));
-}
-
 /**
- * Tokenize a JSON path
+ * Tokenize a JSON path string into an array of strings.
+ * Escapes ~0 and ~1 to ~ and / respectively.
  *
  * e.g.) turns string "a/b/c" into ["a", "b", "c"]
  *
@@ -90,17 +87,16 @@ function isPathMatchList(path: string[], list: string[][]): boolean {
  * @returns The tokenized JSON path.
  */
 export function tokenizeJsonPath(path: string): string[] {
-  const out = path.split('/');
-
-  if (path.includes('~')) {
-    return out.map((token) => token.replace(/~0/g, '~').replace(/~1/g, '/'));
-  }
-
-  return out;
+  return path.split('/').map((token) => token.replace(/~0/g, '~').replace(/~1/g, '/'));
 }
 
 /**
  * Check if a JSON path matches a path matcher.
+ *
+ * Rules:
+ * 1. If a key in a path and a matcher are the same, then they match, move to the next
+ * 2. If the matcher is a *, then it matches the key, move to the next
+ * 3. If the matcher is a **, then it matches >=0 keys
  *
  * @param path - The path to check.
  * @param pathMatcher - The path matcher to check against.
@@ -137,4 +133,15 @@ export function isPathMatch(path: string[], pathMatcher: string[], i = 0, j = 0)
   } else {
     return false;
   }
+}
+
+/**
+ * Check if a JSON path matches any of the path matchers in the allow or exclude list.
+ *
+ * @param path - The JSON path to check.
+ * @param allowOrExcludeList - The allow or exclude list to check against.
+ * @returns True if the path matches any of the path matchers in the allow or exclude list, false otherwise.
+ */
+function hasPathMatchInList(path: string[], allowOrExcludeList: string[][]): boolean {
+  return allowOrExcludeList.some((l) => isPathMatch(path, l));
 }

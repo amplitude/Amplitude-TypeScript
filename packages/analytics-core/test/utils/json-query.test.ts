@@ -2,10 +2,16 @@ import { isPathMatch, tokenizeJsonPath, pruneJson } from '../../src/utils/json-q
 
 describe('pruneJson', () => {
   describe('empty json', () => {
-    test('should not throw an error', () => {
+    test('should pass through null objects', () => {
       const obj = null;
       pruneJson(obj, ['a'], []);
       expect(obj).toEqual(null);
+    });
+
+    test('should pass through undefined objects', () => {
+      const obj = undefined;
+      pruneJson(obj, ['a'], []);
+      expect(obj).toEqual(undefined);
     });
   });
 
@@ -25,8 +31,8 @@ describe('pruneJson', () => {
 
       test('should match multiple keys with wildcards', () => {
         const obj = { a: 'b', c: 'd', e: 'f' };
-        pruneJson(obj, ['*'], []);
-        expect(obj).toEqual({ a: 'b', c: 'd', e: 'f' });
+        pruneJson(obj, ['*'], ['e']);
+        expect(obj).toEqual({ a: 'b', c: 'd' });
       });
     });
   });
@@ -40,8 +46,8 @@ describe('pruneJson', () => {
 
     test('should match with **', () => {
       const obj = { a: { b: { c: 'd', e: 'f' } } };
-      pruneJson(obj, ['a/**'], []);
-      expect(obj).toEqual({ a: { b: { c: 'd', e: 'f' } } });
+      pruneJson(obj, ['a/**'], ['a/b/e']);
+      expect(obj).toEqual({ a: { b: { c: 'd' } } });
     });
 
     test('should match with *', () => {
@@ -107,6 +113,11 @@ describe('pruneJson', () => {
       pruneJson(obj, ['**/f'], []);
       expect(obj).toEqual({ a: { f: 'f', b: { c: { f: 'f' } } } });
     });
+    test('should exclude everything if exclude list is **', () => {
+      const obj = { a: { b: { c: 'd', e: 'f' } }, g: 'h' };
+      pruneJson(obj, ['a/g'], ['**']);
+      expect(obj).toEqual({});
+    });
   });
 
   describe('arrays', () => {
@@ -120,6 +131,12 @@ describe('pruneJson', () => {
       const obj = { a: [1, 2, 3] };
       pruneJson(obj, ['a/1'], []);
       expect(obj).toEqual({ a: [undefined, 2, undefined] });
+    });
+
+    test('should match all indices with * but exclude specific index', () => {
+      const obj = { a: [1, 2, 3] };
+      pruneJson(obj, ['a/*'], ['a/1']);
+      expect(obj).toEqual({ a: [1, undefined, 3] });
     });
   });
 });
