@@ -322,6 +322,20 @@ export class SessionReplay implements AmplitudeSessionReplay {
         apiKey: this.config.apiKey,
         targetingParams: { userProperties: targetingParams.userProperties, event: eventForTargeting },
       });
+
+      // Log the targeting config to debug
+      this.loggerProvider.debug(
+        JSON.stringify(
+          {
+            name: 'targeted replay capture config',
+            sessionTargetingMatch: this.sessionTargetingMatch,
+            event: eventForTargeting,
+            targetingParams: targetingParams,
+          },
+          null,
+          2,
+        ),
+      );
     }
 
     if (isInit) {
