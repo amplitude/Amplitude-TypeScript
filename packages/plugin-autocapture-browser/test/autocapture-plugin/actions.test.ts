@@ -258,6 +258,18 @@ describe('page actions', () => {
       const data = getDataSource({ sourceType: 'UNEXPECTED_TYPE' } as unknown as DataSource, document.body);
       expect(data).toBeUndefined();
     });
+
+    test('should return undefined if selector and scope are invalid CSS selectors (empty strings)', () => {
+      const data = getDataSource(
+        {
+          sourceType: 'DOM_ELEMENT',
+          selector: '$$$',
+          scope: '',
+        } as unknown as DataSource,
+        document.body,
+      );
+      expect(data).toBeUndefined();
+    });
   });
 
   describe('extractDataFromDataSource', () => {

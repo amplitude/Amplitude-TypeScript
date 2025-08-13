@@ -10,20 +10,24 @@ import { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
  */
 export const getDataSource = (dataSource: DataSource, contextElement: HTMLElement) => {
   // Only process DOM_ELEMENT type data sources
-  if (dataSource.sourceType === 'DOM_ELEMENT') {
-    // If scope is specified, find the closest ancestor matching the scope rather than using documentElement (html) as the scope
-    let scopingElement: HTMLElement | null = document.documentElement;
-    if (dataSource.scope && contextElement) {
-      scopingElement = contextElement.closest(dataSource.scope);
-    }
+  try {
+    if (dataSource.sourceType === 'DOM_ELEMENT') {
+      // If scope is specified, find the closest ancestor matching the scope rather than using documentElement (html) as the scope
+      let scopingElement: HTMLElement | null = document.documentElement;
+      if (dataSource.scope && contextElement) {
+        scopingElement = contextElement.closest(dataSource.scope);
+      }
 
-    // If we have both a scope and selector, find the matching element
-    if (scopingElement && dataSource.selector) {
-      return scopingElement.querySelector(dataSource.selector);
-    }
+      // If we have both a scope and selector, find the matching element
+      if (scopingElement && dataSource.selector) {
+        return scopingElement.querySelector(dataSource.selector);
+      }
 
-    // Return scopingElement if no selector was specified
-    return scopingElement;
+      // Return scopingElement if no selector was specified
+      return scopingElement;
+    }
+  } catch (error) {
+    return undefined;
   }
 
   // Return undefined for non-DOM_ELEMENT data sources
