@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import * as constants from './constants';
-import { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
+import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist } from '@amplitude/analytics-core';
 import { getHierarchy } from './hierarchy';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -35,7 +35,7 @@ export const createShouldTrackEvent = (
       return shouldTrackEventResolver(actionType, element);
     }
 
-    if (!isPageUrlAllowed(window.location.href, pageUrlAllowlist)) {
+    if (!isUrlMatchAllowlist(window.location.href, pageUrlAllowlist)) {
       return false;
     }
 
@@ -135,18 +135,6 @@ export const getText = (element: Element): string => {
     });
   }
   return text;
-};
-
-export const isPageUrlAllowed = (url: string, pageUrlAllowlist: (string | RegExp)[] | undefined) => {
-  if (!pageUrlAllowlist || !pageUrlAllowlist.length) {
-    return true;
-  }
-  return pageUrlAllowlist.some((allowedUrl) => {
-    if (typeof allowedUrl === 'string') {
-      return url === allowedUrl;
-    }
-    return url.match(allowedUrl);
-  });
 };
 
 export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
