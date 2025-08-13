@@ -8,6 +8,7 @@ import {
 } from '../constants';
 import { asyncLoadScript, generateUniqueId, getEventTagProps } from '../helpers';
 import { ILogger, Messenger, ActionType } from '@amplitude/analytics-core';
+import { VERSION } from '../version';
 
 export type Action =
   | 'ping'
@@ -197,6 +198,11 @@ export class WindowMessenger implements Messenger {
                 cssSelectorAllowlist,
                 actionClickAllowlist,
                 extractDataFromDataSource,
+                diagnostics: {
+                  autocapture: {
+                    version: VERSION,
+                  },
+                },
               });
               this.notify({ action: 'selector-loaded' });
             })
