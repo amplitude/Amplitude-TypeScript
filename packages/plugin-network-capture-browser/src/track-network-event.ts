@@ -161,7 +161,9 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Completion Time']?: number; // unix timestamp
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
+  //['[Amplitude] Request Body']?: string;
   ['[Amplitude] Response Body Size']?: number;
+  //['[Amplitude] Response Body']?: string;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
 

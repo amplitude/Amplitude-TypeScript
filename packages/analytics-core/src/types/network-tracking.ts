@@ -17,6 +17,28 @@ export interface NetworkTrackingOptions {
   captureRules?: NetworkCaptureRule[];
 }
 
+// export interface BodyCaptureRule {
+//   // TODO: Change this to whatever is the settled configuration name before merging
+//   /**
+//    * List of JSON pointers to capture from a request or response body (JSON objects only)
+//    *
+//    * If this is empty or undefined, no attributes are captured
+//    *
+//    * Follows a syntax similar to JSON Pointer, except:
+//    * - The leading / is optional
+//    * - A wildcard * can be used to match any key
+//    * - A wildcard ** can be used to match any number of keys (or no keys)
+//    * - The structure of the JSON is preserved (ie: the captured body is a subset of the original body)
+//    */
+//   allowlist?: string[];
+//   /**
+//    * List of JSON pointers to exclude from a request or response body (JSON objects only)
+//    *
+//    * This "uncaptures" any attributes that are captured by the allowlist.
+//    */
+//   blocklist?: string[];
+// }
+
 export interface NetworkCaptureRule {
   /**
    * Hosts to allow for network capture. Supports wildcard.
@@ -29,7 +51,15 @@ export interface NetworkCaptureRule {
    */
   statusCodeRange?: string;
   /**
-   * Threshold for what is classified as a slow request (in seconds).
+   * Determines what to capture from the response body.
+   */
+  // responseBody?: BodyCaptureRule;
+  /**
+   * Determines what to capture from the request body.
+   */
+  // requestBody?: BodyCaptureRule;
+  /**
+   * Threshold   for what is classified as a slow request (in seconds).
    * @defaultValue `3`
    */
   // slowThreshold?: number;
