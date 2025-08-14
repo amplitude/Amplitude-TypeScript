@@ -38,7 +38,6 @@ export const SAFE_HEADERS = [
   'proxy-authenticate',
   'public-key-pins',
   'retry-after',
-  'permanent',
   'server',
   'status',
   'strict-transport-security',
