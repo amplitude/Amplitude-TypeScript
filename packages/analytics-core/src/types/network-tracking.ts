@@ -46,6 +46,12 @@ export interface NetworkCaptureRule {
    */
   hosts?: string[];
   /**
+   * URL patterns to allow for network capture. Supports wildcard.
+   * @experimental This feature is experimental and may not be stable
+   * @defaultValue `["*"]` all URLs
+   */
+  urlPatterns?: (string | RegExp)[];
+  /**
    * Range list that defines the status codes to be captured.
    * @defaultValue `500-599`
    */

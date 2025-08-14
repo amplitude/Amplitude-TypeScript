@@ -4,6 +4,7 @@ import {
   NetworkCaptureRule,
   NetworkTrackingOptions,
   getGlobalScope,
+  isUrlMatchAllowlist,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
@@ -35,9 +36,14 @@ function isStatusCodeInRange(statusCode: number, range: string) {
   return false;
 }
 
-function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?: number) {
+function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?: number, url?: string) {
   // check if the host is in the allowed hosts
   if (rule.hosts && !rule.hosts.find((host: string) => wildcardMatch(hostname, host))) {
+    return;
+  }
+
+  // check if the URL is in the allowed URL patterns
+  if (url && rule.urlPatterns && !isUrlMatchAllowlist(url, rule.urlPatterns)) {
     return;
   }
 
@@ -132,7 +138,7 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     // that is a match (true) or a miss (false)
     let isMatch: boolean | undefined;
     [...options.captureRules].reverse().find((rule) => {
-      isMatch = isCaptureRuleMatch(rule, host, networkEvent.status);
+      isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url);
       return isMatch !== undefined;
     });
 

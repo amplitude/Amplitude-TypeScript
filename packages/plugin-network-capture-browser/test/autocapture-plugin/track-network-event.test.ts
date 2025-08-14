@@ -410,6 +410,22 @@ describe('track-network-event', () => {
       const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(false);
     });
+
+    test('url does match any of the captureRule.urlPatterns', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['*'],
+            urlPatterns: [/login/],
+            statusCodeRange: '500-599',
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.url = 'https://example.com/logout';
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(false);
+    });
   });
 
   describe('shouldTrackNetworkEvent returns true when', () => {
@@ -524,6 +540,22 @@ describe('track-network-event', () => {
       networkEvent.url = 'https://some.example.com/track';
       networkEvent.status = 403;
       const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
+      expect(result).toBe(true);
+    });
+
+    test('url matches one of the urlPatterns in captureRules', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['*'],
+            urlPatterns: [/login/],
+            statusCodeRange: '500-599',
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.url = 'https://example.com/login';
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
       expect(result).toBe(true);
     });
   });
