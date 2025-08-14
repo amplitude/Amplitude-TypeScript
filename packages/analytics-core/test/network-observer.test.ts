@@ -624,7 +624,7 @@ describe('NetworkObserver', () => {
     });
 
     describe('.json()', () => {
-      test('json should return {} by if no rules are set', async () => {
+      test('json should return {} if no rules are set', async () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
         const json = await responseWrapper.json([], []);
         expect(json).toEqual({});
