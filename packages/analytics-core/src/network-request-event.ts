@@ -91,6 +91,22 @@ export interface IRequestWrapper {
 export const MAXIMUM_ENTRIES = 100;
 
 /**
+ * This class is used to enforce the consumption of headers and body
+ * so that 'headers' and 'body' can only be accessed once.
+ */
+class ConsumptionCheck {
+  private headers = false;
+  private body = false;
+
+  consume(objType: 'headers' | 'body') {
+    if (this[objType]) {
+      throw new TypeError(`${objType} has already been consumed`);
+    }
+    this[objType] = true;
+  }
+}
+
+/**
  * This class encapsulates the RequestInit (https://developer.mozilla.org/en-US/docs/Web/API/RequestInit)
  * object so that the consumer can only get access to the headers, method and body size.
  *
@@ -109,17 +125,17 @@ export const MAXIMUM_ENTRIES = 100;
  *      never call any of the methods on it)
  */
 export class RequestWrapperFetch implements IRequestWrapper {
-  private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
+  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private request: RequestInitSafe) {}
 
   headers(allow?: string[]): Record<string, string> | undefined {
-    if (this._headers) return this._headers;
-
+    this.consumptionCheck.consume('headers');
     const headersUnsafe = this.request.headers;
+    let headersPruned;
     if (Array.isArray(headersUnsafe)) {
       const headers = headersUnsafe;
-      this._headers = headers.reduce((acc, [key, value]) => {
+      headersPruned = headers.reduce((acc, [key, value]) => {
         acc[key] = value;
         return acc;
       }, {} as Record<string, string>);
@@ -129,14 +145,14 @@ export class RequestWrapperFetch implements IRequestWrapper {
       headersSafe.forEach((value, key) => {
         headersObj[key] = value;
       });
-      this._headers = headersObj;
+      headersPruned = headersObj;
     } else if (typeof headersUnsafe === 'object') {
-      this._headers = headersUnsafe as Record<string, string>;
+      headersPruned = headersUnsafe as Record<string, string>;
     }
 
-    if (this._headers) {
-      pruneHeaders(this._headers, { allow });
-      return this._headers;
+    if (headersPruned) {
+      pruneHeaders(headersPruned, { allow });
+      return headersPruned;
     }
 
     return;
@@ -160,6 +176,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
   }
 
   get body(): string | null {
+    this.consumptionCheck.consume('body');
     if (typeof this.request.body === 'string') {
       return this.request.body;
     }
@@ -173,9 +190,11 @@ export class RequestWrapperFetch implements IRequestWrapper {
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
+  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
   headers(allow?: string[]): Record<string, string> | undefined {
+    this.consumptionCheck.consume('headers');
     pruneHeaders(this.requestHeaders, { allow });
     return this.requestHeaders;
   }
@@ -185,6 +204,7 @@ export class RequestWrapperXhr implements IRequestWrapper {
   }
 
   get body(): string | null {
+    this.consumptionCheck.consume('body');
     if (typeof this.bodyRaw === 'string') {
       return this.bodyRaw;
     }
@@ -293,13 +313,10 @@ export interface IResponseWrapper {
  *      never call any of the methods on it)
  */
 export class ResponseWrapperFetch implements IResponseWrapper {
-  private _headers: Record<string, string> | undefined;
   private _bodySize: number | undefined;
   constructor(private response: ResponseSafe) {}
 
   headers(allow?: string[]): Record<string, string> | undefined {
-    if (this._headers) return this._headers;
-
     if (this.response.headers instanceof Headers) {
       const headersSafe = this.response.headers as HeadersResponseSafe;
       const headersOut: Record<string, string> = {};
@@ -307,7 +324,6 @@ export class ResponseWrapperFetch implements IResponseWrapper {
       headersSafe?.forEach?.((value, key) => {
         headersOut[key] = value;
       });
-      this._headers = headersOut;
       pruneHeaders(headersOut, { allow });
       return headersOut;
     }
@@ -355,6 +371,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
+  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(
     readonly statusCode: number,
     readonly headersString: string,
@@ -375,6 +392,7 @@ export class ResponseWrapperXhr implements IResponseWrapper {
   }
 
   headers(allow: string[] = []): Record<string, string> | undefined {
+    this.consumptionCheck.consume('headers');
     if (!this.headersString) {
       return;
     }
@@ -391,6 +409,8 @@ export class ResponseWrapperXhr implements IResponseWrapper {
   }
 
   async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    // reject if body has already been consumed
+    this.consumptionCheck.consume('body');
     const text = await this.text();
     return safeParseAndPruneBody(text, allow, exclude);
   }

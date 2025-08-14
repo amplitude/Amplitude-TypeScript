@@ -103,7 +103,8 @@ describe('NetworkObserver', () => {
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
       expect(events[0].requestWrapper?.headers()).toEqual(requestHeaders);
-      expect(events[0].requestWrapper?.headers()).toEqual(requestHeaders); // 2x to check that it's cached
+      // expect headers to throw an error if consumed
+      expect(() => events[0].requestWrapper?.headers()).toThrow(TypeError);
       const expectedResponseHeaders = {
         'content-type': 'application/json',
         'content-length': '20',
@@ -924,6 +925,7 @@ describe('ResponseWrapperXhr', () => {
   test('should return undefined if headersString is empty', async () => {
     const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
     expect(responseWrapper.headers()).toEqual(undefined);
+    expect(() => responseWrapper.headers()).toThrow(TypeError);
     const text = await responseWrapper.text();
     expect(text).toBe('some text');
   });
@@ -936,6 +938,8 @@ describe('ResponseWrapperXhr', () => {
       };
       const responseWrapper = new ResponseWrapperXhr(200, '', 0, JSON.stringify(response));
       const json = await responseWrapper.json(['message'], ['secret']);
+      // expect json to be rejected if body has already been consumed
+      expect(responseWrapper.json(['message'], ['secret'])).rejects.toThrow(TypeError);
       expect(json).toEqual({ message: 'Hello from mock!' });
     });
 
@@ -1019,6 +1023,7 @@ describe('RequestWrapperFetch', () => {
       } as unknown as RequestInitSafe);
       const json = await requestWrapper.json(['message'], ['secret']);
       expect(json).toEqual({ message: 'Hello from mock!' });
+      expect(requestWrapper.json(['message'], ['secret'])).rejects.toThrow(TypeError);
     });
   });
 });
