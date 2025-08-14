@@ -1,4 +1,5 @@
 import { getGlobalScope } from './global-scope';
+import { pruneJson } from './utils/json-query';
 
 /* SAFE TYPE DEFINITIONS
   These type definitions expose limited properties of the original types
@@ -158,6 +159,11 @@ export class RequestWrapperFetch implements IRequestWrapper {
     }
     return null;
   }
+
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = this.body;
+    return safeParseAndPruneBody(text, allow, exclude);
+  }
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
@@ -176,6 +182,11 @@ export class RequestWrapperXhr implements IRequestWrapper {
       return this.bodyRaw;
     }
     return null;
+  }
+
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = this.body;
+    return safeParseAndPruneBody(text, allow, exclude);
   }
 }
 
@@ -328,6 +339,11 @@ export class ResponseWrapperFetch implements IResponseWrapper {
       return null;
     }
   }
+
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = await this.text();
+    return safeParseAndPruneBody(text, allow, exclude);
+  }
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
@@ -363,6 +379,22 @@ export class ResponseWrapperXhr implements IResponseWrapper {
       }
     }
     return headers;
+  }
+
+  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    const text = await this.text();
+    return safeParseAndPruneBody(text, allow, exclude);
+  }
+}
+
+function safeParseAndPruneBody(text: string | null, allow: string[], exclude: string[]): JsonObject | null {
+  if (!text) return null;
+  try {
+    const json = JSON.parse(text) as JsonObject;
+    pruneJson(json, allow, exclude);
+    return json;
+  } catch (error) {
+    return null;
   }
 }
 
