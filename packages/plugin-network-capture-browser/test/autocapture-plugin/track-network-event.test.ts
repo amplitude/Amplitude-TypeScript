@@ -411,12 +411,12 @@ describe('track-network-event', () => {
       expect(result).toBe(false);
     });
 
-    test('url does match any of the captureRule.urlPatterns', () => {
+    test('url does not match any of the captureRule.urls', () => {
       const networkTracking = {
         captureRules: [
           {
             hosts: ['*'],
-            urlPatterns: [/login/],
+            urls: [/login/],
             statusCodeRange: '500-599',
           },
         ],
@@ -560,12 +560,12 @@ describe('track-network-event', () => {
       expect(result).toBe(true);
     });
 
-    test('url matches one of the urlPatterns in captureRules', () => {
+    test('url matches one of the urls in captureRules', () => {
       const networkTracking = {
         captureRules: [
           {
             hosts: ['*'],
-            urlPatterns: [/login/],
+            urls: [/login/],
             statusCodeRange: '500-599',
           },
         ],

@@ -49,7 +49,7 @@ function isCaptureRuleMatch(
   }
 
   // check if the URL is in the allowed URL patterns
-  if (url && rule.urlPatterns && !isUrlMatchAllowlist(url, rule.urlPatterns)) {
+  if (url && rule.urls && !isUrlMatchAllowlist(url, rule.urls)) {
     return;
   }
 

@@ -50,7 +50,7 @@ export interface NetworkCaptureRule {
    * @experimental This feature is experimental and may not be stable
    * @defaultValue `["*"]` all URLs
    */
-  urlPatterns?: (string | RegExp)[];
+  urls?: (string | RegExp)[];
   /**
    * Methods to allow for network capture.
    * @defaultValue `["*"]` all methods
