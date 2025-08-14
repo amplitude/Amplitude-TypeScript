@@ -36,7 +36,13 @@ function isStatusCodeInRange(statusCode: number, range: string) {
   return false;
 }
 
-function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?: number, url?: string) {
+function isCaptureRuleMatch(
+  rule: NetworkCaptureRule,
+  hostname: string,
+  status?: number,
+  url?: string,
+  method?: string,
+) {
   // check if the host is in the allowed hosts
   if (rule.hosts && !rule.hosts.find((host: string) => wildcardMatch(hostname, host))) {
     return;
@@ -44,6 +50,17 @@ function isCaptureRuleMatch(rule: NetworkCaptureRule, hostname: string, status?:
 
   // check if the URL is in the allowed URL patterns
   if (url && rule.urlPatterns && !isUrlMatchAllowlist(url, rule.urlPatterns)) {
+    return;
+  }
+
+  // check if the method is in the allowed methods
+  if (
+    method &&
+    rule.methods &&
+    !rule.methods.find(
+      (allowedMethod: string) => method.toLowerCase() === allowedMethod.toLowerCase() || allowedMethod === '*',
+    )
+  ) {
     return;
   }
 
@@ -138,7 +155,7 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     // that is a match (true) or a miss (false)
     let isMatch: boolean | undefined;
     [...options.captureRules].reverse().find((rule) => {
-      isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url);
+      isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url, networkEvent.method);
       return isMatch !== undefined;
     });
 

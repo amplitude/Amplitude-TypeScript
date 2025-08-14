@@ -426,6 +426,23 @@ describe('track-network-event', () => {
       const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
       expect(result).toBe(false);
     });
+
+    test('method does not match any of the methods in captureRules', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['*'],
+            methods: ['POST', 'PUT'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.method = 'GET';
+      networkEvent.url = 'https://example.com/api';
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(false);
+    });
   });
 
   describe('shouldTrackNetworkEvent returns true when', () => {
@@ -555,6 +572,40 @@ describe('track-network-event', () => {
       };
       networkEvent.status = 500;
       networkEvent.url = 'https://example.com/login';
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(true);
+    });
+
+    test('method matches one of the methods in captureRules', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['*'],
+            methods: ['POST', 'PUT'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.method = 'POST';
+      networkEvent.url = 'https://example.com/api';
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(true);
+    });
+
+    test('captureRules.method is a wildcard', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['*'],
+            methods: ['*'],
+            statusCodeRange: '500-599',
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.method = 'REQUEST';
+      networkEvent.url = 'https://example.com/api';
       const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
       expect(result).toBe(true);
     });

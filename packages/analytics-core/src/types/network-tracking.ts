@@ -52,6 +52,11 @@ export interface NetworkCaptureRule {
    */
   urlPatterns?: (string | RegExp)[];
   /**
+   * Methods to allow for network capture.
+   * @defaultValue `["*"]` all methods
+   */
+  methods?: string[];
+  /**
    * Range list that defines the status codes to be captured.
    * @defaultValue `500-599`
    */
