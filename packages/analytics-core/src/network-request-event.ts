@@ -451,12 +451,7 @@ export const pruneHeaders = (
     captureSafeHeaders?: boolean;
   },
 ) => {
-  const {
-    exclude = [],
-    allow = [],
-    strategy = PRUNE_STRATEGY.REMOVE,
-    captureSafeHeaders = false,
-  } = options;
+  const { exclude = [], allow = [], strategy = PRUNE_STRATEGY.REMOVE, captureSafeHeaders = false } = options;
   for (const key of Object.keys(headers)) {
     const lowerKey = key.toLowerCase();
     const excludeWithForbiddenHeaders = [...exclude, ...FORBIDDEN_HEADERS];

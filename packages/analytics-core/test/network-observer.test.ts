@@ -1111,7 +1111,12 @@ describe('pruneHeaders', () => {
       'X-Custom-Header': 'customvalue',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { captureSafeHeaders: true, allow: [], exclude: ['Content-Type'], strategy: PRUNE_STRATEGY.REMOVE });
+    pruneHeaders(headers, {
+      captureSafeHeaders: true,
+      allow: [],
+      exclude: ['Content-Type'],
+      strategy: PRUNE_STRATEGY.REMOVE,
+    });
     expect(headers).toEqual({
       'Content-Length': '1234',
     });
