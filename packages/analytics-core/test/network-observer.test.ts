@@ -112,8 +112,8 @@ describe('NetworkObserver', () => {
         'content-length': '20',
         server: 'test-server',
       };
-      expect(events[0].responseWrapper?.headers(['*'])).toEqual(expectedResponseHeaders);
-      expect(events[0].responseWrapper?.headers(['*'])).toEqual(expectedResponseHeaders);
+      expect(events[0].responseWrapper?.headers([], true)).toEqual(expectedResponseHeaders);
+      expect(events[0].responseWrapper?.headers([], true)).toEqual(expectedResponseHeaders);
     });
 
     it('should track successful fetch requests with headers (uses Headers object)', async () => {
@@ -149,11 +149,11 @@ describe('NetworkObserver', () => {
         status: 200,
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
-      expect(events[0].requestWrapper?.headers(['safe-header', '*'])).toEqual({
+      expect(events[0].requestWrapper?.headers(['safe-header'], true)).toEqual({
         'content-type': 'application/json',
         'safe-header': 'safe-value',
       });
-      expect(events[0].responseWrapper?.headers(['*'])).toEqual({
+      expect(events[0].responseWrapper?.headers([], true)).toEqual({
         'content-type': 'application/json',
         'content-length': '20',
         server: 'test-server',
@@ -258,9 +258,9 @@ describe('NetworkObserver', () => {
         startTime: expect.any(Number),
         endTime: expect.any(Number),
         timestamp: expect.any(Number),
-        requestHeaders: networkRequestEvent.requestWrapper?.headers(['*']),
+        requestHeaders: networkRequestEvent.requestWrapper?.headers([], true),
         requestBodySize: networkRequestEvent.requestWrapper?.bodySize,
-        responseHeaders: networkRequestEvent.responseWrapper?.headers(['*']),
+        responseHeaders: networkRequestEvent.responseWrapper?.headers([], true),
         responseBodySize: networkRequestEvent.responseWrapper?.bodySize,
       });
     });
@@ -579,7 +579,7 @@ describe('NetworkObserver', () => {
             ['Content-Length', '1234'],
           ],
         } as RequestInitSafe);
-        expect(requestWrapper.headers(['*'])).toEqual({
+        expect(requestWrapper.headers([], true)).toEqual({
           'Content-Type': 'application/fake',
           'Content-Length': '1234',
         });
@@ -588,7 +588,7 @@ describe('NetworkObserver', () => {
         const requestWrapper = new RequestWrapperFetch({
           headers: undefined,
         } as RequestInitSafe);
-        expect(requestWrapper.headers(['*'])).toBeUndefined();
+        expect(requestWrapper.headers([], true)).toBeUndefined();
       });
     });
 
@@ -889,12 +889,12 @@ describe('observeXhr', () => {
           expect(event.type).toBe('xhr');
           expect(event.method).toBe('GET');
           expect(event.url).toBe('https://api.example.com/data');
-          expect(event.responseWrapper?.headers(['*'])).toEqual({
+          expect(event.responseWrapper?.headers([], true)).toEqual({
             'Content-Type': 'application/json',
             'Content-Length': '1234',
           });
           expect(event.responseWrapper?.bodySize).toBe(1234);
-          expect(event.requestWrapper?.headers()).toEqual({});
+          expect(event.requestWrapper?.headers([], true)).toEqual({});
           expect(event.requestWrapper?.bodySize).toBe('hello world!'.length);
           expect(event.duration).toBeGreaterThanOrEqual(0);
           expect(event.startTime).toBeGreaterThanOrEqual(0);
@@ -1045,7 +1045,7 @@ describe('pruneHeaders', () => {
       'Content-Length': '1234',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { allow: ['*'] });
+    pruneHeaders(headers, { allow: [], captureSafeHeaders: true });
     expect(headers).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
@@ -1058,7 +1058,7 @@ describe('pruneHeaders', () => {
       'Content-Length': '1234',
       'Random-Header': 'random-value',
     };
-    pruneHeaders(headers, { allow: ['*', 'Random-Header'] });
+    pruneHeaders(headers, { allow: ['Random-Header'], captureSafeHeaders: true });
     expect(headers).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
@@ -1073,7 +1073,7 @@ describe('pruneHeaders', () => {
       'X-Custom-Header': 'customvalue',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { allow: ['*'] });
+    pruneHeaders(headers, { allow: [], captureSafeHeaders: true });
     expect(headers).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
@@ -1111,9 +1111,30 @@ describe('pruneHeaders', () => {
       'X-Custom-Header': 'customvalue',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { allow: ['*'], exclude: ['Content-Type'], strategy: PRUNE_STRATEGY.REMOVE });
+    pruneHeaders(headers, { captureSafeHeaders: true, allow: [], exclude: ['Content-Type'], strategy: PRUNE_STRATEGY.REMOVE });
     expect(headers).toEqual({
       'Content-Length': '1234',
+    });
+  });
+
+  test('should show headers as redacted if strategy is redact', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+      'X-Custom-Header': 'customvalue',
+    };
+    pruneHeaders(headers, {
+      captureSafeHeaders: true,
+      allow: [],
+      exclude: ['Content-Type'],
+      strategy: PRUNE_STRATEGY.REDACT,
+    });
+    expect(headers).toEqual({
+      'Content-Type': '[REDACTED]',
+      'Content-Length': '1234',
+      authorization: '[REDACTED]',
+      'X-Custom-Header': '[REDACTED]',
     });
   });
 });

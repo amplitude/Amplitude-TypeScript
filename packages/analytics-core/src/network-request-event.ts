@@ -82,7 +82,7 @@ export type FetchRequestBody =
   | undefined;
 
 export interface IRequestWrapper {
-  headers(allow?: string[]): Record<string, string> | undefined;
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined;
   bodySize?: number;
   method?: string;
   body?: FetchRequestBody | XMLHttpRequestBodyInitSafe | null;
@@ -129,7 +129,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private request: RequestInitSafe) {}
 
-  headers(allow?: string[]): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
     const headersUnsafe = this.request.headers;
     let headersPruned;
@@ -151,7 +151,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
     }
 
     if (headersPruned) {
-      pruneHeaders(headersPruned, { allow });
+      pruneHeaders(headersPruned, { allow, captureSafeHeaders });
       return headersPruned;
     }
 
@@ -193,9 +193,9 @@ export class RequestWrapperXhr implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
-  headers(allow?: string[]): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
-    pruneHeaders(this.requestHeaders, { allow });
+    pruneHeaders(this.requestHeaders, { allow, captureSafeHeaders });
     return this.requestHeaders;
   }
 
@@ -286,7 +286,7 @@ export type JsonValue = string | number | boolean | null | JsonObject | JsonArra
 export type JsonArray = Array<JsonValue>;
 
 export interface IResponseWrapper {
-  headers(allow?: string[]): Record<string, string> | undefined;
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined;
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
@@ -316,7 +316,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   private _bodySize: number | undefined;
   constructor(private response: ResponseSafe) {}
 
-  headers(allow?: string[]): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
     if (this.response.headers instanceof Headers) {
       const headersSafe = this.response.headers as HeadersResponseSafe;
       const headersOut: Record<string, string> = {};
@@ -324,7 +324,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
       headersSafe?.forEach?.((value, key) => {
         headersOut[key] = value;
       });
-      pruneHeaders(headersOut, { allow });
+      pruneHeaders(headersOut, { allow, captureSafeHeaders });
       return headersOut;
     }
 
@@ -391,7 +391,7 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return this.responseText;
   }
 
-  headers(allow: string[] = []): Record<string, string> | undefined {
+  headers(allow: string[] = [], captureSafeHeaders?: boolean): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
     if (!this.headersString) {
       return;
@@ -404,7 +404,7 @@ export class ResponseWrapperXhr implements IResponseWrapper {
         headers[key] = value;
       }
     }
-    pruneHeaders(headers, { allow });
+    pruneHeaders(headers, { allow, captureSafeHeaders });
     return headers;
   }
 
@@ -444,15 +444,24 @@ const REDACTED_VALUE = '[REDACTED]';
  */
 export const pruneHeaders = (
   headers: Record<string, string>,
-  options: { exclude?: string[]; allow?: string[]; strategy?: PRUNE_STRATEGY },
+  options: {
+    exclude?: string[];
+    allow?: string[];
+    strategy?: PRUNE_STRATEGY;
+    captureSafeHeaders?: boolean;
+  },
 ) => {
-  const { exclude = [], allow: include = [], strategy = PRUNE_STRATEGY.REMOVE } = options;
+  const {
+    exclude = [],
+    allow = [],
+    strategy = PRUNE_STRATEGY.REMOVE,
+    captureSafeHeaders = false,
+  } = options;
   for (const key of Object.keys(headers)) {
     const lowerKey = key.toLowerCase();
     const excludeWithForbiddenHeaders = [...exclude, ...FORBIDDEN_HEADERS];
 
-    const hasWildcardInInclude = include.find((i) => i.includes('*'));
-    const includeWithSafeHeaders = hasWildcardInInclude ? [...include, ...SAFE_HEADERS] : include;
+    const allowWithSafeHeaders = captureSafeHeaders ? [...allow, ...SAFE_HEADERS] : allow;
 
     if (excludeWithForbiddenHeaders.find((e) => e.toLowerCase() === lowerKey)) {
       if (strategy === PRUNE_STRATEGY.REMOVE) {
@@ -460,7 +469,7 @@ export const pruneHeaders = (
       } else {
         headers[key] = REDACTED_VALUE;
       }
-    } else if (!includeWithSafeHeaders.find((i) => i.toLowerCase() === lowerKey)) {
+    } else if (!allowWithSafeHeaders.find((i) => i.toLowerCase() === lowerKey)) {
       if (strategy === PRUNE_STRATEGY.REMOVE) {
         delete headers[key];
       } else {
@@ -499,9 +508,9 @@ export class NetworkRequestEvent {
       error: this.error,
       startTime: this.startTime,
       endTime: this.endTime,
-      requestHeaders: this.requestWrapper?.headers(['*']),
+      requestHeaders: this.requestWrapper?.headers([], true),
       requestBodySize: this.requestWrapper?.bodySize,
-      responseHeaders: this.responseWrapper?.headers(['*']),
+      responseHeaders: this.responseWrapper?.headers([], true),
       responseBodySize: this.responseWrapper?.bodySize,
     };
 
