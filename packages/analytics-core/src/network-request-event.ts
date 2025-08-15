@@ -135,33 +135,27 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private request: RequestInitSafe) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> {
     this.consumptionCheck.consume('headers');
     const headersUnsafe = this.request.headers;
-    let headersPruned;
+
+    // copy the headers into a new object
+    const headersSafeCopy: Record<string, string> = {};
     if (Array.isArray(headersUnsafe)) {
-      const headers = headersUnsafe;
-      headersPruned = headers.reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
-    } else if (headersUnsafe instanceof Headers) {
-      const headersSafe = headersUnsafe as HeadersRequestSafe;
-      const headersObj: Record<string, string> = {};
-      headersSafe.forEach((value, key) => {
-        headersObj[key] = value;
+      headersUnsafe.forEach(([headerName, headerValue]) => {
+        headersSafeCopy[headerName] = headerValue;
       });
-      headersPruned = headersObj;
+    } else if (headersUnsafe instanceof Headers) {
+      headersUnsafe.forEach((value: string, key: string) => {
+        headersSafeCopy[key] = value;
+      });
     } else if (typeof headersUnsafe === 'object') {
-      headersPruned = headersUnsafe as Record<string, string>;
+      for (const [key, value] of Object.entries(headersUnsafe as Record<string, string>)) {
+        headersSafeCopy[key] = value;
+      }
     }
 
-    if (headersPruned) {
-      pruneHeaders(headersPruned, { allow, captureSafeHeaders });
-      return headersPruned;
-    }
-
-    return;
+    return pruneHeaders(headersSafeCopy, { allow, captureSafeHeaders });
   }
 
   get bodySize(): number | undefined {
@@ -201,8 +195,7 @@ export class RequestWrapperXhr implements IRequestWrapper {
 
   headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
-    pruneHeaders(this.requestHeaders, { allow, captureSafeHeaders });
-    return this.requestHeaders;
+    return pruneHeaders(this.requestHeaders, { allow, captureSafeHeaders });
   }
 
   get bodySize(): number | undefined {
@@ -338,8 +331,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
       headersSafe?.forEach?.((value, key) => {
         headersOut[key] = value;
       });
-      pruneHeaders(headersOut, { allow, captureSafeHeaders });
-      return headersOut;
+      return pruneHeaders(headersOut, { allow, captureSafeHeaders });
     }
 
     return;
@@ -419,8 +411,7 @@ export class ResponseWrapperXhr implements IResponseWrapper {
         headers[key] = value;
       }
     }
-    pruneHeaders(headers, { allow, captureSafeHeaders });
-    return headers;
+    return pruneHeaders(headers, { allow, captureSafeHeaders });
   }
 
   async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
@@ -465,31 +456,33 @@ export const pruneHeaders = (
     strategy?: PRUNE_STRATEGY;
     captureSafeHeaders?: boolean;
   },
-) => {
+): Record<string, string> => {
   const { exclude = [], allow = [], strategy = PRUNE_STRATEGY.REMOVE, captureSafeHeaders = false } = options;
+  const excludeWithForbiddenHeaders = [...exclude, ...FORBIDDEN_HEADERS];
+  const allowWithSafeHeaders = captureSafeHeaders ? [...allow, ...SAFE_HEADERS] : allow;
+  const headersPruned: Record<string, string> = {};
+
   for (const key of Object.keys(headers)) {
     const lowerKey = key.toLowerCase();
-    const excludeWithForbiddenHeaders = [...exclude, ...FORBIDDEN_HEADERS];
-
-    const allowWithSafeHeaders = captureSafeHeaders ? [...allow, ...SAFE_HEADERS] : allow;
 
     if (excludeWithForbiddenHeaders.find((e) => e.toLowerCase() === lowerKey)) {
-      if (strategy === PRUNE_STRATEGY.REMOVE) {
-        delete headers[key];
-      } else {
-        headers[key] = REDACTED_VALUE;
+      if (strategy === PRUNE_STRATEGY.REDACT) {
+        headersPruned[key] = REDACTED_VALUE;
       }
     } else if (!allowWithSafeHeaders.find((i) => i.toLowerCase() === lowerKey)) {
-      if (strategy === PRUNE_STRATEGY.REMOVE) {
-        delete headers[key];
-      } else {
-        headers[key] = REDACTED_VALUE;
+      if (strategy === PRUNE_STRATEGY.REDACT) {
+        headersPruned[key] = REDACTED_VALUE;
       }
+    } else {
+      headersPruned[key] = headers[key];
     }
   }
-};
 
+  return headersPruned;
+};
 export class NetworkRequestEvent {
+  public requestHeaders?: Record<string, string>;
+  public responseHeaders?: Record<string, string>;
   constructor(
     public readonly type: 'xhr' | 'fetch',
     public readonly method: string,

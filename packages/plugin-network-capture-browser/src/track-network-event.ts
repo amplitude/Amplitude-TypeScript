@@ -10,6 +10,7 @@ import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
 import { IRequestWrapper } from '@amplitude/analytics-core';
+import { HeaderCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -117,6 +118,11 @@ function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWr
   return false;
 }
 
+function isHeaderCaptureRuleEmpty(rule: HeaderCaptureRule) {
+  /* istanbul ignore next */
+  return !rule?.allowlist?.length && !rule?.captureSafeHeaders;
+}
+
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
   const urlObj = parseUrl(networkEvent.url);
   /* istanbul ignore if */
@@ -156,6 +162,31 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     let isMatch: boolean | undefined;
     [...options.captureRules].reverse().find((rule) => {
       isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url, networkEvent.method);
+
+      // if responseHeaders rule is specified, enrich the event with the response headers
+      if (isMatch) {
+        if (networkEvent.responseWrapper && rule.responseHeaders && !isHeaderCaptureRuleEmpty(rule.responseHeaders)) {
+          const responseHeaders = networkEvent.responseWrapper.headers(
+            rule.responseHeaders.allowlist,
+            rule.responseHeaders.captureSafeHeaders,
+          );
+          if (responseHeaders) {
+            networkEvent.responseHeaders = responseHeaders;
+          }
+        }
+
+        // if requestHeaders rule is specified, enrich the event with the request headers
+        if (networkEvent.requestWrapper && rule.requestHeaders && !isHeaderCaptureRuleEmpty(rule.requestHeaders)) {
+          const requestHeaders = networkEvent.requestWrapper.headers(
+            rule.requestHeaders.allowlist,
+            rule.requestHeaders.captureSafeHeaders,
+          );
+          if (requestHeaders) {
+            networkEvent.requestHeaders = requestHeaders;
+          }
+        }
+      }
+
       return isMatch !== undefined;
     });
 
@@ -184,8 +215,10 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Completion Time']?: number; // unix timestamp
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
+  ['[Amplitude] Request Headers']?: Record<string, string>;
   //['[Amplitude] Request Body']?: string;
   ['[Amplitude] Response Body Size']?: number;
+  ['[Amplitude] Response Headers']?: Record<string, string>;
   //['[Amplitude] Response Body']?: string;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
@@ -238,6 +271,8 @@ export function trackNetworkEvents({
       ['[Amplitude] Request Body Size']: requestBodySize,
       ['[Amplitude] Response Body Size']: responseBodySize,
       ['[Amplitude] Request Type']: request.type,
+      ['[Amplitude] Request Headers']: request.requestHeaders,
+      ['[Amplitude] Response Headers']: request.responseHeaders,
     };
 
     /* istanbul ignore next */
