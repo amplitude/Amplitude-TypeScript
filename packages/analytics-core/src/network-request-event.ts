@@ -157,8 +157,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
     }
 
     if (headersPruned) {
-      pruneHeaders(headersPruned, { allow, captureSafeHeaders });
-      return headersPruned;
+      return pruneHeaders(headersPruned, { allow, captureSafeHeaders });
     }
 
     return;
@@ -201,8 +200,7 @@ export class RequestWrapperXhr implements IRequestWrapper {
 
   headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
-    pruneHeaders(this.requestHeaders, { allow, captureSafeHeaders });
-    return this.requestHeaders;
+    return pruneHeaders(this.requestHeaders, { allow, captureSafeHeaders });
   }
 
   get bodySize(): number | undefined {
@@ -338,8 +336,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
       headersSafe?.forEach?.((value, key) => {
         headersOut[key] = value;
       });
-      pruneHeaders(headersOut, { allow, captureSafeHeaders });
-      return headersOut;
+      return pruneHeaders(headersOut, { allow, captureSafeHeaders });
     }
 
     return;
@@ -419,8 +416,7 @@ export class ResponseWrapperXhr implements IResponseWrapper {
         headers[key] = value;
       }
     }
-    pruneHeaders(headers, { allow, captureSafeHeaders });
-    return headers;
+    return pruneHeaders(headers, { allow, captureSafeHeaders });
   }
 
   async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
@@ -465,28 +461,29 @@ export const pruneHeaders = (
     strategy?: PRUNE_STRATEGY;
     captureSafeHeaders?: boolean;
   },
-) => {
+): Record<string, string> => {
   const { exclude = [], allow = [], strategy = PRUNE_STRATEGY.REMOVE, captureSafeHeaders = false } = options;
+  const headersPruned: Record<string, string> = {};
+  const excludeWithForbiddenHeaders = [...exclude, ...FORBIDDEN_HEADERS];
+  const allowWithSafeHeaders = captureSafeHeaders ? [...allow, ...SAFE_HEADERS] : allow;
+
   for (const key of Object.keys(headers)) {
     const lowerKey = key.toLowerCase();
-    const excludeWithForbiddenHeaders = [...exclude, ...FORBIDDEN_HEADERS];
-
-    const allowWithSafeHeaders = captureSafeHeaders ? [...allow, ...SAFE_HEADERS] : allow;
 
     if (excludeWithForbiddenHeaders.find((e) => e.toLowerCase() === lowerKey)) {
-      if (strategy === PRUNE_STRATEGY.REMOVE) {
-        delete headers[key];
-      } else {
-        headers[key] = REDACTED_VALUE;
+      if (strategy === PRUNE_STRATEGY.REDACT) {
+        headersPruned[key] = REDACTED_VALUE;
       }
     } else if (!allowWithSafeHeaders.find((i) => i.toLowerCase() === lowerKey)) {
-      if (strategy === PRUNE_STRATEGY.REMOVE) {
-        delete headers[key];
-      } else {
-        headers[key] = REDACTED_VALUE;
+      if (strategy === PRUNE_STRATEGY.REDACT) {
+        headersPruned[key] = REDACTED_VALUE;
       }
+    } else {
+      headersPruned[key] = headers[key];
     }
   }
+
+  return headersPruned;
 };
 
 export class NetworkRequestEvent {
