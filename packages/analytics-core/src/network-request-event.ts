@@ -326,9 +326,11 @@ export interface IResponseWrapper {
  */
 export class ResponseWrapperFetch implements IResponseWrapper {
   private _bodySize: number | undefined;
+  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private response: ResponseSafe) {}
 
   headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+    this.consumptionCheck.consume('headers');
     if (this.response.headers instanceof Headers) {
       const headersSafe = this.response.headers as HeadersResponseSafe;
       const headersOut: Record<string, string> = {};
@@ -377,6 +379,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   }
 
   async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+    this.consumptionCheck.consume('body');
     const text = await this.text();
     return safeParseAndPruneBody(text, allow, exclude);
   }
