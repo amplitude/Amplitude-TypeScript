@@ -88,7 +88,7 @@ export interface IRequestWrapper {
    * @param captureSafeHeaders - Whether to capture safe headers.
    * @returns The pruned headers
    */
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined;
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string>;
   bodySize?: number;
   method?: string;
   body?: FetchRequestBody | XMLHttpRequestBodyInitSafe | null;
@@ -135,13 +135,13 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private request: RequestInitSafe) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> {
     this.consumptionCheck.consume('headers');
     const headersUnsafe = this.request.headers;
-    let headersPruned;
+    let headersOut: Record<string, string> = {};
     if (Array.isArray(headersUnsafe)) {
       const headers = headersUnsafe;
-      headersPruned = headers.reduce((acc, [key, value]) => {
+      headersOut = headers.reduce((acc, [key, value]) => {
         acc[key] = value;
         return acc;
       }, {} as Record<string, string>);
@@ -151,16 +151,12 @@ export class RequestWrapperFetch implements IRequestWrapper {
       headersSafe.forEach((value, key) => {
         headersObj[key] = value;
       });
-      headersPruned = headersObj;
+      headersOut = headersObj;
     } else if (typeof headersUnsafe === 'object') {
-      headersPruned = headersUnsafe as Record<string, string>;
+      headersOut = headersUnsafe as Record<string, string>;
     }
 
-    if (headersPruned) {
-      return pruneHeaders(headersPruned, { allow, captureSafeHeaders });
-    }
-
-    return;
+    return pruneHeaders(headersOut, { allow, captureSafeHeaders });
   }
 
   get bodySize(): number | undefined {
@@ -198,7 +194,7 @@ export class RequestWrapperXhr implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> {
     this.consumptionCheck.consume('headers');
     return pruneHeaders(this.requestHeaders, { allow, captureSafeHeaders });
   }
@@ -296,7 +292,7 @@ export interface IResponseWrapper {
    * @param captureSafeHeaders - Whether to capture safe headers.
    * @returns The pruned headers
    */
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined;
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string>;
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
@@ -327,7 +323,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private response: ResponseSafe) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> {
     this.consumptionCheck.consume('headers');
     if (this.response.headers instanceof Headers) {
       const headersSafe = this.response.headers as HeadersResponseSafe;
@@ -339,7 +335,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
       return pruneHeaders(headersOut, { allow, captureSafeHeaders });
     }
 
-    return;
+    return {};
   }
 
   get bodySize(): number | undefined {
@@ -403,10 +399,10 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return this.responseText;
   }
 
-  headers(allow: string[] = [], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow: string[] = [], captureSafeHeaders?: boolean): Record<string, string> {
     this.consumptionCheck.consume('headers');
     if (!this.headersString) {
-      return;
+      return {};
     }
     const headers: Record<string, string> = {};
     const headerLines = this.headersString.split('\r\n');
