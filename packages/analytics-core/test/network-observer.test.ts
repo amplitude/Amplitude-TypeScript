@@ -21,6 +21,8 @@ type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-empty-function */
+/* eslint-disable @typescript-eslint/no-floating-promises */
+/* eslint-disable jest/valid-expect */
 
 // Test subclass to access protected methods
 class TestNetworkObserver extends NetworkObserver {
@@ -149,9 +151,7 @@ describe('NetworkObserver', () => {
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
       expect(events[0].requestWrapper?.headers(['safe-header', '*'])).toEqual({
         'content-type': 'application/json',
-        authorization: '[REDACTED]',
         'safe-header': 'safe-value',
-        'omitted-header': '[REDACTED]',
       });
       expect(events[0].responseWrapper?.headers(['*'])).toEqual({
         'content-type': 'application/json',
@@ -894,10 +894,7 @@ describe('observeXhr', () => {
             'Content-Length': '1234',
           });
           expect(event.responseWrapper?.bodySize).toBe(1234);
-          expect(event.requestWrapper?.headers()).toEqual({
-            Authorization: '[REDACTED]',
-            'X-Custom-Header': '[REDACTED]',
-          });
+          expect(event.requestWrapper?.headers()).toEqual({});
           expect(event.requestWrapper?.bodySize).toBe('hello world!'.length);
           expect(event.duration).toBeGreaterThanOrEqual(0);
           expect(event.startTime).toBeGreaterThanOrEqual(0);
@@ -1052,7 +1049,6 @@ describe('pruneHeaders', () => {
     expect(headers).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
-      authorization: '[REDACTED]',
     });
   });
 
@@ -1081,8 +1077,6 @@ describe('pruneHeaders', () => {
     expect(headers).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
-      'X-Custom-Header': '[REDACTED]',
-      authorization: '[REDACTED]',
     });
   });
 
@@ -1095,10 +1089,7 @@ describe('pruneHeaders', () => {
     };
     pruneHeaders(headers, { exclude: ['Content-Type'], allow: ['Content-Type', 'Content-Length'] });
     expect(headers).toEqual({
-      'Content-Type': '[REDACTED]',
       'Content-Length': '1234',
-      'X-Custom-Header': '[REDACTED]',
-      authorization: '[REDACTED]',
     });
   });
 
@@ -1110,12 +1101,7 @@ describe('pruneHeaders', () => {
       authorization: 'secretpassword!',
     };
     pruneHeaders(headers, { allow: ['authorization'] });
-    expect(headers).toEqual({
-      'Content-Type': '[REDACTED]',
-      'Content-Length': '[REDACTED]',
-      'X-Custom-Header': '[REDACTED]',
-      authorization: '[REDACTED]',
-    });
+    expect(headers).toEqual({});
   });
 
   test('should delete headers if strategy is remove', () => {

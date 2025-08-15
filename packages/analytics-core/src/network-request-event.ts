@@ -446,7 +446,7 @@ export const pruneHeaders = (
   headers: Record<string, string>,
   options: { exclude?: string[]; allow?: string[]; strategy?: PRUNE_STRATEGY },
 ) => {
-  const { exclude = [], allow: include = [] } = options;
+  const { exclude = [], allow: include = [], strategy = PRUNE_STRATEGY.REMOVE } = options;
   for (const key of Object.keys(headers)) {
     const lowerKey = key.toLowerCase();
     const excludeWithForbiddenHeaders = [...exclude, ...FORBIDDEN_HEADERS];
@@ -455,13 +455,13 @@ export const pruneHeaders = (
     const includeWithSafeHeaders = hasWildcardInInclude ? [...include, ...SAFE_HEADERS] : include;
 
     if (excludeWithForbiddenHeaders.find((e) => e.toLowerCase() === lowerKey)) {
-      if (options.strategy === PRUNE_STRATEGY.REMOVE) {
+      if (strategy === PRUNE_STRATEGY.REMOVE) {
         delete headers[key];
       } else {
         headers[key] = REDACTED_VALUE;
       }
     } else if (!includeWithSafeHeaders.find((i) => i.toLowerCase() === lowerKey)) {
-      if (options.strategy === PRUNE_STRATEGY.REMOVE) {
+      if (strategy === PRUNE_STRATEGY.REMOVE) {
         delete headers[key];
       } else {
         headers[key] = REDACTED_VALUE;
