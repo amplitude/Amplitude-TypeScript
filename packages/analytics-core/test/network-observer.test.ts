@@ -108,14 +108,14 @@ describe('NetworkObserver', () => {
         'Content-Type': 'application/json',
       });
       // expect headers to throw an error if consumed
-      expect(() => events[0].requestWrapper?.headers()).toThrow(TypeError);
+      expect(() => events[0].requestWrapper?.headers([], true)).toThrow(TypeError);
       const expectedResponseHeaders = {
         'content-type': 'application/json',
         'content-length': '20',
         server: 'test-server',
       };
       expect(events[0].responseWrapper?.headers([], true)).toEqual(expectedResponseHeaders);
-      expect(() => events[0].responseWrapper?.headers()).toThrow(TypeError);
+      expect(() => events[0].responseWrapper?.headers([], true)).toThrow(TypeError);
     });
 
     it('should track successful fetch requests with headers (uses Headers object)', async () => {
@@ -1056,8 +1056,8 @@ describe('pruneHeaders', () => {
       'Content-Length': '1234',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { allow: undefined, captureSafeHeaders: false });
-    expect(headers).toEqual({});
+    const prunedHeaders = pruneHeaders(headers, { allow: undefined, captureSafeHeaders: false });
+    expect(prunedHeaders).toEqual({});
   });
   test('should exclude headers that are forbidden', () => {
     const headers = {
@@ -1065,8 +1065,8 @@ describe('pruneHeaders', () => {
       'Content-Length': '1234',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { allow: [], captureSafeHeaders: true });
-    expect(headers).toEqual({
+    const prunedHeaders = pruneHeaders(headers, { allow: [], captureSafeHeaders: true });
+    expect(prunedHeaders).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
     });
@@ -1078,8 +1078,8 @@ describe('pruneHeaders', () => {
       'Content-Length': '1234',
       'Random-Header': 'random-value',
     };
-    pruneHeaders(headers, { allow: ['Random-Header'], captureSafeHeaders: true });
-    expect(headers).toEqual({
+    const prunedHeaders = pruneHeaders(headers, { allow: ['Random-Header'], captureSafeHeaders: true });
+    expect(prunedHeaders).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
       'Random-Header': 'random-value',
@@ -1093,8 +1093,8 @@ describe('pruneHeaders', () => {
       'X-Custom-Header': 'customvalue',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { allow: [], captureSafeHeaders: true });
-    expect(headers).toEqual({
+    const prunedHeaders = pruneHeaders(headers, { allow: [], captureSafeHeaders: true });
+    expect(prunedHeaders).toEqual({
       'Content-Type': 'application/json',
       'Content-Length': '1234',
     });
@@ -1107,8 +1107,11 @@ describe('pruneHeaders', () => {
       'X-Custom-Header': 'customvalue',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { exclude: ['Content-Type'], allow: ['Content-Type', 'Content-Length'] });
-    expect(headers).toEqual({
+    const prunedHeaders = pruneHeaders(headers, {
+      exclude: ['Content-Type'],
+      allow: ['Content-Type', 'Content-Length'],
+    });
+    expect(prunedHeaders).toEqual({
       'Content-Length': '1234',
     });
   });
@@ -1120,8 +1123,8 @@ describe('pruneHeaders', () => {
       'X-Custom-Header': 'customvalue',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, { allow: ['authorization'] });
-    expect(headers).toEqual({});
+    const prunedHeaders = pruneHeaders(headers, { allow: ['authorization'] });
+    expect(prunedHeaders).toEqual({});
   });
 
   test('should delete headers if strategy is remove', () => {
@@ -1131,13 +1134,26 @@ describe('pruneHeaders', () => {
       'X-Custom-Header': 'customvalue',
       authorization: 'secretpassword!',
     };
-    pruneHeaders(headers, {
+    const prunedHeaders = pruneHeaders(headers, {
       captureSafeHeaders: true,
       allow: [],
       exclude: ['Content-Type'],
       strategy: PRUNE_STRATEGY.REMOVE,
     });
-    expect(headers).toEqual({
+    expect(prunedHeaders).toEqual({
+      'Content-Length': '1234',
+    });
+  });
+
+  test('should default allow to be empty array', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+    };
+    const prunedHeaders = pruneHeaders(headers, { captureSafeHeaders: true });
+    expect(prunedHeaders).toEqual({
+      'Content-Type': 'application/json',
       'Content-Length': '1234',
     });
   });
@@ -1149,13 +1165,13 @@ describe('pruneHeaders', () => {
       authorization: 'secretpassword!',
       'X-Custom-Header': 'customvalue',
     };
-    pruneHeaders(headers, {
+    const prunedHeaders = pruneHeaders(headers, {
       captureSafeHeaders: true,
       allow: [],
       exclude: ['Content-Type'],
       strategy: PRUNE_STRATEGY.REDACT,
     });
-    expect(headers).toEqual({
+    expect(prunedHeaders).toEqual({
       'Content-Type': '[REDACTED]',
       'Content-Length': '1234',
       authorization: '[REDACTED]',
