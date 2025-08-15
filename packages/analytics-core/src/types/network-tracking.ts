@@ -39,6 +39,22 @@ export interface NetworkTrackingOptions {
 //   blocklist?: string[];
 // }
 
+export interface HeaderCaptureRule {
+  /**
+   * List of headers to allow for network capture. Exact match only.
+   * @defaultValue `[]` no headers
+   */
+  allowlist?: string[];
+  /**
+   * Capture all [Safe Headers](https://github.com/amplitude/Amplitude-TypeScript/blob/main/packages/analytics-core/src/constants.ts)
+   *
+   * If true, these safe headers will all be captured automatically.
+   * // TODO: Determine if we actually want this to be default false
+   * @defaultValue `false`
+   */
+  captureSafeHeaders?: boolean;
+}
+
 export interface NetworkCaptureRule {
   /**
    * Hosts to allow for network capture. Supports wildcard.
@@ -51,11 +67,23 @@ export interface NetworkCaptureRule {
    */
   statusCodeRange?: string;
   /**
+   * Determines what to capture from the response headers.
+   * @experimental This feature is experimental and may not be stable
+   */
+  responseHeaders?: HeaderCaptureRule;
+  /**
+   * Determines what to capture from the request headers.
+   * @experimental This feature is experimental and may not be stable
+   */
+  requestHeaders?: HeaderCaptureRule;
+  /**
    * Determines what to capture from the response body.
+   * @experimental This feature is experimental and may not be stable
    */
   // responseBody?: BodyCaptureRule;
   /**
    * Determines what to capture from the request body.
+   * @experimental This feature is experimental and may not be stable
    */
   // requestBody?: BodyCaptureRule;
   /**

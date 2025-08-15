@@ -27,6 +27,9 @@ type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 type ResourceType = 'fetch' | 'xhr';
 
 class MockNetworkRequestEvent implements NetworkRequestEvent {
+  public responseHeaders?: Record<string, string>;
+  public requestHeaders?: Record<string, string>;
+
   constructor(
     public url: string = 'https://example.com',
     public type: ResourceType = 'fetch',
@@ -35,14 +38,14 @@ class MockNetworkRequestEvent implements NetworkRequestEvent {
     public duration: number = 100,
     public responseWrapper = {
       bodySize: 100,
-      headers: {
-        'Content-Type': 'application/json',
+      headers() {
+        return { 'Content-Type': 'application/json' };
       },
     } as any,
     public requestWrapper = {
       bodySize: 100,
-      headers: {
-        'Content-Type': 'application/json',
+      headers() {
+        return { 'Content-Type': 'application/json' };
       },
     } as any,
     public startTime: number = Date.now(),
@@ -525,6 +528,69 @@ describe('track-network-event', () => {
       networkEvent.status = 403;
       const result = shouldTrackNetworkEvent(networkEvent, localConfig.networkTrackingOptions);
       expect(result).toBe(true);
+    });
+  });
+
+  describe('shouldTrackNetworkEvent with header enrichment', () => {
+    beforeEach(() => {
+      networkEvent = new MockNetworkRequestEvent();
+    });
+
+    test('should call headers with allowlist and captureSafeHeaders and should enrich network event', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseHeaders: {
+              allowlist: ['content-type'],
+              captureSafeHeaders: true,
+            },
+            requestHeaders: {
+              allowlist: ['content-length'],
+              captureSafeHeaders: false,
+            },
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      const responseHeadersSpy = jest.spyOn(networkEvent.responseWrapper, 'headers');
+      const requestHeadersSpy = jest.spyOn(networkEvent.requestWrapper, 'headers');
+
+      shouldTrackNetworkEvent(networkEvent, networkTracking);
+
+      expect(responseHeadersSpy).toHaveBeenCalledWith(['content-type'], true);
+      expect(requestHeadersSpy).toHaveBeenCalledWith(['content-length'], false);
+      expect(networkEvent.responseHeaders).toBeDefined();
+      expect(networkEvent.requestHeaders).toBeDefined();
+    });
+
+    test('should not enrich network event if captureRules are not defined', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseHeaders: {
+              allowlist: [],
+              captureSafeHeaders: false,
+            },
+            requestHeaders: {
+              allowlist: [],
+              captureSafeHeaders: false,
+            },
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      const responseHeadersSpy = jest.spyOn(networkEvent.responseWrapper, 'headers');
+      const requestHeadersSpy = jest.spyOn(networkEvent.requestWrapper, 'headers');
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(true);
+      expect(networkEvent.responseHeaders).toBeUndefined();
+      expect(networkEvent.requestHeaders).toBeUndefined();
+      expect(responseHeadersSpy).not.toHaveBeenCalled();
+      expect(requestHeadersSpy).not.toHaveBeenCalled();
     });
   });
 });

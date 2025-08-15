@@ -590,6 +590,15 @@ describe('NetworkObserver', () => {
         } as RequestInitSafe);
         expect(requestWrapper.headers([], true)).toBeUndefined();
       });
+      it('undefined when allowlist is undefined and captureSafeHeaders is false', () => {
+        const requestWrapper = new RequestWrapperFetch({
+          headers: {
+            'Content-Type': 'application/fake',
+            'Content-Length': '100',
+          },
+        } as RequestInitSafe);
+        expect(requestWrapper.headers(undefined, false)).toBeUndefined();
+      });
     });
 
     test('RequestWrapper interface changed. Make sure you know what you are doing.', () => {
@@ -1039,6 +1048,15 @@ describe('NetworkRequestEvent', () => {
 });
 
 describe('pruneHeaders', () => {
+  test('should be empty object if allowlist is undefined and captureSafeHeaders is false', () => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Content-Length': '1234',
+      authorization: 'secretpassword!',
+    };
+    pruneHeaders(headers, { allow: undefined, captureSafeHeaders: false });
+    expect(headers).toEqual({});
+  });
   test('should exclude headers that are forbidden', () => {
     const headers = {
       'Content-Type': 'application/json',
