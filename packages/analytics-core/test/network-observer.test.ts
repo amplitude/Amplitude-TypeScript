@@ -104,7 +104,9 @@ describe('NetworkObserver', () => {
         status: 200,
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
-      expect(events[0].requestWrapper?.headers()).toEqual(requestHeaders);
+      expect(events[0].requestWrapper?.headers([], true)).toEqual({
+        'Content-Type': 'application/json',
+      });
       // expect headers to throw an error if consumed
       expect(() => events[0].requestWrapper?.headers()).toThrow(TypeError);
       const expectedResponseHeaders = {
@@ -588,7 +590,7 @@ describe('NetworkObserver', () => {
         const requestWrapper = new RequestWrapperFetch({
           headers: undefined,
         } as RequestInitSafe);
-        expect(requestWrapper.headers([], true)).toBeUndefined();
+        expect(requestWrapper.headers([], true)).toEqual({});
       });
       it('undefined when allowlist is undefined and captureSafeHeaders is false', () => {
         const requestWrapper = new RequestWrapperFetch({
@@ -597,7 +599,7 @@ describe('NetworkObserver', () => {
             'Content-Length': '100',
           },
         } as RequestInitSafe);
-        expect(requestWrapper.headers(undefined, false)).toBeUndefined();
+        expect(requestWrapper.headers(undefined, false)).toEqual({});
       });
     });
 

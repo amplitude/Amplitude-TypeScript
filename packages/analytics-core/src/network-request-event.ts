@@ -135,33 +135,28 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private request: RequestInitSafe) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> {
     this.consumptionCheck.consume('headers');
     const headersUnsafe = this.request.headers;
-    let headersPruned;
+
+    // copy the headers into a new object
+    const headersSafeCopy: Record<string, string> = {};
     if (Array.isArray(headersUnsafe)) {
-      const headers = headersUnsafe;
-      headersPruned = headers.reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
-    } else if (headersUnsafe instanceof Headers) {
-      const headersSafe = headersUnsafe as HeadersRequestSafe;
-      const headersObj: Record<string, string> = {};
-      headersSafe.forEach((value, key) => {
-        headersObj[key] = value;
+      headersUnsafe.forEach(([headerName, headerValue]) => {
+        headersSafeCopy[headerName] = headerValue;
       });
-      headersPruned = headersObj;
+    } else if (headersUnsafe instanceof Headers) {
+      headersUnsafe.forEach((value: string, key: string) => {
+        headersSafeCopy[key] = value;
+      });
     } else if (typeof headersUnsafe === 'object') {
-      headersPruned = headersUnsafe as Record<string, string>;
+      for (const [key, value] of Object.entries(headersUnsafe as Record<string, string>)) {
+        headersSafeCopy[key] = value;
+      }
     }
 
-    if (headersPruned) {
-      pruneHeaders(headersPruned, { allow, captureSafeHeaders });
-      return headersPruned;
-    }
-
-    return;
+    pruneHeaders(headersSafeCopy, { allow, captureSafeHeaders });
+    return headersSafeCopy;
   }
 
   get bodySize(): number | undefined {
@@ -488,7 +483,6 @@ export const pruneHeaders = (
     }
   }
 };
-
 export class NetworkRequestEvent {
   public requestHeaders?: Record<string, string>;
   public responseHeaders?: Record<string, string>;
