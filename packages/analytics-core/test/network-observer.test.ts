@@ -113,7 +113,7 @@ describe('NetworkObserver', () => {
         server: 'test-server',
       };
       expect(events[0].responseWrapper?.headers([], true)).toEqual(expectedResponseHeaders);
-      expect(events[0].responseWrapper?.headers([], true)).toEqual(expectedResponseHeaders);
+      expect(() => events[0].responseWrapper?.headers()).toThrow(TypeError);
     });
 
     it('should track successful fetch requests with headers (uses Headers object)', async () => {

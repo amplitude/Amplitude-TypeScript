@@ -82,6 +82,12 @@ export type FetchRequestBody =
   | undefined;
 
 export interface IRequestWrapper {
+  /**
+   * Get the headers of the request.
+   * @param allow - The headers to allow.
+   * @param captureSafeHeaders - Whether to capture safe headers.
+   * @returns The pruned headers
+   */
   headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined;
   bodySize?: number;
   method?: string;
@@ -286,6 +292,12 @@ export type JsonValue = string | number | boolean | null | JsonObject | JsonArra
 export type JsonArray = Array<JsonValue>;
 
 export interface IResponseWrapper {
+  /**
+   * Get the headers of the response.
+   * @param allow - The headers to allow.
+   * @param captureSafeHeaders - Whether to capture safe headers.
+   * @returns The pruned headers
+   */
   headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined;
   bodySize?: number;
   status?: number;
