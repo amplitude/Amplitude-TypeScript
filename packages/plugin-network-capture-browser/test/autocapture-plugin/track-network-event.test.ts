@@ -7,6 +7,7 @@ import {
   BrowserConfig,
   CookieStorage,
   FetchTransport,
+  JsonObject,
   Logger,
   LogLevel,
   NetworkEventCallback,
@@ -14,7 +15,11 @@ import {
   NetworkRequestEvent,
 } from '@amplitude/analytics-core';
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { shouldTrackNetworkEvent } from '../../src/track-network-event';
+import {
+  logNetworkAnalyticsEvent,
+  NetworkAnalyticsEvent,
+  shouldTrackNetworkEvent,
+} from '../../src/track-network-event';
 import { NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
@@ -29,6 +34,8 @@ type ResourceType = 'fetch' | 'xhr';
 class MockNetworkRequestEvent implements NetworkRequestEvent {
   public responseHeaders?: Record<string, string>;
   public requestHeaders?: Record<string, string>;
+  public requestBodyJson?: Promise<JsonObject | null>;
+  public responseBodyJson?: Promise<JsonObject | null>;
 
   constructor(
     public url: string = 'https://example.com',
@@ -41,11 +48,17 @@ class MockNetworkRequestEvent implements NetworkRequestEvent {
       headers() {
         return { 'Content-Type': 'application/json' };
       },
+      async json() {
+        return { message: 'hello' };
+      },
     } as any,
     public requestWrapper = {
       bodySize: 100,
       headers() {
         return { 'Content-Type': 'application/json' };
+      },
+      async json() {
+        return { message: 'hello' };
       },
     } as any,
     public startTime: number = Date.now(),
@@ -106,6 +119,25 @@ describe('track-network-event', () => {
       networkTrackingOptions: {},
     } as BrowserConfig;
     networkEvent = new MockNetworkRequestEvent();
+  });
+
+  describe('logNetworkAnalyticsEvent', () => {
+    test('should log network analytics event with request and response body', async () => {
+      const networkAnalyticsEvent: NetworkAnalyticsEvent = {
+        '[Amplitude] URL': 'https://example.com/track',
+        '[Amplitude] URL Query': 'hello=world',
+        '[Amplitude] URL Fragment': 'hash',
+        '[Amplitude] Request Method': 'POST',
+        '[Amplitude] Status Code': 500,
+      };
+      const request = new MockNetworkRequestEvent();
+      request.requestBodyJson = Promise.resolve({ message: 'hello' });
+      request.responseBodyJson = Promise.resolve({ message: 'world' });
+      const amplitude = createMockBrowserClient();
+      await logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
+      /* eslint-disable-next-line @typescript-eslint/unbound-method */
+      expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+    });
   });
 
   describe('trackNetworkEvent()', () => {
@@ -674,6 +706,31 @@ describe('track-network-event', () => {
       expect(networkEvent.requestHeaders).toBeUndefined();
       expect(responseHeadersSpy).not.toHaveBeenCalled();
       expect(requestHeadersSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('shouldTrackNetworkEvent with body enrichment', () => {
+    beforeEach(() => {
+      networkEvent = new MockNetworkRequestEvent();
+    });
+
+    test('should enrich network event with request and response body', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseBody: { allowlist: ['*'] },
+            requestBody: { allowlist: ['*'] },
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      networkEvent.url = 'https://example.com/track';
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(true);
+      expect(networkEvent.requestBodyJson).toBeDefined();
+      expect(networkEvent.responseBodyJson).toBeDefined();
     });
   });
 });

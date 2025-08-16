@@ -78,7 +78,14 @@
             captureRules: [
               { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
               { hosts: ['localhost', '127.0.0.1'], statusCodeRange: '0,400-599' },
-              { hosts: ['*'], statusCodeRange: '0,300-599' },
+              {
+                hosts: ['*'],
+                statusCodeRange: '0,300-599',
+                responseHeaders: { captureSafeHeaders: true },
+                requestHeaders: { captureSafeHeaders: true },
+                responseBody: { allowlist: ['*'] },
+                requestBody: { allowlist: ['*'] },
+              },
             ],
           },
         }

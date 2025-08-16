@@ -92,6 +92,7 @@ export interface IRequestWrapper {
   bodySize?: number;
   method?: string;
   body?: FetchRequestBody | XMLHttpRequestBodyInitSafe | null;
+  json: (allow?: string[], exclude?: string[]) => Promise<JsonObject | null>;
 }
 
 export const MAXIMUM_ENTRIES = 100;
@@ -183,7 +184,10 @@ export class RequestWrapperFetch implements IRequestWrapper {
     return null;
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
     const text = this.body;
     return safeParseAndPruneBody(text, allow, exclude);
   }
@@ -210,7 +214,7 @@ export class RequestWrapperXhr implements IRequestWrapper {
     return null;
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
     const text = this.body;
     return safeParseAndPruneBody(text, allow, exclude);
   }
@@ -295,7 +299,8 @@ export interface IResponseWrapper {
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
-  text?: () => Promise<string | null>;
+  text: () => Promise<string | null>;
+  json: (allow?: string[], exclude?: string[]) => Promise<JsonObject | null>;
 }
 
 /**
@@ -351,6 +356,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   }
 
   async text(): Promise<string | null> {
+    this.consumptionCheck.consume('body');
     // !!!IMPORTANT: we clone the response to avoid mutating the original response
     // never call .text(), .json(), etc.. on the original response always clone it first
     const clonedResponse = this.response.clone();
@@ -370,8 +376,10 @@ export class ResponseWrapperFetch implements IResponseWrapper {
     }
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
-    this.consumptionCheck.consume('body');
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
     const text = await this.text();
     return safeParseAndPruneBody(text, allow, exclude);
   }
@@ -414,7 +422,10 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return pruneHeaders(headers, { allow, captureSafeHeaders });
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
     // reject if body has already been consumed
     this.consumptionCheck.consume('body');
     const text = await this.text();
@@ -483,6 +494,8 @@ export const pruneHeaders = (
 export class NetworkRequestEvent {
   public requestHeaders?: Record<string, string>;
   public responseHeaders?: Record<string, string>;
+  public requestBodyJson?: Promise<JsonObject | null>;
+  public responseBodyJson?: Promise<JsonObject | null>;
   constructor(
     public readonly type: 'xhr' | 'fetch',
     public readonly method: string,

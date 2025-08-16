@@ -67,12 +67,36 @@
             networkTracking: true,
           },
           networkTrackingOptions: {
-            ignoreAmplitudeRequests: false,
+            ignoreAmplitudeRequests: true,
             ignoreHosts: [],
             captureRules: [
               { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
-              { hosts: ['localhost', '127.0.0.1'], statusCodeRange: '0,400-599' },
-              { hosts: ['*'], statusCodeRange: '0,300-599' },
+              {
+                hosts: ['localhost', '127.0.0.1'],
+                statusCodeRange: '0,400-599',
+                responseHeaders: {
+                  captureSafeHeaders: true,
+                },
+                requestHeaders: {
+                  captureSafeHeaders: true,
+                },
+              },
+              { 
+                hosts: ['*'],
+                statusCodeRange: '500-599',
+                responseHeaders: {
+                  captureSafeHeaders: true,
+                },
+                requestHeaders: {
+                  captureSafeHeaders: true,
+                },
+                responseBody: {
+                  allowlist: ['message', 'method'],
+                },
+                requestBody: {
+                  allowlist: ['message', 'method'],
+                },
+              },
             ],
           },
         }
