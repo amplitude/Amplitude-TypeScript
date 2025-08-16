@@ -75,7 +75,7 @@ export { PageTrackingOptions, PageTrackingTrackOn, PageTrackingHistoryChanges } 
 export { Status } from './types/status';
 
 export { NetworkEventCallback, networkObserver } from './network-observer';
-export { NetworkRequestEvent, IRequestWrapper } from './network-request-event';
+export { NetworkRequestEvent, IRequestWrapper, JsonObject, JsonValue, JsonArray } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';

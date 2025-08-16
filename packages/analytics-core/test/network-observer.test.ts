@@ -636,10 +636,16 @@ describe('NetworkObserver', () => {
     });
 
     describe('.json()', () => {
-      test('json should return {} if no rules are set', async () => {
+      test('json should return null if no args are passed', async () => {
+        const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
+        const json = await responseWrapper.json();
+        expect(json).toEqual(null);
+      });
+
+      test('json should return null if no rules are set', async () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
         const json = await responseWrapper.json([], []);
-        expect(json).toEqual({});
+        expect(json).toEqual(null);
       });
 
       test('json should include allowed fields in response', async () => {
@@ -685,7 +691,7 @@ describe('NetworkObserver', () => {
       };
       const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
       const json = await responseWrapper.text();
-      await responseWrapper.text();
+      expect(responseWrapper.text()).rejects.toThrow(TypeError);
       expect(json).toBeNull();
     });
 
@@ -799,6 +805,12 @@ describe('RequestWrapperXhr', () => {
   });
 
   describe('.json()', () => {
+    test('json should return {} if no args are passed', async () => {
+      const requestWrapper = new RequestWrapperXhr('some text', {});
+      const json = await requestWrapper.json();
+      expect(json).toEqual(null);
+    });
+
     test('should parse body as JSON', async () => {
       const requestWrapper = new RequestWrapperXhr(
         JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
@@ -939,6 +951,12 @@ describe('ResponseWrapperXhr', () => {
   });
 
   describe('.json()', () => {
+    test('json should return {} if no args are passed', async () => {
+      const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
+      const json = await responseWrapper.json();
+      expect(json).toEqual(null);
+    });
+
     test('should parse JSON response', async () => {
       const response = {
         message: 'Hello from mock!',
@@ -1023,6 +1041,12 @@ describe('RequestWrapperFetch', () => {
   });
 
   describe('.json()', () => {
+    test('json should return null if no args are passed', async () => {
+      const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
+      const json = await responseWrapper.json();
+      expect(json).toEqual(null);
+    });
+
     test('should parse body as JSON', async () => {
       const requestWrapper = new RequestWrapperFetch({
         body: JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
@@ -1032,6 +1056,16 @@ describe('RequestWrapperFetch', () => {
       const json = await requestWrapper.json(['message'], ['secret']);
       expect(json).toEqual({ message: 'Hello from mock!' });
       expect(requestWrapper.json(['message'], ['secret'])).rejects.toThrow(TypeError);
+    });
+
+    test('should return null if no args provided', async () => {
+      const requestWrapper = new RequestWrapperFetch({
+        body: JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
+        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+        status: 200,
+      } as unknown as RequestInitSafe);
+      const json = await requestWrapper.json();
+      expect(json).toEqual(null);
     });
   });
 });
