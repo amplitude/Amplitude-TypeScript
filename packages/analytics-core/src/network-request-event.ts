@@ -480,9 +480,6 @@ export const pruneHeaders = (
   
   return headersPruned;
 };
-
-  return headersPruned;
-};
 export class NetworkRequestEvent {
   public requestHeaders?: Record<string, string>;
   public responseHeaders?: Record<string, string>;
