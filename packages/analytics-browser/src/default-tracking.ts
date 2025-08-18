@@ -162,9 +162,9 @@ export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackin
     // if URLs and hosts are both set, URLs take precedence over hosts
     networkTrackingConfig?.captureRules?.forEach((rule) => {
       if (rule.urls && rule.hosts) {
-        /* istanbul ignore next */
         const hostsString = JSON.stringify(rule.hosts);
         const urlsString = JSON.stringify(rule.urls);
+        /* istanbul ignore next */
         config.loggerProvider?.warn(
           `Found network capture rule with both urls='${urlsString}' and hosts='${hostsString}' set. ` +
             `Definition of urls takes precedence over hosts, so ignoring hosts.`,
