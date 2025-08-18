@@ -143,7 +143,7 @@ export function parseHeaderCaptureRule(
   // and captureSafeHeaders defaulting to true
   const parsedRule = {
     allowlist: rule.allowlist || [],
-    captureSafeHeaders: !!rule.captureSafeHeaders || rule.captureSafeHeaders === undefined
+    captureSafeHeaders: !!rule.captureSafeHeaders || rule.captureSafeHeaders === undefined,
   };
 
   // if the rule is defined, but it's params are empty, just return undefined
