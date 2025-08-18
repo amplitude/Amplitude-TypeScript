@@ -477,6 +477,9 @@ export const pruneHeaders = (
       headersPruned[key] = headers[key];
     }
   }
+  
+  return headersPruned;
+};
 
   return headersPruned;
 };
