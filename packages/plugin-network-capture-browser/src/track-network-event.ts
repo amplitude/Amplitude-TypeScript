@@ -119,9 +119,41 @@ function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWr
   return false;
 }
 
-function isHeaderCaptureRuleEmpty(rule: HeaderCaptureRule) {
-  /* istanbul ignore next */
-  return !rule?.allowlist?.length && !rule?.captureSafeHeaders;
+/**
+ * Takes a user provided header capture rule and returns a
+ * HeaderCaptureRule object that sets proper default values.
+ *
+ * @param rule - The header capture rule to parse.
+ * @returns A HeaderCaptureRule object.
+ */
+export function parseHeaderCaptureRule(
+  rule: HeaderCaptureRule | boolean | undefined | null,
+): HeaderCaptureRule | undefined {
+  if (typeof rule !== 'object' || rule === null) {
+    // if rule is truthy or undefined, captureSafeHeaders only
+    if (!!rule || rule === undefined) {
+      return {
+        allowlist: [],
+        captureSafeHeaders: true,
+      };
+    }
+    return;
+  }
+
+  // if rule is object, return the rule with allowlist defaulting to []
+  // and captureSafeHeaders defaulting to true
+  const parsedRule = {
+    allowlist: rule.allowlist || [],
+    captureSafeHeaders: !!rule.captureSafeHeaders || rule.captureSafeHeaders === undefined,
+  };
+
+  // if the rule is defined, but it's params are empty, just return undefined
+  // to avoid unneeded header capturing
+  if (parsedRule.allowlist.length === 0 && !parsedRule.captureSafeHeaders) {
+    return;
+  }
+
+  return parsedRule;
 }
 
 function isBodyCaptureRuleEmpty(rule: BodyCaptureRule) {
@@ -170,11 +202,11 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
       isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url, networkEvent.method);
 
       if (isMatch) {
-        // if responseHeaders rule is specified, enrich the event with the response headers
-        if (networkEvent.responseWrapper && rule.responseHeaders && !isHeaderCaptureRuleEmpty(rule.responseHeaders)) {
+        const responseHeadersRule = parseHeaderCaptureRule(rule.responseHeaders);
+        if (networkEvent.responseWrapper && responseHeadersRule) {
           const responseHeaders = networkEvent.responseWrapper.headers(
-            rule.responseHeaders.allowlist,
-            rule.responseHeaders.captureSafeHeaders,
+            responseHeadersRule.allowlist,
+            responseHeadersRule.captureSafeHeaders,
           );
           if (responseHeaders) {
             networkEvent.responseHeaders = responseHeaders;
@@ -182,10 +214,11 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
         }
 
         // if requestHeaders rule is specified, enrich the event with the request headers
-        if (networkEvent.requestWrapper && rule.requestHeaders && !isHeaderCaptureRuleEmpty(rule.requestHeaders)) {
+        const requestHeadersRule = parseHeaderCaptureRule(rule.requestHeaders);
+        if (networkEvent.requestWrapper && requestHeadersRule) {
           const requestHeaders = networkEvent.requestWrapper.headers(
-            rule.requestHeaders.allowlist,
-            rule.requestHeaders.captureSafeHeaders,
+            requestHeadersRule.allowlist,
+            requestHeadersRule.captureSafeHeaders,
           );
           if (requestHeaders) {
             networkEvent.requestHeaders = requestHeaders;

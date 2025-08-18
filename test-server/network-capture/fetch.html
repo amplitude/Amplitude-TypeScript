@@ -64,40 +64,38 @@
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
           autocapture: {
-            networkTracking: true,
-          },
-          networkTrackingOptions: {
-            ignoreAmplitudeRequests: true,
-            ignoreHosts: [],
-            captureRules: [
-              { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
-              {
-                hosts: ['localhost', '127.0.0.1'],
-                statusCodeRange: '0,400-599',
-                responseHeaders: {
-                  captureSafeHeaders: true,
+            networkTracking: {
+              ignoreAmplitudeRequests: false,
+              ignoreHosts: [],
+              captureRules: [
+                {
+                  hosts: ['*.amplitude.com'],
+                  statusCodeRange: '400-599',
+                  requestHeaders: {
+                    captureSafeHeaders: true,
+                  },
+                  responseHeaders: {
+                    captureSafeHeaders: true,
+                  },
                 },
-                requestHeaders: {
-                  captureSafeHeaders: true,
+                {
+                  hosts: ['localhost', '127.0.0.1'],
+                  statusCodeRange: '0,400-599',
+                  requestHeaders: {
+                    captureSafeHeaders: true,
+                  },
+                  responseHeaders: {
+                    captureSafeHeaders: true,
+                  },
                 },
-              },
-              { 
-                hosts: ['*'],
-                statusCodeRange: '500-599',
-                responseHeaders: {
-                  captureSafeHeaders: true,
+                {
+                  hosts: ['*'],
+                  statusCodeRange: '0,300-599',
+                  responseHeaders: false,
+                  requestHeaders: false,
                 },
-                requestHeaders: {
-                  captureSafeHeaders: true,
-                },
-                responseBody: {
-                  allowlist: ['message', 'method'],
-                },
-                requestBody: {
-                  allowlist: ['message', 'method'],
-                },
-              },
-            ],
+              ],
+            },
           },
         }
       );

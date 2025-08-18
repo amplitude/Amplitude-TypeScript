@@ -488,7 +488,6 @@ export const pruneHeaders = (
       headersPruned[key] = headers[key];
     }
   }
-
   return headersPruned;
 };
 export class NetworkRequestEvent {
