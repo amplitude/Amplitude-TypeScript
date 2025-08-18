@@ -49,8 +49,7 @@ export interface HeaderCaptureRule {
    * Capture all [Safe Headers](https://github.com/amplitude/Amplitude-TypeScript/blob/main/packages/analytics-core/src/constants.ts)
    *
    * If true, these safe headers will all be captured automatically.
-   * // TODO: Determine if we actually want this to be default false
-   * @defaultValue `false`
+   * @defaultValue `true`
    */
   captureSafeHeaders?: boolean;
 }

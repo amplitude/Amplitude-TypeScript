@@ -118,11 +118,18 @@ function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWr
   return false;
 }
 
+/**
+ * Takes a user provided header capture rule and returns a
+ * HeaderCaptureRule object that sets proper default values.
+ *
+ * @param rule - The header capture rule to parse.
+ * @returns A HeaderCaptureRule object.
+ */
 export function parseHeaderCaptureRule(
   rule: HeaderCaptureRule | boolean | undefined | null,
 ): HeaderCaptureRule | undefined {
   if (typeof rule !== 'object' || rule === null) {
-    // capture safe headers by default
+    // if rule is truthy or undefined, captureSafeHeaders only
     if (!!rule || rule === undefined) {
       return {
         allowlist: [],
@@ -132,11 +139,11 @@ export function parseHeaderCaptureRule(
     return;
   }
 
-  const captureSafeHeaders = !!rule.captureSafeHeaders || rule.captureSafeHeaders === undefined;
-
+  // if rule is object, return the rule with allowlist defaulting to []
+  // and captureSafeHeaders defaulting to true
   const parsedRule = {
     allowlist: rule.allowlist || [],
-    captureSafeHeaders,
+    captureSafeHeaders: !!rule.captureSafeHeaders || rule.captureSafeHeaders === undefined
   };
 
   // if the rule is defined, but it's params are empty, just return undefined
