@@ -183,8 +183,8 @@ describe('NetworkObserver', () => {
         status: 200,
       });
       expect(events[0].duration).toBeGreaterThanOrEqual(0);
-      expect(events[0].requestWrapper?.headers()).toEqual(undefined);
-      expect(events[0].responseWrapper?.headers()).toEqual(undefined);
+      expect(events[0].requestWrapper?.headers([], true)).toEqual(undefined);
+      expect(events[0].responseWrapper?.headers([], true)).toEqual(undefined);
     });
 
     it('should still fetch even if eventCallback throws error', async () => {
@@ -636,12 +636,6 @@ describe('NetworkObserver', () => {
     });
 
     describe('.json()', () => {
-      test('json should return null if no args are passed', async () => {
-        const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
-        const json = await responseWrapper.json();
-        expect(json).toEqual(null);
-      });
-
       test('json should return null if no rules are set', async () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
         const json = await responseWrapper.json([], []);
@@ -805,12 +799,6 @@ describe('RequestWrapperXhr', () => {
   });
 
   describe('.json()', () => {
-    test('json should return {} if no args are passed', async () => {
-      const requestWrapper = new RequestWrapperXhr('some text', {});
-      const json = await requestWrapper.json();
-      expect(json).toEqual(null);
-    });
-
     test('should parse body as JSON', async () => {
       const requestWrapper = new RequestWrapperXhr(
         JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
@@ -944,16 +932,16 @@ describe('observeXhr', () => {
 describe('ResponseWrapperXhr', () => {
   test('should return undefined if headersString is empty', async () => {
     const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
-    expect(responseWrapper.headers()).toEqual(undefined);
-    expect(() => responseWrapper.headers()).toThrow(TypeError);
+    expect(responseWrapper.headers([], true)).toEqual(undefined);
+    expect(() => responseWrapper.headers([], true)).toThrow(TypeError);
     const text = await responseWrapper.text();
     expect(text).toBe('some text');
   });
 
   describe('.json()', () => {
-    test('json should return {} if no args are passed', async () => {
+    test('should return null if allowlist is empty', async () => {
       const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
-      const json = await responseWrapper.json();
+      const json = await responseWrapper.json([], ['secret']);
       expect(json).toEqual(null);
     });
 
@@ -1041,9 +1029,13 @@ describe('RequestWrapperFetch', () => {
   });
 
   describe('.json()', () => {
-    test('json should return null if no args are passed', async () => {
-      const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
-      const json = await responseWrapper.json();
+    test('should return null if allowlist is empty', async () => {
+      const requestWrapper = new RequestWrapperFetch({
+        body: JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
+        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+        status: 200,
+      } as unknown as RequestInitSafe);
+      const json = await requestWrapper.json([], ['secret']);
       expect(json).toEqual(null);
     });
 
@@ -1056,16 +1048,6 @@ describe('RequestWrapperFetch', () => {
       const json = await requestWrapper.json(['message'], ['secret']);
       expect(json).toEqual({ message: 'Hello from mock!' });
       expect(requestWrapper.json(['message'], ['secret'])).rejects.toThrow(TypeError);
-    });
-
-    test('should return null if no args provided', async () => {
-      const requestWrapper = new RequestWrapperFetch({
-        body: JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
-        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
-        status: 200,
-      } as unknown as RequestInitSafe);
-      const json = await requestWrapper.json();
-      expect(json).toEqual(null);
     });
   });
 });
