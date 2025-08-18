@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unresponsive Page Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        
+        .button {
+            background-color: #dc3545;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #c82333;
+        }
+        
+        .counter-button {
+            background-color: #28a745;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        .counter-button:hover {
+            background-color: #218838;
+        }
+        
+        .counter-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+            margin: 10px 0;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Unresponsive Page Test</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Warning:</strong> Clicking the button below will make this page completely unresponsive. You may need to close the tab or refresh the page to regain control.
+        </div>
+        
+        <div class="info">
+            <h3>What this test does:</h3>
+            <ul>
+                <li>Creates an infinite loop that blocks the main thread</li>
+                <li>Prevents any user interaction with the page</li>
+                <li>Simulates a frozen/unresponsive web page</li>
+                <li>Useful for testing browser behavior under extreme conditions</li>
+            </ul>
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <h3>Counter Test</h3>
+            <p>Click the button below to increment the counter:</p>
+            <button id="counterButton" class="counter-button" onclick="incrementCounter()">
+                🔢 Click Counter
+            </button>
+            <div class="counter-display">
+                Clicks: <span id="clickCount">0</span>
+            </div>
+        </div>
+        
+        <hr style="margin: 40px 0; border: 1px solid #ddd;">
+        
+        <div>
+            <h3>Unresponsive Test</h3>
+            <button id="freezeButton" class="button" onclick="makePageUnresponsive()">
+                🚫 Make Page Unresponsive
+            </button>
+            
+            <div id="status" class="status">
+                Page is about to become unresponsive...
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <p><small>This page is for testing purposes only. Use with caution!</small></p>
+        </div>
+    </div>
+
+    <script>
+        // Counter functionality
+        let clickCount = 0;
+        
+        function incrementCounter() {
+            clickCount++;
+            document.getElementById('clickCount').textContent = clickCount;
+            
+            // Add some visual feedback
+            const button = document.getElementById('counterButton');
+            const originalText = button.textContent;
+            button.textContent = '✅ Clicked!';
+            button.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.transform = 'scale(1)';
+            }, 150);
+        }
+        
+        function makePageUnresponsive() {
+            // Show status message briefly
+            const statusDiv = document.getElementById('status');
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = 'Preparing to freeze the page...';
+            
+            // Change button text to indicate it's about to freeze
+            const button = document.getElementById('freezeButton');
+            button.textContent = 'Freezing in 2 seconds...';
+            button.disabled = true;
+            
+            // Give a brief moment to see the message, then freeze
+            setTimeout(() => {
+                statusDiv.textContent = 'Page is now frozen! You may need to refresh or close this tab.';
+                
+                // Create an infinite loop that will block the main thread
+                // This will make the page completely unresponsive
+                const startTime = Date.now();
+                while (true) {
+                    // This infinite loop will block the main thread indefinitely
+                    // The page will become completely unresponsive
+                    // No user interactions will work
+                    
+                    // Optional: You can add some computation to make it more realistic
+                    const now = Date.now();
+                    if (now - startTime > 1000) {
+                        // This condition will never actually break the loop
+                        // because we're in an infinite loop, but it's here
+                        // to show that the loop is "doing something"
+                    }
+                }
+            }, 2000);
+        }
+        
+        // Add some visual feedback before freezing
+        document.getElementById('freezeButton').addEventListener('mousedown', function() {
+            this.style.transform = 'scale(0.95)';
+        });
+        
+        document.getElementById('freezeButton').addEventListener('mouseup', function() {
+            this.style.transform = 'scale(1)';
+        });
+        
+        // Log to console when page loads
+        console.log('Unresponsive page test loaded. Click the button to freeze the page.');
+        
+        // Optional: Show a confirmation dialog
+        window.addEventListener('beforeunload', function(e) {
+            // This might not work if the page is already frozen
+            const confirmationMessage = 'Are you sure you want to leave? The page might be unresponsive.';
+            e.returnValue = confirmationMessage;
+            return confirmationMessage;
+        });
+    </script>
+</body>
+</html>
