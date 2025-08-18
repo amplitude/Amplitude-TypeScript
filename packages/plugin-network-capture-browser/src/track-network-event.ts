@@ -9,7 +9,7 @@ import {
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
-import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
+import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
 import { IRequestWrapper } from '@amplitude/analytics-core';
 import { BodyCaptureRule, HeaderCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 
@@ -131,10 +131,17 @@ export function parseHeaderCaptureRule(
 ): HeaderCaptureRule | undefined {
   if (typeof rule !== 'object' || rule === null) {
     // if rule is truthy or undefined, captureSafeHeaders only
-    if (!!rule || rule === undefined) {
+    if (rule) {
       return {
         allowlist: [],
         captureSafeHeaders: true,
+      };
+    } else if (rule === undefined) {
+      return {
+        allowlist: [],
+        // while header is experimental, default to false so that
+        // we don't capture headers by default yet
+        captureSafeHeaders: !IS_HEADER_CAPTURE_EXPERIMENTAL,
       };
     }
     return;

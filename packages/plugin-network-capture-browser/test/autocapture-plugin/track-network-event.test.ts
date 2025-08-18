@@ -23,7 +23,7 @@ import {
 } from '../../src/track-network-event';
 import { HeaderCaptureRule, NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
-import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
+import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from '../../src/constants';
 import { VERSION } from '../../src/version';
 import { createMockBrowserClient } from '../mock-browser-client';
 import * as streams from 'stream/web';
@@ -167,7 +167,7 @@ describe('track-network-event', () => {
       test('rule is undefined', () => {
         expect(parseHeaderCaptureRule(undefined)).toEqual({
           allowlist: [],
-          captureSafeHeaders: true,
+          captureSafeHeaders: !IS_HEADER_CAPTURE_EXPERIMENTAL,
         });
       });
     });
