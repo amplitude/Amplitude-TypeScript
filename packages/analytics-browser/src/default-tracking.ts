@@ -166,7 +166,7 @@ export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackin
         const hostsString = JSON.stringify(rule.hosts);
         const urlsString = JSON.stringify(rule.urls);
         config.loggerProvider?.warn(
-          `Found network capture rule with both urls='${urlsString}' and hosts='${hostsString}'  set. ` +
+          `Found network capture rule with both urls='${urlsString}' and hosts='${hostsString}' set. ` +
             `Definition of urls takes precedence over hosts, so ignoring hosts.`,
         );
         delete rule.hosts;
