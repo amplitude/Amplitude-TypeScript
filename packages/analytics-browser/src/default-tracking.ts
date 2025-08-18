@@ -159,7 +159,7 @@ export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackin
     } else if (config.networkTrackingOptions) {
       networkTrackingConfig = config.networkTrackingOptions;
     }
-    // strip hosts from captureRules if urls are set
+    // if URLs and hosts are both set, URLs take precedence over hosts
     networkTrackingConfig?.captureRules?.forEach((rule) => {
       if (rule.urls && rule.hosts) {
         /* istanbul ignore next */
