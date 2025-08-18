@@ -163,10 +163,11 @@ export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackin
     networkTrackingConfig?.captureRules?.forEach((rule) => {
       if (rule.urls && rule.hosts) {
         /* istanbul ignore next */
+        const hostsString = JSON.stringify(rule.hosts);
+        const urlsString = JSON.stringify(rule.urls);
         config.loggerProvider?.warn(
-          `Found network capture rule with both urls='${JSON.stringify(rule.urls)}' and hosts='${JSON.stringify(
-            rule.hosts,
-          )}'  set. ` + `Definition of urls takes precedence over hosts, so ignoring hosts.`,
+          `Found network capture rule with both urls='${urlsString}' and hosts='${hostsString}'  set. ` +
+            `Definition of urls takes precedence over hosts, so ignoring hosts.`,
         );
         delete rule.hosts;
       }
