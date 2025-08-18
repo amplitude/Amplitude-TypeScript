@@ -153,11 +153,25 @@ export const getFrustrationInteractionsConfig = (
 
 export const getNetworkTrackingConfig = (config: BrowserOptions): NetworkTrackingOptions | undefined => {
   if (isNetworkTrackingEnabled(config.autocapture)) {
+    let networkTrackingConfig;
     if (typeof config.autocapture === 'object' && typeof config.autocapture.networkTracking === 'object') {
-      return config.autocapture.networkTracking;
+      networkTrackingConfig = config.autocapture.networkTracking;
     } else if (config.networkTrackingOptions) {
-      return config.networkTrackingOptions;
+      networkTrackingConfig = config.networkTrackingOptions;
     }
+    // strip hosts from captureRules if urls are set
+    networkTrackingConfig?.captureRules?.forEach((rule) => {
+      if (rule.urls && rule.hosts) {
+        /* istanbul ignore next */
+        config.loggerProvider?.warn(
+          `Found network capture rule with both urls='${JSON.stringify(rule.urls)}' and hosts='${JSON.stringify(
+            rule.hosts,
+          )}'  set. ` + `Definition of urls takes precedence over hosts, so ignoring hosts.`,
+        );
+        delete rule.hosts;
+      }
+    });
+    return networkTrackingConfig;
   }
   return;
 };
