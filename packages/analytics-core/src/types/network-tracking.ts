@@ -81,12 +81,12 @@ export interface NetworkCaptureRule {
    * Determines what to capture from the response headers.
    * @experimental This feature is experimental and may not be stable
    */
-  responseHeaders?: HeaderCaptureRule;
+  responseHeaders?: HeaderCaptureRule | boolean;
   /**
    * Determines what to capture from the request headers.
    * @experimental This feature is experimental and may not be stable
    */
-  requestHeaders?: HeaderCaptureRule;
+  requestHeaders?: HeaderCaptureRule | boolean;
   /**
    * Determines what to capture from the response body.
    * @experimental This feature is experimental and may not be stable

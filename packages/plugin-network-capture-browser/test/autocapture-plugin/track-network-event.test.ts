@@ -14,8 +14,8 @@ import {
   NetworkRequestEvent,
 } from '@amplitude/analytics-core';
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { shouldTrackNetworkEvent } from '../../src/track-network-event';
-import { NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
+import { parseHeaderCaptureRule, shouldTrackNetworkEvent } from '../../src/track-network-event';
+import { HeaderCaptureRule, NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
 import { VERSION } from '../../src/version';
@@ -106,6 +106,75 @@ describe('track-network-event', () => {
       networkTrackingOptions: {},
     } as BrowserConfig;
     networkEvent = new MockNetworkRequestEvent();
+  });
+
+  describe('getHeaderCaptureRule()', () => {
+    describe('returns undefined when', () => {
+      test('rule is false', () => {
+        expect(parseHeaderCaptureRule(false)).toBeUndefined();
+      });
+
+      test('rule is null', () => {
+        expect(parseHeaderCaptureRule(null)).toBeUndefined();
+      });
+
+      test('allowlist is empty and captureSafeHeaders is false', () => {
+        expect(parseHeaderCaptureRule({ captureSafeHeaders: false })).toBeUndefined();
+      });
+    });
+
+    describe('returns default header capture rule when', () => {
+      test('rule is true', () => {
+        expect(parseHeaderCaptureRule(true)).toEqual({
+          allowlist: [],
+          captureSafeHeaders: true,
+        });
+      });
+
+      test('rule is undefined', () => {
+        expect(parseHeaderCaptureRule(undefined)).toEqual({
+          allowlist: [],
+          captureSafeHeaders: true,
+        });
+      });
+    });
+
+    describe('capture safe headers is true when', () => {
+      test('captureSafeHeaders is not set', () => {
+        expect(parseHeaderCaptureRule({ allowlist: ['content-type'] })).toEqual({
+          allowlist: ['content-type'],
+          captureSafeHeaders: true,
+        });
+      });
+
+      test('captureSafeHeaders is set to true', () => {
+        expect(parseHeaderCaptureRule({ allowlist: ['content-type'], captureSafeHeaders: true })).toEqual({
+          allowlist: ['content-type'],
+          captureSafeHeaders: true,
+        });
+      });
+    });
+
+    describe('capture safe headers is false when', () => {
+      test('captureSafeHeaders is set to false', () => {
+        expect(parseHeaderCaptureRule({ allowlist: ['content-type'], captureSafeHeaders: false })).toEqual({
+          allowlist: ['content-type'],
+          captureSafeHeaders: false,
+        });
+      });
+
+      test('captureSafeHeaders is null', () => {
+        expect(
+          parseHeaderCaptureRule({
+            allowlist: ['content-type'],
+            captureSafeHeaders: null,
+          } as unknown as HeaderCaptureRule),
+        ).toEqual({
+          allowlist: ['content-type'],
+          captureSafeHeaders: false,
+        });
+      });
+    });
   });
 
   describe('trackNetworkEvent()', () => {
