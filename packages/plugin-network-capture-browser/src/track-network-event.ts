@@ -212,8 +212,8 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
         const responseHeadersRule = parseHeaderCaptureRule(rule.responseHeaders);
         if (networkEvent.responseWrapper && responseHeadersRule) {
           const responseHeaders = networkEvent.responseWrapper.headers(
-            responseHeadersRule.allowlist,
-            responseHeadersRule.captureSafeHeaders,
+            responseHeadersRule.allowlist || [],
+            responseHeadersRule.captureSafeHeaders || false,
           );
           if (responseHeaders) {
             networkEvent.responseHeaders = responseHeaders;
@@ -224,8 +224,8 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
         const requestHeadersRule = parseHeaderCaptureRule(rule.requestHeaders);
         if (networkEvent.requestWrapper && requestHeadersRule) {
           const requestHeaders = networkEvent.requestWrapper.headers(
-            requestHeadersRule.allowlist,
-            requestHeadersRule.captureSafeHeaders,
+            requestHeadersRule.allowlist || [],
+            requestHeadersRule.captureSafeHeaders || false,
           );
           if (requestHeaders) {
             networkEvent.requestHeaders = requestHeaders;
@@ -235,16 +235,16 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
         // if responseBody rule is specified, enrich the event with the response body
         if (networkEvent.responseWrapper && rule.responseBody && !isBodyCaptureRuleEmpty(rule.responseBody)) {
           networkEvent.responseBodyJson = networkEvent.responseWrapper.json(
-            rule.responseBody.allowlist,
-            rule.responseBody.blocklist,
+            rule.responseBody.allowlist || [],
+            rule.responseBody.blocklist || [],
           );
         }
 
         // if requestBody rule is specified, enrich the event with the request body
         if (networkEvent.requestWrapper && rule.requestBody && !isBodyCaptureRuleEmpty(rule.requestBody)) {
           networkEvent.requestBodyJson = networkEvent.requestWrapper.json(
-            rule.requestBody.allowlist,
-            rule.requestBody.blocklist,
+            rule.requestBody.allowlist || [],
+            rule.requestBody.blocklist || [],
           );
         }
       }
