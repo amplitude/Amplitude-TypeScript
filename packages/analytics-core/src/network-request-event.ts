@@ -289,7 +289,7 @@ export interface IResponseWrapper {
    * @param allow - The headers to allow.
    * @returns The pruned headers
    */
-  headers(allow?: string[]): Record<string, string> | undefined | null;
+  headers(allow?: string[]): Record<string, string> | undefined;
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
