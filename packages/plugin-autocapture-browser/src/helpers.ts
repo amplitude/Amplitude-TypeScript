@@ -136,7 +136,7 @@ export const isEmpty = (value: unknown) => {
   );
 };
 
-export const removeEmptyProperties = (properties: { [key: string]: unknown }) => {
+export const removeEmptyProperties = (properties: { [key: string]: unknown }): { [key: string]: unknown } => {
   return Object.keys(properties).reduce((filteredProperties: { [key: string]: unknown }, key) => {
     const value = properties[key];
     if (!isEmpty(value)) {
