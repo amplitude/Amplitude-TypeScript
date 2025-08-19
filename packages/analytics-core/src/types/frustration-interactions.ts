@@ -63,7 +63,7 @@ export interface FrustrationInteractionsOptions {
   /**
    * Configuration for text redaction
    */
-  redactTextRegex?: (string | RegExp)[];
+  redactTextRegex?: (RegExp | { pattern: string; description: string })[];
 }
 
 const CLICKABLE_ELEMENT_SELECTORS = [
