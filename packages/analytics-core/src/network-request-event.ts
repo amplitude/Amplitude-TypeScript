@@ -153,7 +153,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
       headersUnsafe.forEach((value: string, key: string) => {
         headersSafeCopy[key] = value;
       });
-    } else if (typeof headersUnsafe === 'object') {
+    } else if (typeof headersUnsafe === 'object' && headersUnsafe !== null) {
       for (const [key, value] of Object.entries(headersUnsafe as Record<string, string>)) {
         headersSafeCopy[key] = value;
       }
