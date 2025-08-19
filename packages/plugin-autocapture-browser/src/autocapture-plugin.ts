@@ -31,6 +31,7 @@ import {
   createTriggerEvaluator,
   groupLabeledEventIdsByEventType,
 } from './pageActions/triggers';
+import { DataExtractor } from './data-extractor';
 
 declare global {
   interface Window {
@@ -78,6 +79,9 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   const type = 'enrichment';
 
   const subscriptions: Subscription[] = [];
+
+  // Create data extractor based on options
+  const dataExtractor = new DataExtractor(options);
 
   // Create observables on events on the window
   const createObservables = (): AllWindowObservables => {
@@ -256,6 +260,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
       /* istanbul ignore next */
       visualTaggingOptions.messenger?.setup({
+        dataExtractor: dataExtractor,
         logger: config?.loggerProvider,
         ...(config?.serverZone && { endpoint: constants.AMPLITUDE_ORIGINS_MAP[config.serverZone] }),
         isElementSelectable: createShouldTrackEvent(options, [...allowlist, ...actionClickAllowlist]),
