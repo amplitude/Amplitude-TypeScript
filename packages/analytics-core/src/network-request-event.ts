@@ -88,11 +88,11 @@ export interface IRequestWrapper {
    * @param captureSafeHeaders - Whether to capture safe headers.
    * @returns The pruned headers
    */
-  headers(allow: string[], captureSafeHeaders: boolean): Record<string, string> | undefined;
+  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined;
   bodySize?: number;
   method?: string;
   body?: FetchRequestBody | XMLHttpRequestBodyInitSafe | null;
-  json: (allow: string[], exclude: string[]) => Promise<JsonObject | null>;
+  json: (allow?: string[], exclude?: string[]) => Promise<JsonObject | null>;
 }
 
 export const MAXIMUM_ENTRIES = 100;
@@ -136,8 +136,11 @@ export class RequestWrapperFetch implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private request: RequestInitSafe) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> {
+  headers(allow: string[] = [], captureSafeHeaders = false): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
+    if (allow.length === 0 && !captureSafeHeaders) {
+      return;
+    }
     const headersUnsafe = this.request.headers;
 
     // copy the headers into a new object
@@ -184,7 +187,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
     return null;
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
     if (allow.length === 0) {
       return null;
     }
@@ -197,8 +200,11 @@ export class RequestWrapperXhr implements IRequestWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow: string[] = [], captureSafeHeaders = false): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
+    if (allow.length === 0 && !captureSafeHeaders) {
+      return;
+    }
     return pruneHeaders(this.requestHeaders, { allow, captureSafeHeaders });
   }
 
@@ -214,7 +220,10 @@ export class RequestWrapperXhr implements IRequestWrapper {
     return null;
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
+    if (allow.length === 0) {
+      return null;
+    }
     const text = this.body;
     return safeParseAndPruneBody(text, allow, exclude);
   }
@@ -300,7 +309,7 @@ export interface IResponseWrapper {
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
   text: () => Promise<string | null>;
-  json: (allow: string[], exclude: string[]) => Promise<JsonObject | null>;
+  json: (allow?: string[], exclude?: string[]) => Promise<JsonObject | null>;
 }
 
 /**
@@ -327,8 +336,11 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private response: ResponseSafe) {}
 
-  headers(allow?: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow: string[] = [], captureSafeHeaders = false): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
+    if (allow.length === 0 && !captureSafeHeaders) {
+      return;
+    }
     if (this.response.headers instanceof Headers) {
       const headersSafe = this.response.headers as HeadersResponseSafe;
       const headersOut: Record<string, string> = {};
@@ -376,7 +388,7 @@ export class ResponseWrapperFetch implements IResponseWrapper {
     }
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
     if (allow.length === 0) {
       return null;
     }
@@ -406,8 +418,11 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return this.responseText;
   }
 
-  headers(allow: string[], captureSafeHeaders?: boolean): Record<string, string> | undefined {
+  headers(allow: string[] = [], captureSafeHeaders = false): Record<string, string> | undefined {
     this.consumptionCheck.consume('headers');
+    if (allow.length === 0 && !captureSafeHeaders) {
+      return;
+    }
     if (!this.headersString) {
       return;
     }
@@ -422,7 +437,7 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     return pruneHeaders(headers, { allow, captureSafeHeaders });
   }
 
-  async json(allow: string[], exclude: string[]): Promise<JsonObject | null> {
+  async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
     if (allow.length === 0) {
       return null;
     }

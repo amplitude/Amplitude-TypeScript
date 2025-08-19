@@ -574,6 +574,15 @@ describe('NetworkObserver', () => {
     });
 
     describe('headers() should return', () => {
+      it('undefined when allowlist and captureSafeHeaders are empty', () => {
+        const requestWrapper = new RequestWrapperFetch({
+          headers: {
+            'Content-Type': 'application/fake',
+            'Content-Length': '100',
+          },
+        } as RequestInitSafe);
+        expect(requestWrapper.headers()).toEqual(undefined);
+      });
       it('an object when headers is an array', () => {
         const requestWrapper = new RequestWrapperFetch({
           headers: [
@@ -599,7 +608,7 @@ describe('NetworkObserver', () => {
             'Content-Length': '100',
           },
         } as RequestInitSafe);
-        expect(requestWrapper.headers(undefined, false)).toEqual({});
+        expect(requestWrapper.headers(undefined, false)).toEqual(undefined);
       });
     });
 
@@ -636,6 +645,12 @@ describe('NetworkObserver', () => {
     });
 
     describe('.json()', () => {
+      test('should return null if allowlist and exclude are empty', async () => {
+        const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
+        const json = await responseWrapper.json();
+        expect(json).toEqual(null);
+      });
+
       test('json should return null if no rules are set', async () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
         const json = await responseWrapper.json([], []);
@@ -674,6 +689,13 @@ describe('NetworkObserver', () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponseNoText as unknown as Response);
         const json = await responseWrapper.json(['**'], []);
         expect(json).toEqual(null);
+      });
+    });
+
+    describe('.headers()', () => {
+      test('should return undefined if allowlist and captureSafeHeaders are empty', () => {
+        const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
+        expect(responseWrapper.headers()).toEqual(undefined);
       });
     });
 
@@ -798,7 +820,23 @@ describe('RequestWrapperXhr', () => {
     expect(requestWrapper.body).toBeNull();
   });
 
+  describe('.headers()', () => {
+    test('should return undefined if allowlist and captureSafeHeaders are empty', () => {
+      const requestWrapper = new RequestWrapperXhr('Hello World!', {});
+      expect(requestWrapper.headers()).toEqual(undefined);
+    });
+  });
+
   describe('.json()', () => {
+    test('should return null if allowlist and exclude are empty', async () => {
+      const requestWrapper = new RequestWrapperXhr(
+        JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
+        {},
+      );
+      const json = await requestWrapper.json();
+      expect(json).toEqual(null);
+    });
+
     test('should parse body as JSON', async () => {
       const requestWrapper = new RequestWrapperXhr(
         JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
@@ -930,6 +968,13 @@ describe('observeXhr', () => {
 });
 
 describe('ResponseWrapperXhr', () => {
+  describe('.headers()', () => {
+    test('should return undefined if allowlist and captureSafeHeaders are empty', () => {
+      const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
+      expect(responseWrapper.headers()).toEqual(undefined);
+    });
+  });
+
   test('should return undefined if headersString is empty', async () => {
     const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
     expect(responseWrapper.headers([], true)).toEqual(undefined);
@@ -939,6 +984,12 @@ describe('ResponseWrapperXhr', () => {
   });
 
   describe('.json()', () => {
+    test('should return null if allowlist and exclude are empty', async () => {
+      const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
+      const json = await responseWrapper.json();
+      expect(json).toEqual(null);
+    });
+
     test('should return null if allowlist is empty', async () => {
       const responseWrapper = new ResponseWrapperXhr(200, '', 0, 'some text');
       const json = await responseWrapper.json([], ['secret']);
@@ -1029,6 +1080,16 @@ describe('RequestWrapperFetch', () => {
   });
 
   describe('.json()', () => {
+    test('should return null if allowlist and exclude are empty', async () => {
+      const requestWrapper = new RequestWrapperFetch({
+        body: JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),
+        headers: new Headers({ 'Content-Type': 'application/json', 'Content-Length': '1234' }),
+        status: 200,
+      } as unknown as RequestInitSafe);
+      const json = await requestWrapper.json();
+      expect(json).toEqual(null);
+    });
+
     test('should return null if allowlist is empty', async () => {
       const requestWrapper = new RequestWrapperFetch({
         body: JSON.stringify({ message: 'Hello from mock!', secret: 'secret' }),

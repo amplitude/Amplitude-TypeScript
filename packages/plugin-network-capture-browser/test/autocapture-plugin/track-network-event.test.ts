@@ -810,3 +810,119 @@ describe('version', () => {
     expect(VERSION != null).toBe(true);
   });
 });
+
+describe('parseHeaderCaptureRule', () => {
+  test('should return undefined when rule is null', () => {
+    const result = parseHeaderCaptureRule(null);
+    expect(result).toBeUndefined();
+  });
+
+  test('should return undefined when rule is false', () => {
+    const result = parseHeaderCaptureRule(false);
+    expect(result).toBeUndefined();
+  });
+
+  test('should return captureSafeHeaders true when rule is true', () => {
+    const result = parseHeaderCaptureRule(true);
+    expect(result).toEqual({
+      allowlist: [],
+      captureSafeHeaders: true,
+    });
+  });
+
+  test('should return captureSafeHeaders false when rule is undefined and experimental', () => {
+    // Mock the experimental flag
+    const originalValue = IS_HEADER_CAPTURE_EXPERIMENTAL;
+    (IS_HEADER_CAPTURE_EXPERIMENTAL as any) = true;
+
+    const result = parseHeaderCaptureRule(undefined);
+    expect(result).toEqual({
+      allowlist: [],
+      captureSafeHeaders: false,
+    });
+
+    // Restore original value
+    (IS_HEADER_CAPTURE_EXPERIMENTAL as any) = originalValue;
+  });
+
+  test('should return captureSafeHeaders true when rule is undefined and not experimental', () => {
+    // Mock the experimental flag
+    const originalValue = IS_HEADER_CAPTURE_EXPERIMENTAL;
+    (IS_HEADER_CAPTURE_EXPERIMENTAL as any) = false;
+
+    const result = parseHeaderCaptureRule(undefined);
+    expect(result).toEqual({
+      allowlist: [],
+      captureSafeHeaders: true,
+    });
+
+    // Restore original value
+    (IS_HEADER_CAPTURE_EXPERIMENTAL as any) = originalValue;
+  });
+
+  test('should return rule with defaults when rule is object with empty properties', () => {
+    const rule: HeaderCaptureRule = {};
+    const result = parseHeaderCaptureRule(rule);
+    expect(result).toEqual({
+      allowlist: [],
+      captureSafeHeaders: true,
+    });
+  });
+
+  test('should return rule with provided allowlist and captureSafeHeaders true', () => {
+    const rule: HeaderCaptureRule = {
+      allowlist: ['content-type'],
+      captureSafeHeaders: true,
+    };
+    const result = parseHeaderCaptureRule(rule);
+    expect(result).toEqual({
+      allowlist: ['content-type'],
+      captureSafeHeaders: true,
+    });
+  });
+
+  test('should return rule with provided allowlist and captureSafeHeaders false', () => {
+    const rule: HeaderCaptureRule = {
+      allowlist: ['content-type'],
+      captureSafeHeaders: false,
+    };
+    const result = parseHeaderCaptureRule(rule);
+    expect(result).toEqual({
+      allowlist: ['content-type'],
+      captureSafeHeaders: false,
+    });
+  });
+
+  test('should return undefined when rule has empty allowlist and captureSafeHeaders false', () => {
+    const rule: HeaderCaptureRule = {
+      allowlist: [],
+      captureSafeHeaders: false,
+    };
+    const result = parseHeaderCaptureRule(rule);
+    expect(result).toBeUndefined();
+  });
+
+  test('should return rule when rule has empty allowlist but captureSafeHeaders true', () => {
+    const rule: HeaderCaptureRule = {
+      allowlist: [],
+      captureSafeHeaders: true,
+    };
+    const result = parseHeaderCaptureRule(rule);
+    expect(result).toEqual({
+      allowlist: [],
+      captureSafeHeaders: true,
+    });
+  });
+
+  test('should return rule when rule has allowlist but captureSafeHeaders false', () => {
+    const rule: HeaderCaptureRule = {
+      allowlist: ['content-type', 'authorization'],
+      captureSafeHeaders: false,
+    };
+    const result = parseHeaderCaptureRule(rule);
+    expect(result).toEqual({
+      allowlist: ['content-type', 'authorization'],
+      captureSafeHeaders: false,
+    });
+  });
+});
