@@ -23,9 +23,9 @@ export class DataExtractor {
     for (const entry of rawPatterns) {
       if (entry instanceof RegExp) {
         compiled.push(entry);
-      } else if (entry && typeof (entry as { pattern: string }).pattern === 'string') {
+      } else if ('pattern' in entry && typeof (entry.pattern === 'string')) {
         try {
-          compiled.push(new RegExp((entry as { pattern: string }).pattern));
+          compiled.push(new RegExp(entry.pattern));
         } catch {
           // ignore invalid pattern strings
         }
