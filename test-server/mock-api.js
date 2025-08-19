@@ -28,7 +28,8 @@ export function configureMockApiMiddleware(middlewares) {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-      
+      res.setHeader('Authorization', 'SECRET TOKEN, THIS SHOULD NEVER BE CAPTURED BY AMPLITUDE');
+
       // Handle preflight requests
       if (req.method === 'OPTIONS') {
         res.statusCode = 200;

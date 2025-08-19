@@ -61,6 +61,8 @@ export interface NetworkCaptureRule {
   hosts?: string[];
   /**
    * URL patterns to allow for network capture. Supports wildcard.
+   *
+   * This takes precedence over `hosts`
    * @experimental This feature is experimental and may not be stable
    * @defaultValue `["*"]` all URLs
    */
