@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-globals */
 import type { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
+import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
 import {
   isTextNode,
@@ -13,6 +14,7 @@ import {
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
 import { getHierarchy } from './hierarchy';
 import type { JSONValue } from './helpers';
+import { getDataSource } from './pageActions/actions';
 
 export class DataExtractor {
   private readonly additionalRedactTextPatterns: RegExp[];
@@ -35,7 +37,6 @@ export class DataExtractor {
         }
       }
     }
-    console.log(compiled);
     this.additionalRedactTextPatterns = compiled;
   }
 
@@ -174,7 +175,27 @@ export class DataExtractor {
     return baseEvent;
   };
 
-  getText = (element: Element): string => {
+  extractDataFromDataSource = (dataSource: DataSource, contextElement: HTMLElement) => {
+    // Extract from DOM Element
+    if (dataSource.sourceType === 'DOM_ELEMENT') {
+      const sourceElement = getDataSource(dataSource, contextElement);
+      if (!sourceElement) {
+        return undefined;
+      }
+
+      if (dataSource.elementExtractType === 'TEXT') {
+        return this.getText(sourceElement);
+      } else if (dataSource.elementExtractType === 'ATTRIBUTE' && dataSource.attribute) {
+        return sourceElement.getAttribute(dataSource.attribute);
+      }
+      return undefined;
+    }
+
+    // TODO: Extract from other source types
+    return undefined;
+  };
+
+  combineText = (element: Element): string => {
     let text = '';
     if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
       element.childNodes.forEach((child) => {
@@ -184,7 +205,7 @@ export class DataExtractor {
             childText = child.textContent;
           }
         } else {
-          childText = this.getText(child as Element);
+          childText = this.combineText(child as Element);
         }
         text += childText
           .split(/(\s+)/)
@@ -196,6 +217,10 @@ export class DataExtractor {
       });
     }
     return text;
+  };
+
+  getText = (element: Element): string => {
+    return this.combineText(element).trim();
   };
 
   // Returns the element properties for the given element in Visual Labeling.
