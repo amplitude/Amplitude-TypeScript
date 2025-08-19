@@ -80,10 +80,10 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual(false);
     });
 
-    test('should return true when email has dots in domain name before final dot', () => {
+    test('should return false when email has dots in domain name before final dot', () => {
       const text = 'user@sub.domain.example.com';
       const result = isNonSensitiveString(text);
-      expect(result).toEqual(true);
+      expect(result).toEqual(false);
     });
 
     test('should return true when text is not a string', () => {
