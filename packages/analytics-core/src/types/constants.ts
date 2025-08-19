@@ -54,3 +54,58 @@ export const BASE_CAMPAIGN: Campaign = {
 };
 
 export const MKTG = 'MKTG';
+
+// list of Network headers that are safe to capture
+export const SAFE_HEADERS = [
+  'access-control-allow-origin',
+  'access-control-allow-credentials',
+  'access-control-expose-headers',
+  'access-control-max-age',
+  'access-control-allow-methods',
+  'access-control-allow-headers',
+  'accept-patch',
+  'accept-ranges',
+  'age',
+  'allow',
+  'alt-svc',
+  'cache-control',
+  'connection',
+  'content-disposition',
+  'content-encoding',
+  'content-language',
+  'content-length',
+  'content-location',
+  'content-md5',
+  'content-range',
+  'content-type',
+  'date',
+  'delta-base',
+  'etag',
+  'expires',
+  'im',
+  'last-modified',
+  'link',
+  'location',
+  'permanent',
+  'p3p',
+  'pragma',
+  'proxy-authenticate',
+  'public-key-pins',
+  'retry-after',
+  'server',
+  'status',
+  'strict-transport-security',
+  'trailer',
+  'transfer-encoding',
+  'tk',
+  'upgrade',
+  'vary',
+  'via',
+  'warning',
+  'www-authenticate',
+  'x-b3-traceid',
+  'x-frame-options',
+];
+
+// list of Network headers to never capture
+export const FORBIDDEN_HEADERS = ['authorization', 'cookie', 'set-cookie'];

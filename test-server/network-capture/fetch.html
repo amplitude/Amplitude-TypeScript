@@ -71,32 +71,20 @@
                 {
                   hosts: ['*.amplitude.com'],
                   statusCodeRange: '400-599',
-                  requestHeaders: {
-                    captureSafeHeaders: true,
-                  },
-                  responseHeaders: {
-                    captureSafeHeaders: true,
-                  },
+                  requestHeaders: true,
+                  responseHeaders: true,
                 },
                 {
                   hosts: ['localhost', '127.0.0.1'],
                   statusCodeRange: '0,400-599',
-                  requestHeaders: {
-                    captureSafeHeaders: true,
-                  },
-                  responseHeaders: {
-                    captureSafeHeaders: true,
-                  },
+                  requestHeaders: true,
+                  responseHeaders: true,
                 },
                 {
                   hosts: ['*'],
                   statusCodeRange: '0,300-599',
-                  requestHeaders: {
-                    captureSafeHeaders: true,
-                  },
-                  responseHeaders: {
-                    captureSafeHeaders: true,
-                  },
+                  requestHeaders: true,
+                  responseHeaders: true,
                 },
               ],
             },
