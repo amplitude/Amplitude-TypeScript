@@ -81,8 +81,8 @@
               {
                 hosts: ['*'],
                 statusCodeRange: '0,300-599',
-                responseHeaders: { captureSafeHeaders: true },
-                requestHeaders: { captureSafeHeaders: true },
+                responseHeaders: true,
+                requestHeaders: true,
                 responseBody: { allowlist: ['*'] },
                 requestBody: { allowlist: ['*'] },
               },

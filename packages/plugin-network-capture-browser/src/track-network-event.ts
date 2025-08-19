@@ -6,12 +6,13 @@ import {
   getGlobalScope,
   JsonObject,
   isUrlMatchAllowlist,
+  SAFE_HEADERS,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
 import { IRequestWrapper } from '@amplitude/analytics-core';
-import { BodyCaptureRule, HeaderCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
+import { BodyCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -126,41 +127,25 @@ function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWr
  * @param rule - The header capture rule to parse.
  * @returns A HeaderCaptureRule object.
  */
-export function parseHeaderCaptureRule(
-  rule: HeaderCaptureRule | boolean | undefined | null,
-): HeaderCaptureRule | undefined {
+export function parseHeaderCaptureRule(rule: string[] | boolean | undefined | null): string[] | undefined {
   if (typeof rule !== 'object' || rule === null) {
-    // if rule is truthy or undefined, captureSafeHeaders only
+    // if rule is truthy or undefined, return SAFE_HEADERS
     if (rule) {
-      return {
-        allowlist: [],
-        captureSafeHeaders: true,
-      };
+      return [...SAFE_HEADERS];
     } else if (rule === undefined) {
-      return {
-        allowlist: [],
-        // while header is experimental, default to false so that
-        // we don't capture headers by default yet
-        captureSafeHeaders: !IS_HEADER_CAPTURE_EXPERIMENTAL,
-      };
+      /* istanbul ignore next */
+      const res = IS_HEADER_CAPTURE_EXPERIMENTAL ? undefined : [...SAFE_HEADERS];
+      return res;
     }
     return;
   }
 
-  // if rule is object, return the rule with allowlist defaulting to []
-  // and captureSafeHeaders defaulting to true
-  const parsedRule = {
-    allowlist: rule.allowlist || [],
-    captureSafeHeaders: !!rule.captureSafeHeaders || rule.captureSafeHeaders === undefined,
-  };
-
-  // if the rule is defined, but it's params are empty, just return undefined
-  // to avoid unneeded header capturing
-  if (parsedRule.allowlist.length === 0 && !parsedRule.captureSafeHeaders) {
+  // if the rule is defined but empty, return undefined
+  if (rule.length === 0) {
     return;
   }
 
-  return parsedRule;
+  return rule;
 }
 
 function isBodyCaptureRuleEmpty(rule: BodyCaptureRule) {
@@ -211,10 +196,7 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
       if (isMatch) {
         const responseHeadersRule = parseHeaderCaptureRule(rule.responseHeaders);
         if (networkEvent.responseWrapper && responseHeadersRule) {
-          const responseHeaders = networkEvent.responseWrapper.headers(
-            responseHeadersRule.allowlist,
-            responseHeadersRule.captureSafeHeaders || false,
-          );
+          const responseHeaders = networkEvent.responseWrapper.headers(responseHeadersRule);
           if (responseHeaders) {
             networkEvent.responseHeaders = responseHeaders;
           }
@@ -223,10 +205,7 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
         // if requestHeaders rule is specified, enrich the event with the request headers
         const requestHeadersRule = parseHeaderCaptureRule(rule.requestHeaders);
         if (networkEvent.requestWrapper && requestHeadersRule) {
-          const requestHeaders = networkEvent.requestWrapper.headers(
-            requestHeadersRule.allowlist,
-            requestHeadersRule.captureSafeHeaders || false,
-          );
+          const requestHeaders = networkEvent.requestWrapper.headers(requestHeadersRule);
           if (requestHeaders) {
             networkEvent.requestHeaders = requestHeaders;
           }

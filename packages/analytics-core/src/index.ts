@@ -63,6 +63,7 @@ export {
   DEFAULT_DATA_ATTRIBUTE_PREFIX,
   DEFAULT_ACTION_CLICK_ALLOWLIST,
 } from './types/element-interactions';
+
 export {
   FrustrationInteractionsOptions,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
@@ -77,6 +78,7 @@ export { Status } from './types/status';
 export { NetworkEventCallback, networkObserver } from './network-observer';
 export { NetworkRequestEvent, IRequestWrapper, JsonObject, JsonValue, JsonArray } from './network-request-event';
 export { NetworkTrackingOptions, NetworkCaptureRule } from './types/network-tracking';
+export { SAFE_HEADERS, FORBIDDEN_HEADERS } from './types/constants';
 
 export { PageUrlEnrichmentOptions } from './types/page-url-enrichment';
 
