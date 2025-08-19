@@ -19,6 +19,7 @@ export class DataExtractor {
 
   constructor(options: ElementInteractionsOptions) {
     const rawPatterns = options.redactTextRegex ?? [];
+
     const compiled: RegExp[] = [];
     for (const entry of rawPatterns) {
       if (compiled.length >= constants.MAX_REDACT_TEXT_PATTERNS) {
@@ -34,6 +35,7 @@ export class DataExtractor {
         }
       }
     }
+    console.log(compiled);
     this.additionalRedactTextPatterns = compiled;
   }
 

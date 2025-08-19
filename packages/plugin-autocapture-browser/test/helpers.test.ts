@@ -9,9 +9,7 @@ import {
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
-  // ElementBasedTimestampedEvent,
 } from '../src/helpers';
-// import { mockWindowLocationFromURL } from './utils';
 
 describe('autocapture-plugin helpers', () => {
   afterEach(() => {
@@ -69,8 +67,6 @@ describe('autocapture-plugin helpers', () => {
       expect(isNonSensitiveElement(element)).toEqual(false);
     });
   });
-
-  // moved to data-extractor.test.ts: getText
 
   describe('getAttributesWithPrefix', () => {
     test('should return attributes when matching the prefix', () => {
@@ -168,8 +164,6 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  // moved to data-extractor.test.ts: getNearestLabel
-
   describe('querySelectUniqueElements', () => {
     test('should return unique elements with selector under root', () => {
       const container = document.createElement('div');
@@ -245,8 +239,6 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  // moved to data-extractor.test.ts: getEventTagProps
-
   describe('asyncLoadScript', () => {
     test('should append the script to document and resolve with status true', () => {
       void asyncLoadScript('https://test-url.amplitude/').then((result) => {
@@ -318,6 +310,4 @@ describe('autocapture-plugin helpers', () => {
       document.head.removeChild(style);
     });
   });
-
-  // moved to data-extractor.test.ts: addAdditionalEventProperties
 });
