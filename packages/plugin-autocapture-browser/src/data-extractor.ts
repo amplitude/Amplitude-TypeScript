@@ -17,13 +17,16 @@ import type { JSONValue } from './helpers';
 export class DataExtractor {
   private readonly additionalRedactTextPatterns: RegExp[];
 
-  constructor(options: ElementInteractionsOptions = {}) {
+  constructor(options: ElementInteractionsOptions) {
     const rawPatterns = options.redactTextRegex ?? [];
     const compiled: RegExp[] = [];
     for (const entry of rawPatterns) {
+      if (compiled.length >= constants.MAX_REDACT_TEXT_PATTERNS) {
+        break;
+      }
       if (entry instanceof RegExp) {
         compiled.push(entry);
-      } else if ('pattern' in entry && typeof (entry.pattern === 'string')) {
+      } else if ('pattern' in entry && typeof entry.pattern === 'string') {
         try {
           compiled.push(new RegExp(entry.pattern));
         } catch {
@@ -35,30 +38,39 @@ export class DataExtractor {
   }
 
   isNonSensitiveString = (text: string | null): boolean => {
+    // if text is null, it can't be sensitive
     if (text == null) {
       return false;
     }
-    if (typeof text === 'string') {
-      const normalized = (text || '').replace(/[- ]/g, '');
-      const ccRegex =
-        /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
-      if (ccRegex.test(normalized)) {
-        return false;
-      }
-      const ssnRegex = /(^\d{3}-?\d{2}-?\d{4}$)/;
-      if (ssnRegex.test(text)) {
-        return false;
-      }
-      for (const pattern of this.additionalRedactTextPatterns) {
-        try {
-          if (pattern.test(text)) {
-            return false;
-          }
-        } catch {
-          // ignore invalid pattern
+
+    if (typeof text !== 'string') {
+      return true;
+    }
+
+    // Check for credit card number
+    const ccRegex =
+      /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
+    if (ccRegex.test(text)) {
+      return false;
+    }
+
+    // Check for social security number
+    const ssnRegex = /(^\d{3}-?\d{2}-?\d{4}$)/;
+    if (ssnRegex.test(text)) {
+      return false;
+    }
+
+    // Check for additional redact text patterns
+    for (const pattern of this.additionalRedactTextPatterns) {
+      try {
+        if (pattern.test(text)) {
+          return false;
         }
+      } catch {
+        // ignore invalid pattern
       }
     }
+
     return true;
   };
 
@@ -88,9 +100,7 @@ export class DataExtractor {
     const tag = element?.tagName?.toLowerCase?.();
     /* istanbul ignore next */
     const rect =
-      typeof (element as HTMLElement).getBoundingClientRect === 'function'
-        ? (element as HTMLElement).getBoundingClientRect()
-        : { left: null as number | null, top: null as number | null };
+      typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
     const ariaLabel = element.getAttribute('aria-label');
     const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
     const nearestLabel = this.getNearestLabel(element);
@@ -106,11 +116,10 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
-      [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]:
-        typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
       [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
-      [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: typeof window !== 'undefined' ? window.innerHeight : undefined,
-      [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: typeof window !== 'undefined' ? window.innerWidth : undefined,
+      [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
+      [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
@@ -166,7 +175,7 @@ export class DataExtractor {
   getText = (element: Element): string => {
     let text = '';
     if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
-      for (const child of Array.from(element.childNodes)) {
+      element.childNodes.forEach((child) => {
         let childText = '';
         if (isTextNode(child)) {
           if (child.textContent) {
@@ -177,12 +186,12 @@ export class DataExtractor {
         }
         text += childText
           .split(/(\s+)/)
-          .filter((t) => this.isNonSensitiveString(t))
+          .filter(this.isNonSensitiveString)
           .join('')
           .replace(/[\r\n]/g, ' ')
           .replace(/[ ]+/g, ' ')
           .substring(0, 255);
-      }
+      });
     }
     return text;
   };
@@ -190,14 +199,15 @@ export class DataExtractor {
   // Returns the element properties for the given element in Visual Labeling.
   getEventTagProps = (element: Element): Record<string, JSONValue> => {
     if (!element) {
-      return {} as Record<string, JSONValue>;
+      return {};
     }
+    /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
-    const properties: Record<string, JSONValue> = {
+
+    const properties = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: this.getText(element),
-      [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]:
-        typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
     };
     return removeEmptyProperties(properties) as Record<string, JSONValue>;
   };

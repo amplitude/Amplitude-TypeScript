@@ -1,4 +1,5 @@
 import { DataExtractor } from '../src/data-extractor';
+import * as constants from '../src/constants';
 import { mockWindowLocationFromURL } from './utils';
 import type { ElementBasedTimestampedEvent } from '../src/helpers';
 
@@ -22,10 +23,45 @@ describe('data extractor', () => {
       expect(result).toEqual(true);
     });
 
+    // https://www.paypalobjects.com/en_AU/vhelp/paypalmanager_help/credit_card_numbers.htm
     test('should return false when text is credit card format', () => {
-      const text = '4916024123820164';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const sampleCreditCardNumbers = [
+        // American Express
+        '378282246310005',
+        // American Express
+        '371449635398431',
+        // American Express Corporate
+        '378734493671000',
+        // Diners Club
+        '30569309025904',
+        // Diners Club
+        '38520000023237',
+        // Discover
+        '6011111111111117',
+        // Discover
+        '6011000990139424',
+        // JCB
+        '3530111333300000',
+        // JCB
+        '3566002020360505',
+        // MasterCard
+        '5555555555554444',
+        // MasterCard
+        '5105105105105100',
+        // Visa
+        '4111111111111111',
+        // Visa
+        '4012888888881881',
+        // Visa (13 digits). Note: Even though this number has a different character count than the other test numbers, it is the correct and functional number.
+        '4222222222222',
+        // Visa
+        '4916024123820164',
+      ];
+
+      for (const text of sampleCreditCardNumbers) {
+        const result = dataExtractor.isNonSensitiveString(text);
+        expect(result).toEqual(false);
+      }
     });
 
     test('should return false when text is social security number format', () => {
@@ -73,6 +109,17 @@ describe('data extractor', () => {
 
       expect(result).toEqual(false);
       expect(result2).toEqual(false);
+    });
+
+    test('should cap redactTextRegex over MAX_REDACT_TEXT_PATTERNS', () => {
+      const overLimit = constants.MAX_REDACT_TEXT_PATTERNS + 5;
+      const patterns = Array.from({ length: overLimit }, (_v, i) => new RegExp(`\\btoken${i + 1}\\b`));
+      const extractor = new DataExtractor({ redactTextRegex: patterns });
+
+      // Matches within the cap should be redacted
+      expect(extractor.isNonSensitiveString(`token${constants.MAX_REDACT_TEXT_PATTERNS}`)).toEqual(false);
+      // Matches beyond the cap should NOT be redacted
+      expect(extractor.isNonSensitiveString(`token${constants.MAX_REDACT_TEXT_PATTERNS + 1}`)).toEqual(true);
     });
   });
 
