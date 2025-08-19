@@ -59,6 +59,11 @@ export interface FrustrationInteractionsOptions {
    * Configuration for rage clicks tracking
    */
   rageClicks?: RageClickOptions;
+
+  /**
+   * Configuration for text redaction
+   */
+  redactTextRegex?: (string | RegExp)[];
 }
 
 const CLICKABLE_ELEMENT_SELECTORS = [

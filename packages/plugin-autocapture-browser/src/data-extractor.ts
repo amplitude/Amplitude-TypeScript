@@ -1,15 +1,37 @@
 /* eslint-disable no-restricted-globals */
-import type { ElementInteractionsOptions } from '@amplitude/analytics-core';
+import type { ElementInteractionsOptions, ActionType } from '@amplitude/analytics-core';
 import * as constants from './constants';
-import { isNonSensitiveElement, isTextNode, removeEmptyProperties } from './helpers';
+import {
+  isTextNode,
+  removeEmptyProperties,
+  isNonSensitiveElement,
+  getAttributesWithPrefix,
+  isElementPointerCursor,
+  getClosestElement,
+  isElementBasedEvent,
+} from './helpers';
+import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
+import { getHierarchy } from './hierarchy';
 import type { JSONValue } from './helpers';
 
 export class DataExtractor {
   private readonly additionalRedactTextPatterns: RegExp[];
 
-  constructor(private readonly options: ElementInteractionsOptions & { redactTextRegex?: RegExp[] } = {}) {
-    // TODO parse into a regex object
-    this.additionalRedactTextPatterns = this.options.redactTextRegex ?? []; // TODO parse into a regex object
+  constructor(options: ElementInteractionsOptions = {}) {
+    const rawPatterns = options.redactTextRegex ?? [];
+    const compiled: RegExp[] = [];
+    for (const entry of rawPatterns) {
+      if (entry instanceof RegExp) {
+        compiled.push(entry);
+      } else if (entry && typeof (entry as { pattern: string }).pattern === 'string') {
+        try {
+          compiled.push(new RegExp((entry as { pattern: string }).pattern));
+        } catch {
+          // ignore invalid pattern strings
+        }
+      }
+    }
+    this.additionalRedactTextPatterns = compiled;
   }
 
   isNonSensitiveString = (text: string | null): boolean => {
@@ -38,6 +60,107 @@ export class DataExtractor {
       }
     }
     return true;
+  };
+
+  getNearestLabel = (element: Element): string => {
+    const parent = element.parentElement;
+    if (!parent) {
+      return '';
+    }
+    let labelElement: Element | null;
+    try {
+      labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
+    } catch {
+      /* istanbul ignore next */
+      labelElement = null;
+    }
+    if (labelElement) {
+      /* istanbul ignore next */
+      const labelText = labelElement.textContent || '';
+      return this.isNonSensitiveString(labelText) ? labelText : '';
+    }
+    return this.getNearestLabel(parent);
+  };
+
+  // Returns the Amplitude event properties for the given element.
+  getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
+    /* istanbul ignore next */
+    const tag = element?.tagName?.toLowerCase?.();
+    /* istanbul ignore next */
+    const rect =
+      typeof (element as HTMLElement).getBoundingClientRect === 'function'
+        ? (element as HTMLElement).getBoundingClientRect()
+        : { left: null as number | null, top: null as number | null };
+    const ariaLabel = element.getAttribute('aria-label');
+    const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
+    const nearestLabel = this.getNearestLabel(element);
+    /* istanbul ignore next */
+    const properties: Record<string, unknown> = {
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: this.getText(element),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]:
+        typeof window !== 'undefined' ? window.location.href.split('?')[0] : '',
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
+      [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: typeof window !== 'undefined' ? window.innerHeight : undefined,
+      [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: typeof window !== 'undefined' ? window.innerWidth : undefined,
+    };
+    if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
+    }
+    return removeEmptyProperties(properties);
+  };
+
+  addAdditionalEventProperties = <T>(
+    event: T,
+    type: TimestampedEvent<T>['type'],
+    selectorAllowlist: string[],
+    dataAttributePrefix: string,
+    // capture the event if the cursor is a "pointer" when this element is clicked on
+    // reason: a "pointer" cursor indicates that an element should be interactable
+    //         regardless of the element's tag name
+    isCapturingCursorPointer = false,
+  ): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
+    const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
+      event,
+      timestamp: Date.now(),
+      type,
+    };
+
+    if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
+      if (isCapturingCursorPointer) {
+        const isCursorPointer = isElementPointerCursor(baseEvent.event.target as Element, baseEvent.type);
+        if (isCursorPointer) {
+          baseEvent.closestTrackedAncestor = baseEvent.event.target as HTMLElement;
+          baseEvent.targetElementProperties = this.getEventProperties(
+            baseEvent.type,
+            baseEvent.closestTrackedAncestor,
+            dataAttributePrefix,
+          );
+          return baseEvent;
+        }
+      }
+      // Retrieve additional event properties from the target element
+      const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
+      if (closestTrackedAncestor) {
+        baseEvent.closestTrackedAncestor = closestTrackedAncestor;
+        baseEvent.targetElementProperties = this.getEventProperties(
+          baseEvent.type,
+          closestTrackedAncestor,
+          dataAttributePrefix,
+        );
+      }
+      return baseEvent;
+    }
+
+    return baseEvent;
   };
 
   getText = (element: Element): string => {

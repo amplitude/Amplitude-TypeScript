@@ -12,9 +12,7 @@ import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as constants from './constants';
 import { fromEvent, map, type Observable, type Subscription, share } from 'rxjs';
 import {
-  addAdditionalEventProperties,
   createShouldTrackEvent,
-  getEventProperties,
   type ElementBasedTimestampedEvent,
   type TimestampedEvent,
   type NavigateEvent,
@@ -88,7 +86,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     // Create Observables from direct user events
     const clickObservable = createClickObservable().pipe(
       map((click) =>
-        addAdditionalEventProperties(
+        dataExtractor.addAdditionalEventProperties(
           click,
           'click',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -99,7 +97,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     );
     const changeObservable = fromEvent<Event>(document, 'change', { capture: true }).pipe(
       map((change) =>
-        addAdditionalEventProperties(
+        dataExtractor.addAdditionalEventProperties(
           change,
           'change',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -120,7 +118,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     if (window.navigation) {
       navigateObservable = fromEvent<NavigateEvent>(window.navigation, 'navigate').pipe(
         map((navigate) =>
-          addAdditionalEventProperties(
+          dataExtractor.addAdditionalEventProperties(
             navigate,
             'navigate',
             (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -134,7 +132,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     // Track DOM Mutations using shared observable
     const mutationObservable = createMutationObservable().pipe(
       map((mutation) =>
-        addAdditionalEventProperties(
+        dataExtractor.addAdditionalEventProperties(
           mutation,
           'mutation',
           (options as AutoCaptureOptionsWithDefaults).cssSelectorAllowlist,
@@ -233,7 +231,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
 
     const changeSubscription = trackChange({
       allObservables,
-      getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
+      getEventProperties: (...args) => dataExtractor.getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent: shouldTrackEvent,
       evaluateTriggers: evaluateTriggers.evaluate.bind(evaluateTriggers),
@@ -243,7 +241,7 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
     const actionClickSubscription = trackActionClick({
       allObservables,
       options: options as AutoCaptureOptionsWithDefaults,
-      getEventProperties: (...args) => getEventProperties(...args, dataAttributePrefix),
+      getEventProperties: (...args) => dataExtractor.getEventProperties(...args, dataAttributePrefix),
       amplitude,
       shouldTrackEvent,
       shouldTrackActionClick: shouldTrackActionClick,
