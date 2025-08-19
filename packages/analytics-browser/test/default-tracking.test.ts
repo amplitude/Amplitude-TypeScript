@@ -469,6 +469,55 @@ describe('getNetworkTrackingConfig', () => {
     });
     expect(config).toBeUndefined();
   });
+
+  describe('captureRules.urls and .hosts combinations', () => {
+    const networkTracking = {
+      captureRules: [
+        { urls: ['https://example.com/path', /path\/to/], hosts: ['example.com'] },
+        { hosts: ['example.com', 'helloworld.com'] },
+      ],
+    };
+
+    test('should ignore hosts if urls are set', () => {
+      const captureRules =
+        getNetworkTrackingConfig({
+          autocapture: { networkTracking },
+        })?.captureRules || [];
+      const ruleWithBothSet = captureRules[0];
+      expect(ruleWithBothSet.hosts).toBeUndefined();
+      expect(ruleWithBothSet.urls).toEqual(['https://example.com/path', /path\/to/]);
+    });
+
+    test('should keep hosts if urls are not set', () => {
+      const captureRules =
+        getNetworkTrackingConfig({
+          autocapture: { networkTracking },
+        })?.captureRules || [];
+      const ruleWithOnlyHosts = captureRules[1];
+      expect(ruleWithOnlyHosts.hosts).toEqual(['example.com', 'helloworld.com']);
+      expect(ruleWithOnlyHosts.urls).toBeUndefined();
+    });
+
+    test('should not do anything if captureRules is not set', () => {
+      const config = getNetworkTrackingConfig({
+        autocapture: { networkTracking: {} },
+      });
+      expect(config?.captureRules).toBeUndefined();
+    });
+
+    test('should apply captureRules to networkTrackingOptions', () => {
+      const networkTrackingOptions = {
+        captureRules: [{ urls: ['https://example.com/path', /path\/to/], hosts: ['example.com'] }],
+      };
+      const config = getNetworkTrackingConfig({
+        autocapture: { networkTracking: true },
+        networkTrackingOptions,
+      });
+      const ruleWithBothSet = config?.captureRules?.[0];
+      expect(ruleWithBothSet?.urls).toEqual(['https://example.com/path', /path\/to/]);
+      expect(ruleWithBothSet?.hosts).toBeUndefined();
+    });
+  });
 });
 
 describe('getElementInteractionsConfig', () => {
