@@ -107,40 +107,6 @@ export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };
 
-export const isNonSensitiveElement = (element: Element) => {
-  /* istanbul ignore next */
-  const tag = element?.tagName?.toLowerCase?.();
-  const isContentEditable =
-    element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
-
-  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
-};
-
-// Maybe this can be simplified with element.innerText, keep and manual concatenating for now, more research needed.
-export const getText = (element: Element): string => {
-  let text = '';
-  if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
-    element.childNodes.forEach((child) => {
-      let childText = '';
-      if (isTextNode(child)) {
-        if (child.textContent) {
-          childText = child.textContent;
-        }
-      } else {
-        childText = getText(child as Element);
-      }
-      text += childText
-        .split(/(\s+)/)
-        .filter(isNonSensitiveString)
-        .join('')
-        .replace(/[\r\n]/g, ' ')
-        .replace(/[ ]+/g, ' ')
-        .substring(0, 255);
-    });
-  }
-  return text;
-};
-
 export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
   return element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
     if (attributeName.startsWith(prefix)) {
@@ -220,22 +186,6 @@ export const getClosestElement = (element: Element | null, selectors: string[]):
   }
   /* istanbul ignore next */
   return getClosestElement(element?.parentElement, selectors);
-};
-
-// Returns the element properties for the given element in Visual Labeling.
-export const getEventTagProps = (element: Element) => {
-  if (!element) {
-    return {};
-  }
-  /* istanbul ignore next */
-  const tag = element?.tagName?.toLowerCase?.();
-
-  const properties: Record<string, JSONValue> = {
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
-    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
-  };
-  return removeEmptyProperties(properties);
 };
 
 export const asyncLoadScript = (url: string) => {

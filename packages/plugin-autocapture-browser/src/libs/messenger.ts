@@ -6,9 +6,10 @@ import {
   AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL,
   AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS,
 } from '../constants';
-import { asyncLoadScript, generateUniqueId, getEventTagProps } from '../helpers';
+import { asyncLoadScript, generateUniqueId } from '../helpers';
 import { ILogger, Messenger, ActionType } from '@amplitude/analytics-core';
 import { VERSION } from '../version';
+import type { DataExtractor } from '../data-extractor';
 
 export type Action =
   | 'ping'
@@ -138,12 +139,14 @@ export class WindowMessenger implements Messenger {
     isElementSelectable,
     cssSelectorAllowlist,
     actionClickAllowlist,
+    dataExtractor,
   }: {
     logger?: ILogger;
     endpoint?: string;
     isElementSelectable?: (action: InitializeVisualTaggingSelectorData['actionType'], element: Element) => boolean;
     cssSelectorAllowlist?: string[];
     actionClickAllowlist?: string[];
+    dataExtractor: DataExtractor;
   } = {}) {
     this.logger = logger;
     // If endpoint is customized, don't override it.
@@ -184,7 +187,7 @@ export class WindowMessenger implements Messenger {
             .then(() => {
               // eslint-disable-next-line
               amplitudeVisualTaggingSelectorInstance = (window as any)?.amplitudeVisualTaggingSelector?.({
-                getEventTagProps,
+                getEventTagProps: dataExtractor.getEventTagProps,
                 isElementSelectable: (element: Element) => {
                   if (isElementSelectable) {
                     return isElementSelectable(actionData?.actionType || 'click', element);
