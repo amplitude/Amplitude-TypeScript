@@ -56,6 +56,12 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual(false);
     });
 
+    test('should return false when text is email address format with special character in local part', () => {
+      const text = 'user.@example.com';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
     test('should return true when text is not a string', () => {
       const text = 123;
       const result = isNonSensitiveString(text as unknown as string);
