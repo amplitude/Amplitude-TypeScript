@@ -256,7 +256,7 @@ describe('data extractor', () => {
       const inner = document.getElementById('inner');
       expect(dataExtractor.getEventTagProps(inner as HTMLElement)).toEqual({
         '[Amplitude] Element Tag': 'div',
-        '[Amplitude] Element Text': ' xxx ',
+        '[Amplitude] Element Text': 'xxx',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
       });
     });
@@ -277,7 +277,7 @@ describe('data extractor', () => {
       const inner = document.getElementsByClassName('amp-visual-tagging-selector-highlight')[0];
       expect(dataExtractor.getEventTagProps(inner as HTMLElement)).toEqual({
         '[Amplitude] Element Tag': 'div',
-        '[Amplitude] Element Text': ' xxx ',
+        '[Amplitude] Element Text': 'xxx',
         '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
       });
     });

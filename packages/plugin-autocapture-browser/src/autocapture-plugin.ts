@@ -157,7 +157,12 @@ export const autocapturePlugin = (options: ElementInteractionsOptions = {}): Bro
   let labeledEventToTriggerMap = createLabeledEventToTriggerMap(options.pageActions?.triggers ?? []);
 
   // Evaluate triggers for the given event by running the actions associated with the matching triggers
-  const evaluateTriggers = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
+  const evaluateTriggers = createTriggerEvaluator(
+    groupedLabeledEvents,
+    labeledEventToTriggerMap,
+    dataExtractor,
+    options,
+  );
 
   // Function to recalculate internal variables when remote config is updated
   const recomputePageActionsData = (remotePageActions: ElementInteractionsOptions['pageActions']) => {
