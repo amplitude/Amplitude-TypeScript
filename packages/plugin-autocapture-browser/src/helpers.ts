@@ -95,7 +95,7 @@ export const isNonSensitiveString = (text: string | null) => {
     if (ssnRegex.test(text)) {
       return false;
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /[^\s@]+@[^\s@]+\.[^\s@]+/;
     if (emailRegex.test(text)) {
       return false;
     }

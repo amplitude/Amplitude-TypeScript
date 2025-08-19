@@ -56,8 +56,26 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual(false);
     });
 
-    test('should return false when text is email address format with special character in local part', () => {
-      const text = 'user.@example.com';
+    test('should return false when text contains email address within other text', () => {
+      const text = 'Contact us at support@example.com for help';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address at the beginning', () => {
+      const text = 'user@example.com is the admin';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address at the end', () => {
+      const text = 'Send feedback to feedback@company.org';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains multiple email addresses', () => {
+      const text = 'Contact admin@example.com or support@example.com';
       const result = isNonSensitiveString(text);
       expect(result).toEqual(false);
     });
