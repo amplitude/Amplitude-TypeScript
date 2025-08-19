@@ -1,7 +1,5 @@
 /* eslint-disable no-restricted-globals */
-import * as constants from './constants';
 import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist } from '@amplitude/analytics-core';
-import { getHierarchy } from './hierarchy';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -107,6 +105,15 @@ export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };
 
+export const isNonSensitiveElement = (element: Element) => {
+  /* istanbul ignore next */
+  const tag = element?.tagName?.toLowerCase?.();
+  const isContentEditable =
+    element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
+
+  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
+};
+
 export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
   return element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
     if (attributeName.startsWith(prefix)) {
@@ -137,26 +144,6 @@ export const removeEmptyProperties = (properties: { [key: string]: unknown }) =>
     }
     return filteredProperties;
   }, {});
-};
-
-export const getNearestLabel = (element: Element): string => {
-  const parent = element.parentElement;
-  if (!parent) {
-    return '';
-  }
-  let labelElement;
-  try {
-    labelElement = parent.querySelector(':scope>span,h1,h2,h3,h4,h5,h6');
-  } catch (error) {
-    /* istanbul ignore next */
-    labelElement = null;
-  }
-  if (labelElement) {
-    /* istanbul ignore next */
-    const labelText = labelElement.textContent || '';
-    return isNonSensitiveString(labelText) ? labelText : '';
-  }
-  return getNearestLabel(parent);
 };
 
 export const querySelectUniqueElements = (root: Element | Document, selectors: string[]): Element[] => {
@@ -231,89 +218,10 @@ export const filterOutNonTrackableEvents = (event: ElementBasedTimestampedEvent<
   return true;
 };
 
-// Returns the Amplitude event properties for the given element.
-export const getEventProperties = (actionType: ActionType, element: Element, dataAttributePrefix: string) => {
-  /* istanbul ignore next */
-  const tag = element?.tagName?.toLowerCase?.();
-  /* istanbul ignore next */
-  const rect =
-    typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
-  const ariaLabel = element.getAttribute('aria-label');
-  const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
-  const nearestLabel = getNearestLabel(element);
-  /* istanbul ignore next */
-  const properties: Record<string, any> = {
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
-    [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
-    [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
-    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
-    [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
-  };
-  if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
-    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
-  }
-  return removeEmptyProperties(properties);
-};
-
 export type AutoCaptureOptionsWithDefaults = Required<
   Pick<ElementInteractionsOptions, 'debounceTime' | 'cssSelectorAllowlist' | 'actionClickAllowlist'>
 > &
   ElementInteractionsOptions;
-
-export const addAdditionalEventProperties = <T>(
-  event: T,
-  type: TimestampedEvent<T>['type'],
-  selectorAllowlist: string[],
-  dataAttributePrefix: string,
-
-  // capture the event if the cursor is a "pointer" when this element is clicked on
-  // reason: a "pointer" cursor indicates that an element should be interactable
-  //         regardless of the element's tag name
-  isCapturingCursorPointer = false,
-): TimestampedEvent<T> | ElementBasedTimestampedEvent<T> => {
-  const baseEvent: BaseTimestampedEvent<T> | ElementBasedTimestampedEvent<T> = {
-    event,
-    timestamp: Date.now(),
-    type,
-  };
-
-  if (isElementBasedEvent(baseEvent) && baseEvent.event.target !== null) {
-    if (isCapturingCursorPointer) {
-      const isCursorPointer = isElementPointerCursor(baseEvent.event.target as Element, baseEvent.type);
-      if (isCursorPointer) {
-        baseEvent.closestTrackedAncestor = baseEvent.event.target as HTMLElement;
-        baseEvent.targetElementProperties = getEventProperties(
-          baseEvent.type,
-          baseEvent.closestTrackedAncestor,
-          dataAttributePrefix,
-        );
-        return baseEvent;
-      }
-    }
-    // Retrieve additional event properties from the target element
-    const closestTrackedAncestor = getClosestElement(baseEvent.event.target as HTMLElement, selectorAllowlist);
-    if (closestTrackedAncestor) {
-      baseEvent.closestTrackedAncestor = closestTrackedAncestor;
-      baseEvent.targetElementProperties = getEventProperties(
-        baseEvent.type,
-        closestTrackedAncestor,
-        dataAttributePrefix,
-      );
-    }
-    return baseEvent;
-  }
-
-  return baseEvent;
-};
 
 // Base TimestampedEvent type
 export type BaseTimestampedEvent<T> = {

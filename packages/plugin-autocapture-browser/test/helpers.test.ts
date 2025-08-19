@@ -1,22 +1,17 @@
 import {
-  isNonSensitiveString,
   isTextNode,
   isNonSensitiveElement,
-  getText,
   getAttributesWithPrefix,
   isEmpty,
   removeEmptyProperties,
-  getNearestLabel,
   querySelectUniqueElements,
   getClosestElement,
-  getEventTagProps,
   asyncLoadScript,
   generateUniqueId,
   createShouldTrackEvent,
-  addAdditionalEventProperties,
-  ElementBasedTimestampedEvent,
+  // ElementBasedTimestampedEvent,
 } from '../src/helpers';
-import { mockWindowLocationFromURL } from './utils';
+// import { mockWindowLocationFromURL } from './utils';
 
 describe('autocapture-plugin helpers', () => {
   afterEach(() => {
@@ -141,62 +136,7 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  describe('getText', () => {
-    test('should return empty string when element is sensitive', () => {
-      const element = document.createElement('input');
-      element.value = 'test';
-      const result = getText(element);
-      expect(result).toEqual('');
-    });
-
-    test('should return text when element has text attribute', () => {
-      const element = document.createElement('a');
-      element.text = 'test';
-      const result = getText(element);
-      expect(result).toEqual('test');
-    });
-
-    test('should return text when element has text node', () => {
-      const button = document.createElement('button');
-      const buttonText = document.createTextNode('submit');
-      button.appendChild(buttonText);
-      const result = getText(button);
-      expect(result).toEqual('submit');
-    });
-
-    test('should return concatenated text when element has child text nodes', () => {
-      const button = document.createElement('button');
-      const buttonText = document.createTextNode('submit');
-      button.appendChild(buttonText);
-      const div = document.createElement('div');
-      div.textContent = ' and pay';
-      button.appendChild(div);
-      const result = getText(button);
-      expect(result).toEqual('submit and pay');
-    });
-
-    test('should return concatenated text with sensitive text filtered', () => {
-      const button = document.createElement('button');
-      const buttonText = document.createTextNode('submit');
-      button.appendChild(buttonText);
-      const div = document.createElement('div');
-      div.textContent = '269-28-9315';
-      button.appendChild(div);
-      const result = getText(button);
-      expect(result).toEqual('submit');
-    });
-
-    test('should return concatenated text with extra space removed', () => {
-      const button = document.createElement('button');
-      const buttonText = document.createTextNode('submit');
-      button.appendChild(buttonText);
-      const div = document.createElement('div');
-      div.textContent = ' and   \n pay';
-      button.appendChild(div);
-      const result = getText(button);
-      expect(result).toEqual('submit and pay');
-    });
-  });
+  // moved to data-extractor.test.ts: getText
 
   describe('getAttributesWithPrefix', () => {
     test('should return attributes when matching the prefix', () => {
@@ -294,52 +234,7 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  describe('getNearestLabel', () => {
-    test('should return nearest label of the element', () => {
-      const div = document.createElement('div');
-      const span = document.createElement('span');
-      span.textContent = 'nearest label';
-      const input = document.createElement('input');
-      div.appendChild(span);
-      div.appendChild(input);
-
-      const result = getNearestLabel(input);
-      expect(result).toEqual('nearest label');
-    });
-
-    test('should return redacted nearest label when content is sensitive', () => {
-      const div = document.createElement('div');
-      const span = document.createElement('span');
-      span.textContent = '4916024123820164';
-      const input = document.createElement('input');
-      div.appendChild(span);
-      div.appendChild(input);
-
-      const result = getNearestLabel(input);
-      expect(result).toEqual('');
-    });
-
-    test('should return nearest label of the element parent', () => {
-      const div = document.createElement('div');
-      const innerDiv = document.createElement('div');
-      div.appendChild(innerDiv);
-      const span = document.createElement('span');
-      span.textContent = 'parent label';
-      div.appendChild(span);
-      const input = document.createElement('input');
-      innerDiv.appendChild(input);
-
-      const result = getNearestLabel(input);
-      expect(result).toEqual('parent label');
-    });
-
-    test('should return empty string when there is no parent', () => {
-      const input = document.createElement('input');
-
-      const result = getNearestLabel(input);
-      expect(result).toEqual('');
-    });
-  });
+  // moved to data-extractor.test.ts: getNearestLabel
 
   describe('querySelectUniqueElements', () => {
     test('should return unique elements with selector under root', () => {
@@ -416,61 +311,7 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  describe('getEventTagProps', () => {
-    beforeAll(() => {
-      Object.defineProperty(window, 'location', {
-        value: {
-          hostname: '',
-          href: '',
-          pathname: '',
-          search: '',
-        },
-        writable: true,
-      });
-    });
-
-    beforeEach(() => {
-      mockWindowLocationFromURL(new URL('https://www.amplitude.com/unit-test?query=getEventTagProps'));
-    });
-
-    test('should return the tag properties', () => {
-      document.getElementsByTagName('body')[0].innerHTML = `
-        <div id="container">
-          <div id="inner">
-            xxx
-          </div>
-        </div>
-      `;
-
-      const inner = document.getElementById('inner');
-      expect(getEventTagProps(inner as HTMLElement)).toEqual({
-        '[Amplitude] Element Tag': 'div',
-        '[Amplitude] Element Text': ' xxx ',
-        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-      });
-    });
-
-    test('should return empty object when element is not present', () => {
-      expect(getEventTagProps(null as unknown as HTMLElement)).toEqual({});
-    });
-
-    test('should not use the visual highlight class when retrieving selector', () => {
-      document.getElementsByTagName('body')[0].innerHTML = `
-        <div id="container">
-          <div class="amp-visual-tagging-selector-highlight">
-            xxx
-          </div>
-        </div>
-      `;
-
-      const inner = document.getElementsByClassName('amp-visual-tagging-selector-highlight')[0];
-      expect(getEventTagProps(inner as HTMLElement)).toEqual({
-        '[Amplitude] Element Tag': 'div',
-        '[Amplitude] Element Text': ' xxx ',
-        '[Amplitude] Page URL': 'https://www.amplitude.com/unit-test',
-      });
-    });
-  });
+  // moved to data-extractor.test.ts: getEventTagProps
 
   describe('asyncLoadScript', () => {
     test('should append the script to document and resolve with status true', () => {
@@ -544,46 +385,5 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  describe('addAdditionalEventProperties', () => {
-    beforeEach(() => {
-      // Mock window.location
-      mockWindowLocationFromURL(new URL('https://test.com'));
-      // Mock document.title
-      Object.defineProperty(document, 'title', {
-        value: 'Test Page',
-        writable: true,
-      });
-      // Mock window.innerHeight and innerWidth
-      Object.defineProperty(window, 'innerHeight', { value: 800 });
-      Object.defineProperty(window, 'innerWidth', { value: 1200 });
-    });
-
-    test('should add properties when isCapturingCursorPointer is true and element has pointer cursor', () => {
-      // Create a button element with pointer cursor
-      const span = document.createElement('span');
-      span.style.cursor = 'pointer';
-      span.textContent = 'Click me';
-      document.body.appendChild(span);
-
-      // Create a click event
-      const clickEvent = {
-        bubbles: true,
-        cancelable: true,
-        view: window,
-        target: span,
-      };
-
-      // Call the function with isCapturingCursorPointer set to true
-      const result = addAdditionalEventProperties(
-        clickEvent,
-        'click',
-        ['.button'], // selector allowlist
-        'data-amp-', // data attribute prefix
-        true, // isCapturingCursorPointer
-      ) as ElementBasedTimestampedEvent<MouseEvent>;
-
-      // Verify the result
-      expect(result.closestTrackedAncestor).toBeDefined();
-    });
-  });
+  // moved to data-extractor.test.ts: addAdditionalEventProperties
 });

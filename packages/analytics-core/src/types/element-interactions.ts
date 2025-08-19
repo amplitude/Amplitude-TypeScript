@@ -92,6 +92,11 @@ export interface ElementInteractionsOptions {
     triggers: Trigger[];
     labeledEvents: Record<string, LabeledEvent>;
   };
+
+  /**
+   * RegExp pattern list to allow custom patterns for text redaction
+   */
+  redactTextRegex?: (RegExp | { pattern: string; description: string })[];
 }
 
 type MatchingCondition = {
