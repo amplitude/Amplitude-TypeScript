@@ -6,7 +6,7 @@ describe('data extractor', () => {
   let dataExtractor: DataExtractor;
 
   beforeEach(() => {
-    dataExtractor = new DataExtractor({});
+    dataExtractor = new DataExtractor({ redactTextRegex: [/Florida|California/, /Pennsylvania/] });
   });
 
   describe('isNonSensitiveString', () => {
@@ -38,6 +38,41 @@ describe('data extractor', () => {
       const text = 123;
       const result = dataExtractor.isNonSensitiveString(text as unknown as string);
       expect(result).toEqual(true);
+    });
+
+    test('should return false when text is sensitive and matches redactTextRegex', () => {
+      const text = 'Pittsburgh, Pennsylvania';
+      const result = dataExtractor.isNonSensitiveString(text);
+
+      const text2 = 'Florida';
+      const result2 = dataExtractor.isNonSensitiveString(text2);
+
+      expect(result).toEqual(false);
+      expect(result2).toEqual(false);
+    });
+
+    test('should return true when text does not match redactTextRegex', () => {
+      const text = 'Test string';
+      const result = dataExtractor.isNonSensitiveString(text);
+      expect(result).toEqual(true);
+    });
+
+    test('should parse rebactTextRegex objects into regex objects', () => {
+      const dataExtractor = new DataExtractor({
+        redactTextRegex: [
+          { pattern: 'Florida|California', description: 'Florida or California' },
+          { pattern: 'Pennsylvania', description: 'Pennsylvania' },
+        ],
+      });
+
+      const text = 'Pittsburgh, Pennsylvania';
+      const result = dataExtractor.isNonSensitiveString(text);
+
+      const text2 = 'Florida';
+      const result2 = dataExtractor.isNonSensitiveString(text2);
+
+      expect(result).toEqual(false);
+      expect(result2).toEqual(false);
     });
   });
 
