@@ -21,7 +21,8 @@ export interface BodyCaptureRule {
   /**
    * List of JSON pointers to capture from a request or response body (JSON objects only)
    *
-   * If allowlist is empty or undefined, nothing is captured.
+   * Includes nothing, by default.
+   * Any keys defined in excludelist will be excluded from the capture.
    *
    * Follows a syntax similar to [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901), except:
    * - The leading / is optional

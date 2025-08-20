@@ -69,7 +69,7 @@ describe('pruneJson', () => {
     });
 
     test('should exclude keys not include in allowlist', () => {
-      const obj = { a: { b: { c: 'd' }}, e: 'f' };
+      const obj = { a: { b: { c: 'd' } }, e: 'f' };
       pruneJson(obj, ['*'], ['a']);
       expect(obj).toEqual({ e: 'f' });
     });
