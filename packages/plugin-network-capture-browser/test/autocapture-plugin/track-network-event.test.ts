@@ -122,26 +122,7 @@ describe('track-network-event', () => {
     } as BrowserConfig;
     networkEvent = new MockNetworkRequestEvent();
   });
-
-  describe('logNetworkAnalyticsEvent', () => {
-    test('should log network analytics event with request and response body', async () => {
-      const networkAnalyticsEvent: NetworkAnalyticsEvent = {
-        '[Amplitude] URL': 'https://example.com/track',
-        '[Amplitude] URL Query': 'hello=world',
-        '[Amplitude] URL Fragment': 'hash',
-        '[Amplitude] Request Method': 'POST',
-        '[Amplitude] Status Code': 500,
-      };
-      const request = new MockNetworkRequestEvent();
-      request.requestBodyJson = Promise.resolve({ message: 'hello' });
-      request.responseBodyJson = Promise.resolve({ message: 'world' });
-      const amplitude = createMockBrowserClient();
-      await logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
-      /* eslint-disable-next-line @typescript-eslint/unbound-method */
-      expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
-    });
-  });
-
+  
   describe('getHeaderCaptureRule()', () => {
     describe('parseHeaderCaptureRule()', () => {
       describe('returns SAFE_HEADERS when headers', () => {
@@ -769,6 +750,28 @@ describe('track-network-event', () => {
       expect(networkEvent.responseBodyJson).toBeDefined();
     });
   });
+
+
+
+  describe('logNetworkAnalyticsEvent', () => {
+    test('should log network analytics event with request and response body', async () => {
+      const networkAnalyticsEvent: NetworkAnalyticsEvent = {
+        '[Amplitude] URL': 'https://example.com/track',
+        '[Amplitude] URL Query': 'hello=world',
+        '[Amplitude] URL Fragment': 'hash',
+        '[Amplitude] Request Method': 'POST',
+        '[Amplitude] Status Code': 500,
+      };
+      const request = new MockNetworkRequestEvent();
+      request.requestBodyJson = Promise.resolve({ message: 'hello' });
+      request.responseBodyJson = Promise.resolve({ message: 'world' });
+      const amplitude = createMockBrowserClient();
+      await logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
+      /* eslint-disable-next-line @typescript-eslint/unbound-method */
+      expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+    });
+  });
+
 });
 
 describe('version', () => {
