@@ -707,6 +707,81 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    test('should follow pageUrlExcludelist configuration', async () => {
+      plugin = autocapturePlugin({
+        pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        debounceTime: TESTING_DEBOUNCE_TIME,
+      });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // update current page url to match excludelist
+      mockWindowLocationFromURL(new URL('https://www.test.com/abc?query=param'));
+      const link = document.createElement('a');
+      link.setAttribute('id', 'my-link-id-excluded-url');
+      link.setAttribute('class', 'my-link-class');
+      link.setAttribute('aria-label', 'my-link');
+      link.href = 'https://www.amplitude.com/test';
+      link.text = 'my-link-text';
+      document.body.appendChild(link);
+
+      // trigger click link - should be blocked by excludelist
+      document.getElementById('my-link-id-excluded-url')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(0);
+
+      // update current page url to NOT match excludelist
+      mockWindowLocationFromURL(new URL('https://www.different.com/abc?query=param'));
+      const link2 = document.createElement('a');
+      link2.setAttribute('id', 'my-link-id-allowed-url');
+      link2.setAttribute('class', 'my-link-class');
+      link2.setAttribute('aria-label', 'my-link');
+      link2.href = 'https://www.amplitude.com/test';
+      link2.text = 'my-link-text';
+      document.body.appendChild(link2);
+
+      // trigger click link - should be allowed
+      document.getElementById('my-link-id-allowed-url')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(1);
+    });
+
+    test('should prioritize pageUrlExcludelist over pageUrlAllowlist', async () => {
+      plugin = autocapturePlugin({
+        pageUrlAllowlist: [new RegExp('https://www.test.com')],
+        pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        debounceTime: TESTING_DEBOUNCE_TIME,
+      });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      // update current page url to match both allowlist and excludelist
+      mockWindowLocationFromURL(new URL('https://www.test.com/abc?query=param'));
+      const link = document.createElement('a');
+      link.setAttribute('id', 'my-link-id-conflict-url');
+      link.setAttribute('class', 'my-link-class');
+      link.setAttribute('aria-label', 'my-link');
+      link.href = 'https://www.amplitude.com/test';
+      link.text = 'my-link-text';
+      document.body.appendChild(link);
+
+      // trigger click link - should be blocked by excludelist even though it matches allowlist
+      document.getElementById('my-link-id-conflict-url')?.dispatchEvent(new Event('click'));
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(0);
+    });
+
     test('should follow shouldTrackEventResolver configuration', async () => {
       const button1 = document.createElement('button');
       const buttonText1 = document.createTextNode('submit');

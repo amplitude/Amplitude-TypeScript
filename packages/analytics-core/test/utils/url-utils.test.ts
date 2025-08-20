@@ -1,4 +1,4 @@
-import { isUrlMatchAllowlist } from '../../src/';
+import { isUrlMatchAllowlist, isUrlMatchExcludelist } from '../../src/';
 
 describe('isUrlMatchAllowlist', () => {
   const url = 'https://amplitude.com/blog';
@@ -36,6 +36,46 @@ describe('isUrlMatchAllowlist', () => {
 
   test('should return true when url is matching an item in the allow list with regex wildcard', () => {
     const result = isUrlMatchAllowlist(url, [new RegExp('http.?://amplitude.*'), new RegExp('http.?://test.*')]);
+    expect(result).toEqual(true);
+  });
+});
+
+describe('isUrlMatchExcludelist', () => {
+  const url = 'https://amplitude.com/blog';
+
+  test('should return false when exclude list is not provided', () => {
+    const result = isUrlMatchExcludelist(url, undefined);
+    expect(result).toEqual(false);
+  });
+
+  test('should return false when exclude list is empty', () => {
+    const result = isUrlMatchExcludelist(url, []);
+    expect(result).toEqual(false);
+  });
+
+  test('should return true only when full url string is in the exclude list', () => {
+    let result = isUrlMatchExcludelist(url, ['https://amplitude.com/blog']);
+    expect(result).toEqual(true);
+
+    result = isUrlMatchExcludelist('https://amplitude.com/market', ['https://amplitude.com/blog']);
+    expect(result).toEqual(false);
+  });
+
+  test('should return true when url regex is in the exclude list', () => {
+    let result = isUrlMatchExcludelist(url, [new RegExp('https://amplitude.com/')]);
+    expect(result).toEqual(true);
+
+    result = isUrlMatchExcludelist('https://amplitude.com/market', [new RegExp('https://amplitude.com/')]);
+    expect(result).toEqual(true);
+  });
+
+  test('should return false when url is not in the exclude list at all', () => {
+    const result = isUrlMatchExcludelist(url, ['https://test.com', new RegExp('https://test.com/')]);
+    expect(result).toEqual(false);
+  });
+
+  test('should return true when url is matching an item in the exclude list with regex wildcard', () => {
+    const result = isUrlMatchExcludelist(url, [new RegExp('http.?://amplitude.*'), new RegExp('http.?://test.*')]);
     expect(result).toEqual(true);
   });
 });
