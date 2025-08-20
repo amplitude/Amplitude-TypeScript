@@ -5,10 +5,11 @@ import {
   NetworkTrackingOptions,
   getGlobalScope,
   isUrlMatchAllowlist,
+  SAFE_HEADERS,
 } from '@amplitude/analytics-core';
 import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
-import { AMPLITUDE_NETWORK_REQUEST_EVENT } from './constants';
+import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
 import { IRequestWrapper } from '@amplitude/analytics-core';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
@@ -117,6 +118,34 @@ function isAmplitudeNetworkRequestEvent(host: string, requestWrapper: IRequestWr
   return false;
 }
 
+/**
+ * Takes a user provided header capture rule and returns a
+ * HeaderCaptureRule object that sets proper default values.
+ *
+ * @param rule - The header capture rule to parse.
+ * @returns A HeaderCaptureRule object.
+ */
+export function parseHeaderCaptureRule(rule: string[] | boolean | undefined | null): string[] | undefined {
+  if (typeof rule !== 'object' || rule === null) {
+    // if rule is truthy or undefined, return SAFE_HEADERS
+    if (rule) {
+      return [...SAFE_HEADERS];
+    } else if (rule === undefined) {
+      /* istanbul ignore next */
+      const res = IS_HEADER_CAPTURE_EXPERIMENTAL ? undefined : [...SAFE_HEADERS];
+      return res;
+    }
+    return;
+  }
+
+  // if the rule is defined but empty, return undefined
+  if (rule.length === 0) {
+    return;
+  }
+
+  return rule;
+}
+
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
   const urlObj = parseUrl(networkEvent.url);
   /* istanbul ignore if */
@@ -156,6 +185,27 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     let isMatch: boolean | undefined;
     [...options.captureRules].reverse().find((rule) => {
       isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url, networkEvent.method);
+
+      // if responseHeaders rule is specified, enrich the event with the response headers
+      if (isMatch) {
+        const responseHeadersRule = parseHeaderCaptureRule(rule.responseHeaders);
+        if (networkEvent.responseWrapper && responseHeadersRule) {
+          const responseHeaders = networkEvent.responseWrapper.headers(responseHeadersRule);
+          if (responseHeaders) {
+            networkEvent.responseHeaders = responseHeaders;
+          }
+        }
+
+        // if requestHeaders rule is specified, enrich the event with the request headers
+        const requestHeadersRule = parseHeaderCaptureRule(rule.requestHeaders);
+        if (networkEvent.requestWrapper && requestHeadersRule) {
+          const requestHeaders = networkEvent.requestWrapper.headers(requestHeadersRule);
+          if (requestHeaders) {
+            networkEvent.requestHeaders = requestHeaders;
+          }
+        }
+      }
+
       return isMatch !== undefined;
     });
 
@@ -184,8 +234,10 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Completion Time']?: number; // unix timestamp
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
+  ['[Amplitude] Request Headers']?: Record<string, string>;
   //['[Amplitude] Request Body']?: string;
   ['[Amplitude] Response Body Size']?: number;
+  ['[Amplitude] Response Headers']?: Record<string, string>;
   //['[Amplitude] Response Body']?: string;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
@@ -238,6 +290,8 @@ export function trackNetworkEvents({
       ['[Amplitude] Request Body Size']: requestBodySize,
       ['[Amplitude] Response Body Size']: responseBodySize,
       ['[Amplitude] Request Type']: request.type,
+      ['[Amplitude] Request Headers']: request.requestHeaders,
+      ['[Amplitude] Response Headers']: request.responseHeaders,
     };
 
     /* istanbul ignore next */

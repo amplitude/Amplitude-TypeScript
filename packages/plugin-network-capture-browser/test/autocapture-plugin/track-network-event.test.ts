@@ -12,10 +12,12 @@ import {
   NetworkEventCallback,
   networkObserver,
   NetworkRequestEvent,
+  NetworkTrackingOptions,
+  SAFE_HEADERS,
 } from '@amplitude/analytics-core';
 import * as AnalyticsCore from '@amplitude/analytics-core';
-import { shouldTrackNetworkEvent } from '../../src/track-network-event';
-import { NetworkTrackingOptions } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
+import { parseHeaderCaptureRule, shouldTrackNetworkEvent } from '../../src/track-network-event';
+
 import { BrowserEnrichmentPlugin, networkCapturePlugin } from '../../src/network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT } from '../../src/constants';
 import { VERSION } from '../../src/version';
@@ -27,6 +29,9 @@ type PartialGlobal = Pick<typeof globalThis, 'fetch'>;
 type ResourceType = 'fetch' | 'xhr';
 
 class MockNetworkRequestEvent implements NetworkRequestEvent {
+  public responseHeaders?: Record<string, string>;
+  public requestHeaders?: Record<string, string>;
+
   constructor(
     public url: string = 'https://example.com',
     public type: ResourceType = 'fetch',
@@ -35,14 +40,14 @@ class MockNetworkRequestEvent implements NetworkRequestEvent {
     public duration: number = 100,
     public responseWrapper = {
       bodySize: 100,
-      headers: {
-        'Content-Type': 'application/json',
+      headers() {
+        return { 'Content-Type': 'application/json' };
       },
     } as any,
     public requestWrapper = {
       bodySize: 100,
-      headers: {
-        'Content-Type': 'application/json',
+      headers() {
+        return { 'Content-Type': 'application/json' };
       },
     } as any,
     public startTime: number = Date.now(),
@@ -103,6 +108,28 @@ describe('track-network-event', () => {
       networkTrackingOptions: {},
     } as BrowserConfig;
     networkEvent = new MockNetworkRequestEvent();
+  });
+
+  describe('parseHeaderCaptureRule()', () => {
+    describe('returns SAFE_HEADERS when headers', () => {
+      test('is "true"', () => {
+        expect(parseHeaderCaptureRule(true)).toEqual([...SAFE_HEADERS]);
+      });
+    });
+
+    describe('returns undefined when', () => {
+      test('allowlist is "empty"', () => {
+        expect(parseHeaderCaptureRule([])).toBeUndefined();
+      });
+
+      test('allowlist is "undefined"', () => {
+        expect(parseHeaderCaptureRule(undefined)).toEqual(undefined);
+      });
+
+      test('allowlist is "false"', () => {
+        expect(parseHeaderCaptureRule(false)).toBeUndefined();
+      });
+    });
   });
 
   describe('trackNetworkEvent()', () => {
@@ -608,6 +635,79 @@ describe('track-network-event', () => {
       networkEvent.url = 'https://example.com/api';
       const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
       expect(result).toBe(true);
+    });
+  });
+
+  describe('shouldTrackNetworkEvent with header enrichment', () => {
+    beforeEach(() => {
+      networkEvent = new MockNetworkRequestEvent();
+    });
+
+    test('should call headers with allowlist and should enrich network event', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseHeaders: ['content-type'],
+            requestHeaders: ['content-length'],
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      const responseHeadersSpy = jest.spyOn(networkEvent.responseWrapper, 'headers');
+      const requestHeadersSpy = jest.spyOn(networkEvent.requestWrapper, 'headers');
+
+      shouldTrackNetworkEvent(networkEvent, networkTracking);
+
+      expect(responseHeadersSpy).toHaveBeenCalledWith(['content-type']);
+      expect(requestHeadersSpy).toHaveBeenCalledWith(['content-length']);
+      expect(networkEvent.responseHeaders).toBeDefined();
+      expect(networkEvent.requestHeaders).toBeDefined();
+    });
+
+    test('should not enrich network event if responseHeaders and requestHeaders are false', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseHeaders: false,
+            requestHeaders: false,
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      const responseHeadersSpy = jest.spyOn(networkEvent.responseWrapper, 'headers');
+      const requestHeadersSpy = jest.spyOn(networkEvent.requestWrapper, 'headers');
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(true);
+      expect(networkEvent.responseHeaders).toBeUndefined();
+      expect(networkEvent.requestHeaders).toBeUndefined();
+      expect(responseHeadersSpy).not.toHaveBeenCalled();
+      expect(requestHeadersSpy).not.toHaveBeenCalled();
+    });
+
+    test('should enrich network event if responseHeaders and requestHeaders are true', () => {
+      const networkTracking = {
+        captureRules: [
+          {
+            hosts: ['example.com'],
+            statusCodeRange: '500-599',
+            responseHeaders: true,
+            requestHeaders: true,
+          },
+        ],
+      };
+      networkEvent.status = 500;
+      const responseHeadersSpy = jest.spyOn(networkEvent.responseWrapper, 'headers');
+      const requestHeadersSpy = jest.spyOn(networkEvent.requestWrapper, 'headers');
+      const result = shouldTrackNetworkEvent(networkEvent, networkTracking);
+      expect(result).toBe(true);
+      expect(networkEvent.responseHeaders).toBeDefined();
+      expect(networkEvent.requestHeaders).toBeDefined();
+      expect(responseHeadersSpy).toHaveBeenCalled();
+      expect(requestHeadersSpy).toHaveBeenCalled();
     });
   });
 });
