@@ -64,13 +64,23 @@ export interface NetworkCaptureRule {
    */
   statusCodeRange?: string;
   /**
-   * Determines what to capture from the response headers.
+   * Capture headers from network response.
+   *
+   * If true, SAFE_HEADERS are captured. If false, no headers are captured.
+   * If a string array, the headers in the array are captured.
+   *
    * @experimental This feature is experimental and may not be stable
+   * @defaultValue `false`
    */
   responseHeaders?: string[] | boolean;
   /**
-   * Determines what to capture from the request headers.
+   * Capture headers from network request.
+   *
+   * If true, SAFE_HEADERS are captured. If false, no headers are captured.
+   * If a string array, the headers in the array are captured.
+   *
    * @experimental This feature is experimental and may not be stable
+   * @defaultValue `false`
    */
   requestHeaders?: string[] | boolean;
   /**
