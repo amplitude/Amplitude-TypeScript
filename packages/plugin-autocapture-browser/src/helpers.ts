@@ -114,7 +114,7 @@ export const isNonSensitiveElement = (element: Element) => {
     element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
 
   // Check if element or any parent has data-amp-mask attribute
-  const hasMaskAttribute = element.closest('[data-amp-mask]') !== null;
+  const hasMaskAttribute = element.closest('[' + constants.DATA_AMP_MASK_ATTRIBUTE + ']') !== null;
 
   return !SENSITIVE_TAGS.includes(tag) && !isContentEditable && !hasMaskAttribute;
 };
@@ -122,9 +122,9 @@ export const isNonSensitiveElement = (element: Element) => {
 // Maybe this can be simplified with element.innerText, keep and manual concatenating for now, more research needed.
 export const getText = (element: Element): string => {
   // Check if element or any parent has data-amp-mask attribute
-  const hasMaskAttribute = element.closest('[data-amp-mask]') !== null;
+  const hasMaskAttribute = element.closest('[' + constants.DATA_AMP_MASK_ATTRIBUTE + ']') !== null;
   if (hasMaskAttribute) {
-    return '*****';
+    return constants.MASKED_TEXT_VALUE;
   }
 
   let text = '';
