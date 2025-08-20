@@ -1,4 +1,4 @@
-import { isNonSensitiveElement, type JSONValue } from './helpers';
+import { isNonSensitiveElement, getRedactedAttributeNames, type JSONValue } from './helpers';
 import type { Hierarchy, HierarchyNode } from './typings/autocapture';
 
 const BLOCKED_ATTRIBUTES = [
@@ -41,6 +41,7 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   }
 
   const tagName = String(element.tagName).toLowerCase();
+  const redactedAttributes = getRedactedAttributeNames(element);
   const properties: HierarchyNode = {
     tag: tagName,
   };
@@ -74,6 +75,11 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   // if input is hidden or password or for SVGs, skip attribute collection entirely
   if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
     for (const attr of filteredAttributes) {
+      // Skip redacted attributes
+      if (redactedAttributes.has(attr.name)) {
+        continue;
+      }
+
       // If sensitive element, only allow certain attributes
       if (isSensitiveElement && !SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST.includes(attr.name)) {
         continue;

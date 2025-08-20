@@ -141,10 +141,51 @@ export const getText = (element: Element): string => {
   return text;
 };
 
+/**
+ * Collects redacted attribute names from ancestor elements with data-amp-redact-attributes
+ * Redaction rules only apply to children, not the element that defines the rule
+ * The 'id' and 'class' attributes cannot be redacted as they're critical for element identification
+ * @param element - The target element to check ancestors for
+ * @returns Set of attribute names that should be redacted
+ */
+export const getRedactedAttributeNames = (element: Element): Set<string> => {
+  const redactedAttributes = new Set<string>();
+  let currentElement: Element | null = element.parentElement; // Start from parent, not element itself
+
+  // Walk up the DOM tree to find any data-amp-redact-attributes
+  while (currentElement) {
+    const redactValue = currentElement.getAttribute('data-amp-redact-attributes');
+    if (redactValue) {
+      // Parse comma-separated attribute names and add to set
+      const attributesToRedact = redactValue
+        .split(',')
+        .map((attr) => attr.trim())
+        .filter((attr) => attr.length > 0);
+      attributesToRedact.forEach((attr) => {
+        // Prevent 'id' and 'class' from being redacted as they're critical for element identification
+        if (attr !== 'id' && attr !== 'class') {
+          redactedAttributes.add(attr);
+        }
+      });
+    }
+    currentElement = currentElement.parentElement;
+  }
+
+  return redactedAttributes;
+};
+
 export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
+  const redactedAttributes = getRedactedAttributeNames(element);
+
   return element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
     if (attributeName.startsWith(prefix)) {
       const attributeKey = attributeName.replace(prefix, '');
+
+      // Skip redacted attributes
+      if (redactedAttributes.has(attributeKey)) {
+        return attributes;
+      }
+
       const attributeValue = element.getAttribute(attributeName);
       if (attributeKey) {
         attributes[attributeKey] = attributeValue || '';
@@ -288,19 +329,18 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
   /* istanbul ignore next */
   const rect =
     typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
-  const ariaLabel = element.getAttribute('aria-label');
+
+  const redactedAttributes = getRedactedAttributeNames(element);
   const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
   const nearestLabel = getNearestLabel(element);
+
   /* istanbul ignore next */
   const properties: Record<string, any> = {
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
     [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
@@ -308,9 +348,27 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
   };
-  if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
+
+  // Add non-redacted attributes conditionally
+  // id is never redacted, so always include it
+  properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID] = element.getAttribute('id') || '';
+
+  // class is never redacted, so always include it
+  properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
+
+  if (!redactedAttributes.has('aria-label')) {
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = element.getAttribute('aria-label');
+  }
+
+  if (
+    tag === 'a' &&
+    actionType === 'click' &&
+    element instanceof HTMLAnchorElement &&
+    !redactedAttributes.has('href')
+  ) {
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
   }
+
   return removeEmptyProperties(properties);
 };
 

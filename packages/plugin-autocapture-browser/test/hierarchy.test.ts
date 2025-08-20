@@ -163,6 +163,102 @@ describe('autocapture-plugin hierarchy', () => {
         classes: ['test'],
       });
     });
+
+    test('should NOT redact child id or class when both specified in parent data-amp-redact-attributes', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div data-amp-redact-attributes="id, class">
+          <div id="secret-id" class="secret-class" data-test="visible">
+            xxx
+          </div>
+        </div>
+      `;
+
+      const target = document.querySelector('[id="secret-id"]');
+      const result = HierarchyUtil.getElementProperties(target);
+
+      expect(result).toEqual({
+        id: 'secret-id', // ID should NOT be redacted even when specified
+        classes: ['secret-class'], // Class should NOT be redacted even when specified
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'data-test': 'visible',
+        },
+      });
+    });
+
+    test('should NOT redact attributes when redaction rule is on element itself', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="target" class="target-class" data-secret="sensitive" data-amp-redact-attributes="id, class, data-secret">
+          xxx
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const result = HierarchyUtil.getElementProperties(target);
+
+      expect(result).toEqual({
+        id: 'target',
+        classes: ['target-class'],
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'data-secret': 'sensitive', // Should not be redacted since rule is on element itself
+          'data-amp-redact-attributes': 'id, class, data-secret', // The redaction attribute itself is also included
+        },
+      });
+    });
+
+    test('should redact specific attributes from hierarchy when specified on parent', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div data-amp-redact-attributes="data-secret">
+          <div id="target" data-secret="sensitive-value" data-public="public-value">
+            xxx
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const result = HierarchyUtil.getElementProperties(target);
+
+      expect(result).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'data-public': 'public-value',
+        },
+      });
+    });
+
+    test('should inherit redaction rules from multiple ancestor levels but preserve id and class', () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div data-amp-redact-attributes="id">
+          <div data-amp-redact-attributes="class, data-level2">
+            <div id="target-id" class="target-class" data-level2="secret" data-safe="ok">
+              xxx
+            </div>
+          </div>
+        </div>
+      `;
+
+      const target = document.querySelector('[id="target-id"]');
+      const result = HierarchyUtil.getElementProperties(target);
+
+      expect(result).toEqual({
+        id: 'target-id', // ID should NOT be redacted even when specified in ancestor
+        classes: ['target-class'], // Class should NOT be redacted even when specified in ancestor
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'data-safe': 'ok',
+        },
+      });
+    });
   });
 });
 

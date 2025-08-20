@@ -4,6 +4,8 @@ import {
   isNonSensitiveElement,
   getText,
   getAttributesWithPrefix,
+  getRedactedAttributeNames,
+  getEventProperties,
   isEmpty,
   removeEmptyProperties,
   getNearestLabel,
@@ -222,6 +224,132 @@ describe('autocapture-plugin helpers', () => {
       element.setAttribute('data-time', 'machine');
       const result = getAttributesWithPrefix(element, '');
       expect(result).toEqual({ 'data-hello': 'world', 'data-time': 'machine' });
+    });
+
+    test('should NOT exclude attributes when data-amp-redact-attributes is present on element itself', () => {
+      const element = document.createElement('input');
+      element.setAttribute('data-amp-track-hello', 'world');
+      element.setAttribute('data-amp-track-secret', 'sensitive');
+      element.setAttribute('data-amp-track-time', 'machine');
+      element.setAttribute('data-amp-redact-attributes', 'secret');
+      const result = getAttributesWithPrefix(element, 'data-amp-track-');
+      expect(result).toEqual({ hello: 'world', secret: 'sensitive', time: 'machine' });
+    });
+
+    test('should exclude multiple redacted attributes when comma-separated from parent', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-redact-attributes', 'secret1, secret2');
+
+      const element = document.createElement('input');
+      element.setAttribute('data-amp-track-hello', 'world');
+      element.setAttribute('data-amp-track-secret1', 'sensitive1');
+      element.setAttribute('data-amp-track-secret2', 'sensitive2');
+      element.setAttribute('data-amp-track-time', 'machine');
+
+      parent.appendChild(element);
+      document.body.appendChild(parent);
+
+      const result = getAttributesWithPrefix(element, 'data-amp-track-');
+      expect(result).toEqual({ hello: 'world', time: 'machine' });
+
+      document.body.removeChild(parent);
+    });
+
+    test('should exclude redacted attributes from ancestor elements', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-redact-attributes', 'name');
+
+      const child = document.createElement('span');
+      child.setAttribute('data-amp-track-hello', 'world');
+      child.setAttribute('data-amp-track-name', 'John D');
+      child.setAttribute('data-amp-track-time', 'machine');
+
+      container.appendChild(child);
+      document.body.appendChild(container);
+
+      const result = getAttributesWithPrefix(child, 'data-amp-track-');
+      expect(result).toEqual({ hello: 'world', time: 'machine' });
+
+      document.body.removeChild(container);
+    });
+  });
+
+  describe('getRedactedAttributeNames', () => {
+    test('should return empty set when no redaction attributes present', () => {
+      const element = document.createElement('div');
+      const result = getRedactedAttributeNames(element);
+      expect(result).toEqual(new Set());
+    });
+
+    test('should return empty set when data-amp-redact-attributes is only on element itself', () => {
+      const element = document.createElement('div');
+      element.setAttribute('data-amp-redact-attributes', 'name, email');
+      const result = getRedactedAttributeNames(element);
+      expect(result).toEqual(new Set()); // Should be empty since redaction only affects children
+    });
+
+    test('should collect redacted attributes from ancestor elements only and exclude id and class', () => {
+      const grandparent = document.createElement('div');
+      grandparent.setAttribute('data-amp-redact-attributes', 'name, id, class'); // id and class should be ignored
+
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-redact-attributes', 'email, phone');
+
+      const child = document.createElement('span');
+      child.setAttribute('data-amp-redact-attributes', 'ignored'); // This should be ignored
+
+      grandparent.appendChild(parent);
+      parent.appendChild(child);
+      document.body.appendChild(grandparent);
+
+      const result = getRedactedAttributeNames(child);
+      expect(result).toEqual(new Set(['name', 'email', 'phone'])); // Only from ancestors, id and class excluded
+
+      document.body.removeChild(grandparent);
+    });
+
+    test('should handle whitespace and empty values in redaction list from parent', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-redact-attributes', ' name , , email , ');
+
+      const element = document.createElement('span');
+      parent.appendChild(element);
+      document.body.appendChild(parent);
+
+      const result = getRedactedAttributeNames(element);
+      expect(result).toEqual(new Set(['name', 'email']));
+
+      document.body.removeChild(parent);
+    });
+
+    test('should handle empty redaction attribute value from parent', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-redact-attributes', '');
+
+      const element = document.createElement('span');
+      parent.appendChild(element);
+      document.body.appendChild(parent);
+
+      const result = getRedactedAttributeNames(element);
+      expect(result).toEqual(new Set());
+
+      document.body.removeChild(parent);
+    });
+
+    test('should never include id or class in redacted attributes even when specified', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-redact-attributes', 'id, class, name');
+
+      const element = document.createElement('span');
+      parent.appendChild(element);
+      document.body.appendChild(parent);
+
+      const result = getRedactedAttributeNames(element);
+      expect(result).toEqual(new Set(['name'])); // id and class should be excluded
+      expect(result.has('id')).toBe(false);
+      expect(result.has('class')).toBe(false);
+
+      document.body.removeChild(parent);
     });
   });
 
@@ -584,6 +712,150 @@ describe('autocapture-plugin helpers', () => {
 
       // Verify the result
       expect(result.closestTrackedAncestor).toBeDefined();
+    });
+  });
+
+  describe('getEventProperties with redaction', () => {
+    test('should NOT redact id or class when both specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-redact-attributes', 'id, class');
+
+      const element = document.createElement('button');
+      element.setAttribute('id', 'secret-id');
+      element.setAttribute('class', 'secret-class');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('secret-id'); // ID should NOT be redacted
+      expect(result['[Amplitude] Element Class']).toBe('secret-class'); // Class should NOT be redacted
+      expect(result['[Amplitude] Element Tag']).toBe('button');
+      expect(result['[Amplitude] Element Text']).toBe('Click me');
+
+      document.body.removeChild(container);
+    });
+
+    test('should NOT redact attributes when redaction rule is on element itself', () => {
+      const element = document.createElement('button');
+      element.setAttribute('id', 'test-id');
+      element.setAttribute('class', 'test-class');
+      element.setAttribute('aria-label', 'Test button');
+      element.setAttribute('data-amp-redact-attributes', 'id, class, aria-label'); // On element itself
+      element.textContent = 'Click me';
+
+      document.body.appendChild(element);
+
+      const result = getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('test-id');
+      expect(result['[Amplitude] Element Class']).toBe('test-class');
+      expect(result['[Amplitude] Element Aria Label']).toBe('Test button');
+
+      document.body.removeChild(element);
+    });
+
+    test('should redact aria-label when specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-redact-attributes', 'aria-label');
+
+      const element = document.createElement('button');
+      element.setAttribute('aria-label', 'Secret button label');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element Aria Label']).toBeUndefined();
+      expect(result['[Amplitude] Element Text']).toBe('Click me');
+
+      document.body.removeChild(container);
+    });
+
+    test('should redact href for anchor elements when specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-redact-attributes', 'href');
+
+      const element = document.createElement('a');
+      element.setAttribute('href', 'https://secret-url.com');
+      element.textContent = 'Secret link';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element Href']).toBeUndefined();
+      expect(result['[Amplitude] Element Text']).toBe('Secret link');
+
+      document.body.removeChild(container);
+    });
+
+    test('should not redact attributes when not specified in redaction list', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-redact-attributes', 'other-attr');
+
+      const element = document.createElement('button');
+      element.setAttribute('id', 'test-id');
+      element.setAttribute('class', 'test-class');
+      element.setAttribute('aria-label', 'Test button');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('test-id');
+      expect(result['[Amplitude] Element Class']).toBe('test-class');
+      expect(result['[Amplitude] Element Aria Label']).toBe('Test button');
+
+      document.body.removeChild(container);
+    });
+
+    test('should redact data attributes when specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-redact-attributes', 'user-name');
+
+      const element = document.createElement('span');
+      element.setAttribute('data-amp-track-user-name', 'John Doe');
+      element.setAttribute('data-amp-track-user-id', '12345');
+      element.textContent = 'User info';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element Attributes']).toEqual({ 'user-id': '12345' });
+
+      document.body.removeChild(container);
+    });
+
+    test('should never redact id or class attributes even when explicitly specified', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-redact-attributes', 'id, class, aria-label');
+
+      const element = document.createElement('button');
+      element.setAttribute('id', 'important-id');
+      element.setAttribute('class', 'secret-class');
+      element.setAttribute('aria-label', 'Secret label');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('important-id'); // ID should NEVER be redacted
+      expect(result['[Amplitude] Element Class']).toBe('secret-class'); // Class should NEVER be redacted
+      expect(result['[Amplitude] Element Aria Label']).toBeUndefined(); // Aria-label should be redacted
+
+      document.body.removeChild(container);
     });
   });
 });
