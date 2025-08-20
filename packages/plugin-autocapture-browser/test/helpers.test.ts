@@ -208,15 +208,15 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual('submit');
     });
 
-    test('should return empty string when element has data-amp-mask attribute', () => {
+    test('should return ***** when element has data-amp-mask attribute', () => {
       const element = document.createElement('div');
       element.setAttribute('data-amp-mask', 'true');
       element.textContent = 'sensitive content';
       const result = getText(element);
-      expect(result).toEqual('');
+      expect(result).toEqual('*****');
     });
 
-    test('should return empty string when parent element has data-amp-mask attribute', () => {
+    test('should return ***** when parent element has data-amp-mask attribute', () => {
       const parent = document.createElement('div');
       parent.setAttribute('data-amp-mask', 'true');
       const child = document.createElement('span');
@@ -225,7 +225,7 @@ describe('autocapture-plugin helpers', () => {
       document.body.appendChild(parent);
 
       const result = getText(child);
-      expect(result).toEqual('');
+      expect(result).toEqual('*****');
 
       document.body.removeChild(parent);
     });
@@ -243,18 +243,18 @@ describe('autocapture-plugin helpers', () => {
       document.body.appendChild(parent);
 
       const result = getText(parent);
-      expect(result).toEqual('');
+      expect(result).toEqual('*****');
 
       document.body.removeChild(parent);
     });
 
-    test('should exclude text "John Doe" from element with data-amp-mask', () => {
+    test('should mask text "John Doe" from element with data-amp-mask', () => {
       const element = document.createElement('div');
       element.setAttribute('data-amp-mask', '');
       element.textContent = 'John Doe';
 
       const result = getText(element);
-      expect(result).toEqual('');
+      expect(result).toEqual('*****');
     });
 
     test('should mask text recursively for nested elements', () => {
@@ -278,7 +278,7 @@ describe('autocapture-plugin helpers', () => {
       document.body.appendChild(parent);
 
       const result = getText(parent);
-      expect(result).toEqual('');
+      expect(result).toEqual('*****');
 
       document.body.removeChild(parent);
     });
@@ -307,7 +307,7 @@ describe('autocapture-plugin helpers', () => {
       document.body.appendChild(root);
 
       const result = getText(root);
-      expect(result).toEqual('');
+      expect(result).toEqual('*****');
 
       document.body.removeChild(root);
     });
@@ -328,12 +328,12 @@ describe('autocapture-plugin helpers', () => {
 
       // But text should be masked
       const text = getText(element);
-      expect(text).toEqual('');
+      expect(text).toEqual('*****');
 
       document.body.removeChild(element);
     });
 
-    test('should generate event properties with no text property for masked elements', () => {
+    test('should generate event properties with masked text for data-amp-mask elements', () => {
       const element = document.createElement('div');
       element.setAttribute('data-amp-mask', '');
       element.setAttribute('id', 'test-element');
@@ -348,8 +348,8 @@ describe('autocapture-plugin helpers', () => {
       expect(eventProperties['[Amplitude] Element Class']).toBe('test-class');
       expect(eventProperties['[Amplitude] Element Tag']).toBe('div');
 
-      // Text property should be absent (removed by removeEmptyProperties)
-      expect(eventProperties['[Amplitude] Element Text']).toBeUndefined();
+      // Text property should now show masked value
+      expect(eventProperties['[Amplitude] Element Text']).toBe('*****');
 
       document.body.removeChild(element);
     });
