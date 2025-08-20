@@ -642,7 +642,7 @@ describe('NetworkObserver', () => {
     });
 
     describe('.json()', () => {
-      test('should return null if allowlist and exclude are empty', async () => {
+      test('should return null if allowlist and exclude are undefined', async () => {
         const responseWrapper = new ResponseWrapperFetch(mockResponse as unknown as Response);
         const json = await responseWrapper.json();
         expect(json).toEqual(null);
