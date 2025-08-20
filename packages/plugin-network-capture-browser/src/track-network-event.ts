@@ -4,6 +4,7 @@ import {
   NetworkCaptureRule,
   NetworkTrackingOptions,
   getGlobalScope,
+  JsonObject,
   isUrlMatchAllowlist,
   SAFE_HEADERS,
 } from '@amplitude/analytics-core';
@@ -11,6 +12,7 @@ import { filter } from 'rxjs';
 import { AllWindowObservables, TimestampedEvent } from './network-capture-plugin';
 import { AMPLITUDE_NETWORK_REQUEST_EVENT, IS_HEADER_CAPTURE_EXPERIMENTAL } from './constants';
 import { IRequestWrapper } from '@amplitude/analytics-core';
+import { BodyCaptureRule } from '@amplitude/analytics-core/lib/esm/types/network-tracking';
 
 const DEFAULT_STATUS_CODE_RANGE = '500-599';
 
@@ -146,6 +148,11 @@ export function parseHeaderCaptureRule(rule: string[] | boolean | undefined | nu
   return rule;
 }
 
+function isBodyCaptureRuleEmpty(rule: BodyCaptureRule) {
+  /* istanbul ignore next */
+  return !rule?.allowlist?.length && !rule?.blocklist?.length;
+}
+
 export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, options: NetworkTrackingOptions = {}) {
   const urlObj = parseUrl(networkEvent.url);
   /* istanbul ignore if */
@@ -186,7 +193,6 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
     [...options.captureRules].reverse().find((rule) => {
       isMatch = isCaptureRuleMatch(rule, host, networkEvent.status, networkEvent.url, networkEvent.method);
 
-      // if responseHeaders rule is specified, enrich the event with the response headers
       if (isMatch) {
         const responseHeadersRule = parseHeaderCaptureRule(rule.responseHeaders);
         if (networkEvent.responseWrapper && responseHeadersRule) {
@@ -203,6 +209,22 @@ export function shouldTrackNetworkEvent(networkEvent: NetworkRequestEvent, optio
           if (requestHeaders) {
             networkEvent.requestHeaders = requestHeaders;
           }
+        }
+
+        // if responseBody rule is specified, enrich the event with the response body
+        if (networkEvent.responseWrapper && rule.responseBody && !isBodyCaptureRuleEmpty(rule.responseBody)) {
+          networkEvent.responseBodyJson = networkEvent.responseWrapper.json(
+            rule.responseBody.allowlist,
+            rule.responseBody.blocklist,
+          );
+        }
+
+        // if requestBody rule is specified, enrich the event with the request body
+        if (networkEvent.requestWrapper && rule.requestBody && !isBodyCaptureRuleEmpty(rule.requestBody)) {
+          networkEvent.requestBodyJson = networkEvent.requestWrapper.json(
+            rule.requestBody.allowlist,
+            rule.requestBody.blocklist,
+          );
         }
       }
 
@@ -235,12 +257,30 @@ export type NetworkAnalyticsEvent = {
   ['[Amplitude] Duration']?: number; // completionTime - startTime (millis)
   ['[Amplitude] Request Body Size']?: number;
   ['[Amplitude] Request Headers']?: Record<string, string>;
-  //['[Amplitude] Request Body']?: string;
+  ['[Amplitude] Request Body']?: JsonObject;
   ['[Amplitude] Response Body Size']?: number;
   ['[Amplitude] Response Headers']?: Record<string, string>;
-  //['[Amplitude] Response Body']?: string;
+  ['[Amplitude] Response Body']?: JsonObject;
   ['[Amplitude] Request Type']?: 'xhr' | 'fetch';
 };
+
+export async function logNetworkAnalyticsEvent(
+  networkAnalyticsEvent: NetworkAnalyticsEvent,
+  request: NetworkRequestEvent,
+  amplitude: BrowserClient,
+) {
+  if (request.requestBodyJson || request.responseBodyJson) {
+    const [requestBody, responseBody] = await Promise.all([request.requestBodyJson, request.responseBodyJson]);
+    if (requestBody) {
+      networkAnalyticsEvent['[Amplitude] Request Body'] = requestBody;
+    }
+    if (responseBody) {
+      networkAnalyticsEvent['[Amplitude] Response Body'] = responseBody;
+    }
+  }
+  /* istanbul ignore next */
+  amplitude?.track(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+}
 
 export function trackNetworkEvents({
   allObservables,
@@ -294,7 +334,7 @@ export function trackNetworkEvents({
       ['[Amplitude] Response Headers']: request.responseHeaders,
     };
 
-    /* istanbul ignore next */
-    amplitude?.track(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
+    // fire-and-forget promise that tracks the event
+    void logNetworkAnalyticsEvent(networkAnalyticsEvent, request, amplitude);
   });
 }
