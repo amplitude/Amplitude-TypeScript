@@ -123,27 +123,35 @@ describe('track-network-event', () => {
     networkEvent = new MockNetworkRequestEvent();
   });
   
-  describe('getHeaderCaptureRule()', () => {
-    describe('parseHeaderCaptureRule()', () => {
-      describe('returns SAFE_HEADERS when headers', () => {
-        test('is "true"', () => {
-          expect(parseHeaderCaptureRule(true)).toEqual([...SAFE_HEADERS]);
-        });
+  describe('parseHeaderCaptureRule()', () => {
+    describe('returns SAFE_HEADERS when headers', () => {
+      test('is "true"', () => {
+        expect(parseHeaderCaptureRule(true)).toEqual([...SAFE_HEADERS]);
+      });
+    });
+
+    describe('returns undefined when', () => {
+      test('allowlist is "empty"', () => {
+        expect(parseHeaderCaptureRule([])).toBeUndefined();
       });
 
-      describe('returns undefined when', () => {
-        test('allowlist is "empty"', () => {
-          expect(parseHeaderCaptureRule([])).toBeUndefined();
-        });
-
-        test('allowlist is "undefined"', () => {
-          expect(parseHeaderCaptureRule(undefined)).toEqual(undefined);
-        });
-
-        test('allowlist is "false"', () => {
-          expect(parseHeaderCaptureRule(false)).toBeUndefined();
-        });
+      test('allowlist is "undefined"', () => {
+        expect(parseHeaderCaptureRule(undefined)).toEqual(undefined);
       });
+
+      test('allowlist is "false"', () => {
+        expect(parseHeaderCaptureRule(false)).toBeUndefined();
+      });
+    });
+
+    test('should return undefined when rule is null', () => {
+      const result = parseHeaderCaptureRule(null);
+      expect(result).toBeUndefined();
+    });
+
+    test('should return undefined when rule is false', () => {
+      const result = parseHeaderCaptureRule(false);
+      expect(result).toBeUndefined();
     });
   });
 
@@ -751,8 +759,6 @@ describe('track-network-event', () => {
     });
   });
 
-
-
   describe('logNetworkAnalyticsEvent', () => {
     test('should log network analytics event with request and response body', async () => {
       const networkAnalyticsEvent: NetworkAnalyticsEvent = {
@@ -777,17 +783,5 @@ describe('track-network-event', () => {
 describe('version', () => {
   test('should return the plugin version', () => {
     expect(VERSION != null).toBe(true);
-  });
-});
-
-describe('parseHeaderCaptureRule', () => {
-  test('should return undefined when rule is null', () => {
-    const result = parseHeaderCaptureRule(null);
-    expect(result).toBeUndefined();
-  });
-
-  test('should return undefined when rule is false', () => {
-    const result = parseHeaderCaptureRule(false);
-    expect(result).toBeUndefined();
   });
 });
