@@ -15,6 +15,16 @@
     "@amplitude/analytics-types" "^1.3.5"
     tslib "^2.4.1"
 
+"@amplitude/analytics-remote-config@^0.4.0":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@amplitude/analytics-remote-config/-/analytics-remote-config-0.4.1.tgz#b62cf8aa82290f68b314197e20351b10ea44ae3e"
+  integrity sha512-BYl6kQ9qjztrCACsugpxO+foLaQIC0aSEzoXEAb/gwOzInmqkyyI+Ub+aWTBih4xgB/lhWlOcidWHAmNiTJTNw==
+  dependencies:
+    "@amplitude/analytics-client-common" ">=1 <3"
+    "@amplitude/analytics-core" ">=1 <3"
+    "@amplitude/analytics-types" ">=1 <3"
+    tslib "^2.4.1"
+
 "@amplitude/analytics-types@>=1 <2", "@amplitude/analytics-types@^1.3.4", "@amplitude/analytics-types@^1.3.5":
   version "1.3.5"
   resolved "https://registry.npmjs.org/@amplitude/analytics-types/-/analytics-types-1.3.5.tgz"
