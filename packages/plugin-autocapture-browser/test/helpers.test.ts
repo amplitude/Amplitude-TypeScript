@@ -15,6 +15,7 @@ import {
   createShouldTrackEvent,
   addAdditionalEventProperties,
   ElementBasedTimestampedEvent,
+  getEventProperties,
 } from '../src/helpers';
 import { mockWindowLocationFromURL } from './utils';
 
@@ -139,6 +140,49 @@ describe('autocapture-plugin helpers', () => {
       element.setAttribute('contenteditable', 'True');
       expect(isNonSensitiveElement(element)).toEqual(false);
     });
+
+    test('should return false when element has data-amp-mask attribute', () => {
+      const element = document.createElement('div');
+      element.setAttribute('data-amp-mask', 'true');
+      const result = isNonSensitiveElement(element);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when element has data-amp-mask attribute with any value', () => {
+      const element = document.createElement('div');
+      element.setAttribute('data-amp-mask', '');
+      const result = isNonSensitiveElement(element);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when parent element has data-amp-mask attribute', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-mask', 'true');
+      const child = document.createElement('span');
+      parent.appendChild(child);
+      document.body.appendChild(parent);
+
+      const result = isNonSensitiveElement(child);
+      expect(result).toEqual(false);
+
+      document.body.removeChild(parent);
+    });
+
+    test('should return false when ancestor element has data-amp-mask attribute', () => {
+      const grandparent = document.createElement('div');
+      grandparent.setAttribute('data-amp-mask', 'true');
+      const parent = document.createElement('div');
+      const child = document.createElement('span');
+
+      grandparent.appendChild(parent);
+      parent.appendChild(child);
+      document.body.appendChild(grandparent);
+
+      const result = isNonSensitiveElement(child);
+      expect(result).toEqual(false);
+
+      document.body.removeChild(grandparent);
+    });
   });
 
   describe('getText', () => {
@@ -162,6 +206,152 @@ describe('autocapture-plugin helpers', () => {
       button.appendChild(buttonText);
       const result = getText(button);
       expect(result).toEqual('submit');
+    });
+
+    test('should return empty string when element has data-amp-mask attribute', () => {
+      const element = document.createElement('div');
+      element.setAttribute('data-amp-mask', 'true');
+      element.textContent = 'sensitive content';
+      const result = getText(element);
+      expect(result).toEqual('');
+    });
+
+    test('should return empty string when parent element has data-amp-mask attribute', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-mask', 'true');
+      const child = document.createElement('span');
+      child.textContent = 'child content';
+      parent.appendChild(child);
+      document.body.appendChild(parent);
+
+      const result = getText(child);
+      expect(result).toEqual('');
+
+      document.body.removeChild(parent);
+    });
+
+    test('should mask child elements when parent has data-amp-mask attribute', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-mask', 'true');
+      const child1 = document.createElement('span');
+      child1.textContent = 'visible text';
+      const child2 = document.createElement('span');
+      child2.textContent = 'hidden text';
+
+      parent.appendChild(child1);
+      parent.appendChild(child2);
+      document.body.appendChild(parent);
+
+      const result = getText(parent);
+      expect(result).toEqual('');
+
+      document.body.removeChild(parent);
+    });
+
+    test('should exclude text "John Doe" from element with data-amp-mask', () => {
+      const element = document.createElement('div');
+      element.setAttribute('data-amp-mask', '');
+      element.textContent = 'John Doe';
+
+      const result = getText(element);
+      expect(result).toEqual('');
+    });
+
+    test('should mask text recursively for nested elements', () => {
+      const parent = document.createElement('div');
+      parent.setAttribute('data-amp-mask', '');
+
+      const child1 = document.createElement('span');
+      child1.textContent = 'John ';
+
+      const child2 = document.createElement('strong');
+      child2.textContent = 'Doe';
+
+      const child3 = document.createElement('div');
+      const grandchild = document.createElement('span');
+      grandchild.textContent = ' - Sensitive Info';
+      child3.appendChild(grandchild);
+
+      parent.appendChild(child1);
+      parent.appendChild(child2);
+      parent.appendChild(child3);
+      document.body.appendChild(parent);
+
+      const result = getText(parent);
+      expect(result).toEqual('');
+
+      document.body.removeChild(parent);
+    });
+
+    test('should mask deeply nested text content', () => {
+      const root = document.createElement('div');
+      root.setAttribute('data-amp-mask', '');
+
+      // Create: <div data-amp-mask><p>User: <span><strong>John Doe</strong></span> - <em>Admin</em></p></div>
+      const paragraph = document.createElement('p');
+      paragraph.appendChild(document.createTextNode('User: '));
+
+      const span = document.createElement('span');
+      const strong = document.createElement('strong');
+      strong.textContent = 'John Doe';
+      span.appendChild(strong);
+      paragraph.appendChild(span);
+
+      paragraph.appendChild(document.createTextNode(' - '));
+
+      const em = document.createElement('em');
+      em.textContent = 'Admin';
+      paragraph.appendChild(em);
+
+      root.appendChild(paragraph);
+      document.body.appendChild(root);
+
+      const result = getText(root);
+      expect(result).toEqual('');
+
+      document.body.removeChild(root);
+    });
+
+    test('should verify data-amp-mask does not affect click tracking eligibility', () => {
+      // Test that createShouldTrackEvent still allows tracking of masked elements
+      const element = document.createElement('div');
+      element.setAttribute('data-amp-mask', '');
+      element.textContent = 'John Doe';
+      document.body.appendChild(element);
+
+      // Create a shouldTrackEvent function with minimal config
+      const shouldTrackEvent = createShouldTrackEvent({}, ['div']);
+
+      // Click tracking should still work
+      const shouldTrackClick = shouldTrackEvent('click', element);
+      expect(shouldTrackClick).toBe(true);
+
+      // But text should be masked
+      const text = getText(element);
+      expect(text).toEqual('');
+
+      document.body.removeChild(element);
+    });
+
+    test('should generate event properties with no text property for masked elements', () => {
+      const element = document.createElement('div');
+      element.setAttribute('data-amp-mask', '');
+      element.setAttribute('id', 'test-element');
+      element.setAttribute('class', 'test-class');
+      element.textContent = 'John Doe';
+      document.body.appendChild(element);
+
+      const eventProperties = getEventProperties('click', element, 'data-amp-');
+
+      // Should still have other properties
+      expect(eventProperties['[Amplitude] Element ID']).toBe('test-element');
+      expect(eventProperties['[Amplitude] Element Class']).toBe('test-class');
+      expect(eventProperties['[Amplitude] Element Tag']).toBe('div');
+
+      // Text property should be absent (removed by removeEmptyProperties)
+      expect(eventProperties['[Amplitude] Element Text']).toBeUndefined();
+
+      document.body.removeChild(element);
     });
 
     test('should return concatenated text when element has child text nodes', () => {
