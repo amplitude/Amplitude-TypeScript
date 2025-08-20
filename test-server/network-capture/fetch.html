@@ -71,7 +71,7 @@
                 {
                   hosts: ['*.amplitude.com'],
                   statusCodeRange: '400-599',
-                  requestHeaders: false,
+                  requestHeaders: true,
                   responseHeaders: true,
                 },
                 {
@@ -83,14 +83,14 @@
                 {
                   hosts: ['*'],
                   statusCodeRange: '0,300-599',
+                  requestHeaders: true,
+                  responseHeaders: true,
                   responseBody: {
                     allowlist: ['status', 'message'],
                   },
                   requestBody: {
                     allowlist: ['**'],
                   },
-                  requestHeaders: ['content-type'],
-                  responseHeaders: ['content-type'],
                 },
               ],
             },

@@ -122,7 +122,7 @@ describe('track-network-event', () => {
     } as BrowserConfig;
     networkEvent = new MockNetworkRequestEvent();
   });
-  
+
   describe('parseHeaderCaptureRule()', () => {
     describe('returns SAFE_HEADERS when headers', () => {
       test('is "true"', () => {
