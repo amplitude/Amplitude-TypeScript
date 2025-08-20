@@ -49,6 +49,42 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual(false);
     });
 
+    test('should return false when text is email address format', () => {
+      const text = 'user@example.com';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address within other text', () => {
+      const text = 'Contact us at support@example.com for help';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address at the beginning', () => {
+      const text = 'user@example.com is the admin';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address at the end', () => {
+      const text = 'Send feedback to feedback@company.org';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains multiple email addresses', () => {
+      const text = 'Contact admin@example.com or support@example.com';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when email has dots in domain name before final dot', () => {
+      const text = 'user@sub.domain.example.com';
+      const result = isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
     test('should return true when text is not a string', () => {
       const text = 123;
       const result = isNonSensitiveString(text as unknown as string);
