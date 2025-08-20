@@ -176,6 +176,7 @@ export class RequestWrapperFetch implements IRequestWrapper {
   }
 
   get body(): string | null {
+    this.consumptionCheck.consume('body');
     if (typeof this.request.body === 'string') {
       return this.request.body;
     }
@@ -183,7 +184,6 @@ export class RequestWrapperFetch implements IRequestWrapper {
   }
 
   async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
-    this.consumptionCheck.consume('body');
     if (allow.length === 0) {
       return null;
     }
@@ -206,6 +206,7 @@ export class RequestWrapperXhr implements IRequestWrapper {
   }
 
   get body(): string | null {
+    this.consumptionCheck.consume('body');
     if (typeof this.bodyRaw === 'string') {
       return this.bodyRaw;
     }
@@ -213,7 +214,6 @@ export class RequestWrapperXhr implements IRequestWrapper {
   }
 
   async json(allow: string[] = [], exclude: string[] = []): Promise<JsonObject | null> {
-    this.consumptionCheck.consume('body');
     if (allow.length === 0) {
       return null;
     }
@@ -404,6 +404,8 @@ export class ResponseWrapperXhr implements IResponseWrapper {
   }
 
   async text(): Promise<string | null> {
+    // reject if body has already been consumed
+    this.consumptionCheck.consume('body');
     return this.responseText;
   }
 
@@ -427,8 +429,6 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     if (allow.length === 0) {
       return null;
     }
-    // reject if body has already been consumed
-    this.consumptionCheck.consume('body');
     const text = await this.text();
     return safeParseAndPruneBody(text, allow, exclude);
   }
