@@ -777,7 +777,6 @@ describe('track-network-event', () => {
       expect(amplitude.track).toHaveBeenCalledWith(AMPLITUDE_NETWORK_REQUEST_EVENT, networkAnalyticsEvent);
     });
   });
-
 });
 
 describe('version', () => {
