@@ -21,12 +21,12 @@ export interface BodyCaptureRule {
   /**
    * List of JSON pointers to capture from a request or response body (JSON objects only)
    *
-   * If this is empty or undefined, no attributes are captured
+   * If allowlist is empty or undefined, nothing is captured.
    *
-   * Follows a syntax similar to JSON Pointer, except:
+   * Follows a syntax similar to [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901), except:
    * - The leading / is optional
    * - A wildcard * can be used to match any key
-   * - A wildcard ** can be used to match any number of keys (or no keys)
+   * - A double-wildcard ** can be used to match any number of keys (or no keys)
    * - The structure of the JSON is preserved (ie: the captured body is a subset of the original body)
    */
   allowlist?: string[];
