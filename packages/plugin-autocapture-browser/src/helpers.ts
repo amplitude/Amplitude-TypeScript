@@ -154,7 +154,7 @@ export const getRedactedAttributeNames = (element: Element): Set<string> => {
 
   // Walk up the DOM tree to find any data-amp-redact-attributes
   while (currentElement) {
-    const redactValue = currentElement.getAttribute('data-amp-redact-attributes');
+    const redactValue = currentElement.getAttribute(constants.DATA_AMP_REDACT_ATTRIBUTES);
     if (redactValue) {
       // Parse comma-separated attribute names and add to set
       const attributesToRedact = redactValue

@@ -38,3 +38,6 @@ export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
 // This is the class name used by the visual tagging selector to highlight the selected element.
 // Should not use this class in the selector.
 export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-selector-highlight';
+
+// Data attribute for specifying which attributes should be redacted from autocapture
+export const DATA_AMP_REDACT_ATTRIBUTES = 'data-amp-redact-attributes';
