@@ -90,7 +90,7 @@ This plugin tracks campaign parameters based on your configuration. A web attrib
 |`ko_click_id`|URL query parameter value for `ko_click_id`|
 |`li_fat_id`|URL query parameter value for `li_fat_id`|
 |`msclkid`|URL query parameter value for `msclkid`|
-|`rtd_cid`|URL query parameter value for `rtd_cid`|
+|`rdt_cid`|URL query parameter value for `rdt_cid`|
 |`ttclid`|URL query parameter value for `ttclid`|
 |`twclid`|URL query parameter value for `twclid`|
 |`wbraid`|URL query parameter value for `wbraid`|
