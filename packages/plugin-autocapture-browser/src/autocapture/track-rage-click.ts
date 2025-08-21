@@ -61,7 +61,7 @@ function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
     regionBox.xMax - regionBox.xMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
 }
 
-function getRageClickEvent(clickWindow: ClickEvent[]) {
+function getRageClickAnalyticsEvent(clickWindow: ClickEvent[]) {
   const firstClick = clickWindow[0];
   const lastClick = clickWindow[clickWindow.length - 1];
 
@@ -156,7 +156,7 @@ export function trackRageClicks({
           isClickOutsideRageClickWindow(clickWindow, click) ||
           clickBoundingBox.isOutOfBounds
         ) {
-          const returnValue = clickWindow.length >= RAGE_CLICK_THRESHOLD ? getRageClickEvent(clickWindow) : null;
+          const returnValue = clickWindow.length >= RAGE_CLICK_THRESHOLD ? getRageClickAnalyticsEvent(clickWindow) : null;
           resetClickWindow(click);
           return returnValue;
         }
@@ -169,7 +169,7 @@ export function trackRageClicks({
         // This will be cancelled if a new click is tracked.
         if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
           triggerRageClickTimeout = setTimeout(() => {
-            const { rageClickEvent, time } = getRageClickEvent(clickWindow);
+            const { rageClickEvent, time } = getRageClickAnalyticsEvent(clickWindow);
             amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
             resetClickWindow();
           }, RAGE_CLICK_WINDOW_MS);
