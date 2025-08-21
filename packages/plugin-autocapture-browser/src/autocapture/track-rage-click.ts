@@ -30,31 +30,31 @@ type ClickEvent = {
   closestTrackedAncestor: Element | null;
 };
 
-type RegionBox = {
-  top?: number;
-  bottom?: number;
-  left?: number;
-  right?: number;
+type ClickRegionBoundingBox = {
+  yMin?: number;
+  yMax?: number;
+  xMin?: number;
+  xMax?: number;
   isOutOfBounds?: boolean;
 };
 
-function addCoordinates(regionBox: RegionBox, click: ClickEvent) {
+function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
   const { clientX, clientY } = click.event as MouseEvent;
-  if (regionBox.top === undefined || clientY > regionBox.top) {
-    regionBox.top = clientY;
+  if (regionBox.yMin === undefined || clientY < regionBox.yMin) {
+    regionBox.yMin = clientY;
   }
-  if (regionBox.bottom === undefined || clientY < regionBox.bottom) {
-    regionBox.bottom = clientY;
+  if (regionBox.yMax === undefined || clientY > regionBox.yMax) {
+    regionBox.yMax = clientY;
   }
-  if (regionBox.left === undefined || clientX < regionBox.left) {
-    regionBox.left = clientX;
+  if (regionBox.xMin === undefined || clientX < regionBox.xMin) {
+    regionBox.xMin = clientX;
   }
-  if (regionBox.right === undefined || clientX > regionBox.right) {
-    regionBox.right = clientX;
+  if (regionBox.xMax === undefined || clientX > regionBox.xMax) {
+    regionBox.xMax = clientX;
   }
   regionBox.isOutOfBounds =
-    regionBox.top - regionBox.bottom > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD ||
-    regionBox.right - regionBox.left > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
+    regionBox.yMax - regionBox.yMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD ||
+    regionBox.xMax - regionBox.xMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
 }
 
 function getRageClickEvent(clickWindow: ClickEvent[]) {
@@ -105,7 +105,7 @@ export function trackRageClicks({
   let clickWindow: ClickEvent[] = [];
 
   // Keep track of the region box for all clicks, to determine when a rage click is out of bounds
-  let regionBox: RegionBox = {};
+  let clickBoundingBox: ClickRegionBoundingBox = {};
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let triggerRageClickTimeout: any;
@@ -113,9 +113,9 @@ export function trackRageClicks({
   // helper function to reset the click window and region box
   function resetClickWindow(click?: ClickEvent) {
     clickWindow = [];
-    regionBox = {};
+    clickBoundingBox = {};
     if (click) {
-      addCoordinates(regionBox, click);
+      addCoordinates(clickBoundingBox, click);
       clickWindow.push(click);
     }
   }
@@ -133,8 +133,8 @@ export function trackRageClicks({
           clearTimeout(triggerRageClickTimeout);
         }
 
-        // add click to region box
-        addCoordinates(regionBox, click);
+        // add click to bounding box
+        addCoordinates(clickBoundingBox, click);
 
         // if there's just one click in the window, add it and return
         if (clickWindow.length === 0) {
@@ -150,7 +150,7 @@ export function trackRageClicks({
         if (
           isNewElement(clickWindow, click) ||
           isClickOutsideRageClickWindow(clickWindow, click) ||
-          regionBox.isOutOfBounds
+          clickBoundingBox.isOutOfBounds
         ) {
           const returnValue = clickWindow.length >= RAGE_CLICK_THRESHOLD ? getRageClickEvent(clickWindow) : null;
           resetClickWindow(click);
@@ -162,7 +162,7 @@ export function trackRageClicks({
 
         // if we have enough clicks to be a rage click, set a timout to trigger the rage
         // click event after the time threshold is reached.
-        // Setting timeout so there's still a chance to capture more clicks within window
+        // This will be cancelled if a new click is tracked.
         if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
           triggerRageClickTimeout = setTimeout(() => {
             const { rageClickEvent, time } = getRageClickEvent(clickWindow);
