@@ -30,7 +30,7 @@ export interface ClickIdParameters {
   ko_click_id: string | undefined;
   li_fat_id: string | undefined;
   msclkid: string | undefined;
-  rtd_cid: string | undefined;
+  rdt_cid: string | undefined;
   ttclid: string | undefined;
   twclid: string | undefined;
   wbraid: string | undefined;
