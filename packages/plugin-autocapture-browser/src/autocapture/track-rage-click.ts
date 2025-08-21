@@ -77,7 +77,7 @@ function getRageClickEvent(clickWindow: ClickEvent[]) {
   return { rageClickEvent, time: firstClick.timestamp };
 }
 
-function isClickOutsideRageClickWindow(click: ClickEvent, clickWindow: ClickEvent[]) {
+function isClickOutsideRageClickWindow(clickWindow: ClickEvent[], click: ClickEvent) {
   const firstIndex = Math.max(0, clickWindow.length - RAGE_CLICK_THRESHOLD + 1);
   const firstClick = clickWindow[firstIndex];
   return click.timestamp - firstClick.timestamp >= RAGE_CLICK_WINDOW_MS;
@@ -140,13 +140,13 @@ export function trackRageClicks({
         }
 
         // if current click is:
-        // 1. outside the rage click window
-        // 2. on a new element
-        // 3. out of bounds
-        // then start a new sliding window
+        //  1. outside the rage click window
+        //  2. on a new element
+        //  3. out of bounds
+        // then start a new click window
         if (
           isNewElement(clickWindow, click) ||
-          isClickOutsideRageClickWindow(click, clickWindow) ||
+          isClickOutsideRageClickWindow(clickWindow, click) ||
           regionBox.isOutOfBounds
         ) {
           const returnValue = clickWindow.length >= RAGE_CLICK_THRESHOLD ? getRageClickEvent(clickWindow) : null;
