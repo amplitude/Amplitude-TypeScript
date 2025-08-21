@@ -29,6 +29,31 @@ type ClickEvent = {
   closestTrackedAncestor: Element | null;
 };
 
+function getRageClickEvent(clickWindow: ClickEvent[]) {
+  // if we've made it here, we have enough trailing clicks on the same element
+  // for it to be a rage click
+  const firstClick = clickWindow[0];
+  const lastClick = clickWindow[clickWindow.length - 1];
+
+  const rageClickEvent: EventRageClick = {
+    '[Amplitude] Begin Time': new Date(firstClick.timestamp).toISOString(),
+    '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
+    '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
+    '[Amplitude] Clicks': clickWindow.map((click) => ({
+      X: (click.event as MouseEvent).clientX,
+      Y: (click.event as MouseEvent).clientY,
+      Time: click.timestamp,
+    })),
+    '[Amplitude] Click Count': clickWindow.length,
+    ...firstClick.targetElementProperties,
+  };
+
+  // restart the sliding window
+  clickWindow.splice(0, clickWindow.length);
+
+  return { rageClickEvent, time: firstClick.timestamp };
+}
+
 export function trackRageClicks({
   amplitude,
   allObservables,
@@ -41,7 +66,8 @@ export function trackRageClicks({
   const { clickObservable } = allObservables;
 
   // Keep track of all clicks within the sliding window
-  const clickWindow: ClickEvent[] = [];
+  let clickWindow: ClickEvent[] = [];
+  let clickWaitTimer: string | number | undefined;
 
   return clickObservable
     .pipe(
@@ -50,56 +76,59 @@ export function trackRageClicks({
         return shouldTrackRageClick('click', click.closestTrackedAncestor);
       }),
       map((click) => {
-        const now = click.timestamp;
+        let isRageClickPeriodComplete = false;
+
+        // reset the click wait timer
+        if (clickWaitTimer) {
+          clearTimeout(clickWaitTimer);
+        }
 
         // if the current click isn't on the same element as the most recent click,
-        // clear the sliding window and start over
+        // start a new sliding window
         if (
           clickWindow.length > 0 &&
           clickWindow[clickWindow.length - 1].closestTrackedAncestor !== click.closestTrackedAncestor
+          // TODO: add region check here
         ) {
-          clickWindow.splice(0, clickWindow.length);
-        }
+          if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
+            isRageClickPeriodComplete = true;
+            const rageClickEvent = getRageClickEvent(clickWindow);
+            clickWindow = [click];
+            return rageClickEvent;
+          } else {
+            clickWindow = [click];
+            return null;
+          }
+        } else {
+          clickWindow.push(click);
 
-        // remove past clicks that are outside the sliding window
-        let clickPtr = 0;
-        for (; clickPtr < clickWindow.length; clickPtr++) {
-          if (now - clickWindow[clickPtr].timestamp < RAGE_CLICK_WINDOW_MS) {
-            break;
+          // if the last click is not within the rage click time window,
+          // rage click period is over
+          if (clickWindow.length > RAGE_CLICK_THRESHOLD) {
+            const lastClick = clickWindow[clickWindow.length - 1];
+            const firstClick = clickWindow[clickWindow.length - RAGE_CLICK_THRESHOLD];
+            if (lastClick.timestamp - firstClick.timestamp >= RAGE_CLICK_WINDOW_MS) {
+              isRageClickPeriodComplete = true;
+
+              // remove last click from current click window, move it to next click window
+              const rageClickEvent = getRageClickEvent(clickWindow.slice(0, clickWindow.length - 1));
+              clickWindow = [click];
+              return rageClickEvent;
+            }
           }
         }
-        clickWindow.splice(0, clickPtr);
 
-        // add the current click to the window
-        clickWindow.push(click);
-
-        // if there's not enough clicks to be a rage click, return null
-        if (clickWindow.length < RAGE_CLICK_THRESHOLD) {
-          return null;
+        // if we have enough clicks to be a rage click, but the rage click period is not complete,
+        // set a timer to trigger the rage click event if the rage click period is not complete
+        if (!isRageClickPeriodComplete && clickWindow.length >= RAGE_CLICK_THRESHOLD) {
+          clickWaitTimer = setTimeout(() => {
+            const { rageClickEvent, time } = getRageClickEvent(clickWindow);
+            amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
+            clickWindow = [];
+          }, RAGE_CLICK_WINDOW_MS);
         }
 
-        // if we've made it here, we have enough trailing clicks on the same element
-        // for it to be a rage click
-        const firstClick = clickWindow[0];
-        const lastClick = clickWindow[clickWindow.length - 1];
-
-        const rageClickEvent: EventRageClick = {
-          '[Amplitude] Begin Time': new Date(firstClick.timestamp).toISOString(),
-          '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
-          '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
-          '[Amplitude] Clicks': clickWindow.map((click) => ({
-            X: (click.event as MouseEvent).clientX,
-            Y: (click.event as MouseEvent).clientY,
-            Time: click.timestamp,
-          })),
-          '[Amplitude] Click Count': clickWindow.length,
-          ...firstClick.targetElementProperties,
-        };
-
-        // restart the sliding window
-        clickWindow.splice(0, clickWindow.length);
-
-        return { rageClickEvent, time: firstClick.timestamp };
+        return null;
       }),
       filter((result) => result !== null),
     )
