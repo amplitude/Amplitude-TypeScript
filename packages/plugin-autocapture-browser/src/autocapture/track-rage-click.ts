@@ -106,7 +106,7 @@ export function trackRageClicks({
 
   // Keep track of the region box for all clicks, to determine when a rage click is out of bounds
   let regionBox: RegionBox = {};
-  
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let triggerRageClickTimeout: any;
 
