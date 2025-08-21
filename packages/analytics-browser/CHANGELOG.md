@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.23.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.22.2...@amplitude/analytics-browser@2.23.0) (2025-08-21)
+
+
+### Features
+
+* **analytics-browser:** add urls matching attribute to network capture rules (experimental) ([#1252](https://github.com/amplitude/Amplitude-TypeScript/issues/1252)) ([c28a98c](https://github.com/amplitude/Amplitude-TypeScript/commit/c28a98c13536d3eb2472edcce6ec225539db00aa))
+
+
+
+
+
 ## [2.22.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.22.1...@amplitude/analytics-browser@2.22.2) (2025-08-13)
 
 **Note:** Version bump only for package @amplitude/analytics-browser

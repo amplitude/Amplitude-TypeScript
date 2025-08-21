@@ -1,6 +1,6 @@
 {
   "name": "@amplitude/plugin-page-url-enrichment-browser",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "",
   "author": "Amplitude Inc",
   "homepage": "https://github.com/amplitude/Amplitude-TypeScript",
@@ -37,8 +37,8 @@
     "url": "https://github.com/amplitude/Amplitude-TypeScript/issues"
   },
   "dependencies": {
-    "@amplitude/analytics-client-common": "^2.3.34",
-    "@amplitude/analytics-core": "^2.20.2",
+    "@amplitude/analytics-client-common": "^2.3.35",
+    "@amplitude/analytics-core": "^2.21.0",
     "@amplitude/analytics-types": "^2.9.2",
     "tslib": "^2.4.1"
   },
