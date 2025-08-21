@@ -3,15 +3,11 @@ import { filter, map } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
-import { DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
+import { DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS, DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD } from '@amplitude/analytics-core';
 
 const RAGE_CLICK_THRESHOLD = DEFAULT_RAGE_CLICK_THRESHOLD;
 const RAGE_CLICK_WINDOW_MS = DEFAULT_RAGE_CLICK_WINDOW_MS;
-import { DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD } from '../types';
-
-const RAGE_CLICK_THRESHOLD = DEFAULT_RAGE_CLICK_THRESHOLD;
-const RAGE_CLICK_WINDOW_MS = DEFAULT_RAGE_CLICK_WINDOW_MS;
-const RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD; // pixels
+const RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
 
 type Click = {
   X: number;
