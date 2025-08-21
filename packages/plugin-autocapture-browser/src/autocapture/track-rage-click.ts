@@ -44,18 +44,10 @@ type ClickRegionBoundingBox = {
 
 function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
   const { clientX, clientY } = click.event as MouseEvent;
-  if (regionBox.yMin === undefined || clientY < regionBox.yMin) {
-    regionBox.yMin = clientY;
-  }
-  if (regionBox.yMax === undefined || clientY > regionBox.yMax) {
-    regionBox.yMax = clientY;
-  }
-  if (regionBox.xMin === undefined || clientX < regionBox.xMin) {
-    regionBox.xMin = clientX;
-  }
-  if (regionBox.xMax === undefined || clientX > regionBox.xMax) {
-    regionBox.xMax = clientX;
-  }
+  regionBox.yMin = Math.min(regionBox.yMin ?? clientY, clientY);
+  regionBox.yMax = Math.max(regionBox.yMax ?? clientY, clientY);
+  regionBox.xMin = Math.min(regionBox.xMin ?? clientX, clientX);
+  regionBox.xMax = Math.max(regionBox.xMax ?? clientX, clientX);
   regionBox.isOutOfBounds =
     regionBox.yMax - regionBox.yMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD ||
     regionBox.xMax - regionBox.xMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
