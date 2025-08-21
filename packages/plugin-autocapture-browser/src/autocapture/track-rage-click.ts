@@ -94,10 +94,13 @@ export function trackRageClicks({
           clearTimeout(triggerRageClickTimeout);
         }
 
-        // if the current click isn't on the same element as the most recent click,
+        // if current click is outside the rage click window, or is on a new element,
         // start a new sliding window
         // TODO: add isNewRegion check here
-        if (isNewElement(clickWindow, click)) {
+        if (
+          isNewElement(clickWindow, click) ||
+          isClickOutsideRageClickWindow(click, clickWindow)
+        ) {
           let returnValue = null;
           if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
             returnValue = getRageClickEvent(clickWindow);
@@ -106,21 +109,12 @@ export function trackRageClicks({
           return returnValue;
         }
 
-
-        // if the last click is not within the rage click time window,
-        // rage click period is over
-        if (isClickOutsideRageClickWindow(click, clickWindow)) {
-          // remove last click from current click window, move it to next click window
-          const rageClickEvent = getRageClickEvent(clickWindow);
-          clickWindow = [click];
-          return rageClickEvent;
-        }
-
         // add click to current window
         clickWindow.push(click);
 
-        // if we have enough clicks to be a rage click, but the rage click period is not complete,
-        // set a timer to trigger the rage click event after the time threshold is reached
+        // if we have enough clicks to be a rage click, set a timout to trigger the rage
+        // click event after the time threshold is reached.
+        // Setting timeout so there's still a chance to capture more clicks within window
         if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
           triggerRageClickTimeout = setTimeout(() => {
             const { rageClickEvent, time } = getRageClickEvent(clickWindow);
