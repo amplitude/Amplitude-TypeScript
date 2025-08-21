@@ -101,13 +101,16 @@ export function trackRageClicks({
 }) {
   const { clickObservable } = allObservables;
 
-  let regionBox: RegionBox = {};
-
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
+
+  // Keep track of the region box for all clicks, to determine when a rage click is out of bounds
+  let regionBox: RegionBox = {};
+  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let triggerRageClickTimeout: any;
 
+  // helper function to reset the click window and region box
   function resetClickWindow(click?: ClickEvent) {
     clickWindow = [];
     regionBox = {};
