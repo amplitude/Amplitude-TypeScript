@@ -331,6 +331,7 @@ export class SessionReplay implements AmplitudeSessionReplay {
             sessionTargetingMatch: this.sessionTargetingMatch,
             event: eventForTargeting,
             targetingParams: targetingParams,
+            config: this.config.targetingConfig,
           },
           null,
           2,
@@ -531,6 +532,40 @@ export class SessionReplay implements AmplitudeSessionReplay {
     }
     this.stopRecordingEvents();
 
+    const shouldUseIdleCallback = config?.delayRecordInitialization?.enabled;
+    if (shouldUseIdleCallback) {
+      this.loggerProvider.debug('Scheduling record function initialization during idle time.');
+      this.scheduleIdleRecordInitialization(shouldLogMetadata, config, sessionId);
+    } else {
+      this.loggerProvider.debug('Initializing record function immediately.');
+      await this.initializeRecording(shouldLogMetadata, config, sessionId);
+    }
+  }
+
+  private scheduleIdleRecordInitialization(
+    shouldLogMetadata: boolean,
+    config: SessionReplayJoinedConfig,
+    sessionId: string | number,
+  ) {
+    const timeout = config?.delayRecordInitialization?.timeout || 2000;
+
+    const globalScope = getGlobalScope();
+    if (globalScope?.requestIdleCallback) {
+      globalScope.requestIdleCallback(
+        () => {
+          this.loggerProvider.debug('Initializing record function during idle time.');
+          void this.initializeRecording(shouldLogMetadata, config, sessionId);
+        },
+        { timeout },
+      );
+    }
+  }
+
+  private async initializeRecording(
+    shouldLogMetadata: boolean,
+    config: SessionReplayJoinedConfig,
+    sessionId: string | number,
+  ) {
     const recordFunction = await this.getRecordFunction();
 
     // May be undefined if cannot import rrweb-record

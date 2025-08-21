@@ -89,6 +89,7 @@ export class SessionReplayPlugin implements EnrichmentPlugin<BrowserClient, Brow
         shouldInlineStylesheet: this.options.shouldInlineStylesheet,
         version: { type: 'plugin', version: VERSION },
         performanceConfig: this.options.performanceConfig,
+        delayRecordInitialization: this.options.delayRecordInitialization,
         storeType: this.options.storeType,
         experimental: this.options.experimental,
         userProperties: userProperties,
