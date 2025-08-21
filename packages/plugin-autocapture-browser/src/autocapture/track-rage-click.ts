@@ -46,9 +46,6 @@ function getRageClickEvent(clickWindow: ClickEvent[]) {
     ...firstClick.targetElementProperties,
   };
 
-  // restart the sliding window
-  clickWindow.splice(0, clickWindow.length);
-
   return { rageClickEvent, time: firstClick.timestamp };
 }
 
@@ -83,7 +80,7 @@ export function trackRageClicks({
   // Keep track of all clicks within the sliding window
   let clickWindow: ClickEvent[] = [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let clickWaitTimer: any;
+  let triggerRageClickTimeout: any;
 
   return clickObservable
     .pipe(
@@ -92,23 +89,21 @@ export function trackRageClicks({
         return shouldTrackRageClick('click', click.closestTrackedAncestor);
       }),
       map((click) => {
-        // reset the click wait timer
-        if (clickWaitTimer) {
-          clearTimeout(clickWaitTimer);
+        // reset the click wait timer if it exists
+        if (triggerRageClickTimeout) {
+          clearTimeout(triggerRageClickTimeout);
         }
 
         // if the current click isn't on the same element as the most recent click,
         // start a new sliding window
         // TODO: add isNewRegion check here
         if (isNewElement(clickWindow, click)) {
+          let returnValue = null;
           if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
-            const rageClickEvent = getRageClickEvent(clickWindow);
-            clickWindow = [click];
-            return rageClickEvent;
-          } else {
-            clickWindow = [click];
-            return null;
+            returnValue = getRageClickEvent(clickWindow);
           }
+          clickWindow = [click];
+          return returnValue;
         }
 
 
@@ -125,9 +120,9 @@ export function trackRageClicks({
         clickWindow.push(click);
 
         // if we have enough clicks to be a rage click, but the rage click period is not complete,
-        // set a timer to trigger the rage click event if the rage click period is not complete
+        // set a timer to trigger the rage click event after the time threshold is reached
         if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
-          clickWaitTimer = setTimeout(() => {
+          triggerRageClickTimeout = setTimeout(() => {
             const { rageClickEvent, time } = getRageClickEvent(clickWindow);
             amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
             clickWindow = [];
