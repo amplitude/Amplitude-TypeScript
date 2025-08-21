@@ -78,7 +78,7 @@ describe('trackRageClicks', () => {
       expect(mockAmplitude.track).toHaveBeenCalledWith(
         AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT,
         expect.objectContaining({
-          '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD + 1,
+          '[Amplitude] Click Count': DEFAULT_RAGE_CLICK_THRESHOLD,
           '[Amplitude] Clicks': expect.arrayContaining([
             expect.objectContaining({
               X: 100,
@@ -435,5 +435,52 @@ describe('trackRageClicks', () => {
       subscription.unsubscribe();
       done();
     }, 100);
+  });
+
+  it('should not track rage clicks when threshold is met but clicks are out of bounds', (done) => {
+    const subscription = trackRageClicks({
+      amplitude: mockAmplitude,
+      allObservables,
+      shouldTrackRageClick,
+    });
+
+    // Create a mock element
+    const mockElement = document.createElement('div');
+
+    // Simulate clicks that exceed the time window to trigger immediate rage click detection
+    const startTime = Date.now();
+
+    // First click
+    clickObservable.next({
+      event: {
+        target: mockElement,
+        clientX: 100,
+        clientY: 100,
+      },
+      timestamp: startTime,
+      closestTrackedAncestor: mockElement,
+      targetElementProperties: { id: 'test-element' },
+    });
+
+    // Add clicks that exceed the time window
+    for (let i = 0; i < DEFAULT_RAGE_CLICK_THRESHOLD; i++) {
+      clickObservable.next({
+        event: {
+          target: mockElement,
+          clientX: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
+          clientY: i === DEFAULT_RAGE_CLICK_THRESHOLD - 1 ? 1000 : 100,
+        },
+        timestamp: startTime + DEFAULT_RAGE_CLICK_WINDOW_MS + i * 50, // Exceed the time window
+        closestTrackedAncestor: mockElement,
+        targetElementProperties: { id: 'test-element' },
+      });
+    }
+
+    // Wait for the event to be processed
+    setTimeout(() => {
+      expect(mockAmplitude.track).not.toHaveBeenCalled();
+      subscription.unsubscribe();
+      done();
+    }, DEFAULT_RAGE_CLICK_WINDOW_MS + 100); // Short wait since we're triggering immediate detection
   });
 });

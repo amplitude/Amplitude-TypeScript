@@ -107,6 +107,11 @@ export const DEFAULT_RAGE_CLICK_WINDOW_MS = 1_000;
  */
 export const DEFAULT_RAGE_CLICK_THRESHOLD = 4;
 
+/**
+ * Default threshold for rage clicks to be considered out of bounds (15 pixels)
+ */
+export const DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = 15; // pixels
+
 // DomElement is [Element](https://developer.mozilla.org/en-US/docs/Web/API/Element) if the dom library is included in tsconfig.json
 // and never if it is not included
 // eslint-disable-next-line no-restricted-globals
