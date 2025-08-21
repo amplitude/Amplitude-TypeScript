@@ -302,6 +302,9 @@ describe('autocapture-plugin helpers', () => {
       parent.appendChild(child);
       document.body.appendChild(grandparent);
 
+      const parentResult = getRedactedAttributeNames(parent);
+      expect(parentResult).toEqual(new Set(['name']));
+
       const result = getRedactedAttributeNames(child);
       expect(result).toEqual(new Set(['name', 'email', 'phone'])); // Only from ancestors, id and class excluded
 
