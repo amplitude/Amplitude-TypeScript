@@ -164,9 +164,9 @@ describe('autocapture-plugin hierarchy', () => {
       });
     });
 
-    test('should NOT redact child id or class when both specified in parent data-amp-redact-attributes', () => {
+    test('should NOT redact child id or class when both specified in parent data-amp-mask-attributes', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
-        <div data-amp-redact-attributes="id, class">
+        <div data-amp-mask-attributes="id, class">
           <div id="secret-id" class="secret-class" data-test="visible">
             xxx
           </div>
@@ -190,7 +190,7 @@ describe('autocapture-plugin hierarchy', () => {
 
     test('should NOT redact attributes when redaction rule is on element itself', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
-        <div id="target" class="target-class" data-secret="sensitive" data-amp-redact-attributes="id, class, data-secret">
+        <div id="target" class="target-class" data-secret="sensitive" data-amp-mask-attributes="id, class, data-secret">
           xxx
         </div>
       `;
@@ -206,14 +206,14 @@ describe('autocapture-plugin hierarchy', () => {
         tag: 'div',
         attrs: {
           'data-secret': 'sensitive', // Should not be redacted since rule is on element itself
-          'data-amp-redact-attributes': 'id, class, data-secret', // The redaction attribute itself is also included
+          'data-amp-mask-attributes': 'id, class, data-secret', // The redaction attribute itself is also included
         },
       });
     });
 
     test('should redact specific attributes from hierarchy when specified on parent', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
-        <div data-amp-redact-attributes="data-secret">
+        <div data-amp-mask-attributes="data-secret">
           <div id="target" data-secret="sensitive-value" data-public="public-value">
             xxx
           </div>
@@ -236,8 +236,8 @@ describe('autocapture-plugin hierarchy', () => {
 
     test('should inherit redaction rules from multiple ancestor levels but preserve id and class', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
-        <div data-amp-redact-attributes="id">
-          <div data-amp-redact-attributes="class, data-level2">
+        <div data-amp-mask-attributes="id">
+          <div data-amp-mask-attributes="class, data-level2">
             <div id="target-id" class="target-class" data-level2="secret" data-safe="ok">
               xxx
             </div>

@@ -226,19 +226,19 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual({ 'data-hello': 'world', 'data-time': 'machine' });
     });
 
-    test('should NOT exclude attributes when data-amp-redact-attributes is present on element itself', () => {
+    test('should NOT exclude attributes when data-amp-mask-attributes is present on element itself', () => {
       const element = document.createElement('input');
       element.setAttribute('data-amp-track-hello', 'world');
       element.setAttribute('data-amp-track-secret', 'sensitive');
       element.setAttribute('data-amp-track-time', 'machine');
-      element.setAttribute('data-amp-redact-attributes', 'secret');
+      element.setAttribute('data-amp-mask-attributes', 'secret');
       const result = getAttributesWithPrefix(element, 'data-amp-track-');
       expect(result).toEqual({ hello: 'world', secret: 'sensitive', time: 'machine' });
     });
 
     test('should exclude multiple redacted attributes when comma-separated from parent', () => {
       const parent = document.createElement('div');
-      parent.setAttribute('data-amp-redact-attributes', 'secret1, secret2');
+      parent.setAttribute('data-amp-mask-attributes', 'secret1, secret2');
 
       const element = document.createElement('input');
       element.setAttribute('data-amp-track-hello', 'world');
@@ -257,7 +257,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should exclude redacted attributes from ancestor elements', () => {
       const container = document.createElement('div');
-      container.setAttribute('data-amp-redact-attributes', 'name');
+      container.setAttribute('data-amp-mask-attributes', 'name');
 
       const child = document.createElement('span');
       child.setAttribute('data-amp-track-hello', 'world');
@@ -281,22 +281,22 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual(new Set());
     });
 
-    test('should return empty set when data-amp-redact-attributes is only on element itself', () => {
+    test('should return empty set when data-amp-mask-attributes is only on element itself', () => {
       const element = document.createElement('div');
-      element.setAttribute('data-amp-redact-attributes', 'name, email');
+      element.setAttribute('data-amp-mask-attributes', 'name, email');
       const result = getRedactedAttributeNames(element);
       expect(result).toEqual(new Set()); // Should be empty since redaction only affects children
     });
 
     test('should collect redacted attributes from ancestor elements only and exclude id and class', () => {
       const grandparent = document.createElement('div');
-      grandparent.setAttribute('data-amp-redact-attributes', 'name, id, class'); // id and class should be ignored
+      grandparent.setAttribute('data-amp-mask-attributes', 'name, id, class'); // id and class should be ignored
 
       const parent = document.createElement('div');
-      parent.setAttribute('data-amp-redact-attributes', 'email, phone');
+      parent.setAttribute('data-amp-mask-attributes', 'email, phone');
 
       const child = document.createElement('span');
-      child.setAttribute('data-amp-redact-attributes', 'ignored'); // This should be ignored
+      child.setAttribute('data-amp-mask-attributes', 'ignored'); // This should be ignored
 
       grandparent.appendChild(parent);
       parent.appendChild(child);
@@ -310,7 +310,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should handle whitespace and empty values in redaction list from parent', () => {
       const parent = document.createElement('div');
-      parent.setAttribute('data-amp-redact-attributes', ' name , , email , ');
+      parent.setAttribute('data-amp-mask-attributes', ' name , , email , ');
 
       const element = document.createElement('span');
       parent.appendChild(element);
@@ -324,7 +324,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should handle empty redaction attribute value from parent', () => {
       const parent = document.createElement('div');
-      parent.setAttribute('data-amp-redact-attributes', '');
+      parent.setAttribute('data-amp-mask-attributes', '');
 
       const element = document.createElement('span');
       parent.appendChild(element);
@@ -338,7 +338,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should never include id or class in redacted attributes even when specified', () => {
       const parent = document.createElement('div');
-      parent.setAttribute('data-amp-redact-attributes', 'id, class, name');
+      parent.setAttribute('data-amp-mask-attributes', 'id, class, name');
 
       const element = document.createElement('span');
       parent.appendChild(element);
@@ -718,7 +718,7 @@ describe('autocapture-plugin helpers', () => {
   describe('getEventProperties with redaction', () => {
     test('should NOT redact id or class when both specified on parent', () => {
       const container = document.createElement('div');
-      container.setAttribute('data-amp-redact-attributes', 'id, class');
+      container.setAttribute('data-amp-mask-attributes', 'id, class');
 
       const element = document.createElement('button');
       element.setAttribute('id', 'secret-id');
@@ -743,7 +743,7 @@ describe('autocapture-plugin helpers', () => {
       element.setAttribute('id', 'test-id');
       element.setAttribute('class', 'test-class');
       element.setAttribute('aria-label', 'Test button');
-      element.setAttribute('data-amp-redact-attributes', 'id, class, aria-label'); // On element itself
+      element.setAttribute('data-amp-mask-attributes', 'id, class, aria-label'); // On element itself
       element.textContent = 'Click me';
 
       document.body.appendChild(element);
@@ -759,7 +759,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should redact aria-label when specified on parent', () => {
       const container = document.createElement('div');
-      container.setAttribute('data-amp-redact-attributes', 'aria-label');
+      container.setAttribute('data-amp-mask-attributes', 'aria-label');
 
       const element = document.createElement('button');
       element.setAttribute('aria-label', 'Secret button label');
@@ -778,7 +778,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should redact href for anchor elements when specified on parent', () => {
       const container = document.createElement('div');
-      container.setAttribute('data-amp-redact-attributes', 'href');
+      container.setAttribute('data-amp-mask-attributes', 'href');
 
       const element = document.createElement('a');
       element.setAttribute('href', 'https://secret-url.com');
@@ -797,7 +797,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should not redact attributes when not specified in redaction list', () => {
       const container = document.createElement('div');
-      container.setAttribute('data-amp-redact-attributes', 'other-attr');
+      container.setAttribute('data-amp-mask-attributes', 'other-attr');
 
       const element = document.createElement('button');
       element.setAttribute('id', 'test-id');
@@ -819,7 +819,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should redact data attributes when specified on parent', () => {
       const container = document.createElement('div');
-      container.setAttribute('data-amp-redact-attributes', 'user-name');
+      container.setAttribute('data-amp-mask-attributes', 'user-name');
 
       const element = document.createElement('span');
       element.setAttribute('data-amp-track-user-name', 'John Doe');
@@ -838,7 +838,7 @@ describe('autocapture-plugin helpers', () => {
 
     test('should never redact id or class attributes even when explicitly specified', () => {
       const container = document.createElement('div');
-      container.setAttribute('data-amp-redact-attributes', 'id, class, aria-label');
+      container.setAttribute('data-amp-mask-attributes', 'id, class, aria-label');
 
       const element = document.createElement('button');
       element.setAttribute('id', 'important-id');

@@ -142,7 +142,7 @@ export const getText = (element: Element): string => {
 };
 
 /**
- * Collects redacted attribute names from ancestor elements with data-amp-redact-attributes
+ * Collects redacted attribute names from ancestor elements with data-amp-mask-attributes
  * Redaction rules only apply to children, not the element that defines the rule
  * The 'id' and 'class' attributes cannot be redacted as they're critical for element identification
  * @param element - The target element to check ancestors for
@@ -152,9 +152,9 @@ export const getRedactedAttributeNames = (element: Element): Set<string> => {
   const redactedAttributes = new Set<string>();
   let currentElement: Element | null = element.parentElement; // Start from parent, not element itself
 
-  // Walk up the DOM tree to find any data-amp-redact-attributes
+  // Walk up the DOM tree to find any data-amp-mask-attributes
   while (currentElement) {
-    const redactValue = currentElement.getAttribute(constants.DATA_AMP_REDACT_ATTRIBUTES);
+    const redactValue = currentElement.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES);
     if (redactValue) {
       // Parse comma-separated attribute names and add to set
       const attributesToRedact = redactValue
