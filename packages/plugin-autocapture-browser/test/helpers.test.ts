@@ -542,6 +542,58 @@ describe('autocapture-plugin helpers', () => {
       expect(shouldTrackEvent('click', element)).toEqual(true);
       document.head.removeChild(style);
     });
+
+    test('should respect pageUrlExcludelist configuration', () => {
+      // Mock window.location to a test URL
+      mockWindowLocationFromURL(new URL('https://www.test.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(false);
+    });
+
+    test('should allow tracking when URL does not match excludelist', () => {
+      // Mock window.location to a different URL
+      mockWindowLocationFromURL(new URL('https://www.different.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+
+    test('should prioritize excludelist over allowlist', () => {
+      // Mock window.location to a URL that matches both lists
+      mockWindowLocationFromURL(new URL('https://www.test.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlAllowlist: [new RegExp('https://www.test.com')],
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(false);
+    });
   });
 
   describe('addAdditionalEventProperties', () => {

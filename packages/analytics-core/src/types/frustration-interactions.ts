@@ -35,6 +35,14 @@ export interface FrustrationInteractionsOptions {
   pageUrlAllowlist?: (string | RegExp)[];
 
   /**
+   * List of page URLs to exclude from auto tracking.
+   * When provided, tracking will be blocked on these URLs.
+   * Both full URLs and regex are supported.
+   * This is checked after pageUrlAllowlist.
+   */
+  pageUrlExcludelist?: (string | RegExp)[];
+
+  /**
    * Function to determine whether an event should be tracked.
    * When provided, this function overwrites all other allowlists and configurations.
    * If the function returns true, the event will be tracked.
