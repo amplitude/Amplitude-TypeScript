@@ -3,10 +3,15 @@ import { filter, map } from 'rxjs';
 import { BrowserClient } from '@amplitude/analytics-core';
 import { filterOutNonTrackableEvents, shouldTrackEvent } from '../helpers';
 import { AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT } from '../constants';
-import { DEFAULT_RAGE_CLICK_THRESHOLD, DEFAULT_RAGE_CLICK_WINDOW_MS } from '@amplitude/analytics-core';
+import {
+  DEFAULT_RAGE_CLICK_THRESHOLD,
+  DEFAULT_RAGE_CLICK_WINDOW_MS,
+  DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
+} from '@amplitude/analytics-core';
 
 const RAGE_CLICK_THRESHOLD = DEFAULT_RAGE_CLICK_THRESHOLD;
 const RAGE_CLICK_WINDOW_MS = DEFAULT_RAGE_CLICK_WINDOW_MS;
+const RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD = DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
 
 type Click = {
   X: number;
@@ -29,6 +34,58 @@ type ClickEvent = {
   closestTrackedAncestor: Element | null;
 };
 
+type ClickRegionBoundingBox = {
+  yMin?: number;
+  yMax?: number;
+  xMin?: number;
+  xMax?: number;
+  isOutOfBounds?: boolean;
+};
+
+function addCoordinates(regionBox: ClickRegionBoundingBox, click: ClickEvent) {
+  const { clientX, clientY } = click.event as MouseEvent;
+  regionBox.yMin = Math.min(regionBox.yMin ?? clientY, clientY);
+  regionBox.yMax = Math.max(regionBox.yMax ?? clientY, clientY);
+  regionBox.xMin = Math.min(regionBox.xMin ?? clientX, clientX);
+  regionBox.xMax = Math.max(regionBox.xMax ?? clientX, clientX);
+  regionBox.isOutOfBounds =
+    regionBox.yMax - regionBox.yMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD ||
+    regionBox.xMax - regionBox.xMin > RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD;
+}
+
+function getRageClickAnalyticsEvent(clickWindow: ClickEvent[]) {
+  const firstClick = clickWindow[0];
+  const lastClick = clickWindow[clickWindow.length - 1];
+
+  const rageClickEvent: EventRageClick = {
+    '[Amplitude] Begin Time': new Date(firstClick.timestamp).toISOString(),
+    '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
+    '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
+    '[Amplitude] Clicks': clickWindow.map((click) => ({
+      X: (click.event as MouseEvent).clientX,
+      Y: (click.event as MouseEvent).clientY,
+      Time: click.timestamp,
+    })),
+    '[Amplitude] Click Count': clickWindow.length,
+    ...firstClick.targetElementProperties,
+  };
+
+  return { rageClickEvent, time: firstClick.timestamp };
+}
+
+function isClickOutsideRageClickWindow(clickWindow: ClickEvent[], click: ClickEvent) {
+  const firstIndex = Math.max(0, clickWindow.length - RAGE_CLICK_THRESHOLD + 1);
+  const firstClick = clickWindow[firstIndex];
+  return click.timestamp - firstClick.timestamp >= RAGE_CLICK_WINDOW_MS;
+}
+
+function isNewElement(clickWindow: ClickEvent[], click: ClickEvent) {
+  return (
+    clickWindow.length > 0 &&
+    clickWindow[clickWindow.length - 1].closestTrackedAncestor !== click.closestTrackedAncestor
+  );
+}
+
 export function trackRageClicks({
   amplitude,
   allObservables,
@@ -41,7 +98,23 @@ export function trackRageClicks({
   const { clickObservable } = allObservables;
 
   // Keep track of all clicks within the sliding window
-  const clickWindow: ClickEvent[] = [];
+  let clickWindow: ClickEvent[] = [];
+
+  // Keep track of the region box for all clicks, to determine when a rage click is out of bounds
+  let clickBoundingBox: ClickRegionBoundingBox = {};
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let triggerRageClickTimeout: any;
+
+  // helper function to reset the click window and region box
+  function resetClickWindow(click?: ClickEvent) {
+    clickWindow = [];
+    clickBoundingBox = {};
+    if (click) {
+      addCoordinates(clickBoundingBox, click);
+      clickWindow.push(click);
+    }
+  }
 
   return clickObservable
     .pipe(
@@ -50,56 +123,52 @@ export function trackRageClicks({
         return shouldTrackRageClick('click', click.closestTrackedAncestor);
       }),
       map((click) => {
-        const now = click.timestamp;
-
-        // if the current click isn't on the same element as the most recent click,
-        // clear the sliding window and start over
-        if (
-          clickWindow.length > 0 &&
-          clickWindow[clickWindow.length - 1].closestTrackedAncestor !== click.closestTrackedAncestor
-        ) {
-          clickWindow.splice(0, clickWindow.length);
+        // reset the click wait timer if it exists
+        if (triggerRageClickTimeout) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          clearTimeout(triggerRageClickTimeout);
         }
 
-        // remove past clicks that are outside the sliding window
-        let clickPtr = 0;
-        for (; clickPtr < clickWindow.length; clickPtr++) {
-          if (now - clickWindow[clickPtr].timestamp < RAGE_CLICK_WINDOW_MS) {
-            break;
-          }
-        }
-        clickWindow.splice(0, clickPtr);
+        // add click to bounding box
+        addCoordinates(clickBoundingBox, click);
 
-        // add the current click to the window
-        clickWindow.push(click);
-
-        // if there's not enough clicks to be a rage click, return null
-        if (clickWindow.length < RAGE_CLICK_THRESHOLD) {
+        // if there's just one click in the window, add it and return
+        if (clickWindow.length === 0) {
+          clickWindow.push(click);
           return null;
         }
 
-        // if we've made it here, we have enough trailing clicks on the same element
-        // for it to be a rage click
-        const firstClick = clickWindow[0];
-        const lastClick = clickWindow[clickWindow.length - 1];
+        // if current click is:
+        //  1. outside the rage click window
+        //  2. on a new element
+        //  3. out of bounds
+        // then start a new click window
+        if (
+          isNewElement(clickWindow, click) ||
+          isClickOutsideRageClickWindow(clickWindow, click) ||
+          clickBoundingBox.isOutOfBounds
+        ) {
+          const returnValue =
+            clickWindow.length >= RAGE_CLICK_THRESHOLD ? getRageClickAnalyticsEvent(clickWindow) : null;
+          resetClickWindow(click);
+          return returnValue;
+        }
 
-        const rageClickEvent: EventRageClick = {
-          '[Amplitude] Begin Time': new Date(firstClick.timestamp).toISOString(),
-          '[Amplitude] End Time': new Date(lastClick.timestamp).toISOString(),
-          '[Amplitude] Duration': lastClick.timestamp - firstClick.timestamp,
-          '[Amplitude] Clicks': clickWindow.map((click) => ({
-            X: (click.event as MouseEvent).clientX,
-            Y: (click.event as MouseEvent).clientY,
-            Time: click.timestamp,
-          })),
-          '[Amplitude] Click Count': clickWindow.length,
-          ...firstClick.targetElementProperties,
-        };
+        // add click to current window
+        clickWindow.push(click);
 
-        // restart the sliding window
-        clickWindow.splice(0, clickWindow.length);
+        // if we have enough clicks to be a rage click, set a timout to trigger the rage
+        // click event after the time threshold is reached.
+        // This will be cancelled if a new click is tracked.
+        if (clickWindow.length >= RAGE_CLICK_THRESHOLD) {
+          triggerRageClickTimeout = setTimeout(() => {
+            const { rageClickEvent, time } = getRageClickAnalyticsEvent(clickWindow);
+            amplitude.track(AMPLITUDE_ELEMENT_RAGE_CLICKED_EVENT, rageClickEvent, { time });
+            resetClickWindow();
+          }, RAGE_CLICK_WINDOW_MS);
+        }
 
-        return { rageClickEvent, time: firstClick.timestamp };
+        return null;
       }),
       filter((result) => result !== null),
     )
