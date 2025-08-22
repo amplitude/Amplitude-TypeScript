@@ -227,14 +227,14 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual({ 'data-hello': 'world', 'data-time': 'machine' });
     });
 
-    test('should NOT exclude attributes when DATA_AMP_MASK_ATTRIBUTES is present on element itself', () => {
+    test(`should exclude attributes when ${DATA_AMP_MASK_ATTRIBUTES} is present on element itself`, () => {
       const element = document.createElement('input');
       element.setAttribute('data-amp-track-hello', 'world');
       element.setAttribute('data-amp-track-secret', 'sensitive');
       element.setAttribute('data-amp-track-time', 'machine');
       element.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'secret');
       const result = getAttributesWithPrefix(element, 'data-amp-track-');
-      expect(result).toEqual({ hello: 'world', secret: 'sensitive', time: 'machine' });
+      expect(result).toEqual({ hello: 'world', time: 'machine' });
     });
 
     test('should exclude multiple redacted attributes when comma-separated from parent', () => {
@@ -282,14 +282,14 @@ describe('autocapture-plugin helpers', () => {
       expect(result).toEqual(new Set());
     });
 
-    test('should return empty set when DATA_AMP_MASK_ATTRIBUTES is only on element itself', () => {
+    test(`should return redacted attributes when ${DATA_AMP_MASK_ATTRIBUTES} is on element itself`, () => {
       const element = document.createElement('div');
       element.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'name, email');
       const result = getRedactedAttributeNames(element);
-      expect(result).toEqual(new Set()); // Should be empty since redaction only affects children
+      expect(result).toEqual(new Set(['name', 'email'])); // Should include attributes from element itself
     });
 
-    test('should collect redacted attributes from ancestor elements only and exclude id and class', () => {
+    test('should collect redacted attributes from element and ancestor elements and exclude id and class', () => {
       const grandparent = document.createElement('div');
       grandparent.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'name, id, class'); // id and class should be ignored
 
@@ -297,17 +297,17 @@ describe('autocapture-plugin helpers', () => {
       parent.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'email, phone');
 
       const child = document.createElement('span');
-      child.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'ignored'); // This should be ignored
+      child.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'category'); // This should now be included
 
       grandparent.appendChild(parent);
       parent.appendChild(child);
       document.body.appendChild(grandparent);
 
       const parentResult = getRedactedAttributeNames(parent);
-      expect(parentResult).toEqual(new Set(['name']));
+      expect(parentResult).toEqual(new Set(['name', 'email', 'phone'])); // Includes own attributes plus ancestors
 
       const result = getRedactedAttributeNames(child);
-      expect(result).toEqual(new Set(['name', 'email', 'phone'])); // Only from ancestors, id and class excluded
+      expect(result).toEqual(new Set(['name', 'email', 'phone', 'category'])); // Includes own attributes plus ancestors, id and class excluded
 
       document.body.removeChild(grandparent);
     });
@@ -742,7 +742,7 @@ describe('autocapture-plugin helpers', () => {
       document.body.removeChild(container);
     });
 
-    test('should NOT redact attributes when redaction rule is on element itself', () => {
+    test('should redact attributes when redaction rule is on element itself but never redact id or class', () => {
       const element = document.createElement('button');
       element.setAttribute('id', 'test-id');
       element.setAttribute('class', 'test-class');
@@ -754,9 +754,9 @@ describe('autocapture-plugin helpers', () => {
 
       const result = getEventProperties('click', element, 'data-amp-track-');
 
-      expect(result['[Amplitude] Element ID']).toBe('test-id');
-      expect(result['[Amplitude] Element Class']).toBe('test-class');
-      expect(result['[Amplitude] Element Aria Label']).toBe('Test button');
+      expect(result['[Amplitude] Element ID']).toBe('test-id'); // ID should NEVER be redacted
+      expect(result['[Amplitude] Element Class']).toBe('test-class'); // Class should NEVER be redacted
+      expect(result['[Amplitude] Element Aria Label']).toBeUndefined(); // Aria-label should be redacted
 
       document.body.removeChild(element);
     });

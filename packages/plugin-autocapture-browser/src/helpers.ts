@@ -142,15 +142,14 @@ export const getText = (element: Element): string => {
 };
 
 /**
- * Collects redacted attribute names from ancestor elements with data-amp-mask-attributes
- * Redaction rules only apply to children, not the element that defines the rule
+ * Collects redacted attribute names from element and ancestor elements with data-amp-mask-attributes
  * The 'id' and 'class' attributes cannot be redacted as they're critical for element identification
- * @param element - The target element to check ancestors for
+ * @param element - The target element to check for redaction attributes
  * @returns Set of attribute names that should be redacted
  */
 export const getRedactedAttributeNames = (element: Element): Set<string> => {
   const redactedAttributes = new Set<string>();
-  let currentElement: Element | null = element.parentElement; // Start from parent, not element itself
+  let currentElement: Element | null = element.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`); // closest invokes native libraries and is more performant than using JS to visit every ancestor
 
   // Walk up the DOM tree to find any data-amp-mask-attributes
   while (currentElement) {

@@ -188,7 +188,7 @@ describe('autocapture-plugin hierarchy', () => {
       });
     });
 
-    test('should NOT redact attributes when redaction rule is on element itself', () => {
+    test('should redact attributes when redaction rule is on element itself but never redact id or class', () => {
       document.getElementsByTagName('body')[0].innerHTML = `
         <div id="target" class="target-class" data-secret="sensitive" data-amp-mask-attributes="id, class, data-secret">
           xxx
@@ -199,14 +199,14 @@ describe('autocapture-plugin hierarchy', () => {
       const result = HierarchyUtil.getElementProperties(target);
 
       expect(result).toEqual({
-        id: 'target',
-        classes: ['target-class'],
+        id: 'target', // ID should NEVER be redacted
+        classes: ['target-class'], // Class should NEVER be redacted
         index: 0,
         indexOfType: 0,
         tag: 'div',
         attrs: {
-          'data-secret': 'sensitive', // Should not be redacted since rule is on element itself
           'data-amp-mask-attributes': 'id, class, data-secret', // The redaction attribute itself is also included
+          // data-secret should be redacted and not appear here
         },
       });
     });
