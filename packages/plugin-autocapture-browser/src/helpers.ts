@@ -147,6 +147,19 @@ export const getText = (element: Element): string => {
  * @param element - The target element to check for redaction attributes
  * @returns Set of attribute names that should be redacted
  */
+/**
+ * Parses a comma-separated string of attribute names and filters out protected attributes
+ * @param attributeString - Comma-separated string of attribute names
+ * @returns Array of valid attribute names, excluding 'id' and 'class'
+ */
+export const parseAttributesToRedact = (attributeString: string): string[] => {
+  return attributeString
+    .split(',')
+    .map((attr) => attr.trim())
+    .filter((attr) => attr.length > 0)
+    .filter((attr) => attr !== 'id' && attr !== 'class'); // Prevent 'id' and 'class' from being redacted as they're critical for element identification
+};
+
 export const getRedactedAttributeNames = (element: Element): Set<string> => {
   const redactedAttributes = new Set<string>();
   let currentElement: Element | null = element.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`); // closest invokes native libraries and is more performant than using JS to visit every ancestor
@@ -156,15 +169,9 @@ export const getRedactedAttributeNames = (element: Element): Set<string> => {
     const redactValue = currentElement.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES);
     if (redactValue) {
       // Parse comma-separated attribute names and add to set
-      const attributesToRedact = redactValue
-        .split(',')
-        .map((attr) => attr.trim())
-        .filter((attr) => attr.length > 0);
+      const attributesToRedact = parseAttributesToRedact(redactValue);
       attributesToRedact.forEach((attr) => {
-        // Prevent 'id' and 'class' from being redacted as they're critical for element identification
-        if (attr !== 'id' && attr !== 'class') {
-          redactedAttributes.add(attr);
-        }
+        redactedAttributes.add(attr);
       });
     }
     currentElement = currentElement.parentElement;

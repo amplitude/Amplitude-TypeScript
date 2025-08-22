@@ -1,4 +1,5 @@
 import * as HierarchyUtil from '../src/hierarchy';
+import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 
 describe('autocapture-plugin hierarchy', () => {
   afterEach(() => {
@@ -164,100 +165,87 @@ describe('autocapture-plugin hierarchy', () => {
       });
     });
 
-    test('should NOT redact child id or class when both specified in parent data-amp-mask-attributes', () => {
+    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for regular elements`, () => {
       document.getElementsByTagName('body')[0].innerHTML = `
-        <div data-amp-mask-attributes="id, class">
-          <div id="secret-id" class="secret-class" data-test="visible">
-            xxx
-          </div>
-        </div>
-      `;
-
-      const target = document.querySelector('[id="secret-id"]');
-      const result = HierarchyUtil.getElementProperties(target);
-
-      expect(result).toEqual({
-        id: 'secret-id', // ID should NOT be redacted even when specified
-        classes: ['secret-class'], // Class should NOT be redacted even when specified
-        index: 0,
-        indexOfType: 0,
-        tag: 'div',
-        attrs: {
-          'data-test': 'visible',
-        },
-      });
-    });
-
-    test('should redact attributes when redaction rule is on element itself but never redact id or class', () => {
-      document.getElementsByTagName('body')[0].innerHTML = `
-        <div id="target" class="target-class" data-secret="sensitive" data-amp-mask-attributes="id, class, data-secret">
-          xxx
-        </div>
-      `;
+      <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr,another-attr" custom-attr="secret" another-attr="hidden" ok-attribute="visible"></div>
+    `;
 
       const target = document.getElementById('target');
-      const result = HierarchyUtil.getElementProperties(target);
-
-      expect(result).toEqual({
-        id: 'target', // ID should NEVER be redacted
-        classes: ['target-class'], // Class should NEVER be redacted
-        index: 0,
-        indexOfType: 0,
-        tag: 'div',
-        attrs: {
-          'data-amp-mask-attributes': 'id, class, data-secret', // The redaction attribute itself is also included
-          // data-secret should be redacted and not appear here
-        },
-      });
-    });
-
-    test('should redact specific attributes from hierarchy when specified on parent', () => {
-      document.getElementsByTagName('body')[0].innerHTML = `
-        <div data-amp-mask-attributes="data-secret">
-          <div id="target" data-secret="sensitive-value" data-public="public-value">
-            xxx
-          </div>
-        </div>
-      `;
-
-      const target = document.getElementById('target');
-      const result = HierarchyUtil.getElementProperties(target);
-
-      expect(result).toEqual({
+      expect(HierarchyUtil.getElementProperties(target)).toEqual({
         id: 'target',
         index: 0,
         indexOfType: 0,
         tag: 'div',
         attrs: {
-          'data-public': 'public-value',
+          [DATA_AMP_MASK_ATTRIBUTES]: 'custom-attr,another-attr',
+          'custom-attr': 'secret',
+          'another-attr': 'hidden',
+          'ok-attribute': 'visible',
         },
       });
     });
 
-    test('should inherit redaction rules from multiple ancestor levels but preserve id and class', () => {
+    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for sensitive elements`, () => {
       document.getElementsByTagName('body')[0].innerHTML = `
-        <div data-amp-mask-attributes="id">
-          <div data-amp-mask-attributes="class, data-level2">
-            <div id="target-id" class="target-class" data-level2="secret" data-safe="ok">
-              xxx
-            </div>
-          </div>
-        </div>
-      `;
+      <input id="target" type="text" ${DATA_AMP_MASK_ATTRIBUTES}="placeholder" placeholder="Enter text" custom-attr="should-be-filtered"></input>
+    `;
 
-      const target = document.querySelector('[id="target-id"]');
-      const result = HierarchyUtil.getElementProperties(target);
-
-      expect(result).toEqual({
-        id: 'target-id', // ID should NOT be redacted even when specified in ancestor
-        classes: ['target-class'], // Class should NOT be redacted even when specified in ancestor
+      const target = document.getElementById('target');
+      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+        id: 'target',
         index: 0,
         indexOfType: 0,
-        tag: 'div',
+        tag: 'input',
         attrs: {
-          'data-safe': 'ok',
+          [DATA_AMP_MASK_ATTRIBUTES]: 'placeholder',
+          type: 'text',
         },
       });
+    });
+
+    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for highly sensitive elements`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+      <input id="target" type="password" ${DATA_AMP_MASK_ATTRIBUTES}="placeholder" placeholder="Enter password" custom-attr="should-be-filtered"></input>
+    `;
+
+      const target = document.getElementById('target');
+      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'input',
+        attrs: {
+          [DATA_AMP_MASK_ATTRIBUTES]: 'placeholder',
+        },
+      });
+    });
+
+    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for SVG elements`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+      <svg id="target" ${DATA_AMP_MASK_ATTRIBUTES}="viewBox" viewBox="0 0 100 100" custom-attr="should-be-filtered"></svg>
+    `;
+
+      const target = document.getElementById('target');
+      expect(HierarchyUtil.getElementProperties(target)).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'svg',
+        attrs: {
+          [DATA_AMP_MASK_ATTRIBUTES]: 'viewBox',
+        },
+      });
+    });
+
+    test(`should truncate ${DATA_AMP_MASK_ATTRIBUTES} value to MAX_ATTRIBUTE_LENGTH`, () => {
+      const longValue = 'a'.repeat(200);
+      document.getElementsByTagName('body')[0].innerHTML = `
+      <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="${longValue}"></div>
+    `;
+
+      const target = document.getElementById('target');
+      const result = HierarchyUtil.getElementProperties(target);
+      expect(result?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]).toEqual('a'.repeat(128));
     });
   });
 });
@@ -393,6 +381,183 @@ describe('getHierarchy', () => {
       const resultLength = JSON.stringify(innerHierarchy).length;
       expect(resultLength).toBeLessThanOrEqual(1024);
       expect(resultLength).toEqual(947);
+    });
+  });
+
+  describe('attribute redaction', () => {
+    test(`should redact attributes specified in ${DATA_AMP_MASK_ATTRIBUTES} on target element`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent">
+          <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr,secret-data" custom-attr="should-be-redacted" secret-data="hidden" visible-attr="should-remain">
+            content
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+
+      expect(hierarchy[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          [DATA_AMP_MASK_ATTRIBUTES]: 'custom-attr,secret-data',
+          'visible-attr': 'should-remain',
+        },
+      });
+    });
+
+    test(`should redact attributes from child elements when specified in parent ${DATA_AMP_MASK_ATTRIBUTES}`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent" ${DATA_AMP_MASK_ATTRIBUTES}="sensitive-attr">
+          <div id="target" sensitive-attr="should-be-redacted" normal-attr="should-remain">
+            content
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+
+      // Target element should have sensitive-attr redacted
+      expect(hierarchy[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'normal-attr': 'should-remain',
+        },
+      });
+
+      // Parent element should keep DATA_AMP_MASK_ATTRIBUTES
+      expect(hierarchy[1]).toEqual({
+        id: 'parent',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          [DATA_AMP_MASK_ATTRIBUTES]: 'sensitive-attr',
+        },
+      });
+    });
+
+    test(`should accumulate redacted attributes from multiple ancestors`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="grandparent" ${DATA_AMP_MASK_ATTRIBUTES}="attr1,attr2">
+          <div id="parent" ${DATA_AMP_MASK_ATTRIBUTES}="attr3">
+            <div id="target" attr1="redact1" attr2="redact2" attr3="redact3" normal-attr="keep">
+              content
+            </div>
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+
+      // Target should have all specified attributes redacted
+      expect(hierarchy[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'normal-attr': 'keep',
+        },
+      });
+    });
+
+    test(`should not redact id and class attributes even if specified in ${DATA_AMP_MASK_ATTRIBUTES}`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent" ${DATA_AMP_MASK_ATTRIBUTES}="id,class,custom-attr">
+          <div id="target" class="test-class" custom-attr="should-be-redacted">
+            content
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+
+      // Target should keep id and class but redact custom-attr
+      expect(hierarchy[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        classes: ['test-class'],
+        attrs: {},
+      });
+    });
+
+    test(`should handle empty ${DATA_AMP_MASK_ATTRIBUTES} gracefully`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent" ${DATA_AMP_MASK_ATTRIBUTES}="">
+          <div id="target" custom-attr="should-remain">
+            content
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+
+      expect(hierarchy[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          'custom-attr': 'should-remain',
+        },
+      });
+    });
+
+    test(`should handle whitespace and malformed attribute lists in ${DATA_AMP_MASK_ATTRIBUTES}`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="parent" ${DATA_AMP_MASK_ATTRIBUTES}=" attr1 , , attr2 , ">
+          <div id="target" attr1="redact1" attr2="redact2" attr3="keep">
+            content
+          </div>
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+
+      expect(hierarchy[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          attr3: 'keep',
+        },
+      });
+    });
+
+    test(`should preserve ${DATA_AMP_MASK_ATTRIBUTES} itself during redaction`, () => {
+      document.getElementsByTagName('body')[0].innerHTML = `
+        <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr" custom-attr="should-be-redacted">
+          content
+        </div>
+      `;
+
+      const target = document.getElementById('target');
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+
+      expect(hierarchy[0]).toEqual({
+        id: 'target',
+        index: 0,
+        indexOfType: 0,
+        tag: 'div',
+        attrs: {
+          [DATA_AMP_MASK_ATTRIBUTES]: 'custom-attr',
+        },
+      });
     });
   });
 

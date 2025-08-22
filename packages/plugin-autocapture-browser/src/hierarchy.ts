@@ -1,4 +1,5 @@
-import { isNonSensitiveElement, getRedactedAttributeNames, type JSONValue } from './helpers';
+import { isNonSensitiveElement, parseAttributesToRedact, type JSONValue } from './helpers';
+import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
 import type { Hierarchy, HierarchyNode } from './typings/autocapture';
 
 const BLOCKED_ATTRIBUTES = [
@@ -41,7 +42,6 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   }
 
   const tagName = String(element.tagName).toLowerCase();
-  const redactedAttributes = getRedactedAttributeNames(element);
   const properties: HierarchyNode = {
     tag: tagName,
   };
@@ -67,16 +67,25 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
     properties.classes = classes;
   }
 
+  // Collect redacted attributes from element and ancestors first
+  const redactedAttrs = new Set<string>();
+
   const attributes: Record<string, string> = {};
   const attributesArray = Array.from(element.attributes);
-  const filteredAttributes = attributesArray.filter((attr) => !BLOCKED_ATTRIBUTES.includes(attr.name));
+  const filteredAttributes = attributesArray.filter(
+    (attr) =>
+      // Always include DATA_AMP_MASK_ATTRIBUTES regardless of other filters
+      attr.name === DATA_AMP_MASK_ATTRIBUTES ||
+      (!BLOCKED_ATTRIBUTES.includes(attr.name) && !redactedAttrs.has(attr.name)),
+  );
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
   if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
     for (const attr of filteredAttributes) {
-      // Skip redacted attributes
-      if (redactedAttributes.has(attr.name)) {
+      // Always include DATA_AMP_MASK_ATTRIBUTES, even for sensitive elements
+      if (attr.name === DATA_AMP_MASK_ATTRIBUTES) {
+        attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
         continue;
       }
 
@@ -87,6 +96,12 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
       // Finally cast attribute value to string and limit attribute value length
       attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
+    }
+  } else {
+    // Even for highly sensitive inputs or SVGs, always capture DATA_AMP_MASK_ATTRIBUTES
+    const maskAttr = element.getAttribute(DATA_AMP_MASK_ATTRIBUTES);
+    if (maskAttr) {
+      attributes[DATA_AMP_MASK_ATTRIBUTES] = String(maskAttr).substring(0, MAX_ATTRIBUTE_LENGTH);
     }
   }
 
@@ -127,6 +142,29 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
     ancestors.map((el) => getElementProperties(el)),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
+
+  // Collect redacted attributes and apply redaction in a single pass
+  const redactedAttrs = new Set<string>();
+  const reversedHierarchy = [...hierarchy].reverse(); // root to target order
+
+  for (const node of reversedHierarchy) {
+    if (node?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]) {
+      const attributesToRedact = parseAttributesToRedact(node.attrs[DATA_AMP_MASK_ATTRIBUTES]);
+
+      attributesToRedact.forEach((attr: string) => {
+        redactedAttrs.add(attr);
+      });
+    }
+
+    // Apply redaction to current node
+    if (node?.attrs) {
+      for (const attrName of redactedAttrs) {
+        if (node.attrs[attrName]) {
+          delete node.attrs[attrName];
+        }
+      }
+    }
+  }
 
   return hierarchy;
 };
