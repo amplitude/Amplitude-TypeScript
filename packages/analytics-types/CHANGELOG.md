@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.10.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.9.2...@amplitude/analytics-types@2.10.0) (2025-08-22)
+
+
+### Bug Fixes
+
+* **analtyics-browser): Revert "feat(analytics-browser:** add page-url-previous-page plugin" ([#1237](https://github.com/amplitude/Amplitude-TypeScript/issues/1237)) ([dfd7340](https://github.com/amplitude/Amplitude-TypeScript/commit/dfd7340f6519e647a814b3c66913b0c96b0567cf))
+* **analytics-core:** fix typo in Reddit click-id ([#1267](https://github.com/amplitude/Amplitude-TypeScript/issues/1267)) ([43e581d](https://github.com/amplitude/Amplitude-TypeScript/commit/43e581d6465546a38373f758f179eee103172755))
+
+
+### Features
+
+* **analytics-browser:** add page-url-previous-page plugin ([#1110](https://github.com/amplitude/Amplitude-TypeScript/issues/1110)) ([dc053ed](https://github.com/amplitude/Amplitude-TypeScript/commit/dc053ed9f0b6378fce6a49f6a6e4196f3622bd25))
+
+
+
+
+
 ## [2.9.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-types@2.9.1...@amplitude/analytics-types@2.9.2) (2025-05-02)
 
 **Note:** Version bump only for package @amplitude/analytics-types

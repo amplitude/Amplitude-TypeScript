@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.21.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.0...@amplitude/analytics-core@2.21.1) (2025-08-22)
+
+
+### Bug Fixes
+
+* **analytics-core:** fix typo in Reddit click-id ([#1267](https://github.com/amplitude/Amplitude-TypeScript/issues/1267)) ([43e581d](https://github.com/amplitude/Amplitude-TypeScript/commit/43e581d6465546a38373f758f179eee103172755))
+
+
+
+
+
 # [2.21.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.20.2...@amplitude/analytics-core@2.21.0) (2025-08-21)
 
 
