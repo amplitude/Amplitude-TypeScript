@@ -148,14 +148,6 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
   const reversedHierarchy = [...hierarchy].reverse(); // root to target order
 
   for (const node of reversedHierarchy) {
-    if (node?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]) {
-      const attributesToRedact = parseAttributesToRedact(node.attrs[DATA_AMP_MASK_ATTRIBUTES]);
-
-      attributesToRedact.forEach((attr: string) => {
-        redactedAttrs.add(attr);
-      });
-    }
-
     // Apply redaction to current node
     if (node?.attrs) {
       for (const attrName of redactedAttrs) {
@@ -163,6 +155,14 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
           delete node.attrs[attrName];
         }
       }
+    }
+
+    if (node?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]) {
+      const attributesToRedact = parseAttributesToRedact(node.attrs[DATA_AMP_MASK_ATTRIBUTES]);
+
+      attributesToRedact.forEach((attr: string) => {
+        redactedAttrs.add(attr);
+      });
     }
   }
 
