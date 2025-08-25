@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.10.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.10.1...@amplitude/plugin-autocapture-browser@1.10.2) (2025-08-25)
+
+
+### Bug Fixes
+
+* **plugin-autocapture-browser:** make rage click less noisy ([#1265](https://github.com/amplitude/Amplitude-TypeScript/issues/1265)) ([a31acd3](https://github.com/amplitude/Amplitude-TypeScript/commit/a31acd34f2389d12427daba776ce22a262db7874))
+
+
+
+
+
 ## [1.10.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-autocapture-browser@1.10.0...@amplitude/plugin-autocapture-browser@1.10.1) (2025-08-22)
 
 **Note:** Version bump only for package @amplitude/plugin-autocapture-browser
