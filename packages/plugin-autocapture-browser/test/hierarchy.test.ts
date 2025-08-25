@@ -385,7 +385,7 @@ describe('getHierarchy', () => {
   });
 
   describe('attribute redaction', () => {
-    test(`should redact attributes specified in ${DATA_AMP_MASK_ATTRIBUTES} on target element`, () => {
+    test(`should not redact attributes specified in ${DATA_AMP_MASK_ATTRIBUTES} on target element`, () => {
       document.getElementsByTagName('body')[0].innerHTML = `
         <div id="parent">
           <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr,secret-data" custom-attr="should-be-redacted" secret-data="hidden" visible-attr="should-remain">
@@ -405,6 +405,8 @@ describe('getHierarchy', () => {
         attrs: {
           [DATA_AMP_MASK_ATTRIBUTES]: 'custom-attr,secret-data',
           'visible-attr': 'should-remain',
+          'custom-attr': 'should-be-redacted',
+          'secret-data': 'hidden',
         },
       });
     });
@@ -539,7 +541,7 @@ describe('getHierarchy', () => {
       });
     });
 
-    test(`should preserve ${DATA_AMP_MASK_ATTRIBUTES} itself during redaction`, () => {
+    test(`should not preserve ${DATA_AMP_MASK_ATTRIBUTES} itself during redaction`, () => {
       document.getElementsByTagName('body')[0].innerHTML = `
         <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr" custom-attr="should-be-redacted">
           content
@@ -556,6 +558,7 @@ describe('getHierarchy', () => {
         tag: 'div',
         attrs: {
           [DATA_AMP_MASK_ATTRIBUTES]: 'custom-attr',
+          'custom-attr': 'should-be-redacted',
         },
       });
     });
