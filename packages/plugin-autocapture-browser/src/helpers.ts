@@ -174,7 +174,7 @@ export const getRedactedAttributeNames = (element: Element): Set<string> => {
         redactedAttributes.add(attr);
       });
     }
-    currentElement = currentElement.parentElement;
+    currentElement = currentElement.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`);
   }
 
   return redactedAttributes;
