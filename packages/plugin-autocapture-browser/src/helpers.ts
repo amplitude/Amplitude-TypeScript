@@ -79,28 +79,6 @@ export const createShouldTrackEvent = (
   };
 };
 
-export const isNonSensitiveString = (text: string | null) => {
-  if (text == null) {
-    return false;
-  }
-  if (typeof text === 'string') {
-    const ccRegex =
-      /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
-    if (ccRegex.test((text || '').replace(/[- ]/g, ''))) {
-      return false;
-    }
-    const ssnRegex = /(^\d{3}-?\d{2}-?\d{4}$)/;
-    if (ssnRegex.test(text)) {
-      return false;
-    }
-    const emailRegex = /[^\s@]+@[^\s@.]+\.[^\s@]+/;
-    if (emailRegex.test(text)) {
-      return false;
-    }
-  }
-  return true;
-};
-
 export const isTextNode = (node: Node) => {
   return !!node && node.nodeType === 3;
 };

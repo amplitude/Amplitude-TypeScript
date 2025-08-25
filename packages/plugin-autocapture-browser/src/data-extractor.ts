@@ -19,6 +19,7 @@ import { getDataSource } from './pageActions/actions';
 const CC_REGEX =
   /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
 const SSN_REGEX = /(^\d{3}-?\d{2}-?\d{4}$)/;
+const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/;
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
@@ -54,8 +55,8 @@ export class DataExtractor {
       return false;
     }
 
-    // Check for social security number
-    if (SSN_REGEX.test(text)) {
+    // Check for social security number or email
+    if (SSN_REGEX.test(text) || EMAIL_REGEX.test(text)) {
       return false;
     }
 

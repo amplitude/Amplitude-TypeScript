@@ -124,6 +124,42 @@ describe('data extractor', () => {
       // Matches beyond the cap should NOT be masked
       expect(extractor.isNonSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS + 1}`)).toEqual(true);
     });
+
+    test('should return false when text is email address format', () => {
+      const text = 'user@example.com';
+      const result = dataExtractor.isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address within other text', () => {
+      const text = 'Contact us at support@example.com for help';
+      const result = dataExtractor.isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address at the beginning', () => {
+      const text = 'user@example.com is the admin';
+      const result = dataExtractor.isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains email address at the end', () => {
+      const text = 'Send feedback to feedback@company.org';
+      const result = dataExtractor.isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when text contains multiple email addresses', () => {
+      const text = 'Contact admin@example.com or support@example.com';
+      const result = dataExtractor.isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
+
+    test('should return false when email has dots in domain name before final dot', () => {
+      const text = 'user@sub.domain.example.com';
+      const result = dataExtractor.isNonSensitiveString(text);
+      expect(result).toEqual(false);
+    });
   });
 
   describe('getText', () => {
