@@ -165,7 +165,7 @@ describe('autocapture-plugin hierarchy', () => {
       });
     });
 
-    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for regular elements`, () => {
+    test(`should not capture ${DATA_AMP_MASK_ATTRIBUTES} in getElementProperties for regular elements`, () => {
       document.getElementsByTagName('body')[0].innerHTML = `
       <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr,another-attr" custom-attr="secret" another-attr="hidden" ok-attribute="visible"></div>
     `;
@@ -177,7 +177,6 @@ describe('autocapture-plugin hierarchy', () => {
         indexOfType: 0,
         tag: 'div',
         attrs: {
-          [DATA_AMP_MASK_ATTRIBUTES]: 'custom-attr,another-attr',
           'custom-attr': 'secret',
           'another-attr': 'hidden',
           'ok-attribute': 'visible',
@@ -185,67 +184,20 @@ describe('autocapture-plugin hierarchy', () => {
       });
     });
 
-    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for sensitive elements`, () => {
+    test(`should include ${DATA_AMP_MASK_ATTRIBUTES} in getHierarchy even when not in getElementProperties`, () => {
       document.getElementsByTagName('body')[0].innerHTML = `
-      <input id="target" type="text" ${DATA_AMP_MASK_ATTRIBUTES}="placeholder" placeholder="Enter text" custom-attr="should-be-filtered"></input>
+      <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr" custom-attr="secret" other-attr="visible"></div>
     `;
 
       const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
-        id: 'target',
-        index: 0,
-        indexOfType: 0,
-        tag: 'input',
-        attrs: {
-          [DATA_AMP_MASK_ATTRIBUTES]: 'placeholder',
-          type: 'text',
-        },
-      });
-    });
 
-    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for highly sensitive elements`, () => {
-      document.getElementsByTagName('body')[0].innerHTML = `
-      <input id="target" type="password" ${DATA_AMP_MASK_ATTRIBUTES}="placeholder" placeholder="Enter password" custom-attr="should-be-filtered"></input>
-    `;
+      // getElementProperties should not include DATA_AMP_MASK_ATTRIBUTES
+      const elementProps = HierarchyUtil.getElementProperties(target);
+      expect(elementProps?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]).toBeUndefined();
 
-      const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
-        id: 'target',
-        index: 0,
-        indexOfType: 0,
-        tag: 'input',
-        attrs: {
-          [DATA_AMP_MASK_ATTRIBUTES]: 'placeholder',
-        },
-      });
-    });
-
-    test(`should always capture ${DATA_AMP_MASK_ATTRIBUTES} even for SVG elements`, () => {
-      document.getElementsByTagName('body')[0].innerHTML = `
-      <svg id="target" ${DATA_AMP_MASK_ATTRIBUTES}="viewBox" viewBox="0 0 100 100" custom-attr="should-be-filtered"></svg>
-    `;
-
-      const target = document.getElementById('target');
-      expect(HierarchyUtil.getElementProperties(target)).toEqual({
-        id: 'target',
-        index: 0,
-        indexOfType: 0,
-        tag: 'svg',
-        attrs: {
-          [DATA_AMP_MASK_ATTRIBUTES]: 'viewBox',
-        },
-      });
-    });
-
-    test(`should truncate ${DATA_AMP_MASK_ATTRIBUTES} value to MAX_ATTRIBUTE_LENGTH`, () => {
-      const longValue = 'a'.repeat(200);
-      document.getElementsByTagName('body')[0].innerHTML = `
-      <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="${longValue}"></div>
-    `;
-
-      const target = document.getElementById('target');
-      const result = HierarchyUtil.getElementProperties(target);
-      expect(result?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]).toEqual('a'.repeat(128));
+      // But getHierarchy should include it
+      const hierarchy = HierarchyUtil.getHierarchy(target);
+      expect(hierarchy[0]?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]).toEqual('custom-attr');
     });
   });
 });
@@ -541,7 +493,7 @@ describe('getHierarchy', () => {
       });
     });
 
-    test(`should not preserve ${DATA_AMP_MASK_ATTRIBUTES} itself during redaction`, () => {
+    test(`should preserve ${DATA_AMP_MASK_ATTRIBUTES} itself in hierarchy`, () => {
       document.getElementsByTagName('body')[0].innerHTML = `
         <div id="target" ${DATA_AMP_MASK_ATTRIBUTES}="custom-attr" custom-attr="should-be-redacted">
           content

@@ -28,6 +28,9 @@ const BLOCKED_ATTRIBUTES = [
   'data-reactid',
   'data-react-checksum',
   'data-reactroot',
+
+  // Amplitude specific - used for redaction but should not be included in getElementProperties
+  DATA_AMP_MASK_ATTRIBUTES,
 ];
 const SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST = ['type'];
 
@@ -73,22 +76,13 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
   const attributes: Record<string, string> = {};
   const attributesArray = Array.from(element.attributes);
   const filteredAttributes = attributesArray.filter(
-    (attr) =>
-      // Always include DATA_AMP_MASK_ATTRIBUTES regardless of other filters
-      attr.name === DATA_AMP_MASK_ATTRIBUTES ||
-      (!BLOCKED_ATTRIBUTES.includes(attr.name) && !redactedAttrs.has(attr.name)),
+    (attr) => !BLOCKED_ATTRIBUTES.includes(attr.name) && !redactedAttrs.has(attr.name),
   );
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
   if (!HIGHLY_SENSITIVE_INPUT_TYPES.includes(String(element.getAttribute('type'))) && !SVG_TAGS.includes(tagName)) {
     for (const attr of filteredAttributes) {
-      // Always include DATA_AMP_MASK_ATTRIBUTES, even for sensitive elements
-      if (attr.name === DATA_AMP_MASK_ATTRIBUTES) {
-        attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
-        continue;
-      }
-
       // If sensitive element, only allow certain attributes
       if (isSensitiveElement && !SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST.includes(attr.name)) {
         continue;
@@ -96,12 +90,6 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
       // Finally cast attribute value to string and limit attribute value length
       attributes[attr.name] = String(attr.value).substring(0, MAX_ATTRIBUTE_LENGTH);
-    }
-  } else {
-    // Even for highly sensitive inputs or SVGs, always capture DATA_AMP_MASK_ATTRIBUTES
-    const maskAttr = element.getAttribute(DATA_AMP_MASK_ATTRIBUTES);
-    if (maskAttr) {
-      attributes[DATA_AMP_MASK_ATTRIBUTES] = String(maskAttr).substring(0, MAX_ATTRIBUTE_LENGTH);
     }
   }
 
@@ -142,6 +130,22 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
     ancestors.map((el) => getElementProperties(el)),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
+
+  // Add DATA_AMP_MASK_ATTRIBUTES to each node where it exists on the corresponding element
+  for (let i = 0; i < hierarchy.length && i < ancestors.length; i++) {
+    const node = hierarchy[i];
+    const ancestorEl = ancestors[i];
+
+    if (node && ancestorEl) {
+      const maskAttr = ancestorEl.getAttribute(DATA_AMP_MASK_ATTRIBUTES);
+      if (maskAttr) {
+        if (!node.attrs) {
+          node.attrs = {};
+        }
+        node.attrs[DATA_AMP_MASK_ATTRIBUTES] = String(maskAttr).substring(0, MAX_ATTRIBUTE_LENGTH);
+      }
+    }
+  }
 
   // Collect redacted attributes and apply redaction in a single pass
   const redactedAttrs = new Set<string>();
