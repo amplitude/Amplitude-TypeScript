@@ -400,9 +400,9 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
-    test('should redact sensitive text from element content', async () => {
+    test('should mask sensitive text from element content', async () => {
       plugin = autocapturePlugin({
-        redactTextRegex: [/CONFIDENTIAL_TEXT/],
+        maskTextRegex: [/CONFIDENTIAL_TEXT/],
       });
 
       const config: Partial<BrowserConfig> = {
@@ -412,16 +412,16 @@ describe('autoTrackingPlugin', () => {
       await plugin?.setup?.(config as BrowserConfig, instance);
 
       const button = document.createElement('button');
-      button.setAttribute('id', 'redact-button');
+      button.setAttribute('id', 'mask-button');
       button.setAttribute('class', 'my-button-class');
       button.appendChild(document.createTextNode('pay'));
       button.textContent = 'CONFIDENTIAL_TEXT';
       const div = document.createElement('div');
-      div.textContent = '4111111111111111'; // Visa test number (should be redacted)
+      div.textContent = '4111111111111111'; // Visa test number (should be masked)
       button.appendChild(div);
       document.body.appendChild(button);
 
-      document.getElementById('redact-button')?.dispatchEvent(new Event('click'));
+      document.getElementById('mask-button')?.dispatchEvent(new Event('click'));
 
       await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
 

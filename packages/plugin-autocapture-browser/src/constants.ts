@@ -39,4 +39,4 @@ export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
 // Should not use this class in the selector.
 export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-selector-highlight';
 
-export const MAX_REDACT_TEXT_PATTERNS = 25;
+export const MAX_MASK_TEXT_PATTERNS = 25;
