@@ -141,10 +141,57 @@ export const getText = (element: Element): string => {
   return text;
 };
 
+/**
+ * Collects redacted attribute names from element and ancestor elements with data-amp-mask-attributes
+ * The 'id' and 'class' attributes cannot be redacted as they're critical for element identification
+ * @param element - The target element to check for redaction attributes
+ * @returns Set of attribute names that should be redacted
+ */
+/**
+ * Parses a comma-separated string of attribute names and filters out protected attributes
+ * @param attributeString - Comma-separated string of attribute names
+ * @returns Array of valid attribute names, excluding 'id' and 'class'
+ */
+export const parseAttributesToRedact = (attributeString: string): string[] => {
+  return attributeString
+    .split(',')
+    .map((attr) => attr.trim())
+    .filter((attr) => attr.length > 0)
+    .filter((attr) => attr !== 'id' && attr !== 'class'); // Prevent 'id' and 'class' from being redacted as they're critical for element identification
+};
+
+export const getRedactedAttributeNames = (element: Element): Set<string> => {
+  const redactedAttributes = new Set<string>();
+  let currentElement: Element | null = element.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`); // closest invokes native libraries and is more performant than using JS to visit every ancestor
+
+  // Walk up the DOM tree to find any data-amp-mask-attributes
+  while (currentElement) {
+    const redactValue = currentElement.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES);
+    if (redactValue) {
+      // Parse comma-separated attribute names and add to set
+      const attributesToRedact = parseAttributesToRedact(redactValue);
+      attributesToRedact.forEach((attr) => {
+        redactedAttributes.add(attr);
+      });
+    }
+    currentElement = currentElement.parentElement;
+  }
+
+  return redactedAttributes;
+};
+
 export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
+  const redactedAttributes = getRedactedAttributeNames(element);
+
   return element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
     if (attributeName.startsWith(prefix)) {
       const attributeKey = attributeName.replace(prefix, '');
+
+      // Skip redacted attributes
+      if (redactedAttributes.has(attributeKey)) {
+        return attributes;
+      }
+
       const attributeValue = element.getAttribute(attributeName);
       if (attributeKey) {
         attributes[attributeKey] = attributeValue || '';
@@ -288,19 +335,18 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
   /* istanbul ignore next */
   const rect =
     typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
-  const ariaLabel = element.getAttribute('aria-label');
+
+  const redactedAttributes = getRedactedAttributeNames(element);
   const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
   const nearestLabel = getNearestLabel(element);
+
   /* istanbul ignore next */
   const properties: Record<string, any> = {
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: getText(element),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
-    [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
     [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
     [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
@@ -308,9 +354,27 @@ export const getEventProperties = (actionType: ActionType, element: Element, dat
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
     [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
   };
-  if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
+
+  // Add non-redacted attributes conditionally
+  // id is never redacted, so always include it
+  properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID] = element.getAttribute('id') || '';
+
+  // class is never redacted, so always include it
+  properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
+
+  if (!redactedAttributes.has('aria-label')) {
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = element.getAttribute('aria-label');
+  }
+
+  if (
+    tag === 'a' &&
+    actionType === 'click' &&
+    element instanceof HTMLAnchorElement &&
+    !redactedAttributes.has('href')
+  ) {
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
   }
+
   return removeEmptyProperties(properties);
 };
 
