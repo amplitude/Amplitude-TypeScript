@@ -11,10 +11,13 @@ describe('data extractor', () => {
   });
 
   describe('isNonSensitiveString', () => {
-    test('should return false when text is missing', () => {
-      const text = null;
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+    test('should return true when text is null or undefined', () => {
+      const nullText = null;
+      const undefinedText = undefined;
+      const result = dataExtractor.isNonSensitiveString(nullText);
+      const result2 = dataExtractor.isNonSensitiveString(undefinedText as unknown as string);
+      expect(result).toEqual(true);
+      expect(result2).toEqual(true);
     });
 
     test('should return true when text is not sensitive', () => {

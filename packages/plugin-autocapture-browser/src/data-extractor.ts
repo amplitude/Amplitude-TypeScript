@@ -16,6 +16,10 @@ import { getHierarchy } from './hierarchy';
 import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
 
+const CC_REGEX =
+  /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
+const SSN_REGEX = /(^\d{3}-?\d{2}-?\d{4}$)/;
+
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
 
@@ -41,26 +45,17 @@ export class DataExtractor {
   }
 
   isNonSensitiveString = (text: string | null): boolean => {
-    // if text is null, it can't be sensitive
-    if (text == null) {
-      return false;
-    }
-
     if (typeof text !== 'string') {
       return true;
     }
 
     // Check for credit card number
-    const ccRegex =
-      /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
-
-    if (ccRegex.test((text || '').replace(/[- ]/g, ''))) {
+    if (CC_REGEX.test((text || '').replace(/[- ]/g, ''))) {
       return false;
     }
 
     // Check for social security number
-    const ssnRegex = /(^\d{3}-?\d{2}-?\d{4}$)/;
-    if (ssnRegex.test(text)) {
+    if (SSN_REGEX.test(text)) {
       return false;
     }
 
