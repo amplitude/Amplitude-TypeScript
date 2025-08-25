@@ -17,14 +17,14 @@ import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
 
 export class DataExtractor {
-  private readonly additionalRedactTextPatterns: RegExp[];
+  private readonly additionalMaskTextPatterns: RegExp[];
 
   constructor(options: ElementInteractionsOptions) {
-    const rawPatterns = options.redactTextRegex ?? [];
+    const rawPatterns = options.maskTextRegex ?? [];
 
     const compiled: RegExp[] = [];
     for (const entry of rawPatterns) {
-      if (compiled.length >= constants.MAX_REDACT_TEXT_PATTERNS) {
+      if (compiled.length >= constants.MAX_MASK_TEXT_PATTERNS) {
         break;
       }
       if (entry instanceof RegExp) {
@@ -37,7 +37,7 @@ export class DataExtractor {
         }
       }
     }
-    this.additionalRedactTextPatterns = compiled;
+    this.additionalMaskTextPatterns = compiled;
   }
 
   isNonSensitiveString = (text: string | null): boolean => {
@@ -64,8 +64,8 @@ export class DataExtractor {
       return false;
     }
 
-    // Check for additional redact text patterns
-    for (const pattern of this.additionalRedactTextPatterns) {
+    // Check for additional mask text patterns
+    for (const pattern of this.additionalMaskTextPatterns) {
       try {
         if (pattern.test(text)) {
           return false;

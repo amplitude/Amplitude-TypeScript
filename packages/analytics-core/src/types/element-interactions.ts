@@ -94,9 +94,9 @@ export interface ElementInteractionsOptions {
   };
 
   /**
-   * RegExp pattern list to allow custom patterns for text redaction
+   * RegExp pattern list to allow custom patterns for text masking
    */
-  redactTextRegex?: (RegExp | { pattern: string; description: string })[];
+  maskTextRegex?: (RegExp | { pattern: string; description: string })[];
 }
 
 type MatchingCondition = {

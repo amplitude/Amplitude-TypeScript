@@ -7,7 +7,7 @@ describe('data extractor', () => {
   let dataExtractor: DataExtractor;
 
   beforeEach(() => {
-    dataExtractor = new DataExtractor({ redactTextRegex: [/Florida|California/, /Pennsylvania/] });
+    dataExtractor = new DataExtractor({ maskTextRegex: [/Florida|California/, /Pennsylvania/] });
   });
 
   describe('isNonSensitiveString', () => {
@@ -76,7 +76,7 @@ describe('data extractor', () => {
       expect(result).toEqual(true);
     });
 
-    test('should return false when text is sensitive and matches redactTextRegex', () => {
+    test('should return false when text is sensitive and matches maskTextRegex', () => {
       const text = 'Pittsburgh, Pennsylvania';
       const result = dataExtractor.isNonSensitiveString(text);
 
@@ -87,7 +87,7 @@ describe('data extractor', () => {
       expect(result2).toEqual(false);
     });
 
-    test('should return true when text does not match redactTextRegex', () => {
+    test('should return true when text does not match maskTextRegex', () => {
       const text = 'Test string';
       const result = dataExtractor.isNonSensitiveString(text);
       expect(result).toEqual(true);
@@ -95,7 +95,7 @@ describe('data extractor', () => {
 
     test('should parse rebactTextRegex objects into regex objects', () => {
       const dataExtractor = new DataExtractor({
-        redactTextRegex: [
+        maskTextRegex: [
           { pattern: 'Florida|California', description: 'Florida or California' },
           { pattern: 'Pennsylvania', description: 'Pennsylvania' },
         ],
@@ -111,15 +111,15 @@ describe('data extractor', () => {
       expect(result2).toEqual(false);
     });
 
-    test('should cap redactTextRegex over MAX_REDACT_TEXT_PATTERNS', () => {
-      const overLimit = constants.MAX_REDACT_TEXT_PATTERNS + 5;
+    test('should cap maskTextRegex over MAX_MASK_TEXT_PATTERNS', () => {
+      const overLimit = constants.MAX_MASK_TEXT_PATTERNS + 5;
       const patterns = Array.from({ length: overLimit }, (_v, i) => new RegExp(`\\btoken${i + 1}\\b`));
-      const extractor = new DataExtractor({ redactTextRegex: patterns });
+      const extractor = new DataExtractor({ maskTextRegex: patterns });
 
-      // Matches within the cap should be redacted
-      expect(extractor.isNonSensitiveString(`token${constants.MAX_REDACT_TEXT_PATTERNS}`)).toEqual(false);
-      // Matches beyond the cap should NOT be redacted
-      expect(extractor.isNonSensitiveString(`token${constants.MAX_REDACT_TEXT_PATTERNS + 1}`)).toEqual(true);
+      // Matches within the cap should be masked
+      expect(extractor.isNonSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS}`)).toEqual(false);
+      // Matches beyond the cap should NOT be masked
+      expect(extractor.isNonSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS + 1}`)).toEqual(true);
     });
   });
 
@@ -193,7 +193,7 @@ describe('data extractor', () => {
       expect(result).toEqual('nearest label');
     });
 
-    test('should return redacted nearest label when content is sensitive', () => {
+    test('should return masked nearest label when content is sensitive', () => {
       const div = document.createElement('div');
       const span = document.createElement('span');
       span.textContent = '4916024123820164';

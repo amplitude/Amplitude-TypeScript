@@ -61,9 +61,9 @@ export interface FrustrationInteractionsOptions {
   rageClicks?: RageClickOptions;
 
   /**
-   * Configuration for text redaction
+   * RegExp pattern list to allow custom patterns for text masking
    */
-  redactTextRegex?: (RegExp | { pattern: string; description: string })[];
+  maskTextRegex?: (RegExp | { pattern: string; description: string })[];
 }
 
 const CLICKABLE_ELEMENT_SELECTORS = [
