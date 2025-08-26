@@ -34,8 +34,10 @@ describe('index', () => {
   test(`structural typing test, 'default export' should be  BrowserClient`, () => {
     for (const key of Object.keys(FakeBrowserClient.prototype)) {
       // add message for if it fails
-      if (!((amplitude as any)[key])) {
-        throw new Error(`'${key}' is a required method in BrowserClient but is not defined in analytics-browser export`);
+      if (!(amplitude as any)[key]) {
+        throw new Error(
+          `'${key}' is a required method in BrowserClient but is not defined in analytics-browser export`,
+        );
       }
     }
     // sanity test a few known methods
