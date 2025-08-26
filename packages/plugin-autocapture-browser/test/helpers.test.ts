@@ -10,7 +10,6 @@ import {
   generateUniqueId,
   createShouldTrackEvent,
 } from '../src/helpers';
-import { DATA_AMP_MASK_ATTRIBUTE } from '../src/constants';
 
 describe('autocapture-plugin helpers', () => {
   afterEach(() => {
@@ -64,49 +63,6 @@ describe('autocapture-plugin helpers', () => {
 
       element.setAttribute('contenteditable', 'True');
       expect(isNonSensitiveElement(element)).toEqual(false);
-    });
-
-    test('should return false when element has ' + DATA_AMP_MASK_ATTRIBUTE + ' attribute', () => {
-      const element = document.createElement('div');
-      element.setAttribute(DATA_AMP_MASK_ATTRIBUTE, 'true');
-      const result = isNonSensitiveElement(element);
-      expect(result).toEqual(false);
-    });
-
-    test('should return false when element has ' + DATA_AMP_MASK_ATTRIBUTE + ' attribute with any value', () => {
-      const element = document.createElement('div');
-      element.setAttribute(DATA_AMP_MASK_ATTRIBUTE, '');
-      const result = isNonSensitiveElement(element);
-      expect(result).toEqual(false);
-    });
-
-    test('should return false when parent element has ' + DATA_AMP_MASK_ATTRIBUTE + ' attribute', () => {
-      const parent = document.createElement('div');
-      parent.setAttribute(DATA_AMP_MASK_ATTRIBUTE, 'true');
-      const child = document.createElement('span');
-      parent.appendChild(child);
-      document.body.appendChild(parent);
-
-      const result = isNonSensitiveElement(child);
-      expect(result).toEqual(false);
-
-      document.body.removeChild(parent);
-    });
-
-    test('should return false when ancestor element has ' + DATA_AMP_MASK_ATTRIBUTE + ' attribute', () => {
-      const grandparent = document.createElement('div');
-      grandparent.setAttribute(DATA_AMP_MASK_ATTRIBUTE, 'true');
-      const parent = document.createElement('div');
-      const child = document.createElement('span');
-
-      grandparent.appendChild(parent);
-      parent.appendChild(child);
-      document.body.appendChild(grandparent);
-
-      const result = isNonSensitiveElement(child);
-      expect(result).toEqual(false);
-
-      document.body.removeChild(grandparent);
     });
   });
 

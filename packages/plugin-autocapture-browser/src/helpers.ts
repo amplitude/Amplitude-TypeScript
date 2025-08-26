@@ -1,5 +1,4 @@
 /* eslint-disable no-restricted-globals */
-import * as constants from './constants';
 import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist } from '@amplitude/analytics-core';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
@@ -90,10 +89,7 @@ export const isNonSensitiveElement = (element: Element) => {
   const isContentEditable =
     element instanceof HTMLElement ? element.getAttribute('contenteditable')?.toLowerCase() === 'true' : false;
 
-  // Check if element or any parent has data-amp-mask attribute
-  const hasMaskAttribute = element.closest('[' + constants.DATA_AMP_MASK_ATTRIBUTE + ']') !== null;
-
-  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable && !hasMaskAttribute;
+  return !SENSITIVE_TAGS.includes(tag) && !isContentEditable;
 };
 
 export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {

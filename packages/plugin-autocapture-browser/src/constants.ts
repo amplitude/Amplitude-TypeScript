@@ -40,7 +40,7 @@ export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
 export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-selector-highlight';
 
 // Data masking constants
-export const DATA_AMP_MASK_ATTRIBUTE = 'data-amp-mask';
+export const TEXT_MASK_ATTRIBUTE = 'data-amp-mask';
 
 export const MASKED_TEXT_VALUE = '*****';
 
