@@ -6,11 +6,10 @@ import {
   isTextNode,
   removeEmptyProperties,
   isNonSensitiveElement,
-  getAttributesWithPrefix,
+  getRedactedAndAttributesWithPrefix,
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
-  getRedactedAttributeNames,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
 import { getHierarchy } from './hierarchy';
@@ -103,8 +102,7 @@ export class DataExtractor {
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
 
-    const redactedAttributes = getRedactedAttributeNames(element);
-    const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
+    const { attributes, redactedAttributeNames } = getRedactedAndAttributesWithPrefix(element, dataAttributePrefix);
     const nearestLabel = this.getNearestLabel(element);
 
     /* istanbul ignore next */
@@ -129,7 +127,7 @@ export class DataExtractor {
     // class is never redacted, so always include it
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
 
-    if (!redactedAttributes.has('aria-label')) {
+    if (!redactedAttributeNames.has('aria-label')) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = element.getAttribute('aria-label');
     }
 
@@ -137,7 +135,7 @@ export class DataExtractor {
       tag === 'a' &&
       actionType === 'click' &&
       element instanceof HTMLAnchorElement &&
-      !redactedAttributes.has('href')
+      !redactedAttributeNames.has('href')
     ) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
     }

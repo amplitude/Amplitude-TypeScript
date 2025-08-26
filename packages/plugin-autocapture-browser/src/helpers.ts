@@ -113,7 +113,7 @@ export const parseAttributesToRedact = (attributeString: string): string[] => {
 };
 
 export const getRedactedAttributeNames = (element: Element): Set<string> => {
-  const redactedAttributes = new Set<string>();
+  const redactedAttributeNames = new Set<string>();
   let currentElement: Element | null = element.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`); // closest invokes native libraries and is more performant than using JS to visit every ancestor
 
   // Walk up the DOM tree to find any data-amp-mask-attributes
@@ -123,34 +123,40 @@ export const getRedactedAttributeNames = (element: Element): Set<string> => {
       // Parse comma-separated attribute names and add to set
       const attributesToRedact = parseAttributesToRedact(redactValue);
       attributesToRedact.forEach((attr) => {
-        redactedAttributes.add(attr);
+        redactedAttributeNames.add(attr);
       });
     }
     currentElement = currentElement.parentElement?.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`) || null;
   }
 
-  return redactedAttributes;
+  return redactedAttributeNames;
 };
 
-export const getAttributesWithPrefix = (element: Element, prefix: string): { [key: string]: string } => {
-  const redactedAttributes = getRedactedAttributeNames(element);
+export const getRedactedAndAttributesWithPrefix = (
+  element: Element,
+  prefix: string,
+): { attributes: { [key: string]: string }; redactedAttributeNames: Set<string> } => {
+  const redactedAttributeNames = getRedactedAttributeNames(element);
 
-  return element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
-    if (attributeName.startsWith(prefix)) {
-      const attributeKey = attributeName.replace(prefix, '');
+  return {
+    attributes: element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
+      if (attributeName.startsWith(prefix)) {
+        const attributeKey = attributeName.replace(prefix, '');
 
-      // Skip redacted attributes
-      if (redactedAttributes.has(attributeKey)) {
-        return attributes;
+        // Skip redacted attributes
+        if (redactedAttributeNames.has(attributeKey)) {
+          return attributes;
+        }
+
+        const attributeValue = element.getAttribute(attributeName);
+        if (attributeKey) {
+          attributes[attributeKey] = attributeValue || '';
+        }
       }
-
-      const attributeValue = element.getAttribute(attributeName);
-      if (attributeKey) {
-        attributes[attributeKey] = attributeValue || '';
-      }
-    }
-    return attributes;
-  }, {});
+      return attributes;
+    }, {}),
+    redactedAttributeNames,
+  };
 };
 
 export const isEmpty = (value: unknown) => {
