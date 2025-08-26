@@ -400,6 +400,41 @@ describe('autoTrackingPlugin', () => {
       expect(track).toHaveBeenCalledTimes(1);
     });
 
+    test('should mask sensitive text from element content', async () => {
+      plugin = autocapturePlugin({
+        maskTextRegex: [/CONFIDENTIAL_TEXT/],
+      });
+
+      const config: Partial<BrowserConfig> = {
+        defaultTracking: false,
+        loggerProvider: loggerProvider,
+      };
+      await plugin?.setup?.(config as BrowserConfig, instance);
+
+      const button = document.createElement('button');
+      button.setAttribute('id', 'mask-button');
+      button.setAttribute('class', 'my-button-class');
+      button.appendChild(document.createTextNode('pay'));
+      button.textContent = 'CONFIDENTIAL_TEXT';
+      const div = document.createElement('div');
+      div.textContent = '4111111111111111'; // Visa test number (should be masked)
+      button.appendChild(div);
+      document.body.appendChild(button);
+
+      document.getElementById('mask-button')?.dispatchEvent(new Event('click'));
+
+      await new Promise((r) => setTimeout(r, TESTING_DEBOUNCE_TIME + 3));
+
+      expect(track).toHaveBeenCalledTimes(1);
+      expect(track).toHaveBeenNthCalledWith(
+        1,
+        '[Amplitude] Element Clicked',
+        expect.not.objectContaining({
+          '[Amplitude] Element Text': 'CONFIDENTIAL_TEXT',
+        }),
+      );
+    });
+
     test('should monitor element clicked event when dynamically rendered', async () => {
       const config: Partial<BrowserConfig> = {
         defaultTracking: false,
