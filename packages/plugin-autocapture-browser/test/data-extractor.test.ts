@@ -217,6 +217,111 @@ describe('data extractor', () => {
       const result = dataExtractor.getText(button);
       expect(result).toEqual('submit and pay');
     });
+
+    test('should return MASKED_TEXT_VALUE when element has data-amp-mask attribute', () => {
+      const button = document.createElement('button');
+      button.setAttribute('data-amp-mask', 'true');
+      button.textContent = 'sensitive button text';
+      const result = dataExtractor.getText(button);
+      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+    });
+
+    test('should return MASKED_TEXT_VALUE when parent element has data-amp-mask attribute', () => {
+      const container = document.createElement('div');
+      container.setAttribute('data-amp-mask', 'true');
+      const button = document.createElement('button');
+      button.textContent = 'button text';
+      container.appendChild(button);
+      const result = dataExtractor.getText(button);
+      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+    });
+
+    test('should return MASKED_TEXT_VALUE when ancestor element has data-amp-mask attribute', () => {
+      const grandparent = document.createElement('div');
+      grandparent.setAttribute('data-amp-mask', 'true');
+      const parent = document.createElement('div');
+      const button = document.createElement('button');
+      button.textContent = 'nested button text';
+      grandparent.appendChild(parent);
+      parent.appendChild(button);
+      const result = dataExtractor.getText(button);
+      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+    });
+
+    test('should filter out sensitive text content containing credit card numbers', () => {
+      const button = document.createElement('button');
+      const safeText = document.createTextNode('Pay with card ');
+      button.appendChild(safeText);
+      const sensitiveDiv = document.createElement('div');
+      sensitiveDiv.textContent = '4111111111111111'; // Credit card number
+      button.appendChild(sensitiveDiv);
+      const moreText = document.createTextNode(' securely');
+      button.appendChild(moreText);
+      const result = dataExtractor.getText(button);
+      expect(result).toEqual('Pay with card  securely');
+    });
+
+    test('should filter out sensitive text content containing SSN', () => {
+      const button = document.createElement('button');
+      const safeText = document.createTextNode('Submit form ');
+      button.appendChild(safeText);
+      const sensitiveDiv = document.createElement('div');
+      sensitiveDiv.textContent = '269-28-9315'; // SSN
+      button.appendChild(sensitiveDiv);
+      const result = dataExtractor.getText(button);
+      expect(result).toEqual('Submit form');
+    });
+
+    test('should filter out sensitive text content containing email addresses', () => {
+      const button = document.createElement('button');
+      const safeText = document.createTextNode('Contact ');
+      button.appendChild(safeText);
+      const sensitiveDiv = document.createElement('div');
+      sensitiveDiv.textContent = 'user@example.com'; // Email
+      button.appendChild(sensitiveDiv);
+      const moreText = document.createTextNode(' for support');
+      button.appendChild(moreText);
+      const result = dataExtractor.getText(button);
+      expect(result).toEqual('Contact  for support');
+    });
+
+    test('should filter out text matching custom maskTextRegex patterns', () => {
+      const button = document.createElement('button');
+      const safeText = document.createTextNode('Welcome to ');
+      button.appendChild(safeText);
+      const sensitiveDiv = document.createElement('div');
+      sensitiveDiv.textContent = 'Florida'; // Matches the regex pattern in beforeEach
+      button.appendChild(sensitiveDiv);
+      const moreText = document.createTextNode(' tourism');
+      button.appendChild(moreText);
+      const result = dataExtractor.getText(button);
+      expect(result).toEqual('Welcome to  tourism');
+    });
+
+    test('should handle mixed content with both masked attribute and sensitive text filtering', () => {
+      const container = document.createElement('div');
+      const maskedDiv = document.createElement('div');
+      maskedDiv.setAttribute('data-amp-mask', 'true');
+      maskedDiv.textContent = 'This should be masked';
+
+      const normalDiv = document.createElement('div');
+      normalDiv.textContent = 'Normal text ';
+
+      const sensitiveDiv = document.createElement('div');
+      sensitiveDiv.textContent = '4111111111111111'; // This would be filtered by sensitive text logic
+
+      container.appendChild(normalDiv);
+      container.appendChild(maskedDiv);
+      container.appendChild(sensitiveDiv);
+
+      // Test the masked div individually
+      const maskedResult = dataExtractor.getText(maskedDiv);
+      expect(maskedResult).toEqual(constants.MASKED_TEXT_VALUE);
+
+      // Test container with mixed content - masked elements return MASKED_TEXT_VALUE, sensitive text is filtered out
+      const containerResult = dataExtractor.getText(container);
+      expect(containerResult).toEqual(`Normal text ${constants.MASKED_TEXT_VALUE}`);
+    });
   });
 
   describe('getNearestLabel', () => {

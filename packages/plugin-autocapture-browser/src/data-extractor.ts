@@ -194,7 +194,11 @@ export class DataExtractor {
 
   combineText = (element: Element): string => {
     let text = '';
-    if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
+    // Check if element or any parent has data-amp-mask attribute
+    const hasMaskAttribute = element.closest('[' + constants.DATA_AMP_MASK_ATTRIBUTE + ']') !== null;
+    if (hasMaskAttribute) {
+      text = constants.MASKED_TEXT_VALUE;
+    } else if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
       element.childNodes.forEach((child) => {
         let childText = '';
         if (isTextNode(child)) {
