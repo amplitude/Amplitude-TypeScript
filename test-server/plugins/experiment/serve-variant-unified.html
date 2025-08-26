@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/amplitude.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <title>Serve Variant Test</title>
+  </head>
+  <body>
+    <div id="variant-display">Waiting for feature flag to be fetched...</div>
+    <script type="module">
+      import * as amplitude from '@amplitude/unified';
+      amplitude.initAll(import.meta.env.VITE_AMPLITUDE_API_KEY, import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user')
+        .then(() => {
+          debugger;
+        });
+      amplitude.experiment.fetch().then(() => {
+        const variant = amplitude.experiment.variant('fake-feature-flag-dev-server');
+        document.getElementById('variant-display').innerHTML = `Variant: ${JSON.stringify(variant)}`;
+      });
+      window.amplitude = amplitude;
+    </script>
+</html>
