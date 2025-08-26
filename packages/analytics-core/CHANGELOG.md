@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [2.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.2...@amplitude/analytics-core@2.22.0) (2025-08-26)
+
+
+### Bug Fixes
+
+* **plugin-network-autocapture:** replace consumption check with cache ([#1274](https://github.com/amplitude/Amplitude-TypeScript/issues/1274)) ([9c41081](https://github.com/amplitude/Amplitude-TypeScript/commit/9c41081ce23aea51ff9c9a82f0b8b9e5e3c53061))
+
+
+### Features
+
+* **autocapture:** add maskTextRegex option to autocapture ([#1259](https://github.com/amplitude/Amplitude-TypeScript/issues/1259)) ([2f1cf07](https://github.com/amplitude/Amplitude-TypeScript/commit/2f1cf075b3e0728f4124bb5c30c8a7e7c21d5a12))
+
+
+
+
+
 ## [2.21.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.1...@amplitude/analytics-core@2.21.2) (2025-08-25)
 
 
