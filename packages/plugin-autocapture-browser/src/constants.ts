@@ -41,4 +41,7 @@ export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-sele
 
 // Data masking constants
 export const DATA_AMP_MASK_ATTRIBUTE = 'data-amp-mask';
+
 export const MASKED_TEXT_VALUE = '*****';
+
+export const MAX_MASK_TEXT_PATTERNS = 25;

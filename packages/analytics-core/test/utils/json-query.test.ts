@@ -61,6 +61,18 @@ describe('pruneJson', () => {
       pruneJson(obj, ['a/b'], []);
       expect(obj).toEqual({});
     });
+
+    test('exclude same as allow should return empty object', () => {
+      const obj = { a: { b: { c: 'd' }, e: 'f' } };
+      pruneJson(obj, ['*'], ['*']);
+      expect(obj).toEqual({});
+    });
+
+    test('should exclude keys not include in allowlist', () => {
+      const obj = { a: { b: { c: 'd' } }, e: 'f' };
+      pruneJson(obj, ['*'], ['a']);
+      expect(obj).toEqual({ e: 'f' });
+    });
   });
 
   describe('two levels deep', () => {

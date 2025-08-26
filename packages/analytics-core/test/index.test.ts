@@ -37,6 +37,7 @@ import {
   DEFAULT_ACTION_CLICK_ALLOWLIST,
   DEFAULT_DEAD_CLICK_ALLOWLIST,
   DEFAULT_RAGE_CLICK_ALLOWLIST,
+  DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD,
   DEFAULT_CSS_SELECTOR_ALLOWLIST,
   DEFAULT_RAGE_CLICK_THRESHOLD,
   DEFAULT_RAGE_CLICK_WINDOW_MS,
@@ -114,6 +115,7 @@ describe('index', () => {
     expect(typeof IdentifyOperation).toBe('object');
     expect(typeof SpecialEventType).toBe('object');
     expect(typeof ServerZone).toBe('object');
+    expect(typeof DEFAULT_RAGE_CLICK_OUT_OF_BOUNDS_THRESHOLD).toBe('number');
     expect(DEFAULT_RAGE_CLICK_THRESHOLD).toBeGreaterThan(1);
     expect(DEFAULT_RAGE_CLICK_WINDOW_MS).toBeGreaterThan(1);
     expect(DEFAULT_DEAD_CLICK_WINDOW_MS).toBeGreaterThan(1);

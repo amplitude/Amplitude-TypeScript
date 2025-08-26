@@ -3,6 +3,35 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [1.5.2](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.5.1...@amplitude/plugin-network-capture-browser@1.5.2) (2025-08-25)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
+## [1.5.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.5.0...@amplitude/plugin-network-capture-browser@1.5.1) (2025-08-22)
+
+**Note:** Version bump only for package @amplitude/plugin-network-capture-browser
+
+
+
+
+
+# [1.5.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.4.5...@amplitude/plugin-network-capture-browser@1.5.0) (2025-08-21)
+
+
+### Features
+
+* **analytics-browser:** add urls matching attribute to network capture rules (experimental) ([#1252](https://github.com/amplitude/Amplitude-TypeScript/issues/1252)) ([c28a98c](https://github.com/amplitude/Amplitude-TypeScript/commit/c28a98c13536d3eb2472edcce6ec225539db00aa))
+* **plugin-network-capture-browser:** add ability to capture headers (experimental) ([#1253](https://github.com/amplitude/Amplitude-TypeScript/issues/1253)) ([52cfc0c](https://github.com/amplitude/Amplitude-TypeScript/commit/52cfc0c6dab309f30cfce56c091065ff95d95fc2))
+* **plugin-network-capture-browser:** add request + response body capture (experimental) ([#1256](https://github.com/amplitude/Amplitude-TypeScript/issues/1256)) ([1850c58](https://github.com/amplitude/Amplitude-TypeScript/commit/1850c58d145973b3bd104ab70368eb4e2fdbafbc))
+
+
+
+
+
 ## [1.4.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/plugin-network-capture-browser@1.4.4...@amplitude/plugin-network-capture-browser@1.4.5) (2025-08-13)
 
 **Note:** Version bump only for package @amplitude/plugin-network-capture-browser

@@ -19,6 +19,7 @@ import type { BrowserClient, BrowserConfig, EnrichmentPlugin, ILogger } from '@a
 import { createInstance } from '@amplitude/analytics-browser';
 import { createRemoteConfigFetch } from '@amplitude/analytics-remote-config';
 import * as triggersModule from '../../src/pageActions/triggers';
+import { DataExtractor } from '../../src/data-extractor';
 
 /* eslint-disable @typescript-eslint/unbound-method */
 
@@ -632,7 +633,12 @@ describe('TriggerEvaluator', () => {
   const labeledEventToTriggerMap = createLabeledEventToTriggerMap(triggers);
 
   it('should do nothing if pageActions is not configured', () => {
-    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, {});
+    const triggerEvaluator = createTriggerEvaluator(
+      groupedLabeledEvents,
+      labeledEventToTriggerMap,
+      new DataExtractor({}),
+      {},
+    );
     const result = triggerEvaluator.evaluate(mockEvent);
 
     expect(result).toBe(mockEvent);
@@ -642,7 +648,12 @@ describe('TriggerEvaluator', () => {
   it('should not call executeActions if no labeled event matches', () => {
     matchEventToFilterSpy.mockReturnValue(false); // No filter match
 
-    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    const triggerEvaluator = createTriggerEvaluator(
+      groupedLabeledEvents,
+      labeledEventToTriggerMap,
+      new DataExtractor({}),
+      options,
+    );
     triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).not.toHaveBeenCalled();
@@ -668,7 +679,8 @@ describe('TriggerEvaluator', () => {
 
     matchEventToFilterSpy.mockReturnValue(true); // event matches
 
-    const triggerEvaluator = createTriggerEvaluator(grouped, triggerMap, optionsWithUntriggeredEvent);
+    const dataExtractor = new DataExtractor({});
+    const triggerEvaluator = createTriggerEvaluator(grouped, triggerMap, dataExtractor, optionsWithUntriggeredEvent);
     triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).not.toHaveBeenCalled();
@@ -677,11 +689,17 @@ describe('TriggerEvaluator', () => {
   it('should call executeActions with correct actions when a trigger is matched', () => {
     matchEventToFilterSpy.mockReturnValue(true); // Labeled event matches
 
-    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, options);
+    const dataExtractor = new DataExtractor({});
+    const triggerEvaluator = createTriggerEvaluator(
+      groupedLabeledEvents,
+      labeledEventToTriggerMap,
+      dataExtractor,
+      options,
+    );
     triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).toHaveBeenCalledTimes(1);
-    expect(executeActionsSpy).toHaveBeenCalledWith(triggers[0].actions, mockEvent);
+    expect(executeActionsSpy).toHaveBeenCalledWith(triggers[0].actions, mockEvent, dataExtractor);
   });
 
   it('should handle multiple matching triggers for a single event', () => {
@@ -724,16 +742,23 @@ describe('TriggerEvaluator', () => {
     const triggerMap = createLabeledEventToTriggerMap(multiTrigger);
     matchEventToFilterSpy.mockReturnValue(true);
 
-    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, triggerMap, multiTriggerOptions);
+    const dataExtractor = new DataExtractor({});
+    const triggerEvaluator = createTriggerEvaluator(
+      groupedLabeledEvents,
+      triggerMap,
+      dataExtractor,
+      multiTriggerOptions,
+    );
     triggerEvaluator.evaluate(mockEvent);
 
     expect(executeActionsSpy).toHaveBeenCalledTimes(2);
-    expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[0].actions, mockEvent);
-    expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[1].actions, mockEvent);
+    expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[0].actions, mockEvent, dataExtractor);
+    expect(executeActionsSpy).toHaveBeenCalledWith(multiTrigger[1].actions, mockEvent, dataExtractor);
   });
 
   it('should update state when update method is called', () => {
-    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, {});
+    const dataExtractor = new DataExtractor({});
+    const triggerEvaluator = createTriggerEvaluator(groupedLabeledEvents, labeledEventToTriggerMap, dataExtractor, {});
 
     // Initially should do nothing since pageActions is empty
     triggerEvaluator.evaluate(mockEvent);
@@ -746,7 +771,7 @@ describe('TriggerEvaluator', () => {
     // Now it should execute actions
     triggerEvaluator.evaluate(mockEvent);
     expect(executeActionsSpy).toHaveBeenCalledTimes(1);
-    expect(executeActionsSpy).toHaveBeenCalledWith(triggers[0].actions, mockEvent);
+    expect(executeActionsSpy).toHaveBeenCalledWith(triggers[0].actions, mockEvent, dataExtractor);
   });
 });
 

@@ -64,16 +64,36 @@
         import.meta.env.VITE_AMPLITUDE_USER_ID || 'amplitude-typescript test user',
         {
           autocapture: {
-            networkTracking: true,
-          },
-          networkTrackingOptions: {
-            ignoreAmplitudeRequests: false,
-            ignoreHosts: [],
-            captureRules: [
-              { hosts: ['*.amplitude.com'], statusCodeRange: '400-599' },
-              { hosts: ['localhost', '127.0.0.1'], statusCodeRange: '0,400-599' },
-              { hosts: ['*'], statusCodeRange: '0,300-599' },
-            ],
+            networkTracking: {
+              ignoreAmplitudeRequests: false,
+              ignoreHosts: [],
+              captureRules: [
+                {
+                  hosts: ['*.amplitude.com'],
+                  statusCodeRange: '400-599',
+                  requestHeaders: true,
+                  responseHeaders: true,
+                },
+                {
+                  hosts: ['localhost', '127.0.0.1'],
+                  statusCodeRange: '0,400-599',
+                  requestHeaders: true,
+                  responseHeaders: true,
+                },
+                {
+                  hosts: ['*'],
+                  statusCodeRange: '0,300-599',
+                  requestHeaders: true,
+                  responseHeaders: true,
+                  responseBody: {
+                    allowlist: ['status', 'message', 'method'],
+                  },
+                  requestBody: {
+                    allowlist: ['**'],
+                  },
+                },
+              ],
+            },
           },
         }
       );

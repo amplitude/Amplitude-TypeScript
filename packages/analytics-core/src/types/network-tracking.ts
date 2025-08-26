@@ -17,27 +17,27 @@ export interface NetworkTrackingOptions {
   captureRules?: NetworkCaptureRule[];
 }
 
-// export interface BodyCaptureRule {
-//   // TODO: Change this to whatever is the settled configuration name before merging
-//   /**
-//    * List of JSON pointers to capture from a request or response body (JSON objects only)
-//    *
-//    * If this is empty or undefined, no attributes are captured
-//    *
-//    * Follows a syntax similar to JSON Pointer, except:
-//    * - The leading / is optional
-//    * - A wildcard * can be used to match any key
-//    * - A wildcard ** can be used to match any number of keys (or no keys)
-//    * - The structure of the JSON is preserved (ie: the captured body is a subset of the original body)
-//    */
-//   allowlist?: string[];
-//   /**
-//    * List of JSON pointers to exclude from a request or response body (JSON objects only)
-//    *
-//    * This "uncaptures" any attributes that are captured by the allowlist.
-//    */
-//   blocklist?: string[];
-// }
+export interface BodyCaptureRule {
+  /**
+   * List of JSON pointers to capture from a request or response body (JSON objects only)
+   *
+   * Includes nothing, by default.
+   * Any keys defined in excludelist will be excluded from the capture.
+   *
+   * Follows a syntax similar to [JSON Pointer](https://datatracker.ietf.org/doc/html/rfc6901), except:
+   * - The leading / is optional
+   * - A wildcard * can be used to match any key
+   * - A double-wildcard ** can be used to match any number of keys (or no keys)
+   * - The structure of the JSON is preserved (ie: the captured body is a subset of the original body)
+   */
+  allowlist?: string[];
+  /**
+   * List of JSON pointers to exclude from a request or response body (JSON objects only)
+   *
+   * This "uncaptures" any attributes that are captured by the allowlist.
+   */
+  blocklist?: string[];
+}
 
 export interface NetworkCaptureRule {
   /**
@@ -64,13 +64,35 @@ export interface NetworkCaptureRule {
    */
   statusCodeRange?: string;
   /**
-   * Determines what to capture from the response body.
+   * Capture headers from network response.
+   *
+   * If true, SAFE_HEADERS are captured. If false, no headers are captured.
+   * If a string array, the headers in the array are captured.
+   *
+   * @experimental This feature is experimental and may not be stable
+   * @defaultValue `false`
    */
-  // responseBody?: BodyCaptureRule;
+  responseHeaders?: string[] | boolean;
+  /**
+   * Capture headers from network request.
+   *
+   * If true, SAFE_HEADERS are captured. If false, no headers are captured.
+   * If a string array, the headers in the array are captured.
+   *
+   * @experimental This feature is experimental and may not be stable
+   * @defaultValue `false`
+   */
+  requestHeaders?: string[] | boolean;
+  /**
+   * Determines what to capture from the response body.
+   * @experimental This feature is experimental and may not be stable
+   */
+  responseBody?: BodyCaptureRule;
   /**
    * Determines what to capture from the request body.
+   * @experimental This feature is experimental and may not be stable
    */
-  // requestBody?: BodyCaptureRule;
+  requestBody?: BodyCaptureRule;
   /**
    * Threshold   for what is classified as a slow request (in seconds).
    * @defaultValue `3`
