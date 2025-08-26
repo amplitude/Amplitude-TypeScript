@@ -113,15 +113,12 @@ describe('NetworkObserver', () => {
       expect(events[0].requestWrapper?.headers([...SAFE_HEADERS])).toEqual({
         'Content-Type': 'application/json',
       });
-      // expect headers to throw an error if consumed
-      expect(() => events[0].requestWrapper?.headers([...SAFE_HEADERS])).toThrow(TypeError);
       const expectedResponseHeaders = {
         'content-type': 'application/json',
         'content-length': '20',
         server: 'test-server',
       };
       expect(events[0].responseWrapper?.headers([...SAFE_HEADERS])).toEqual(expectedResponseHeaders);
-      expect(() => events[0].responseWrapper?.headers([...SAFE_HEADERS])).toThrow(TypeError);
     });
 
     it('should track successful fetch requests with headers (uses Headers object)', async () => {
@@ -704,7 +701,6 @@ describe('NetworkObserver', () => {
       };
       const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
       const json = await responseWrapper.text();
-      expect(responseWrapper.text()).rejects.toThrow(TypeError);
       expect(json).toBeNull();
     });
 
@@ -722,14 +718,20 @@ describe('NetworkObserver', () => {
     });
 
     test('text should return a value', async () => {
+      const mockedClone: any = jest.fn(() => mockResponseNonJson as unknown as Response);
       const mockResponseNonJson = {
         ...mockResponse,
         text: async () => 'some text',
-        clone: () => mockResponseNonJson as unknown as Response,
+        clone: mockedClone,
       };
       const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
       const text = await responseWrapper.text();
       expect(text).toBe('some text');
+      const text2 = await responseWrapper.text();
+      expect(text2).toBe('some text');
+
+      // calling text 2x should not clone the response again
+      expect(mockedClone).toHaveBeenCalledTimes(1);
     });
 
     test('bodySize should return undefined if content-length is not set', () => {
@@ -841,7 +843,6 @@ describe('RequestWrapperXhr', () => {
       );
       const json = await requestWrapper.json(['message', 'secret'], ['secret']);
       expect(json).toEqual({ message: 'Hello from mock!' });
-      expect(requestWrapper.json(['message', 'secret'], ['secret'])).rejects.toThrow(TypeError);
     });
   });
 });
@@ -981,7 +982,6 @@ describe('ResponseWrapperXhr', () => {
   test('should return {} if headersString is empty', async () => {
     const responseWrapper = new ResponseWrapperXhr(200, 'hello=world', 0, 'some text');
     expect(responseWrapper.headers()).toEqual({});
-    expect(() => responseWrapper.headers()).toThrow(TypeError);
     const text = await responseWrapper.text();
     expect(text).toBe('some text');
   });
@@ -1006,8 +1006,6 @@ describe('ResponseWrapperXhr', () => {
       };
       const responseWrapper = new ResponseWrapperXhr(200, '', 0, JSON.stringify(response));
       const json = await responseWrapper.json(['message'], ['secret']);
-      // expect json to be rejected if body has already been consumed
-      expect(responseWrapper.json(['message'], ['secret'])).rejects.toThrow(TypeError);
       expect(json).toEqual({ message: 'Hello from mock!' });
     });
 
@@ -1111,7 +1109,6 @@ describe('RequestWrapperFetch', () => {
       } as unknown as RequestInitSafe);
       const json = await requestWrapper.json(['message'], ['secret']);
       expect(json).toEqual({ message: 'Hello from mock!' });
-      expect(requestWrapper.json(['message', 'secret'], ['secret'])).rejects.toThrow(TypeError);
     });
   });
 });

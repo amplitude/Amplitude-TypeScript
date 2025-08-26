@@ -97,22 +97,6 @@ export interface IRequestWrapper {
 export const MAXIMUM_ENTRIES = 100;
 
 /**
- * This class is used to enforce the consumption of headers and body
- * so that 'headers' and 'body' can only be accessed once.
- */
-class ConsumptionCheck {
-  private headers = false;
-  private body = false;
-
-  consume(objType: 'headers' | 'body') {
-    if (this[objType]) {
-      throw new TypeError(`${objType} has already been consumed`);
-    }
-    this[objType] = true;
-  }
-}
-
-/**
  * This class encapsulates the RequestInit (https://developer.mozilla.org/en-US/docs/Web/API/RequestInit)
  * object so that the consumer can only get access to the headers, method and body size.
  *
@@ -132,11 +116,9 @@ class ConsumptionCheck {
  */
 export class RequestWrapperFetch implements IRequestWrapper {
   private _bodySize: number | undefined;
-  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(private request: RequestInitSafe) {}
 
   headers(allow: string[] = []): Record<string, string> | undefined {
-    this.consumptionCheck.consume('headers');
     const headersUnsafe = this.request.headers;
 
     // copy the headers into a new object
@@ -176,7 +158,6 @@ export class RequestWrapperFetch implements IRequestWrapper {
   }
 
   get body(): string | null {
-    this.consumptionCheck.consume('body');
     if (typeof this.request.body === 'string') {
       return this.request.body;
     }
@@ -193,11 +174,9 @@ export class RequestWrapperFetch implements IRequestWrapper {
 }
 
 export class RequestWrapperXhr implements IRequestWrapper {
-  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(readonly bodyRaw: XMLHttpRequestBodyInitSafe | null, readonly requestHeaders: Record<string, string>) {}
 
   headers(allow: string[] = []): Record<string, string> | undefined {
-    this.consumptionCheck.consume('headers');
     return pruneHeaders(this.requestHeaders, { allow });
   }
 
@@ -206,7 +185,6 @@ export class RequestWrapperXhr implements IRequestWrapper {
   }
 
   get body(): string | null {
-    this.consumptionCheck.consume('body');
     if (typeof this.bodyRaw === 'string') {
       return this.bodyRaw;
     }
@@ -325,11 +303,10 @@ export interface IResponseWrapper {
  */
 export class ResponseWrapperFetch implements IResponseWrapper {
   private _bodySize: number | undefined;
-  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
+  private clonedResponse?: ResponseCloneSafe;
   constructor(private response: ResponseSafe) {}
 
   headers(allow: string[] = []): Record<string, string> | undefined {
-    this.consumptionCheck.consume('headers');
     if (this.response.headers instanceof Headers) {
       const headersSafe = this.response.headers as HeadersResponseSafe;
       const headersOut: Record<string, string> = {};
@@ -357,12 +334,13 @@ export class ResponseWrapperFetch implements IResponseWrapper {
   }
 
   async text(): Promise<string | null> {
-    this.consumptionCheck.consume('body');
     // !!!IMPORTANT: we clone the response to avoid mutating the original response
     // never call .text(), .json(), etc.. on the original response always clone it first
-    const clonedResponse = this.response.clone();
+    if (!this.clonedResponse) {
+      this.clonedResponse = this.response.clone();
+    }
     try {
-      const textPromise = clonedResponse.text();
+      const textPromise = this.clonedResponse.text();
       const timer = new Promise<null>((resolve) =>
         setTimeout(
           /* istanbul ignore next */
@@ -387,7 +365,6 @@ export class ResponseWrapperFetch implements IResponseWrapper {
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
-  private consumptionCheck: ConsumptionCheck = new ConsumptionCheck();
   constructor(
     readonly statusCode: number,
     readonly headersString: string,
@@ -405,12 +382,10 @@ export class ResponseWrapperXhr implements IResponseWrapper {
 
   async text(): Promise<string | null> {
     // reject if body has already been consumed
-    this.consumptionCheck.consume('body');
     return this.responseText;
   }
 
   headers(allow: string[] = []): Record<string, string> | undefined {
-    this.consumptionCheck.consume('headers');
     if (!this.headersString) {
       return {};
     }
