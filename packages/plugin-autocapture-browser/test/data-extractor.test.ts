@@ -2,6 +2,7 @@ import { DataExtractor } from '../src/data-extractor';
 import * as constants from '../src/constants';
 import { mockWindowLocationFromURL } from './utils';
 import type { ElementBasedTimestampedEvent } from '../src/helpers';
+import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 
 describe('data extractor', () => {
   let dataExtractor: DataExtractor;
@@ -362,6 +363,150 @@ describe('data extractor', () => {
 
       // Verify the result
       expect(result.closestTrackedAncestor).toBeDefined();
+    });
+  });
+
+  describe('getEventProperties with redaction', () => {
+    test('should NOT redact id or class when both specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'id, class');
+
+      const element = document.createElement('button');
+      element.setAttribute('id', 'secret-id');
+      element.setAttribute('class', 'secret-class');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('secret-id'); // ID should NOT be redacted
+      expect(result['[Amplitude] Element Class']).toBe('secret-class'); // Class should NOT be redacted
+      expect(result['[Amplitude] Element Tag']).toBe('button');
+      expect(result['[Amplitude] Element Text']).toBe('Click me');
+
+      document.body.removeChild(container);
+    });
+
+    test('should redact attributes when redaction rule is on element itself but never redact id or class', () => {
+      const element = document.createElement('button');
+      element.setAttribute('id', 'test-id');
+      element.setAttribute('class', 'test-class');
+      element.setAttribute('aria-label', 'Test button');
+      element.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'id, class, aria-label'); // On element itself
+      element.textContent = 'Click me';
+
+      document.body.appendChild(element);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('test-id'); // ID should NEVER be redacted
+      expect(result['[Amplitude] Element Class']).toBe('test-class'); // Class should NEVER be redacted
+      expect(result['[Amplitude] Element Aria Label']).toBeUndefined(); // Aria-label should be redacted
+
+      document.body.removeChild(element);
+    });
+
+    test('should redact aria-label when specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'aria-label');
+
+      const element = document.createElement('button');
+      element.setAttribute('aria-label', 'Secret button label');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element Aria Label']).toBeUndefined();
+      expect(result['[Amplitude] Element Text']).toBe('Click me');
+
+      document.body.removeChild(container);
+    });
+
+    test('should redact href for anchor elements when specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'href');
+
+      const element = document.createElement('a');
+      element.setAttribute('href', 'https://secret-url.com');
+      element.textContent = 'Secret link';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element Href']).toBeUndefined();
+      expect(result['[Amplitude] Element Text']).toBe('Secret link');
+
+      document.body.removeChild(container);
+    });
+
+    test('should not redact attributes when not specified in redaction list', () => {
+      const container = document.createElement('div');
+      container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'other-attr');
+
+      const element = document.createElement('button');
+      element.setAttribute('id', 'test-id');
+      element.setAttribute('class', 'test-class');
+      element.setAttribute('aria-label', 'Test button');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('test-id');
+      expect(result['[Amplitude] Element Class']).toBe('test-class');
+      expect(result['[Amplitude] Element Aria Label']).toBe('Test button');
+
+      document.body.removeChild(container);
+    });
+
+    test('should redact data attributes when specified on parent', () => {
+      const container = document.createElement('div');
+      container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'user-name');
+
+      const element = document.createElement('span');
+      element.setAttribute('data-amp-track-user-name', 'John Doe');
+      element.setAttribute('data-amp-track-user-id', '12345');
+      element.textContent = 'User info';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element Attributes']).toEqual({ 'user-id': '12345' });
+
+      document.body.removeChild(container);
+    });
+
+    test('should never redact id or class attributes even when explicitly specified', () => {
+      const container = document.createElement('div');
+      container.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'id, class, aria-label');
+
+      const element = document.createElement('button');
+      element.setAttribute('id', 'important-id');
+      element.setAttribute('class', 'secret-class');
+      element.setAttribute('aria-label', 'Secret label');
+      element.textContent = 'Click me';
+
+      container.appendChild(element);
+      document.body.appendChild(container);
+
+      const result = dataExtractor.getEventProperties('click', element, 'data-amp-track-');
+
+      expect(result['[Amplitude] Element ID']).toBe('important-id'); // ID should NEVER be redacted
+      expect(result['[Amplitude] Element Class']).toBe('secret-class'); // Class should NEVER be redacted
+      expect(result['[Amplitude] Element Aria Label']).toBeUndefined(); // Aria-label should be redacted
+
+      document.body.removeChild(container);
     });
   });
 });

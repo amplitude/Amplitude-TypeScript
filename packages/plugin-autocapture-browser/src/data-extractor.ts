@@ -10,6 +10,7 @@ import {
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
+  getRedactedAttributeNames,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
 import { getHierarchy } from './hierarchy';
@@ -101,19 +102,18 @@ export class DataExtractor {
     /* istanbul ignore next */
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
-    const ariaLabel = element.getAttribute('aria-label');
+
+    const redactedAttributes = getRedactedAttributeNames(element);
     const attributes = getAttributesWithPrefix(element, dataAttributePrefix);
     const nearestLabel = this.getNearestLabel(element);
+
     /* istanbul ignore next */
-    const properties: Record<string, unknown> = {
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID]: element.getAttribute('id') || '',
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS]: element.getAttribute('class'),
+    const properties: Record<string, any> = {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: this.getText(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_TOP]: rect.top == null ? null : Math.round(rect.top),
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL]: ariaLabel,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
@@ -121,9 +121,27 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
-    if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
+
+    // Add non-redacted attributes conditionally
+    // id is never redacted, so always include it
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ID] = element.getAttribute('id') || '';
+
+    // class is never redacted, so always include it
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
+
+    if (!redactedAttributes.has('aria-label')) {
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = element.getAttribute('aria-label');
+    }
+
+    if (
+      tag === 'a' &&
+      actionType === 'click' &&
+      element instanceof HTMLAnchorElement &&
+      !redactedAttributes.has('href')
+    ) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
     }
+
     return removeEmptyProperties(properties);
   };
 
