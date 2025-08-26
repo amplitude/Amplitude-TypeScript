@@ -727,9 +727,10 @@ describe('NetworkObserver', () => {
       const responseWrapper = new ResponseWrapperFetch(mockResponseNonJson as unknown as Response);
       const text = await responseWrapper.text();
       expect(text).toBe('some text');
-      // should be able to call text again
       const text2 = await responseWrapper.text();
       expect(text2).toBe('some text');
+
+      // calling text 2x should not clone the response again
       expect(mockedClone).toHaveBeenCalledTimes(1);
     });
 
