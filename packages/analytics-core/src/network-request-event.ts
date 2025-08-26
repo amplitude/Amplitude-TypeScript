@@ -278,7 +278,6 @@ export interface IResponseWrapper {
   bodySize?: number;
   status?: number;
   body?: string | Blob | ReadableStream | ArrayBuffer | FormDataSafe | URLSearchParams | ArrayBufferView | null;
-  text: () => Promise<string | null>;
   json: (allow?: string[], exclude?: string[]) => Promise<JsonObject | null>;
 }
 
@@ -365,11 +364,12 @@ export class ResponseWrapperFetch implements IResponseWrapper {
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
+  private cachedJsonBody: JsonObject | null = null;
   constructor(
     readonly statusCode: number,
     readonly headersString: string,
     readonly size: number | undefined,
-    readonly responseText: string,
+    readonly getJson: () => any | null,
   ) {}
 
   get bodySize(): number | undefined {
@@ -378,11 +378,6 @@ export class ResponseWrapperXhr implements IResponseWrapper {
 
   get status(): number {
     return this.statusCode;
-  }
-
-  async text(): Promise<string | null> {
-    // reject if body has already been consumed
-    return this.responseText;
   }
 
   headers(allow: string[] = []): Record<string, string> | undefined {
@@ -404,8 +399,12 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     if (allow.length === 0) {
       return null;
     }
-    const text = await this.text();
-    return safeParseAndPruneBody(text, allow, exclude);
+    this.cachedJsonBody = this.cachedJsonBody || (this.getJson() as JsonObject | null);
+    if (this.cachedJsonBody) {
+      pruneJson(this.cachedJsonBody, allow, exclude);
+      return this.cachedJsonBody;
+    }
+    return null;
   }
 }
 

@@ -165,6 +165,16 @@
           displayResult({res, url: `${BASE_URL}/api/status/200`, options: { method: 'GET' }});
           assert({res}, 200);
 
+          // Get 500 with responseType = json, raw XMLHttpRequest
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', `${BASE_URL}/api/status/500`);
+          xhr.responseType = 'json';
+          xhr.send();
+          xhr.onload = () => {
+            displayResult({res: xhr, url: `${BASE_URL}/api/status/500`, options: { method: 'GET', responseType: 'json' }});
+            assert({res: xhr}, 500);
+          };
+
           // String body
           res = await axios.post(`${BASE_URL}/api/status/500`, 'Hello, this is a test body');
           displayResult({res, url: `${BASE_URL}/api/status/500`, options: { method: 'POST' }});

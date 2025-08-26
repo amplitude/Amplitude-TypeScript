@@ -46,10 +46,12 @@ type RequestUrlAndMethod = {
 // that only includes the properties we need to access and adds the $$AmplitudeAnalyticsEvent property
 // Use great care when modifying this type, make sure you only use read-only properties and only add
 // what you need to access, nothing more.
-type AmplitudeXMLHttpRequestSafe = {
+export type AmplitudeXMLHttpRequestSafe = {
   $$AmplitudeAnalyticsEvent: AmplitudeAnalyticsEvent;
   status: number;
   responseText: string;
+  response: any;
+  responseType: XMLHttpRequestResponseType;
   getAllResponseHeaders: typeof XMLHttpRequest.prototype.getAllResponseHeaders;
   getResponseHeader: typeof XMLHttpRequest.prototype.getResponseHeader;
   addEventListener: (type: 'loadend', listener: () => void) => void;
@@ -254,6 +256,44 @@ export class NetworkObserver {
     };
   }
 
+  /**
+   * Creates a function that parses the response of an XMLHttpRequest as JSON.
+   *
+   * Returns function instead of JSON object to avoid unnecessary parsing if the
+   * body is not being captured.
+   *
+   * @param xhrSafe - The XMLHttpRequest object.
+   * @param context - The NetworkObserver instance.
+   * @returns A function that parses the response of an XMLHttpRequest as JSON.
+   */
+  static createXhrJsonParser(xhrSafe: AmplitudeXMLHttpRequestSafe, context: NetworkObserver) {
+    return () => {
+      try {
+        if (xhrSafe.responseType === 'json') {
+          if (context.globalScope?.structuredClone) {
+            /* eslint-disable-next-line @typescript-eslint/no-unsafe-return */
+            return context.globalScope.structuredClone(xhrSafe.response);
+          }
+        } else if (['text', ''].includes(xhrSafe.responseType)) {
+          /* eslint-disable-next-line @typescript-eslint/no-unsafe-return */
+          return JSON.parse(xhrSafe.responseText);
+        }
+      } catch (err) {
+        /* istanbul ignore if */
+        if (err instanceof Error && err.name === 'InvalidStateError') {
+          // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseText#exceptions
+          // if we reach here, it means we don't handle responseType correctly
+          context.logger?.debug(
+            `unexpected error when retrieving responseText. responseType='${xhrSafe.responseType}'`,
+          );
+        }
+        // the other possible error is Json Parse error which we fail silently
+        return null;
+      }
+      return null;
+    };
+  }
+
   private observeXhr(
     originalXhrOpen:
       | ((
@@ -319,12 +359,13 @@ export class NetworkObserver {
         try {
           const responseHeaders = xhrSafe.getAllResponseHeaders();
           const responseBodySize = xhrSafe.getResponseHeader('content-length');
+
           const responseWrapper = new ResponseWrapperXhr(
             xhrSafe.status,
             responseHeaders,
             /* istanbul ignore next */
             responseBodySize ? parseInt(responseBodySize, 10) : undefined,
-            xhrSafe.responseText,
+            NetworkObserver.createXhrJsonParser(xhrSafe, networkObserverContext),
           );
           const requestHeaders = xhrSafe.$$AmplitudeAnalyticsEvent.headers;
           const requestWrapper = new RequestWrapperXhr(body, requestHeaders);
