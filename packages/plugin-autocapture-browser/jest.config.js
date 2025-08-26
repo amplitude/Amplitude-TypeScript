@@ -8,5 +8,13 @@ module.exports = {
   testEnvironment: 'jsdom',
   coveragePathIgnorePatterns: ['index.ts'],
   setupFiles: ['./test/setup.ts'],
+  coverageThreshold: {
+    global: {
+      branches: 99.3,
+      functions: 100,
+      lines: 100,
+      statements: 100,
+    }
+  },
 };
 
