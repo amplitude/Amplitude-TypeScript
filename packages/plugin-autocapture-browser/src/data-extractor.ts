@@ -16,6 +16,8 @@ import { getDataSource } from './pageActions/actions';
 
 const CC_REGEX =
   /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
+const CC_REGEX_WITH_SPACES =
+  /\b(?:4[0-9]{3}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|5[1-5][0-9]{2}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|6(?:011|5[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|3[47][0-9]{2}[\s-]?[0-9]{6}[\s-]?[0-9]{5}|3(?:0[0-5]|[68][0-9])[0-9][\s-]?[0-9]{6}[\s-]?[0-9]{4}|(?:2131|1800|35[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{3})\b/g;
 const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
 const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
 
@@ -51,14 +53,11 @@ export class DataExtractor {
     let result = text;
 
     // Check for credit card number (with or without spaces/dashes)
-    const ccPatternWithSpaces =
-      /\b(?:4[0-9]{3}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|5[1-5][0-9]{2}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|6(?:011|5[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|3[47][0-9]{2}[\s-]?[0-9]{6}[\s-]?[0-9]{5}|3(?:0[0-5]|[68][0-9])[0-9][\s-]?[0-9]{6}[\s-]?[0-9]{4}|(?:2131|1800|35[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{3})\b/g;
-    result = result.replace(ccPatternWithSpaces, constants.MASKED_TEXT_VALUE);
+    result = result.replace(CC_REGEX_WITH_SPACES, constants.MASKED_TEXT_VALUE);
 
     // Also check for credit card numbers without spaces/dashes
-    const normalizedText = (text || '').replace(/[- ]/g, '');
-    if (CC_REGEX.test(normalizedText)) {
-      const ccMatch = normalizedText.match(CC_REGEX);
+    if (CC_REGEX.test(result)) {
+      const ccMatch = result.match(CC_REGEX);
       if (ccMatch) {
         const ccNumber = ccMatch[0];
         const ccPattern = new RegExp(ccNumber, 'g');
@@ -203,7 +202,7 @@ export class DataExtractor {
 
   getText = (element: Element): string => {
     // Check if element or any parent has data-amp-mask attribute
-    const hasMaskAttribute = element.closest('[' + constants.TEXT_MASK_ATTRIBUTE + ']') !== null;
+    const hasMaskAttribute = element.closest(`[${constants.TEXT_MASK_ATTRIBUTE}]`) !== null;
     if (hasMaskAttribute) {
       return constants.MASKED_TEXT_VALUE;
     }
@@ -218,10 +217,7 @@ export class DataExtractor {
       });
       output = clonedTree.innerText || clonedTree.textContent || '';
     }
-    return this.replaceSensitiveString(output.substring(0, 255))
-      .trim()
-      .replace(/[\r\n]/g, ' ')
-      .replace(/\s+/g, ' ');
+    return this.replaceSensitiveString(output.substring(0, 255)).replace(/\s+/g, ' ').trim();
   };
 
   // Returns the element properties for the given element in Visual Labeling.
