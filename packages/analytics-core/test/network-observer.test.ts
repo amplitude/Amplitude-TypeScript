@@ -971,9 +971,9 @@ describe('observeXhr', () => {
     });
   });
 
-  describe('createJsonParser()', () => {
+  describe('createXhrJsonParser()', () => {
     test('should return null if responseType is not supported', () => {
-      const xhrSafe = {
+      const xhr = {
         responseType: 'ArrayBuffer',
         get responseText() {
           throw new Error('some error');
@@ -983,12 +983,12 @@ describe('observeXhr', () => {
         },
       } as unknown as AmplitudeXMLHttpRequestSafe;
       const networkObserver = new NetworkObserver();
-      const getJson = NetworkObserver.createXhrJsonParser(xhrSafe, networkObserver);
+      const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);
       expect(getJson()).toBeNull();
     });
 
     test('should return parsed JSON if responseType is text', () => {
-      const xhrSafe = {
+      const xhr = {
         responseType: 'text',
         responseText: '{"message": "Hello from mock!"}',
         get response() {
@@ -996,28 +996,30 @@ describe('observeXhr', () => {
         },
       } as unknown as AmplitudeXMLHttpRequestSafe;
       const networkObserver = new NetworkObserver();
-      const getJson = NetworkObserver.createXhrJsonParser(xhrSafe, networkObserver);
+      const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);
       expect(getJson()).toEqual({ message: 'Hello from mock!' });
     });
 
-    test('should return parsed JSON if responseType is json', () => {
-      const xhrSafe = {
+    test('should return JS object if responseType is json', () => {
+      const xhr = {
         responseType: 'json',
         response: { message: 'Hello from mock!' },
         get responseText() {
           throw new Error('some error');
         },
-      } as unknown as AmplitudeXMLHttpRequestSafe;
+      };
       const networkObserver = new NetworkObserver();
       (networkObserver as unknown as any).globalScope = {
         structuredClone: (obj: any) => JSON.parse(JSON.stringify(obj)),
       };
-      const getJson = NetworkObserver.createXhrJsonParser(xhrSafe, networkObserver);
-      expect(getJson()).toEqual({ message: 'Hello from mock!' });
+      const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);
+      const jsOutput = getJson();
+      expect(jsOutput).toEqual({ message: 'Hello from mock!' });
+      expect(jsOutput).not.toBe(xhr.response);
     });
 
     test('should return null if browser is very old and does not support structuredClone', () => {
-      const xhrSafe = {
+      const xhr = {
         responseType: 'json',
         response: { message: 'Hello from mock!' },
         get responseText() {
@@ -1026,20 +1028,20 @@ describe('observeXhr', () => {
       } as unknown as AmplitudeXMLHttpRequestSafe;
       const networkObserver = new NetworkObserver();
       (networkObserver as unknown as any).globalScope = null;
-      const getJson = NetworkObserver.createXhrJsonParser(xhrSafe, networkObserver);
+      const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);
       expect(getJson()).toEqual(null);
     });
 
-    test('should return null if response is not valid JSON', () => {
-      const xhrSafe = {
+    test('should return null if response is string andnot valid JSON', () => {
+      const xhr = {
         responseType: 'text',
         responseText: 'not valid json',
         get response() {
           throw new Error('some error');
         },
-      } as unknown as AmplitudeXMLHttpRequestSafe;
+      };
       const networkObserver = new NetworkObserver();
-      const getJson = NetworkObserver.createXhrJsonParser(xhrSafe, networkObserver);
+      const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);
       expect(getJson()).toEqual(null);
     });
   });
