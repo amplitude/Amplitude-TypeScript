@@ -1,7 +1,7 @@
 import {
   isTextNode,
   isNonSensitiveElement,
-  getRedactedAndAttributesWithPrefix,
+  getRedactedAttributeNamesAndAttributesWithPrefix,
   getRedactedAttributeNames,
   isEmpty,
   removeEmptyProperties,
@@ -68,13 +68,13 @@ describe('autocapture-plugin helpers', () => {
     });
   });
 
-  describe('getRedactedAndAttributesWithPrefix', () => {
+  describe('getRedactedAttributeNamesAndAttributesWithPrefix', () => {
     test('should return attributes when matching the prefix', () => {
       const element = document.createElement('input');
       element.setAttribute('data-amp-track-hello', 'world');
       element.setAttribute('data-amp-track-time', 'machine');
       element.setAttribute('data-amp-track-test', '');
-      const result = getRedactedAndAttributesWithPrefix(element, 'data-amp-track-');
+      const result = getRedactedAttributeNamesAndAttributesWithPrefix(element, 'data-amp-track-');
       expect(result.attributes).toEqual({ hello: 'world', time: 'machine', test: '' });
       expect(result.redactedAttributeNames).toEqual(new Set());
     });
@@ -83,7 +83,7 @@ describe('autocapture-plugin helpers', () => {
       const element = document.createElement('input');
       element.setAttribute('data-hello', 'world');
       element.setAttribute('data-time', 'machine');
-      const result = getRedactedAndAttributesWithPrefix(element, 'data-amp-track-');
+      const result = getRedactedAttributeNamesAndAttributesWithPrefix(element, 'data-amp-track-');
       expect(result.attributes).toEqual({});
       expect(result.redactedAttributeNames).toEqual(new Set());
     });
@@ -92,7 +92,7 @@ describe('autocapture-plugin helpers', () => {
       const element = document.createElement('input');
       element.setAttribute('data-hello', 'world');
       element.setAttribute('data-time', 'machine');
-      const result = getRedactedAndAttributesWithPrefix(element, '');
+      const result = getRedactedAttributeNamesAndAttributesWithPrefix(element, '');
       expect(result.attributes).toEqual({ 'data-hello': 'world', 'data-time': 'machine' });
       expect(result.redactedAttributeNames).toEqual(new Set());
     });
@@ -103,7 +103,7 @@ describe('autocapture-plugin helpers', () => {
       element.setAttribute('data-amp-track-secret', 'sensitive');
       element.setAttribute('data-amp-track-time', 'machine');
       element.setAttribute(DATA_AMP_MASK_ATTRIBUTES, 'secret');
-      const result = getRedactedAndAttributesWithPrefix(element, 'data-amp-track-');
+      const result = getRedactedAttributeNamesAndAttributesWithPrefix(element, 'data-amp-track-');
       expect(result.attributes).toEqual({ hello: 'world', time: 'machine' });
       expect(result.redactedAttributeNames).toEqual(new Set(['secret']));
     });
@@ -121,7 +121,7 @@ describe('autocapture-plugin helpers', () => {
       parent.appendChild(element);
       document.body.appendChild(parent);
 
-      const result = getRedactedAndAttributesWithPrefix(element, 'data-amp-track-');
+      const result = getRedactedAttributeNamesAndAttributesWithPrefix(element, 'data-amp-track-');
       expect(result.attributes).toEqual({ hello: 'world', time: 'machine' });
       expect(result.redactedAttributeNames).toEqual(new Set(['secret1', 'secret2']));
 
@@ -140,7 +140,7 @@ describe('autocapture-plugin helpers', () => {
       container.appendChild(child);
       document.body.appendChild(container);
 
-      const result = getRedactedAndAttributesWithPrefix(child, 'data-amp-track-');
+      const result = getRedactedAttributeNamesAndAttributesWithPrefix(child, 'data-amp-track-');
       expect(result.attributes).toEqual({ hello: 'world', time: 'machine' });
       expect(result.redactedAttributeNames).toEqual(new Set(['name']));
 

@@ -6,7 +6,7 @@ import {
   isTextNode,
   removeEmptyProperties,
   isNonSensitiveElement,
-  getRedactedAndAttributesWithPrefix,
+  getRedactedAttributeNamesAndAttributesWithPrefix,
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
@@ -102,7 +102,10 @@ export class DataExtractor {
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
 
-    const { attributes, redactedAttributeNames } = getRedactedAndAttributesWithPrefix(element, dataAttributePrefix);
+    const { attributes, redactedAttributeNames } = getRedactedAttributeNamesAndAttributesWithPrefix(
+      element,
+      dataAttributePrefix,
+    );
     const nearestLabel = this.getNearestLabel(element);
 
     /* istanbul ignore next */

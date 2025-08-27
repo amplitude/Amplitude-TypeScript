@@ -132,7 +132,7 @@ export const getRedactedAttributeNames = (element: Element): Set<string> => {
   return redactedAttributeNames;
 };
 
-export const getRedactedAndAttributesWithPrefix = (
+export const getRedactedAttributeNamesAndAttributesWithPrefix = (
   element: Element,
   prefix: string,
 ): { attributes: { [key: string]: string }; redactedAttributeNames: Set<string> } => {
