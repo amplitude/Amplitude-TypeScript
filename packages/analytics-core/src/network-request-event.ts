@@ -364,7 +364,6 @@ export class ResponseWrapperFetch implements IResponseWrapper {
 }
 
 export class ResponseWrapperXhr implements IResponseWrapper {
-  private cachedJsonBody: JsonObject | null = null;
   constructor(
     readonly statusCode: number,
     readonly headersString: string,
@@ -399,10 +398,10 @@ export class ResponseWrapperXhr implements IResponseWrapper {
     if (allow.length === 0) {
       return null;
     }
-    this.cachedJsonBody = this.cachedJsonBody || (this.getJson() as JsonObject | null);
-    if (this.cachedJsonBody) {
-      pruneJson(this.cachedJsonBody, allow, exclude);
-      return this.cachedJsonBody;
+    const jsonBody = this.getJson() as JsonObject | null;
+    if (jsonBody) {
+      pruneJson(jsonBody, allow, exclude);
+      return jsonBody;
     }
     return null;
   }

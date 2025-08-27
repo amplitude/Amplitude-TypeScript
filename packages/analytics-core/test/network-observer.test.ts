@@ -945,7 +945,7 @@ describe('observeXhr', () => {
             'Content-Type': 'application/json',
             'Content-Length': '1234',
           });
-          //expect(event.responseWrapper?.bodySize).toBe(1234);
+          expect(event.responseWrapper?.bodySize).toBe(1234);
           const responseWrapperXhr = event.responseWrapper as ResponseWrapperXhr;
           expect(responseWrapperXhr.getJson?.()).toEqual({ success: true });
           expect(event.requestWrapper?.headers([])).toEqual({});

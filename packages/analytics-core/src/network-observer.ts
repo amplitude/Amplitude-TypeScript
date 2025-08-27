@@ -283,7 +283,7 @@ export class NetworkObserver {
         if (err instanceof Error && err.name === 'InvalidStateError') {
           // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/responseText#exceptions
           // if we reach here, it means we don't handle responseType correctly
-          context.logger?.debug(
+          context.logger?.error(
             `unexpected error when retrieving responseText. responseType='${xhrSafe.responseType}'`,
           );
         }
@@ -335,7 +335,7 @@ export class NetworkObserver {
         } as AmplitudeAnalyticsEvent;
       } catch (err) {
         /* istanbul ignore next */
-        networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr open', err);
+        networkObserverContext.logger?.error('an unexpected error occurred while calling xhr open', err);
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return originalXhrOpen.apply(xhrSafe, args as any);
@@ -381,7 +381,7 @@ export class NetworkObserver {
           );
         } catch (err) {
           /* istanbul ignore next */
-          networkObserverContext.logger?.debug('an unexpected error occurred while handling xhr send', err);
+          networkObserverContext.logger?.error('an unexpected error occurred while handling xhr send', err);
         }
       });
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
@@ -403,7 +403,7 @@ export class NetworkObserver {
         xhrSafe.$$AmplitudeAnalyticsEvent.headers[headerName as string] = headerValue as string;
       } catch (err) {
         /* istanbul ignore next */
-        networkObserverContext.logger?.debug('an unexpected error occurred while calling xhr setRequestHeader', err);
+        networkObserverContext.logger?.error('an unexpected error occurred while calling xhr setRequestHeader', err);
       }
       /* eslint-disable-next-line @typescript-eslint/no-unsafe-argument */
       originalXhrSetRequestHeader.apply(xhrSafe, [headerName, headerValue]);
