@@ -3,9 +3,7 @@ import type { ElementInteractionsOptions, ActionType } from '@amplitude/analytic
 import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
 import * as constants from './constants';
 import {
-  isTextNode,
   removeEmptyProperties,
-  isNonSensitiveElement,
   getAttributesWithPrefix,
   isElementPointerCursor,
   getClosestElement,
@@ -18,8 +16,8 @@ import { getDataSource } from './pageActions/actions';
 
 const CC_REGEX =
   /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
-const SSN_REGEX = /(^\d{3}-?\d{2}-?\d{4}$)/;
-const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/;
+const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
+const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
 
 export class DataExtractor {
   private readonly additionalMaskTextPatterns: RegExp[];
@@ -45,33 +43,45 @@ export class DataExtractor {
     this.additionalMaskTextPatterns = compiled;
   }
 
-  isNonSensitiveString = (text: string | null): boolean => {
+  replaceSensitiveString = (text: string | null): string => {
     if (typeof text !== 'string') {
-      return true;
+      return '';
     }
 
-    // Check for credit card number
-    if (CC_REGEX.test((text || '').replace(/[- ]/g, ''))) {
-      return false;
+    let result = text;
+
+    // Check for credit card number (with or without spaces/dashes)
+    const ccPatternWithSpaces =
+      /\b(?:4[0-9]{3}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|5[1-5][0-9]{2}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|6(?:011|5[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|3[47][0-9]{2}[\s-]?[0-9]{6}[\s-]?[0-9]{5}|3(?:0[0-5]|[68][0-9])[0-9][\s-]?[0-9]{6}[\s-]?[0-9]{4}|(?:2131|1800|35[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{3})\b/g;
+    result = result.replace(ccPatternWithSpaces, constants.MASKED_TEXT_VALUE);
+
+    // Also check for credit card numbers without spaces/dashes
+    const normalizedText = (text || '').replace(/[- ]/g, '');
+    if (CC_REGEX.test(normalizedText)) {
+      const ccMatch = normalizedText.match(CC_REGEX);
+      if (ccMatch) {
+        const ccNumber = ccMatch[0];
+        const ccPattern = new RegExp(ccNumber, 'g');
+        result = result.replace(ccPattern, constants.MASKED_TEXT_VALUE);
+      }
     }
 
-    // Check for social security number or email
-    if (SSN_REGEX.test(text) || EMAIL_REGEX.test(text)) {
-      return false;
-    }
+    // Check for social security number
+    result = result.replace(SSN_REGEX, constants.MASKED_TEXT_VALUE);
+
+    // Check for email
+    result = result.replace(EMAIL_REGEX, constants.MASKED_TEXT_VALUE);
 
     // Check for additional mask text patterns
     for (const pattern of this.additionalMaskTextPatterns) {
       try {
-        if (pattern.test(text)) {
-          return false;
-        }
+        result = result.replace(pattern, constants.MASKED_TEXT_VALUE);
       } catch {
         // ignore invalid pattern
       }
     }
 
-    return true;
+    return result;
   };
 
   getNearestLabel = (element: Element): string => {
@@ -88,8 +98,7 @@ export class DataExtractor {
     }
     if (labelElement) {
       /* istanbul ignore next */
-      const labelText = labelElement.textContent || '';
-      return this.isNonSensitiveString(labelText) ? labelText : '';
+      return this.getText(labelElement);
     }
     return this.getNearestLabel(parent);
   };
@@ -192,36 +201,27 @@ export class DataExtractor {
     return undefined;
   };
 
-  combineText = (element: Element): string => {
-    let text = '';
+  getText = (element: Element): string => {
     // Check if element or any parent has data-amp-mask attribute
     const hasMaskAttribute = element.closest('[' + constants.TEXT_MASK_ATTRIBUTE + ']') !== null;
     if (hasMaskAttribute) {
-      text = constants.MASKED_TEXT_VALUE;
-    } else if (isNonSensitiveElement(element) && element.childNodes && element.childNodes.length) {
-      element.childNodes.forEach((child) => {
-        let childText = '';
-        if (isTextNode(child)) {
-          if (child.textContent) {
-            childText = child.textContent;
-          }
-        } else {
-          childText = this.combineText(child as Element);
-        }
-        text += childText
-          .split(/(\s+)/)
-          .filter(this.isNonSensitiveString)
-          .join('')
-          .replace(/[\r\n]/g, ' ')
-          .replace(/[ ]+/g, ' ')
-          .substring(0, 255);
-      });
+      return constants.MASKED_TEXT_VALUE;
     }
-    return text;
-  };
-
-  getText = (element: Element): string => {
-    return this.combineText(element).trim();
+    let output = '';
+    if (!element.querySelector(`[${constants.TEXT_MASK_ATTRIBUTE}], [contenteditable]`)) {
+      output = (element as HTMLElement).innerText || (element as HTMLElement).textContent || '';
+    } else {
+      const clonedTree = element.cloneNode(true) as HTMLElement;
+      // replace all elements with TEXT_MASK_ATTRIBUTE attribute and contenteditable with the text MASKED_TEXT_VALUE
+      clonedTree.querySelectorAll(`[${constants.TEXT_MASK_ATTRIBUTE}], [contenteditable]`).forEach((node) => {
+        (node as HTMLElement).textContent = constants.MASKED_TEXT_VALUE;
+      });
+      output = clonedTree.innerText || clonedTree.textContent || '';
+    }
+    return this.replaceSensitiveString(output.substring(0, 255))
+      .trim()
+      .replace(/[\r\n]/g, ' ')
+      .replace(/\s+/g, ' ');
   };
 
   // Returns the element properties for the given element in Visual Labeling.

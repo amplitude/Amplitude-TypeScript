@@ -10,24 +10,24 @@ describe('data extractor', () => {
     dataExtractor = new DataExtractor({ maskTextRegex: [/Florida|California/, /Pennsylvania/] });
   });
 
-  describe('isNonSensitiveString', () => {
-    test('should return true when text is null or undefined', () => {
+  describe('replaceSensitiveString', () => {
+    test('should return empty string when text is null or undefined', () => {
       const nullText = null;
       const undefinedText = undefined;
-      const result = dataExtractor.isNonSensitiveString(nullText);
-      const result2 = dataExtractor.isNonSensitiveString(undefinedText as unknown as string);
-      expect(result).toEqual(true);
-      expect(result2).toEqual(true);
+      const result = dataExtractor.replaceSensitiveString(nullText);
+      const result2 = dataExtractor.replaceSensitiveString(undefinedText as unknown as string);
+      expect(result).toEqual('');
+      expect(result2).toEqual('');
     });
 
-    test('should return true when text is not sensitive', () => {
+    test('should return original text when text is not sensitive', () => {
       const text = 'test-string';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(true);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual('test-string');
     });
 
     // https://www.paypalobjects.com/en_AU/vhelp/paypalmanager_help/credit_card_numbers.htm
-    test('should return false when text is credit card format', () => {
+    test('should return masked text when text is credit card format', () => {
       const sampleCreditCardNumbers = [
         // American Express
         '378282246310005',
@@ -62,41 +62,41 @@ describe('data extractor', () => {
       ];
 
       for (const text of sampleCreditCardNumbers) {
-        const result = dataExtractor.isNonSensitiveString(text);
-        expect(result).toEqual(false);
+        const result = dataExtractor.replaceSensitiveString(text);
+        expect(result).toEqual(constants.MASKED_TEXT_VALUE);
       }
     });
 
-    test('should return false when text is social security number format', () => {
+    test('should return masked text when text is social security number format', () => {
       const text = '269-28-9315';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
     });
 
-    test('should return true when text is not a string', () => {
+    test('should return empty string when text is not a string', () => {
       const text = 123;
-      const result = dataExtractor.isNonSensitiveString(text as unknown as string);
-      expect(result).toEqual(true);
+      const result = dataExtractor.replaceSensitiveString(text as unknown as string);
+      expect(result).toEqual('');
     });
 
-    test('should return false when text is sensitive and matches maskTextRegex', () => {
+    test('should return masked text when text is sensitive and matches maskTextRegex', () => {
       const text = 'Pittsburgh, Pennsylvania';
-      const result = dataExtractor.isNonSensitiveString(text);
+      const result = dataExtractor.replaceSensitiveString(text);
 
       const text2 = 'Florida';
-      const result2 = dataExtractor.isNonSensitiveString(text2);
+      const result2 = dataExtractor.replaceSensitiveString(text2);
 
-      expect(result).toEqual(false);
-      expect(result2).toEqual(false);
+      expect(result).toEqual(`Pittsburgh, ${constants.MASKED_TEXT_VALUE}`);
+      expect(result2).toEqual(constants.MASKED_TEXT_VALUE);
     });
 
-    test('should return true when text does not match maskTextRegex', () => {
+    test('should return original text when text does not match maskTextRegex', () => {
       const text = 'Test string';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(true);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual('Test string');
     });
 
-    test('should parse rebactTextRegex objects into regex objects', () => {
+    test('should parse maskTextRegex objects into regex objects', () => {
       const dataExtractor = new DataExtractor({
         maskTextRegex: [
           { pattern: 'Florida|California', description: 'Florida or California' },
@@ -105,13 +105,13 @@ describe('data extractor', () => {
       });
 
       const text = 'Pittsburgh, Pennsylvania';
-      const result = dataExtractor.isNonSensitiveString(text);
+      const result = dataExtractor.replaceSensitiveString(text);
 
       const text2 = 'Florida';
-      const result2 = dataExtractor.isNonSensitiveString(text2);
+      const result2 = dataExtractor.replaceSensitiveString(text2);
 
-      expect(result).toEqual(false);
-      expect(result2).toEqual(false);
+      expect(result).toEqual(`Pittsburgh, ${constants.MASKED_TEXT_VALUE}`);
+      expect(result2).toEqual(constants.MASKED_TEXT_VALUE);
     });
 
     test('should cap maskTextRegex over MAX_MASK_TEXT_PATTERNS', () => {
@@ -120,45 +120,67 @@ describe('data extractor', () => {
       const extractor = new DataExtractor({ maskTextRegex: patterns });
 
       // Matches within the cap should be masked
-      expect(extractor.isNonSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS}`)).toEqual(false);
+      expect(extractor.replaceSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS}`)).toEqual(
+        constants.MASKED_TEXT_VALUE,
+      );
       // Matches beyond the cap should NOT be masked
-      expect(extractor.isNonSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS + 1}`)).toEqual(true);
+      expect(extractor.replaceSensitiveString(`token${constants.MAX_MASK_TEXT_PATTERNS + 1}`)).toEqual(
+        `token${constants.MAX_MASK_TEXT_PATTERNS + 1}`,
+      );
     });
 
-    test('should return false when text is email address format', () => {
+    test('should return masked text when text is email address format', () => {
       const text = 'user@example.com';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
     });
 
-    test('should return false when text contains email address within other text', () => {
+    test('should return masked text when text contains email address within other text', () => {
       const text = 'Contact us at support@example.com for help';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(`Contact us at ${constants.MASKED_TEXT_VALUE} for help`);
     });
 
-    test('should return false when text contains email address at the beginning', () => {
+    test('should return masked text when text contains email address at the beginning', () => {
       const text = 'user@example.com is the admin';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(`${constants.MASKED_TEXT_VALUE} is the admin`);
     });
 
-    test('should return false when text contains email address at the end', () => {
+    test('should return masked text when text contains email address at the end', () => {
       const text = 'Send feedback to feedback@company.org';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(`Send feedback to ${constants.MASKED_TEXT_VALUE}`);
     });
 
-    test('should return false when text contains multiple email addresses', () => {
+    test('should return masked text when text contains multiple email addresses', () => {
       const text = 'Contact admin@example.com or support@example.com';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(`Contact ${constants.MASKED_TEXT_VALUE} or ${constants.MASKED_TEXT_VALUE}`);
     });
 
-    test('should return false when email has dots in domain name before final dot', () => {
+    test('should return masked text when email has dots in domain name before final dot', () => {
       const text = 'user@sub.domain.example.com';
-      const result = dataExtractor.isNonSensitiveString(text);
-      expect(result).toEqual(false);
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
+    });
+
+    test('should handle credit card numbers with spaces', () => {
+      const text = 'Card number: 4111 1111 1111 1111';
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(`Card number: ${constants.MASKED_TEXT_VALUE}`);
+    });
+
+    test('should handle credit card numbers with dashes', () => {
+      const text = 'Card: 4111-1111-1111-1111';
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(`Card: ${constants.MASKED_TEXT_VALUE}`);
+    });
+
+    test('should handle credit card numbers with mixed spaces and dashes', () => {
+      const text = 'Payment: 4111 1111-1111 1111';
+      const result = dataExtractor.replaceSensitiveString(text);
+      expect(result).toEqual(`Payment: ${constants.MASKED_TEXT_VALUE}`);
     });
   });
 
@@ -196,7 +218,7 @@ describe('data extractor', () => {
       expect(result).toEqual('submit and pay');
     });
 
-    test('should return concatenated text with sensitive text filtered', () => {
+    test('should return concatenated text with sensitive text masked', () => {
       const button = document.createElement('button');
       const buttonText = document.createTextNode('submit');
       button.appendChild(buttonText);
@@ -204,7 +226,7 @@ describe('data extractor', () => {
       div.textContent = '269-28-9315';
       button.appendChild(div);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual('submit');
+      expect(result).toEqual(`submit${constants.MASKED_TEXT_VALUE}`);
     });
 
     test('should return concatenated text with extra space removed', () => {
@@ -248,7 +270,7 @@ describe('data extractor', () => {
       expect(result).toEqual(constants.MASKED_TEXT_VALUE);
     });
 
-    test('should filter out sensitive text content containing credit card numbers', () => {
+    test('should mask sensitive text content containing credit card numbers', () => {
       const button = document.createElement('button');
       const safeText = document.createTextNode('Pay with card ');
       button.appendChild(safeText);
@@ -258,10 +280,10 @@ describe('data extractor', () => {
       const moreText = document.createTextNode(' securely');
       button.appendChild(moreText);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual('Pay with card  securely');
+      expect(result).toEqual(`Pay with card ${constants.MASKED_TEXT_VALUE} securely`);
     });
 
-    test('should filter out sensitive text content containing SSN', () => {
+    test('should mask sensitive text content containing SSN', () => {
       const button = document.createElement('button');
       const safeText = document.createTextNode('Submit form ');
       button.appendChild(safeText);
@@ -269,10 +291,10 @@ describe('data extractor', () => {
       sensitiveDiv.textContent = '269-28-9315'; // SSN
       button.appendChild(sensitiveDiv);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual('Submit form');
+      expect(result).toEqual(`Submit form ${constants.MASKED_TEXT_VALUE}`);
     });
 
-    test('should filter out sensitive text content containing email addresses', () => {
+    test('should mask sensitive text content containing email addresses', () => {
       const button = document.createElement('button');
       const safeText = document.createTextNode('Contact ');
       button.appendChild(safeText);
@@ -282,10 +304,10 @@ describe('data extractor', () => {
       const moreText = document.createTextNode(' for support');
       button.appendChild(moreText);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual('Contact  for support');
+      expect(result).toEqual(`Contact ${constants.MASKED_TEXT_VALUE} for support`);
     });
 
-    test('should filter out text matching custom maskTextRegex patterns', () => {
+    test('should mask text matching custom maskTextRegex patterns', () => {
       const button = document.createElement('button');
       const safeText = document.createTextNode('Welcome to ');
       button.appendChild(safeText);
@@ -295,10 +317,10 @@ describe('data extractor', () => {
       const moreText = document.createTextNode(' tourism');
       button.appendChild(moreText);
       const result = dataExtractor.getText(button);
-      expect(result).toEqual('Welcome to  tourism');
+      expect(result).toEqual(`Welcome to ${constants.MASKED_TEXT_VALUE} tourism`);
     });
 
-    test('should handle mixed content with both masked attribute and sensitive text filtering', () => {
+    test('should handle mixed content with both masked attribute and sensitive text masking', () => {
       const container = document.createElement('div');
       const maskedDiv = document.createElement('div');
       maskedDiv.setAttribute('data-amp-mask', 'true');
@@ -318,9 +340,39 @@ describe('data extractor', () => {
       const maskedResult = dataExtractor.getText(maskedDiv);
       expect(maskedResult).toEqual(constants.MASKED_TEXT_VALUE);
 
-      // Test container with mixed content - masked elements return MASKED_TEXT_VALUE, sensitive text is filtered out
+      // Test container with mixed content - masked elements return MASKED_TEXT_VALUE, sensitive text is also masked
       const containerResult = dataExtractor.getText(container);
-      expect(containerResult).toEqual(`Normal text ${constants.MASKED_TEXT_VALUE}`);
+      expect(containerResult).toEqual(`Normal text ${constants.MASKED_TEXT_VALUE}${constants.MASKED_TEXT_VALUE}`);
+    });
+
+    test('should return empty string when cloned tree has null innerText and textContent', () => {
+      const container = document.createElement('div');
+      const maskedChild = document.createElement('div');
+      maskedChild.setAttribute('data-amp-mask', 'true');
+      maskedChild.textContent = 'masked content';
+      container.appendChild(maskedChild);
+
+      // Mock cloneNode to return an element where both innerText and textContent are null
+      const originalCloneNode = container.cloneNode.bind(container);
+      container.cloneNode = jest.fn().mockImplementation((deep: boolean) => {
+        const clonedElement = originalCloneNode(deep) as HTMLElement;
+        // Override the text properties to return null
+        Object.defineProperty(clonedElement, 'innerText', {
+          get: () => null,
+          configurable: true,
+        });
+        Object.defineProperty(clonedElement, 'textContent', {
+          get: () => null,
+          configurable: true,
+        });
+        return clonedElement;
+      });
+
+      const result = dataExtractor.getText(container);
+      expect(result).toEqual('');
+
+      // Restore original cloneNode
+      container.cloneNode = originalCloneNode;
     });
   });
 
@@ -346,7 +398,7 @@ describe('data extractor', () => {
       div.appendChild(input);
 
       const result = dataExtractor.getNearestLabel(input);
-      expect(result).toEqual('');
+      expect(result).toEqual(constants.MASKED_TEXT_VALUE);
     });
 
     test('should return nearest label of the element parent', () => {
@@ -445,7 +497,7 @@ describe('data extractor', () => {
       // Create a button element with pointer cursor
       const span = document.createElement('span');
       span.style.cursor = 'pointer';
-      span.textContent = 'Click me';
+      span.innerText = 'Click me';
       document.body.appendChild(span);
 
       // Create a click event
