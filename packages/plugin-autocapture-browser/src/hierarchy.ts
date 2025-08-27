@@ -70,14 +70,9 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
     properties.classes = classes;
   }
 
-  // Collect redacted attributes from element and ancestors first
-  const redactedAttrs = new Set<string>();
-
   const attributes: Record<string, string> = {};
   const attributesArray = Array.from(element.attributes);
-  const filteredAttributes = attributesArray.filter(
-    (attr) => !BLOCKED_ATTRIBUTES.includes(attr.name) && !redactedAttrs.has(attr.name),
-  );
+  const filteredAttributes = attributesArray.filter((attr) => !BLOCKED_ATTRIBUTES.includes(attr.name));
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
