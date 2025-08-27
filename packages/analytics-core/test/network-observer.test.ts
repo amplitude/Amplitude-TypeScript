@@ -5,7 +5,7 @@ import {
   SAFE_HEADERS,
   networkObserver,
 } from '../src/index';
-import { AmplitudeXMLHttpRequestSafe, NetworkObserver } from '../src/network-observer';
+import { NetworkObserver } from '../src/network-observer';
 import {
   FetchRequestBody,
   PRUNE_STRATEGY,
@@ -981,7 +981,7 @@ describe('observeXhr', () => {
         get response() {
           throw new Error('some error');
         },
-      } as unknown as AmplitudeXMLHttpRequestSafe;
+      };
       const networkObserver = new NetworkObserver();
       const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);
       expect(getJson()).toBeNull();
@@ -994,7 +994,7 @@ describe('observeXhr', () => {
         get response() {
           throw new Error('some error');
         },
-      } as unknown as AmplitudeXMLHttpRequestSafe;
+      };
       const networkObserver = new NetworkObserver();
       const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);
       expect(getJson()).toEqual({ message: 'Hello from mock!' });
@@ -1025,7 +1025,7 @@ describe('observeXhr', () => {
         get responseText() {
           throw new Error('some error');
         },
-      } as unknown as AmplitudeXMLHttpRequestSafe;
+      };
       const networkObserver = new NetworkObserver();
       (networkObserver as unknown as any).globalScope = null;
       const getJson = NetworkObserver.createXhrJsonParser(xhr as unknown as XMLHttpRequest, networkObserver);

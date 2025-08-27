@@ -46,7 +46,7 @@ type RequestUrlAndMethod = {
 // that only includes the properties we need to access and adds the $$AmplitudeAnalyticsEvent property
 // Use great care when modifying this type, make sure you only use read-only properties and only add
 // what you need to access, nothing more.
-export type AmplitudeXMLHttpRequestSafe = {
+type AmplitudeXMLHttpRequestSafe = {
   $$AmplitudeAnalyticsEvent: AmplitudeAnalyticsEvent;
   status: number;
   responseText: string;
