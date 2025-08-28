@@ -102,10 +102,7 @@ export class DataExtractor {
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
 
-    const { attributes, redactedAttributeNames } = getRedactedAttributeNamesAndAttributesWithPrefix(
-      element,
-      dataAttributePrefix,
-    );
+    const { attributes } = getRedactedAttributeNamesAndAttributesWithPrefix(element, dataAttributePrefix);
     const nearestLabel = this.getNearestLabel(element);
 
     /* istanbul ignore next */
@@ -130,16 +127,9 @@ export class DataExtractor {
     // class is never redacted, so always include it
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
 
-    if (!redactedAttributeNames.has('aria-label')) {
-      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = element.getAttribute('aria-label');
-    }
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = element.getAttribute('aria-label');
 
-    if (
-      tag === 'a' &&
-      actionType === 'click' &&
-      element instanceof HTMLAnchorElement &&
-      !redactedAttributeNames.has('href')
-    ) {
+    if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
       properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
     }
 

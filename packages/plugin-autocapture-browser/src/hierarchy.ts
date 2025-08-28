@@ -1,8 +1,9 @@
 import { isNonSensitiveElement, parseAttributesToRedact, type JSONValue } from './helpers';
 import { DATA_AMP_MASK_ATTRIBUTES } from './constants';
 import type { Hierarchy, HierarchyNode } from './typings/autocapture';
+import * as constants from './constants';
 
-const BLOCKED_ATTRIBUTES = [
+const BLOCKED_ATTRIBUTES = new Set([
   // Already captured elsewhere in the hierarchy object
   'id',
   'class',
@@ -31,7 +32,7 @@ const BLOCKED_ATTRIBUTES = [
 
   // Amplitude specific - used for redaction but should not be included in getElementProperties
   DATA_AMP_MASK_ATTRIBUTES,
-];
+]);
 const SENSITIVE_ELEMENT_ATTRIBUTE_ALLOWLIST = ['type'];
 
 const SVG_TAGS = ['svg', 'path', 'g'];
@@ -39,7 +40,10 @@ const HIGHLY_SENSITIVE_INPUT_TYPES = ['password', 'hidden'];
 const MAX_ATTRIBUTE_LENGTH = 128;
 const MAX_HIERARCHY_LENGTH = 1024;
 
-export function getElementProperties(element: Element | null): HierarchyNode | null {
+export function getElementProperties(
+  element: Element | null,
+  userBlockedAttributeNames: Set<string>,
+): HierarchyNode | null {
   if (element === null) {
     return null;
   }
@@ -72,7 +76,9 @@ export function getElementProperties(element: Element | null): HierarchyNode | n
 
   const attributes: Record<string, string> = {};
   const attributesArray = Array.from(element.attributes);
-  const filteredAttributes = attributesArray.filter((attr) => !BLOCKED_ATTRIBUTES.includes(attr.name));
+  const filteredAttributes = attributesArray.filter(
+    (attr) => !BLOCKED_ATTRIBUTES.has(attr.name) && !userBlockedAttributeNames.has(attr.name),
+  );
   const isSensitiveElement = !isNonSensitiveElement(element);
 
   // if input is hidden or password or for SVGs, skip attribute collection entirely
@@ -121,50 +127,29 @@ export const getHierarchy = (element: Element | null): Hierarchy => {
 
   // Get list of ancestors including itself and get properties at each level in the hierarchy
   const ancestors = getAncestors(element);
+
+  const elementToRedactedAttributesMap = new Map<Element, Set<string>>();
+  const reversedAncestors = [...ancestors].reverse(); // root to target order
+
+  for (let i = 0; i < reversedAncestors.length; i++) {
+    const node = reversedAncestors[i];
+    if (node) {
+      const redactedAttributes = parseAttributesToRedact(node.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
+      const ancestorRedactedAttributes =
+        i === 0
+          ? new Set<string>()
+          : parseAttributesToRedact(reversedAncestors[i - 1].getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
+      const allRedactedAttributes = new Set([...redactedAttributes, ...ancestorRedactedAttributes]);
+      elementToRedactedAttributesMap.set(node, allRedactedAttributes);
+    }
+  }
+
   hierarchy = ensureListUnderLimit(
-    ancestors.map((el) => getElementProperties(el)),
+    ancestors.map((el) => getElementProperties(el, elementToRedactedAttributesMap.get(el) ?? new Set<string>())),
     MAX_HIERARCHY_LENGTH,
   ) as Hierarchy;
 
-  // Add DATA_AMP_MASK_ATTRIBUTES to each node where it exists on the corresponding element
-  for (let i = 0; i < hierarchy.length && i < ancestors.length; i++) {
-    const node = hierarchy[i];
-    const ancestorEl = ancestors[i];
-
-    if (node && ancestorEl) {
-      const maskAttr = ancestorEl.getAttribute(DATA_AMP_MASK_ATTRIBUTES);
-      if (maskAttr) {
-        if (!node.attrs) {
-          node.attrs = {};
-        }
-        node.attrs[DATA_AMP_MASK_ATTRIBUTES] = String(maskAttr).substring(0, MAX_ATTRIBUTE_LENGTH);
-      }
-    }
-  }
-
-  // Collect redacted attributes and apply redaction in a single pass
-  const redactedAttrs = new Set<string>();
-  const reversedHierarchy = [...hierarchy].reverse(); // root to target order
-
-  for (const node of reversedHierarchy) {
-    // Apply redaction to current node
-    if (node?.attrs) {
-      for (const attrName of redactedAttrs) {
-        if (node.attrs[attrName]) {
-          delete node.attrs[attrName];
-        }
-      }
-    }
-
-    if (node?.attrs?.[DATA_AMP_MASK_ATTRIBUTES]) {
-      const attributesToRedact = parseAttributesToRedact(node.attrs[DATA_AMP_MASK_ATTRIBUTES]);
-
-      attributesToRedact.forEach((attr: string) => {
-        redactedAttrs.add(attr);
-      });
-    }
-  }
-
+  // TODO: mask text in getElementProperties
   return hierarchy;
 };
 
