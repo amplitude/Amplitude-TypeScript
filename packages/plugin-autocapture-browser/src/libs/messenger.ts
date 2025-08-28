@@ -202,6 +202,7 @@ export class WindowMessenger implements Messenger {
                 cssSelectorAllowlist,
                 actionClickAllowlist,
                 extractDataFromDataSource: dataExtractor.extractDataFromDataSource,
+                dataExtractor,
                 diagnostics: {
                   autocapture: {
                     version: VERSION,

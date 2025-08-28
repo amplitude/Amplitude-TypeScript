@@ -39,4 +39,9 @@ export const AMPLITUDE_VISUAL_TAGGING_SELECTOR_SCRIPT_URL =
 // Should not use this class in the selector.
 export const AMPLITUDE_VISUAL_TAGGING_HIGHLIGHT_CLASS = 'amp-visual-tagging-selector-highlight';
 
+// Data masking constants
+export const TEXT_MASK_ATTRIBUTE = 'data-amp-mask';
+
+export const MASKED_TEXT_VALUE = '*****';
+
 export const MAX_MASK_TEXT_PATTERNS = 25;

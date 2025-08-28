@@ -1,6 +1,6 @@
 import type { DataSource, PageAction } from '@amplitude/analytics-core/lib/esm/types/element-interactions';
-import type { DataExtractor } from 'src/data-extractor';
-import type { ElementBasedTimestampedEvent, ElementBasedEvent } from 'src/helpers';
+import type { DataExtractor } from '../data-extractor';
+import type { ElementBasedTimestampedEvent, ElementBasedEvent } from '../helpers';
 
 // Get DataSource
 /**

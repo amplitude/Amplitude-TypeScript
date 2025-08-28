@@ -228,7 +228,7 @@ describe('page actions', () => {
       );
     });
 
-    test('should not capture credit card-like price in product-card-3', async () => {
+    test('should mask credit card-like price in product-card-3', async () => {
       const autocaptureConfig: ElementInteractionsOptions = {
         pageActions: {
           labeledEvents: labeledEvents,
@@ -260,7 +260,7 @@ describe('page actions', () => {
           '[Amplitude] Element Class': 'add-to-cart-button',
           'product-name': 'Product 3',
           'product-category': 'Category 3',
-          price: '',
+          price: '*****',
         }),
       );
     });
