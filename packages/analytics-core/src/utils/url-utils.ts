@@ -19,10 +19,13 @@ export const isUrlMatchAllowlist = (url: string, allowlist: (string | RegExp)[] 
 /**
  * Checks if a given URL matches any pattern in an excludelist of URLs or regex patterns.
  * @param url - The URL to check
- * @param excludelist - Array of excluded URLs (strings) or regex patterns
+ * @param excludelist - Array of excluded URLs (strings), regex patterns, or pattern objects
  * @returns true if the URL matches any pattern in the excludelist, false otherwise
  */
-export const isUrlMatchExcludelist = (url: string, excludelist: (string | RegExp)[] | undefined): boolean => {
+export const isUrlMatchExcludelist = (
+  url: string,
+  excludelist: (string | RegExp | { pattern: string })[] | undefined,
+): boolean => {
   if (!excludelist || !excludelist.length) {
     return false;
   }
@@ -30,6 +33,13 @@ export const isUrlMatchExcludelist = (url: string, excludelist: (string | RegExp
     if (typeof excludedUrl === 'string') {
       return url === excludedUrl;
     }
-    return url.match(excludedUrl);
+    if (excludedUrl instanceof RegExp) {
+      return url.match(excludedUrl);
+    }
+    // Handle { pattern: string } objects
+    if (typeof excludedUrl === 'object' && 'pattern' in excludedUrl) {
+      return url === excludedUrl.pattern;
+    }
+    return false;
   });
 };

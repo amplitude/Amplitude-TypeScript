@@ -78,4 +78,27 @@ describe('isUrlMatchExcludelist', () => {
     const result = isUrlMatchExcludelist(url, [new RegExp('http.?://amplitude.*'), new RegExp('http.?://test.*')]);
     expect(result).toEqual(true);
   });
+
+  test('should return true when url matches a pattern object in the exclude list', () => {
+    const result = isUrlMatchExcludelist(url, [{ pattern: 'https://amplitude.com/blog' }]);
+    expect(result).toEqual(true);
+  });
+
+  test('should return false when url does not match a pattern object in the exclude list', () => {
+    const result = isUrlMatchExcludelist('https://test.com', [{ pattern: 'https://amplitude.com/blog' }]);
+    expect(result).toEqual(false);
+  });
+
+  test('should handle mixed exclude list with strings, regexes, and pattern objects', () => {
+    const excludeList = [
+      'https://test.com',
+      new RegExp('https://example.*'),
+      { pattern: 'https://amplitude.com/blog' },
+    ];
+
+    expect(isUrlMatchExcludelist('https://test.com', excludeList)).toEqual(true);
+    expect(isUrlMatchExcludelist('https://example.com', excludeList)).toEqual(true);
+    expect(isUrlMatchExcludelist('https://amplitude.com/blog', excludeList)).toEqual(true);
+    expect(isUrlMatchExcludelist('https://other.com', excludeList)).toEqual(false);
+  });
 });
