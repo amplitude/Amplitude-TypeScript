@@ -212,7 +212,7 @@ describe('data extractor', () => {
       const buttonText = document.createTextNode('submit');
       button.appendChild(buttonText);
       const div = document.createElement('div');
-      div.textContent = ' and pay';
+      div.innerText = ' and pay';
       button.appendChild(div);
       const result = dataExtractor.getText(button);
       expect(result).toEqual('submit and pay');
@@ -223,7 +223,7 @@ describe('data extractor', () => {
       const buttonText = document.createTextNode('submit');
       button.appendChild(buttonText);
       const div = document.createElement('div');
-      div.textContent = '269-28-9315';
+      div.innerText = '269-28-9315';
       button.appendChild(div);
       const result = dataExtractor.getText(button);
       expect(result).toEqual(`submit${constants.MASKED_TEXT_VALUE}`);
@@ -234,7 +234,7 @@ describe('data extractor', () => {
       const buttonText = document.createTextNode('submit');
       button.appendChild(buttonText);
       const div = document.createElement('div');
-      div.textContent = ' and   \n pay';
+      div.innerText = ' and   \n pay';
       button.appendChild(div);
       const result = dataExtractor.getText(button);
       expect(result).toEqual('submit and pay');
@@ -243,7 +243,7 @@ describe('data extractor', () => {
     test('should return MASKED_TEXT_VALUE when element has data-amp-mask attribute', () => {
       const button = document.createElement('button');
       button.setAttribute('data-amp-mask', 'true');
-      button.textContent = 'sensitive button text';
+      button.innerText = 'sensitive button text';
       const result = dataExtractor.getText(button);
       expect(result).toEqual(constants.MASKED_TEXT_VALUE);
     });
@@ -252,7 +252,7 @@ describe('data extractor', () => {
       const container = document.createElement('div');
       container.setAttribute('data-amp-mask', 'true');
       const button = document.createElement('button');
-      button.textContent = 'button text';
+      button.innerText = 'button text';
       container.appendChild(button);
       const result = dataExtractor.getText(button);
       expect(result).toEqual(constants.MASKED_TEXT_VALUE);
@@ -263,7 +263,7 @@ describe('data extractor', () => {
       grandparent.setAttribute('data-amp-mask', 'true');
       const parent = document.createElement('div');
       const button = document.createElement('button');
-      button.textContent = 'nested button text';
+      button.innerText = 'nested button text';
       grandparent.appendChild(parent);
       parent.appendChild(button);
       const result = dataExtractor.getText(button);
@@ -275,7 +275,7 @@ describe('data extractor', () => {
       const safeText = document.createTextNode('Pay with card ');
       button.appendChild(safeText);
       const sensitiveDiv = document.createElement('div');
-      sensitiveDiv.textContent = '4111111111111111'; // Credit card number
+      sensitiveDiv.innerText = '4111111111111111'; // Credit card number
       button.appendChild(sensitiveDiv);
       const moreText = document.createTextNode(' securely');
       button.appendChild(moreText);
@@ -288,7 +288,7 @@ describe('data extractor', () => {
       const safeText = document.createTextNode('Submit form ');
       button.appendChild(safeText);
       const sensitiveDiv = document.createElement('div');
-      sensitiveDiv.textContent = '269-28-9315'; // SSN
+      sensitiveDiv.innerText = '269-28-9315'; // SSN
       button.appendChild(sensitiveDiv);
       const result = dataExtractor.getText(button);
       expect(result).toEqual(`Submit form ${constants.MASKED_TEXT_VALUE}`);
@@ -299,7 +299,7 @@ describe('data extractor', () => {
       const safeText = document.createTextNode('Contact ');
       button.appendChild(safeText);
       const sensitiveDiv = document.createElement('div');
-      sensitiveDiv.textContent = 'user@example.com'; // Email
+      sensitiveDiv.innerText = 'user@example.com'; // Email
       button.appendChild(sensitiveDiv);
       const moreText = document.createTextNode(' for support');
       button.appendChild(moreText);
@@ -312,7 +312,7 @@ describe('data extractor', () => {
       const safeText = document.createTextNode('Welcome to ');
       button.appendChild(safeText);
       const sensitiveDiv = document.createElement('div');
-      sensitiveDiv.textContent = 'Florida'; // Matches the regex pattern in beforeEach
+      sensitiveDiv.innerText = 'Florida'; // Matches the regex pattern in beforeEach
       button.appendChild(sensitiveDiv);
       const moreText = document.createTextNode(' tourism');
       button.appendChild(moreText);
@@ -324,13 +324,13 @@ describe('data extractor', () => {
       const container = document.createElement('div');
       const maskedDiv = document.createElement('div');
       maskedDiv.setAttribute('data-amp-mask', 'true');
-      maskedDiv.textContent = 'This should be masked';
+      maskedDiv.innerText = 'This should be masked';
 
       const normalDiv = document.createElement('div');
-      normalDiv.textContent = 'Normal text ';
+      normalDiv.innerText = 'Normal text ';
 
       const sensitiveDiv = document.createElement('div');
-      sensitiveDiv.textContent = '4111111111111111'; // This would be filtered by sensitive text logic
+      sensitiveDiv.innerText = '4111111111111111'; // This would be filtered by sensitive text logic
 
       container.appendChild(normalDiv);
       container.appendChild(maskedDiv);
@@ -349,7 +349,7 @@ describe('data extractor', () => {
       const container = document.createElement('div');
       const maskedChild = document.createElement('div');
       maskedChild.setAttribute('data-amp-mask', 'true');
-      maskedChild.textContent = 'masked content';
+      maskedChild.innerText = 'masked content';
       container.appendChild(maskedChild);
 
       // Mock cloneNode to return an element where both innerText and textContent are null
@@ -361,7 +361,7 @@ describe('data extractor', () => {
           get: () => null,
           configurable: true,
         });
-        Object.defineProperty(clonedElement, 'textContent', {
+        Object.defineProperty(clonedElement, 'innerText', {
           get: () => null,
           configurable: true,
         });
@@ -380,7 +380,7 @@ describe('data extractor', () => {
     test('should return nearest label of the element', () => {
       const div = document.createElement('div');
       const span = document.createElement('span');
-      span.textContent = 'nearest label';
+      span.innerText = 'nearest label';
       const input = document.createElement('input');
       div.appendChild(span);
       div.appendChild(input);
@@ -392,7 +392,7 @@ describe('data extractor', () => {
     test('should return masked nearest label when content is sensitive', () => {
       const div = document.createElement('div');
       const span = document.createElement('span');
-      span.textContent = '4916024123820164';
+      span.innerText = '4916024123820164';
       const input = document.createElement('input');
       div.appendChild(span);
       div.appendChild(input);
@@ -406,7 +406,7 @@ describe('data extractor', () => {
       const innerDiv = document.createElement('div');
       div.appendChild(innerDiv);
       const span = document.createElement('span');
-      span.textContent = 'parent label';
+      span.innerText = 'parent label';
       div.appendChild(span);
       const input = document.createElement('input');
       innerDiv.appendChild(input);

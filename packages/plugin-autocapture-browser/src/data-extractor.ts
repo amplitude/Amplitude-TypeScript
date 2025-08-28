@@ -208,14 +208,14 @@ export class DataExtractor {
     }
     let output = '';
     if (!element.querySelector(`[${constants.TEXT_MASK_ATTRIBUTE}], [contenteditable]`)) {
-      output = (element as HTMLElement).innerText || (element as HTMLElement).textContent || '';
+      output = (element as HTMLElement).innerText || '';
     } else {
       const clonedTree = element.cloneNode(true) as HTMLElement;
       // replace all elements with TEXT_MASK_ATTRIBUTE attribute and contenteditable with the text MASKED_TEXT_VALUE
       clonedTree.querySelectorAll(`[${constants.TEXT_MASK_ATTRIBUTE}], [contenteditable]`).forEach((node) => {
-        (node as HTMLElement).textContent = constants.MASKED_TEXT_VALUE;
+        (node as HTMLElement).innerText = constants.MASKED_TEXT_VALUE;
       });
-      output = clonedTree.innerText || clonedTree.textContent || '';
+      output = clonedTree.innerText || '';
     }
     return this.replaceSensitiveString(output.substring(0, 255)).replace(/\s+/g, ' ').trim();
   };
