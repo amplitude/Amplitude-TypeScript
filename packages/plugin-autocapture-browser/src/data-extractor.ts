@@ -4,15 +4,17 @@ import type { DataSource } from '@amplitude/analytics-core/lib/esm/types/element
 import * as constants from './constants';
 import {
   removeEmptyProperties,
-  getRedactedAttributeNamesAndAttributesWithPrefix,
+  getAttributesWithPrefix,
   isElementPointerCursor,
   getClosestElement,
   isElementBasedEvent,
+  parseAttributesToRedact,
 } from './helpers';
 import type { BaseTimestampedEvent, ElementBasedTimestampedEvent, TimestampedEvent } from './helpers';
-import { getHierarchy } from './hierarchy';
+import { getAncestors, getElementProperties } from './hierarchy';
 import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
+import { Hierarchy } from './typings/autocapture';
 
 const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
 const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
@@ -70,6 +72,50 @@ export class DataExtractor {
     return result;
   };
 
+  // Get the DOM hierarchy of the element, starting from the target element to the root element.
+  getHierarchy = (element: Element | null): Hierarchy => {
+    let hierarchy: Hierarchy = [];
+    if (!element) {
+      return [];
+    }
+
+    // Get list of ancestors including itself and get properties at each level in the hierarchy
+    const ancestors = getAncestors(element);
+
+    const elementToRedactedAttributesMap = new Map<Element, Set<string>>();
+    const reversedAncestors = [...ancestors].reverse(); // root to target order
+
+    for (let i = 0; i < reversedAncestors.length; i++) {
+      const node = reversedAncestors[i];
+      if (node) {
+        const redactedAttributes = parseAttributesToRedact(node.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
+        const ancestorRedactedAttributes =
+          i === 0
+            ? new Set<string>()
+            : parseAttributesToRedact(reversedAncestors[i - 1].getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES));
+        const allRedactedAttributes = new Set([...redactedAttributes, ...ancestorRedactedAttributes]);
+        elementToRedactedAttributesMap.set(node, allRedactedAttributes);
+      }
+    }
+
+    hierarchy = ancestors.map((el) =>
+      getElementProperties(el, elementToRedactedAttributesMap.get(el) ?? new Set<string>()),
+    );
+
+    // Mask value in attributes
+    for (const hieraryNode of hierarchy) {
+      if (hieraryNode?.attrs) {
+        Object.entries(hieraryNode.attrs).forEach(([key, value]) => {
+          if (hieraryNode.attrs?.[key]) {
+            hieraryNode.attrs[key] = this.replaceSensitiveString(value);
+          }
+        });
+      }
+    }
+    // TODO: mask text in getElementProperties
+    return hierarchy;
+  };
+
   getNearestLabel = (element: Element): string => {
     const parent = element.parentElement;
     if (!parent) {
@@ -97,12 +143,14 @@ export class DataExtractor {
     const rect =
       typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : { left: null, top: null };
 
-    const { attributes } = getRedactedAttributeNamesAndAttributesWithPrefix(element, dataAttributePrefix);
+    const hierarchy = this.getHierarchy(element);
+    const currentElementAttributes = hierarchy[0]?.attrs;
     const nearestLabel = this.getNearestLabel(element);
+    const attributes = getAttributesWithPrefix(currentElementAttributes ?? {}, dataAttributePrefix);
 
     /* istanbul ignore next */
     const properties: Record<string, any> = {
-      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: getHierarchy(element),
+      [constants.AMPLITUDE_EVENT_PROP_ELEMENT_HIERARCHY]: hierarchy,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TAG]: tag,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_TEXT]: this.getText(element),
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_POSITION_LEFT]: rect.left == null ? null : Math.round(rect.left),
@@ -110,7 +158,8 @@ export class DataExtractor {
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_ATTRIBUTES]: attributes,
       [constants.AMPLITUDE_EVENT_PROP_ELEMENT_PARENT_LABEL]: nearestLabel,
       [constants.AMPLITUDE_EVENT_PROP_PAGE_URL]: window.location.href.split('?')[0],
-      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]: (typeof document !== 'undefined' && document.title) || '',
+      [constants.AMPLITUDE_EVENT_PROP_PAGE_TITLE]:
+        (typeof document !== 'undefined' && this.replaceSensitiveString(document.title)) || '',
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_HEIGHT]: window.innerHeight,
       [constants.AMPLITUDE_EVENT_PROP_VIEWPORT_WIDTH]: window.innerWidth,
     };
@@ -122,10 +171,10 @@ export class DataExtractor {
     // class is never redacted, so always include it
     properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_CLASS] = element.getAttribute('class');
 
-    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = element.getAttribute('aria-label');
+    properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_ARIA_LABEL] = currentElementAttributes?.['aria-label'];
 
     if (tag === 'a' && actionType === 'click' && element instanceof HTMLAnchorElement) {
-      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = element.href;
+      properties[constants.AMPLITUDE_EVENT_PROP_ELEMENT_HREF] = this.replaceSensitiveString(element.href);
     }
 
     return removeEmptyProperties(properties);

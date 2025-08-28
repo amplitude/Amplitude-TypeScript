@@ -114,51 +114,20 @@ export const parseAttributesToRedact = (attributeString: string | null): string[
     : [];
 };
 
-export const getRedactedAttributeNames = (element: Element): Set<string> => {
-  const redactedAttributeNames = new Set<string>();
-  let currentElement: Element | null = element.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`); // closest invokes native libraries and is more performant than using JS to visit every ancestor
-
-  // Walk up the DOM tree to find any data-amp-mask-attributes
-  while (currentElement) {
-    const redactValue = currentElement.getAttribute(constants.DATA_AMP_MASK_ATTRIBUTES);
-    if (redactValue) {
-      // Parse comma-separated attribute names and add to set
-      const attributesToRedact = parseAttributesToRedact(redactValue);
-      attributesToRedact.forEach((attr) => {
-        redactedAttributeNames.add(attr);
-      });
-    }
-    currentElement = currentElement.parentElement?.closest(`[${constants.DATA_AMP_MASK_ATTRIBUTES}]`) || null;
-  }
-
-  return redactedAttributeNames;
-};
-
-export const getRedactedAttributeNamesAndAttributesWithPrefix = (
-  element: Element,
+export const getAttributesWithPrefix = (
+  attrs: { [key: string]: string },
   prefix: string,
-): { attributes: { [key: string]: string }; redactedAttributeNames: Set<string> } => {
-  const redactedAttributeNames = getRedactedAttributeNames(element);
+): { [key: string]: string } => {
+  return Object.entries(attrs).reduce((attributes: { [key: string]: string }, [attributeName, attributeValue]) => {
+    if (attributeName.startsWith(prefix)) {
+      const attributeKey = attributeName.replace(prefix, '');
 
-  return {
-    attributes: element.getAttributeNames().reduce((attributes: { [key: string]: string }, attributeName) => {
-      if (attributeName.startsWith(prefix)) {
-        const attributeKey = attributeName.replace(prefix, '');
-
-        // Skip redacted attributes
-        if (redactedAttributeNames.has(attributeKey)) {
-          return attributes;
-        }
-
-        const attributeValue = element.getAttribute(attributeName);
-        if (attributeKey) {
-          attributes[attributeKey] = attributeValue || '';
-        }
+      if (attributeKey) {
+        attributes[attributeKey] = attributeValue || '';
       }
-      return attributes;
-    }, {}),
-    redactedAttributeNames,
-  };
+    }
+    return attributes;
+  }, {});
 };
 
 export const isEmpty = (value: unknown) => {
