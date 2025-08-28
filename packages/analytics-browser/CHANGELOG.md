@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.23.5](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.4...@amplitude/analytics-browser@2.23.5) (2025-08-28)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
+## [2.23.4](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.3...@amplitude/analytics-browser@2.23.4) (2025-08-26)
+
+**Note:** Version bump only for package @amplitude/analytics-browser
+
+
+
+
+
 ## [2.23.3](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-browser@2.23.2...@amplitude/analytics-browser@2.23.3) (2025-08-25)
 
 
