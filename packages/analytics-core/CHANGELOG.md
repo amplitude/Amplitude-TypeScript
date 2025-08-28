@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [2.22.1](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.22.0...@amplitude/analytics-core@2.22.1) (2025-08-28)
+
+
+### Bug Fixes
+
+* **analytics-core:** handle XHR responseType JSON ([#1276](https://github.com/amplitude/Amplitude-TypeScript/issues/1276)) ([cd35193](https://github.com/amplitude/Amplitude-TypeScript/commit/cd35193ba51cdb986b3a4b8a50989067e3f8bf5b))
+
+
+
+
+
 # [2.22.0](https://github.com/amplitude/Amplitude-TypeScript/compare/@amplitude/analytics-core@2.21.2...@amplitude/analytics-core@2.22.0) (2025-08-26)
 
 
