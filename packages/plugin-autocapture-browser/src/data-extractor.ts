@@ -14,10 +14,7 @@ import { getHierarchy } from './hierarchy';
 import type { JSONValue } from './helpers';
 import { getDataSource } from './pageActions/actions';
 
-const CC_REGEX =
-  /^(?:(4[0-9]{12}(?:[0-9]{3})?)|(5[1-5][0-9]{14})|(6(?:011|5[0-9]{2})[0-9]{12})|(3[47][0-9]{13})|(3(?:0[0-5]|[68][0-9])[0-9]{11})|((?:2131|1800|35[0-9]{3})[0-9]{11}))$/;
-const CC_REGEX_WITH_SPACES =
-  /\b(?:4[0-9]{3}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|5[1-5][0-9]{2}[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|6(?:011|5[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{4}|3[47][0-9]{2}[\s-]?[0-9]{6}[\s-]?[0-9]{5}|3(?:0[0-5]|[68][0-9])[0-9][\s-]?[0-9]{6}[\s-]?[0-9]{4}|(?:2131|1800|35[0-9]{2})[\s-]?[0-9]{4}[\s-]?[0-9]{4}[\s-]?[0-9]{3})\b/g;
+const CC_REGEX = /\b(?:\d[ -]*?){13,16}\b/;
 const SSN_REGEX = /(\d{3}-?\d{2}-?\d{4})/g;
 const EMAIL_REGEX = /[^\s@]+@[^\s@.]+\.[^\s@]+/g;
 
@@ -53,17 +50,7 @@ export class DataExtractor {
     let result = text;
 
     // Check for credit card number (with or without spaces/dashes)
-    result = result.replace(CC_REGEX_WITH_SPACES, constants.MASKED_TEXT_VALUE);
-
-    // Also check for credit card numbers without spaces/dashes
-    if (CC_REGEX.test(result)) {
-      const ccMatch = result.match(CC_REGEX);
-      if (ccMatch) {
-        const ccNumber = ccMatch[0];
-        const ccPattern = new RegExp(ccNumber, 'g');
-        result = result.replace(ccPattern, constants.MASKED_TEXT_VALUE);
-      }
-    }
+    result = result.replace(CC_REGEX, constants.MASKED_TEXT_VALUE);
 
     // Check for social security number
     result = result.replace(SSN_REGEX, constants.MASKED_TEXT_VALUE);
