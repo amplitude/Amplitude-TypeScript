@@ -1,5 +1,4 @@
 /* eslint-disable no-restricted-globals */
-import * as constants from './constants';
 import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist } from '@amplitude/analytics-core';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;

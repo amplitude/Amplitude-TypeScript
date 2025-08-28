@@ -112,7 +112,7 @@ export class DataExtractor {
         });
       }
     }
-    // TODO: mask text in getElementProperties
+
     return hierarchy;
   };
 
