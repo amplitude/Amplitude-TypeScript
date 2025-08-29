@@ -1,5 +1,10 @@
 /* eslint-disable no-restricted-globals */
-import { ElementInteractionsOptions, ActionType, isUrlMatchAllowlist } from '@amplitude/analytics-core';
+import {
+  ElementInteractionsOptions,
+  ActionType,
+  isUrlMatchAllowlist,
+  isUrlMatchExcludelist,
+} from '@amplitude/analytics-core';
 
 export type JSONValue = string | number | boolean | null | { [x: string]: JSONValue } | Array<JSONValue>;
 
@@ -20,7 +25,7 @@ export const createShouldTrackEvent = (
   isAlwaysCaptureCursorPointer = false,
 ): shouldTrackEvent => {
   return (actionType: ActionType, element: Element) => {
-    const { pageUrlAllowlist, shouldTrackEventResolver } = autocaptureOptions;
+    const { pageUrlAllowlist, pageUrlExcludelist, shouldTrackEventResolver } = autocaptureOptions;
 
     /* istanbul ignore next */
     const tag = element?.tagName?.toLowerCase?.();
@@ -34,6 +39,10 @@ export const createShouldTrackEvent = (
     }
 
     if (!isUrlMatchAllowlist(window.location.href, pageUrlAllowlist)) {
+      return false;
+    }
+
+    if (isUrlMatchExcludelist(window.location.href, pageUrlExcludelist)) {
       return false;
     }
 

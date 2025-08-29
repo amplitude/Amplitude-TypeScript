@@ -10,18 +10,19 @@ import {
   generateUniqueId,
   createShouldTrackEvent,
 } from '../src/helpers';
+import { mockWindowLocationFromURL } from './utils';
 import { DATA_AMP_MASK_ATTRIBUTES } from '../src/constants';
 
 // Mock implementations for functions that are expected by tests but don't exist in current implementation
-const getRedactedAttributeNames = (element: Element): Set<string> => {
+const getMaskedAttributeNames = (element: Element): Set<string> => {
   const redactedAttributeNames = new Set<string>();
   let currentElement: Element | null = element.closest(`[${DATA_AMP_MASK_ATTRIBUTES}]`);
 
   while (currentElement) {
     const redactValue = currentElement.getAttribute(DATA_AMP_MASK_ATTRIBUTES);
     if (redactValue) {
-      const attributesToRedact = parseAttributesToMask(redactValue);
-      attributesToRedact.forEach((attr) => {
+      const attributesToMask = parseAttributesToMask(redactValue);
+      attributesToMask.forEach((attr) => {
         redactedAttributeNames.add(attr);
       });
     }
@@ -31,9 +32,9 @@ const getRedactedAttributeNames = (element: Element): Set<string> => {
   return redactedAttributeNames;
 };
 
-// Mock extractPrefixedAttributes to act like getRedactedAttributeNames for the tests
+// Mock extractPrefixedAttributes to act like getMaskedAttributeNames for the tests
 const extractPrefixedAttributes = (element: Element): Set<string> => {
-  return getRedactedAttributeNames(element);
+  return getMaskedAttributeNames(element);
 };
 
 describe('autocapture-plugin helpers', () => {
@@ -386,6 +387,58 @@ describe('autocapture-plugin helpers', () => {
 
       expect(shouldTrackEvent('click', element)).toEqual(true);
       document.head.removeChild(style);
+    });
+
+    test('should respect pageUrlExcludelist configuration', () => {
+      // Mock window.location to a test URL
+      mockWindowLocationFromURL(new URL('https://www.test.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+
+    test('should allow tracking when URL does not match excludelist', () => {
+      // Mock window.location to a different URL
+      mockWindowLocationFromURL(new URL('https://www.different.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(true);
+    });
+
+    test('should prioritize excludelist over allowlist', () => {
+      // Mock window.location to a URL that matches both lists
+      mockWindowLocationFromURL(new URL('https://www.test.com/page'));
+
+      const element = document.createElement('button');
+      element.textContent = 'Click me';
+
+      const shouldTrackEvent = createShouldTrackEvent(
+        {
+          pageUrlAllowlist: [new RegExp('https://www.test.com')],
+          pageUrlExcludelist: [new RegExp('https://www.test.com')],
+        },
+        ['button'],
+      );
+
+      expect(shouldTrackEvent('click', element)).toEqual(false);
     });
   });
 });
